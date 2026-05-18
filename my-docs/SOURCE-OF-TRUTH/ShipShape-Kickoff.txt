@@ -1,0 +1,465 @@
+Gauntlet | G F A · S H I P S H A P E        //     01     ·   KICKOFF
+Gauntlet     for America
+
+1 PROJECT BRIEF · WEEK 4 · COHORT KICKOFF
+ShipShape
+
+Auditing & improving a production TypeScript codebase from the
+U.S. Department of the Treasury.
+
+
+
+
+
+
+
+
+
+
+// TARGET          //     DURATION        // CATEGORIES          // GATE
+Treasury/ship      7 days · Solo          7 — all must improve   Austin admission
+
+$ KICKOFF --WEEK=4 --PROJECT=SHIPSHAPE                               ●
+
+    Gauntlet G F A · S H I P S H A P E    // 02 · MANDATE
+
+    WHAT     THIS    WEEK     ASKS     OF YOU
+
+
+
+
+
+
+
+
+
+> Inherit a system you didn't build.
+Understand it deeply. Measure its health.
+Diagnose its weaknesses. Make it better
+with proof.
+
+
+
+
+
+
+
+
+
+
+    The defining skill that separates junior from senior
+
+    $ CAT BRIEF.MD | HEAD -1        ●
+
+Gauntlet G F A · S H I P S H A P E    // 03 · TARGET
+
+WHAT     WE'RE   WORKING     ON
+
+
+
+
+
+
+
+
+                                                          stack.json
+
+Ship        // monorepo · pnpm workspaces
+                                                          frontend   → React · Vite · Tailwind
+                                                          editor    → TipTap + Yjs
+A project management tool built by the U.S.               backend   → Express · Node
+Department of the Treasury — docs, issues, sprints, and   database   → PostgreSQL
+                                                          realtime   → WebSocket + Yjs CRDTs
+real-time collaboration in one app.                       testing   → Playwright E2E (73+)
+                                                          infra    → Docker · Terraform
+github.com/US-Department-of-the-Treasury/ship
+
+    // architectural decision
+                                                          model    → "everything is a document"
+
+
+
+
+
+
+
+
+
+$ GIT CLONE TREASURY/SHIP && CD SHIP                                 ●
+
+    Gauntlet G F A · S H I P S H A P E    // 04 · METHODOLOGY
+
+    THE     CORE     PRINCIPLE
+
+
+
+
+
+
+
+read > write
+
+You will spend more time understanding existing patterns than
+creating new ones. This week the audit is the deliverable. Reading
+code is not preparation for the work — reading code is the work.
+
+
+
+
+
+
+
+
+
+
+    $ GREP -R "TODO" ./SRC | WC -L    ●
+
+    Gauntlet G F A · S H I P S H A P E    // 05 · STRUCTURE
+
+    HOW     THE             WEEK SPLITS
+
+    Two phases.
+    One bar.
+
+
+
+
+
+PHASE 01 · 36 HOURS PHASE 02 · 4.5 DAYS
+The Audit Implementation
+
+// diagnosis // treatment
+
+A written report with baseline measurements for Measurable improvement in every category — not
+all seven categories. Tools, methodology, raw data, pick-three. Before/after benchmarks, identical
+ranked findings. You do not fix anything during the conditions, tests still passing, root cause
+audit. documented.
+
+
+
+
+
+
+
+    HARD GATE Incomplete = automatic fail    SCORED 40% of grade · measurable improvement
+
+
+
+
+    $ ./PHASE1.SH && ./PHASE2.SH    ●
+
+Gauntlet G F A · S H I P S H A P E    // 06 · CATEGORIES
+
+THE     SPINE    OF THE     WEEK
+
+The seven categories
+
+
+
+01              02              03                  04
+
+Type Safety     Bundle Size     API Response Time   Database Queries
+
+
+
+
+
+
+
+
+
+any · as · ! · @ts-ignore ·   treemap · chunks · code   P50 · P95 · P99 · concurrent
+strict mode                   splitting · dead deps     load        N+1 · indexes · EXPLAIN ANALYZE
+
+
+
+
+05                            06                        07                / / T O T A L
+Test Coverage                 Runtime Errors            Accessibility     7
+
+
+
+
+
+
+73 Playwright tests · gaps ·   boundaries · network failure ·   Lighthouse · axe · WCAG 2.1 AA ·   measurable
+flakes                         malformed input                  keyboard                           improvement targets
+
+
+
+$ LS AUDIT/CATEGORIES/ | WC -L                                                                     ●
+
+   Gauntlet G F A · S H I P S H A P E // 07 · THE BAR
+
+        WHAT PASSING LOOKS LIKE
+
+The bar, per category
+
+# C A T E G O R Y T A R G E T G A T E
+
+01 Type Safety Eliminate 25% of type-safety violations · proper narrowing required PASS
+
+02 Bundle Size 15% total reduction · or 20% off initial via code split PASS
+
+03 API Response Time 20% P95 reduction on ≥2 endpoints · identical conditions PASS
+
+04 Database Queries 20% fewer queries on 1 flow · or 50% on slowest query PASS
+
+05 Test Coverage +3 meaningful tests on untested paths · or fix 3 flakes w/ RCA PASS
+
+06 Runtime Errors +3 error-handling fixes · ≥1 real data-loss scenario PASS
+
+07 Accessibility +10 Lighthouse on worst page · or all Critical/Serious on top 3 PASS
+
+
+
+
+
+    $ ./BENCHMARK.SH --BEFORE && ./BENCHMARK.SH --AFTER    ●
+
+    Gauntlet G F A · S H I P S H A P E                                        //     08     ·  RULES
+
+        HOW  SENIOR  ENGINEERS     WORK
+
+    Rules of engagement
+
+    01  Before/after is mandatory        02                               Tests must still pass
+        // reproducible benchmark, identical conditions, every category   // break a test → fix it with justification, or revert the
+                                                                          change
+
+
+
+
+
+
+03 Document your reasoning 04 No cosmetic changes
+      // what changed · why old was bad · why new is better · // renames, reformats, comments don't count unless they move a
+      tradeoffs metric
+
+
+
+
+
+
+05 Commit discipline matters 06 Depth over breadth
+        // labeled branches · descriptive messages · they read your git // targeted, well-documented fixes beat a scattered attempt at
+        history everything
+
+
+
+
+
+
+    $ GIT LOG --ONELINE | HEAD -20                                        ●
+
+Gauntlet G F A · S H I P S H A P E    // 09 · TIMELINE
+
+OUR     DATES
+
+Seven days. Three deadlines.
+
+
+
+
+
+
+
+
+
+
+/ / T O D A Y                    / / W E D N E S D A Y           / / F R I D A Y             / / S U N D A Y
+Kickoff                          MVP                             Early                       Final
++ 4h orientation                 12:00 PM CT                     12:00 PM CT                 10:59 PM CT
+
+Clone, read, map. No measuring   Audit report complete           Optional early submission   All deliverables shipped.
+yet.                             + first round of fixes landed   for feedback pass           Gate for Austin admission.
+
+
+
+
+
+
+
+
+
+$ DATE -U && CAT DEADLINES.TXT                                                               ●
+
+    Gauntlet G F A · S H I P S H A P E                                                                             //     10     ·     ORIENTATION 1/2
+
+        HOUR    0–4  · CODEBASE     ORIENTATION             CHECKLIST
+
+Phase 01 — First Contact
+
+/ / 0 1 Repository Overview                             / / 0 2 Data Model                             / / 0 3 Request Flow
+
+›       Clone, run, doc the gaps                        ›       Map the schema                         ›       Trace one user action E2E
+        › Every install step that wasn't in the README          › From migrations and seed files               › Pick "create issue" — follow it through
+        › What broke. What you had to guess.                    › Tables + relationships, drawn out            › React component → API route → DB query → back
+
+
+›       Read every file in docs/                        ›       Everything is a document                           ›   Middleware chain
+        › Summarize each decision in your own words             › One documents table for docs, issues, projects,      › What runs before every API request?
+        › Note anything that feels load-bearing                 sprints                                                › Order, side effects, where it can short-circuit
+                                                                › Understand the document_type discriminator
+
+›       Read shared/ end-to-end                                                                                    ›   Authentication
+        › This is the contract between front and back   ›       Relationships                                          › How does auth actually work?
+        › Diagram how web/ ↔ api/ ↔ shared/ connect             › Linking · parent-child · project membership          › What happens to an unauthenticated request?
+                                                                › How they're queried at runtime
+
+
+
+
+
+
+
+
+
+
+//  CLOCK Hour 0 → ~2 of the 4-hour orientation budget                                                                 04h
+
+$  ./ORIENT.SH --PHASE=1 --OUTPUT=NOTES.MD                                                                               ●
+
+        Gauntlet G F A · S H I P S H A P E                                                                            //     11   ·     ORIENTATION  2/2
+
+            HOUR     0–4 · CODEBASE     ORIENTATION      CHECKLIST
+
+    Phase 02 — Deep Dive                                         ·     Phase 03 — Synthesis
+
+    / / 0 4 Real-time Collab                         / / 0 5 TypeScript Patterns                          / / 0 6 · 0 7 Tests + Infra
+
+    ›       WebSocket connection                     ›       Config + version                             ›       Playwright suite
+            › How it gets established + authed               › TS version · tsconfig.json · strict mode?          › Structure · fixtures · how the test DB resets
+            › Presence + cursor tracking messages            › Per-package overrides                              › Run it. Pass count + runtime are your baseline.
+
+
+› Yjs CRDT sync › Find examples of… › Build & deploy
+     › How document state syncs between users › Generics · discriminated unions › Dockerfile · docker-compose services
+     › Two users edit the same field — what happens? › Utility types · type guards › Skim Terraform: what cloud does it expect?
+
+
+› Server persistence › Unknown patterns › CI/CD
+     › Where + when Yjs state is saved › See something you don't recognize? › Pipeline (if configured) · gates · cadence
+     › What's the source of truth on reconnect? › Research it. That's a discovery candidate.
+
+
+
+
+
+
+
+
+
+
+    //  PHASE 03 · SYNTHESIS 3  strongest    decisions · 3 weakest points · what breaks at 10× · what you'd tell a new engineer first  08✓
+
+    $  ./ORIENT.SH --PHASE=2,3 --FINALIZE                                                                                                ●
+
+   Gauntlet G F A · S H I P S H A P E // 12 · DISCOVERY
+
+        A DELIVERABLE ON THE RUBRIC
+
+Find three things you didn't know.
+   01 02 03
+
+   // WHAT // WHY IT MATTERS // THE POINT
+   A TypeScript feature, library, What it actually does in the system and This is the thing you'll remember in your
+   architectural pattern, or engineering why the team made that choice. next job — not the metric you moved by
+   practice that is new to you. 22%.
+
+        // THEN
+   // WHERE how you'd apply it next time // KEEP
+   file path + line range a running notes file all week
+
+
+
+
+
+
+
+
+
+
+    $ ECHO "DISCOVERY.MD" >> DELIVERABLES.TXT    ●
+
+Gauntlet G F A · S H I P S H A P E    // 13 · SUBMISSION
+
+WHAT     GOES    IN THE     BOX
+
+Submission checklist
+
+
+Forked GitHub repo                                              Audit report
+// improvements on labeled branches · setup guide in README     // baselines for all 7 · methodology · tools · raw data
+
+
+Improvement docs                                                Discovery write-up
+// before · root cause · fix · after · proof — per category     // 3 things · codebase refs · reflection
+
+
+Demo video                                                      AI cost analysis
+// 3–5 min · walk through findings + before/after               // spend + reflection on AI for codebase comprehension
+
+
+Deployed application                                            Social post
+// improved fork · running · publicly accessible                // X or LinkedIn · key findings · tag @GauntletAI
+
+
+
+
+
+
+
+
+
+
+$ GIT PUSH ORIGIN SHIPSHAPE && SUBMIT.SH                        ●
+
+Gauntlet G F A · S H I P S H A P E    // 14 · GRADING
+
+WHAT     GETS    MEASURED
+
+How it's graded
+
+
+
+
+
+Measurable improvement     40%
+
+Technical depth            25%   ~½ the grade is "can you prove it."
+TypeScript quality         15%   Measurement and writing aren't the
+                                 boring parts of the week — they are the
+Documentation quality      10%   week.
+
+Commit discipline          10%
+
+
+
+
+
+
+
+$ CAT RUBRIC.JSON | JQ '.WEIGHTS'    ●
+
+Gauntlet | G F A · S H I P S H A P E    // 15 · SHIP IT
+1 READY · SET
+Depth over breadth.
+Proof over promises.
+
+
+
+® ~/shipshape
+
+$ git clone github.com/US-Department-of-the-Treasury/ship
+$ cd ship && pnpm install
+$ git checkout -b shipshape/audit
+↳ Switched to branch 'shipshape/audit'
+
+
+// see you Wednesday, noon CT.
+$
+
+
+
+$ ./SHIPSHAPE.SH START    ●
