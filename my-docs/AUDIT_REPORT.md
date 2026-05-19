@@ -16,7 +16,6 @@
 - Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
 - Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
 - Runtime flow URL note: the Issues list was reached directly at `http://localhost:5174/issues`; it was not obvious from the visible primary navigation during this pass.
-- Still to record before runtime categories: remaining exact flow URLs.
 - check if /file works...
 
 ---
@@ -289,7 +288,19 @@ Restore trust in the test system before expanding it.
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
+1. **High:** Document list/document editor pages have structural accessibility defects. `/docs` and `/documents/:id` both fail Lighthouse checks for ARIA required children and invalid list-item structure.
+2. **Medium:** `/my-week` has a color contrast failure, likely in muted/due/status text on the dark UI.
+3. **Medium:** Keyboard navigation passed the first smoke check but is not fully proven. The first 10 Tab stops on `/docs` had visible focus and logical order, but modals, command palette, editor controls, and sidebars still need targeted manual checks.
+4. **Low:** `/issues` and `/projects` scored 100 in Lighthouse accessibility with no automated failures.
+5. **Low:** Lighthouse reports 10 manual checks per page, so automated scores do not cover purpose/state clarity, focus management after dynamic updates, or custom-control semantics.
+
 **Remediation Plan**
+
+1. Fix the shared document tree/list markup first, because the same ARIA/list failures hit both `/docs` and `/documents/:id`.
+2. Audit custom list/menu/tree components for correct parent/child roles and valid HTML list structure.
+3. Fix the `/my-week` contrast failure by identifying the exact failing foreground/background pair in Lighthouse details.
+4. Add a focused keyboard checklist for command palette, New Document, document tree expand/collapse, editor focus, properties sidebar controls, and action-item modal.
+5. Re-run Lighthouse on the same five pages after fixes and require no automated failures before claiming accessibility improvement.
 
 ---
 
