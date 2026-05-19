@@ -72,6 +72,7 @@ Add a lightweight ESLint type-safety guardrail, then clean up the highest-risk f
 - Number of chunks was measured by counting generated JavaScript and CSS files in `web/dist/assets`, excluding source maps.
 - Largest dependencies were measured from Vite/Rollup production build metadata by grouping rendered `node_modules` module lengths by package. The generated report is in `my-docs/audit-evidence/category-2-bundle/bundle-treemap.html`.
 - Unused dependencies were checked by comparing `web/package.json` dependencies against static imports in `web/src`, then spot-checking candidates with `rg` and the generated bundle report.
+- Package manifests were also spot-checked for dependencies that may belong in `devDependencies`; `@tanstack/react-query-devtools` and `@modelcontextprotocol/sdk` need follow-up classification before moving anything.
 
 **Baseline**
 
@@ -96,11 +97,12 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 1. Gate `ReactQueryDevtools` behind a dev-only dynamic import so it never ships in the production entry bundle.
 2. Remove the unused `@tanstack/query-sync-storage-persister` dependency if the static import and bundle checks still confirm it is unused.
-3. Lazy-load `emoji-picker-react`; the picker should download only when the emoji popover opens.
-4. Convert eager page imports in `web/src/main.tsx` to route-level `React.lazy` imports, especially admin, org chart, reviews, settings, and document-heavy pages.
-5. Split the editor path so non-editor pages do not pay for TipTap, Yjs, ProseMirror, lowlight, or collaboration code on initial load.
-6. Reduce syntax-highlighting weight by registering only needed languages or loading highlighting after the editor/code block is actually used.
-7. Measure success with the same production build and bundle report, targeting at least a 20% reduction in the initial `assets/index-*.js` chunk without removing user-facing functionality.
+3. Reclassify package manifests after checking runtime entrypoints: move `@tanstack/react-query-devtools` to `devDependencies` once it is dev-only gated, and move `@modelcontextprotocol/sdk` to `devDependencies` if `api/src/mcp/server.ts` remains a local/tooling entrypoint rather than production runtime.
+4. Lazy-load `emoji-picker-react`; the picker should download only when the emoji popover opens.
+5. Convert eager page imports in `web/src/main.tsx` to route-level `React.lazy` imports, especially admin, org chart, reviews, settings, and document-heavy pages.
+6. Split the editor path so non-editor pages do not pay for TipTap, Yjs, ProseMirror, lowlight, or collaboration code on initial load.
+7. Reduce syntax-highlighting weight by registering only needed languages or loading highlighting after the editor/code block is actually used.
+8. Measure success with the same production build and bundle report, targeting at least a 20% reduction in the initial `assets/index-*.js` chunk without removing user-facing functionality.
 
 ---
 
@@ -238,6 +240,10 @@ Restore trust in the test system before expanding it.
 
 - Static error-handling coverage was checked with `rg` for React error boundaries, global browser error/rejection handlers, Node `unhandledRejection` / `uncaughtException` handlers, and API `catch` blocks.
 - Runtime console baseline uses the authenticated browser session on the same audit-scale `ship_dev` data set.
+- Malformed input was checked against login UI validation and document API validation: empty login, script-like invalid email, 5,000-character password, empty document title, 300-character document title, and script-like/special-character document title.[^9]
+- Concurrent collaboration was checked with two authenticated browser contexts editing the body of the same temporary audit document.[^9]
+- Slow-network behavior was checked by throttling `/docs` to an emulated 3G-like profile through Chrome DevTools Protocol.[^9]
+- Server log capture was limited because the running `pnpm dev` terminal is external to this Codex thread; browser/API responses were captured directly, but external API terminal logs still need manual confirmation.
 
 **Baseline**
 
@@ -248,22 +254,31 @@ Restore trust in the test system before expanding it.
 | Network disconnect recovery           | Partial: document page stays rendered; offline mode repeatedly logs `BacklinksPanel.tsx` fetch failures; errors stop after returning to `No throttling`, but no visible offline/reconnected state appears |
 | Missing error boundaries              | Partial boundary only: main `<Outlet />` wrapped; providers, sidebars, command palette, realtime/auth layers not wrapped |
 | Silent failures identified            | Backlinks fetch failures are console-only during disconnect; no visible user feedback |
+| Malformed input handling              | Mixed: login empty/script-like input shows user-facing errors; document API rejects empty/300-char titles with JSON 400; missing CSRF returns HTML 403 stack page |
+| Concurrent same-document editing      | Pass for checked editor-body case: two sessions editing the same temporary document converged to the same body text with both edits present |
+| 3G throttled behavior                 | Partial pass: `/docs` became visible under throttling in 16.4s with no lingering loading text, but no explicit slow-network state appears |
+| Server logs during edge checks        | Not captured in Codex; external `pnpm dev` terminal must be checked for unhandled errors during this pass |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** Network disconnects create console-only failures. `BacklinksPanel.tsx` repeatedly logs `Failed to fetch` while offline, but the user sees no offline state, retry status, or degraded-mode message.
-2. **High:** Server process-level failure handling is missing. No `process.on('unhandledRejection')` or `process.on('uncaughtException')` handler was found, so unexpected async failures may be logged inconsistently or terminate without a controlled shutdown path.
-3. **Medium:** Error boundaries are incomplete. The main `<Outlet />` is wrapped, but providers, auth/realtime layers, sidebars, command palette, and properties portal are outside the boundary.
-4. **Medium:** API routes mostly catch and return JSON 500s, but error handling is duplicated per route instead of centralized. This increases the chance of inconsistent messages/statuses as routes grow.
-5. **Low:** Normal authenticated navigation was quiet. `/docs`, `/issues`, `/my-week`, and `/projects` produced 0 console errors after clearing Console.
+2. **High:** CSRF failures can leak an HTML stack page. A state-changing request without `X-CSRF-Token` returned a 403 HTML response containing a `ForbiddenError` stack trace from `csrf-sync`, which is inconsistent with the JSON API error shape and exposes implementation details.
+3. **High:** Server process-level failure handling is missing. No `process.on('unhandledRejection')` or `process.on('uncaughtException')` handler was found, so unexpected async failures may be logged inconsistently or terminate without a controlled shutdown path.
+4. **Medium:** Error boundaries are incomplete. The main `<Outlet />` is wrapped, but providers, auth/realtime layers, sidebars, command palette, and properties portal are outside the boundary.
+5. **Medium:** API routes mostly catch and return JSON 500s, but error handling is duplicated per route instead of centralized. This increases the chance of inconsistent messages/statuses as routes grow.
+6. **Medium:** Slow network does not hang the checked `/docs` flow, but it also does not provide a clear slow/degraded state. The page became visible after about 16.4s under throttling.
+7. **Low:** Login and document validation behaved predictably for checked malformed inputs: empty login produced `Email address is required`, invalid script-like credentials produced `Invalid email or password`, and invalid document titles returned JSON 400s.
+8. **Low:** Checked two-session editor-body collaboration converged correctly: both browser contexts ended with both edits present.
+9. **Low:** Normal authenticated navigation was quiet. `/docs`, `/issues`, `/my-week`, and `/projects` produced 0 console errors after clearing Console.
 
 **Remediation Plan**
 
 1. Add visible offline/degraded states for polling panels and realtime features, starting with `BacklinksPanel`.
-2. Add process-level `unhandledRejection` and `uncaughtException` handlers with structured logging and graceful shutdown behavior.
-3. Move error boundaries higher or add separate boundaries around providers/sidebar/realtime surfaces so one crash cannot blank major app chrome.
-4. Add centralized Express error middleware and route helpers so thrown errors become consistent JSON responses.
-5. Keep the normal-navigation console check as a regression smoke test after fixes.
+2. Add centralized Express error middleware for CSRF and other middleware errors so 403/500 failures return JSON without HTML stack traces.
+3. Add process-level `unhandledRejection` and `uncaughtException` handlers with structured logging and graceful shutdown behavior.
+4. Move error boundaries higher or add separate boundaries around providers/sidebar/realtime surfaces so one crash cannot blank major app chrome.
+5. Add centralized route helpers so thrown errors become consistent JSON responses.
+6. Keep the normal-navigation, malformed-input, slow-network, and two-session collaboration checks as regression smoke tests after fixes.
 
 ---
 
@@ -537,3 +552,59 @@ Manual keyboard notes:
 Manual VoiceOver notes:
 
 - `VoiceOver: page structure clear; document tree understandable despite known ARIA/list issues; controls mostly named; command palette usable.`
+
+[^9]: Category 6 runtime/error evidence.
+
+Runtime edge-case checks used Chrome headless through Playwright against the running local app at `http://localhost:5174` / `http://localhost:3000`.
+
+Command shape:
+
+```bash
+node --input-type=module <<'NODE'
+import { chromium } from '@playwright/test';
+
+const base = 'http://localhost:5174';
+const api = 'http://localhost:3000';
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
+// Login as dev@ship.local / admin123.
+// Fetch /api/csrf-token for state-changing API requests.
+// Exercise login validation, document create validation, script-like title rendering,
+// two-browser-context document body editing, and CDP network throttling.
+NODE
+```
+
+Malformed input results:
+
+| Check | Result |
+| --- | --- |
+| Login submit with empty fields | User-facing alert: `Email address is required` |
+| Login with script-like invalid email and 5,000-character password | User-facing alert: `Invalid email or password` |
+| `POST /api/documents` with empty title and valid CSRF | `400 application/json`, Zod `too_small` title error |
+| `POST /api/documents` with 300-character title and valid CSRF | `400 application/json`, Zod `too_big` title error |
+| `POST /api/documents` with script-like/special-character title and valid CSRF | `201 application/json`; title stored literally |
+| Render script-like title in browser | `window.__shipAuditXss` remained false; title rendered as text |
+| `POST /api/documents` without CSRF | `403 text/html`; response included `ForbiddenError: invalid csrf token` stack trace |
+
+Concurrent editing result:
+
+```json
+{
+  "bodyA": "Session A body edit. Session B body edit. \\nDev User\\n\\n",
+  "bodyB": "Session A body edit. Session B body edit. \\nDev User\\n\\n",
+  "containsAInBoth": true,
+  "containsBInBoth": true
+}
+```
+
+Slow-network result:
+
+```json
+{
+  "check": "3G throttled /docs",
+  "elapsedMs": 16387,
+  "docsVisible": true,
+  "loadingTextCount": 0
+}
+```
+
+Browser console during the automated Cat 6 pass showed expected resource errors from checked negative cases: initial unauthenticated `/api/auth/me` 401, validation 400s, and the intentionally missing-CSRF 403. No browser `pageerror` was observed. Server logs were not directly captured because `pnpm dev` was running in an external terminal outside this Codex thread.
