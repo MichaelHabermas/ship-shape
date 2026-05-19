@@ -1,0 +1,1897 @@
+{
+  "generatedAt": "2026-05-19T01:51:53.508Z",
+  "chunks": [
+    {
+      "fileName": "assets/index-C2vAyoQ1.js",
+      "type": "chunk",
+      "bytes": 2077014
+    },
+    {
+      "fileName": "assets/index-DJeYp5na.css",
+      "type": "asset",
+      "bytes": 66524
+    },
+    {
+      "fileName": "assets/ProgramWeeksTab-BzbUWlt4.js",
+      "type": "chunk",
+      "bytes": 16761
+    },
+    {
+      "fileName": "assets/WeekReviewTab-DmxN07T1.js",
+      "type": "chunk",
+      "bytes": 12644
+    },
+    {
+      "fileName": "assets/StandupFeed-BjJLDai5.js",
+      "type": "chunk",
+      "bytes": 9648
+    },
+    {
+      "fileName": "assets/ProjectRetroTab-BV2rvgoM.js",
+      "type": "chunk",
+      "bytes": 9043
+    },
+    {
+      "fileName": "assets/ProjectWeeksTab-oE3MioHn.js",
+      "type": "chunk",
+      "bytes": 6654
+    },
+    {
+      "fileName": "assets/ProgramProjectsTab-eNNvrO8g.js",
+      "type": "chunk",
+      "bytes": 4401
+    },
+    {
+      "fileName": "assets/ProjectDetailsTab-gSyN3jFM.js",
+      "type": "chunk",
+      "bytes": 3604
+    },
+    {
+      "fileName": "assets/WeekPlanningTab-DWsXI-LK.js",
+      "type": "chunk",
+      "bytes": 2987
+    },
+    {
+      "fileName": "assets/WeekOverviewTab-BkUUf8Qc.js",
+      "type": "chunk",
+      "bytes": 1888
+    },
+    {
+      "fileName": "assets/fingerprint-DETfo2gZ.js",
+      "type": "chunk",
+      "bytes": 1800
+    },
+    {
+      "fileName": "assets/ProgramOverviewTab-CysaNSnp.js",
+      "type": "chunk",
+      "bytes": 1735
+    },
+    {
+      "fileName": "assets/instagram-CkSGsMT0.js",
+      "type": "chunk",
+      "bytes": 1670
+    },
+    {
+      "fileName": "assets/coronavirus-CzmE_Rfs.js",
+      "type": "chunk",
+      "bytes": 1623
+    },
+    {
+      "fileName": "assets/WeekIssuesTab-D4BLXISm.js",
+      "type": "chunk",
+      "bytes": 1315
+    },
+    {
+      "fileName": "assets/language-xZHcYWXG.js",
+      "type": "chunk",
+      "bytes": 944
+    },
+    {
+      "fileName": "assets/reduce_capacity-P---9WKJ.js",
+      "type": "chunk",
+      "bytes": 936
+    },
+    {
+      "fileName": "assets/settings-CmmeQHes.js",
+      "type": "chunk",
+      "bytes": 886
+    },
+    {
+      "fileName": "assets/soap-BHt5W93Q.js",
+      "type": "chunk",
+      "bytes": 830
+    },
+    {
+      "fileName": "assets/masks-HmhP3t8r.js",
+      "type": "chunk",
+      "bytes": 820
+    },
+    {
+      "fileName": "assets/flooding-C7huXCTi.js",
+      "type": "chunk",
+      "bytes": 814
+    },
+    {
+      "fileName": "assets/do_not_touch-CvpB5HoY.js",
+      "type": "chunk",
+      "bytes": 813
+    },
+    {
+      "fileName": "assets/pets-B9vBY1ze.js",
+      "type": "chunk",
+      "bytes": 757
+    },
+    {
+      "fileName": "assets/snow-C7n2tUDm.js",
+      "type": "chunk",
+      "bytes": 742
+    },
+    {
+      "fileName": "assets/twitter-C3L-ApVA.js",
+      "type": "chunk",
+      "bytes": 715
+    },
+    {
+      "fileName": "assets/groups-Bnu-6EBM.js",
+      "type": "chunk",
+      "bytes": 701
+    },
+    {
+      "fileName": "assets/hearing-AKvQ8c7c.js",
+      "type": "chunk",
+      "bytes": 693
+    },
+    {
+      "fileName": "assets/visibility_off-BKhtJZGz.js",
+      "type": "chunk",
+      "bytes": 692
+    },
+    {
+      "fileName": "assets/github-CGf-Xc4s.js",
+      "type": "chunk",
+      "bytes": 691
+    },
+    {
+      "fileName": "assets/insights-O5wi3ghY.js",
+      "type": "chunk",
+      "bytes": 690
+    },
+    {
+      "fileName": "assets/directions_bike-Co0c_2F2.js",
+      "type": "chunk",
+      "bytes": 684
+    },
+    {
+      "fileName": "assets/linkedin-BPsPDDse.js",
+      "type": "chunk",
+      "bytes": 670
+    },
+    {
+      "fileName": "assets/wash-DHJBnn0x.js",
+      "type": "chunk",
+      "bytes": 656
+    },
+    {
+      "fileName": "assets/sentiment_satisfied_alt-BbUZ6exx.js",
+      "type": "chunk",
+      "bytes": 653
+    },
+    {
+      "fileName": "assets/support-ajQla38X.js",
+      "type": "chunk",
+      "bytes": 644
+    },
+    {
+      "fileName": "assets/support_agent-W3kFlVuu.js",
+      "type": "chunk",
+      "bytes": 641
+    },
+    {
+      "fileName": "assets/construction_worker-D34DhBt-.js",
+      "type": "chunk",
+      "bytes": 616
+    },
+    {
+      "fileName": "assets/bathtub-Ck_HwNh6.js",
+      "type": "chunk",
+      "bytes": 613
+    },
+    {
+      "fileName": "assets/construction-Bh6BJgoZ.js",
+      "type": "chunk",
+      "bytes": 606
+    },
+    {
+      "fileName": "assets/clean_hands-HkajWuYM.js",
+      "type": "chunk",
+      "bytes": 600
+    },
+    {
+      "fileName": "assets/local_fire_department-PwAOT_KD.js",
+      "type": "chunk",
+      "bytes": 595
+    },
+    {
+      "fileName": "assets/sentiment_dissatisfied-Dfz8tBZg.js",
+      "type": "chunk",
+      "bytes": 591
+    },
+    {
+      "fileName": "assets/connect_without_contact-US4kXaoY.js",
+      "type": "chunk",
+      "bytes": 587
+    },
+    {
+      "fileName": "assets/sentiment_satisfied-CDZKI9_Z.js",
+      "type": "chunk",
+      "bytes": 575
+    },
+    {
+      "fileName": "assets/notifications_active-DIfsp7kP.js",
+      "type": "chunk",
+      "bytes": 570
+    },
+    {
+      "fileName": "assets/youtube-CpgsWLAc.js",
+      "type": "chunk",
+      "bytes": 567
+    },
+    {
+      "fileName": "assets/ProgramIssuesTab-f0wp_SPx.js",
+      "type": "chunk",
+      "bytes": 562
+    },
+    {
+      "fileName": "assets/bug_report-CB6ncxHh.js",
+      "type": "chunk",
+      "bytes": 561
+    },
+    {
+      "fileName": "assets/bedding-ye_8onRP.js",
+      "type": "chunk",
+      "bytes": 559
+    },
+    {
+      "fileName": "assets/share-HFgIagqz.js",
+      "type": "chunk",
+      "bytes": 558
+    },
+    {
+      "fileName": "assets/electrical_services-Wojh_3n4.js",
+      "type": "chunk",
+      "bytes": 556
+    },
+    {
+      "fileName": "assets/attach_money-CpB5Gj4K.js",
+      "type": "chunk",
+      "bytes": 552
+    },
+    {
+      "fileName": "assets/sentiment_very_dissatisfied-PnqoP4Vn.js",
+      "type": "chunk",
+      "bytes": 552
+    },
+    {
+      "fileName": "assets/campaign-BUB6Zie2.js",
+      "type": "chunk",
+      "bytes": 550
+    },
+    {
+      "fileName": "assets/favorite_border-CN4d0Mq3.js",
+      "type": "chunk",
+      "bytes": 548
+    },
+    {
+      "fileName": "assets/fax-TRibw793.js",
+      "type": "chunk",
+      "bytes": 548
+    },
+    {
+      "fileName": "assets/sanitizer-B-eCfZm_.js",
+      "type": "chunk",
+      "bytes": 548
+    },
+    {
+      "fileName": "assets/flickr-BIru31CJ.js",
+      "type": "chunk",
+      "bytes": 544
+    },
+    {
+      "fileName": "assets/alternate_email-DXU-2_Yk.js",
+      "type": "chunk",
+      "bytes": 543
+    },
+    {
+      "fileName": "assets/local_taxi-Bgg90PH3.js",
+      "type": "chunk",
+      "bytes": 541
+    },
+    {
+      "fileName": "assets/local_gas_station-Dq1hxk2G.js",
+      "type": "chunk",
+      "bytes": 537
+    },
+    {
+      "fileName": "assets/notifications_off-Bz2cnpTa.js",
+      "type": "chunk",
+      "bytes": 534
+    },
+    {
+      "fileName": "assets/directions_car-Ke-OwgFN.js",
+      "type": "chunk",
+      "bytes": 532
+    },
+    {
+      "fileName": "assets/lightbulb_outline-vVlouekF.js",
+      "type": "chunk",
+      "bytes": 532
+    },
+    {
+      "fileName": "assets/directions_bus-BedtQmQ1.js",
+      "type": "chunk",
+      "bytes": 530
+    },
+    {
+      "fileName": "assets/volume_off-CVC2ozq3.js",
+      "type": "chunk",
+      "bytes": 530
+    },
+    {
+      "fileName": "assets/social_distance-Dt9ViVZ9.js",
+      "type": "chunk",
+      "bytes": 522
+    },
+    {
+      "fileName": "assets/hurricane-BvRjAmeq.js",
+      "type": "chunk",
+      "bytes": 520
+    },
+    {
+      "fileName": "assets/link_off-DzZUOF_g.js",
+      "type": "chunk",
+      "bytes": 520
+    },
+    {
+      "fileName": "assets/local_laundry_service-ClfFgJ1v.js",
+      "type": "chunk",
+      "bytes": 520
+    },
+    {
+      "fileName": "assets/group_add-BPA335ao.js",
+      "type": "chunk",
+      "bytes": 514
+    },
+    {
+      "fileName": "assets/accessible_forward-DNeBYZAs.js",
+      "type": "chunk",
+      "bytes": 513
+    },
+    {
+      "fileName": "assets/local_grocery_store-BGwQP8Yb.js",
+      "type": "chunk",
+      "bytes": 510
+    },
+    {
+      "fileName": "assets/safety_divider-BUJpk4Bb.js",
+      "type": "chunk",
+      "bytes": 504
+    },
+    {
+      "fileName": "assets/public-A9LdjJc8.js",
+      "type": "chunk",
+      "bytes": 501
+    },
+    {
+      "fileName": "assets/lock_outline-C1hufvo4.js",
+      "type": "chunk",
+      "bytes": 493
+    },
+    {
+      "fileName": "assets/sentiment_neutral--hqLTlxi.js",
+      "type": "chunk",
+      "bytes": 491
+    },
+    {
+      "fileName": "assets/closed_caption-C8Midqa3.js",
+      "type": "chunk",
+      "bytes": 482
+    },
+    {
+      "fileName": "assets/update-Dk_8EKBY.js",
+      "type": "chunk",
+      "bytes": 481
+    },
+    {
+      "fileName": "assets/people-DaCyaYLS.js",
+      "type": "chunk",
+      "bytes": 479
+    },
+    {
+      "fileName": "assets/translate-Bx73jumd.js",
+      "type": "chunk",
+      "bytes": 475
+    },
+    {
+      "fileName": "assets/my_location-D6NVbRbR.js",
+      "type": "chunk",
+      "bytes": 473
+    },
+    {
+      "fileName": "assets/help-CImS1vTK.js",
+      "type": "chunk",
+      "bytes": 471
+    },
+    {
+      "fileName": "assets/shopping_basket-511-e5LC.js",
+      "type": "chunk",
+      "bytes": 467
+    },
+    {
+      "fileName": "assets/identification-DqEEaHMG.js",
+      "type": "chunk",
+      "bytes": 465
+    },
+    {
+      "fileName": "assets/zoom_in-DH9KY9Fy.js",
+      "type": "chunk",
+      "bytes": 461
+    },
+    {
+      "fileName": "assets/thumb_up_alt-Dw-0vOZT.js",
+      "type": "chunk",
+      "bytes": 459
+    },
+    {
+      "fileName": "assets/account_box-v2uK179S.js",
+      "type": "chunk",
+      "bytes": 456
+    },
+    {
+      "fileName": "assets/thumb_down_alt-B54Pet9c.js",
+      "type": "chunk",
+      "bytes": 454
+    },
+    {
+      "fileName": "assets/file_present-De7ra2O7.js",
+      "type": "chunk",
+      "bytes": 450
+    },
+    {
+      "fileName": "assets/emoji_events-twzqLu96.js",
+      "type": "chunk",
+      "bytes": 447
+    },
+    {
+      "fileName": "assets/checkroom-tkAxkaWE.js",
+      "type": "chunk",
+      "bytes": 446
+    },
+    {
+      "fileName": "assets/help_outline-B-z1vHWh.js",
+      "type": "chunk",
+      "bytes": 446
+    },
+    {
+      "fileName": "assets/severe_weather-C-g2jcsl.js",
+      "type": "chunk",
+      "bytes": 446
+    },
+    {
+      "fileName": "assets/local_offer-CH3ckenN.js",
+      "type": "chunk",
+      "bytes": 444
+    },
+    {
+      "fileName": "assets/verified-DWtvI9Fr.js",
+      "type": "chunk",
+      "bytes": 441
+    },
+    {
+      "fileName": "assets/phone-BhPsOZ14.js",
+      "type": "chunk",
+      "bytes": 439
+    },
+    {
+      "fileName": "assets/do_not_disturb-dtD31CXp.js",
+      "type": "chunk",
+      "bytes": 432
+    },
+    {
+      "fileName": "assets/autorenew-j_1Z-kOm.js",
+      "type": "chunk",
+      "bytes": 431
+    },
+    {
+      "fileName": "assets/highlight_off-Cv6CLx-l.js",
+      "type": "chunk",
+      "bytes": 431
+    },
+    {
+      "fileName": "assets/account_circle-CA4EPb_8.js",
+      "type": "chunk",
+      "bytes": 430
+    },
+    {
+      "fileName": "assets/alarm-DzWwQ3nQ.js",
+      "type": "chunk",
+      "bytes": 427
+    },
+    {
+      "fileName": "assets/lock_open-BMojMrqE.js",
+      "type": "chunk",
+      "bytes": 427
+    },
+    {
+      "fileName": "assets/rain-ik4h4VDV.js",
+      "type": "chunk",
+      "bytes": 426
+    },
+    {
+      "fileName": "assets/facebook-BbM8zvg9.js",
+      "type": "chunk",
+      "bytes": 424
+    },
+    {
+      "fileName": "assets/keyboard-CwiC1UUJ.js",
+      "type": "chunk",
+      "bytes": 423
+    },
+    {
+      "fileName": "assets/lock-oR4-oWpr.js",
+      "type": "chunk",
+      "bytes": 422
+    },
+    {
+      "fileName": "assets/loop-BhUY8W-o.js",
+      "type": "chunk",
+      "bytes": 421
+    },
+    {
+      "fileName": "assets/schedule-CWVZaYX1.js",
+      "type": "chunk",
+      "bytes": 420
+    },
+    {
+      "fileName": "assets/api-B0-oVrSR.js",
+      "type": "chunk",
+      "bytes": 418
+    },
+    {
+      "fileName": "assets/eco-BYN8wbqm.js",
+      "type": "chunk",
+      "bytes": 416
+    },
+    {
+      "fileName": "assets/link-DL2nfTzE.js",
+      "type": "chunk",
+      "bytes": 415
+    },
+    {
+      "fileName": "assets/ProjectIssuesTab-BPkbt8_8.js",
+      "type": "chunk",
+      "bytes": 415
+    },
+    {
+      "fileName": "assets/visibility-C7M96WfC.js",
+      "type": "chunk",
+      "bytes": 414
+    },
+    {
+      "fileName": "assets/directions_walk-DO6sko0m.js",
+      "type": "chunk",
+      "bytes": 411
+    },
+    {
+      "fileName": "assets/info_outline-RCHc9rQS.js",
+      "type": "chunk",
+      "bytes": 410
+    },
+    {
+      "fileName": "assets/zoom_out-BEBAvZHb.js",
+      "type": "chunk",
+      "bytes": 410
+    },
+    {
+      "fileName": "assets/attach_file-DRIjfP3v.js",
+      "type": "chunk",
+      "bytes": 409
+    },
+    {
+      "fileName": "assets/notifications_none-DxdIaFQO.js",
+      "type": "chunk",
+      "bytes": 407
+    },
+    {
+      "fileName": "assets/zoom_out_map-D-GFdnIV.js",
+      "type": "chunk",
+      "bytes": 407
+    },
+    {
+      "fileName": "assets/history-DOVxhl29.js",
+      "type": "chunk",
+      "bytes": 404
+    },
+    {
+      "fileName": "assets/photo_camera-Dg4GFsc0.js",
+      "type": "chunk",
+      "bytes": 404
+    },
+    {
+      "fileName": "assets/rss_feed-U-u7kxD8.js",
+      "type": "chunk",
+      "bytes": 403
+    },
+    {
+      "fileName": "assets/contact_page-DDa6CAtI.js",
+      "type": "chunk",
+      "bytes": 401
+    },
+    {
+      "fileName": "assets/search-DEo1izxk.js",
+      "type": "chunk",
+      "bytes": 399
+    },
+    {
+      "fileName": "assets/military_tech-ChZ18ppL.js",
+      "type": "chunk",
+      "bytes": 397
+    },
+    {
+      "fileName": "assets/directions-9yiqBlH0.js",
+      "type": "chunk",
+      "bytes": 396
+    },
+    {
+      "fileName": "assets/tornado-z4JoSpxC.js",
+      "type": "chunk",
+      "bytes": 395
+    },
+    {
+      "fileName": "assets/x-BhR1uiqu.js",
+      "type": "chunk",
+      "bytes": 386
+    },
+    {
+      "fileName": "assets/map-BhM1F9A_.js",
+      "type": "chunk",
+      "bytes": 383
+    },
+    {
+      "fileName": "assets/star_outline-BY9Kim02.js",
+      "type": "chunk",
+      "bytes": 383
+    },
+    {
+      "fileName": "assets/local_library-D20bFR_l.js",
+      "type": "chunk",
+      "bytes": 376
+    },
+    {
+      "fileName": "assets/check_circle_outline-SHGmeMG0.js",
+      "type": "chunk",
+      "bytes": 375
+    },
+    {
+      "fileName": "assets/build-BkYEYro7.js",
+      "type": "chunk",
+      "bytes": 374
+    },
+    {
+      "fileName": "assets/cancel--EhkhnRF.js",
+      "type": "chunk",
+      "bytes": 373
+    },
+    {
+      "fileName": "assets/error_outline-Bendfws0.js",
+      "type": "chunk",
+      "bytes": 373
+    },
+    {
+      "fileName": "assets/timer-D11CwwpU.js",
+      "type": "chunk",
+      "bytes": 373
+    },
+    {
+      "fileName": "assets/favorite-Cbu_QBDC.js",
+      "type": "chunk",
+      "bytes": 372
+    },
+    {
+      "fileName": "assets/medical_services-C1jsjE9w.js",
+      "type": "chunk",
+      "bytes": 370
+    },
+    {
+      "fileName": "assets/deck-Duui4_FH.js",
+      "type": "chunk",
+      "bytes": 368
+    },
+    {
+      "fileName": "assets/device_thermostat-B91z9YEw.js",
+      "type": "chunk",
+      "bytes": 368
+    },
+    {
+      "fileName": "assets/wifi-DZSH-xkh.js",
+      "type": "chunk",
+      "bytes": 367
+    },
+    {
+      "fileName": "assets/upload_file-jPoCjOMo.js",
+      "type": "chunk",
+      "bytes": 363
+    },
+    {
+      "fileName": "assets/add_circle_outline-CKUMekAK.js",
+      "type": "chunk",
+      "bytes": 362
+    },
+    {
+      "fileName": "assets/lightbulb-DdXV08s0.js",
+      "type": "chunk",
+      "bytes": 362
+    },
+    {
+      "fileName": "assets/notifications-GFmyYzVL.js",
+      "type": "chunk",
+      "bytes": 361
+    },
+    {
+      "fileName": "assets/push_pin-CTvwRqdB.js",
+      "type": "chunk",
+      "bytes": 359
+    },
+    {
+      "fileName": "assets/science-CZMbiLpN.js",
+      "type": "chunk",
+      "bytes": 357
+    },
+    {
+      "fileName": "assets/cloud-B6Dy287k.js",
+      "type": "chunk",
+      "bytes": 356
+    },
+    {
+      "fileName": "assets/work-BCx6cK6k.js",
+      "type": "chunk",
+      "bytes": 356
+    },
+    {
+      "fileName": "assets/accessibility_new-Baub2BCa.js",
+      "type": "chunk",
+      "bytes": 355
+    },
+    {
+      "fileName": "assets/report-Caiu-_mH.js",
+      "type": "chunk",
+      "bytes": 353
+    },
+    {
+      "fileName": "assets/local_police-DswXhLos.js",
+      "type": "chunk",
+      "bytes": 352
+    },
+    {
+      "fileName": "assets/location_city-CZIUiZOw.js",
+      "type": "chunk",
+      "bytes": 352
+    },
+    {
+      "fileName": "assets/more_horiz-7dC_Qpan.js",
+      "type": "chunk",
+      "bytes": 352
+    },
+    {
+      "fileName": "assets/more_vert-DOJYb_c4.js",
+      "type": "chunk",
+      "bytes": 350
+    },
+    {
+      "fileName": "assets/undo-Cdy0m53z.js",
+      "type": "chunk",
+      "bytes": 349
+    },
+    {
+      "fileName": "assets/filter_alt-B2s3pMWl.js",
+      "type": "chunk",
+      "bytes": 347
+    },
+    {
+      "fileName": "assets/print-TR7x-ylJ.js",
+      "type": "chunk",
+      "bytes": 347
+    },
+    {
+      "fileName": "assets/star_half-p76AfoEl.js",
+      "type": "chunk",
+      "bytes": 343
+    },
+    {
+      "fileName": "assets/spellcheck-D19M1AQ3.js",
+      "type": "chunk",
+      "bytes": 342
+    },
+    {
+      "fileName": "assets/restaurant-DZlnO3E-.js",
+      "type": "chunk",
+      "bytes": 337
+    },
+    {
+      "fileName": "assets/edit-bwGMOmX_.js",
+      "type": "chunk",
+      "bytes": 335
+    },
+    {
+      "fileName": "assets/hourglass_empty-33WOyinj.js",
+      "type": "chunk",
+      "bytes": 335
+    },
+    {
+      "fileName": "assets/toggle_off-Dj_O6rAt.js",
+      "type": "chunk",
+      "bytes": 335
+    },
+    {
+      "fileName": "assets/event-CnRS-Ngx.js",
+      "type": "chunk",
+      "bytes": 334
+    },
+    {
+      "fileName": "assets/toggle_on-RRkPqLWG.js",
+      "type": "chunk",
+      "bytes": 334
+    },
+    {
+      "fileName": "assets/forum-kxKidfRv.js",
+      "type": "chunk",
+      "bytes": 330
+    },
+    {
+      "fileName": "assets/radio_button_unchecked-D6WVGDNd.js",
+      "type": "chunk",
+      "bytes": 330
+    },
+    {
+      "fileName": "assets/backpack-BCEIBCdC.js",
+      "type": "chunk",
+      "bytes": 329
+    },
+    {
+      "fileName": "assets/content_copy-CqD8MUUe.js",
+      "type": "chunk",
+      "bytes": 329
+    },
+    {
+      "fileName": "assets/label-CousILLk.js",
+      "type": "chunk",
+      "bytes": 329
+    },
+    {
+      "fileName": "assets/launch-mnQK-mit.js",
+      "type": "chunk",
+      "bytes": 329
+    },
+    {
+      "fileName": "assets/camping-jJuQ2UPD.js",
+      "type": "chunk",
+      "bytes": 326
+    },
+    {
+      "fileName": "assets/credit_card-Dk1kmWsS.js",
+      "type": "chunk",
+      "bytes": 325
+    },
+    {
+      "fileName": "assets/topic-DTpNmBRn.js",
+      "type": "chunk",
+      "bytes": 325
+    },
+    {
+      "fileName": "assets/grid_view-7dxJ-BlF.js",
+      "type": "chunk",
+      "bytes": 324
+    },
+    {
+      "fileName": "assets/local_hospital-CowkJhbC.js",
+      "type": "chunk",
+      "bytes": 323
+    },
+    {
+      "fileName": "assets/assessment-BhjkYiFp.js",
+      "type": "chunk",
+      "bytes": 321
+    },
+    {
+      "fileName": "assets/clothes-D_itCinx.js",
+      "type": "chunk",
+      "bytes": 321
+    },
+    {
+      "fileName": "assets/mail_outline-5JnxU9pF.js",
+      "type": "chunk",
+      "bytes": 321
+    },
+    {
+      "fileName": "assets/security-CqH8CDqW.js",
+      "type": "chunk",
+      "bytes": 321
+    },
+    {
+      "fileName": "assets/sort_arrow-CEbGkvyS.js",
+      "type": "chunk",
+      "bytes": 321
+    },
+    {
+      "fileName": "assets/flight-Dij5iRAL.js",
+      "type": "chunk",
+      "bytes": 320
+    },
+    {
+      "fileName": "assets/location_on-BJ5p-Wmb.js",
+      "type": "chunk",
+      "bytes": 320
+    },
+    {
+      "fileName": "assets/image-CSk76MnY.js",
+      "type": "chunk",
+      "bytes": 319
+    },
+    {
+      "fileName": "assets/local_cafe-DPqRMZqe.js",
+      "type": "chunk",
+      "bytes": 319
+    },
+    {
+      "fileName": "assets/save_alt-D8Qbt-HK.js",
+      "type": "chunk",
+      "bytes": 319
+    },
+    {
+      "fileName": "assets/check_circle-DWqkc1Jr.js",
+      "type": "chunk",
+      "bytes": 318
+    },
+    {
+      "fileName": "assets/comment-Zgbo_GyX.js",
+      "type": "chunk",
+      "bytes": 317
+    },
+    {
+      "fileName": "assets/hotel-DLKl_NP8.js",
+      "type": "chunk",
+      "bytes": 317
+    },
+    {
+      "fileName": "assets/chat-D6PRDl91.js",
+      "type": "chunk",
+      "bytes": 316
+    },
+    {
+      "fileName": "assets/logout-B-IBGFMc.js",
+      "type": "chunk",
+      "bytes": 315
+    },
+    {
+      "fileName": "assets/person-atc284cN.js",
+      "type": "chunk",
+      "bytes": 315
+    },
+    {
+      "fileName": "assets/calendar_today-tb-cqc3m.js",
+      "type": "chunk",
+      "bytes": 314
+    },
+    {
+      "fileName": "assets/mail-DbzcsQyM.js",
+      "type": "chunk",
+      "bytes": 313
+    },
+    {
+      "fileName": "assets/unfold_less-D3BCL4lF.js",
+      "type": "chunk",
+      "bytes": 313
+    },
+    {
+      "fileName": "assets/verified_user-DuUTYv23.js",
+      "type": "chunk",
+      "bytes": 312
+    },
+    {
+      "fileName": "assets/folder_open-BsBmZVAr.js",
+      "type": "chunk",
+      "bytes": 311
+    },
+    {
+      "fileName": "assets/hospital-B2HZTL94.js",
+      "type": "chunk",
+      "bytes": 311
+    },
+    {
+      "fileName": "assets/chevron_right-Bj8BzsDU.js",
+      "type": "chunk",
+      "bytes": 310
+    },
+    {
+      "fileName": "assets/login-pLvGguUs.js",
+      "type": "chunk",
+      "bytes": 310
+    },
+    {
+      "fileName": "assets/unfold_more-BqT8U90i.js",
+      "type": "chunk",
+      "bytes": 310
+    },
+    {
+      "fileName": "assets/chevron_left-DxO3-1ca.js",
+      "type": "chunk",
+      "bytes": 309
+    },
+    {
+      "fileName": "assets/close-Dajt8gjn.js",
+      "type": "chunk",
+      "bytes": 309
+    },
+    {
+      "fileName": "assets/local_pharmacy-DbZGunf_.js",
+      "type": "chunk",
+      "bytes": 307
+    },
+    {
+      "fileName": "assets/announcement-CJS_maiX.js",
+      "type": "chunk",
+      "bytes": 306
+    },
+    {
+      "fileName": "assets/add_circle-NFAFUpBX.js",
+      "type": "chunk",
+      "bytes": 305
+    },
+    {
+      "fileName": "assets/error-DUOpYn6d.js",
+      "type": "chunk",
+      "bytes": 299
+    },
+    {
+      "fileName": "assets/info-Donxhe_K.js",
+      "type": "chunk",
+      "bytes": 299
+    },
+    {
+      "fileName": "assets/navigate_far_next-DiaEjbWB.js",
+      "type": "chunk",
+      "bytes": 297
+    },
+    {
+      "fileName": "assets/star-lS8glC0H.js",
+      "type": "chunk",
+      "bytes": 296
+    },
+    {
+      "fileName": "assets/check_box_outline_blank-CbmQpz2J.js",
+      "type": "chunk",
+      "bytes": 295
+    },
+    {
+      "fileName": "assets/folder-D5np0XFh.js",
+      "type": "chunk",
+      "bytes": 294
+    },
+    {
+      "fileName": "assets/local_parking-Cg594FmP.js",
+      "type": "chunk",
+      "bytes": 294
+    },
+    {
+      "fileName": "assets/navigate_far_before-BfwBh4xw.js",
+      "type": "chunk",
+      "bytes": 290
+    },
+    {
+      "fileName": "assets/remove_circle-S0ChXBj4.js",
+      "type": "chunk",
+      "bytes": 287
+    },
+    {
+      "fileName": "assets/statusColors-CQb8KAr2.js",
+      "type": "chunk",
+      "bytes": 287
+    },
+    {
+      "fileName": "assets/code-B8RyNnX1.js",
+      "type": "chunk",
+      "bytes": 282
+    },
+    {
+      "fileName": "assets/list-COWLIR0b.js",
+      "type": "chunk",
+      "bytes": 282
+    },
+    {
+      "fileName": "assets/delete-53RKm96V.js",
+      "type": "chunk",
+      "bytes": 280
+    },
+    {
+      "fileName": "assets/trending_up-p492Cdba.js",
+      "type": "chunk",
+      "bytes": 279
+    },
+    {
+      "fileName": "assets/trending_down-DiFf-vUn.js",
+      "type": "chunk",
+      "bytes": 278
+    },
+    {
+      "fileName": "assets/account_balance-BfXZEago.js",
+      "type": "chunk",
+      "bytes": 277
+    },
+    {
+      "fileName": "assets/store-dMSZI7cU.js",
+      "type": "chunk",
+      "bytes": 276
+    },
+    {
+      "fileName": "assets/school-B8PXGaqN.js",
+      "type": "chunk",
+      "bytes": 270
+    },
+    {
+      "fileName": "assets/shield-BzSljC72.js",
+      "type": "chunk",
+      "bytes": 267
+    },
+    {
+      "fileName": "assets/bookmark-DgBmF98Q.js",
+      "type": "chunk",
+      "bytes": 266
+    },
+    {
+      "fileName": "assets/first_page-CfGU8o_b.js",
+      "type": "chunk",
+      "bytes": 266
+    },
+    {
+      "fileName": "assets/last_page-DixVjQ6h.js",
+      "type": "chunk",
+      "bytes": 266
+    },
+    {
+      "fileName": "assets/priority_high-Bu4R41OZ.js",
+      "type": "chunk",
+      "bytes": 266
+    },
+    {
+      "fileName": "assets/arrow_back-BFZI7LsT.js",
+      "type": "chunk",
+      "bytes": 265
+    },
+    {
+      "fileName": "assets/arrow_downward-C_IsuboL.js",
+      "type": "chunk",
+      "bytes": 265
+    },
+    {
+      "fileName": "assets/arrow_forward-DgdrzfHj.js",
+      "type": "chunk",
+      "bytes": 264
+    },
+    {
+      "fileName": "assets/arrow_upward-q8kwAutQ.js",
+      "type": "chunk",
+      "bytes": 263
+    },
+    {
+      "fileName": "assets/check-BMQn0V7V.js",
+      "type": "chunk",
+      "bytes": 257
+    },
+    {
+      "fileName": "assets/park-DPWv7UeN.js",
+      "type": "chunk",
+      "bytes": 257
+    },
+    {
+      "fileName": "assets/navigate_next-D2UPtzLi.js",
+      "type": "chunk",
+      "bytes": 254
+    },
+    {
+      "fileName": "assets/expand_less-CEGF6Nxs.js",
+      "type": "chunk",
+      "bytes": 253
+    },
+    {
+      "fileName": "assets/navigate_before-CMypJ-vt.js",
+      "type": "chunk",
+      "bytes": 253
+    },
+    {
+      "fileName": "assets/expand_more-4pl8zTX_.js",
+      "type": "chunk",
+      "bytes": 252
+    },
+    {
+      "fileName": "assets/text_fields-CuLS0EZ0.js",
+      "type": "chunk",
+      "bytes": 252
+    },
+    {
+      "fileName": "assets/format_size-gpGajeeL.js",
+      "type": "chunk",
+      "bytes": 249
+    },
+    {
+      "fileName": "assets/near_me-BLzX-liO.js",
+      "type": "chunk",
+      "bytes": 249
+    },
+    {
+      "fileName": "assets/warning-DH8hp72X.js",
+      "type": "chunk",
+      "bytes": 249
+    },
+    {
+      "fileName": "assets/filter_list-CR0qUxF6.js",
+      "type": "chunk",
+      "bytes": 248
+    },
+    {
+      "fileName": "assets/format_quote-BttxLWaW.js",
+      "type": "chunk",
+      "bytes": 248
+    },
+    {
+      "fileName": "assets/menu-C2JEj_M1.js",
+      "type": "chunk",
+      "bytes": 247
+    },
+    {
+      "fileName": "assets/file_upload-czxDu4g3.js",
+      "type": "chunk",
+      "bytes": 245
+    },
+    {
+      "fileName": "assets/send-Dh-cmkWC.js",
+      "type": "chunk",
+      "bytes": 245
+    },
+    {
+      "fileName": "assets/flag-CVbZL3GR.js",
+      "type": "chunk",
+      "bytes": 244
+    },
+    {
+      "fileName": "assets/file_download-Dy4mNvcp.js",
+      "type": "chunk",
+      "bytes": 243
+    },
+    {
+      "fileName": "assets/home-Ck4-pku7.js",
+      "type": "chunk",
+      "bytes": 243
+    },
+    {
+      "fileName": "assets/add-DQatKLWt.js",
+      "type": "chunk",
+      "bytes": 241
+    },
+    {
+      "fileName": "assets/fast_forward-aXELhNiS.js",
+      "type": "chunk",
+      "bytes": 239
+    },
+    {
+      "fileName": "assets/fast_rewind-BtLA4unE.js",
+      "type": "chunk",
+      "bytes": 238
+    },
+    {
+      "fileName": "assets/drag_handle-rN68K5SD.js",
+      "type": "chunk",
+      "bytes": 235
+    },
+    {
+      "fileName": "assets/remove-C7rGvU6r.js",
+      "type": "chunk",
+      "bytes": 223
+    },
+    {
+      "fileName": "assets/arrow_drop_down-Dm9u6Qoh.js",
+      "type": "chunk",
+      "bytes": 222
+    },
+    {
+      "fileName": "assets/arrow_drop_up-Btu8Dqcs.js",
+      "type": "chunk",
+      "bytes": 222
+    },
+    {
+      "fileName": "assets/WeekStandupsTab-h5P0rMz3.js",
+      "type": "chunk",
+      "bytes": 164
+    }
+  ],
+  "packages": [
+    {
+      "name": "(app code)",
+      "bytes": 1352479,
+      "kb": 1320.78
+    },
+    {
+      "name": "emoji-picker-react",
+      "bytes": 409176,
+      "kb": 399.59
+    },
+    {
+      "name": "highlight.js",
+      "bytes": 386991,
+      "kb": 377.92
+    },
+    {
+      "name": "yjs",
+      "bytes": 271278,
+      "kb": 264.92
+    },
+    {
+      "name": "prosemirror-view",
+      "bytes": 241993,
+      "kb": 236.32
+    },
+    {
+      "name": "@tiptap/core",
+      "bytes": 185526,
+      "kb": 181.18
+    },
+    {
+      "name": "react-dom",
+      "bytes": 134906,
+      "kb": 131.74
+    },
+    {
+      "name": "prosemirror-model",
+      "bytes": 124135,
+      "kb": 121.23
+    },
+    {
+      "name": "@uswds/uswds",
+      "bytes": 114331,
+      "kb": 111.65
+    },
+    {
+      "name": "lib0",
+      "bytes": 109079,
+      "kb": 106.52
+    },
+    {
+      "name": "@dnd-kit/core",
+      "bytes": 103395,
+      "kb": 100.97
+    },
+    {
+      "name": "diff-match-patch",
+      "bytes": 82525,
+      "kb": 80.59
+    },
+    {
+      "name": "@tiptap/extension-code-block-lowlight",
+      "bytes": 81940,
+      "kb": 80.02
+    },
+    {
+      "name": "prosemirror-transform",
+      "bytes": 81857,
+      "kb": 79.94
+    },
+    {
+      "name": "react-router",
+      "bytes": 81482,
+      "kb": 79.57
+    },
+    {
+      "name": "@tanstack/query-core",
+      "bytes": 79267,
+      "kb": 77.41
+    },
+    {
+      "name": "tailwind-merge",
+      "bytes": 72017,
+      "kb": 70.33
+    },
+    {
+      "name": "prosemirror-tables",
+      "bytes": 71811,
+      "kb": 70.13
+    },
+    {
+      "name": "y-prosemirror",
+      "bytes": 60150,
+      "kb": 58.74
+    },
+    {
+      "name": "linkifyjs",
+      "bytes": 59716,
+      "kb": 58.32
+    },
+    {
+      "name": "@popperjs/core",
+      "bytes": 58704,
+      "kb": 57.33
+    },
+    {
+      "name": "tippy.js",
+      "bytes": 36692,
+      "kb": 35.83
+    },
+    {
+      "name": "prosemirror-state",
+      "bytes": 36048,
+      "kb": 35.2
+    },
+    {
+      "name": "@tiptap/react",
+      "bytes": 33236,
+      "kb": 32.46
+    },
+    {
+      "name": "@floating-ui/core",
+      "bytes": 27041,
+      "kb": 26.41
+    },
+    {
+      "name": "@floating-ui/dom",
+      "bytes": 25889,
+      "kb": 25.28
+    },
+    {
+      "name": "prosemirror-commands",
+      "bytes": 25224,
+      "kb": 24.63
+    },
+    {
+      "name": "@radix-ui/react-tooltip",
+      "bytes": 18769,
+      "kb": 18.33
+    },
+    {
+      "name": "prosemirror-history",
+      "bytes": 17132,
+      "kb": 16.73
+    },
+    {
+      "name": "@dnd-kit/sortable",
+      "bytes": 16889,
+      "kb": 16.49
+    },
+    {
+      "name": "@tiptap/extension-link",
+      "bytes": 16464,
+      "kb": 16.08
+    },
+    {
+      "name": "react-remove-scroll",
+      "bytes": 15129,
+      "kb": 14.77
+    },
+    {
+      "name": "y-websocket",
+      "bytes": 14537,
+      "kb": 14.2
+    },
+    {
+      "name": "y-protocols",
+      "bytes": 13478,
+      "kb": 13.16
+    },
+    {
+      "name": "@tiptap/extension-table",
+      "bytes": 12744,
+      "kb": 12.45
+    },
+    {
+      "name": "cmdk",
+      "bytes": 12613,
+      "kb": 12.32
+    },
+    {
+      "name": "@radix-ui/react-dialog",
+      "bytes": 12384,
+      "kb": 12.09
+    },
+    {
+      "name": "@tiptap/suggestion",
+      "bytes": 12221,
+      "kb": 11.93
+    },
+    {
+      "name": "lowlight",
+      "bytes": 12181,
+      "kb": 11.9
+    },
+    {
+      "name": "@radix-ui/react-popover",
+      "bytes": 10942,
+      "kb": 10.69
+    },
+    {
+      "name": "@radix-ui/react-popper",
+      "bytes": 10832,
+      "kb": 10.58
+    },
+    {
+      "name": "flairup",
+      "bytes": 9900,
+      "kb": 9.67
+    },
+    {
+      "name": "@floating-ui/utils",
+      "bytes": 9639,
+      "kb": 9.41
+    },
+    {
+      "name": "react",
+      "bytes": 9595,
+      "kb": 9.37
+    },
+    {
+      "name": "@floating-ui/react-dom",
+      "bytes": 9516,
+      "kb": 9.29
+    },
+    {
+      "name": "@tiptap/extension-mention",
+      "bytes": 9387,
+      "kb": 9.17
+    },
+    {
+      "name": "@tiptap/extension-bubble-menu",
+      "bytes": 8983,
+      "kb": 8.77
+    },
+    {
+      "name": "@radix-ui/react-dismissable-layer",
+      "bytes": 8465,
+      "kb": 8.27
+    },
+    {
+      "name": "prosemirror-gapcursor",
+      "bytes": 8358,
+      "kb": 8.16
+    },
+    {
+      "name": "@tiptap/extension-code-block",
+      "bytes": 8351,
+      "kb": 8.16
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "bytes": 8058,
+      "kb": 7.87
+    },
+    {
+      "name": "@radix-ui/react-focus-scope",
+      "bytes": 7771,
+      "kb": 7.59
+    },
+    {
+      "name": "@dnd-kit/utilities",
+      "bytes": 7705,
+      "kb": 7.52
+    },
+    {
+      "name": "rope-sequence",
+      "bytes": 7265,
+      "kb": 7.09
+    },
+    {
+      "name": "prosemirror-schema-list",
+      "bytes": 7083,
+      "kb": 6.92
+    },
+    {
+      "name": "@tanstack/react-query",
+      "bytes": 6642,
+      "kb": 6.49
+    },
+    {
+      "name": "@tiptap/extension-task-item",
+      "bytes": 6119,
+      "kb": 5.98
+    },
+    {
+      "name": "prosemirror-dropcursor",
+      "bytes": 6118,
+      "kb": 5.97
+    },
+    {
+      "name": "@tiptap/extension-collaboration",
+      "bytes": 6080,
+      "kb": 5.94
+    },
+    {
+      "name": "aria-hidden",
+      "bytes": 5359,
+      "kb": 5.23
+    },
+    {
+      "name": "y-indexeddb",
+      "bytes": 5230,
+      "kb": 5.11
+    },
+    {
+      "name": "scheduler",
+      "bytes": 4962,
+      "kb": 4.85
+    },
+    {
+      "name": "prosemirror-keymap",
+      "bytes": 4784,
+      "kb": 4.67
+    },
+    {
+      "name": "@radix-ui/react-presence",
+      "bytes": 4645,
+      "kb": 4.54
+    },
+    {
+      "name": "react-remove-scroll-bar",
+      "bytes": 4479,
+      "kb": 4.37
+    },
+    {
+      "name": "orderedmap",
+      "bytes": 4382,
+      "kb": 4.28
+    },
+    {
+      "name": "use-callback-ref",
+      "bytes": 3388,
+      "kb": 3.31
+    },
+    {
+      "name": "@tiptap/extension-horizontal-rule",
+      "bytes": 3368,
+      "kb": 3.29
+    },
+    {
+      "name": "@radix-ui/react-context",
+      "bytes": 3269,
+      "kb": 3.19
+    },
+    {
+      "name": "@tiptap/extension-collaboration-cursor",
+      "bytes": 3262,
+      "kb": 3.19
+    },
+    {
+      "name": "@tiptap/extension-ordered-list",
+      "bytes": 3204,
+      "kb": 3.13
+    },
+    {
+      "name": "use-sidecar",
+      "bytes": 2904,
+      "kb": 2.84
+    },
+    {
+      "name": "@tiptap/extension-placeholder",
+      "bytes": 2747,
+      "kb": 2.68
+    },
+    {
+      "name": "w3c-keyname",
+      "bytes": 2629,
+      "kb": 2.57
+    },
+    {
+      "name": "@tiptap/starter-kit",
+      "bytes": 2617,
+      "kb": 2.56
+    },
+    {
+      "name": "@tiptap/extension-bold",
+      "bytes": 2615,
+      "kb": 2.55
+    },
+    {
+      "name": "@tiptap/extension-italic",
+      "bytes": 2521,
+      "kb": 2.46
+    },
+    {
+      "name": "react-style-singleton",
+      "bytes": 2335,
+      "kb": 2.28
+    },
+    {
+      "name": "@tiptap/extension-hard-break",
+      "bytes": 2231,
+      "kb": 2.18
+    },
+    {
+      "name": "idb-keyval",
+      "bytes": 2213,
+      "kb": 2.16
+    },
+    {
+      "name": "@tiptap/extension-bullet-list",
+      "bytes": 2209,
+      "kb": 2.16
+    },
+    {
+      "name": "@tiptap/extension-heading",
+      "bytes": 2198,
+      "kb": 2.15
+    },
+    {
+      "name": "tslib",
+      "bytes": 2189,
+      "kb": 2.14
+    },
+    {
+      "name": "@radix-ui/react-use-controllable-state",
+      "bytes": 2152,
+      "kb": 2.1
+    },
+    {
+      "name": "@tiptap/extension-code",
+      "bytes": 1934,
+      "kb": 1.89
+    },
+    {
+      "name": "@tiptap/extension-strike",
+      "bytes": 1918,
+      "kb": 1.87
+    },
+    {
+      "name": "@tanstack/query-persist-client-core",
+      "bytes": 1649,
+      "kb": 1.61
+    },
+    {
+      "name": "@radix-ui/react-primitive",
+      "bytes": 1610,
+      "kb": 1.57
+    },
+    {
+      "name": "@tiptap/extension-blockquote",
+      "bytes": 1362,
+      "kb": 1.33
+    },
+    {
+      "name": "@tiptap/extension-history",
+      "bytes": 1336,
+      "kb": 1.3
+    },
+    {
+      "name": "@radix-ui/react-use-size",
+      "bytes": 1144,
+      "kb": 1.12
+    },
+    {
+      "name": "@tiptap/extension-table-header",
+      "bytes": 1130,
+      "kb": 1.1
+    },
+    {
+      "name": "@tiptap/extension-table-cell",
+      "bytes": 1115,
+      "kb": 1.09
+    },
+    {
+      "name": "@dnd-kit/accessibility",
+      "bytes": 1079,
+      "kb": 1.05
+    },
+    {
+      "name": "@tanstack/react-query-persist-client",
+      "bytes": 1074,
+      "kb": 1.05
+    },
+    {
+      "name": "@tiptap/extension-task-list",
+      "bytes": 1055,
+      "kb": 1.03
+    },
+    {
+      "name": "@tiptap/extension-list-item",
+      "bytes": 924,
+      "kb": 0.9
+    },
+    {
+      "name": "@radix-ui/react-compose-refs",
+      "bytes": 904,
+      "kb": 0.88
+    },
+    {
+      "name": "@radix-ui/react-focus-guards",
+      "bytes": 858,
+      "kb": 0.84
+    },
+    {
+      "name": "@tiptap/extension-paragraph",
+      "bytes": 836,
+      "kb": 0.82
+    },
+    {
+      "name": "@tiptap/extension-gapcursor",
+      "bytes": 786,
+      "kb": 0.77
+    },
+    {
+      "name": "@radix-ui/react-visually-hidden",
+      "bytes": 724,
+      "kb": 0.71
+    },
+    {
+      "name": "@radix-ui/react-use-escape-keydown",
+      "bytes": 590,
+      "kb": 0.58
+    },
+    {
+      "name": "@radix-ui/react-arrow",
+      "bytes": 572,
+      "kb": 0.56
+    },
+    {
+      "name": "@radix-ui/react-portal",
+      "bytes": 542,
+      "kb": 0.53
+    },
+    {
+      "name": "@tiptap/extension-table-row",
+      "bytes": 531,
+      "kb": 0.52
+    },
+    {
+      "name": "@tiptap/extension-dropcursor",
+      "bytes": 527,
+      "kb": 0.51
+    },
+    {
+      "name": "@radix-ui/react-id",
+      "bytes": 377,
+      "kb": 0.37
+    },
+    {
+      "name": "clsx",
+      "bytes": 368,
+      "kb": 0.36
+    },
+    {
+      "name": "@radix-ui/primitive",
+      "bytes": 332,
+      "kb": 0.32
+    },
+    {
+      "name": "@radix-ui/react-use-callback-ref",
+      "bytes": 313,
+      "kb": 0.31
+    },
+    {
+      "name": "@tiptap/extension-document",
+      "bytes": 229,
+      "kb": 0.22
+    },
+    {
+      "name": "@tiptap/extension-text",
+      "bytes": 178,
+      "kb": 0.17
+    },
+    {
+      "name": "@radix-ui/react-use-layout-effect",
+      "bytes": 149,
+      "kb": 0.15
+    },
+    {
+      "name": "get-nonce",
+      "bytes": 145,
+      "kb": 0.14
+    },
+    {
+      "name": "@tanstack/react-query-devtools",
+      "bytes": 57,
+      "kb": 0.06
+    }
+  ]
+}

@@ -39,22 +39,32 @@
 
 ---
 
-## Category 2: Bundle Size
+## Category 2: Production Frontend Bundle Size
 
 **Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+
+- Total production bundle size was measured after `pnpm build:web` by summing raw JavaScript and CSS files in `web/dist`, excluding source maps. Full `web/dist` static output, including icons/images, was also measured for context.
+- Largest chunk was identified by sorting generated `web/dist/assets` JavaScript and CSS files by byte size.
+- Number of chunks was measured by counting generated JavaScript and CSS files in `web/dist/assets`, excluding source maps.
+- Largest dependencies were measured from Vite/Rollup production build metadata by grouping rendered `node_modules` module lengths by package. The generated report is in `my-docs/audit-evidence/category-2-bundle/bundle-treemap.html`.
+- Unused dependencies were checked by comparing `web/package.json` dependencies against static imports in `web/src`, then spot-checking candidates with `rg` and the generated bundle report.
 
 **Baseline**
 
 | Metric                         | Value         |
 | ------------------------------ | ------------- |
-| Total production bundle size   | KB            |
-| Largest chunk                  | (name + size) |
-| Number of chunks               |               |
-| Top 3 largest dependencies     |               |
-| Unused dependencies identified |               |
+| Total production bundle size   | 2,262.65 KB JS/CSS (3,351.53 KB full `web/dist`) |
+| Largest chunk                  | `assets/index-C2vAyoQ1.js` (2,025.10 KB) |
+| Number of chunks               | 262 JS/CSS chunks (261 JS, 1 CSS) |
+| Top 3 largest dependencies     | `emoji-picker-react` (399.59 KB), `highlight.js` (377.92 KB), `yjs` (264.92 KB) |
+| Unused dependencies identified | `@tanstack/query-sync-storage-persister` |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
-1.
+
+1. **High:** The main JavaScript chunk dominates the bundle. `assets/index-C2vAyoQ1.js` is 2,025.10 KB, about 89% of the raw JS/CSS bundle, and triggers Vite's >500 KB warning.
+2. **High:** Code splitting exists but is not reducing the initial bundle enough. The build emits 262 JS/CSS chunks, but most are tiny while the main app chunk remains very large.
+3. **Medium:** `emoji-picker-react` and `highlight.js` are large feature-specific dependencies. They appear expensive relative to how often emoji picking or code highlighting is likely needed on initial load. `yjs` is also large, but it supports core collaboration behavior.
+4. **Low:** `@tanstack/query-sync-storage-persister` appears unused by static import and bundle-report checks. `@uswds/uswds` was a false positive because it is used through the icon glob/generation path.
 
 ---
 
@@ -73,6 +83,7 @@
 | 5.       |     |     |     |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
+
 1.
 
 ---
@@ -92,6 +103,7 @@
 | Search content    |               |                    |               |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
+
 1.
 
 ---
@@ -111,6 +123,7 @@
 | Code coverage % (if measured)     | web: % / api: % |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
+
 1.
 
 ---
@@ -130,6 +143,7 @@
 | Silent failures identified            |                       |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
+
 1.
 
 ---
@@ -149,6 +163,7 @@
 | Missing ARIA labels or roles              |                         |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
+
 1.
 
 ---
