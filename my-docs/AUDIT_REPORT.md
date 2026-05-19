@@ -112,19 +112,31 @@
 
 **Methodology (**Describe how you measured it (tools, commands, methodology)**)**
 
+- Test inventory was measured by scanning `api/src`, `web/src`, `shared/src`, and `e2e` for `*.test.ts(x)` and `*.spec.ts(x)` files, then counting declared `test(...)` / `it(...)` cases.[^3]
+- Web unit tests were run with `pnpm --filter @ship/web exec vitest run`.
+- API unit tests were run with `pnpm --filter @ship/api exec vitest run` against a throwaway database (`ship_test_audit`) to avoid truncating local application data. The throwaway DB was created, migrated (`pnpm --filter @ship/api db:migrate`), and seeded, then dropped after the run.[^4]
+- E2E test count was measured with `npx playwright test --list` from the `e2e/` directory, which enumerates every test the runner would execute.[^5]
+- Flaky test detection: both API and web suites were run 3× each; any test that changed pass/fail status across runs was flagged as flaky.
+- API code coverage was measured by temporarily installing `@vitest/coverage-v8@4.0.17` (matching the project's `vitest@4.0.17`) and running `pnpm --filter @ship/api exec vitest run --coverage` against the throwaway DB. The dependency was removed after measurement.
+- Web coverage was checked in `web/vitest.config.ts`; no coverage provider is configured.
+
 **Baseline**
 
 | Metric                            | Value           |
 | --------------------------------- | --------------- |
-| Total tests                       |                 |
-| Pass / Fail / Flaky               | / /             |
-| Suite runtime                     | s               |
-| Critical flows with zero coverage |                 |
-| Code coverage % (if measured)     | web: % / api: % |
+| Total tests                       | 1,471 executable tests across 99 files (451 API in 28 files, 151 web in 16 files, 869 E2E in 71 files) |
+| Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E: not executed (inventory only) |
+| Suite runtime                     | API unit: 10.76s; Web unit: 1.05s |
+| Critical flows with zero coverage | None obvious by file inventory for document CRUD, auth, collaboration, issues, weeks, search, accessibility, or security |
+| Code coverage % (if measured)     | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
-1.
+1. **High:** Web unit tests are failing: 13 of 151 failed, in `document-tabs.test.ts` (9), `DetailsExtension.test.ts` (3), and `useSessionTimeout.test.ts` (1). These are assertion mismatches against changed implementation (e.g., tab configs, TipTap extension content schema), not environmental failures.
+2. **High:** API code coverage is 40% across the board. Route files for `programs.ts` (5%), `dashboard.ts` (2%), `weekly-plans.ts` (5%), and `comments.ts` (9%) have near-zero coverage despite being production endpoints.
+3. **Medium:** Web has no coverage measurement configured. `web/vitest.config.ts` has no `coverage` block; adding `@vitest/coverage-v8` with a `provider: 'v8'` config would enable it.
+4. **Medium:** API test safety requires a throwaway database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to a disposable database.
+5. **Low:** No flaky tests detected across 3 repeated runs of both API and web suites.
 
 ---
 
@@ -249,3 +261,34 @@ NODE
 ```
 
 [^2]: Category 1 suppression count used `@ts-ignore\b|@ts-expect-error\b` over the same full and production-only file scopes.
+
+[^3]: Category 5 static inventory used `rg -c '\b(test|it)\s*\(' --glob '*.test.ts' --glob '*.test.tsx' --glob '*.spec.ts' {api/src,web/src,shared/src,e2e}` to count declared test cases. Note: this grep counts syntactic matches including helpers and comments; the authoritative count comes from the test runners themselves.
+
+[^4]: Category 5 throwaway database procedure for safely running API tests:
+
+```bash
+# Create throwaway DB (PostgreSQL must be running, credentials from docker-compose.yml)
+PSQL="/opt/homebrew/Cellar/libpq/18.3/bin/psql"
+PGURI="postgresql://ship:ship_dev_password@localhost:5432"
+$PSQL "$PGURI/postgres" -c "CREATE DATABASE ship_test_audit;"
+
+# Migrate and seed
+DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api db:migrate
+DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api db:seed
+
+# Run tests (optionally with --coverage after installing @vitest/coverage-v8@4.0.17)
+DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api exec vitest run
+DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api exec vitest run --coverage
+
+# Cleanup
+$PSQL "$PGURI/postgres" -c "DROP DATABASE IF EXISTS ship_test_audit;"
+```
+
+[^5]: Category 5 E2E test count used Playwright's built-in listing from the `e2e/` directory:
+
+```bash
+cd e2e && npx playwright test --list 2>&1 | tail -1
+# Output: "Listing 869 tests in 71 files"
+```
+
+This is authoritative over the grep-based count (883) because Playwright resolves `test.describe`, `test.skip`, parameterized tests, and other runtime constructs that grep cannot distinguish from non-test usage of `test(` / `it(`.
