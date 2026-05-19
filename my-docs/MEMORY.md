@@ -24,6 +24,7 @@ Repo-specific facts that prevent wrong assumptions.
 - Week 4 runtime audit measurements require source-of-truth-scale data: 500+ documents, 100+ issues, 20+ users, and 10+ sprints. The normal `pnpm db:seed` creates 257 docs and 11 users, so audit load rows were added separately and tagged with `properties.audit_load = true`; remove those rows with the cleanup commands in `AUDIT_REPORT.md` footnote 7 after measurement.
 - `ship_test_audit` is a sidecar local database for destructive API test/coverage benchmarking only. Use `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run` or the same command with `--coverage` for Category 5 reruns; use `ship_dev` for browser/runtime/performance categories.
 - Issues are discoverable through Programs: each program document has an Issues tab. The global `/issues` route exists too, but audits should not assume it is the only or primary path.
+- Local PostgreSQL does not have `pg_stat_statements` enabled, so query-efficiency baselines use the temporary in-process query-count harness plus targeted `EXPLAIN (ANALYZE, BUFFERS)` through `/opt/homebrew/Cellar/libpq/18.3/bin/psql`.
 
 ## Leverage Points
 

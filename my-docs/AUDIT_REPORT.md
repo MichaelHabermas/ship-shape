@@ -128,9 +128,9 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
-- Authenticated API requests were benchmarked with the browser session cookie captured from Chrome DevTools. Cookie validity was confirmed with `curl`, returning `200 105338` for `GET /api/documents?type=wiki`.
+- Authenticated API requests were benchmarked with the browser session cookie captured from Chrome DevTools. Cookie validity was confirmed with `curl`, returning `200 105338` for `GET /api/documents?type=wiki`.[^10]
 - Flow 1, load main page (`/docs`): representative endpoint selected as `GET http://localhost:3000/api/documents?type=wiki`, because it is the main content payload for the documents page and the largest visible API response during page load.
-- Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.
+- Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.[^10]
 - Flow 2, view a document (`/documents/df41d98b-f009-4230-bd39-3953ca5a6507`): the visible document-specific REST call was `GET /api/documents/:id/backlinks`. Hard reload did not expose a separate document-body REST request; document content appears to come from frontend state, cache, or the editor/collaboration path. The 50-connection backlinks run used `-R 40` after a `-R 50` attempt produced 9 non-2xx responses.
 - Flow 3, list issues (`/issues`): the global route is available at `http://localhost:5174/issues`; Issues are also discoverable through Programs, where each program exposes an Issues tab. The UI did not visibly trigger `GET /api/issues` during the captured global Issues page-load pass, but `GET /api/issues` is the verified issue-list API endpoint and returned `200 102132` with the active session cookie.
 - Flow 4, load sprint/week board (`/my-week`): representative endpoint selected as `GET http://localhost:3000/api/dashboard/my-week`, returning `200 1221` with the active session cookie. The 50-connection run used `-R 25` after a `-R 50` attempt produced 326 non-2xx responses.
@@ -180,6 +180,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - The harness imported `createApp()` and monkeypatched `pool.query` to record SQL count and elapsed time for each request, then logged in as `dev@ship.local` and replayed the same flow endpoints used in Category 3.
 - “Load main page” was measured as the observed `/docs` hydration sequence: `/api/auth/me`, `/api/weeks/my-action-items`, `/api/auth/session`, `/api/standups/status`, `/api/issues`, `/api/projects`, `/api/programs`, `/api/documents?type=wiki`, `/api/team/people?includeArchived=true`, and a second `/api/auth/session`.
 - “Search content” was recorded as zero backend queries because the Docs search box did not issue a backend request.
+- `EXPLAIN (ANALYZE, BUFFERS)` was run against the slow/list-driving queries behind `GET /api/documents?type=wiki`, `GET /api/issues`, `GET /api/documents/:id/backlinks`, and the weekly-plan lookup inside `GET /api/dashboard/my-week`.[^11]
 
 **Baseline**
 
@@ -197,15 +198,17 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 2. **Medium:** Session/auth checks are repeated per API call. The main-page flow executed 10 session lookups and 10 session `last_activity` updates, adding write pressure and noise to every multi-request page load.
 3. **Medium:** The largest list endpoints are single-query but payload-heavy. `GET /api/issues` and `GET /api/documents?type=wiki` did not show row-level N+1 behavior, but they return full lists with large response bodies.
 4. **Medium:** The sprint/week board uses 9 queries for a small response. No N+1 was confirmed, but the query count is high relative to the 1.2 KB payload.
-5. **Low:** Docs search uses no database query because it filters client-side. That is efficient for the current loaded list, but it cannot become true full-content search without a real backend endpoint.
+5. **Medium:** `EXPLAIN` shows JSON-expression filtering after broad document-type index scans for weekly-plan style lookups. At the current audit scale this is fast, but the access pattern is fragile as weekly documents grow because `(properties->>'person_id')` and `(properties->>'week_number')::int` are not covered by a purpose-built index.
+6. **Low:** Docs search uses no database query because it filters client-side. That is efficient for the current loaded list, but it cannot become true full-content search without a real backend endpoint.
 
 **Remediation Plan**
 
 1. Reduce page-load API fanout before tuning individual SQL. Bundle related bootstrap data or rely more consistently on React Query cache hydration.
 2. Avoid updating session `last_activity` on every single request in bursty page loads; throttle or coalesce the write while preserving the 15-minute inactivity policy.
 3. Add pagination or server-side limits for document and issue lists before the audit-load dataset grows further.
-4. Add a real document-search endpoint or remove the documented `/api/search/documents` route from OpenAPI.
-5. Keep the query-count harness or replace it with proper Postgres query stats in dev, so future improvements can be checked with the same five flows.
+4. Add targeted indexes for repeated JSON-property filters before the data set grows, starting with weekly-plan/person/week lookups if dashboard latency increases.
+5. Add a real document-search endpoint or remove the documented `/api/search/documents` route from OpenAPI.
+6. Keep the query-count harness or replace it with proper Postgres query stats in dev, so future improvements can be checked with the same five flows.
 
 ---
 
@@ -261,7 +264,7 @@ Restore trust in the test system before expanding it.
 - Malformed input was checked against login UI validation and document API validation: empty login, script-like invalid email, 5,000-character password, empty document title, 300-character document title, and script-like/special-character document title.[^9]
 - Concurrent collaboration was checked with two authenticated browser contexts editing the body of the same temporary audit document.[^9]
 - Slow-network behavior was checked by throttling `/docs` to an emulated 3G-like profile through Chrome DevTools Protocol.[^9]
-- Server log capture was limited because the running `pnpm dev` terminal is external to this Codex thread; browser/API responses were captured directly, but external API terminal logs still need manual confirmation.
+- Server logs were checked from the external `pnpm dev` terminal after the edge-case pass.[^9]
 
 **Baseline**
 
@@ -275,28 +278,30 @@ Restore trust in the test system before expanding it.
 | Malformed input handling              | Mixed: login empty/script-like input shows user-facing errors; document API rejects empty/300-char titles with JSON 400; missing CSRF returns HTML 403 stack page |
 | Concurrent same-document editing      | Pass for checked editor-body case: two sessions editing the same temporary document converged to the same body text with both edits present |
 | 3G throttled behavior                 | Partial pass: `/docs` became visible under throttling in 16.4s with no lingering loading text, but no explicit slow-network state appears |
-| Server logs during edge checks        | Not captured in Codex; external `pnpm dev` terminal must be checked for unhandled errors during this pass |
+| Server logs during edge checks        | CSRF stack traces logged for invalid-CSRF requests; Bedrock `CredentialsProviderError` logged during plan analysis when AWS credentials were unavailable; no `unhandledRejection` / `uncaughtException` process event was observed |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** Network disconnects create console-only failures. `BacklinksPanel.tsx` repeatedly logs `Failed to fetch` while offline, but the user sees no offline state, retry status, or degraded-mode message.
 2. **High:** CSRF failures can leak an HTML stack page. A state-changing request without `X-CSRF-Token` returned a 403 HTML response containing a `ForbiddenError` stack trace from `csrf-sync`, which is inconsistent with the JSON API error shape and exposes implementation details.
 3. **High:** Server process-level failure handling is missing. No `process.on('unhandledRejection')` or `process.on('uncaughtException')` handler was found, so unexpected async failures may be logged inconsistently or terminate without a controlled shutdown path.
-4. **Medium:** Error boundaries are incomplete. The main `<Outlet />` is wrapped, but providers, auth/realtime layers, sidebars, command palette, and properties portal are outside the boundary.
-5. **Medium:** API routes mostly catch and return JSON 500s, but error handling is duplicated per route instead of centralized. This increases the chance of inconsistent messages/statuses as routes grow.
-6. **Medium:** Slow network does not hang the checked `/docs` flow, but it also does not provide a clear slow/degraded state. The page became visible after about 16.4s under throttling.
-7. **Low:** Login and document validation behaved predictably for checked malformed inputs: empty login produced `Email address is required`, invalid script-like credentials produced `Invalid email or password`, and invalid document titles returned JSON 400s.
-8. **Low:** Checked two-session editor-body collaboration converged correctly: both browser contexts ended with both edits present.
-9. **Low:** Normal authenticated navigation was quiet. `/docs`, `/issues`, `/my-week`, and `/projects` produced 0 console errors after clearing Console.
+4. **Medium:** AI plan analysis logs a full AWS `CredentialsProviderError` when Bedrock credentials are unavailable locally. The error is caught, but the local runtime still emits a long provider stack instead of a concise degraded-mode message.
+5. **Medium:** Error boundaries are incomplete. The main `<Outlet />` is wrapped, but providers, auth/realtime layers, sidebars, command palette, and properties portal are outside the boundary.
+6. **Medium:** API routes mostly catch and return JSON 500s, but error handling is duplicated per route instead of centralized. This increases the chance of inconsistent messages/statuses as routes grow.
+7. **Medium:** Slow network does not hang the checked `/docs` flow, but it also does not provide a clear slow/degraded state. The page became visible after about 16.4s under throttling.
+8. **Low:** Login and document validation behaved predictably for checked malformed inputs: empty login produced `Email address is required`, invalid script-like credentials produced `Invalid email or password`, and invalid document titles returned JSON 400s.
+9. **Low:** Checked two-session editor-body collaboration converged correctly: both browser contexts ended with both edits present.
+10. **Low:** Normal authenticated navigation was quiet. `/docs`, `/issues`, `/my-week`, and `/projects` produced 0 console errors after clearing Console.
 
 **Remediation Plan**
 
 1. Add visible offline/degraded states for polling panels and realtime features, starting with `BacklinksPanel`.
 2. Add centralized Express error middleware for CSRF and other middleware errors so 403/500 failures return JSON without HTML stack traces.
-3. Add process-level `unhandledRejection` and `uncaughtException` handlers with structured logging and graceful shutdown behavior.
-4. Move error boundaries higher or add separate boundaries around providers/sidebar/realtime surfaces so one crash cannot blank major app chrome.
-5. Add centralized route helpers so thrown errors become consistent JSON responses.
-6. Keep the normal-navigation, malformed-input, slow-network, and two-session collaboration checks as regression smoke tests after fixes.
+3. Add a local degraded-mode path for AI analysis when Bedrock/AWS credentials are unavailable, with concise logs and user-facing fallback behavior.
+4. Add process-level `unhandledRejection` and `uncaughtException` handlers with structured logging and graceful shutdown behavior.
+5. Move error boundaries higher or add separate boundaries around providers/sidebar/realtime surfaces so one crash cannot blank major app chrome.
+6. Add centralized route helpers so thrown errors become consistent JSON responses.
+7. Keep the normal-navigation, malformed-input, slow-network, and two-session collaboration checks as regression smoke tests after fixes.
 
 ---
 
@@ -625,4 +630,61 @@ Slow-network result:
 }
 ```
 
-Browser console during the automated Cat 6 pass showed expected resource errors from checked negative cases: initial unauthenticated `/api/auth/me` 401, validation 400s, and the intentionally missing-CSRF 403. No browser `pageerror` was observed. Server logs were not directly captured because `pnpm dev` was running in an external terminal outside this Codex thread.
+Browser console during the automated Cat 6 pass showed expected resource errors from checked negative cases: initial unauthenticated `/api/auth/me` 401, validation 400s, and the intentionally missing-CSRF 403. No browser `pageerror` was observed. The pasted `pnpm dev` server logs showed repeated Events WebSocket connect/disconnect messages, normal Yjs content conversion/loading messages, three `ForbiddenError: invalid csrf token` stack traces from the missing-CSRF check, and one `CredentialsProviderError: Could not load credentials from any providers` from AI plan analysis. No `unhandledRejection` or `uncaughtException` process event was visible in the pasted logs.
+
+[^10]: Category 3 API benchmark command shapes.
+
+Cookie check:
+
+```bash
+curl -s -o /dev/null -w "%{http_code} %{size_download}\n" \
+  -H "Cookie: $SHIP_COOKIE" \
+  "http://localhost:3000/api/documents?type=wiki"
+# 200 105338
+```
+
+Rate-capped benchmark shape:
+
+```bash
+pnpm dlx autocannon -c 10 -d 15 -R 50 \
+  -H "Cookie: $SHIP_COOKIE" \
+  "http://localhost:3000/api/documents?type=wiki"
+
+pnpm dlx autocannon -c 25 -d 15 -R 50 \
+  -H "Cookie: $SHIP_COOKIE" \
+  "http://localhost:3000/api/issues"
+
+pnpm dlx autocannon -c 50 -d 15 -R 25 \
+  -H "Cookie: $SHIP_COOKIE" \
+  "http://localhost:3000/api/dashboard/my-week"
+```
+
+Endpoint-specific rate caps used in the baseline:
+
+| Endpoint | 10c | 25c | 50c |
+| --- | --- | --- | --- |
+| `/api/documents?type=wiki` | `-R 50` | `-R 50` | `-R 50` |
+| `/api/documents/:id/backlinks` | `-R 50` | `-R 50` | `-R 40` |
+| `/api/issues` | `-R 50` | `-R 50` | `-R 50` |
+| `/api/dashboard/my-week` | `-R 50` | `-R 50` | `-R 25` |
+
+The uncapped benchmark was discarded because it measured rate-limit behavior instead of endpoint latency: `1998 2xx responses, 454536 non 2xx responses`.
+
+[^11]: Category 4 `EXPLAIN ANALYZE` evidence.
+
+Representative `EXPLAIN (ANALYZE, BUFFERS)` results on the audit-scale `ship_dev` database:
+
+| Query | Plan shape | Execution time | Notes |
+| --- | --- | ---: | --- |
+| Documents list, `document_type = 'wiki'` | `Seq Scan on documents` + sort | 0.412 ms | 258 rows returned; 259 rows filtered; planner chose seq scan at current table size despite `idx_documents_active`. |
+| Issues list | `Bitmap Index Scan on idx_documents_document_type` + hash left joins + sort | 0.230 ms | 104 rows returned; joins to `users` and person docs are batched, no row-level N+1. |
+| Backlinks | `Bitmap Index Scan on idx_document_links_target` + nested joins | 0.095 ms | 0 rows for checked doc; correct target index used. |
+| My-week weekly-plan lookup | `Bitmap Index Scan on idx_documents_document_type`, then JSON-property filters | 0.105 ms | Fast at current scale, but filters `(properties->>'person_id')` and `(properties->>'week_number')::int` after the broad type scan. |
+
+Exact command pattern:
+
+```bash
+/opt/homebrew/Cellar/libpq/18.3/bin/psql \
+  "postgresql://ship:ship_dev_password@localhost:5432/ship_dev" \
+  -c "EXPLAIN (ANALYZE, BUFFERS) SELECT ...;"
+```
