@@ -128,39 +128,36 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
-- Authenticated API requests were benchmarked with the browser session cookie captured from Chrome DevTools. Cookie validity was confirmed with `curl`, returning `200 105338` for `GET /api/documents?type=wiki`.[^10]
+- Authenticated API requests were benchmarked with session cookies captured from Chrome DevTools or created through the app's CSRF-protected login flow. Cookie validity was confirmed with `curl`, returning `200 105338` for `GET /api/documents?type=wiki`.[^10]
+- Benchmarks ran against `ship_dev` with 517 documents, 104 issues, 20 users, and 35 sprints.
+- “Most important” endpoints were selected by user-flow criticality, expected frequency, backend weight, and coverage of the source-of-truth product surfaces: documents, issues, project/program planning, and weekly planning.
 - Flow 1, load main page (`/docs`): representative endpoint selected as `GET http://localhost:3000/api/documents?type=wiki`, because it is the main content payload for the documents page and the largest visible API response during page load.
-- Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.[^10]
-- Flow 2, view a document (`/documents/df41d98b-f009-4230-bd39-3953ca5a6507`): the visible document-specific REST call was `GET /api/documents/:id/backlinks`. Hard reload did not expose a separate document-body REST request; document content appears to come from frontend state, cache, or the editor/collaboration path. The 50-connection backlinks run used `-R 40` after a `-R 50` attempt produced 9 non-2xx responses.
-- Flow 3, list issues (`/issues`): the global route is available at `http://localhost:5174/issues`; Issues are also discoverable through Programs, where each program exposes an Issues tab. The UI did not visibly trigger `GET /api/issues` during the captured global Issues page-load pass, but `GET /api/issues` is the verified issue-list API endpoint and returned `200 102132` with the active session cookie.
-- Flow 4, load sprint/week board (`/my-week`): representative endpoint selected as `GET http://localhost:3000/api/dashboard/my-week`, returning `200 1221` with the active session cookie. The 50-connection run used `-R 25` after a `-R 50` attempt produced 326 non-2xx responses.
-- Flow 5, search content (`/docs` search box): no backend request fired when searching `audit`; the Docs page filters the already-loaded document list client-side by title only. Code review found implemented backend search routes for `/api/search/mentions` and `/api/search/learnings`; `/api/search/mentions` can return title-matched documents for mentions/slash embeds, but there is no mounted full document-search route. OpenAPI and generated API files document `/api/search/documents`, while runtime verification returned `404 159` for `GET /api/search/documents?q=audit`.
+- Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. These are local, rate-capped benchmarks under the source-of-truth concurrency and data-volume conditions, not production performance results. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.[^10]
+- Flow 2, list issues (`/issues`): selected as `GET http://localhost:3000/api/issues`, because issues are a core Ship surface and this endpoint returned one of the largest observed payloads (`200 102132`).
+- Flow 3, load current week (`/my-week`): selected as `GET http://localhost:3000/api/dashboard/my-week`, because `/my-week` is the default authenticated landing route and the weekly planning surface.
+- Flow 4, list projects (`/projects`): selected as `GET http://localhost:3000/api/projects`, because project planning is a primary navigation surface and the endpoint is part of the `/docs` hydration fanout.
+- Flow 5, program-scoped issues (`/documents/:programId/issues`): selected as `GET http://localhost:3000/api/programs/:id/issues`, because Issues are also discoverable through Programs, where each program exposes an Issues tab.
+- Search was investigated but not used as a Cat 3 benchmark row: `/docs` search is client-side title filtering, `/api/search/mentions` is a title-only mention/embed helper, and the documented `/api/search/documents` route is not mounted.
 
 **Baseline**
 
 | Endpoint | P50 | P95 | P99 |
 | -------- | --- | --- | --- |
-| `GET /api/documents?type=wiki` at 10 connections | 7 ms | 21 ms (97.5th percentile proxy) | 23 ms |
-| `GET /api/documents?type=wiki` at 25 connections | 17 ms | 42 ms (97.5th percentile proxy) | 46 ms |
-| `GET /api/documents?type=wiki` at 50 connections | 25 ms | 65 ms (97.5th percentile proxy) | 71 ms |
-| `GET /api/documents/:id/backlinks` at 10 connections | 3 ms | 13 ms (97.5th percentile proxy) | 17 ms |
-| `GET /api/documents/:id/backlinks` at 25 connections | 8 ms | 23 ms (97.5th percentile proxy) | 25 ms |
-| `GET /api/documents/:id/backlinks` at 50 connections | 13 ms | 28 ms (97.5th percentile proxy) | 31 ms |
-| `GET /api/issues` at 10 connections | 7 ms | 22 ms (97.5th percentile proxy) | 25 ms |
-| `GET /api/issues` at 25 connections | 14 ms | 35 ms (97.5th percentile proxy) | 38 ms |
-| `GET /api/issues` at 50 connections | 29 ms | 66 ms (97.5th percentile proxy) | 72 ms |
-| `GET /api/dashboard/my-week` at 10 connections | 5 ms | 21 ms (97.5th percentile proxy) | 26 ms |
-| `GET /api/dashboard/my-week` at 25 connections | 12 ms | 32 ms (97.5th percentile proxy) | 34 ms |
-| `GET /api/dashboard/my-week` at 50 connections | 16 ms | 34 ms (97.5th percentile proxy) | 36 ms |
-| Search content flow | N/A | N/A | N/A |
+| `GET /api/documents?type=wiki` | 10c: 7 ms; 25c: 17 ms; 50c: 25 ms | 10c: 21 ms; 25c: 42 ms; 50c: 65 ms (97.5th percentile proxy) | 10c: 23 ms; 25c: 46 ms; 50c: 71 ms |
+| `GET /api/issues` | 10c: 7 ms; 25c: 14 ms; 50c: 29 ms | 10c: 22 ms; 25c: 35 ms; 50c: 66 ms (97.5th percentile proxy) | 10c: 25 ms; 25c: 38 ms; 50c: 72 ms |
+| `GET /api/dashboard/my-week` | 10c: 5 ms; 25c: 12 ms; 50c: 16 ms | 10c: 21 ms; 25c: 32 ms; 50c: 34 ms (97.5th percentile proxy) | 10c: 26 ms; 25c: 34 ms; 50c: 36 ms |
+| `GET /api/projects` | 10c: 4 ms; 25c: 9 ms; 50c: 18 ms | 10c: 15 ms; 25c: 24 ms; 50c: 37 ms (97.5th percentile proxy) | 10c: 17 ms; 25c: 28 ms; 50c: 39 ms |
+| `GET /api/programs/:id/issues` | 10c: 4 ms; 25c: 9 ms; 50c: 19 ms | 10c: 16 ms; 25c: 26 ms; 50c: 38 ms (97.5th percentile proxy) | 10c: 18 ms; 25c: 28 ms; 50c: 40 ms |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** Rate limiting makes naive concurrent benchmarks invalid. Uncapped `autocannon` immediately produced hundreds of thousands of non-2xx responses, and even capped 50-connection runs needed lower request rates on some endpoints. The API can be measured, but only with rate-aware tooling.
 2. **High:** Search ownership is split and drifted. Architecture docs describe server full-text search with offline fallback, OpenAPI documents `GET /api/search/documents`, but the route is not implemented. The visible Docs search is client-side title filtering, while `/api/search/mentions` is a separate title-only helper for mentions/slash embeds.
 3. **Medium:** Main list endpoints are fast under rate-capped local load but payload-heavy. `GET /api/documents?type=wiki` returns about 105 KB and reaches 71 ms P99 at 50 connections; `GET /api/issues` returns about 102 KB and reaches 72 ms P99.
-4. **Medium:** Document-view measurement is incomplete from the REST layer. Hard reload of a document page exposed backlinks only; document body loading appears to happen through cached state, frontend state, or the editor/collaboration path, so REST-only benchmarking misses part of the user-visible document-load path.
-5. **Low:** The sprint/week endpoint is small and stable when rate-capped. `GET /api/dashboard/my-week` returned about 1.2 KB and stayed at 36 ms P99 at 50 connections once the request rate was lowered.
+4. **Medium:** The baseline may be too gentle to expose optimization headroom. If these numbers are used to benchmark improvements, harsher follow-up conditions may be useful: larger data volume, production-like deployment, cold-cache runs, or higher allowed request rates.
+5. **Medium:** Document-view measurement is incomplete from the REST layer. Hard reload of a document page exposed backlinks only; document body loading appears to happen through cached state, frontend state, or the editor/collaboration path, so REST-only benchmarking misses part of the user-visible document-load path.
+6. **Low:** Project/program planning endpoints are fast under the checked load. `GET /api/projects` stayed at 39 ms P99 at 50 connections, and `GET /api/programs/:id/issues` stayed at 40 ms P99 at 50 connections.
+7. **Low:** The sprint/week endpoint is small and stable when rate-capped. `GET /api/dashboard/my-week` returned about 1.2 KB and stayed at 36 ms P99 at 50 connections once the request rate was lowered.
 
 **Remediation Plan**
 
@@ -310,6 +307,7 @@ Restore trust in the test system before expanding it.
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
 - Lighthouse Accessibility audits were run in Chrome DevTools, Desktop navigation mode, Accessibility category only, against the login page and authenticated local pages on `http://localhost:5174`.
+- “Major pages” were defined as the unauthenticated entry page plus authenticated pages covering primary navigation, distinct page templates, and source-of-truth core workflows: docs, document editor, issues, program-scoped issues, weekly planning, and projects.
 - Audited pages: `/login`, `/docs`, `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`, `/issues`, `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues`, `/my-week`, and `/projects`.
 - Axe scans were run with `@axe-core/playwright@4.11.0` against `/login`, `/docs`, `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`, `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues`, `/my-week`, and `/projects`.[^8]
 - Keyboard navigation was checked manually on `/docs`, including sidebar/nav, search/sort/view controls, New Document, document tree rows, row action buttons, document activation with Enter, action-items modal Escape behavior, and the command palette opened with `Cmd+K`.[^8]
@@ -667,8 +665,10 @@ Endpoint-specific rate caps used in the baseline:
 | `/api/documents/:id/backlinks` | `-R 50` | `-R 50` | `-R 40` |
 | `/api/issues` | `-R 50` | `-R 50` | `-R 50` |
 | `/api/dashboard/my-week` | `-R 50` | `-R 50` | `-R 25` |
+| `/api/projects` | `-R 50` | `-R 50` | `-R 50` |
+| `/api/programs/:id/issues` | `-R 50` | `-R 50` | `-R 50` |
 
-The uncapped benchmark was discarded because it measured rate-limit behavior instead of endpoint latency: `1998 2xx responses, 454536 non 2xx responses`.
+The uncapped benchmark was discarded because it measured rate-limit behavior instead of endpoint latency: `1998 2xx responses, 454536 non 2xx responses`. During `/api/projects`, one capped 25-connection rerun was also discarded after the previous run exhausted the shared `1000/min` limiter; clean runs were spaced by the limiter window.
 
 [^11]: Category 4 `EXPLAIN ANALYZE` evidence.
 
