@@ -167,6 +167,15 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Remediation Plan**
 
+Restore trust in the test system before expanding it.
+
+1. Fix the 13 failing web unit tests so both API and web unit suites are green.
+2. Add a hard safety guard to API test setup so destructive truncation only runs against an explicit disposable test database.
+3. Add web coverage reporting with `@vitest/coverage-v8`, but start with measurement only, not strict thresholds.
+4. Add three meaningful tests for high-risk, low-coverage behavior: workspace isolation, document association correctness, and weekly plan/comment/dashboard route behavior.
+5. Add a lightweight test-quality gate for fake confidence: no `.only`, no TODO-only tests, no conditional skips for missing seed data, and `test.fixme()` for intentionally unfinished tests.
+6. Use coverage to choose blind spots, not as the goal. Success is green tests plus regression coverage for real product risks.
+
 ---
 
 ## Category 6: Runtime Error and Edge Case Handling
