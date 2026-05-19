@@ -132,7 +132,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - Benchmarks ran against `ship_dev` with 517 documents, 104 issues, 20 users, and 35 sprints.
 - “Most important” endpoints were selected by user-flow criticality, expected frequency, backend weight, and coverage of the source-of-truth product surfaces: documents, issues, project/program planning, and weekly planning.
 - Flow 1, load main page (`/docs`): representative endpoint selected as `GET http://localhost:3000/api/documents?type=wiki`, because it is the main content payload for the documents page and the largest visible API response during page load.
-- Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. These are local, rate-capped benchmarks under the source-of-truth concurrency and data-volume conditions, not production performance results. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.[^10]
+- Final P50/P95/P99 values were measured with a custom Node HTTP harness that recorded every request duration and calculated exact percentiles. Each endpoint ran for 15 seconds at 10, 25, and 50 connections. These are local benchmarks under the source-of-truth concurrency and data-volume conditions, not production performance results.[^10]
 - Flow 2, list issues (`/issues`): selected as `GET http://localhost:3000/api/issues`, because issues are a core Ship surface and this endpoint returned one of the largest observed payloads (`200 102132`).
 - Flow 3, load current week (`/my-week`): selected as `GET http://localhost:3000/api/dashboard/my-week`, because `/my-week` is the default authenticated landing route and the weekly planning surface.
 - Flow 4, list projects (`/projects`): selected as `GET http://localhost:3000/api/projects`, because project planning is a primary navigation surface and the endpoint is part of the `/docs` hydration fanout.
@@ -143,21 +143,21 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 | Endpoint | P50 | P95 | P99 |
 | -------- | --- | --- | --- |
-| `GET /api/documents?type=wiki` | 10c: 7 ms; 25c: 17 ms; 50c: 25 ms | 10c: 21 ms; 25c: 42 ms; 50c: 65 ms (97.5th percentile proxy) | 10c: 23 ms; 25c: 46 ms; 50c: 71 ms |
-| `GET /api/issues` | 10c: 7 ms; 25c: 14 ms; 50c: 29 ms | 10c: 22 ms; 25c: 35 ms; 50c: 66 ms (97.5th percentile proxy) | 10c: 25 ms; 25c: 38 ms; 50c: 72 ms |
-| `GET /api/dashboard/my-week` | 10c: 5 ms; 25c: 12 ms; 50c: 16 ms | 10c: 21 ms; 25c: 32 ms; 50c: 34 ms (97.5th percentile proxy) | 10c: 26 ms; 25c: 34 ms; 50c: 36 ms |
-| `GET /api/projects` | 10c: 4 ms; 25c: 9 ms; 50c: 18 ms | 10c: 15 ms; 25c: 24 ms; 50c: 37 ms (97.5th percentile proxy) | 10c: 17 ms; 25c: 28 ms; 50c: 39 ms |
-| `GET /api/programs/:id/issues` | 10c: 4 ms; 25c: 9 ms; 50c: 19 ms | 10c: 16 ms; 25c: 26 ms; 50c: 38 ms (97.5th percentile proxy) | 10c: 18 ms; 25c: 28 ms; 50c: 40 ms |
+| `GET /api/documents?type=wiki` | 10c: 8 ms; 25c: 8 ms; 50c: 9 ms | 10c: 11 ms; 25c: 10 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 15 ms |
+| `GET /api/issues` | 10c: 10 ms; 25c: 9 ms; 50c: 9 ms | 10c: 13 ms; 25c: 11 ms; 50c: 11 ms | 10c: 19 ms; 25c: 15 ms; 50c: 19 ms |
+| `GET /api/dashboard/my-week` | 10c: 9 ms; 25c: 9 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 13 ms | 10c: 13 ms; 25c: 15 ms; 50c: 14 ms |
+| `GET /api/projects` | 10c: 7 ms; 25c: 8 ms; 50c: 8 ms | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms | 10c: 11 ms; 25c: 11 ms; 50c: 11 ms |
+| `GET /api/programs/:id/issues` | 10c: 7 ms; 25c: 7 ms; 50c: 8 ms | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms | 10c: 10 ms; 25c: 10 ms; 50c: 11 ms |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
-1. **High:** Rate limiting makes naive concurrent benchmarks invalid. Uncapped `autocannon` immediately produced hundreds of thousands of non-2xx responses, and even capped 50-connection runs needed lower request rates on some endpoints. The API can be measured, but only with rate-aware tooling.
+1. **High:** Rate limiting makes naive concurrent benchmarks invalid. Uncapped `autocannon` immediately produced hundreds of thousands of non-2xx responses. The final exact-percentile pass temporarily raised the dev API rate limit, then ran the same endpoint/concurrency matrix with `0` non-2xx responses.
 2. **High:** Search ownership is split and drifted. Architecture docs describe server full-text search with offline fallback, OpenAPI documents `GET /api/search/documents`, but the route is not implemented. The visible Docs search is client-side title filtering, while `/api/search/mentions` is a separate title-only helper for mentions/slash embeds.
-3. **Medium:** Main list endpoints are fast under rate-capped local load but payload-heavy. `GET /api/documents?type=wiki` returns about 105 KB and reaches 71 ms P99 at 50 connections; `GET /api/issues` returns about 102 KB and reaches 72 ms P99.
+3. **Medium:** Main list endpoints are fast under local load but payload-heavy. `GET /api/documents?type=wiki` returns about 106 KB per response; `GET /api/issues` returns about 102 KB per response.
 4. **Medium:** The baseline may be too gentle to expose optimization headroom. If these numbers are used to benchmark improvements, harsher follow-up conditions may be useful: larger data volume, production-like deployment, cold-cache runs, or higher allowed request rates.
 5. **Medium:** Document-view measurement is incomplete from the REST layer. Hard reload of a document page exposed backlinks only; document body loading appears to happen through cached state, frontend state, or the editor/collaboration path, so REST-only benchmarking misses part of the user-visible document-load path.
-6. **Low:** Project/program planning endpoints are fast under the checked load. `GET /api/projects` stayed at 39 ms P99 at 50 connections, and `GET /api/programs/:id/issues` stayed at 40 ms P99 at 50 connections.
-7. **Low:** The sprint/week endpoint is small and stable when rate-capped. `GET /api/dashboard/my-week` returned about 1.2 KB and stayed at 36 ms P99 at 50 connections once the request rate was lowered.
+6. **Low:** Project/program planning endpoints are fast under the checked load. `GET /api/projects` stayed at 11 ms P99 at 50 connections, and `GET /api/programs/:id/issues` stayed at 11 ms P99 at 50 connections.
+7. **Low:** The sprint/week endpoint is small and stable. `GET /api/dashboard/my-week` returned about 1.2 KB and stayed at 14 ms P99 at 50 connections.
 
 **Remediation Plan**
 
@@ -630,7 +630,7 @@ Slow-network result:
 
 Browser console during the automated Cat 6 pass showed expected resource errors from checked negative cases: initial unauthenticated `/api/auth/me` 401, validation 400s, and the intentionally missing-CSRF 403. No browser `pageerror` was observed. The pasted `pnpm dev` server logs showed repeated Events WebSocket connect/disconnect messages, normal Yjs content conversion/loading messages, three `ForbiddenError: invalid csrf token` stack traces from the missing-CSRF check, and one `CredentialsProviderError: Could not load credentials from any providers` from AI plan analysis. No `unhandledRejection` or `uncaughtException` process event was visible in the pasted logs.
 
-[^10]: Category 3 API benchmark command shapes.
+[^10]: Category 3 API benchmark command shapes and notes.
 
 Cookie check:
 
@@ -641,7 +641,7 @@ curl -s -o /dev/null -w "%{http_code} %{size_download}\n" \
 # 200 105338
 ```
 
-Rate-capped benchmark shape:
+Initial `autocannon` benchmark shape:
 
 ```bash
 pnpm dlx autocannon -c 10 -d 15 -R 50 \
@@ -657,18 +657,17 @@ pnpm dlx autocannon -c 50 -d 15 -R 25 \
   "http://localhost:3000/api/dashboard/my-week"
 ```
 
-Endpoint-specific rate caps used in the baseline:
+Endpoint-specific request rates used in the final exact-percentile baseline:
 
 | Endpoint | 10c | 25c | 50c |
 | --- | --- | --- | --- |
-| `/api/documents?type=wiki` | `-R 50` | `-R 50` | `-R 50` |
-| `/api/documents/:id/backlinks` | `-R 50` | `-R 50` | `-R 40` |
-| `/api/issues` | `-R 50` | `-R 50` | `-R 50` |
-| `/api/dashboard/my-week` | `-R 50` | `-R 50` | `-R 25` |
-| `/api/projects` | `-R 50` | `-R 50` | `-R 50` |
-| `/api/programs/:id/issues` | `-R 50` | `-R 50` | `-R 50` |
+| `/api/documents?type=wiki` | 50 req/sec | 50 req/sec | 50 req/sec |
+| `/api/issues` | 50 req/sec | 50 req/sec | 50 req/sec |
+| `/api/dashboard/my-week` | 50 req/sec | 50 req/sec | 25 req/sec |
+| `/api/projects` | 50 req/sec | 50 req/sec | 50 req/sec |
+| `/api/programs/:id/issues` | 50 req/sec | 50 req/sec | 50 req/sec |
 
-The uncapped benchmark was discarded because it measured rate-limit behavior instead of endpoint latency: `1998 2xx responses, 454536 non 2xx responses`. During `/api/projects`, one capped 25-connection rerun was also discarded after the previous run exhausted the shared `1000/min` limiter; clean runs were spaced by the limiter window.
+The uncapped `autocannon` benchmark was discarded because it measured rate-limit behavior instead of endpoint latency: `1998 2xx responses, 454536 non 2xx responses`. `autocannon` was also not used for the final table because it does not report exact P95 (`p90`, `p97_5`, and `p99` are available, but not `p95`). The final table uses a custom Node HTTP harness that recorded each request duration and calculated exact P50/P95/P99. During that final pass, the dev API rate limit was temporarily raised from `1000/min` to `100000/min`, then restored after measurement.
 
 [^11]: Category 4 `EXPLAIN ANALYZE` evidence.
 
