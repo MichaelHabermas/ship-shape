@@ -15,7 +15,7 @@
 - Sidecar benchmark database: `ship_test_audit` exists and is migrated. Use it only for destructive API test/coverage benchmarking and improvement checks; keep browser/runtime/performance measurements on `ship_dev`.[^4]
 - Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
 - Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
-- Runtime flow URL note: the Issues list was reached directly at `http://localhost:5174/issues`; it was not obvious from the visible primary navigation during this pass.
+- Runtime flow URL note: the global Issues list is available at `http://localhost:5174/issues`; Issues are also discoverable through Programs, where each program has its own Issues tab.
 
 ---
 
@@ -112,7 +112,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - Flow 1, load main page (`/docs`): representative endpoint selected as `GET http://localhost:3000/api/documents?type=wiki`, because it is the main content payload for the documents page and the largest visible API response during page load.
 - Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.
 - Flow 2, view a document (`/documents/df41d98b-f009-4230-bd39-3953ca5a6507`): the visible document-specific REST call was `GET /api/documents/:id/backlinks`. Hard reload did not expose a separate document-body REST request; document content appears to come from frontend state, cache, or the editor/collaboration path. The 50-connection backlinks run used `-R 40` after a `-R 50` attempt produced 9 non-2xx responses.
-- Flow 3, list issues (`/issues`): the route was reached directly at `http://localhost:5174/issues` because the visible primary navigation did not make the route obvious. The UI did not visibly trigger `GET /api/issues` during the captured page-load pass, but `GET /api/issues` is the verified issue-list API endpoint and returned `200 102132` with the active session cookie.
+- Flow 3, list issues (`/issues`): the global route is available at `http://localhost:5174/issues`; Issues are also discoverable through Programs, where each program exposes an Issues tab. The UI did not visibly trigger `GET /api/issues` during the captured global Issues page-load pass, but `GET /api/issues` is the verified issue-list API endpoint and returned `200 102132` with the active session cookie.
 - Flow 4, load sprint/week board (`/my-week`): representative endpoint selected as `GET http://localhost:3000/api/dashboard/my-week`, returning `200 1221` with the active session cookie. The 50-connection run used `-R 25` after a `-R 50` attempt produced 326 non-2xx responses.
 - Flow 5, search content (`/docs` search box): no backend request fired when searching `audit`; the Docs page filters the already-loaded document list client-side. Code review found implemented backend search routes for `/api/search/mentions` and `/api/search/learnings`, but OpenAPI also documents `/api/search/documents`; verification returned `404 159` for `GET /api/search/documents?q=audit`.
 
@@ -272,36 +272,42 @@ Restore trust in the test system before expanding it.
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
 - Lighthouse Accessibility audits were run in Chrome DevTools, Desktop navigation mode, Accessibility category only, against the login page and authenticated local pages on `http://localhost:5174`.
-- Audited pages: `/login`, `/docs`, `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`, `/issues`, `/my-week`, and `/projects`.
+- Audited pages: `/login`, `/docs`, `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`, `/issues`, `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues`, `/my-week`, and `/projects`.
+- Axe scans were run with `@axe-core/playwright@4.11.0` against `/login`, `/docs`, `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`, `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues`, `/my-week`, and `/projects`.[^8]
+- Keyboard navigation was checked manually on `/docs`, including sidebar/nav, search/sort/view controls, New Document, document tree rows, row action buttons, document activation with Enter, action-items modal Escape behavior, and the command palette opened with `Cmd+K`.[^8]
+- VoiceOver was checked manually on `/docs` for page structure, document tree understandability, control names, and command palette usability.[^8]
 - Lighthouse version: 13.0.2; Chromium: 148.0.0.0; run date: 2026-05-19. Lighthouse warned that IndexedDB data may affect loading performance, but this does not affect the accessibility score.
 
 **Baseline**
 
 | Metric                                    | Value                   |
 | ----------------------------------------- | ----------------------- |
-| Lighthouse accessibility score (per page) | `/login`: 98; `/docs`: 91; `/documents/:id`: 91; `/issues`: 100; `/my-week`: 96; `/projects`: 100 |
-| Total Critical/Serious violations         | Automated failures: 6 page-failures across 4 unique issue types |
-| Keyboard navigation completeness          | Partial/mostly pass: `/docs` first 10 Tab stops had visible focus and logical order; no obvious unreachable control; no confirmed trap |
-| Color contrast failures                   | 1 page: `/my-week` |
+| Lighthouse accessibility score (per page) | `/login`: 98; `/docs`: 91; `/documents/:id`: 91; `/issues`: 100; `/documents/:programId/issues`: 100; `/my-week`: 96; `/projects`: 100 |
+| Total Critical/Serious violations         | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types |
+| Keyboard navigation completeness          | Partial pass: `/docs` visible focus and expected activation worked for checked controls; `Cmd+K` command palette supported type/search, arrow navigation, Enter activation, and Escape close; no trap observed |
+| Screen reader usability                   | VoiceOver partial pass: page structure clear; document tree understandable despite known ARIA/list issues; controls mostly named; command palette usable |
+| Color contrast failures                   | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes; Lighthouse: `/my-week` only |
 | Missing ARIA labels or roles              | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** Document list/document editor pages have structural accessibility defects. `/docs` and `/documents/:id` both fail Lighthouse checks for ARIA required children and invalid list-item structure.
-2. **Medium:** `/my-week` has a color contrast failure, likely in muted/due/status text on the dark UI.
-3. **Medium:** `/login` scores 98 but lacks a main landmark, so page-level navigation semantics are incomplete before authentication.
-4. **Medium:** Keyboard navigation passed the first smoke check but is not fully proven. The first 10 Tab stops on `/docs` had visible focus and logical order, but modals, command palette, editor controls, and sidebars still need targeted manual checks.
-5. **Low:** `/issues` and `/projects` scored 100 in Lighthouse accessibility with no automated failures.
-6. **Low:** Lighthouse reports 10 manual checks per page, so automated scores do not cover purpose/state clarity, focus management after dynamic updates, or custom-control semantics.
+2. **High:** Axe confirms critical/serious defects on the document tree: `aria-required-children` is critical on `/docs` and `/documents/:id`; invalid `li` parent structure is serious on both pages.
+3. **High:** Color contrast is broader than Lighthouse showed. Axe reports 21 serious contrast nodes on `/my-week` and 16 serious contrast nodes on `/projects`, mainly low-contrast accent badges/counts and muted text on dark backgrounds.
+4. **Medium:** Program-scoped Issues (`/documents/:programId/issues`) scored 100 in Lighthouse and had 0 axe violations in the scanned state, while the global `/issues` route also scored 100 in Lighthouse.
+5. **Medium:** `/login` scores 98 but lacks a main landmark; axe also reports 5 moderate `region` nodes because page content is not contained by landmarks.
+6. **Medium:** Keyboard navigation worked on the checked `/docs` surfaces, including the command palette, but remains partial because editor-specific shortcuts and rich-text toolbar behavior were not fully exercised.
+7. **Medium:** VoiceOver was usable on `/docs`, but the known ARIA/list defects mean screen-reader semantics are not fully trustworthy until the document tree markup is corrected.
+8. **Low:** Lighthouse reports 10 manual checks per page, so automated scores do not cover purpose/state clarity, focus management after dynamic updates, or custom-control semantics.
 
 **Remediation Plan**
 
 1. Fix the shared document tree/list markup first, because the same ARIA/list failures hit both `/docs` and `/documents/:id`.
 2. Audit custom list/menu/tree components for correct parent/child roles and valid HTML list structure.
-3. Fix the `/my-week` contrast failure by identifying the exact failing foreground/background pair in Lighthouse details.
+3. Fix contrast failures found by axe: `/my-week` accent/current badges and muted plan numbering; `/projects` filter count badges and ICE score badges.
 4. Add a `main` landmark to the login page layout.
 5. Add a focused keyboard checklist for command palette, New Document, document tree expand/collapse, editor focus, properties sidebar controls, and action-item modal.
-6. Re-run Lighthouse on the same six pages after fixes and require no automated failures before claiming accessibility improvement.
+6. Re-run Lighthouse on the same seven pages after fixes and require no automated failures before claiming accessibility improvement.
 
 ---
 
@@ -439,3 +445,95 @@ PGURI="postgresql://ship:ship_dev_password@localhost:5432"
 $PSQL "$PGURI/ship_dev" -c "DELETE FROM documents WHERE properties->>'audit_load' = 'true';"
 $PSQL "$PGURI/ship_dev" -c "DELETE FROM users WHERE email LIKE 'audit.user%@ship.local';"
 ```
+
+[^8]: Category 7 accessibility evidence.
+
+Axe command shape:
+
+```bash
+node --input-type=module <<'NODE'
+import { chromium } from '@playwright/test';
+import { AxeBuilder } from '@axe-core/playwright';
+
+const base = 'http://localhost:5174';
+const routes = [
+  '/login',
+  '/docs',
+  '/documents/df41d98b-f009-4230-bd39-3953ca5a6507',
+  '/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues',
+  '/my-week',
+  '/projects',
+];
+
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const page = await context.newPage();
+
+async function login() {
+  await page.goto(`${base}/login`, { waitUntil: 'networkidle' });
+  await page.locator('input').nth(0).fill('dev@ship.local');
+  await page.locator('input').nth(1).fill('admin123');
+  await page.getByRole('button', { name: /sign in/i }).click();
+  await page.waitForURL(/\/docs/, { timeout: 10000 }).catch(() => {});
+  await page.waitForLoadState('networkidle').catch(() => {});
+}
+
+async function scan(targetPage, route) {
+  await targetPage.goto(`${base}${route}`, { waitUntil: 'networkidle' });
+  await targetPage.waitForTimeout(1000);
+  const axe = await new AxeBuilder({ page: targetPage }).analyze();
+  return {
+    route,
+    violations: axe.violations.map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      nodes: violation.nodes.length,
+      help: violation.help,
+    })),
+  };
+}
+
+await login();
+
+const results = [];
+const anon = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const anonPage = await anon.newPage();
+results.push(await scan(anonPage, '/login'));
+await anon.close();
+
+for (const route of routes.slice(1)) {
+  results.push(await scan(page, route));
+}
+
+console.log(JSON.stringify(results, null, 2));
+await browser.close();
+NODE
+```
+
+Axe output summary:
+
+| Route | Critical | Serious | Moderate | Notes |
+| --- | ---: | ---: | ---: | --- |
+| `/login` | 0 | 0 | 6 | `landmark-one-main` (1), `region` (5) |
+| `/docs` | 1 | 1 | 0 | `aria-required-children`, `listitem` |
+| `/documents/df41d98b-f009-4230-bd39-3953ca5a6507` | 1 | 1 | 0 | same document tree defects as `/docs` |
+| `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues` | 0 | 0 | 0 | no axe violations |
+| `/my-week` | 0 | 21 | 0 | `color-contrast` |
+| `/projects` | 0 | 16 | 0 | `color-contrast` |
+
+Representative raw axe details:
+
+- `/docs`: `ul[aria-label="Workspace documents"]` failed `aria-required-children`; `ul[aria-label="Workspace documents"] > li:nth-child(11)` failed `listitem`.
+- `/documents/:id`: the same workspace document tree failed `aria-required-children` and `listitem`.
+- `/my-week`: `Current` badge contrast was 2.55:1 (`#005ea2` on `#0a1d2b`); weekly plan number labels were 2.26:1 (`#4c4c4c` on `#0d0d0d`).
+- `/projects`: planned-count badge contrast was 3.65:1 (`#8a8a8a` on `#333333`); ICE score badges were 2.55:1 (`#005ea2` on `#0a1d2b`).
+
+Manual keyboard notes:
+
+- `/docs`: visible focus and expected activation worked for checked sidebar/nav, search/sort/view controls, New Document, document tree rows, row action buttons, document activation with Enter, and action-items modal Escape behavior.
+- Command palette: `Cmd+K` opened it; typing/search, arrow navigation, Enter activation, and Escape close worked.
+- No focus trap was observed in the checked flows.
+
+Manual VoiceOver notes:
+
+- `VoiceOver: page structure clear; document tree understandable despite known ARIA/list issues; controls mostly named; command palette usable.`
