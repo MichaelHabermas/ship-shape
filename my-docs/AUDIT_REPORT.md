@@ -273,15 +273,19 @@ Restore trust in the test system before expanding it.
 
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
+- Lighthouse Accessibility audits were run in Chrome DevTools, Desktop navigation mode, Accessibility category only, against authenticated local pages on `http://localhost:5174`.
+- Audited pages: `/docs`, `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`, `/issues`, `/my-week`, and `/projects`.
+- Lighthouse version: 13.0.2; Chromium: 148.0.0.0; run date: 2026-05-19. Lighthouse warned that IndexedDB data may affect loading performance, but this does not affect the accessibility score.
+
 **Baseline**
 
 | Metric                                    | Value                   |
 | ----------------------------------------- | ----------------------- |
-| Lighthouse accessibility score (per page) |                         |
-| Total Critical/Serious violations         |                         |
-| Keyboard navigation completeness          | Full / Partial / Broken |
-| Color contrast failures                   |                         |
-| Missing ARIA labels or roles              |                         |
+| Lighthouse accessibility score (per page) | `/docs`: 91; `/documents/:id`: 91; `/issues`: 100; `/my-week`: 96; `/projects`: 100 |
+| Total Critical/Serious violations         | Automated failures: 5 page-failures across 3 unique issue types |
+| Keyboard navigation completeness          | Partial/mostly pass: `/docs` first 10 Tab stops had visible focus and logical order; no obvious unreachable control; no confirmed trap |
+| Color contrast failures                   | 1 page: `/my-week` |
+| Missing ARIA labels or roles              | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id` |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
