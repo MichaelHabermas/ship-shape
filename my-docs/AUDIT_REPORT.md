@@ -37,6 +37,17 @@
 4. **Medium:** Non-null assertions are common in production route code, making correctness depend on nearby human reasoning instead of explicit control flow.
 5. **Low:** TypeScript suppression comments are not a current production concern; only one appears, and it's in a test.
 
+**Remediation Plan**
+
+Add a lightweight ESLint type-safety guardrail, then clean up the highest-risk files first.
+
+1. Add ESLint with simple root scripts: `"lint": "eslint ."` and `"lint:fix": "eslint . --fix"`.[^6]
+2. Configure type-safety rules as warnings at first: no explicit `any`, no non-null assertions, no unsafe assignments/member access/arguments/returns, and no unnecessary type assertions.
+3. Keep the existing AST audit counter as the measurable baseline and regression check. ESLint helps developers find issues; the audit script proves the 25% reduction.
+4. Start remediation in the densest production route files: `api/src/routes/weeks.ts`, `api/src/routes/projects.ts`, and `api/src/routes/issues.ts`.
+5. Replace unsafe route-boundary patterns with real narrowing: Zod-parsed `req.query` / `req.body`, typed `pool.query<T>()` rows, explicit row mapper types, and guarded access to document `properties`.
+6. Treat editor/Yjs/TipTap typing as a later pass. API and database boundaries carry more production risk and will remove more meaningful violations faster.
+
 ---
 
 ## Category 2: Production Frontend Bundle Size
@@ -66,6 +77,18 @@
 3. **Medium:** `emoji-picker-react` and `highlight.js` are large feature-specific dependencies. They appear expensive relative to how often emoji picking or code highlighting is likely needed on initial load. `yjs` is also large, but it supports core collaboration behavior.
 4. **Low:** `@tanstack/query-sync-storage-persister` appears unused by static import and bundle-report checks. `@uswds/uswds` was a false positive because it is used through the icon glob/generation path.
 
+**Remediation Plan**
+
+Reduce the initial JavaScript bundle by making expensive features load only when needed.
+
+1. Gate `ReactQueryDevtools` behind a dev-only dynamic import so it never ships in the production entry bundle.
+2. Remove the unused `@tanstack/query-sync-storage-persister` dependency if the static import and bundle checks still confirm it is unused.
+3. Lazy-load `emoji-picker-react`; the picker should download only when the emoji popover opens.
+4. Convert eager page imports in `web/src/main.tsx` to route-level `React.lazy` imports, especially admin, org chart, reviews, settings, and document-heavy pages.
+5. Split the editor path so non-editor pages do not pay for TipTap, Yjs, ProseMirror, lowlight, or collaboration code on initial load.
+6. Reduce syntax-highlighting weight by registering only needed languages or loading highlighting after the editor/code block is actually used.
+7. Measure success with the same production build and bundle report, targeting at least a 20% reduction in the initial `assets/index-*.js` chunk without removing user-facing functionality.
+
 ---
 
 ## Category 3: API Response Time
@@ -86,6 +109,8 @@
 
 1.
 
+**Remediation Plan**
+
 ---
 
 ## Category 4: Database Query Efficiency
@@ -105,6 +130,8 @@
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1.
+
+**Remediation Plan**
 
 ---
 
@@ -138,6 +165,8 @@
 4. **Medium:** API test safety requires a throwaway database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to a disposable database.
 5. **Low:** No flaky tests detected across 3 repeated runs of both API and web suites.
 
+**Remediation Plan**
+
 ---
 
 ## Category 6: Runtime Error and Edge Case Handling
@@ -158,6 +187,8 @@
 
 1.
 
+**Remediation Plan**
+
 ---
 
 ## Category 7: Accessibility Compliance
@@ -177,6 +208,8 @@
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1.
+
+**Remediation Plan**
 
 ---
 
@@ -292,3 +325,20 @@ cd e2e && npx playwright test --list 2>&1 | tail -1
 ```
 
 This is authoritative over the grep-based count (883) because Playwright resolves `test.describe`, `test.skip`, parameterized tests, and other runtime constructs that grep cannot distinguish from non-test usage of `test(` / `it(`.
+
+[^6]: Category 1 ESLint type-safety rules:
+
+```bash
+'@typescript-eslint/no-explicit-any': 'warn',
+'@typescript-eslint/no-non-null-assertion': 'warn',
+'@typescript-eslint/consistent-type-assertions': ['warn', {
+  assertionStyle: 'as',
+  objectLiteralTypeAssertions: 'never',
+}],
+'@typescript-eslint/no-unsafe-assignment': 'warn',
+'@typescript-eslint/no-unsafe-member-access': 'warn',
+'@typescript-eslint/no-unsafe-argument': 'warn',
+'@typescript-eslint/no-unsafe-return': 'warn',
+'@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+'@typescript-eslint/strict-boolean-expressions': 'off',
+```
