@@ -16,12 +16,13 @@
 - Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
 - Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
 - Still to record before runtime categories: exact flow URLs.
+- check if /file works...
 
 ---
 
 ## Category 1: Type Safety
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
 
 - Explicit `any` usage was measured with the TypeScript compiler parser by counting `SyntaxKind.AnyKeyword` AST nodes.[^1]
 - Type assertions were measured with the same parser approach by counting `SyntaxKind.AsExpression` AST nodes.[^1]
@@ -32,14 +33,14 @@
 
 **Baseline**
 
-| Metric | Value |
-|--------|-------|
-| Total `any` types | 278 total, 94 in production |
-| Total type assertions (`as`) | 713 total, 504 in production |
-| Total non-null assertions (`!`) | 348 total, 325 in production |
-| Total `@ts-ignore` / `@ts-expect-error`       | 1 total, 0 in production |
-| Strict mode enabled?                          | Yes |
-| Strict mode error count (if disabled)         | N/A |
+| Metric                                        | Value                                                                                                                                                                       |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Total `any` types                             | 278 total, 94 in production                                                                                                                                                 |
+| Total type assertions (`as`)                  | 713 total, 504 in production                                                                                                                                                |
+| Total non-null assertions (`!`)               | 348 total, 325 in production                                                                                                                                                |
+| Total `@ts-ignore` / `@ts-expect-error`       | 1 total, 0 in production                                                                                                                                                    |
+| Strict mode enabled?                          | Yes                                                                                                                                                                         |
+| Strict mode error count (if disabled)         | N/A                                                                                                                                                                         |
 | Top 5 violation-dense files (production only) | `api/src/routes/weeks.ts` (85), `api/src/routes/projects.ts` (51), `api/src/routes/issues.ts` (49), `web/src/pages/UnifiedDocumentPage.tsx` (37), `api/src/db/seed.ts` (35) |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
@@ -65,7 +66,7 @@ Add a lightweight ESLint type-safety guardrail, then clean up the highest-risk f
 
 ## Category 2: Production Frontend Bundle Size
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
 
 - Total production bundle size was measured after `pnpm build:web` by summing raw JavaScript and CSS files in `web/dist`, excluding source maps. Full `web/dist` static output, including icons/images, was also measured for context.
 - Largest chunk was identified by sorting generated `web/dist/assets` JavaScript and CSS files by byte size.
@@ -75,19 +76,19 @@ Add a lightweight ESLint type-safety guardrail, then clean up the highest-risk f
 
 **Baseline**
 
-| Metric                         | Value         |
-| ------------------------------ | ------------- |
-| Total production bundle size   | 2,262.65 KB JS/CSS (3,351.53 KB full `web/dist`) |
-| Largest chunk                  | `assets/index-C2vAyoQ1.js` (2,025.10 KB) |
-| Number of chunks               | 262 JS/CSS chunks (261 JS, 1 CSS) |
+| Metric                         | Value                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| Total production bundle size   | 2,262.65 KB JS/CSS (3,351.53 KB full `web/dist`)                                |
+| Largest chunk                  | `assets/index-C2vAyoQ1.js` (2,025.10 KB)                                        |
+| Number of chunks               | 262 JS/CSS chunks (261 JS, 1 CSS)                                               |
 | Top 3 largest dependencies     | `emoji-picker-react` (399.59 KB), `highlight.js` (377.92 KB), `yjs` (264.92 KB) |
-| Unused dependencies identified | `@tanstack/query-sync-storage-persister` |
+| Unused dependencies identified | `@tanstack/query-sync-storage-persister`                                        |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** The main JavaScript chunk dominates the bundle. `assets/index-C2vAyoQ1.js` is 2,025.10 KB, about 89% of the raw JS/CSS bundle, and triggers Vite's >500 KB warning.
 2. **High:** Code splitting exists but is not reducing the initial bundle enough. The build emits 262 JS/CSS chunks, but most are tiny while the main app chunk remains very large.
-3. **Medium:** `emoji-picker-react` and `highlight.js` are large feature-specific dependencies. They appear expensive relative to how often emoji picking or code highlighting is likely needed on initial load. `yjs` is also large, but it supports core collaboration behavior.
+3. **Medium:** `emoji-picker-react` and `highlight.js` are large feature-specific dependencies. They appear expensive relative to how often emoji picking or code highlighting is likely needed on initial load. `yjs` is also large, but it supports core collaboration behavior. (react-router dropped out because the earlier source-map method was counting source content differently. The Rollup metadata is the better number for this row because it reflects rendered module lengths in the actual production bundle.)
 4. **Low:** `@tanstack/query-sync-storage-persister` appears unused by static import and bundle-report checks. `@uswds/uswds` was a false positive because it is used through the icon glob/generation path.
 
 **Remediation Plan**
@@ -106,13 +107,19 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 ## Category 3: API Response Time
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
+
+- Authenticated API requests were benchmarked with the browser session cookie captured from Chrome DevTools. Cookie validity was confirmed with `curl`, returning `200 105338` for `GET /api/documents?type=wiki`.
+- Flow 1, load main page (`/docs`): representative endpoint selected as `GET http://localhost:3000/api/documents?type=wiki`, because it is the main content payload for the documents page and the largest visible API response during page load.
+- Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.
 
 **Baseline**
 
 | Endpoint | P50 | P95 | P99 |
 | -------- | --- | --- | --- |
-| 1.       | ms  | ms  | ms  |
+| `GET /api/documents?type=wiki` at 10 connections | 7 ms | 21 ms (97.5th percentile proxy) | 23 ms |
+| `GET /api/documents?type=wiki` at 25 connections | 17 ms | 42 ms (97.5th percentile proxy) | 46 ms |
+| `GET /api/documents?type=wiki` at 50 connections | 25 ms | 65 ms (97.5th percentile proxy) | 71 ms |
 | 2.       |     |     |     |
 | 3.       |     |     |     |
 | 4.       |     |     |     |
@@ -120,15 +127,13 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
-1.
-
 **Remediation Plan**
 
 ---
 
 ## Category 4: Database Query Efficiency
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
 
 **Baseline**
 
@@ -142,15 +147,13 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
-1.
-
 **Remediation Plan**
 
 ---
 
 ## Category 5: Test Coverage and Quality
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
 
 - Test inventory was measured by scanning `api/src`, `web/src`, `shared/src`, and `e2e` for `*.test.ts(x)` and `*.spec.ts(x)` files, then counting declared `test(...)` / `it(...)` cases.[^3]
 - Web unit tests were run with `pnpm --filter @ship/web exec vitest run`.
@@ -162,13 +165,13 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Baseline**
 
-| Metric                            | Value           |
-| --------------------------------- | --------------- |
-| Total tests                       | 1,471 executable tests across 99 files (451 API in 28 files, 151 web in 16 files, 869 E2E in 71 files) |
-| Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E: not executed (inventory only) |
-| Suite runtime                     | API unit: 10.76s; Web unit: 1.05s |
+| Metric                            | Value                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Total tests                       | 1,471 executable tests across 99 files (451 API in 28 files, 151 web in 16 files, 869 E2E in 71 files)                   |
+| Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E: not executed (inventory only)                                        |
+| Suite runtime                     | API unit: 10.76s; Web unit: 1.05s                                                                                        |
 | Critical flows with zero coverage | None obvious by file inventory for document CRUD, auth, collaboration, issues, weeks, search, accessibility, or security |
-| Code coverage % (if measured)     | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured |
+| Code coverage % (if measured)     | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured                              |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
@@ -193,7 +196,7 @@ Restore trust in the test system before expanding it.
 
 ## Category 6: Runtime Error and Edge Case Handling
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
 
 **Baseline**
 
@@ -207,15 +210,13 @@ Restore trust in the test system before expanding it.
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
-1.
-
 **Remediation Plan**
 
 ---
 
 ## Category 7: Accessibility Compliance
 
-**Methodology (**Describe how you measured it (tools, commands, methodology)**)**
+**Methodology (Describe how you measured it (tools, commands, methodology))**
 
 **Baseline**
 
@@ -228,8 +229,6 @@ Restore trust in the test system before expanding it.
 | Missing ARIA labels or roles              |                         |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
-
-1.
 
 **Remediation Plan**
 
