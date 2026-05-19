@@ -15,7 +15,8 @@
 - Sidecar benchmark database: `ship_test_audit` exists and is migrated. Use it only for destructive API test/coverage benchmarking and improvement checks; keep browser/runtime/performance measurements on `ship_dev`.[^4]
 - Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
 - Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
-- Still to record before runtime categories: exact flow URLs.
+- Runtime flow URL note: the Issues list was reached directly at `http://localhost:5174/issues`; it was not obvious from the visible primary navigation during this pass.
+- Still to record before runtime categories: remaining exact flow URLs.
 - check if /file works...
 
 ---
@@ -112,6 +113,10 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - Authenticated API requests were benchmarked with the browser session cookie captured from Chrome DevTools. Cookie validity was confirmed with `curl`, returning `200 105338` for `GET /api/documents?type=wiki`.
 - Flow 1, load main page (`/docs`): representative endpoint selected as `GET http://localhost:3000/api/documents?type=wiki`, because it is the main content payload for the documents page and the largest visible API response during page load.
 - Benchmarks used `autocannon` for 15 seconds at 10, 25, and 50 connections, capped with `-R 50` to stay below the app's `1000/min` rate limit. An uncapped 10-connection run was discarded because it produced 454,536 non-2xx responses and immediately hit `429 Too Many Requests`.
+- Flow 2, view a document (`/documents/df41d98b-f009-4230-bd39-3953ca5a6507`): the visible document-specific REST call was `GET /api/documents/:id/backlinks`. Hard reload did not expose a separate document-body REST request; document content appears to come from frontend state, cache, or the editor/collaboration path. The 50-connection backlinks run used `-R 40` after a `-R 50` attempt produced 9 non-2xx responses.
+- Flow 3, list issues (`/issues`): the route was reached directly at `http://localhost:5174/issues` because the visible primary navigation did not make the route obvious. The UI did not visibly trigger `GET /api/issues` during the captured page-load pass, but `GET /api/issues` is the verified issue-list API endpoint and returned `200 102132` with the active session cookie.
+- Flow 4, load sprint/week board (`/my-week`): representative endpoint selected as `GET http://localhost:3000/api/dashboard/my-week`, returning `200 1221` with the active session cookie. The 50-connection run used `-R 25` after a `-R 50` attempt produced 326 non-2xx responses.
+- Flow 5, search content (`/docs` search box): no backend request fired when searching `audit`; the Docs page filters the already-loaded document list client-side. Code review found implemented backend search routes for `/api/search/mentions` and `/api/search/learnings`, but OpenAPI also documents `/api/search/documents`; verification returned `404 159` for `GET /api/search/documents?q=audit`.
 
 **Baseline**
 
@@ -120,14 +125,32 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 | `GET /api/documents?type=wiki` at 10 connections | 7 ms | 21 ms (97.5th percentile proxy) | 23 ms |
 | `GET /api/documents?type=wiki` at 25 connections | 17 ms | 42 ms (97.5th percentile proxy) | 46 ms |
 | `GET /api/documents?type=wiki` at 50 connections | 25 ms | 65 ms (97.5th percentile proxy) | 71 ms |
-| 2.       |     |     |     |
-| 3.       |     |     |     |
-| 4.       |     |     |     |
-| 5.       |     |     |     |
+| `GET /api/documents/:id/backlinks` at 10 connections | 3 ms | 13 ms (97.5th percentile proxy) | 17 ms |
+| `GET /api/documents/:id/backlinks` at 25 connections | 8 ms | 23 ms (97.5th percentile proxy) | 25 ms |
+| `GET /api/documents/:id/backlinks` at 50 connections | 13 ms | 28 ms (97.5th percentile proxy) | 31 ms |
+| `GET /api/issues` at 10 connections | 7 ms | 22 ms (97.5th percentile proxy) | 25 ms |
+| `GET /api/issues` at 25 connections | 14 ms | 35 ms (97.5th percentile proxy) | 38 ms |
+| `GET /api/issues` at 50 connections | 29 ms | 66 ms (97.5th percentile proxy) | 72 ms |
+| `GET /api/dashboard/my-week` at 10 connections | 5 ms | 21 ms (97.5th percentile proxy) | 26 ms |
+| `GET /api/dashboard/my-week` at 25 connections | 12 ms | 32 ms (97.5th percentile proxy) | 34 ms |
+| `GET /api/dashboard/my-week` at 50 connections | 16 ms | 34 ms (97.5th percentile proxy) | 36 ms |
+| Search content flow | N/A | N/A | N/A |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
+1. **High:** Rate limiting makes naive concurrent benchmarks invalid. Uncapped `autocannon` immediately produced hundreds of thousands of non-2xx responses, and even capped 50-connection runs needed lower request rates on some endpoints. The API can be measured, but only with rate-aware tooling.
+2. **High:** Search route documentation and implementation disagree. OpenAPI documents `GET /api/search/documents`, but the endpoint returns 404. The visible Docs search is client-side only, so there is no backend baseline for the required search-content flow.
+3. **Medium:** Main list endpoints are fast under rate-capped local load but payload-heavy. `GET /api/documents?type=wiki` returns about 105 KB and reaches 71 ms P99 at 50 connections; `GET /api/issues` returns about 102 KB and reaches 72 ms P99.
+4. **Medium:** Document-view measurement is incomplete from the REST layer. Hard reload of a document page exposed backlinks only; document body loading appears to happen through cached state, frontend state, or the editor/collaboration path, so REST-only benchmarking misses part of the user-visible document-load path.
+5. **Low:** The sprint/week endpoint is small and stable when rate-capped. `GET /api/dashboard/my-week` returned about 1.2 KB and stayed at 36 ms P99 at 50 connections once the request rate was lowered.
+
 **Remediation Plan**
+
+1. Add a benchmark script that always supplies an authenticated cookie, fixed duration, fixed connection counts, and a safe `-R` cap so future measurements are comparable.
+2. Either implement `GET /api/search/documents` or remove it from OpenAPI; then decide whether Docs search should stay client-side or use backend search for larger datasets.
+3. Split or paginate the largest list payloads before optimizing individual SQL queries. The current bottleneck is not raw local latency; it is full-list transfer and hydration behavior.
+4. Add an explicit way to measure document body load separately from backlinks, including the editor/Yjs path if that is the real source of document content.
+5. Keep the app rate limit visible in perf reports. A high-throughput benchmark that mostly measures 429 responses is worse than no benchmark.
 
 ---
 
@@ -135,19 +158,36 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
+- PostgreSQL `pg_stat_statements` was unavailable for this local server because it was not loaded via `shared_preload_libraries`, so query counts were measured with a temporary in-process API harness.
+- The harness imported `createApp()` and monkeypatched `pool.query` to record SQL count and elapsed time for each request, then logged in as `dev@ship.local` and replayed the same flow endpoints used in Category 3.
+- “Load main page” was measured as the observed `/docs` hydration sequence: `/api/auth/me`, `/api/weeks/my-action-items`, `/api/auth/session`, `/api/standups/status`, `/api/issues`, `/api/projects`, `/api/programs`, `/api/documents?type=wiki`, `/api/team/people?includeArchived=true`, and a second `/api/auth/session`.
+- “Search content” was recorded as zero backend queries because the Docs search box did not issue a backend request.
+
 **Baseline**
 
 | User flow         | Total queries | Slowest query (ms) | N+1 detected? |
 | ----------------- | ------------- | ------------------ | ------------- |
-| Load main page    |               |                    | Yes / No      |
-| View a document   |               |                    |               |
-| List issues       |               |                    |               |
-| Load sprint board |               |                    |               |
-| Search content    |               |                    |               |
+| Load main page    | 41 | 4.00 | No row-level N+1; repeated session/auth checks across 10 API calls |
+| View a document   | 5 | 0.56 | No |
+| List issues       | 5 | 1.00 | No |
+| Load sprint board | 9 | 0.57 | No |
+| Search content    | 0 | N/A | N/A; client-side filter only |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
+1. **High:** Main page load fans out into too many backend requests. The measured `/docs` hydration path made 10 API calls and 41 SQL queries before any user interaction.
+2. **Medium:** Session/auth checks are repeated per API call. The main-page flow executed 10 session lookups and 10 session `last_activity` updates, adding write pressure and noise to every multi-request page load.
+3. **Medium:** The largest list endpoints are single-query but payload-heavy. `GET /api/issues` and `GET /api/documents?type=wiki` did not show row-level N+1 behavior, but they return full lists with large response bodies.
+4. **Medium:** The sprint/week board uses 9 queries for a small response. No N+1 was confirmed, but the query count is high relative to the 1.2 KB payload.
+5. **Low:** Docs search uses no database query because it filters client-side. That is efficient for the current loaded list, but it cannot become true full-content search without a real backend endpoint.
+
 **Remediation Plan**
+
+1. Reduce page-load API fanout before tuning individual SQL. Bundle related bootstrap data or rely more consistently on React Query cache hydration.
+2. Avoid updating session `last_activity` on every single request in bursty page loads; throttle or coalesce the write while preserving the 15-minute inactivity policy.
+3. Add pagination or server-side limits for document and issue lists before the audit-load dataset grows further.
+4. Add a real document-search endpoint or remove the documented `/api/search/documents` route from OpenAPI.
+5. Keep the query-count harness or replace it with proper Postgres query stats in dev, so future improvements can be checked with the same five flows.
 
 ---
 
