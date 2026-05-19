@@ -134,7 +134,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - Flow 2, view a document (`/documents/df41d98b-f009-4230-bd39-3953ca5a6507`): the visible document-specific REST call was `GET /api/documents/:id/backlinks`. Hard reload did not expose a separate document-body REST request; document content appears to come from frontend state, cache, or the editor/collaboration path. The 50-connection backlinks run used `-R 40` after a `-R 50` attempt produced 9 non-2xx responses.
 - Flow 3, list issues (`/issues`): the global route is available at `http://localhost:5174/issues`; Issues are also discoverable through Programs, where each program exposes an Issues tab. The UI did not visibly trigger `GET /api/issues` during the captured global Issues page-load pass, but `GET /api/issues` is the verified issue-list API endpoint and returned `200 102132` with the active session cookie.
 - Flow 4, load sprint/week board (`/my-week`): representative endpoint selected as `GET http://localhost:3000/api/dashboard/my-week`, returning `200 1221` with the active session cookie. The 50-connection run used `-R 25` after a `-R 50` attempt produced 326 non-2xx responses.
-- Flow 5, search content (`/docs` search box): no backend request fired when searching `audit`; the Docs page filters the already-loaded document list client-side. Code review found implemented backend search routes for `/api/search/mentions` and `/api/search/learnings`, but OpenAPI also documents `/api/search/documents`; verification returned `404 159` for `GET /api/search/documents?q=audit`.
+- Flow 5, search content (`/docs` search box): no backend request fired when searching `audit`; the Docs page filters the already-loaded document list client-side by title only. Code review found implemented backend search routes for `/api/search/mentions` and `/api/search/learnings`; `/api/search/mentions` can return title-matched documents for mentions/slash embeds, but there is no mounted full document-search route. OpenAPI and generated API files document `/api/search/documents`, while runtime verification returned `404 159` for `GET /api/search/documents?q=audit`.
 
 **Baseline**
 
@@ -157,7 +157,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** Rate limiting makes naive concurrent benchmarks invalid. Uncapped `autocannon` immediately produced hundreds of thousands of non-2xx responses, and even capped 50-connection runs needed lower request rates on some endpoints. The API can be measured, but only with rate-aware tooling.
-2. **High:** Search route documentation and implementation disagree. OpenAPI documents `GET /api/search/documents`, but the endpoint returns 404. The visible Docs search is client-side only, so there is no backend baseline for the required search-content flow.
+2. **High:** Search ownership is split and drifted. Architecture docs describe server full-text search with offline fallback, OpenAPI documents `GET /api/search/documents`, but the route is not implemented. The visible Docs search is client-side title filtering, while `/api/search/mentions` is a separate title-only helper for mentions/slash embeds.
 3. **Medium:** Main list endpoints are fast under rate-capped local load but payload-heavy. `GET /api/documents?type=wiki` returns about 105 KB and reaches 71 ms P99 at 50 connections; `GET /api/issues` returns about 102 KB and reaches 72 ms P99.
 4. **Medium:** Document-view measurement is incomplete from the REST layer. Hard reload of a document page exposed backlinks only; document body loading appears to happen through cached state, frontend state, or the editor/collaboration path, so REST-only benchmarking misses part of the user-visible document-load path.
 5. **Low:** The sprint/week endpoint is small and stable when rate-capped. `GET /api/dashboard/my-week` returned about 1.2 KB and stayed at 36 ms P99 at 50 connections once the request rate was lowered.
@@ -207,7 +207,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 2. Avoid updating session `last_activity` on every single request in bursty page loads; throttle or coalesce the write while preserving the 15-minute inactivity policy.
 3. Add pagination or server-side limits for document and issue lists before the audit-load dataset grows further.
 4. Add targeted indexes for repeated JSON-property filters before the data set grows, starting with weekly-plan/person/week lookups if dashboard latency increases.
-5. Add a real document-search endpoint or remove the documented `/api/search/documents` route from OpenAPI.
+5. Implement real document search and wire `/docs` to it, or deliberately remove `/api/search/documents` from OpenAPI and update the architecture docs to say document search is client-side/title-only. The current halfway state is misleading.
 6. Keep the query-count harness or replace it with proper Postgres query stats in dev, so future improvements can be checked with the same five flows.
 
 ---
