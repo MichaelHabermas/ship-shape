@@ -238,15 +238,18 @@ Restore trust in the test system before expanding it.
 
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
+- Static error-handling coverage was checked with `rg` for React error boundaries, global browser error/rejection handlers, Node `unhandledRejection` / `uncaughtException` handlers, and API `catch` blocks.
+- Runtime console baseline uses the authenticated browser session on the same audit-scale `ship_dev` data set.
+
 **Baseline**
 
 | Metric                                | Value                 |
 | ------------------------------------- | --------------------- |
-| Console errors during normal usage    |                       |
-| Unhandled promise rejections (server) |                       |
-| Network disconnect recovery           | Pass / Partial / Fail |
-| Missing error boundaries              |                       |
-| Silent failures identified            |                       |
+| Console errors during normal usage    | 0 across `/docs`, `/issues`, `/my-week`, and `/projects` after clearing Console |
+| Unhandled promise rejections (server) | No process-level `unhandledRejection` / `uncaughtException` handlers found |
+| Network disconnect recovery           | Partial: document page stays rendered; offline mode repeatedly logs `BacklinksPanel.tsx` fetch failures; errors stop after returning to `No throttling`, but no visible offline/reconnected state appears |
+| Missing error boundaries              | Partial boundary only: main `<Outlet />` wrapped; providers, sidebars, command palette, realtime/auth layers not wrapped |
+| Silent failures identified            | Backlinks fetch failures are console-only during disconnect; no visible user feedback |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
