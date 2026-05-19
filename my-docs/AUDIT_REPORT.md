@@ -19,6 +19,24 @@
 
 ---
 
+## Executive Summary
+
+Ship is usable under the audited local workload, but the risk is concentrated in a few places: weak route-boundary typing, an oversized initial web bundle, destructive test setup footguns, document-tree accessibility defects, and drift between documented and implemented search APIs.
+
+Fix first:
+
+1. Harden API route boundaries in `api/src/routes/weeks.ts`, `api/src/routes/projects.ts`, and `api/src/routes/issues.ts`; these are the densest production type-safety files and sit closest to request data and database rows.
+2. Reduce the initial web bundle by dev-only gating `ReactQueryDevtools`, removing unused dependencies, lazy-loading expensive features, and moving route pages to `React.lazy`.
+3. Add a hard test-database safety guard before anyone runs API tests without an explicit disposable database.
+4. Fix shared document-tree markup; the same ARIA/list defects hit both `/docs` and `/documents/:id`.
+5. Resolve `/api/search/documents`: either implement it or remove it from OpenAPI, then decide whether Docs search should remain client-side.
+
+Do not overreact to raw API latency. Rate-aware local benchmarks were mostly fast; the deeper bottleneck is page-load fanout, repeated session writes, payload-heavy list endpoints, and unclear search ownership.
+
+Data safety note: audit-scale runtime data was added to `ship_dev` as removable rows tagged with `properties.audit_load = true`; the disposable `ship_test_audit` database was used only for destructive API tests and coverage. Keep browser/runtime/performance checks on `ship_dev` and destructive test runs on `ship_test_audit` or another explicit throwaway database.
+
+---
+
 ## Category 1: Type Safety
 
 **Methodology (Describe how you measured it (tools, commands, methodology))**
