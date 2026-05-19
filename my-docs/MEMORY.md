@@ -39,7 +39,7 @@ _None yet._
 
 Stable human preferences that should shape future work.
 
-_None yet._
+- Update `MEMORY.md` when a durable preference, recurring project pattern, or cross-session learning is useful.
 
 ## External Constraints
 

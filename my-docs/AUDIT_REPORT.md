@@ -4,6 +4,17 @@
 
 ## Context
 
+- Audit date/time: 2026-05-19 10:23:21 CDT.
+- Code state: `5731a92a01e357b0ffb7ffa28e3319b3a14ffedf`; working tree clean.
+- Environment: macOS 26.5 build 25F71; Node `v24.15.0`; pnpm `10.27.0`.
+- Runtime startup: `pnpm dev` started shared TypeScript watch with 0 errors, Vite `6.4.1` at `http://localhost:5174/`, and API at `http://localhost:3000`.
+- Runtime services: Yjs collaboration server attached; Events WebSocket server attached; CAIA not configured; API CORS origin `http://localhost:5174`.
+- Database: `ship_dev` from `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_dev`.
+- Seed/data volume after `pnpm db:migrate && pnpm db:seed`: 257 documents total (`wiki` 7, `issue` 104, `program` 5, `project` 15, `sprint` 35, `person` 11, `weekly_plan` 32, `weekly_retro` 27, `standup` 6, `weekly_review` 15); 11 users. This meets the audit target for issues and sprints/weeks, but not 500+ documents or 20+ users.
+- Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
+- Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
+- Still to record before runtime categories: exact flow URLs.
+
 ---
 
 ## Category 1: Type Safety
