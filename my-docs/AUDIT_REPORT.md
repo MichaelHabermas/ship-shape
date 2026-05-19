@@ -253,7 +253,19 @@ Restore trust in the test system before expanding it.
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
+1. **High:** Network disconnects create console-only failures. `BacklinksPanel.tsx` repeatedly logs `Failed to fetch` while offline, but the user sees no offline state, retry status, or degraded-mode message.
+2. **High:** Server process-level failure handling is missing. No `process.on('unhandledRejection')` or `process.on('uncaughtException')` handler was found, so unexpected async failures may be logged inconsistently or terminate without a controlled shutdown path.
+3. **Medium:** Error boundaries are incomplete. The main `<Outlet />` is wrapped, but providers, auth/realtime layers, sidebars, command palette, and properties portal are outside the boundary.
+4. **Medium:** API routes mostly catch and return JSON 500s, but error handling is duplicated per route instead of centralized. This increases the chance of inconsistent messages/statuses as routes grow.
+5. **Low:** Normal authenticated navigation was quiet. `/docs`, `/issues`, `/my-week`, and `/projects` produced 0 console errors after clearing Console.
+
 **Remediation Plan**
+
+1. Add visible offline/degraded states for polling panels and realtime features, starting with `BacklinksPanel`.
+2. Add process-level `unhandledRejection` and `uncaughtException` handlers with structured logging and graceful shutdown behavior.
+3. Move error boundaries higher or add separate boundaries around providers/sidebar/realtime surfaces so one crash cannot blank major app chrome.
+4. Add centralized Express error middleware and route helpers so thrown errors become consistent JSON responses.
+5. Keep the normal-navigation console check as a regression smoke test after fixes.
 
 ---
 
