@@ -11,6 +11,8 @@
 - Runtime services: Yjs collaboration server attached; Events WebSocket server attached; CAIA not configured; API CORS origin `http://localhost:5174`.
 - Database: `ship_dev` from `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_dev`.
 - Seed/data volume after `pnpm db:migrate && pnpm db:seed`: 257 documents total (`wiki` 7, `issue` 104, `program` 5, `project` 15, `sprint` 35, `person` 11, `weekly_plan` 32, `weekly_retro` 27, `standup` 6, `weekly_review` 15); 11 users. This meets the audit target for issues and sprints/weeks, but not 500+ documents or 20+ users.
+- Audit-scale data added for runtime measurement: 9 audit users, 9 audit person documents, and 250 audit wiki documents. Final runtime-audit volume: 516 documents total (`wiki` 257, `issue` 104, `program` 5, `project` 15, `sprint` 35, `person` 20, `weekly_plan` 32, `weekly_retro` 27, `standup` 6, `weekly_review` 15); 20 users. 259 documents are tagged with `properties.audit_load = true`.[^7]
+- Sidecar benchmark database: `ship_test_audit` exists and is migrated. Use it only for destructive API test/coverage benchmarking and improvement checks; keep browser/runtime/performance measurements on `ship_dev`.[^4]
 - Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
 - Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
 - Still to record before runtime categories: exact flow URLs.
@@ -152,10 +154,10 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 - Test inventory was measured by scanning `api/src`, `web/src`, `shared/src`, and `e2e` for `*.test.ts(x)` and `*.spec.ts(x)` files, then counting declared `test(...)` / `it(...)` cases.[^3]
 - Web unit tests were run with `pnpm --filter @ship/web exec vitest run`.
-- API unit tests were run with `pnpm --filter @ship/api exec vitest run` against a throwaway database (`ship_test_audit`) to avoid truncating local application data. The throwaway DB was created, migrated (`pnpm --filter @ship/api db:migrate`), and seeded, then dropped after the run.[^4]
+- API unit tests were run with `pnpm --filter @ship/api exec vitest run` against the sidecar benchmark database (`ship_test_audit`) to avoid truncating local application data.[^4]
 - E2E test count was measured with `npx playwright test --list` from the `e2e/` directory, which enumerates every test the runner would execute.[^5]
 - Flaky test detection: both API and web suites were run 3× each; any test that changed pass/fail status across runs was flagged as flaky.
-- API code coverage was measured by temporarily installing `@vitest/coverage-v8@4.0.17` (matching the project's `vitest@4.0.17`) and running `pnpm --filter @ship/api exec vitest run --coverage` against the throwaway DB. The dependency was removed after measurement.
+- API code coverage was measured by temporarily installing `@vitest/coverage-v8@4.0.17` (matching the project's `vitest@4.0.17`) and running `pnpm --filter @ship/api exec vitest run --coverage` against `ship_test_audit`. The dependency was removed after measurement.
 - Web coverage was checked in `web/vitest.config.ts`; no coverage provider is configured.
 
 **Baseline**
@@ -173,7 +175,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 1. **High:** Web unit tests are failing: 13 of 151 failed, in `document-tabs.test.ts` (9), `DetailsExtension.test.ts` (3), and `useSessionTimeout.test.ts` (1). These are assertion mismatches against changed implementation (e.g., tab configs, TipTap extension content schema), not environmental failures.
 2. **High:** API code coverage is 40% across the board. Route files for `programs.ts` (5%), `dashboard.ts` (2%), `weekly-plans.ts` (5%), and `comments.ts` (9%) have near-zero coverage despite being production endpoints.
 3. **Medium:** Web has no coverage measurement configured. `web/vitest.config.ts` has no `coverage` block; adding `@vitest/coverage-v8` with a `provider: 'v8'` config would enable it.
-4. **Medium:** API test safety requires a throwaway database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to a disposable database.
+4. **Medium:** API test safety requires the sidecar benchmark database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to `ship_test_audit` or another disposable database.
 5. **Low:** No flaky tests detected across 3 repeated runs of both API and web suites.
 
 **Remediation Plan**
@@ -317,24 +319,19 @@ NODE
 
 [^3]: Category 5 static inventory used `rg -c '\b(test|it)\s*\(' --glob '*.test.ts' --glob '*.test.tsx' --glob '*.spec.ts' {api/src,web/src,shared/src,e2e}` to count declared test cases. Note: this grep counts syntactic matches including helpers and comments; the authoritative count comes from the test runners themselves.
 
-[^4]: Category 5 throwaway database procedure for safely running API tests:
+[^4]: Category 5 sidecar benchmark database for safely running destructive API tests and coverage:
 
 ```bash
-# Create throwaway DB (PostgreSQL must be running, credentials from docker-compose.yml)
 PSQL="/opt/homebrew/Cellar/libpq/18.3/bin/psql"
 PGURI="postgresql://ship:ship_dev_password@localhost:5432"
+
+# One-time setup if ship_test_audit does not exist.
 $PSQL "$PGURI/postgres" -c "CREATE DATABASE ship_test_audit;"
-
-# Migrate and seed
 DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api db:migrate
-DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api db:seed
 
-# Run tests (optionally with --coverage after installing @vitest/coverage-v8@4.0.17)
+# Rerun API tests or coverage against the sidecar DB.
 DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api exec vitest run
 DATABASE_URL="$PGURI/ship_test_audit" pnpm --filter @ship/api exec vitest run --coverage
-
-# Cleanup
-$PSQL "$PGURI/postgres" -c "DROP DATABASE IF EXISTS ship_test_audit;"
 ```
 
 [^5]: Category 5 E2E test count used Playwright's built-in listing from the `e2e/` directory:
@@ -361,4 +358,14 @@ This is authoritative over the grep-based count (883) because Playwright resolve
 '@typescript-eslint/no-unsafe-return': 'warn',
 '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
 '@typescript-eslint/strict-boolean-expressions': 'off',
+```
+
+[^7]: Runtime audit-load rows can be removed after measurement with:
+
+```bash
+PSQL="/opt/homebrew/Cellar/libpq/18.3/bin/psql"
+PGURI="postgresql://ship:ship_dev_password@localhost:5432"
+
+$PSQL "$PGURI/ship_dev" -c "DELETE FROM documents WHERE properties->>'audit_load' = 'true';"
+$PSQL "$PGURI/ship_dev" -c "DELETE FROM users WHERE email LIKE 'audit.user%@ship.local';"
 ```
