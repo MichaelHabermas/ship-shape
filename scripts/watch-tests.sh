@@ -2,7 +2,7 @@
 #
 # Watch test progress in real-time
 #
-# Reads test-results/summary.json and displays:
+# Reads ${E2E_RESULTS_DIR:-test-results}/summary.json and displays:
 #   Passed: 45 | Failed: 3 | Pending: 72 | Last: 2s ago
 #
 # Usage:
@@ -10,8 +10,13 @@
 #   ./scripts/watch-tests.sh --once    # Show current status and exit
 #
 
-SUMMARY_FILE="test-results/summary.json"
-ERRORS_DIR="test-results/errors"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RESULTS_DIR="${E2E_RESULTS_DIR:-test-results}"
+if [[ "${RESULTS_DIR}" != /* ]]; then
+    RESULTS_DIR="${ROOT_DIR}/${RESULTS_DIR}"
+fi
+SUMMARY_FILE="${RESULTS_DIR}/summary.json"
+ERRORS_DIR="${RESULTS_DIR}/errors"
 
 # Colors
 GREEN='\033[0;32m'
@@ -26,12 +31,21 @@ show_status() {
         return 1
     fi
 
-    local total=$(jq -r '.total // 0' "$SUMMARY_FILE" 2>/dev/null || echo 0)
-    local passed=$(jq -r '.passed // 0' "$SUMMARY_FILE" 2>/dev/null || echo 0)
-    local failed=$(jq -r '.failed // 0' "$SUMMARY_FILE" 2>/dev/null || echo 0)
-    local skipped=$(jq -r '.skipped // 0' "$SUMMARY_FILE" 2>/dev/null || echo 0)
-    local pending=$(jq -r '.pending // 0' "$SUMMARY_FILE" 2>/dev/null || echo 0)
-    local ts_ms=$(jq -r '.ts // 0' "$SUMMARY_FILE" 2>/dev/null || echo 0)
+    local summary_json
+    summary_json=$(node -e "
+const fs = require('fs');
+const file = process.argv[1];
+const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+const values = ['total', 'passed', 'failed', 'skipped', 'pending', 'ts']
+  .map((key) => Number(data[key] ?? 0));
+console.log(values.join(' '));
+" "$SUMMARY_FILE" 2>/dev/null) || {
+        echo -e "${YELLOW}Waiting for valid test summary...${NC}"
+        return 1
+    }
+
+    local total passed failed skipped pending ts_ms
+    read -r total passed failed skipped pending ts_ms <<< "$summary_json"
 
     # Calculate time since last update (convert ms to seconds)
     local now_s=$(date +%s)
