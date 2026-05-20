@@ -179,7 +179,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 | Total tests | 1,471 executable tests across 115 files | | | | Add 3 meaningful tests or fix 3 flaky tests | |
 | API unit tests | 451 pass / 0 fail / 0 flaky | 451 pass / 0 fail / 0 flaky | 2026-05-20 | No regression | Existing tests still pass | |
 | Web unit tests | 138 pass / 13 fail / 0 flaky | 138 pass / 13 fail | 2026-05-20 | No change from known failing baseline | Existing tests still pass | |
-| E2E tests | 869 listed / not executed | | | | Meaningful tests catch real regressions | |
+| E2E tests | 869 listed / not executed | 862 pass / 1 fail / 6 flaky | 2026-05-20 | First full safe-run baseline captured; no app-behavior changes in the E2E runner work | Meaningful tests catch real regressions | |
 | Suite runtime | API unit: 10.76s; Web unit: 1.05s | | | | Document root cause if fixing flaky tests | |
 | Code coverage | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured | | | | Risk-mitigating tests, not page-load assertions | |
 
@@ -194,6 +194,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 - Second-pass API verification initially failed while local PostgreSQL was down. After starting the local PostgreSQL container, `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed with 28 files and 451 tests.
 - Migration command caveat: rerunning migrations against existing `ship_test_audit` hit stale migration bookkeeping at `010_oauth_state.sql`; a fresh disposable database also showed the schema/migration duplicate `oauth_state` edge, so this remains a migration-runner cleanup item separate from API unit correctness.
 - `pnpm --filter @ship/web test`: failed with the existing 13 web unit failures from `document-tabs`, `DetailsExtension`, and one `useSessionTimeout` expectation.
+- E2E fast-feedback verification full run: `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors"; screenshot and accessibility snapshot showed seeded nested documents visible in the sidebar, while the assertion searched for a nested `ul` under the expanded item. Current tree semantics expose nested items through ARIA `group` structure, so this is likely a stale test-shape/selector issue rather than evidence that the runner work regressed product behavior.
 
 ---
 
