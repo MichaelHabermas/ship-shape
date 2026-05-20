@@ -496,6 +496,8 @@ Status: Confirmed
 
 `api/src/db/schema.sql` defines `document_associations` with `document_id`, `related_id`, and `relationship_type`, but no `workspace_id` and no constraint that both documents belong to the same workspace. `api/src/routes/issues.ts` validates `belongs_to` entries only as `{ id: uuid, type: program|project|sprint|parent }`. On issue create, it inserts those associations directly after creating the issue in the caller's workspace. On issue update, it deletes and reinserts associations the same way. The helper `getBelongsToAssociations()` then joins `document_associations.related_id` to `documents.id` and returns related titles/colors without any workspace filter.
 
+Runtime proof: verified against a disposable local database that was dropped after the run. A bearer token scoped to Workspace A successfully called `POST /api/issues` with `belongs_to` pointing at a private program in Workspace B. The route returned `201`; the response included `belongs_to[0].title = "FOREIGN Workspace Program"`, and a DB join showed `issue_workspace_id = Workspace A` while `related_workspace_id = Workspace B`.
+
 Why it matters: a normal user who knows or obtains a document id from another workspace can create or update an issue in their own workspace that points at the other workspace's program/project/week/parent. Follow-on reads can then surface the foreign document id, title, type, and color through the issue's `belongs_to` metadata. This also creates a representable "should be impossible" graph state that many aggregate queries are not designed to handle.
 
 Why it is easy to miss: most issue queries correctly filter the issue itself by `req.workspaceId`, so the route looks workspace-scoped. The cross-workspace edge is hidden one layer deeper in the association insert and shared association formatter.
@@ -520,15 +522,15 @@ Possible mediation: add an explicit file attachment model that links files to do
 
 Severity: Medium
 
-Status: Needs verification
+Status: Confirmed
 
 `api/src/routes/feedback.ts` mounts public feedback without auth or CSRF. `POST /api/feedback` accepts a `program_id`, looks up any document with that id and `document_type = 'program'`, derives its workspace id, creates a new issue in that workspace, and associates it to the program. `GET /api/feedback/program/:programId` similarly returns program id, title, prefix, and color for any known program id without checking visibility, archived/deleted state, or a published/public-feedback flag.
+
+Runtime proof: verified against a disposable local database that was dropped after the run. An unauthenticated `GET /api/feedback/program/:programId` for a private program returned `200` with `{ name: "FOREIGN Workspace Program", prefix: "FB", color: "#f00" }`. An unauthenticated `POST /api/feedback` against the same private program returned `201` and created an external issue associated to that private program's workspace.
 
 Why it matters: this may be an intentional external-feedback feature, but the authorization boundary is the secrecy of a program UUID. If private or internal programs can receive feedback this way, an unauthenticated caller can create triage issues inside that workspace and enumerate limited program metadata for known ids.
 
 Why it is easy to miss: the route is intentionally public, so "no auth" is not automatically a bug. The missing product rule is whether every program id is supposed to be a public submission endpoint.
-
-What would prove it real: create a private or internal-only program in a disposable database, call public feedback endpoints without a session, and verify that program metadata is returned and an issue is created.
 
 What would make it harmless: product policy says every program UUID is a deliberate public feedback URL and private program visibility does not apply to feedback intake.
 
