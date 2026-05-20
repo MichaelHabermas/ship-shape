@@ -927,10 +927,13 @@ test.describe('Phase 2: Serious Violations', () => {
       // Sidebar tree MUST exist
       const sidebar = page.locator('#sidebar-content, aside[aria-label="Document list"]')
       await expect(sidebar).toBeVisible({ timeout: 5000 })
+      const sidebarTree = sidebar.locator('[role="tree"][aria-label*="documents"]').first()
+      await expect(sidebarTree).toBeVisible({ timeout: 5000 })
 
       // Find a document that has children (indicated by aria-expanded attribute)
-      const expandableItem = page.locator('[aria-expanded]').first()
-      const hasExpandable = await expandableItem.count() > 0
+      const expandableNode = sidebarTree.locator('li[data-tree-item]:has([role="treeitem"][aria-expanded])').first()
+      const expandableItem = expandableNode.locator('[role="treeitem"][aria-expanded]').first()
+      const hasExpandable = await expandableNode.count() > 0
 
       // Seed data must provide nested documents for this test
       expect(hasExpandable, 'Seed data should provide nested documents. Run: pnpm db:seed').toBe(true)
@@ -944,8 +947,8 @@ test.describe('Phase 2: Serious Violations', () => {
         await page.waitForTimeout(300)
       }
 
-      // Find a child document link (must be in nested ul, not the parent's own link)
-      const childDoc = expandableItem.locator('ul a[href*="/documents/"]').first()
+      // Find a child document link (must be in the nested ARIA group, not the parent's own link)
+      const childDoc = expandableNode.locator('[role="group"] a[href*="/documents/"]').first()
       await expect(childDoc).toBeVisible({ timeout: 3000 })
 
       const childHref = await childDoc.getAttribute('href')
@@ -957,12 +960,12 @@ test.describe('Phase 2: Serious Violations', () => {
 
       // CRITICAL: Tree MUST auto-expand to show this document
       // Use the sidebar tree specifically to avoid conflicts with main content tree
-      const sidebarTree = page.locator('[role="tree"][aria-label*="documents"]').first()
-      const currentDocInTree = sidebarTree.locator(`a[href="${childHref}"]`)
+      const refreshedSidebarTree = page.locator('[role="tree"][aria-label*="documents"]').first()
+      const currentDocInTree = refreshedSidebarTree.locator(`a[href="${childHref}"]`)
       await expect(currentDocInTree).toBeVisible({ timeout: 3000 })
 
       // Parent MUST be expanded (aria-expanded="true")
-      const expandedParent = page.locator('[aria-expanded="true"]')
+      const expandedParent = refreshedSidebarTree.locator('[role="treeitem"][aria-expanded="true"]')
       expect(await expandedParent.count()).toBeGreaterThan(0)
     })
 

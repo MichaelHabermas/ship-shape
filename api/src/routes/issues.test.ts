@@ -163,6 +163,7 @@ describe('Issues API', () => {
     })
 
     it('should filter issues by project_id', async () => {
+      // Risk: project filtering must narrow through document_associations, or project views can show unrelated work.
       const unrelatedIssueResult = await pool.query(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'issue', 'Unrelated Project Issue', 'workspace', $2, $3)

@@ -5,6 +5,8 @@ import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
+const POLL_INTERVAL_MS = 5000;
+const ERROR_RETRY_MS = 15000;
 
 interface Backlink {
   id: string;
@@ -20,7 +22,7 @@ interface BacklinksPanelProps {
 export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
   const [backlinks, setBacklinks] = useState<Backlink[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'ready' | 'stale' | 'offline'>('ready');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; backlink: Backlink } | null>(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -29,14 +31,46 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
     if (!documentId) return;
 
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let hasLoadedSuccessfully = false;
+    let lastLoggedError = '';
+
+    const clearRetryTimer = () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
+
+    const logFetchErrorOnce = (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message === lastLoggedError) return;
+      lastLoggedError = message;
+      console.error('Error fetching backlinks:', err);
+    };
+
+    const scheduleNextFetch = (delay: number) => {
+      clearRetryTimer();
+      if (!cancelled) {
+        retryTimer = setTimeout(fetchBacklinks, delay);
+      }
+    };
 
     async function fetchBacklinks() {
+      clearRetryTimer();
+
+      if (!navigator.onLine) {
+        if (!cancelled) {
+          setLoading(false);
+          setStatus('offline');
+        }
+        return;
+      }
+
       try {
-        // Only show loading on initial fetch, not on polls
-        if (backlinks.length === 0) {
+        if (!hasLoadedSuccessfully) {
           setLoading(true);
         }
-        setError(null);
 
         const response = await fetch(`${API_URL}/api/documents/${documentId}/backlinks`, {
           credentials: 'include',
@@ -50,11 +84,22 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
 
         if (!cancelled) {
           setBacklinks(data);
+          hasLoadedSuccessfully = true;
+          lastLoggedError = '';
+          if (navigator.onLine) {
+            setStatus('ready');
+            scheduleNextFetch(POLL_INTERVAL_MS);
+          } else {
+            setStatus('offline');
+          }
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Error fetching backlinks:', err);
-          setError('Failed to load backlinks');
+          logFetchErrorOnce(err);
+          setStatus(navigator.onLine ? 'stale' : 'offline');
+          if (navigator.onLine) {
+            scheduleNextFetch(ERROR_RETRY_MS);
+          }
         }
       } finally {
         if (!cancelled) {
@@ -63,14 +108,29 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
       }
     }
 
-    fetchBacklinks();
+    const handleOnline = () => {
+      if (!cancelled) {
+        fetchBacklinks();
+      }
+    };
 
-    // Poll for updates every 5 seconds (for real-time backlink updates)
-    const intervalId = setInterval(fetchBacklinks, 5000);
+    const handleOffline = () => {
+      clearRetryTimer();
+      if (!cancelled) {
+        setLoading(false);
+        setStatus('offline');
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    fetchBacklinks();
 
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
+      clearRetryTimer();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, [documentId]);
 
@@ -163,11 +223,17 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
     );
   }
 
-  if (error) {
+  const statusMessage = status === 'offline'
+    ? (backlinks.length > 0 ? 'Offline. Showing saved backlinks.' : 'Offline. Backlinks will load when connection returns.')
+    : status === 'stale'
+      ? (backlinks.length > 0 ? 'Connection issue. Showing last updated backlinks.' : 'Connection issue. Retrying backlinks.')
+      : null;
+
+  if (statusMessage && backlinks.length === 0) {
     return (
       <div className="space-y-2 p-4">
         <h3 className="text-xs font-medium text-muted">Backlinks</h3>
-        <div className="text-xs text-red-500">{error}</div>
+        <div role="status" aria-live="polite" className="text-xs text-muted">{statusMessage}</div>
       </div>
     );
   }
@@ -175,6 +241,9 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
   return (
     <div className="space-y-2 p-4">
       <h3 className="text-xs font-medium text-muted">Backlinks</h3>
+      {statusMessage && (
+        <div role="status" aria-live="polite" className="text-xs text-muted">{statusMessage}</div>
+      )}
 
       {backlinks.length === 0 ? (
         <div className="text-xs text-muted">No backlinks</div>

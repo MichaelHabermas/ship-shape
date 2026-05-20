@@ -709,7 +709,7 @@ Possible mediation: choose one model. If severe overdue items should create dura
 
 Severity: Low-Medium
 
-Status: Observed
+Status: Selector fixed; focused E2E rerun blocked locally until Docker/Testcontainers is running
 
 The first full E2E run through the safe runner after adding fast-feedback lanes used `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` and completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors." The failure occurred while looking for `expandableItem.locator('ul a[href*="/documents/"]')`, before the test reached the actual deep-link auto-expand assertion. The failure screenshot and accessibility snapshot showed the seeded nested documents visible in the sidebar under "Welcome to Ship," but the current accessible tree exposes children through ARIA `group` structure rather than a literal nested `ul` under the expanded item.
 
@@ -720,6 +720,8 @@ Why it is easy to miss: the test name describes a real user-facing behavior, but
 What would prove it real: manually deep-link to a nested document and verify whether the sidebar auto-expands and identifies the current document. If that behavior fails visually or in the accessibility tree, treat it as a product accessibility/navigation defect.
 
 Possible mediation: update the test to locate nested tree items through roles and ARIA relationships instead of nested `ul` structure, then keep the final assertion focused on the user-visible deep-link behavior. Keep the full-run result as the current E2E baseline rather than treating this runner work as introducing an app regression.
+
+Resolution note: the selector now scopes to the sidebar ARIA tree, locates the expandable row as `li[data-tree-item]`, finds nested links through the row's `role="group"`, and scopes the expanded-parent assertion to the refreshed sidebar tree. The change is test-trust cleanup and is not counted toward Category 5. A focused safe-run was attempted by the worker but blocked because Docker was not running.
 
 ### Submission-gated structural pass status
 
@@ -734,3 +736,17 @@ Boundary-contract drift moved from architectural concern to active regression co
 Search status changed: `/api/search/documents` now exists, but only as title-only metadata search for command-palette lookup. This does not resolve the broader full-text search/product-search question, and `/docs` remains client-side title filtering by design.
 
 Bootstrap status changed: `/api/bootstrap` now exists as read-only app-shell hydration and seeds existing TanStack Query keys. It is a fanout-reduction foundation, not yet measured Category 4 proof. The route needs to stay projection-aligned with the underlying list endpoints, especially project status inference and visibility semantics. Post-reset verification added focused route coverage for auth, response shape, and project status inference; the combined bootstrap/search/visibility/boundary rerun passed 43 tests against a temporary disposable Postgres container.
+
+### Evidence-runner and trust pass status
+
+Severity: Ledger
+
+Status: Updated 2026-05-20
+
+Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. The important behavior is that missing proof stays explicit as `not_measured`.
+
+Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Categories 3 and 4 still need before/after runs under identical conditions before any improvement claim is defensible.
+
+Category 5 moved from incomplete to source-requirement complete via three meaningful regressions: exact inline comment mark removal, project issue filtering through `document_associations`, and private document comment visibility returning `404` to a non-creator workspace member. The focused API rerun passed 51 tests against `ship_test_audit` after the sandboxed attempt failed to reach local PostgreSQL.
+
+Backlinks runtime behavior changed from console-only failure to degraded state. The panel preserves last successful backlinks, exposes offline/stale state through `role="status"` and `aria-live="polite"`, pauses polling offline, and retries on reconnect. This is a real Category 6 improvement, but runtime screenshot/recording evidence is still required before claiming the category complete.

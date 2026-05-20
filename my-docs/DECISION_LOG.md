@@ -147,3 +147,51 @@ Consequences: Shadow refresh is stricter now. Some copies that used to limp forw
 Evidence: `scripts/copy-db-to-shadow.sh` and `scripts/copy-db-via-ssm.sh` now fail on schema reset/restore errors and require users/documents counts to match before reporting success.
 
 **Decision Gist**: Shadow database copy scripts must fail closed on reset, restore, or verification errors instead of printing fake success after a broken refresh.
+
+### D010: Evidence Runs Must Separate Measurement From Claims
+
+Status: Accepted
+
+Decision: Add `pnpm evidence:run` and `pnpm evidence:compare` as repo-local submission evidence rails. Collectors write raw measurements and artifacts under `my-docs/evidence-runs/<run-id>/`, while claim status is recorded separately as `met`, `failed`, or `not_measured`.
+
+Why: The source-of-truth requires proof: before/after benchmarks, query counts, EXPLAIN output, tests, accessibility reports, and runtime evidence. Prior reports sometimes had useful work recorded beside `TBD` proof gaps. A runner that separates collection from claim evaluation makes overclaiming harder and keeps evidence repeatable.
+
+Alternatives considered: Keep using ad hoc shell snippets; build one large all-or-nothing submission script. Ad hoc snippets are too easy to lose or compare incorrectly. A large monolith would be brittle and would hide which evidence lane failed. Small collectors keep the design modular and let incomplete lanes report `not_measured` honestly.
+
+Consequences: Evidence artifacts are now part of the submission workflow and may be tracked when they support proof. The runner must remain read-only by default and must not regenerate tracked contracts unless explicitly asked. New collectors should report missing prerequisites as `not_measured`, not as a fake pass.
+
+Evidence: `pnpm evidence:run -- --phase final-review --run-id codex-final-review` writes artifacts under `my-docs/evidence-runs/codex-final-review/`; its manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`. `pnpm evidence:compare codex-final-check codex-final-review` passes and writes comparison artifacts under the final-review run directory.
+
+**Decision Gist**: Evidence collection is modular and claim-aware, so proof gaps stay visible instead of becoming prose claims.
+
+### D011: Performance Measurement Rails Precede Performance Claims
+
+Status: Accepted
+
+Decision: Add idempotent audit-load seeding, query-count capture, and EXPLAIN capture scripts before making Category 3 or Category 4 improvement claims.
+
+Why: `/api/bootstrap` is a strong app-shell fanout foundation, but it does not by itself satisfy the Category 3 endpoint P95 requirement. Category 3 requires identical-condition endpoint benchmarks, and Category 4 requires query-count or slow-query proof. Measurement rails must exist before optimization claims are credible.
+
+Alternatives considered: Claim bootstrap as an API latency win; optimize endpoints first and measure afterward. Bootstrap is a flow/fanout improvement, not a direct endpoint P95 reduction. Optimizing before fixed measurement recreates the audit problem.
+
+Consequences: Category 3 and 4 remain incomplete until before/after results are captured under identical data volume, concurrency, and hardware. `ship_dev` remains the runtime/performance database, while `ship_test_audit` remains the destructive test database.
+
+Evidence: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs` pass; the scripts are exposed through `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`. `seed-audit-load` is workspace-scoped and tops up tagged issue documents, users/person docs, sprints, and audit logs.
+
+**Decision Gist**: Performance work now has measurement rails, but Categories 3 and 4 are not complete until before/after evidence is captured.
+
+### D012: Backlinks Offline State Is Degraded, Not Dead
+
+Status: Accepted
+
+Decision: When backlink polling fails or the browser goes offline, preserve the last successful backlinks, show an accessible stale/offline status, pause polling while offline, retry on reconnect, and avoid repeated console-error spam.
+
+Why: The audit found Backlinks as a console-only runtime failure during disconnects. Treating the panel as a degraded surface keeps the document usable and tells users whether relationship context may be stale.
+
+Alternatives considered: Keep the existing red error state; hide the panel while offline; add a broad global offline system first. A red dead-end discards useful stale context. Hiding the panel loses information. A global offline system is larger than the current source-required fix.
+
+Consequences: Backlinks can display stale data with an explicit status. This improves runtime behavior but does not complete Category 6 until before/after screenshot or recording evidence is captured.
+
+Evidence: `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts` passes.
+
+**Decision Gist**: Backlinks keep useful stale context and expose degraded state instead of failing silently or noisily.

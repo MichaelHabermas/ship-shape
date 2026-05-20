@@ -5,11 +5,11 @@ import type { IssueProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import {
-  accountabilityTypeSchema,
-  belongsToSchema,
+  createIssueRequestSchema,
   issuePrioritySchema,
   issueSourceSchema,
   issueStateSchema,
+  updateIssueRequestSchema,
 } from '../schemas/document-boundary.js';
 import {
   logDocumentChange,
@@ -46,53 +46,9 @@ type IssueRow = {
 };
 
 // Validation schemas
-const createIssueSchema = z.object({
-  title: z.string().min(1).max(500),
-  state: issueStateSchema.optional().default('backlog'),
-  priority: issuePrioritySchema.optional().default('medium'),
-  assignee_id: z.string().uuid().optional().nullable(),
-  belongs_to: z.array(belongsToSchema).optional().default([]),
-  // Source for the issue (internal, external, or action_items for system-generated)
-  source: issueSourceSchema.optional().default('internal'),
-  // Due date (ISO date string)
-  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-  // System-generated flag (for action_items issues)
-  is_system_generated: z.boolean().optional().default(false),
-  // Accountability tracking for action_items issues
-  accountability_target_id: z.string().uuid().optional().nullable(),
-  accountability_type: accountabilityTypeSchema.optional().nullable(),
-});
+const createIssueSchema = createIssueRequestSchema;
 
-const updateIssueSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
-  state: issueStateSchema.optional(),
-  priority: issuePrioritySchema.optional(),
-  assignee_id: z.string().uuid().optional().nullable(),
-  belongs_to: z.array(belongsToSchema).optional(),
-  estimate: z.number().positive().nullable().optional(),
-  // Confirm closing parent with incomplete children (removes their parent association)
-  confirm_orphan_children: z.boolean().optional(),
-  // Claude Code integration metadata
-  claude_metadata: z.object({
-    updated_by: z.literal('claude'),
-    story_id: z.string().optional(),
-    prd_name: z.string().optional(),
-    session_context: z.string().optional(),
-    // Confidence score (0-100) for story completion
-    confidence: z.number().int().min(0).max(100).optional(),
-    // Telemetry for completed stories
-    telemetry: z.object({
-      iterations: z.number().int().min(1).optional(),
-      feedback_loops: z.object({
-        type_check: z.number().int().min(0).optional(),
-        test: z.number().int().min(0).optional(),
-        build: z.number().int().min(0).optional(),
-      }).optional(),
-      time_elapsed_seconds: z.number().int().min(0).optional(),
-      files_changed: z.array(z.string()).optional(),
-    }).optional(),
-  }).optional(),
-});
+const updateIssueSchema = updateIssueRequestSchema;
 
 const rejectIssueSchema = z.object({
   reason: z.string().min(1).max(1000),

@@ -6,11 +6,14 @@ import { describe, expect, it } from 'vitest';
 import {
   accountabilityTypeValues,
   belongsToTypeValues,
+  createIssueRequestSchema,
   documentTypeValues,
   documentVisibilityValues,
   issuePriorityValues,
+  issuePropertiesSchema,
   issueSourceValues,
   issueStateValues,
+  updateIssueRequestSchema,
 } from './document-boundary.js';
 import { DocumentTypeSchema } from '../openapi/schemas/documents.js';
 import {
@@ -20,8 +23,10 @@ import {
 } from '../openapi/schemas/common.js';
 import {
   AccountabilityTypeSchema,
+  CreateIssueSchema,
   IssuePrioritySchema,
   IssueStateSchema,
+  UpdateIssueSchema,
 } from '../openapi/schemas/issues.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -120,5 +125,38 @@ describe('document boundary contracts', () => {
         expect(sortValues(contract.db), `${contract.name} DB values`).toEqual(runtime);
       }
     }
+  });
+
+  it('keeps issue request schemas shared between runtime validation and OpenAPI', () => {
+    expect(Object.keys(CreateIssueSchema.shape)).toEqual(Object.keys(createIssueRequestSchema.shape));
+    expect(Object.keys(UpdateIssueSchema.shape)).toEqual(Object.keys(updateIssueRequestSchema.shape));
+
+    expect(createIssueRequestSchema.parse({ title: 'New issue' })).toMatchObject({
+      title: 'New issue',
+      state: 'backlog',
+      priority: 'medium',
+      belongs_to: [],
+      source: 'internal',
+      is_system_generated: false,
+    });
+    expect(CreateIssueSchema.parse({ title: 'New issue' })).toEqual(
+      createIssueRequestSchema.parse({ title: 'New issue' })
+    );
+  });
+
+  it('keeps issue properties aligned with shared issue property keys', () => {
+    const issuePropertiesMatch = sharedDocumentTypes.match(
+      /export interface IssueProperties \{([\s\S]*?)\n\}/
+    );
+
+    expect(issuePropertiesMatch, 'shared IssueProperties interface should exist').not.toBeNull();
+
+    const sharedKeys = Array.from(
+      issuePropertiesMatch![1]!.matchAll(/^\s{2}([a-zA-Z_][a-zA-Z0-9_]*)\??:/gm),
+      match => match[1]!
+    );
+    const runtimeKeys = Object.keys(issuePropertiesSchema.shape);
+
+    expect(sortValues(runtimeKeys)).toEqual(sortValues(sharedKeys));
   });
 });

@@ -5,10 +5,12 @@
 import { z, registry } from '../registry.js';
 import {
   accountabilityTypeSchema,
+  createIssueRequestSchema,
   issuePrioritySchema,
   issueStateSchema,
+  updateIssueRequestSchema,
 } from '../../schemas/document-boundary.js';
-import { UuidSchema, DateTimeSchema, DateSchema, BelongsToEntrySchema, BelongsToResponseSchema, UserReferenceSchema, IssueSourceSchema } from './common.js';
+import { UuidSchema, DateTimeSchema, DateSchema, BelongsToResponseSchema, UserReferenceSchema, IssueSourceSchema } from './common.js';
 
 // ============== Issue Enums ==============
 
@@ -84,58 +86,13 @@ registry.register('Issue', IssueResponseSchema);
 
 // ============== Create Issue ==============
 
-export const CreateIssueSchema = z.object({
-  title: z.string().min(1).max(500).openapi({
-    description: 'Issue title',
-    example: 'Fix login button not responding',
-  }),
-  state: IssueStateSchema.optional().default('backlog'),
-  priority: IssuePrioritySchema.optional().default('medium'),
-  assignee_id: UuidSchema.optional().nullable(),
-  belongs_to: z.array(BelongsToEntrySchema).optional().default([]).openapi({
-    description: 'Associate with programs, projects, sprints, or parent issues',
-  }),
-  source: IssueSourceSchema.optional().default('internal'),
-  due_date: DateSchema.optional().nullable(),
-  is_system_generated: z.boolean().optional().default(false),
-  accountability_target_id: UuidSchema.optional().nullable(),
-  accountability_type: AccountabilityTypeSchema.optional().nullable(),
-}).openapi('CreateIssue');
+export const CreateIssueSchema = createIssueRequestSchema.openapi('CreateIssue');
 
 registry.register('CreateIssue', CreateIssueSchema);
 
 // ============== Update Issue ==============
 
-export const UpdateIssueSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
-  state: IssueStateSchema.optional(),
-  priority: IssuePrioritySchema.optional(),
-  assignee_id: UuidSchema.optional().nullable(),
-  belongs_to: z.array(BelongsToEntrySchema).optional(),
-  estimate: z.number().positive().nullable().optional(),
-  confirm_orphan_children: z.boolean().optional().openapi({
-    description: 'Confirm closing parent issue with incomplete children',
-  }),
-  claude_metadata: z.object({
-    updated_by: z.literal('claude'),
-    story_id: z.string().optional(),
-    prd_name: z.string().optional(),
-    session_context: z.string().optional(),
-    confidence: z.number().int().min(0).max(100).optional(),
-    telemetry: z.object({
-      iterations: z.number().int().min(1).optional(),
-      feedback_loops: z.object({
-        type_check: z.number().int().min(0).optional(),
-        test: z.number().int().min(0).optional(),
-        build: z.number().int().min(0).optional(),
-      }).optional(),
-      time_elapsed_seconds: z.number().int().min(0).optional(),
-      files_changed: z.array(z.string()).optional(),
-    }).optional(),
-  }).optional().openapi({
-    description: 'Metadata for Claude Code integration',
-  }),
-}).openapi('UpdateIssue');
+export const UpdateIssueSchema = updateIssueRequestSchema.openapi('UpdateIssue');
 
 registry.register('UpdateIssue', UpdateIssueSchema);
 

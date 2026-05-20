@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-05-20T22:02:57.533Z",
+  "cwd": "/Users/michaelhabermas/repos/GAI/ship-shape",
+  "node": "v24.15.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "pnpm": "10.27.0",
+  "env": {
+    "CI": null,
+    "NODE_ENV": null
+  }
+}
