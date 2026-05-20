@@ -649,3 +649,47 @@ Why it matters: team allocation is governance data. It drives accountability pro
 Why it is easy to miss: the route has "SECURITY: prevent cross-workspace injection" checks, and those checks are real. But they only prove the referenced IDs are in the workspace; they do not prove the caller is allowed to change allocation state. The code looks careful at the data-integrity boundary while missing the authority boundary.
 
 Possible mediation: require workspace admin or an explicit allocation-manager role for `POST /api/team/assign` and `DELETE /api/team/assign`. If self-service allocation is intended, restrict non-admin users to assigning/removing only their own person document and document that product rule. Register the mutation routes in OpenAPI with the same authorization notes and add tests for member versus admin behavior.
+
+### Week start and carryover mutate planning state with only visibility access
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`api/src/routes/weeks.ts` has strong authority checks for approval workflows: `POST /api/weeks/:id/approve-plan` requires the program accountable person, the sprint owner's supervisor, or workspace admin; `POST /api/weeks/:id/request-plan-changes` uses the same authority boundary. But `POST /api/weeks/:id/start` only verifies that the authenticated user can see the sprint via `VISIBILITY_FILTER_SQL`, then snapshots planned issue ids and changes `properties.status` from `planning` to `active`. `POST /api/weeks/:id/carryover` likewise only verifies visibility on the source week, target week, and issues before deleting sprint associations, creating target sprint associations, and setting `carryover_from_sprint_id` on moved issues. There is no workspace-admin, sprint owner, program accountable, supervisor, or assignee-specific authority check on either mutation.
+
+Why it matters: these are governance mutations, not cosmetic edits. Starting a week freezes the scope snapshot and changes lifecycle state. Carryover rewrites issue scope between weeks. If any workspace member who can see those documents can perform these actions, the approval model can be bypassed at the planning/scope layer even though approvals themselves are protected.
+
+Why it is easy to miss: the surrounding approval routes are careful and explicit about authority, so the file gives the impression that accountability actions are guarded. The weaker routes are nearby but look like ordinary lifecycle helpers because they still have workspace and visibility checks.
+
+What would make it harmless: the product explicitly intends any member with visibility to start visible weeks and carry visible issues across weeks.
+
+Possible mediation: define one authority rule for week lifecycle/scope mutations and enforce it consistently: workspace admin, program accountable, sprint owner, or supervisor. If self-service carryover is intended, restrict non-admin carryover to issues assigned to the caller's person document and document that rule.
+
+### Document conversion advertises realtime redirect, but the route never notifies collaborators
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`api/src/routes/documents.ts` imports `handleDocumentConversion` from the collaboration server, and `api/src/collaboration/index.ts` implements `handleDocumentConversion(oldDocId, newDocId, oldDocType, newDocType)` to close active document sockets with code `4100` and a JSON payload. `docs/claude-reference/modules/collaboration.md` says this function is called when a document is converted and that clients should redirect on close code `4100`. `web/src/pages/UnifiedDocumentPage.tsx` has a `handleDocumentConverted` callback for that WebSocket notification. But the actual `POST /api/documents/:id/convert` route performs the in-place type update, commits, and returns the updated document without calling `handleDocumentConversion`. A repo search finds no call site for `handleDocumentConversion(` outside its own definition.
+
+Why it matters: active collaborators can keep editing a document through the old room prefix and stale document-type assumptions after another user converts it. Combined with the separate finding that collaboration room names are keyed by prefix while persistence is keyed by UUID, conversion can leave users in exactly the split-brain state the realtime conversion machinery appears designed to prevent.
+
+Why it is easy to miss: all three layers look present: backend collaboration helper, frontend close-code handler, and documentation. The missing piece is only visible by following the call graph from the conversion route.
+
+Possible mediation: after committing conversion, call `handleDocumentConversion(id, id, sourceType, target_type)` or replace it with an in-place conversion notifier that closes all prefix variants for the same UUID and forces clients to reconnect using the current `document_type`. Add an integration test that opens a collaboration socket, converts the document, and verifies the socket receives the expected close code or is otherwise forced to resync.
+
+### Converted-documents list only works for legacy conversions, not the current conversion model
+
+Severity: Medium
+
+Status: Confirmed
+
+`api/src/routes/documents.ts` comments that `/api/documents/converted/list` lists "archived originals that were converted to another type." The query requires `d.converted_to_id IS NOT NULL`, `d.archived_at IS NOT NULL`, and joins `documents converted_doc ON d.converted_to_id = converted_doc.id`. But the current conversion route is explicitly in-place: it updates the same row's `document_type`, increments `conversion_count`, sets `converted_from_id = id`, sets `converted_at`, and does not set `converted_to_id` or archive the original. The API docs still describe `GET /api/documents/converted/list` as "List converted documents for reference," and the frontend `ConvertedDocuments` page calls that endpoint for issue-to-project and project-to-issue histories.
+
+Why it matters: maintainers and users have a conversion history/reporting surface that silently omits current conversions. That can hide structural changes, make audit/review pages look empty, and cause people to believe no conversions happened even while conversion snapshots and in-place metadata exist.
+
+Why it is easy to miss: the endpoint is not broken for old data. It is a migration fossil: old conversion rows can still appear, so the page can look functional in a seeded or legacy database while missing all new conversions.
+
+Possible mediation: either mark the page and endpoint as legacy-only, or rewrite `/converted/list` to read the current in-place conversion model from `conversion_count`, `original_type`, `converted_from_id`, `converted_at`, `converted_by`, and `document_snapshots`. Update the API docs to say same-id in-place conversion rather than "new converted document."
