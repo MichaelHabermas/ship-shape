@@ -117,7 +117,9 @@ Severity: Medium
 
 Severity: Medium
 
-`web/package.json` lists `@tanstack/react-query-devtools` under production `dependencies`, and `web/src/main.tsx` imports and renders `ReactQueryDevtools` eagerly. This is noteworthy because the source brief explicitly asks for bundle-size measurement, missing code splitting, unused dependencies, and oversized dependencies. The package name itself says "devtools", so it is a conspicuous candidate for auditors to catch. I would not claim it was intentionally planted without evidence, but it looks assessment-shaped: easy to notice, easy to verify, and directly aligned with the prompt.
+Status update: Resolved by the easy-wins pass. `@tanstack/react-query-devtools` now lives in `devDependencies`, and `web/src/main.tsx` loads it with a dev-only `React.lazy` branch. The broader route-level code-splitting question remains separate.
+
+At audit time, `web/package.json` listed `@tanstack/react-query-devtools` under production `dependencies`, and `web/src/main.tsx` imported and rendered `ReactQueryDevtools` eagerly. This was noteworthy because the source brief explicitly asks for bundle-size measurement, missing code splitting, unused dependencies, and oversized dependencies. The package name itself says "devtools", so it was a conspicuous candidate for auditors to catch. I would not claim it was intentionally planted without evidence, but it looked assessment-shaped: easy to notice, easy to verify, and directly aligned with the prompt.
 
 Related dependency notes:
 
@@ -173,9 +175,9 @@ Possible mediation: either add actual CI workflows and branch protection for the
 
 Severity: Medium
 
-Status: Confirmed
+Status: Partially resolved. The easy-wins pass excludes source tests from the API production build and `api/dist` no longer contains test paths. Source-map/declaration-map release policy has not been decided.
 
-`api/tsconfig.json` includes `src/**/*` and only excludes `src/test/**/*`, which means `__tests__` directories and `*.test.ts` files compile into `api/dist`. The root `tsconfig.json` enables `sourceMap` and `declarationMap`. A local build artifact check found `api/dist` contained 513 files, including 112 test-related files and 214 map files. `scripts/deploy.sh` bundles `api/dist` wholesale into the Elastic Beanstalk deploy zip.
+At audit time, `api/tsconfig.json` included `src/**/*` and only excluded `src/test/**/*`, which meant `__tests__` directories and `*.test.ts` files compiled into `api/dist`. The root `tsconfig.json` enabled `sourceMap` and `declarationMap`. A local build artifact check found `api/dist` contained 513 files, including 112 test-related files and 214 map files. `scripts/deploy.sh` bundled `api/dist` wholesale into the Elastic Beanstalk deploy zip. Current `api/dist` no longer contains test paths after the easy-wins pass.
 
 Why it matters: production deploys carry test code and source maps. That increases artifact size, exposes implementation structure, and makes release artifacts look less production-shaped than the deploy script implies.
 
@@ -187,9 +189,9 @@ Possible mediation: exclude `**/*.test.ts` and `**/__tests__/**` from the API pr
 
 Severity: Medium
 
-Status: Confirmed
+Status: Resolved by the easy-wins pass. The deploy zips, nested Terraform plan, `web/dev-dist/*`, `temporary.deployment-plan.md`, and `-progress.txt` are no longer tracked, and ignore rules now cover `deploy-api-*.zip` and `terraform/**/tfplan`.
 
-Git tracks four root `deploy-api-ship-api-*.zip` files, `terraform/environments/shadow/tfplan`, and `web/dev-dist/*`. `.gitignore` ignores `ship-api-*.zip`, but not `deploy-api-ship-api-*.zip`; it ignores only `terraform/*.tfplan` and `terraform/tfplan`, not nested environment plans; it also ignores `web/dev-dist/`, but those files remain tracked because ignores do not untrack existing files. The deploy zips are about 577 KB each, the Terraform plan is about 28 KB, and `web/dev-dist/workbox-91dfe804.js` is about 170 KB.
+At audit time, git tracked four root `deploy-api-ship-api-*.zip` files, `terraform/environments/shadow/tfplan`, and `web/dev-dist/*`. `.gitignore` ignored `ship-api-*.zip`, but not `deploy-api-ship-api-*.zip`; it ignored only `terraform/*.tfplan` and `terraform/tfplan`, not nested environment plans; it also ignored `web/dev-dist/`, but those files remained tracked because ignores do not untrack existing files. The deploy zips were about 577 KB each, the Terraform plan was about 28 KB, and `web/dev-dist/workbox-91dfe804.js` was about 170 KB.
 
 Why it matters: build and deployment byproducts are mixed into source control. The deploy zip contents include compiled API, compiled tests, source maps, package metadata, lockfile, Dockerfile, and vendor dist files. The Terraform plan is environment-specific generated state.
 
@@ -201,9 +203,9 @@ Possible mediation: decide whether any artifact is intentionally archival. Other
 
 Severity: Medium
 
-Status: Confirmed
+Status: Partially resolved. The false `/search/documents` OpenAPI route was removed in the easy-wins pass. Real document full-text search is still not implemented; `/docs` remains client-side title filtering, and `/api/search/mentions` plus `/api/search/learnings` remain the live backend search routes.
 
-`api/src/openapi/schemas/search.ts` registers `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` include that path. But `api/src/routes/search.ts` only implements `/mentions` and `/learnings`, and `api/src/app.ts` mounts that router at `/api/search`. There is no `searchRouter.get('/documents')`.
+At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. Current OpenAPI no longer advertises `/search/documents`; real document full-text search remains unimplemented.
 
 Why it matters: generated API clients, Swagger users, and MCP/API automation can trust an endpoint that will 404 at runtime. This is a capability mirage, not just stale prose.
 
@@ -277,7 +279,7 @@ Severity: Low
 
 Status: Confirmed
 
-Git tracks `temporary.deployment-plan.md`. The file name itself says it is temporary, and the content is deployment planning context rather than product/source documentation.
+At audit time, git tracked `temporary.deployment-plan.md`. The file name itself said it was temporary, and the content was deployment planning context rather than product/source documentation. The file is no longer tracked after the easy-wins pass.
 
 Why it matters: probably harmless operationally, but it is repository hygiene evidence. Temporary planning docs age into false source-of-truth documents unless they are retired or promoted intentionally.
 
@@ -291,7 +293,9 @@ Severity: Medium
 
 Status: Needs verification
 
-`web/src/main.tsx` eagerly imports major route pages and renders `ReactQueryDevtools` eagerly. The app does use `React.lazy` for document tabs, so the issue is not "no code splitting." The narrower issue is that page-level routing may still pay for expensive surfaces on initial load, while the audit requirement specifically rewards initial bundle reduction.
+Status update: React Query Devtools is no longer eager or production-loaded. Major route pages are still eagerly imported, so the route-level code-splitting question remains open.
+
+`web/src/main.tsx` still eagerly imports major route pages. The app does use `React.lazy` for document tabs, and React Query Devtools is now dev-only lazy-loaded, so the issue is not "no code splitting." The narrower issue is that page-level routing may still pay for expensive surfaces on initial load, while the audit requirement specifically rewards initial bundle reduction.
 
 Why it matters: bundle reports showed the main JS chunk dominates the production bundle, so route-level lazy loading may be one of the cleanest ways to reduce initial load without removing functionality.
 
@@ -357,7 +361,7 @@ Possible mediation: apply `VISIBILITY_FILTER_SQL` to every joined document retur
 
 Severity: Medium
 
-Status: Confirmed
+Status: Resolved by the easy-wins pass. The generated OpenAPI paths are now `/documents/{id}/comments` and `/comments/{id}`, with no `/api/`-prefixed paths.
 
 `api/src/openapi/registry.ts` declares the OpenAPI server URL as `/api`, and most registered paths are unprefixed, such as `/documents`, `/issues`, `/auth/login`, and `/documents/{id}/backlinks`. `api/src/openapi/schemas/comments.ts` is the exception: it registers `/api/documents/{id}/comments` and `/api/comments/{id}`. The actual Express routes are mounted in `api/src/app.ts` at `/api/documents` and `/api/comments`, so the runtime URLs are `/api/documents/:id/comments` and `/api/comments/:id`. A client honoring the OpenAPI server URL plus the comment paths would call `/api/api/documents/{id}/comments` and `/api/api/comments/{id}`.
 
@@ -483,7 +487,9 @@ Severity: Medium
 
 Status: Confirmed
 
-`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation, and the generated OpenAPI document has enough paths to look authoritative. But `api/src/app.ts` mounts live route families that are not represented in the generated contract, including setup, admin/debug, invites, several document subroutes, Claude context, and other operational surfaces. The generated `api/openapi.json` currently has 83 paths, and the only paths that start with `/api/` are the already-noted comment paths that double-prefix under the MCP server.
+Status update: Current generated OpenAPI has 82 paths and 113 operations. The comments double-prefix and false document-search route were fixed, but the broader route-family coverage drift remains.
+
+`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation, and the generated OpenAPI document has enough paths to look authoritative. But `api/src/app.ts` mounts live route families that are not represented in the generated contract, including setup, admin/debug, invites, several document subroutes, Claude context, and other operational surfaces. Current `api/openapi.json` has 82 paths and no `/api/`-prefixed paths after the easy-wins cleanup.
 
 Why it matters: generated API clients, Swagger readers, MCP tooling, and security reviewers can treat OpenAPI as a source of truth while missing whole executable route families. Conversely, routes that are present in OpenAPI can still be wrong, as shown by the comment double-prefix and missing search implementation.
 

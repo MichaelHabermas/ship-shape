@@ -31,6 +31,8 @@ Fix first:
 4. Fix shared document-tree markup; the same ARIA/list defects hit both `/docs` and `/documents/:id`.
 5. Resolve `/api/search/documents`: either implement it or remove it from OpenAPI, then decide whether Docs search should remain client-side.
 
+Post-audit status note: the easy-wins pass resolved parts of items 2-5: React Query Devtools is now dev-only lazy-loaded, the unused persister dependency was removed, the API test database guard was added, shared document-tree markup was fixed for the rescanned `/docs` path, and the false `/search/documents` OpenAPI route was removed. This report remains the baseline audit record; current after-change evidence lives in `my-docs/IMPROVEMENT_REPORT.md`.
+
 Do not overreact to raw API latency. Rate-aware local benchmarks were mostly fast; the deeper bottleneck is page-load fanout, repeated session writes, payload-heavy list endpoints, and unclear search ownership.
 
 Data safety note: audit-scale runtime data was added to `ship_dev` as removable rows tagged with `properties.audit_load = true`; the disposable `ship_test_audit` database was used only for destructive API tests and coverage. Keep browser/runtime/performance checks on `ship_dev` and destructive test runs on `ship_test_audit` or another explicit throwaway database.
@@ -228,7 +230,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 | Metric                            | Value                                                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Total tests                       | 1,471 executable tests across 99 files (451 API in 28 files, 151 web in 16 files, 869 E2E in 71 files)                   |
+| Total tests                       | 1,471 executable tests across 115 files (451 API in 28 files, 151 web in 16 files, 869 E2E in 71 files)                  |
 | Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E full run: 851 / 1 / 5 retry-flake signals, with 17 skipped            |
 | Suite runtime                     | API unit: 10.76s; Web unit: 1.05s                                                                                        |
 | Critical flows with zero coverage | None obvious by file inventory for document CRUD, auth, collaboration, issues, weeks, search, accessibility, or security |

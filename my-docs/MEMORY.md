@@ -25,7 +25,7 @@ Repo-specific facts that prevent wrong assumptions.
 - `ship_test_audit` is a sidecar local database for destructive API test/coverage benchmarking only. Use `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run` or the same command with `--coverage` for Category 5 reruns; use `ship_dev` for browser/runtime/performance categories.
 - Issues are discoverable through Programs: each program document has an Issues tab. The global `/issues` route exists too, but audits should not assume it is the only or primary path.
 - Local PostgreSQL does not have `pg_stat_statements` enabled, so query-efficiency baselines use the temporary in-process query-count harness plus targeted `EXPLAIN (ANALYZE, BUFFERS)` through `/opt/homebrew/Cellar/libpq/18.3/bin/psql`.
-- Document search is drifted: `/docs` uses client-side title filtering, `/api/search/mentions` title-searches documents for mention/embed helpers, and OpenAPI/docs advertise `/api/search/documents` full-text search even though the route is not mounted.
+- Document search is intentionally limited after the easy-wins cleanup: `/docs` uses client-side title filtering, `/api/search/mentions` title-searches documents for mention/embed helpers, and OpenAPI no longer advertises the unmounted `/api/search/documents` route.
 - OpenAPI registration paths are mounted under `/api` by the app; schema files should register paths without an extra `/api` prefix.
 
 ## Leverage Points

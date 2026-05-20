@@ -11,7 +11,7 @@ This pass captured quick, safe improvements from the audit work: contract drift 
 ## Context
 
 - Improvement date/time: 2026-05-20 local
-- Code state: easy-wins implementation pass, uncommitted
+- Code state: easy-wins implementation pass, committed in current checkout
 - Environment: local pnpm workspace
 - Database: `ship_test_audit` for API unit verification; `ship_dev`/dev server for browser checks
 - Runtime: API `http://localhost:3001`, web `http://localhost:5175`
@@ -27,13 +27,13 @@ This pass captured quick, safe improvements from the audit work: contract drift 
 
 ### Measurement Method
 
-ESLint JSON output for `api/src` and `web/src`, filtered for production files by excluding tests and test helpers. Type-check remains the correctness gate.
+Official before/after `any` counts use the TypeScript AST audit counter described in `AUDIT_REPORT.md`. ESLint JSON remains the worklist and fast feedback loop, filtered for production files by excluding tests and test helpers. Type-check remains the correctness gate.
 
 ### Scorecard
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total `any` types | 278 total / 94 production | 247 total / 70 production | 2026-05-20 | -31 total / -24 production | 25% total violation reduction | |
+| Total `any` types | 278 total / 94 production | 267 total / 83 production | 2026-05-20 | -11 total / -11 production | 25% total violation reduction | |
 | Total type assertions (`as`) | 713 total / 504 production | | | | Meaningful reduction | |
 | Total non-null assertions (`!`) | 348 total / 325 production | | | | Meaningful reduction | |
 | Total `@ts-ignore` / `@ts-expect-error` | 1 total / 0 production | | | | No production suppressions | |
@@ -43,13 +43,14 @@ ESLint JSON output for `api/src` and `web/src`, filtered for production files by
 
 - Ran ESLint autofix for redundant assertions.
 - Typed upload service JSON response boundaries in `web/src/services/upload.ts`.
-- Changed narrow dynamic SQL parameter arrays from `any[]` to `unknown[]` where type-check accepted it cleanly.
+- Changed narrow dynamic SQL parameter arrays from `any[]` to `unknown[]` where type-check accepted it cleanly. This is cleanup, not counted as the main meaningful type-safety win.
 
 ### Evidence
 
 - `pnpm type-check`: pass.
-- ESLint JSON count after pass: 6,411 total warnings; 4,950 production warnings.
-- Production `no-explicit-any`: 94 -> 70.
+- AST `any` count after pass: 267 total / 83 production.
+- ESLint JSON count after pass: 6,440 total warnings; 4,952 production warnings.
+- Production `any` count by official AST counter: 94 -> 83.
 
 ---
 
@@ -101,11 +102,11 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 | Endpoint | Baseline P50 | Baseline P95 | Baseline P99 | Latest P50 | Latest P95 | Latest P99 | Last Measured | Change | Required Change | Stretch Goal |
 |----------|--------------|--------------|--------------|------------|------------|------------|---------------|--------|-----------------|--------------|
-| `GET /api/documents?type=wiki` | 10c: 7 ms; 25c: 17 ms; 50c: 25 ms | 10c: 21 ms; 25c: 42 ms; 50c: 65 ms | 10c: 23 ms; 25c: 46 ms; 50c: 71 ms | | | | | | 20% P95 reduction on at least 2 endpoints | |
-| `GET /api/issues` | 10c: 7 ms; 25c: 14 ms; 50c: 29 ms | 10c: 22 ms; 25c: 35 ms; 50c: 66 ms | 10c: 25 ms; 25c: 38 ms; 50c: 72 ms | | | | | | 20% P95 reduction on at least 2 endpoints | |
-| `GET /api/dashboard/my-week` | 10c: 5 ms; 25c: 12 ms; 50c: 16 ms | 10c: 21 ms; 25c: 32 ms; 50c: 34 ms | 10c: 26 ms; 25c: 34 ms; 50c: 36 ms | | | | | | Identical benchmark conditions | |
-| `GET /api/projects` | 10c: 4 ms; 25c: 9 ms; 50c: 18 ms | 10c: 15 ms; 25c: 24 ms; 50c: 37 ms | 10c: 17 ms; 25c: 28 ms; 50c: 39 ms | | | | | | Identical benchmark conditions | |
-| `GET /api/programs/:id/issues` | 10c: 4 ms; 25c: 9 ms; 50c: 19 ms | 10c: 16 ms; 25c: 26 ms; 50c: 38 ms | 10c: 18 ms; 25c: 28 ms; 50c: 40 ms | | | | | | Identical benchmark conditions | |
+| `GET /api/documents?type=wiki` | 10c: 8 ms; 25c: 8 ms; 50c: 9 ms | 10c: 11 ms; 25c: 10 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 15 ms | | | | | | 20% P95 reduction on at least 2 endpoints | |
+| `GET /api/issues` | 10c: 10 ms; 25c: 9 ms; 50c: 9 ms | 10c: 13 ms; 25c: 11 ms; 50c: 11 ms | 10c: 19 ms; 25c: 15 ms; 50c: 19 ms | | | | | | 20% P95 reduction on at least 2 endpoints | |
+| `GET /api/dashboard/my-week` | 10c: 9 ms; 25c: 9 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 13 ms | 10c: 13 ms; 25c: 15 ms; 50c: 14 ms | | | | | | Identical benchmark conditions | |
+| `GET /api/projects` | 10c: 7 ms; 25c: 8 ms; 50c: 8 ms | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms | 10c: 11 ms; 25c: 11 ms; 50c: 11 ms | | | | | | Identical benchmark conditions | |
+| `GET /api/programs/:id/issues` | 10c: 7 ms; 25c: 7 ms; 50c: 8 ms | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms | 10c: 10 ms; 25c: 10 ms; 50c: 11 ms | | | | | | Identical benchmark conditions | |
 
 ### What Changed
 
@@ -157,7 +158,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total tests | 1,471 executable tests across 99 files | | | | Add 3 meaningful tests or fix 3 flaky tests | |
+| Total tests | 1,471 executable tests across 115 files | | | | Add 3 meaningful tests or fix 3 flaky tests | |
 | API unit tests | 451 pass / 0 fail / 0 flaky | | | | Existing tests still pass | |
 | Web unit tests | 138 pass / 13 fail / 0 flaky | | | | Existing tests still pass | |
 | E2E tests | 869 listed / not executed | | | | Meaningful tests catch real regressions | |
@@ -199,9 +200,9 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 ### What Changed
 
-- CSRF failures now return JSON 403 instead of falling through to Express HTML/error output.
-- Comments routes now check document visibility before listing, creating, updating, or deleting comments.
-- Migration bootstrap still tolerates `schema.sql` "already exists" during initial setup, but numbered migration failures no longer get broadly swallowed.
+- CSRF failures now return JSON 403 instead of falling through to Express HTML/error output. This is the Category 6 fix with direct before/after API evidence.
+- Comments routes now check document visibility before listing, creating, updating, or deleting comments. This is tracked as an authorization/safety fix, not as proof toward the Category 6 user-facing error-handling target.
+- Migration bootstrap still tolerates `schema.sql` "already exists" during initial setup, but numbered migration failures no longer get broadly swallowed. This is tracked as operational safety, not as proof toward the Category 6 user-facing error-handling target.
 
 ### Evidence
 
@@ -245,7 +246,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 
 ### Evidence
 
-- Axe scan output: `/login`, `/docs`, `/my-week`, `/projects` all returned `violations: []`.
+- Axe scan output: `/login`, `/docs`, `/my-week`, `/projects` all returned `violations: []`; `/documents/:id` still needs a targeted rerun before claiming full coverage of the original document-page finding.
 - Manual browser snapshots confirmed `/docs` exposes tree/treeitem semantics and `/my-week` + `/projects` render after the contrast changes.
 
 ---

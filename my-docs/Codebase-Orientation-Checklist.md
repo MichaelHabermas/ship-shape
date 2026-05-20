@@ -501,7 +501,7 @@ model of the entire system before measuring anything.
     - `web` (5173, `VITE_API_URL` → api)
 
 - Skim the Terraform configs. What cloud infrastructure does the app expect?
-  - **`terraform/environments/{dev,prod,shadow}/`** compose modules:
+  - **`terraform/environments/{dev,prod,shadow}/`** compose environment modules. Shared infrastructure modules and cross-environment resources live at the Terraform root or under `terraform/modules/`:
 
   | Module | AWS resource |
   |--------|----------------|
@@ -511,7 +511,7 @@ model of the entire system before measuring anything.
   | `cloudfront-s3` | Static web + CDN; proxies API to EB |
   | `security-groups` | ALB, EB, DB rules |
   | `ssm` | Secrets/config (DB URL, domains, etc.) |
-  | `waf.tf` | CloudFront WAF (managed rules) |
+  | root `terraform/waf.tf` | CloudFront WAF (managed rules) |
 
   - **Gov-style prod pattern:** CloudFront → S3 (web) + EB (API); DB in private subnets; secrets via SSM.
 
