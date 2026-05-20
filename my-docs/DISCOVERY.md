@@ -473,3 +473,77 @@ Why it matters: generated API clients, Swagger readers, MCP tooling, and securit
 Why it is easy to miss: a large generated spec creates confidence. The drift only appears when comparing Express mounts, router files, OpenAPI registrations, and MCP URL construction together.
 
 Possible mediation: decide which routes are public contract and which are intentionally internal. Register the public ones, document the internal exclusions, and add a route/spec consistency check that catches missing paths and paths that include `/api` when the OpenAPI server URL already supplies it.
+
+### Super-admin API tokens can reach super-admin routes
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/routes/api-tokens.ts` creates tokens with only a name and optional expiry; there is no scope, audience, read-only flag, or "no admin" flag. `api/src/middleware/auth.ts` validates bearer tokens by joining `api_tokens` to `users`, then attaches the token owner's `userId`, `workspaceId`, and `isSuperAdmin` to the request. `superAdminMiddleware()` only checks `req.isSuperAdmin`; it does not distinguish session auth from API-token auth. `api/src/app.ts` also skips CSRF whenever the request has a `Bearer` authorization header, then mounts `/api/admin` and `/api/admin/credentials` behind the same auth path.
+
+Why it matters: a token created by a super-admin is effectively a long-lived root credential for super-admin APIs, including workspace/user administration and CAIA credential management. That may be intentional full delegation, but the current UI/docs frame tokens as external-tool access for Claude Code rather than as root-equivalent admin keys.
+
+Why it is easy to miss: the token implementation has good secrecy mechanics: hashing, prefixes, revocation, optional expiry, and last-used tracking. The assessment-shaped problem is authorization scope, not storage.
+
+Possible mediation: decide whether API tokens are allowed to exercise super-admin privileges. If not, block `req.isApiToken` in `superAdminMiddleware()` or require explicit privileged token scopes. If yes, update the UI/docs to say super-admin-created tokens have super-admin power and should be treated as root credentials.
+
+### Issue `belongs_to` accepts cross-workspace associations
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/db/schema.sql` defines `document_associations` with `document_id`, `related_id`, and `relationship_type`, but no `workspace_id` and no constraint that both documents belong to the same workspace. `api/src/routes/issues.ts` validates `belongs_to` entries only as `{ id: uuid, type: program|project|sprint|parent }`. On issue create, it inserts those associations directly after creating the issue in the caller's workspace. On issue update, it deletes and reinserts associations the same way. The helper `getBelongsToAssociations()` then joins `document_associations.related_id` to `documents.id` and returns related titles/colors without any workspace filter.
+
+Why it matters: a normal user who knows or obtains a document id from another workspace can create or update an issue in their own workspace that points at the other workspace's program/project/week/parent. Follow-on reads can then surface the foreign document id, title, type, and color through the issue's `belongs_to` metadata. This also creates a representable "should be impossible" graph state that many aggregate queries are not designed to handle.
+
+Why it is easy to miss: most issue queries correctly filter the issue itself by `req.workspaceId`, so the route looks workspace-scoped. The cross-workspace edge is hidden one layer deeper in the association insert and shared association formatter.
+
+Possible mediation: validate every `belongs_to` target against `workspace_id = req.workspaceId` before inserting. Add a database-level guard if possible, such as storing `workspace_id` on `document_associations` and enforcing both endpoints through composite foreign keys or a trigger. Add regression tests for create and update attempts using foreign-workspace ids.
+
+### File authorization is workspace-wide while product/docs imply attachments
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`api/src/db/schema.sql` stores files with `workspace_id`, `uploaded_by`, filename, MIME type, size, `s3_key`, `cdn_url`, and status. There is no `document_id` or attachment table linking a file to the document where it appears. `api/src/routes/files.ts` authorizes file metadata, local serving, confirmation, and deletion by checking only `id` plus `workspace_id`. The delete route does not require `uploaded_by = req.userId` or admin status. This contradicts `api/src/openapi/schemas/files.ts`, which describes `documentId`, `publicUrl`, an attach endpoint, and "Only the uploader or an admin can delete." The actual Express file router has no `/files/{fileId}/attach` route.
+
+Why it matters: a file embedded in a private document is not authorized like the private document. In local/API serving mode, any workspace member who knows a file id can fetch metadata, serve the file, or delete it. In production upload mode, confirmation returns `https://{CDN_DOMAIN}/{workspaceId}/{fileId}{ext}`, which may make uploaded content available outside document authorization entirely depending on CDN/S3 policy.
+
+Why it is easy to miss: file ids are random UUIDs and the route comments emphasize UUID validation and workspace checks. The missing dimension is document-level authorization and uploader/admin deletion semantics.
+
+Possible mediation: add an explicit file attachment model that links files to documents and enforces document visibility before metadata/download/delete. Align OpenAPI with reality or implement the advertised attach endpoint. Enforce delete authorization as uploader-or-admin. Decide whether production CDN URLs are intentionally public, signed, or gated.
+
+### Public feedback can inject issues into any known program id
+
+Severity: Medium
+
+Status: Needs verification
+
+`api/src/routes/feedback.ts` mounts public feedback without auth or CSRF. `POST /api/feedback` accepts a `program_id`, looks up any document with that id and `document_type = 'program'`, derives its workspace id, creates a new issue in that workspace, and associates it to the program. `GET /api/feedback/program/:programId` similarly returns program id, title, prefix, and color for any known program id without checking visibility, archived/deleted state, or a published/public-feedback flag.
+
+Why it matters: this may be an intentional external-feedback feature, but the authorization boundary is the secrecy of a program UUID. If private or internal programs can receive feedback this way, an unauthenticated caller can create triage issues inside that workspace and enumerate limited program metadata for known ids.
+
+Why it is easy to miss: the route is intentionally public, so "no auth" is not automatically a bug. The missing product rule is whether every program id is supposed to be a public submission endpoint.
+
+What would prove it real: create a private or internal-only program in a disposable database, call public feedback endpoints without a session, and verify that program metadata is returned and an issue is created.
+
+What would make it harmless: product policy says every program UUID is a deliberate public feedback URL and private program visibility does not apply to feedback intake.
+
+Possible mediation: add a program property such as `feedback_public: true`, require it for public feedback lookup/submission, and suppress private/archived/deleted programs by default. Consider per-program unguessable public slugs/tokens instead of reusing internal document ids.
+
+### AI analysis rate-limit messaging understates the executable limit
+
+Severity: Low
+
+Status: Confirmed
+
+`api/src/routes/ai.ts` returns the message "Rate limit exceeded. Max 10 analysis requests per hour." `api/src/services/ai-analysis.ts` defines `RATE_LIMIT = 120` requests per hour per user, with a comment explaining polling every 5 seconds. The endpoint also accepts arbitrary client-supplied `content`, `retro_content`, and `plan_content` and sends extracted text to Bedrock; it does not reload a server-authorized document before analysis.
+
+Why it matters: this is mostly a measurement and expectations trap, not a direct vulnerability. Operators and users will believe the AI cost-control limit is 10/hour while the executable limit is 120/hour. Because the endpoint analyzes client-supplied content, the control is per user and size-limited, not document-authorized or document-scoped.
+
+Why it is easy to miss: the route error text and service constant live in different files, and both look reasonable in isolation.
+
+Possible mediation: make the route message use the service constant, and decide whether AI analysis should remain a generic text-analysis endpoint or should accept document ids and enforce document visibility server-side before sending content to Bedrock.
