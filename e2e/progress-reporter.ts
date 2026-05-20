@@ -36,6 +36,7 @@ const SUMMARY_FILE = path.join(RESULTS_DIR, 'summary.json');
 
 class ProgressReporter implements Reporter {
   private totalTests = 0;
+  private testStatuses = new Map<string, 'passed' | 'failed' | 'skipped'>();
 
   onBegin(config: FullConfig, suite: Suite): void {
     // Ensure directories exist
@@ -104,7 +105,7 @@ class ProgressReporter implements Reporter {
     this.writeProgress(entry);
 
     // Atomically update summary counters (read-modify-write)
-    this.updateSummaryCounter(status);
+    this.updateSummaryCounter(test.id, status);
   }
 
   onEnd(result: FullResult): void {
@@ -117,15 +118,27 @@ class ProgressReporter implements Reporter {
     });
   }
 
-  private updateSummaryCounter(status: 'passed' | 'failed' | 'skipped'): void {
+  private updateSummaryCounter(testId: string, status: 'passed' | 'failed' | 'skipped'): void {
     try {
       const data = fs.readFileSync(SUMMARY_FILE, 'utf-8');
       const summary = JSON.parse(data);
+      const previousStatus = this.testStatuses.get(testId);
+
+      if (previousStatus === status) {
+        summary.ts = Date.now();
+        fs.writeFileSync(SUMMARY_FILE, JSON.stringify(summary, null, 2));
+        return;
+      }
+
+      if (previousStatus === 'passed') summary.passed--;
+      else if (previousStatus === 'failed') summary.failed--;
+      else if (previousStatus === 'skipped') summary.skipped--;
 
       if (status === 'passed') summary.passed++;
       else if (status === 'failed') summary.failed++;
       else if (status === 'skipped') summary.skipped++;
 
+      this.testStatuses.set(testId, status);
       summary.pending = summary.total - summary.passed - summary.failed - summary.skipped;
       summary.ts = Date.now();
 

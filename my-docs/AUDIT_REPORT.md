@@ -217,6 +217,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - Web unit tests were run with `pnpm --filter @ship/web exec vitest run`.
 - API unit tests were run with `pnpm --filter @ship/api exec vitest run` against the sidecar benchmark database (`ship_test_audit`) to avoid truncating local application data.[^4]
 - E2E test count was measured with `npx playwright test --list` from the `e2e/` directory, which enumerates every test the runner would execute.[^5]
+- E2E tests were later run locally through the controlled background/polling runner shape, with Docker/Testcontainers enabled and Playwright Chromium installed.[^5-e2e-run]
 - Flaky test detection: both API and web suites were run 3× each; any test that changed pass/fail status across runs was flagged as flaky.
 - API code coverage was measured by temporarily installing `@vitest/coverage-v8@4.0.17` (matching the project's `vitest@4.0.17`) and running `pnpm --filter @ship/api exec vitest run --coverage` against `ship_test_audit`. The dependency was removed after measurement.
 - Web coverage was checked in `web/vitest.config.ts`; no coverage provider is configured.
@@ -226,7 +227,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 | Metric                            | Value                                                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Total tests                       | 1,471 executable tests across 99 files (451 API in 28 files, 151 web in 16 files, 869 E2E in 71 files)                   |
-| Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E: not executed (inventory only)                                        |
+| Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E full run: 851 / 1 / 5 retry-flake signals, with 17 skipped            |
 | Suite runtime                     | API unit: 10.76s; Web unit: 1.05s                                                                                        |
 | Critical flows with zero coverage | None obvious by file inventory for document CRUD, auth, collaboration, issues, weeks, search, accessibility, or security |
 | Code coverage % (if measured)     | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured                              |
@@ -234,21 +235,24 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
 1. **High:** Web unit tests are failing: 13 of 151 failed, in `document-tabs.test.ts` (9), `DetailsExtension.test.ts` (3), and `useSessionTimeout.test.ts` (1). These are assertion mismatches against changed implementation (e.g., tab configs, TipTap extension content schema), not environmental failures.
-2. **High:** API code coverage is 40% across the board. Route files for `programs.ts` (5%), `dashboard.ts` (2%), `weekly-plans.ts` (5%), and `comments.ts` (9%) have near-zero coverage despite being production endpoints.
-3. **Medium:** Web has no coverage measurement configured. `web/vitest.config.ts` has no `coverage` block; adding `@vitest/coverage-v8` with a `provider: 'v8'` config would enable it.
-4. **Medium:** API test safety requires the sidecar benchmark database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to `ship_test_audit` or another disposable database.
-5. **Low:** No flaky tests detected across 3 repeated runs of both API and web suites.
+2. **High:** The full E2E run has one final failure: `e2e/inline-comments.spec.ts:118` (`canceling a comment removes the highlight`). The canceled comment leaves `.comment-highlight` visible after cancel.
+3. **High:** API code coverage is 40% across the board. Route files for `programs.ts` (5%), `dashboard.ts` (2%), `weekly-plans.ts` (5%), and `comments.ts` (9%) have near-zero coverage despite being production endpoints.
+4. **Medium:** E2E retry logs show five flake signals that passed on retry: bulk selection strict locator ambiguity, feedback consolidation missing external row, `/my-week` stale-data visibility timeouts, project week navigation link timeout, and weekly accountability returning `null` where a person/document id was expected.[^5-e2e-run]
+5. **Medium:** Web has no coverage measurement configured. `web/vitest.config.ts` has no `coverage` block; adding `@vitest/coverage-v8` with a `provider: 'v8'` config would enable it.
+6. **Medium:** API test safety requires the sidecar benchmark database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to `ship_test_audit` or another disposable database.
+7. **Low:** No flaky tests detected across 3 repeated runs of both API and web suites.
 
 **Remediation Plan**
 
 Restore trust in the test system before expanding it.
 
-1. Fix the 13 failing web unit tests so both API and web unit suites are green.
-2. Add a hard safety guard to API test setup so destructive truncation only runs against an explicit disposable test database.
-3. Add web coverage reporting with `@vitest/coverage-v8`, but start with measurement only, not strict thresholds.
-4. Add three meaningful tests for high-risk, low-coverage behavior: workspace isolation, document association correctness, and weekly plan/comment/dashboard route behavior.
-5. Add a lightweight test-quality gate for fake confidence: no `.only`, no TODO-only tests, no conditional skips for missing seed data, and `test.fixme()` for intentionally unfinished tests.
-6. Use coverage to choose blind spots, not as the goal. Success is green tests plus regression coverage for real product risks.
+1. Fix the 13 failing web unit tests and the final E2E inline-comment cancellation failure so the normal test gates are green.
+2. Triage the five E2E retry-flake signals; either harden the selectors/waits or convert unstable assumptions into deterministic fixture setup.
+3. Add a hard safety guard to API test setup so destructive truncation only runs against an explicit disposable test database.
+4. Add web coverage reporting with `@vitest/coverage-v8`, but start with measurement only, not strict thresholds.
+5. Add three meaningful tests for high-risk, low-coverage behavior: workspace isolation, document association correctness, and weekly plan/comment/dashboard route behavior.
+6. Add a lightweight test-quality gate for fake confidence: no `.only`, no TODO-only tests, no conditional skips for missing seed data, and `test.fixme()` for intentionally unfinished tests.
+7. Use coverage to choose blind spots, not as the goal. Success is green tests plus regression coverage for real product risks.
 
 ---
 
@@ -454,6 +458,23 @@ cd e2e && npx playwright test --list 2>&1 | tail -1
 ```
 
 This is authoritative over the grep-based count (883) because Playwright resolves `test.describe`, `test.skip`, parameterized tests, and other runtime constructs that grep cannot distinguish from non-test usage of `test(` / `it(`.
+
+[^5-e2e-run]: Category 5 full E2E run evidence from May 20, 2026. The repository documentation warns not to run `pnpm test:e2e` directly in Codex because the 600+ line stream can crash the context. The intended `/e2e-test-runner` skill was referenced in docs but was not present in this checkout, so the run used the same controlled shape: background execution, `test-results/summary.json` polling, Docker/Testcontainers enabled, and Playwright Chromium installed via `pnpm test:e2e:setup`.
+
+```bash
+pnpm test:e2e:run
+pnpm exec playwright test --last-failed --reporter=json
+```
+
+Final Playwright status was failed. `test-results/.last-run.json` reported one final failed test: `e2e/inline-comments.spec.ts:118` (`canceling a comment removes the highlight`). With 869 listed tests and 17 skipped, the inferred final E2E pass/fail/skip count is 851 / 1 / 17. `test-results/summary.json` is a progress file and overcounted retry attempts before the reporter fix, so it should not be used as the final pass/fail source for this run.
+
+Retry failures that passed later, treated as flake signals:
+
+- `e2e/bulk-selection.spec.ts:1581`: strict locator for `#5` also matched `#50` and `#51`.
+- `e2e/feedback-consolidation.spec.ts:67`: timed out waiting for `External feature request`.
+- `e2e/my-week-stale-data.spec.ts`: plan/retro edits timed out before becoming visible on `/my-week`.
+- `e2e/project-weeks.spec.ts:205`: timed out waiting for `Navigation Test Project`.
+- `e2e/weekly-accountability.spec.ts:469`: expected assigned person/document id but received `null`.
 
 [^6]: Category 1 ESLint type-safety rules:
 

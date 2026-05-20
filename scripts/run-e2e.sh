@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RESULTS_DIR="${ROOT_DIR}/test-results"
-RUN_LOG="${RESULTS_DIR}/e2e-run.log"
+RUNS_DIR="${ROOT_DIR}/test-runs"
+RUN_LOG="${RUNS_DIR}/e2e-run.log"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 
 cd "${ROOT_DIR}"
@@ -14,13 +15,17 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "${RESULTS_DIR}/archive/${RUN_ID}"
+mkdir -p "${RESULTS_DIR}/archive/${RUN_ID}" "${RUNS_DIR}/archive/${RUN_ID}"
 
-for path in summary.json progress.jsonl e2e-run.log codex-e2e-run.log errors; do
+for path in summary.json progress.jsonl codex-e2e-run.log errors; do
   if [ -e "${RESULTS_DIR}/${path}" ]; then
     mv "${RESULTS_DIR}/${path}" "${RESULTS_DIR}/archive/${RUN_ID}/"
   fi
 done
+
+if [ -e "${RUN_LOG}" ]; then
+  mv "${RUN_LOG}" "${RUNS_DIR}/archive/${RUN_ID}/"
+fi
 
 echo "Starting Playwright E2E suite in the background..."
 echo "Log: ${RUN_LOG}"

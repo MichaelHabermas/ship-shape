@@ -269,6 +269,8 @@ Running `pnpm test:e2e` directly outputs 600+ test results, crashing Claude Code
 2. Polls `test-results/summary.json` for progress
 3. Shows concise pass/fail summary
 
+Local note from the May 20, 2026 run: this checkout referenced `/e2e-test-runner`, but the skill was not present under `.agents/skills` or `.claude/skills`. For environments where the skill is unavailable, use the repo-local fallback `pnpm test:e2e:run`. It preserves the same background/polling behavior, captures output in `test-runs/e2e-run.log`, archives prior progress files, and accepts Playwright flags such as `-- --last-failed`. Docker must be running because the E2E fixture uses Testcontainers to start PostgreSQL per worker. On fresh machines or after a Playwright version bump, run `pnpm test:e2e:setup` first.
+
 ### Memory Issues with Parallel Workers
 
 Each worker needs ~500MB. System calculates safe worker count based on:
@@ -276,6 +278,30 @@ Each worker needs ~500MB. System calculates safe worker count based on:
 - CPU cores (no more workers than cores)
 
 Override with: `PLAYWRIGHT_WORKERS=2 pnpm test:e2e`
+
+## Latest Known E2E Findings
+
+Last full local run: May 20, 2026 via `pnpm test:e2e:run`.
+
+Final Playwright status: failed. `test-results/.last-run.json` reported one final failed test:
+
+```text
+e2e/inline-comments.spec.ts:118
+canceling a comment removes the highlight
+Expected locator('.comment-highlight') not to be visible, but it stayed visible after cancel.
+```
+
+Failed attempts that passed on retry should be treated as flake signals:
+
+| Test | Signal |
+|------|--------|
+| `e2e/bulk-selection.spec.ts:1581` | Strict locator for `#5` also matched `#50` and `#51` |
+| `e2e/feedback-consolidation.spec.ts:67` | Timed out waiting for `External feature request` row |
+| `e2e/my-week-stale-data.spec.ts` | Plan/retro edits timed out before becoming visible on `/my-week` |
+| `e2e/project-weeks.spec.ts:205` | Timed out waiting for `Navigation Test Project` link |
+| `e2e/weekly-accountability.spec.ts:469` | Expected assigned person/document id but received `null` |
+
+Important runner note: `test-results/summary.json` is a progress file, not the source of truth for final pass/fail when retries are involved. Use Playwright's final exit code and `test-results/.last-run.json` for final failure status, and use `test-results/errors/*.log` for details.
 
 ## Progress Monitoring
 

@@ -170,7 +170,7 @@ Ship is a monorepo with three packages:
 - **Everything is a document** — Single `documents` table with a `document_type` field
 - **Server is truth** — Offline-tolerant, syncs when reconnected
 - **Boring technology** — Well-understood tools over cutting-edge experiments
-- **E2E testing** — 73+ Playwright tests covering real user flows
+- **E2E testing** — 869 Playwright tests covering real user flows
 
 See [docs/application-architecture.md](docs/application-architecture.md) for more.
 
@@ -202,17 +202,20 @@ ship/
 ## Testing
 
 ```bash
-# Run all E2E tests
+# Run API unit tests
 pnpm test
 
-# Run tests with UI
-pnpm test:ui
+# Install Playwright Chromium on a fresh machine / after Playwright updates
+pnpm test:e2e:setup
 
-# Run specific test file
-pnpm test e2e/documents.spec.ts
+# Run all E2E tests without streaming 600+ test lines into Codex
+pnpm test:e2e:run
+
+# Rerun only Playwright's last failed tests
+pnpm test:e2e:run -- --last-failed
 ```
 
-Ship uses Playwright for end-to-end testing with 73+ tests covering all major functionality.
+Ship uses Playwright for end-to-end testing with Testcontainers-backed PostgreSQL isolation. Docker must be running for E2E tests.
 
 ---
 
