@@ -549,3 +549,61 @@ Why it matters: this is mostly a measurement and expectations trap, not a direct
 Why it is easy to miss: the route error text and service constant live in different files, and both look reasonable in isolation.
 
 Possible mediation: make the route message use the service constant, and decide whether AI analysis should remain a generic text-analysis endpoint or should accept document ids and enforce document visibility server-side before sending content to Bedrock.
+
+### Shadow database copy scripts can report success after destructive restore failures
+
+Severity: High
+
+Status: Confirmed
+
+`scripts/copy-db-to-shadow.sh` and `scripts/copy-db-via-ssm.sh` both perform a destructive shadow refresh by dropping and recreating the target `public` schema before restoring a dump. The restore paths then pipe `psql -f "$DUMP_FILE"` through `grep` and end the pipeline with `|| true`. In `copy-db-to-shadow.sh`, the restore command is `psql ... -f "$DUMP_FILE" --quiet 2>&1 | grep -v "NOTICE:" || true`, followed immediately by `log_success "Restore complete"`. In `copy-db-via-ssm.sh`, the restore command is `psql ... -f "$DUMP_FILE" --quiet 2>&1 | grep -E "^ERROR" || true`, also followed by `log_success "Restore complete"`. The SSM variant verifies only user count equality, not document count equality, and still prints `Database copy complete!`.
+
+Why it matters: these scripts are production-adjacent runbook tools for copying dev/production data into shadow. If restore emits SQL errors after the schema has been dropped, the script can still announce success and send the operator toward migrations/deploy/testing against a partially restored or empty shadow database. That is a fake-green operational gate with real blast radius: it can erase a target environment and hide the failure mode behind normal-looking success text.
+
+Why it is easy to miss: `set -euo pipefail` at the top makes the script look strict. The later `|| true` on the restore pipeline quietly cancels that strictness at the highest-risk step.
+
+Possible mediation: remove `|| true` from restore pipelines, capture restore output to a log, fail on any `psql` non-zero exit, and make destructive schema drops require an explicit `--yes-drop-shadow` or typed target confirmation. Verify all critical table counts and schema_migrations, not just users/documents, before printing success.
+
+### Backend deploy can auto-apply Terraform despite docs saying infrastructure is a prerequisite
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`scripts/deploy.sh` documents Terraform infrastructure as a prerequisite, accepts `dev|shadow|prod`, and maps `prod` to the root `terraform/` directory. If it cannot read `s3_bucket_name` from Terraform outputs and `DEPLOY_S3_BUCKET` is unset, it prints `S3 bucket not found in Terraform outputs. Running terraform apply...`, runs `terraform init -upgrade`, then runs `terraform apply -auto-approve` before continuing the Elastic Beanstalk deployment. `docs/claude-reference/commands.md` presents `./scripts/deploy.sh prod` as the production API deploy command, and `AGENTS.md` says "Just run the scripts" for deployment.
+
+Why it matters: a command framed as "deploy API" can silently become "mutate or create infrastructure" when local Terraform state/outputs are missing. That is a hidden blast-radius expansion, especially for `prod`, because the operator may be trying to ship an app bundle while the script applies whatever Terraform diff is currently present.
+
+Why it is easy to miss: the dangerous branch only runs when an output lookup fails, so normal deploys look like pure application deploys. The top-of-file prerequisite comment also lowers suspicion by saying Terraform should already be deployed.
+
+Possible mediation: remove automatic `terraform apply -auto-approve` from application deploy, or require an explicit flag such as `--bootstrap-infra` plus an environment-specific confirmation. Keep deploy scripts read-only with respect to Terraform state unless the command name and docs clearly say they provision infrastructure.
+
+### Document parent links can cross workspaces and cascade-delete across tenants
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/db/schema.sql` defines `documents.parent_id UUID REFERENCES documents(id) ON DELETE CASCADE` without a same-workspace constraint. `api/src/routes/documents.ts` accepts `parent_id` on document create and update. On create, it only tries to inherit visibility when the parent exists in `req.workspaceId`; if the parent id belongs to another workspace, that lookup misses, but the route still inserts the foreign `parent_id`. On update, it similarly reads parent visibility only inside the current workspace, then writes `parent_id` directly.
+
+Runtime proof: verified against a disposable local database that was dropped after the run. A bearer token scoped to Workspace A called `POST /api/documents` with `parent_id` set to a Workspace B document id. The route returned `201`; a DB join showed `child_workspace_id = Workspace A` and `parent_workspace_id = Workspace B`. Deleting the Workspace B parent then reduced the Workspace A child row count to `0` because the database-level `ON DELETE CASCADE` followed the cross-workspace parent pointer.
+
+Why it matters: this is a cross-tenant integrity break, not just a metadata leak. If a cross-workspace parent edge exists, a legitimate delete in one workspace can delete documents in another workspace. It also creates impossible hierarchy states for navigation, breadcrumbs, document trees, and visibility inheritance.
+
+Why it is easy to miss: the route appears workspace-scoped because it creates the child with `workspace_id = req.workspaceId` and does a parent visibility lookup scoped to the workspace. The actual bug is that a failed parent lookup is treated as "no inherited visibility" instead of "invalid parent."
+
+Possible mediation: reject any `parent_id` that does not belong to `req.workspaceId` and is visible/usable by the caller. Add a database-level invariant for hierarchy, such as a composite foreign key or trigger requiring `child.workspace_id = parent.workspace_id`. Add regression tests for create and update with foreign-workspace parents and for cascade behavior.
+
+### Production Terraform has two competing sources of truth
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`terraform/README.md` says the repo uses separate `terraform/environments/dev/` and `terraform/environments/prod/` directories because "the infrastructure code paths differ," shows `cd terraform/environments/dev   # or prod`, and notes that root-level `*.tf` files are the original flat structure while new environments should use `environments/`. But the deploy scripts special-case production back to the root Terraform directory: `scripts/deploy.sh` sets `TF_DIR="$PROJECT_ROOT/terraform"` when `ENV=prod`, and `scripts/deploy-web.sh` does the same. `scripts/deploy-infrastructure.sh` also always changes into root `terraform/` and has no environment argument. The two Terraform paths are not just wrappers around the same state: root `terraform/elastic-beanstalk.tf` names the EB app `ship-api` and environment `ship-api-prod`, while `terraform/modules/elastic-beanstalk/main.tf` used by `terraform/environments/prod/main.tf` names both app and environment `ship-api-prod`.
+
+Why it matters: a maintainer can plausibly run Terraform from `terraform/environments/prod` because the Terraform README says that is the production environment, then deploy production through scripts that read outputs and apply fallback changes from root `terraform/`. That creates a real risk of changing, creating, or reading outputs from the wrong production-shaped stack. It also makes reviews harder: a Terraform diff under `terraform/environments/prod` may look production-critical while the production deploy path ignores it.
+
+Why it is easy to miss: both layouts are present and both look intentional. The README even acknowledges root files as "original flat structure," which makes the duplication feel like migration history rather than an active operational contradiction. The mismatch only becomes obvious when comparing README commands, deploy scripts, and resource names.
+
+Possible mediation: choose one production Terraform root and make every script, README, and runbook use it. If root `terraform/` is the real production stack, mark `terraform/environments/prod` as unused or remove it. If modular `terraform/environments/prod` is the intended stack, update deploy scripts and infrastructure scripts to use it, then migrate/import state deliberately.
