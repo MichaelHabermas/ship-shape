@@ -10,13 +10,68 @@ import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
+type DocumentProperties = Record<string, unknown> & {
+  is_complete?: boolean;
+  missing_fields?: string[];
+};
+
+type DocumentAccessRow = {
+  id: string;
+  workspace_id: string;
+  document_type: string;
+  title: string;
+  parent_id: string | null;
+  position: number | null;
+  ticket_number: number | null;
+  properties: DocumentProperties | null;
+  content?: unknown;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string;
+  visibility: 'private' | 'workspace';
+  archived_at?: Date | null;
+  deleted_at?: Date | null;
+  converted_to_id?: string | null;
+  converted_by?: string | null;
+  can_access: boolean;
+};
+
+type DocumentListRow = {
+  id: string;
+  workspace_id: string;
+  document_type: string;
+  title: string;
+  parent_id: string | null;
+  position: number | null;
+  ticket_number: number | null;
+  properties: DocumentProperties | null;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string;
+  visibility: 'private' | 'workspace';
+};
+
+type ConvertedDocumentRow = {
+  id: string;
+  title: string;
+  original_type: string;
+  ticket_number: number | null;
+  converted_to_id: string;
+  converted_at: Date | null;
+  converted_by: string | null;
+  converted_type: string;
+  converted_title: string;
+  converted_ticket_number: number | null;
+  converted_by_name: string | null;
+};
+
 // Check if user can access a document (visibility check)
 async function canAccessDocument(
   docId: string,
   userId: string,
   workspaceId: string
-): Promise<{ canAccess: boolean; doc: any | null }> {
-  const result = await pool.query(
+): Promise<{ canAccess: boolean; doc: DocumentAccessRow | null }> {
+  const result = await pool.query<DocumentAccessRow>(
     `SELECT d.*,
             (d.visibility = 'workspace' OR d.created_by = $2 OR
              (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
@@ -29,7 +84,8 @@ async function canAccessDocument(
     return { canAccess: false, doc: null };
   }
 
-  return { canAccess: result.rows[0].can_access, doc: result.rows[0] };
+  const doc = result.rows[0]!;
+  return { canAccess: doc.can_access, doc };
 }
 
 // Validation schemas
@@ -41,7 +97,7 @@ const createDocumentSchema = z.object({
   sprint_id: z.string().uuid().optional().nullable(),
   properties: z.record(z.unknown()).optional(),
   visibility: z.enum(['private', 'workspace']).optional(),
-  content: z.any().optional(),
+  content: z.unknown().optional(),
   belongs_to: z.array(z.object({
     id: z.string().uuid(),
     type: z.enum(['program', 'project', 'sprint', 'parent']),
@@ -50,7 +106,7 @@ const createDocumentSchema = z.object({
 
 const updateDocumentSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  content: z.any().optional(),
+  content: z.unknown().optional(),
   parent_id: z.string().uuid().optional().nullable(),
   position: z.number().int().min(0).optional(),
   properties: z.record(z.unknown()).optional(),
@@ -128,7 +184,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     query += ` ORDER BY position ASC, created_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<DocumentListRow>(query, params);
 
     // Extract properties into flat fields for backwards compatibility
     const documents = result.rows.map(row => {
@@ -194,7 +250,7 @@ router.get('/converted/list', authMiddleware, async (req: Request, res: Response
 
     query += ` ORDER BY d.converted_at DESC NULLS LAST, d.updated_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<ConvertedDocumentRow>(query, params);
 
     const conversions = result.rows.map(row => ({
       original_id: row.id,

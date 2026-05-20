@@ -1,4 +1,5 @@
 import { Extension } from '@tiptap/core';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
@@ -55,9 +56,9 @@ function escapeHtml(str: string): string {
 }
 
 /** Extract plain text from a ProseMirror node */
-function extractNodeText(node: any): string {
+function extractNodeText(node: ProseMirrorNode): string {
   let text = '';
-  node.descendants((child: any) => {
+  node.descendants((child: ProseMirrorNode) => {
     if (child.isText) text += child.text;
   });
   return text.trim();
@@ -72,10 +73,10 @@ function normalizeText(text: string): string {
  * Find list items in the document and return their positions and text.
  * Returns array of { pos: end position of list item block, text: extracted text }
  */
-function findListItems(doc: any): Array<{ endPos: number; text: string }> {
+function findListItems(doc: ProseMirrorNode): Array<{ endPos: number; text: string }> {
   const items: Array<{ endPos: number; text: string }> = [];
 
-  doc.descendants((node: any, pos: number) => {
+  doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.type.name === 'listItem' || node.type.name === 'taskItem') {
       const text = extractNodeText(node);
       if (text) {
@@ -93,10 +94,10 @@ function findListItems(doc: any): Array<{ endPos: number; text: string }> {
  * Find planReference nodes in the document (for retro documents).
  * Returns array of { endPos, text } using the planItemText attribute.
  */
-function findPlanReferenceNodes(doc: any): Array<{ endPos: number; text: string }> {
+function findPlanReferenceNodes(doc: ProseMirrorNode): Array<{ endPos: number; text: string }> {
   const items: Array<{ endPos: number; text: string }> = [];
 
-  doc.descendants((node: any, pos: number) => {
+  doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.type.name === 'planReference') {
       const text = node.attrs.planItemText || '';
       if (text) {
@@ -123,10 +124,14 @@ function matchAnalysisToListItems(
 
   // First pass: exact normalized matches
   for (let li = 0; li < listItems.length; li++) {
-    const normalizedLi = normalizeText(listItems[li].text);
+    const listItem = listItems[li];
+    if (!listItem) continue;
+    const normalizedLi = normalizeText(listItem.text);
     for (let ai = 0; ai < analysisItems.length; ai++) {
       if (usedAnalysis.has(ai)) continue;
-      const normalizedAi = normalizeText(analysisItems[ai].text);
+      const analysisItem = analysisItems[ai];
+      if (!analysisItem) continue;
+      const normalizedAi = normalizeText(analysisItem.text);
       if (normalizedLi === normalizedAi) {
         matches.set(li, ai);
         usedAnalysis.add(ai);
@@ -138,11 +143,15 @@ function matchAnalysisToListItems(
   // Second pass: prefix/substring matching for unmatched items
   for (let li = 0; li < listItems.length; li++) {
     if (matches.has(li)) continue;
-    const normalizedLi = normalizeText(listItems[li].text);
+    const listItem = listItems[li];
+    if (!listItem) continue;
+    const normalizedLi = normalizeText(listItem.text);
 
     for (let ai = 0; ai < analysisItems.length; ai++) {
       if (usedAnalysis.has(ai)) continue;
-      const normalizedAi = normalizeText(analysisItems[ai].text);
+      const analysisItem = analysisItems[ai];
+      if (!analysisItem) continue;
+      const normalizedAi = normalizeText(analysisItem.text);
 
       if (normalizedLi.startsWith(normalizedAi) || normalizedAi.startsWith(normalizedLi)) {
         matches.set(li, ai);
@@ -243,6 +252,7 @@ export const AIScoringDisplayExtension = Extension.create<Record<string, never>,
               for (const [listIdx, analysisIdx] of matches) {
                 const listItem = listItems[listIdx];
                 const analysisItem = planAnalysis.items[analysisIdx];
+                if (!listItem || !analysisItem) continue;
 
                 const widget = Decoration.widget(listItem.endPos, () => {
                   return createPlanFeedbackWidget(analysisItem);
@@ -266,6 +276,7 @@ export const AIScoringDisplayExtension = Extension.create<Record<string, never>,
               for (const [listIdx, coverageIdx] of matches) {
                 const listItem = listItems[listIdx];
                 const coverageItem = retroAnalysis.plan_coverage[coverageIdx];
+                if (!listItem || !coverageItem) continue;
 
                 const widget = Decoration.widget(listItem.endPos, () => {
                   return createRetroCoverageWidget(coverageItem);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -16,32 +16,37 @@ import { CurrentDocumentProvider } from '@/contexts/CurrentDocumentContext';
 import { UploadProvider } from '@/contexts/UploadContext';
 import { LoginPage } from '@/pages/Login';
 import { AppLayout } from '@/pages/App';
-import { DocumentsPage } from '@/pages/Documents';
-import { IssuesPage } from '@/pages/Issues';
-import { ProgramsPage } from '@/pages/Programs';
-import { TeamModePage } from '@/pages/TeamMode';
-import { TeamDirectoryPage } from '@/pages/TeamDirectory';
-import { PersonEditorPage } from '@/pages/PersonEditor';
-import { FeedbackEditorPage } from '@/pages/FeedbackEditor';
-import { PublicFeedbackPage } from '@/pages/PublicFeedback';
-import { ProjectsPage } from '@/pages/Projects';
-import { DashboardPage } from '@/pages/Dashboard';
-import { MyWeekPage } from '@/pages/MyWeekPage';
-import { AdminDashboardPage } from '@/pages/AdminDashboard';
-import { AdminWorkspaceDetailPage } from '@/pages/AdminWorkspaceDetail';
-import { WorkspaceSettingsPage } from '@/pages/WorkspaceSettings';
-import { ConvertedDocumentsPage } from '@/pages/ConvertedDocuments';
-import { UnifiedDocumentPage } from '@/pages/UnifiedDocumentPage';
-import { StatusOverviewPage } from '@/pages/StatusOverviewPage';
-import { ReviewsPage } from '@/pages/ReviewsPage';
-import { OrgChartPage } from '@/pages/OrgChartPage';
 import { ReviewQueueProvider } from '@/contexts/ReviewQueueContext';
 
-import { InviteAcceptPage } from '@/pages/InviteAccept';
-import { SetupPage } from '@/pages/Setup';
 import { ToastProvider } from '@/components/ui/Toast';
 import { MutationErrorToast } from '@/components/MutationErrorToast';
 import './index.css';
+
+const DocumentsPage = React.lazy(() => import('@/pages/Documents').then((module) => ({ default: module.DocumentsPage })));
+const IssuesPage = React.lazy(() => import('@/pages/Issues').then((module) => ({ default: module.IssuesPage })));
+const ProgramsPage = React.lazy(() => import('@/pages/Programs').then((module) => ({ default: module.ProgramsPage })));
+const TeamModePage = React.lazy(() => import('@/pages/TeamMode').then((module) => ({ default: module.TeamModePage })));
+const TeamDirectoryPage = React.lazy(() => import('@/pages/TeamDirectory').then((module) => ({ default: module.TeamDirectoryPage })));
+const PersonEditorPage = React.lazy(() => import('@/pages/PersonEditor').then((module) => ({ default: module.PersonEditorPage })));
+const FeedbackEditorPage = React.lazy(() => import('@/pages/FeedbackEditor').then((module) => ({ default: module.FeedbackEditorPage })));
+const PublicFeedbackPage = React.lazy(() => import('@/pages/PublicFeedback').then((module) => ({ default: module.PublicFeedbackPage })));
+const ProjectsPage = React.lazy(() => import('@/pages/Projects').then((module) => ({ default: module.ProjectsPage })));
+const DashboardPage = React.lazy(() => import('@/pages/Dashboard').then((module) => ({ default: module.DashboardPage })));
+const MyWeekPage = React.lazy(() => import('@/pages/MyWeekPage').then((module) => ({ default: module.MyWeekPage })));
+const AdminDashboardPage = React.lazy(() => import('@/pages/AdminDashboard').then((module) => ({ default: module.AdminDashboardPage })));
+const AdminWorkspaceDetailPage = React.lazy(() => import('@/pages/AdminWorkspaceDetail').then((module) => ({ default: module.AdminWorkspaceDetailPage })));
+const WorkspaceSettingsPage = React.lazy(() => import('@/pages/WorkspaceSettings').then((module) => ({ default: module.WorkspaceSettingsPage })));
+const ConvertedDocumentsPage = React.lazy(() => import('@/pages/ConvertedDocuments').then((module) => ({ default: module.ConvertedDocumentsPage })));
+const UnifiedDocumentPage = React.lazy(() => import('@/pages/UnifiedDocumentPage').then((module) => ({ default: module.UnifiedDocumentPage })));
+const StatusOverviewPage = React.lazy(() => import('@/pages/StatusOverviewPage').then((module) => ({ default: module.StatusOverviewPage })));
+const ReviewsPage = React.lazy(() => import('@/pages/ReviewsPage').then((module) => ({ default: module.ReviewsPage })));
+const OrgChartPage = React.lazy(() => import('@/pages/OrgChartPage').then((module) => ({ default: module.OrgChartPage })));
+const InviteAcceptPage = React.lazy(() => import('@/pages/InviteAccept').then((module) => ({ default: module.InviteAcceptPage })));
+const SetupPage = React.lazy(() => import('@/pages/Setup').then((module) => ({ default: module.SetupPage })));
+
+function LazyRoute({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
 
 const ReactQueryDevtools = import.meta.env.DEV
   ? React.lazy(() => import('@tanstack/react-query-devtools').then((module) => ({ default: module.ReactQueryDevtools })))
@@ -137,7 +142,7 @@ function App() {
       {/* Truly public routes - no AuthProvider wrapper */}
       <Route
         path="/feedback/:programId"
-        element={<PublicFeedbackPage />}
+        element={<LazyRoute><PublicFeedbackPage /></LazyRoute>}
       />
       {/* Routes that need AuthProvider (even if some are public) */}
       <Route
@@ -161,7 +166,7 @@ function AppRoutes() {
     <Routes>
       <Route
         path="/setup"
-        element={<SetupPage />}
+        element={<LazyRoute><SetupPage /></LazyRoute>}
       />
       <Route
         path="/login"
@@ -173,13 +178,13 @@ function AppRoutes() {
       />
       <Route
         path="/invite/:token"
-        element={<InviteAcceptPage />}
+        element={<LazyRoute><InviteAcceptPage /></LazyRoute>}
       />
       <Route
         path="/admin"
         element={
           <SuperAdminRoute>
-            <AdminDashboardPage />
+            <LazyRoute><AdminDashboardPage /></LazyRoute>
           </SuperAdminRoute>
         }
       />
@@ -187,7 +192,7 @@ function AppRoutes() {
         path="/admin/workspaces/:id"
         element={
           <SuperAdminRoute>
-            <AdminWorkspaceDetailPage />
+            <LazyRoute><AdminWorkspaceDetailPage /></LazyRoute>
           </SuperAdminRoute>
         }
       />
@@ -214,16 +219,16 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="/my-week" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="my-week" element={<MyWeekPage />} />
-        <Route path="docs" element={<DocumentsPage />} />
+        <Route path="dashboard" element={<LazyRoute><DashboardPage /></LazyRoute>} />
+        <Route path="my-week" element={<LazyRoute><MyWeekPage /></LazyRoute>} />
+        <Route path="docs" element={<LazyRoute><DocumentsPage /></LazyRoute>} />
         <Route path="docs/:id" element={<DocumentRedirect />} />
-        <Route path="documents/:id/*" element={<UnifiedDocumentPage />} />
-        <Route path="issues" element={<IssuesPage />} />
+        <Route path="documents/:id/*" element={<LazyRoute><UnifiedDocumentPage /></LazyRoute>} />
+        <Route path="issues" element={<LazyRoute><IssuesPage /></LazyRoute>} />
         <Route path="issues/:id" element={<DocumentRedirect />} />
-        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="projects" element={<LazyRoute><ProjectsPage /></LazyRoute>} />
         <Route path="projects/:id" element={<DocumentRedirect />} />
-        <Route path="programs" element={<ProgramsPage />} />
+        <Route path="programs" element={<LazyRoute><ProgramsPage /></LazyRoute>} />
         <Route path="programs/:programId/sprints/:id" element={<DocumentRedirect />} />
         <Route path="programs/:id/*" element={<ProgramTabRedirect />} />
         <Route path="sprints" element={<Navigate to="/team/allocation" replace />} />
@@ -235,16 +240,16 @@ function AppRoutes() {
         <Route path="sprints/:id/standups" element={<SprintTabRedirect tab="standups" />} />
         <Route path="sprints/:id/review" element={<SprintTabRedirect tab="review" />} />
         <Route path="team" element={<Navigate to="/team/allocation" replace />} />
-        <Route path="team/allocation" element={<TeamModePage />} />
-        <Route path="team/directory" element={<TeamDirectoryPage />} />
-        <Route path="team/status" element={<StatusOverviewPage />} />
-        <Route path="team/reviews" element={<ReviewsPage />} />
-        <Route path="team/org-chart" element={<OrgChartPage />} />
+        <Route path="team/allocation" element={<LazyRoute><TeamModePage /></LazyRoute>} />
+        <Route path="team/directory" element={<LazyRoute><TeamDirectoryPage /></LazyRoute>} />
+        <Route path="team/status" element={<LazyRoute><StatusOverviewPage /></LazyRoute>} />
+        <Route path="team/reviews" element={<LazyRoute><ReviewsPage /></LazyRoute>} />
+        <Route path="team/org-chart" element={<LazyRoute><OrgChartPage /></LazyRoute>} />
         {/* Person profile stays in Teams context - no redirect to /documents */}
-        <Route path="team/:id" element={<PersonEditorPage />} />
-        <Route path="feedback/:id" element={<FeedbackEditorPage />} />
-        <Route path="settings" element={<WorkspaceSettingsPage />} />
-        <Route path="settings/conversions" element={<ConvertedDocumentsPage />} />
+        <Route path="team/:id" element={<LazyRoute><PersonEditorPage /></LazyRoute>} />
+        <Route path="feedback/:id" element={<LazyRoute><FeedbackEditorPage /></LazyRoute>} />
+        <Route path="settings" element={<LazyRoute><WorkspaceSettingsPage /></LazyRoute>} />
+        <Route path="settings/conversions" element={<LazyRoute><ConvertedDocumentsPage /></LazyRoute>} />
       </Route>
     </Routes>
   );

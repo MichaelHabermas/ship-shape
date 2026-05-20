@@ -117,7 +117,9 @@ Severity: Medium
 
 Severity: Medium
 
-Status update: Resolved by the easy-wins pass. `@tanstack/react-query-devtools` now lives in `devDependencies`, and `web/src/main.tsx` loads it with a dev-only `React.lazy` branch. The broader route-level code-splitting question remains separate.
+Status: Resolved by the easy-wins pass; retained here only as audit history. Do not promote this again unless a new production-bundle measurement shows devtools code in the shipped bundle.
+
+Resolution note: `@tanstack/react-query-devtools` now lives in `devDependencies`, and `web/src/main.tsx` loads it with a dev-only `React.lazy` branch. The broader route-level code-splitting question remains separate.
 
 At audit time, `web/package.json` listed `@tanstack/react-query-devtools` under production `dependencies`, and `web/src/main.tsx` imported and rendered `ReactQueryDevtools` eagerly. This was noteworthy because the source brief explicitly asks for bundle-size measurement, missing code splitting, unused dependencies, and oversized dependencies. The package name itself says "devtools", so it was a conspicuous candidate for auditors to catch. I would not claim it was intentionally planted without evidence, but it looked assessment-shaped: easy to notice, easy to verify, and directly aligned with the prompt.
 
@@ -138,18 +140,32 @@ Severity: Medium
 
 Architecture docs describe server search with offline fallback, the backend exposes mention and learning search endpoints, and the Docs page filters the already-loaded document list client-side by title. The term "search" means different things in different layers. This is a good candidate if later work touches search, but it is currently less central than the top three.
 
+### Repeated local types and mechanical route boilerplate are creating product-model drift
+
+Severity: High
+
+Status: Confirmed
+
+The codebase has a repeated-type problem, not just a style problem. `shared/src/types/document.ts` defines canonical document property interfaces, but API routes and web hooks/components repeatedly redefine nearby shapes instead of importing or deriving from the shared contracts. Current examples include local `IssueProperties`, `ProgramProperties`, `ProjectProperties`, week/sprint property aliases, row aliases in route files, and duplicated project status unions across API and web. The small boilerplate smell is visible too: route files repeatedly declare `type RouterType = ReturnType<typeof Router>;` followed by `const router: RouterType = Router();` even though the type adds no local meaning.
+
+Why it matters: duplicated types become competing contracts. The second easy-wins pass nearly turned legacy week plan/review fields into the canonical week property model because the route-local alias was named like the domain model. That is the exact source-of-truth failure mode: a local cleanup can quietly widen or contradict the product model while still type-checking.
+
+Why it is easy to miss: each duplicate is defensible in isolation. PostgreSQL row aliases are useful at query boundaries, and route-local response rows should not always be global domain models. The problem is the lack of a clear line between disposable SQL row shapes and durable product contracts.
+
+What would prove the blast radius: compare shared document property interfaces, API route property aliases, OpenAPI schemas, and web hook/component types for the same concepts. Any mismatch in state unions, week properties, RACI fields, ownership fields, or response shape names is product drift, not mere duplication.
+
+Possible mediation: keep query-result row types local when they describe SQL projections, but import or derive canonical document property/domain types from `@ship/shared`. Delete meaningless router type boilerplate. Put repeated extraction/mapper logic behind small route-local helpers first, then promote only stable domain mappers into shared API utilities.
+
 ### Provisional assessment-shaped leads
 
 Severity: Needs verification
 
 These are not finished discoveries yet. They are suspicious because they look like the kinds of issues an audit prompt may expect someone to notice, but each one needs a tighter verification pass before it should be promoted, fixed, or deleted.
 
-- Tracked deployment bundles: git tracks four `deploy-api-ship-api-*.zip` files, each about 577 KB. A spot check shows compiled `api/dist`, `shared/dist`, source maps, SQL migrations, package metadata, and a Dockerfile inside the bundle. No `.env` or obvious secret filename appeared in the quick listing check, so this is currently a repository hygiene and release-artifact concern, not a proven secret leak.
-- Tracked temporary deployment plan: `temporary.deployment-plan.md` was created by us as disposable planning context, with the explicit intention to delete or replace it once the real deployment checklist is settled. This is not a mystery artifact or external defect. Remove this note from `DISCOVERY.md` once the file is deleted.
-- Dash-prefixed progress file: `-progress.txt` is tracked at the repo root. The size is tiny, but the leading dash is a shell footgun for commands that do not use `--` before filenames. This is probably low severity unless it reflects broader artifact hygiene problems.
 - Migration runner catch behavior: promoted to Discovery 1 after runtime verification proved it can exit 0 with most migrations unapplied.
-- Route-level code splitting may be incomplete: `web/src/main.tsx` eagerly imports the major page components and eagerly renders `ReactQueryDevtools`. The app does use `React.lazy` for document tabs in `web/src/lib/document-tabs.tsx`, so this is not "no code splitting." The candidate is narrower: top-level route pages may still be bundled together, which matters because the audit/source docs call out bundle size, missing code splitting, and oversized dependencies.
 - Stubbed RACI fields: `shared/src/types/document.ts` includes `consulted_ids` and `informed_ids` comments marked "stubbed for now." That may be harmless future-proofing, or it may mean shared types advertise a product capability that the implementation does not actually support. Needs a UI/API pass before ranking.
+
+Resolved reconciliation note: route-level code splitting, tracked deploy bundles, temporary deployment plan, root `-progress.txt`, nested Terraform plan, and `web/dev-dist/*` were resolved in easy-wins passes and are preserved below only in historical resolved sections. They should not remain active provisional leads.
 
 ---
 
@@ -175,7 +191,7 @@ Possible mediation: either add actual CI workflows and branch protection for the
 
 Severity: Medium
 
-Status: Partially resolved. The easy-wins pass excludes source tests from the API production build and `api/dist` no longer contains test paths. Source-map/declaration-map release policy has not been decided.
+Status: Partially resolved; keep as release-policy follow-up only. The easy-wins pass excludes source tests from the API production build and `api/dist` no longer contains test paths. Source-map/declaration-map release policy has not been decided.
 
 At audit time, `api/tsconfig.json` included `src/**/*` and only excluded `src/test/**/*`, which meant `__tests__` directories and `*.test.ts` files compiled into `api/dist`. The root `tsconfig.json` enabled `sourceMap` and `declarationMap`. A local build artifact check found `api/dist` contained 513 files, including 112 test-related files and 214 map files. `scripts/deploy.sh` bundled `api/dist` wholesale into the Elastic Beanstalk deploy zip. Current `api/dist` no longer contains test paths after the easy-wins pass.
 
@@ -189,7 +205,7 @@ Possible mediation: exclude `**/*.test.ts` and `**/__tests__/**` from the API pr
 
 Severity: Medium
 
-Status: Resolved by the easy-wins pass. The deploy zips, nested Terraform plan, `web/dev-dist/*`, `temporary.deployment-plan.md`, and `-progress.txt` are no longer tracked, and ignore rules now cover `deploy-api-*.zip` and `terraform/**/tfplan`.
+Status: Resolved by the easy-wins pass; retained only as baseline audit history. The deploy zips, nested Terraform plan, `web/dev-dist/*`, `temporary.deployment-plan.md`, and `-progress.txt` are no longer tracked, and ignore rules now cover `deploy-api-*.zip` and `terraform/**/tfplan`.
 
 At audit time, git tracked four root `deploy-api-ship-api-*.zip` files, `terraform/environments/shadow/tfplan`, and `web/dev-dist/*`. `.gitignore` ignored `ship-api-*.zip`, but not `deploy-api-ship-api-*.zip`; it ignored only `terraform/*.tfplan` and `terraform/tfplan`, not nested environment plans; it also ignored `web/dev-dist/`, but those files remained tracked because ignores do not untrack existing files. The deploy zips were about 577 KB each, the Terraform plan was about 28 KB, and `web/dev-dist/workbox-91dfe804.js` was about 170 KB.
 
@@ -251,7 +267,7 @@ Status: Confirmed
 
 `api/src/db/migrate.ts` wraps schema setup and all numbered migration execution in one broad `try`. If any thrown error message includes `already exists`, it logs "Database schema already exists, continuing..." and exits without rethrowing. The comment says "`already exists` errors from schema.sql are fine," but the catch scope includes pending numbered migrations too.
 
-Verification note: the disposable database was only a microscope, not the finding. The preexisting repo issue is the migration runner's broad success-on-`already exists` catch. Verified with a throwaway database: `DATABASE_URL=... pnpm --filter @ship/api db:migrate` printed successful application through `009_audit_logs_nullable_actor`, then hit `010_oauth_state.sql`, printed `Database schema already exists, continuing...`, and exited 0. The database had only 10 rows in `schema_migrations`, ending at `009_audit_logs_nullable_actor`, while the repo has 42 migration files.
+Verification note: the disposable database was only a microscope, not the finding. The preexisting repo issue is the migration runner's broad success-on-`already exists` catch. Verified with a throwaway database: `DATABASE_URL=... pnpm --filter @ship/api db:migrate` printed successful application through `009_audit_logs_nullable_actor`, then hit `010_oauth_state.sql`, printed `Database schema already exists, continuing...`, and exited 0. The database had only 10 rows in `schema_migrations`, ending at `009_audit_logs_nullable_actor`, while the repo has 42 migration files. A later local verification saw the same `010_oauth_state.sql` duplicate-table edge on a fresh disposable database after schema bootstrap; API unit tests still passed against local PostgreSQL, so this remains a migration-runner truthfulness issue rather than an API unit blocker.
 
 Why it matters: migration scripts are deployment-critical. This is a fake-green migration path: a fresh database can look successfully migrated while 32 migrations are unapplied.
 
@@ -263,7 +279,7 @@ Possible mediation: narrow the `already exists` catch to schema bootstrap only, 
 
 Severity: Low
 
-Status: Confirmed
+Status: Resolved by the easy-wins pass; retained only as baseline audit history.
 
 Git tracks a root file named `-progress.txt`. The content is tiny, but the leading dash can confuse shell commands that do not use `--` before filenames.
 
@@ -277,7 +293,7 @@ Possible mediation: remove or rename the file. Add a tracked-root-artifact scan 
 
 Severity: Low
 
-Status: Confirmed
+Status: Resolved by the easy-wins pass; retained only as baseline audit history.
 
 At audit time, git tracked `temporary.deployment-plan.md`. The file name itself said it was temporary, and the content was deployment planning context rather than product/source documentation. The file is no longer tracked after the easy-wins pass.
 
@@ -287,21 +303,21 @@ Why it is easy to miss: markdown planning docs look like normal repo documentati
 
 Possible mediation: delete it if obsolete, or promote the still-valid parts into the real deployment docs with a non-temporary filename.
 
-### Route-level code splitting remains incomplete at the app entry
+### Route-level code splitting was incomplete at the app entry
 
 Severity: Medium
 
-Status: Needs verification
+Status: Resolved by the second easy-wins pass; retained only as baseline audit history.
 
-Status update: React Query Devtools is no longer eager or production-loaded. Major route pages are still eagerly imported, so the route-level code-splitting question remains open.
+Status update: React Query Devtools is no longer eager or production-loaded. Major route pages are now lazy-loaded from `web/src/main.tsx`, while providers, guards, redirects, and `AppLayout` remain eager.
 
-`web/src/main.tsx` still eagerly imports major route pages. The app does use `React.lazy` for document tabs, and React Query Devtools is now dev-only lazy-loaded, so the issue is not "no code splitting." The narrower issue is that page-level routing may still pay for expensive surfaces on initial load, while the audit requirement specifically rewards initial bundle reduction.
+At audit time, `web/src/main.tsx` eagerly imported major route pages. The app did use `React.lazy` for document tabs, and React Query Devtools later became dev-only lazy-loaded, so the issue was not "no code splitting." The narrower issue was that page-level routing still paid for expensive surfaces on initial load, while the audit requirement specifically rewarded initial bundle reduction.
 
 Why it matters: bundle reports showed the main JS chunk dominates the production bundle, so route-level lazy loading may be one of the cleanest ways to reduce initial load without removing functionality.
 
 Why it is easy to miss: the build emits many chunks, which makes "we have code splitting" look true until you inspect the main chunk.
 
-What would prove it real: a production bundle comparison showing large route/page modules in the initial chunk and a meaningful main-chunk reduction after route-level `React.lazy`.
+Proof captured in the second easy-wins pass: `pnpm build:web` emitted route-specific chunks and reduced the entry chunk from the original 2,025.10 KB baseline to 509.53 KB.
 
 What would make it harmless: if Rollup already tree-splits most page code despite eager imports, or if the main chunk is dominated by shared editor/collab dependencies that every initial route truly needs.
 
@@ -361,7 +377,7 @@ Possible mediation: apply `VISIBILITY_FILTER_SQL` to every joined document retur
 
 Severity: Medium
 
-Status: Resolved by the easy-wins pass. The generated OpenAPI paths are now `/documents/{id}/comments` and `/comments/{id}`, with no `/api/`-prefixed paths.
+Status: Resolved by the easy-wins pass; retained only as baseline audit history. The generated OpenAPI paths are now `/documents/{id}/comments` and `/comments/{id}`, with no `/api/`-prefixed paths.
 
 `api/src/openapi/registry.ts` declares the OpenAPI server URL as `/api`, and most registered paths are unprefixed, such as `/documents`, `/issues`, `/auth/login`, and `/documents/{id}/backlinks`. `api/src/openapi/schemas/comments.ts` is the exception: it registers `/api/documents/{id}/comments` and `/api/comments/{id}`. The actual Express routes are mounted in `api/src/app.ts` at `/api/documents` and `/api/comments`, so the runtime URLs are `/api/documents/:id/comments` and `/api/comments/:id`. A client honoring the OpenAPI server URL plus the comment paths would call `/api/api/documents/{id}/comments` and `/api/api/comments/{id}`.
 

@@ -8,8 +8,31 @@ import { logAuditEvent } from '../services/audit.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
+type ProgramProperties = {
+  color?: string;
+  emoji?: string | null;
+  owner_id?: string | null;
+  accountable_id?: string | null;
+  consulted_ids?: string[];
+  informed_ids?: string[];
+};
+
+type ProgramRow = {
+  id: string;
+  title: string;
+  properties: ProgramProperties | null;
+  archived_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  issue_count?: string | number | null;
+  sprint_count?: string | number | null;
+  owner_id?: string | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
+};
+
 // Helper to extract program from row
-function extractProgramFromRow(row: any) {
+function extractProgramFromRow(row: ProgramRow) {
   const props = row.properties || {};
   return {
     id: row.id,
@@ -91,7 +114,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     query += ` ORDER BY d.created_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<ProgramRow>(query, params);
     res.json(result.rows.map(extractProgramFromRow));
   } catch (err) {
     console.error('List programs error:', err);
@@ -110,7 +133,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // owner_id in properties takes precedence over created_by
-    const result = await pool.query(
+    const result = await pool.query<ProgramRow>(
       `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
               COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
               u.name as owner_name, u.email as owner_email,
@@ -132,7 +155,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(extractProgramFromRow(result.rows[0]));
+    res.json(extractProgramFromRow(result.rows[0]!));
   } catch (err) {
     console.error('Get program error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -162,7 +185,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       properties.emoji = emoji;
     }
 
-    const result = await pool.query(
+    const result = await pool.query<ProgramRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'program', $2, $3, $4)
        RETURNING id, title, properties, archived_at, created_at, updated_at`,
@@ -177,7 +200,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const user = userResult.rows[0];
 
     res.status(201).json({
-      ...extractProgramFromRow(result.rows[0]),
+      ...extractProgramFromRow(result.rows[0]!),
       issue_count: 0,
       sprint_count: 0,
       owner: user ? {

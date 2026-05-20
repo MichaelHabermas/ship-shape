@@ -3,12 +3,21 @@
  * Handles file attachments (PDF, DOCX, etc.) as embedded cards with download links
  * Supports drag-and-drop and paste for non-image files
  */
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Editor, Node, mergeAttributes, type CommandProps } from '@tiptap/core';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
+import { ReactNodeViewRenderer, NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react';
 import { uploadFile, isAllowedFileType, getMimeTypeFromExtension, isImageFile, MAX_FILE_SIZE, MAX_FILE_SIZE_DISPLAY } from '@/services/upload';
 import { registerUpload, updateUploadProgress, unregisterUpload } from '@/services/uploadTracker';
 import { useState } from 'react';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fileAttachment: {
+      setFileAttachment: (options: FileAttachmentAttrs) => ReturnType;
+    };
+  }
+}
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -43,8 +52,16 @@ function formatFileSize(bytes: number): string {
 }
 
 // React component for rendering file attachment
-function FileAttachmentComponent({ node }: { node: any }) {
-  const { filename, url, size, mimeType, uploading } = node.attrs;
+interface FileAttachmentAttrs {
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  uploading: boolean;
+}
+
+function FileAttachmentComponent({ node }: ReactNodeViewProps) {
+  const { filename, url, size, mimeType, uploading } = node.attrs as FileAttachmentAttrs;
   const [uploadProgress, setUploadProgress] = useState(uploading ? 0 : 100);
 
   const fileIcon = getFileIcon(mimeType);
@@ -130,13 +147,13 @@ export const FileAttachmentExtension = Node.create({
   addCommands() {
     return {
       setFileAttachment:
-        (options: { filename: string; url: string; size: number; mimeType: string }) =>
-        ({ commands }: any) =>
+        (options: FileAttachmentAttrs) =>
+        ({ commands }: CommandProps) =>
           commands.insertContent({
             type: this.name,
             attrs: options,
           }),
-    } as any;
+    };
   },
 
   addProseMirrorPlugins() {
@@ -200,7 +217,7 @@ export const FileAttachmentExtension = Node.create({
  * @param file - File to upload
  * @param signal - Optional AbortSignal for cancelling uploads on navigation/cleanup
  */
-async function handleFileUpload(editor: any, file: File, signal?: AbortSignal) {
+async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal) {
   // Check if already aborted
   if (signal?.aborted) {
     return;
@@ -258,7 +275,7 @@ async function handleFileUpload(editor: any, file: File, signal?: AbortSignal) {
     const { state, view } = editor;
     let attachmentPos: number | null = null;
 
-    state.doc.descendants((node: any, nodePos: number) => {
+    state.doc.descendants((node: ProseMirrorNode, nodePos: number) => {
       if (
         node.type.name === 'fileAttachment' &&
         node.attrs.filename === file.name &&
@@ -306,7 +323,7 @@ async function handleFileUpload(editor: any, file: File, signal?: AbortSignal) {
     const { state, view } = editor;
     let attachmentPos: number | null = null;
 
-    state.doc.descendants((node: any, nodePos: number) => {
+    state.doc.descendants((node: ProseMirrorNode, nodePos: number) => {
       if (
         node.type.name === 'fileAttachment' &&
         node.attrs.filename === file.name &&
@@ -330,7 +347,7 @@ async function handleFileUpload(editor: any, file: File, signal?: AbortSignal) {
  * @param editor - TipTap editor instance
  * @param signal - Optional AbortSignal for cancelling uploads on navigation/cleanup
  */
-export function triggerFileUpload(editor: any, signal?: AbortSignal) {
+export function triggerFileUpload(editor: Editor, signal?: AbortSignal) {
   // Check if already aborted
   if (signal?.aborted) {
     return;

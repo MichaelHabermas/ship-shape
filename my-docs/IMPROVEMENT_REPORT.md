@@ -6,16 +6,27 @@
 
 This pass captured quick, safe improvements from the audit work: contract drift fixes, repo/build hygiene, production bundle splitting, accessibility fixes, narrow type-safety cleanup, API test safety, CSRF JSON handling, comments visibility checks, and migration-runner error handling. The intentionally deferred items are still listed near the end so this report remains the current ledger for this work batch, not a final submission checklist.
 
+## Second Easy-Wins Pass Summary
+
+This pass harvested the next low-risk items from the audit ledger: typed route-level PostgreSQL row boundaries, removed easy editor/ProseMirror `any` usage, converted major route pages to lazy chunks, and reconciled stale discovery/doc status. The week route typing keeps canonical week properties distinct from legacy plan/review fields already read and written by existing endpoints, so the source-of-truth model is not widened by the type cleanup. It intentionally did not take on broad auth/request typing, security authorization findings, database performance work, or flaky-test repair.
+
+| Area | Target | Latest Result | Evidence |
+|------|--------|---------------|----------|
+| Type safety | Remove real `any` usage at API/Web boundaries | AST `any` count is now 216 total / 32 production | `pnpm type-check`, AST counter |
+| Bundle splitting | Reduce initial entry chunk via route-level lazy loading | Entry chunk is now `assets/index-CQekVCcO.js` at 509.53 KB; 295 JS/CSS chunks emitted | `pnpm build:web`, dist asset byte count |
+| Verification | Preserve build/type correctness | Type-check, API build, and web build pass | `pnpm type-check`, `pnpm build:api`, `pnpm build:web` |
+| Test state | Record existing blockers honestly | API unit suite passes; web unit suite still has the same 13 known failures | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test` |
+
 ---
 
 ## Context
 
 - Improvement date/time: 2026-05-20 local
-- Code state: easy-wins implementation pass, committed in current checkout
+- Code state: easy-wins implementation pass, modified in current checkout
 - Environment: local pnpm workspace
-- Database: `ship_test_audit` for API unit verification; `ship_dev`/dev server for browser checks
+- Database: `ship_test_audit` for API unit verification; disposable `ship_test_check_20260520` was also used while validating local PostgreSQL recovery; `ship_dev`/dev server for browser checks
 - Runtime: API `http://localhost:3001`, web `http://localhost:5175`
-- Evidence: `pnpm type-check`, `pnpm build:api`, `pnpm build:web`, API unit suite, axe scan, OpenAPI path inspection, ESLint JSON count
+- Evidence: `pnpm type-check`, `pnpm build:api`, `pnpm build:web`, AST type-safety count, production bundle output, web unit suite attempt, API unit suite run
 
 ---
 
@@ -33,10 +44,10 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total `any` types | 278 total / 94 production | 267 total / 83 production | 2026-05-20 | -11 total / -11 production | 25% total violation reduction | |
-| Total type assertions (`as`) | 713 total / 504 production | | | | Meaningful reduction | |
-| Total non-null assertions (`!`) | 348 total / 325 production | | | | Meaningful reduction | |
-| Total `@ts-ignore` / `@ts-expect-error` | 1 total / 0 production | | | | No production suppressions | |
+| Total `any` types | 278 total / 94 production | 216 total / 32 production | 2026-05-20 | -62 total / -62 production | 25% total violation reduction | |
+| Total type assertions (`as`) | 713 total / 504 production | 638 total / 433 production | 2026-05-20 | -75 total / -71 production | Meaningful reduction | |
+| Total non-null assertions (`!`) | 348 total / 325 production | 348 total / 325 production | 2026-05-20 | No change | Meaningful reduction | |
+| Total `@ts-ignore` / `@ts-expect-error` | 1 total / 0 production | 1 total / 0 production | 2026-05-20 | No change | No production suppressions | |
 | Top 5 violation-dense files | `api/src/routes/weeks.ts` (85), `api/src/routes/projects.ts` (51), `api/src/routes/issues.ts` (49), `web/src/pages/UnifiedDocumentPage.tsx` (37), `api/src/db/seed.ts` (35) | | | | Highest-risk reductions must be real narrowing | |
 
 ### What Changed
@@ -44,13 +55,17 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 - Ran ESLint autofix for redundant assertions.
 - Typed upload service JSON response boundaries in `web/src/services/upload.ts`.
 - Changed narrow dynamic SQL parameter arrays from `any[]` to `unknown[]` where type-check accepted it cleanly. This is cleanup, not counted as the main meaningful type-safety win.
+- Second pass typed local PostgreSQL row boundaries in route files, replaced the remaining `states as any` SQL parameter cast, and typed editor/ProseMirror helper callbacks with library types.
+- Week/sprint route row typing now separates canonical week properties (`sprint_number`, `owner_id`) from legacy route fields that existing plan/review endpoints still read or write.
 
 ### Evidence
 
 - `pnpm type-check`: pass.
-- AST `any` count after pass: 267 total / 83 production.
-- ESLint JSON count after pass: 6,440 total warnings; 4,952 production warnings.
-- Production `any` count by official AST counter: 94 -> 83.
+- AST `any` count after second pass: 216 total / 32 production.
+- AST `as` count after second pass: 638 total / 433 production.
+- AST non-null assertion count after second pass: 348 total / 325 production.
+- ESLint JSON was not rerun in the second pass; AST counts remain the official measurement.
+- Production `any` count by official AST counter: 94 -> 32.
 
 ---
 
@@ -68,9 +83,10 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total production bundle size | 2,262.65 KB JS/CSS | 2,262.44 KB JS/CSS | 2026-05-20 | -0.21 KB | 15% reduction in total production bundle size | |
-| Largest chunk | `assets/index-C2vAyoQ1.js` (2,025.10 KB) | `assets/index-Bru9KqDv.js` (1,802.32 KB) | 2026-05-20 | -222.78 KB / -11.0% | 20% reduction in initial page load bundle if using code splitting target | |
-| Number of chunks | 262 JS/CSS chunks | | | | Before/after bundle analysis output | |
+| Total production bundle size | 2,262.65 KB JS/CSS | 2,271.41 KB JS/CSS | 2026-05-20 | +8.76 KB | 15% reduction in total production bundle size | |
+| Largest chunk | `assets/index-C2vAyoQ1.js` (2,025.10 KB) | `assets/PropertyRow-CjRuJvKg.js` (836.63 KB) | 2026-05-20 | -1,188.47 KB / -58.7% largest-chunk reduction | 20% reduction in initial page load bundle if using code splitting target | |
+| Initial entry chunk | `assets/index-C2vAyoQ1.js` (2,025.10 KB) | `assets/index-CQekVCcO.js` (509.53 KB) | 2026-05-20 | -1,515.57 KB / -74.8% | 20% reduction in initial page load bundle | |
+| Number of chunks | 262 JS/CSS chunks | 295 JS/CSS chunks | 2026-05-20 | +33 chunks | Before/after bundle analysis output | |
 | Top 3 largest dependencies | `emoji-picker-react` (399.59 KB), `highlight.js` (377.92 KB), `yjs` (264.92 KB) | | | | No functionality removal | |
 | Unused dependencies identified | `@tanstack/query-sync-storage-persister` | | | | Remove only if still confirmed unused | |
 
@@ -79,12 +95,14 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 - Dev-only lazy import for React Query Devtools.
 - Lazy-loaded `emoji-picker-react` behind the emoji picker UI.
 - Removed unused `@tanstack/query-sync-storage-persister` dependency after confirming no source/package imports.
+- Second pass lazy-loaded major leaf route pages from `web/src/main.tsx` while keeping providers, guards, redirects, and `AppLayout` eager.
 
 ### Evidence
 
 - `pnpm build:web`: pass.
-- Largest production entry chunk: 2,025.10 KB -> 1,802.32 KB.
+- Largest production entry chunk: 2,025.10 KB -> 509.53 KB.
 - New emoji picker async chunk: 271.11 KB.
+- Route-level lazy chunks now include `UnifiedDocumentPage-CSRnSbAM.js` (133.22 KB), `ReviewsPage-FqsUksAC.js` (28.39 KB), `TeamMode-lSiJNvGc.js` (21.76 KB), and other route-specific page chunks.
 - `rg "ReactQueryDevtools|Open Tanstack query devtools" web/dist/assets`: no production bundle matches.
 
 ---
@@ -159,8 +177,8 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
 | Total tests | 1,471 executable tests across 115 files | | | | Add 3 meaningful tests or fix 3 flaky tests | |
-| API unit tests | 451 pass / 0 fail / 0 flaky | | | | Existing tests still pass | |
-| Web unit tests | 138 pass / 13 fail / 0 flaky | | | | Existing tests still pass | |
+| API unit tests | 451 pass / 0 fail / 0 flaky | 451 pass / 0 fail / 0 flaky | 2026-05-20 | No regression | Existing tests still pass | |
+| Web unit tests | 138 pass / 13 fail / 0 flaky | 138 pass / 13 fail | 2026-05-20 | No change from known failing baseline | Existing tests still pass | |
 | E2E tests | 869 listed / not executed | | | | Meaningful tests catch real regressions | |
 | Suite runtime | API unit: 10.76s; Web unit: 1.05s | | | | Document root cause if fixing flaky tests | |
 | Code coverage | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured | | | | Risk-mitigating tests, not page-load assertions | |
@@ -173,6 +191,9 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 - `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 451 tests passed.
 - Live-fire verification against a real dev DB was not run; the reviewer blocked it as unsafe because a broken guard could wipe real dev data.
+- Second-pass API verification initially failed while local PostgreSQL was down. After starting the local PostgreSQL container, `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed with 28 files and 451 tests.
+- Migration command caveat: rerunning migrations against existing `ship_test_audit` hit stale migration bookkeeping at `010_oauth_state.sql`; a fresh disposable database also showed the schema/migration duplicate `oauth_state` edge, so this remains a migration-runner cleanup item separate from API unit correctness.
+- `pnpm --filter @ship/web test`: failed with the existing 13 web unit failures from `document-tabs`, `DetailsExtension`, and one `useSessionTimeout` expectation.
 
 ---
 

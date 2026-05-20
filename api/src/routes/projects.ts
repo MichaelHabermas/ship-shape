@@ -14,8 +14,125 @@ const router: RouterType = Router();
 // Inferred project status type
 type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
 
+type ProjectProperties = {
+  impact?: number | null;
+  confidence?: number | null;
+  ease?: number | null;
+  color?: string;
+  emoji?: string | null;
+  is_complete?: boolean | null;
+  missing_fields?: string[];
+  owner_id?: string | null;
+  accountable_id?: string | null;
+  consulted_ids?: string[];
+  informed_ids?: string[];
+  plan?: string | null;
+  plan_validated?: boolean | null;
+  monetary_impact_expected?: string | null;
+  monetary_impact_actual?: string | null;
+  success_criteria?: string[];
+  next_steps?: string | null;
+  plan_approval?: unknown;
+  retro_approval?: unknown;
+  has_retro?: boolean;
+  target_date?: string | null;
+  has_design_review?: boolean | null;
+  design_review_notes?: string | null;
+};
+
+type ProjectRow = {
+  id: string;
+  title: string;
+  content?: unknown;
+  properties: ProjectProperties | null;
+  program_id?: string | null;
+  archived_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  owner_id?: string | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
+  sprint_count?: string | number | null;
+  issue_count?: string | number | null;
+  inferred_status?: InferredProjectStatus | null;
+  converted_to_id?: string | null;
+  converted_from_id?: string | null;
+};
+
+type CanonicalWeekProperties = {
+  sprint_number?: number;
+  owner_id?: string | null;
+};
+
+type ProjectSprintProperties = CanonicalWeekProperties & {
+  status?: string;
+  plan?: string | null;
+  success_criteria?: string[] | null;
+  confidence?: number | null;
+};
+
+type ProjectSprintRow = {
+  id: string;
+  title: string;
+  properties: ProjectSprintProperties | null;
+  owner_id?: string | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
+  program_id?: string | null;
+  program_name?: string | null;
+  program_prefix?: string | null;
+  workspace_sprint_start_date?: Date | string | null;
+  project_id?: string | null;
+  project_name?: string | null;
+  issue_count?: string | number | null;
+  completed_count?: string | number | null;
+  started_count?: string | number | null;
+};
+
+type ProjectIssueRow = {
+  id: string;
+  title: string;
+  properties: {
+    state?: string;
+    priority?: string;
+    assignee_id?: string | null;
+  } | null;
+  ticket_number: number | null;
+  created_at: Date;
+  updated_at: Date;
+  started_at: Date | null;
+  completed_at: Date | null;
+  cancelled_at: Date | null;
+  assignee_name: string | null;
+};
+
+type TipTapJsonContent = {
+  type: string;
+  attrs?: Record<string, unknown>;
+  text?: string;
+  content?: TipTapJsonContent[];
+};
+
+type TipTapJsonDoc = TipTapJsonContent & {
+  content: TipTapJsonContent[];
+};
+
+type ProjectRetroProjectRow = Pick<ProjectRow, 'id' | 'title' | 'content' | 'properties'>;
+
+type ProjectRetroSprintRow = {
+  id: string;
+  title: string;
+  sprint_number: string | number | null;
+};
+
+type ProjectRetroIssueRow = {
+  id: string;
+  title: string;
+  state: string | null;
+};
+
 // Helper to extract project from row with computed ice_score
-function extractProjectFromRow(row: any) {
+function extractProjectFromRow(row: ProjectRow) {
   const props = row.properties || {};
   // ICE values can be null (not yet set) - don't default to 3
   const impact = props.impact !== undefined ? props.impact : null;
@@ -46,8 +163,8 @@ function extractProjectFromRow(row: any) {
       email: row.owner_email,
     } : null,
     // Counts
-    sprint_count: parseInt(row.sprint_count) || 0,
-    issue_count: parseInt(row.issue_count) || 0,
+    sprint_count: parseInt(String(row.sprint_count || 0), 10) || 0,
+    issue_count: parseInt(String(row.issue_count || 0), 10) || 0,
     // Completeness flags
     is_complete: props.is_complete ?? null,
     missing_fields: props.missing_fields ?? [],
@@ -120,16 +237,20 @@ const projectRetroSchema = z.object({
 });
 
 // Helper to generate pre-filled retro content for a project
-async function generatePrefilledRetroContent(projectData: any, sprints: any[], issues: any[]) {
+async function generatePrefilledRetroContent(
+  projectData: ProjectRetroProjectRow,
+  sprints: ProjectRetroSprintRow[],
+  issues: ProjectRetroIssueRow[]
+) {
   const props = projectData.properties || {};
 
   // Categorize issues by state
   const completedIssues = issues.filter(i => i.state === 'done');
   const cancelledIssues = issues.filter(i => i.state === 'cancelled');
-  const activeIssues = issues.filter(i => !['done', 'cancelled'].includes(i.state));
+  const activeIssues = issues.filter(i => !['done', 'cancelled'].includes(i.state ?? ''));
 
   // Build TipTap content
-  const content: any = {
+  const content: TipTapJsonDoc = {
     type: 'doc',
     content: [
       {
@@ -147,9 +268,9 @@ async function generatePrefilledRetroContent(projectData: any, sprints: any[], i
   };
 
   // Add ICE Score section
-  const impact = props.impact;
-  const confidence = props.confidence;
-  const ease = props.ease;
+  const impact = props.impact ?? null;
+  const confidence = props.confidence ?? null;
+  const ease = props.ease ?? null;
   const iceScore = (impact !== null && confidence !== null && ease !== null)
     ? impact * confidence * ease
     : null;
@@ -408,7 +529,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     query += ` ORDER BY ${orderByClause}`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<ProjectRow>(query, params);
     res.json(result.rows.map(extractProjectFromRow));
   } catch (err) {
     console.error('List projects error:', err);
@@ -461,7 +582,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       END
     `;
 
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
               d.converted_to_id, d.converted_from_id,
               (d.properties->>'owner_id')::uuid as owner_id,
@@ -486,7 +607,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const row = result.rows[0];
+    const row = result.rows[0]!;
 
     // Check if project was converted - redirect to new document
     if (row.converted_to_id) {
@@ -551,7 +672,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     properties.is_complete = completeness.isComplete;
     properties.missing_fields = completeness.missingFields;
 
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'project', $2, $3, $4)
        RETURNING id, title, properties, archived_at, created_at, updated_at`,
@@ -564,7 +685,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'program')
          ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-        [result.rows[0].id, program_id]
+        [result.rows[0]!.id, program_id]
       );
     }
 
@@ -586,7 +707,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     res.status(201).json({
-      ...extractProjectFromRow({ ...result.rows[0], program_id: program_id || null, inferred_status: 'backlog' }),
+      ...extractProjectFromRow({ ...result.rows[0]!, program_id: program_id || null, inferred_status: 'backlog' }),
       sprint_count: 0,
       issue_count: 0,
       owner,
@@ -825,7 +946,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       END
     `;
 
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id, d.archived_at, d.created_at, d.updated_at,
               d.converted_from_id,
               (d.properties->>'owner_id')::uuid as owner_id,
@@ -844,7 +965,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       [id]
     );
 
-    res.json(extractProjectFromRow(result.rows[0]));
+    res.json(extractProjectFromRow(result.rows[0]!));
   } catch (err) {
     console.error('Update project error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -904,26 +1025,26 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get project
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<ProjectRetroProjectRow>(
       `SELECT id, title, content, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
       [id, workspaceId, userId, isAdmin]
     );
 
-    if (projectResult.rows.length === 0) {
+    const projectData = projectResult.rows.at(0);
+    if (!projectData) {
       res.status(404).json({ error: 'Project not found' });
       return;
     }
 
-    const projectData = projectResult.rows[0];
     const props = projectData.properties || {};
 
     // Check if retro has been filled (has plan_validated set)
     const hasRetro = props.plan_validated !== undefined && props.plan_validated !== null;
 
     // Get sprints for this project via junction table
-    const sprintsResult = await pool.query(
+    const sprintsResult = await pool.query<ProjectRetroSprintRow>(
       `SELECT d.id, d.title, d.properties->>'sprint_number' as sprint_number
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
@@ -933,7 +1054,7 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
     );
 
     // Get issues for this project via junction table
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<ProjectRetroIssueRow>(
       `SELECT d.id, d.title, d.properties->>'state' as state
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id
@@ -956,9 +1077,9 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
         weeks: sprintsResult.rows,
         issues_summary: {
           total: issuesResult.rows.length,
-          completed: issuesResult.rows.filter((i: any) => i.state === 'done').length,
-          cancelled: issuesResult.rows.filter((i: any) => i.state === 'cancelled').length,
-          active: issuesResult.rows.filter((i: any) => !['done', 'cancelled'].includes(i.state)).length,
+          completed: issuesResult.rows.filter(i => i.state === 'done').length,
+          cancelled: issuesResult.rows.filter(i => i.state === 'cancelled').length,
+          active: issuesResult.rows.filter(i => !['done', 'cancelled'].includes(i.state ?? '')).length,
         },
       });
     } else {
@@ -980,9 +1101,9 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
         weeks: sprintsResult.rows,
         issues_summary: {
           total: issuesResult.rows.length,
-          completed: issuesResult.rows.filter((i: any) => i.state === 'done').length,
-          cancelled: issuesResult.rows.filter((i: any) => i.state === 'cancelled').length,
-          active: issuesResult.rows.filter((i: any) => !['done', 'cancelled'].includes(i.state)).length,
+          completed: issuesResult.rows.filter(i => i.state === 'done').length,
+          cancelled: issuesResult.rows.filter(i => i.state === 'cancelled').length,
+          active: issuesResult.rows.filter(i => !['done', 'cancelled'].includes(i.state ?? '')).length,
         },
       });
     }
@@ -1063,12 +1184,13 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Re-query to get updated data
-    const result = await pool.query(
+    const result = await pool.query<ProjectRow>(
       `SELECT id, title, content, properties FROM documents WHERE id = $1`,
       [id]
     );
 
-    const updatedProps = result.rows[0].properties || {};
+    const updatedRow = result.rows[0]!;
+    const updatedProps = updatedRow.properties || {};
     res.status(201).json({
       is_draft: false,
       plan_validated: updatedProps.plan_validated,
@@ -1076,7 +1198,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       monetary_impact_actual: updatedProps.monetary_impact_actual || null,
       success_criteria: updatedProps.success_criteria || [],
       next_steps: updatedProps.next_steps || null,
-      content: result.rows[0].content || {},
+      content: updatedRow.content || {},
     });
   } catch (err) {
     console.error('Create project retro error:', err);
@@ -1099,7 +1221,7 @@ const createProjectSprintSchema = z.object({
 });
 
 // Helper to extract sprint from row (matches sprints.ts pattern)
-function extractSprintFromRow(row: any) {
+function extractSprintFromRow(row: ProjectSprintRow) {
   const props = row.properties || {};
   return {
     id: row.id,
@@ -1117,9 +1239,9 @@ function extractSprintFromRow(row: any) {
     program_name: row.program_name,
     program_prefix: row.program_prefix,
     workspace_sprint_start_date: row.workspace_sprint_start_date,
-    issue_count: parseInt(row.issue_count) || 0,
-    completed_count: parseInt(row.completed_count) || 0,
-    started_count: parseInt(row.started_count) || 0,
+    issue_count: parseInt(String(row.issue_count || 0), 10) || 0,
+    completed_count: parseInt(String(row.completed_count || 0), 10) || 0,
+    started_count: parseInt(String(row.started_count || 0), 10) || 0,
     plan: props.plan || null,
     success_criteria: props.success_criteria || null,
     confidence: typeof props.confidence === 'number' ? props.confidence : null,
@@ -1150,7 +1272,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Get issues associated with this project via junction table
-    const result = await pool.query(
+    const result = await pool.query<ProjectIssueRow>(
       `SELECT d.id, d.title, d.properties, d.ticket_number,
               d.created_at, d.updated_at,
               d.started_at, d.completed_at, d.cancelled_at,

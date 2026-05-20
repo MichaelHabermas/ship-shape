@@ -16,6 +16,40 @@ import { broadcastToUser } from '../collaboration/index.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
+type QueryParam = string | boolean | null | string[];
+
+type IssueProperties = {
+  state?: string;
+  priority?: string;
+  assignee_id?: string | null;
+  estimate?: number | null;
+  source?: string;
+  rejection_reason?: string | null;
+  due_date?: string | null;
+  is_system_generated?: boolean;
+  accountability_target_id?: string | null;
+  accountability_type?: string | null;
+};
+
+type IssueRow = {
+  id: string;
+  title: string;
+  properties: IssueProperties | null;
+  ticket_number: number | null;
+  content: unknown;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string;
+  started_at?: Date | null;
+  completed_at?: Date | null;
+  cancelled_at?: Date | null;
+  reopened_at?: Date | null;
+  converted_from_id?: string | null;
+  assignee_name?: string | null;
+  assignee_archived?: boolean | null;
+  created_by_name?: string | null;
+};
+
 // BelongsTo entry schema for associations
 const belongsToEntrySchema = z.object({
   id: z.string().uuid(),
@@ -79,7 +113,7 @@ const rejectIssueSchema = z.object({
 });
 
 // Helper to extract issue properties from row (without belongs_to - added separately)
-function extractIssueFromRow(row: any) {
+function extractIssueFromRow(row: IssueRow) {
   const props = row.properties || {};
   return {
     id: row.id,
@@ -137,7 +171,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       WHERE d.workspace_id = $1 AND d.document_type = 'issue'
         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
     `;
-    const params: (string | boolean | null)[] = [workspaceId, userId, isAdmin];
+    const params: QueryParam[] = [workspaceId, userId, isAdmin];
 
     // Exclude archived and deleted issues by default
     query += ` AND d.archived_at IS NULL AND d.deleted_at IS NULL`;
@@ -152,7 +186,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     if (state) {
       const states = (state as string).split(',');
       query += ` AND d.properties->>'state' = ANY($${params.length + 1})`;
-      params.push(states as any);
+      params.push(states);
     }
 
     if (priority) {
@@ -220,7 +254,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       END,
       d.updated_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<IssueRow>(query, params);
 
     // Extract issues and batch-fetch associations to avoid N+1 queries
     const issueIds = result.rows.map(row => row.id);
