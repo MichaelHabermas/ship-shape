@@ -6,7 +6,7 @@
 
 ### Name
 
-The unified document model moves complexity to type boundaries
+Migration runner can report success while leaving most migrations unapplied
 
 ### Severity
 
@@ -14,21 +14,21 @@ High
 
 ### Where Found
 
-- `api/src/db/schema.sql`: the `documents` table is the unified content table, with `document_type`, shared editor content, Yjs state, parent hierarchy, and lifecycle fields.
-- `api/src/db/schema.sql`: the `properties JSONB` column stores type-specific fields such as issue state, project metadata, sprint dates, and person profile data.
-- `my-docs/AUDIT_REPORT.md`: Category 1 identified `api/src/routes/weeks.ts`, `api/src/routes/projects.ts`, and `api/src/routes/issues.ts` as the densest production type-safety files.
+- `api/src/db/migrate.ts`: schema setup and all numbered migrations are wrapped in one broad `try`.
+- `api/src/db/migrate.ts`: any thrown error whose message includes `already exists` is treated as a benign bootstrap condition.
+- Runtime proof: a disposable database migration run exited 0 after applying only migrations through `009_audit_logs_nullable_actor`, even though the repo has 42 migration files.
 
 ### What It Does And Why It Matters
 
-Ship uses a flexible Notion-style model where wiki pages, issues, programs, projects, sprints, people, weekly plans, retros, standups, and reviews all live in the same `documents` table. That design gives the product a clean conceptual spine: content types differ mostly by discriminator and properties, not by separate table families.
+The migration runner's friendly "schema already exists" recovery is scoped too broadly. It is meant to tolerate idempotent schema bootstrap errors, but it also catches failures from numbered migrations. If a migration throws an `already exists` error, the runner logs "Database schema already exists, continuing..." and exits successfully instead of failing deployment.
 
-The tradeoff is that the compiler loses precision at the database boundary. Once type-specific fields move into `properties JSONB`, route code has to recover meaning from a generic row. The audit showed the natural failure mode: `any`, `as`, non-null assertions, and unsafe row access concentrate in route files that turn flexible documents into concrete API responses.
+This is the strongest fake-green finding because it sits exactly where maintainers most need truth. A deploy or setup can look migrated while dozens of later migrations never ran. That can leave the application on a silently partial schema and make downstream errors look like product bugs instead of failed infrastructure state.
 
-This is not just a cleanup problem. It is the central architecture tradeoff of the app. A flexible content model needs explicit runtime narrowing, typed row mappers, and route-boundary validation, otherwise the flexibility becomes invisible risk.
+The finding is also assessment-shaped: the code looks intentionally tolerant and helpful, and the dangerous behavior only appears when a real migration failure happens inside the broad catch.
 
 ### Future Application
 
-On future projects, a polymorphic or JSON-heavy model should come with typed boundary helpers from the beginning. If the database shape is intentionally flexible, the application layer needs intentionally strict parsers and mappers. Otherwise, the schema looks simple while complexity leaks into every endpoint.
+Migration runners should fail closed after bootstrap. If initial schema creation needs special handling, isolate that handling from numbered migrations. A high-value regression test is a disposable database with one migration that deliberately raises an `already exists` error; the runner must exit nonzero and leave evidence that migration state is incomplete.
 
 ---
 
@@ -36,7 +36,7 @@ On future projects, a polymorphic or JSON-heavy model should come with typed bou
 
 ### Name
 
-API test setup can erase real data unless the database is disposable
+Collaboration room names can fork one database document into multiple live Yjs states
 
 ### Severity
 
@@ -44,21 +44,22 @@ High
 
 ### Where Found
 
-- `api/src/test/setup.ts`: the API test setup runs `TRUNCATE TABLE ... CASCADE` across workspaces, users, documents, audit logs, associations, sessions, files, comments, and related tables.
-- `package.json`: root `pnpm test` runs the API test suite by default.
-- `my-docs/MEMORY.md`: the sidecar `ship_test_audit` database is explicitly reserved for destructive API test and coverage benchmarking.
+- `api/src/collaboration/index.ts`: live Yjs documents and awareness are keyed by full room name, but persistence strips the prefix and writes by UUID.
+- `web/src/components/Editor.tsx`: clients connect to prefixed rooms such as `issue:<id>` and persist browser cache by that prefix.
+- `docs/claude-reference/modules/collaboration.md`: documents `/collaboration/:docType::docId` as meaningful.
+- Runtime proof: the same issue row was opened through both `issue:<uuid>` and `wiki:<uuid>` rooms; both rooms wrote different Yjs content back to the same `documents.id`.
 
 ### What It Does And Why It Matters
 
-The API test harness clears core tables before tests. That can be reasonable for integration tests, but only if the database target is guaranteed to be disposable. In this repo, the destructive setup is close to normal developer commands: root `pnpm test` points at API tests, and local development uses PostgreSQL directly rather than an always-isolated container by default.
+The collaboration server treats the full room name as the live realtime identity, but treats only the UUID portion as the database identity. That means `issue:<id>`, `wiki:<id>`, `doc:<id>`, or any other accepted prefix can become separate in-memory Yjs documents that all persist into the same database row.
 
-The hazard is not theoretical. If `DATABASE_URL` points at the wrong local database, the setup can wipe real development data. That includes documents, users, workspaces, sessions, comments, files, and audit history.
+This can split collaborators for one document into different realtime rooms and make the last persisting room overwrite or merge content from another room. It is especially weird because the unified document model makes the prefix feel cosmetic, while the realtime cache makes it operationally significant.
 
-This matters because test infrastructure is trusted infrastructure. A test command should never require the developer to remember which database is safe; the harness should prove that before destructive cleanup runs.
+This is a top-three discovery because it crosses backend auth, document typing, Yjs state, browser IndexedDB cache, conversion behavior, and persistence. It is not a normal route bug. It is a mismatch between two competing definitions of document identity.
 
 ### Future Application
 
-Any destructive test setup should include a hard safety check: database name, environment variable, host, or test-specific marker table. The best version fails closed unless the target clearly identifies itself as disposable.
+Realtime room identity and persistence identity must be the same thing, or the server must reject non-canonical aliases. A strong fix either keys all Yjs state by UUID or validates that the supplied prefix matches the current `documents.document_type` before accepting the socket.
 
 ---
 
@@ -66,35 +67,51 @@ Any destructive test setup should include a hard safety check: database name, en
 
 ### Name
 
-Executable startup scripts were more accurate than setup docs
+Document parent links can cross workspaces and cascade-delete across tenants
 
 ### Severity
 
-Medium
+High
 
 ### Where Found
 
-- `scripts/dev.sh`: creates `api/.env.local` when missing.
-- `scripts/dev.sh`: derives a local database name from the worktree directory and creates the database if needed.
-- `scripts/dev.sh`: runs migrations before seed on fresh databases.
-- `scripts/dev.sh`: finds available API and web ports dynamically and writes `.ports`.
-- `my-docs/Codebase-Orientation-Checklist.md`: records the differences found during orientation.
+- `api/src/routes/documents.ts`: document creation and patch flows validate some association IDs by workspace, but the direct `parent_id` field can represent relationships outside the normal association table.
+- `api/src/db/schema.sql`: `documents.parent_id` is a self-reference with cascading delete behavior.
+- Runtime proof: a document in one workspace could be given a parent from another workspace, and deleting that parent could delete the cross-workspace child through the database cascade.
 
 ### What It Does And Why It Matters
 
-The repo's actual local startup behavior lives in `scripts/dev.sh`. It handles environment creation, database bootstrapping, migration order, seed order, dynamic port selection, and multi-worktree ergonomics.
+The unified document model has two relationship systems: explicit `document_associations`, which routes often validate against workspace boundaries, and the direct `documents.parent_id`, which is easier to overlook. If `parent_id` can point across workspaces, the database-level cascade turns a tiny hierarchy mistake into a tenant-boundary deletion hazard.
 
-That operational truth was more precise than the static setup docs. The docs were not useless, but they lagged behind the automation. For a new engineer, following the README alone could lead to unnecessary Docker assumptions, wrong setup order, or hard-coded port expectations.
+This is interesting because it is not just "forgot auth on a route." It is a structural contradiction: the product treats workspaces as isolation boundaries, but the schema can encode an impossible cross-workspace parent-child state. Once that impossible state exists, the database itself can enforce the wrong blast radius.
 
-This matters because inherited systems often have two forms of documentation: prose and executable workflow. When they disagree, the script usually reveals what the maintainers actually optimized for.
+It belongs in the top three because it is the kind of thing maintainers are glad someone found before production data gets weird. It hides in a boring self-reference, not in obviously sensitive code.
 
 ### Future Application
 
-When orienting in an unfamiliar codebase, inspect the startup scripts early. They reveal assumptions about databases, ports, environment files, package manager versions, and developer workflows that prose docs often miss. Then reconcile docs to match the executable path.
+Enforce same-workspace parentage at every write path and, ideally, with a database trigger or constraint-like guard. Add regression coverage that attempts to create or patch a document with a parent from another workspace and verifies both the API and database reject it.
 
 ---
 
 ## Other Candidates
+
+### Former top discovery: unified document model moves complexity to type boundaries
+
+Severity: High
+
+Ship's Notion-style `documents` table is the right architectural spine, but it pushes type precision into route-boundary code and `properties JSONB` mappers. This remains a good architectural discovery, especially for future recommendations, but it is less surprising than the promoted top three.
+
+### Former top discovery: API test setup can erase real data unless the database is disposable
+
+Severity: High
+
+`api/src/test/setup.ts` truncates core tables before tests, and root `pnpm test` points at API tests. This remains a real safety issue, but it is more conventional than the migration runner's fake-green behavior.
+
+### Former top discovery: executable startup scripts were more accurate than setup docs
+
+Severity: Medium
+
+`scripts/dev.sh` captured the real local workflow more accurately than prose setup docs: env creation, database creation, migration/seed order, and dynamic ports. Useful, but now demoted because it is less novel and less damaging than the current kings.
 
 ### Devtools dependency looks like an assessment trap
 
@@ -128,7 +145,7 @@ These are not finished discoveries yet. They are suspicious because they look li
 - Tracked deployment bundles: git tracks four `deploy-api-ship-api-*.zip` files, each about 577 KB. A spot check shows compiled `api/dist`, `shared/dist`, source maps, SQL migrations, package metadata, and a Dockerfile inside the bundle. No `.env` or obvious secret filename appeared in the quick listing check, so this is currently a repository hygiene and release-artifact concern, not a proven secret leak.
 - Tracked temporary deployment plan: `temporary.deployment-plan.md` was created by us as disposable planning context, with the explicit intention to delete or replace it once the real deployment checklist is settled. This is not a mystery artifact or external defect. Remove this note from `DISCOVERY.md` once the file is deleted.
 - Dash-prefixed progress file: `-progress.txt` is tracked at the repo root. The size is tiny, but the leading dash is a shell footgun for commands that do not use `--` before filenames. This is probably low severity unless it reflects broader artifact hygiene problems.
-- Migration runner catch behavior: `api/src/db/migrate.ts` catches any thrown error whose message includes `already exists` and then logs "Database schema already exists, continuing..." without rethrowing. Because that catch wraps schema setup and numbered migrations together, it needs verification to prove whether a real migration failure could be misclassified and skip later work. The current `schema.sql` is mostly idempotent, so this may be a nothing burger; the catch scope is what looks suspicious.
+- Migration runner catch behavior: promoted to Discovery 1 after runtime verification proved it can exit 0 with most migrations unapplied.
 - Route-level code splitting may be incomplete: `web/src/main.tsx` eagerly imports the major page components and eagerly renders `ReactQueryDevtools`. The app does use `React.lazy` for document tabs in `web/src/lib/document-tabs.tsx`, so this is not "no code splitting." The candidate is narrower: top-level route pages may still be bundled together, which matters because the audit/source docs call out bundle size, missing code splitting, and oversized dependencies.
 - Stubbed RACI fields: `shared/src/types/document.ts` includes `consulted_ids` and `informed_ids` comments marked "stubbed for now." That may be harmless future-proofing, or it may mean shared types advertise a product capability that the implementation does not actually support. Needs a UI/API pass before ranking.
 
