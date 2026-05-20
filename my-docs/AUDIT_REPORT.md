@@ -141,13 +141,13 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Baseline**
 
-| Endpoint | P50 | P95 | P99 |
-| -------- | --- | --- | --- |
-| `GET /api/documents?type=wiki` | 10c: 8 ms; 25c: 8 ms; 50c: 9 ms | 10c: 11 ms; 25c: 10 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 15 ms |
-| `GET /api/issues` | 10c: 10 ms; 25c: 9 ms; 50c: 9 ms | 10c: 13 ms; 25c: 11 ms; 50c: 11 ms | 10c: 19 ms; 25c: 15 ms; 50c: 19 ms |
-| `GET /api/dashboard/my-week` | 10c: 9 ms; 25c: 9 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 13 ms | 10c: 13 ms; 25c: 15 ms; 50c: 14 ms |
-| `GET /api/projects` | 10c: 7 ms; 25c: 8 ms; 50c: 8 ms | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms | 10c: 11 ms; 25c: 11 ms; 50c: 11 ms |
-| `GET /api/programs/:id/issues` | 10c: 7 ms; 25c: 7 ms; 50c: 8 ms | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms | 10c: 10 ms; 25c: 10 ms; 50c: 11 ms |
+| Endpoint                       | P50                              | P95                                | P99                                |
+| ------------------------------ | -------------------------------- | ---------------------------------- | ---------------------------------- |
+| `GET /api/documents?type=wiki` | 10c: 8 ms; 25c: 8 ms; 50c: 9 ms  | 10c: 11 ms; 25c: 10 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 15 ms |
+| `GET /api/issues`              | 10c: 10 ms; 25c: 9 ms; 50c: 9 ms | 10c: 13 ms; 25c: 11 ms; 50c: 11 ms | 10c: 19 ms; 25c: 15 ms; 50c: 19 ms |
+| `GET /api/dashboard/my-week`   | 10c: 9 ms; 25c: 9 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 13 ms | 10c: 13 ms; 25c: 15 ms; 50c: 14 ms |
+| `GET /api/projects`            | 10c: 7 ms; 25c: 8 ms; 50c: 8 ms  | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms    | 10c: 11 ms; 25c: 11 ms; 50c: 11 ms |
+| `GET /api/programs/:id/issues` | 10c: 7 ms; 25c: 7 ms; 50c: 8 ms  | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms    | 10c: 10 ms; 25c: 10 ms; 50c: 11 ms |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
@@ -181,13 +181,13 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 **Baseline**
 
-| User flow         | Total queries | Slowest query (ms) | N+1 detected? |
-| ----------------- | ------------- | ------------------ | ------------- |
-| Load main page    | 41 | 4.00 | No row-level N+1; repeated session/auth checks across 10 API calls |
-| View a document   | 5 | 0.56 | No |
-| List issues       | 5 | 1.00 | No |
-| Load sprint board | 9 | 0.57 | No |
-| Search content    | 0 | N/A | N/A; client-side filter only |
+| User flow         | Total queries | Slowest query (ms) | N+1 detected?                                                      |
+| ----------------- | ------------- | ------------------ | ------------------------------------------------------------------ |
+| Load main page    | 41            | 4.00               | No row-level N+1; repeated session/auth checks across 10 API calls |
+| View a document   | 5             | 0.56               | No                                                                 |
+| List issues       | 5             | 1.00               | No                                                                 |
+| Load sprint board | 9             | 0.57               | No                                                                 |
+| Search content    | 0             | N/A                | N/A; client-side filter only                                       |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
@@ -269,16 +269,16 @@ Restore trust in the test system before expanding it.
 
 **Baseline**
 
-| Metric                                | Value                 |
-| ------------------------------------- | --------------------- |
-| Console errors during normal usage    | 0 across `/docs`, `/issues`, `/my-week`, and `/projects` after clearing Console |
-| Unhandled promise rejections (server) | No process-level `unhandledRejection` / `uncaughtException` handlers found |
-| Network disconnect recovery           | Partial: document page stays rendered; offline mode repeatedly logs `BacklinksPanel.tsx` fetch failures; errors stop after returning to `No throttling`, but no visible offline/reconnected state appears |
-| Missing error boundaries              | Partial boundary only: main `<Outlet />` wrapped; providers, sidebars, command palette, realtime/auth layers not wrapped |
-| Silent failures identified            | Backlinks fetch failures are console-only during disconnect; no visible user feedback |
-| Malformed input handling              | Mixed: login empty/script-like input shows user-facing errors; document API rejects empty/300-char titles with JSON 400; missing CSRF returns HTML 403 stack page |
-| Concurrent same-document editing      | Pass for checked editor-body case: two sessions editing the same temporary document converged to the same body text with both edits present |
-| 3G throttled behavior                 | Partial pass: `/docs` became visible under throttling in 16.4s with no lingering loading text, but no explicit slow-network state appears |
+| Metric                                | Value                                                                                                                                                                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Console errors during normal usage    | 0 across `/docs`, `/issues`, `/my-week`, and `/projects` after clearing Console                                                                                                                                                    |
+| Unhandled promise rejections (server) | No process-level `unhandledRejection` / `uncaughtException` handlers found                                                                                                                                                         |
+| Network disconnect recovery           | Partial: document page stays rendered; offline mode repeatedly logs `BacklinksPanel.tsx` fetch failures; errors stop after returning to `No throttling`, but no visible offline/reconnected state appears                          |
+| Missing error boundaries              | Partial boundary only: main `<Outlet />` wrapped; providers, sidebars, command palette, realtime/auth layers not wrapped                                                                                                           |
+| Silent failures identified            | Backlinks fetch failures are console-only during disconnect; no visible user feedback                                                                                                                                              |
+| Malformed input handling              | Mixed: login empty/script-like input shows user-facing errors; document API rejects empty/300-char titles with JSON 400; missing CSRF returns HTML 403 stack page                                                                  |
+| Concurrent same-document editing      | Pass for checked editor-body case: two sessions editing the same temporary document converged to the same body text with both edits present                                                                                        |
+| 3G throttled behavior                 | Partial pass: `/docs` became visible under throttling in 16.4s with no lingering loading text, but no explicit slow-network state appears                                                                                          |
 | Server logs during edge checks        | CSRF stack traces logged for invalid-CSRF requests; Bedrock `CredentialsProviderError` logged during plan analysis when AWS credentials were unavailable; no `unhandledRejection` / `uncaughtException` process event was observed |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
@@ -320,14 +320,14 @@ Restore trust in the test system before expanding it.
 
 **Baseline**
 
-| Metric                                    | Value                   |
-| ----------------------------------------- | ----------------------- |
-| Lighthouse accessibility score (per page) | `/login`: 98; `/docs`: 91; `/documents/:id`: 91; `/issues`: 100; `/documents/:programId/issues`: 100; `/my-week`: 96; `/projects`: 100 |
-| Total Critical/Serious violations         | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types |
+| Metric                                    | Value                                                                                                                                                                                                          |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lighthouse accessibility score (per page) | `/login`: 98; `/docs`: 91; `/documents/:id`: 91; `/issues`: 100; `/documents/:programId/issues`: 100; `/my-week`: 96; `/projects`: 100                                                                         |
+| Total Critical/Serious violations         | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types                                                                                       |
 | Keyboard navigation completeness          | Partial pass: `/docs` visible focus and expected activation worked for checked controls; `Cmd+K` command palette supported type/search, arrow navigation, Enter activation, and Escape close; no trap observed |
-| Screen reader usability                   | VoiceOver partial pass: page structure clear; document tree understandable despite known ARIA/list issues; controls mostly named; command palette usable |
-| Color contrast failures                   | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes; Lighthouse: `/my-week` only |
-| Missing ARIA labels or roles              | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark |
+| Screen reader usability                   | VoiceOver partial pass: page structure clear; document tree understandable despite known ARIA/list issues; controls mostly named; command palette usable                                                       |
+| Color contrast failures                   | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes; Lighthouse: `/my-week` only                                                                                                                    |
+| Missing ARIA labels or roles              | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark                                                                                                           |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
@@ -569,14 +569,14 @@ NODE
 
 Axe output summary:
 
-| Route | Critical | Serious | Moderate | Notes |
-| --- | ---: | ---: | ---: | --- |
-| `/login` | 0 | 0 | 6 | `landmark-one-main` (1), `region` (5) |
-| `/docs` | 1 | 1 | 0 | `aria-required-children`, `listitem` |
-| `/documents/df41d98b-f009-4230-bd39-3953ca5a6507` | 1 | 1 | 0 | same document tree defects as `/docs` |
-| `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues` | 0 | 0 | 0 | no axe violations |
-| `/my-week` | 0 | 21 | 0 | `color-contrast` |
-| `/projects` | 0 | 16 | 0 | `color-contrast` |
+| Route                                                    | Critical | Serious | Moderate | Notes                                 |
+| -------------------------------------------------------- | -------- | ------- | -------- | ------------------------------------- |
+| `/login`                                                 | 0        | 0       | 6        | `landmark-one-main` (1), `region` (5) |
+| `/docs`                                                  | 1        | 1       | 0        | `aria-required-children`, `listitem`  |
+| `/documents/df41d98b-f009-4230-bd39-3953ca5a6507`        | 1        | 1       | 0        | same document tree defects as `/docs` |
+| `/documents/1cdf945f-f04d-4ee5-ba38-e9f83afb473a/issues` | 0        | 0       | 0        | no axe violations                     |
+| `/my-week`                                               | 0        | 21      | 0        | `color-contrast`                      |
+| `/projects`                                              | 0        | 16      | 0        | `color-contrast`                      |
 
 Representative raw axe details:
 
@@ -617,15 +617,15 @@ NODE
 
 Malformed input results:
 
-| Check | Result |
-| --- | --- |
-| Login submit with empty fields | User-facing alert: `Email address is required` |
-| Login with script-like invalid email and 5,000-character password | User-facing alert: `Invalid email or password` |
-| `POST /api/documents` with empty title and valid CSRF | `400 application/json`, Zod `too_small` title error |
-| `POST /api/documents` with 300-character title and valid CSRF | `400 application/json`, Zod `too_big` title error |
-| `POST /api/documents` with script-like/special-character title and valid CSRF | `201 application/json`; title stored literally |
-| Render script-like title in browser | `window.__shipAuditXss` remained false; title rendered as text |
-| `POST /api/documents` without CSRF | `403 text/html`; response included `ForbiddenError: invalid csrf token` stack trace |
+| Check                                                                         | Result                                                                              |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Login submit with empty fields                                                | User-facing alert: `Email address is required`                                      |
+| Login with script-like invalid email and 5,000-character password             | User-facing alert: `Invalid email or password`                                      |
+| `POST /api/documents` with empty title and valid CSRF                         | `400 application/json`, Zod `too_small` title error                                 |
+| `POST /api/documents` with 300-character title and valid CSRF                 | `400 application/json`, Zod `too_big` title error                                   |
+| `POST /api/documents` with script-like/special-character title and valid CSRF | `201 application/json`; title stored literally                                      |
+| Render script-like title in browser                                           | `window.__shipAuditXss` remained false; title rendered as text                      |
+| `POST /api/documents` without CSRF                                            | `403 text/html`; response included `ForbiddenError: invalid csrf token` stack trace |
 
 Concurrent editing result:
 
@@ -680,12 +680,12 @@ pnpm dlx autocannon -c 50 -d 15 -R 25 \
 
 Endpoint-specific request rates used in the final exact-percentile baseline:
 
-| Endpoint | 10c | 25c | 50c |
-| --- | --- | --- | --- |
+| Endpoint                   | 10c        | 25c        | 50c        |
+| -------------------------- | ---------- | ---------- | ---------- |
 | `/api/documents?type=wiki` | 50 req/sec | 50 req/sec | 50 req/sec |
-| `/api/issues` | 50 req/sec | 50 req/sec | 50 req/sec |
-| `/api/dashboard/my-week` | 50 req/sec | 50 req/sec | 25 req/sec |
-| `/api/projects` | 50 req/sec | 50 req/sec | 50 req/sec |
+| `/api/issues`              | 50 req/sec | 50 req/sec | 50 req/sec |
+| `/api/dashboard/my-week`   | 50 req/sec | 50 req/sec | 25 req/sec |
+| `/api/projects`            | 50 req/sec | 50 req/sec | 50 req/sec |
 | `/api/programs/:id/issues` | 50 req/sec | 50 req/sec | 50 req/sec |
 
 The uncapped `autocannon` benchmark was discarded because it measured rate-limit behavior instead of endpoint latency: `1998 2xx responses, 454536 non 2xx responses`. `autocannon` was also not used for the final table because it does not report exact P95 (`p90`, `p97_5`, and `p99` are available, but not `p95`). The final table uses a custom Node HTTP harness that recorded each request duration and calculated exact P50/P95/P99. During that final pass, the dev API rate limit was temporarily raised from `1000/min` to `100000/min`, then restored after measurement.
@@ -694,12 +694,12 @@ The uncapped `autocannon` benchmark was discarded because it measured rate-limit
 
 Representative `EXPLAIN (ANALYZE, BUFFERS)` results on the audit-scale `ship_dev` database:
 
-| Query | Plan shape | Execution time | Notes |
-| --- | --- | ---: | --- |
-| Documents list, `document_type = 'wiki'` | `Seq Scan on documents` + sort | 0.412 ms | 258 rows returned; 259 rows filtered; planner chose seq scan at current table size despite `idx_documents_active`. |
-| Issues list | `Bitmap Index Scan on idx_documents_document_type` + hash left joins + sort | 0.230 ms | 104 rows returned; joins to `users` and person docs are batched, no row-level N+1. |
-| Backlinks | `Bitmap Index Scan on idx_document_links_target` + nested joins | 0.095 ms | 0 rows for checked doc; correct target index used. |
-| My-week weekly-plan lookup | `Bitmap Index Scan on idx_documents_document_type`, then JSON-property filters | 0.105 ms | Fast at current scale, but filters `(properties->>'person_id')` and `(properties->>'week_number')::int` after the broad type scan. |
+| Query                                    | Plan shape                                                                     | Execution time | Notes                                                                                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Documents list, `document_type = 'wiki'` | `Seq Scan on documents` + sort                                                 | 0.412 ms       | 258 rows returned; 259 rows filtered; planner chose seq scan at current table size despite `idx_documents_active`.                 |
+| Issues list                              | `Bitmap Index Scan on idx_documents_document_type` + hash left joins + sort    | 0.230 ms       | 104 rows returned; joins to `users` and person docs are batched, no row-level N+1.                                                 |
+| Backlinks                                | `Bitmap Index Scan on idx_document_links_target` + nested joins                | 0.095 ms       | 0 rows for checked doc; correct target index used.                                                                                 |
+| My-week weekly-plan lookup               | `Bitmap Index Scan on idx_documents_document_type`, then JSON-property filters | 0.105 ms       | Fast at current scale, but filters `(properties->>'person_id')` and `(properties->>'week_number')::int` after the broad type scan. |
 
 Exact command pattern:
 
