@@ -697,3 +697,19 @@ Why it matters: maintainers and users have a conversion history/reporting surfac
 Why it is easy to miss: the endpoint is not broken for old data. It is a migration fossil: old conversion rows can still appear, so the page can look functional in a seeded or legacy database while missing all new conversions.
 
 Possible mediation: either mark the page and endpoint as legacy-only, or rewrite `/converted/list` to read the current in-place conversion model from `conversion_count`, `original_type`, `converted_from_id`, `converted_at`, `converted_by`, and `document_snapshots`. Update the API docs to say same-id in-place conversion rather than "new converted document."
+
+### Accountability escalation docs promise tracked issues that the current system no longer creates
+
+Severity: Medium
+
+Status: Confirmed
+
+`docs/accountability-philosophy.md` says that for severely overdue items, "Ship can automatically create issues" that are assigned, linked, and visible to the team. `docs/accountability-manager-guide.md` tells managers that when items are 7+ days overdue they should "Check if auto-generated issue exists." The service header in `api/src/services/accountability.ts` still says it "Creates action_items issues just-in-time when missing is detected." But the current accountability route is explicitly inference-only: `api/src/routes/accountability.ts` returns synthetic IDs like `${item.type}-${item.targetId}` and comments that "no issues created." The same service file later states that `createAccountabilityIssue`, `checkAndCreateAccountabilityIssues`, and `autoCompleteAccountabilityIssue` were removed and that no issues are created or completed.
+
+Why it matters: this changes the accountability product contract. A manager following the docs expects severe overdue work to become persistent tracked work in the issue system. In reality, overdue items are computed at request time and can disappear when the underlying condition changes. Dashboards or process reviews that look for `source = 'action_items'` issues may undercount accountability failures because the escalation path no longer writes durable records.
+
+Why it is easy to miss: the stale claim appears in the docs and at the top of the service, while the truth is in a later comment and the route response shape. Both versions use the same "action items" vocabulary, so the mismatch looks like an implementation detail unless you compare persistence behavior.
+
+What would make it harmless: the product intentionally changed from durable issue escalation to purely inferred reminders, and the docs/UI/reporting expectations should now describe that softer model.
+
+Possible mediation: choose one model. If severe overdue items should create durable issues, restore the create/complete path and test for `source = 'action_items'` persistence after the threshold. If inference is now intended, update the philosophy/manager docs, remove the stale service header claim, and make reporting pages avoid treating missing `action_items` rows as "no accountability problems."
