@@ -607,3 +607,45 @@ Why it matters: a maintainer can plausibly run Terraform from `terraform/environ
 Why it is easy to miss: both layouts are present and both look intentional. The README even acknowledges root files as "original flat structure," which makes the duplication feel like migration history rather than an active operational contradiction. The mismatch only becomes obvious when comparing README commands, deploy scripts, and resource names.
 
 Possible mediation: choose one production Terraform root and make every script, README, and runbook use it. If root `terraform/` is the real production stack, mark `terraform/environments/prod` as unused or remove it. If modular `terraform/environments/prod` is the intended stack, update deploy scripts and infrastructure scripts to use it, then migrate/import state deliberately.
+
+### WebSocket auth ignores workspace membership revocation
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/middleware/auth.ts` validates normal REST sessions by loading the session, enforcing inactivity and absolute timeouts, and then checking that a non-super-admin user still has a row in `workspace_memberships` for the session workspace. If that membership is gone, it deletes the session and returns `403`. The realtime server reimplements session validation in `api/src/collaboration/index.ts` as `validateWebSocketSession()`, but that function only checks the `session_id` cookie, session age, and last activity. It returns `{ userId, workspaceId }` without verifying that the user still belongs to that workspace. Both `/events` and `/collaboration/{docType}:{docId}` use this weaker validator before accepting WebSocket connections. For collaboration, `canAccessDocumentForCollab()` then checks the document against the stale `workspaceId` from the session; workspace-visible documents remain accessible as long as the old session has not timed out.
+
+Why it matters: revoking a user's workspace membership stops their REST access, but it does not immediately stop realtime access if their old session cookie is still valid. For up to the session window, a removed member can keep receiving global events and can open/edit workspace-visible documents over Yjs. That is a broken-access-control gap in the highest-risk editing path, not just a read endpoint.
+
+Why it is easy to miss: the collaboration code has serious-looking security comments: "CRITICAL: Validate session before allowing WebSocket connection," visibility checks, rate limits, max payloads, and timeout enforcement. The bug is that it forked the REST auth logic and missed one authorization clause.
+
+Possible mediation: share the REST session validation logic with the WebSocket upgrade path, including workspace membership revocation and super-admin handling. Add a regression test that creates a valid session, deletes the user's `workspace_memberships` row, then verifies REST and WebSocket access both fail. Consider closing existing realtime sockets when membership is removed, just as visibility changes close document sockets.
+
+### Collaboration room names can fork one database document into multiple live Yjs states
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/collaboration/index.ts` stores live collaboration documents and awareness state by full room name: `docs = new Map<string, Y.Doc>()` and `awareness = new Map<string, Awareness>()`. But `parseDocId()` strips the room prefix and returns only the UUID after `:`. The WebSocket upgrade path accepts any `/collaboration/*` room, computes `docId = parseDocId(docName)`, and authorizes with `canAccessDocumentForCollab(docId, ...)`, which checks only document id, workspace, and visibility. It does not verify that the room prefix matches the row's `document_type`. `getOrCreateDoc(docName)` then caches a separate Yjs document under the full `docName`, while `persistDocument(docName, doc)` writes back to `documents WHERE id = parseDocId(docName)`. The frontend and docs both make the room prefix meaningful: `web/src/components/Editor.tsx` uses `new IndexeddbPersistence(\`ship-${roomPrefix}-${documentId}\`, ydoc)` and `new WebsocketProvider(wsUrl, \`${roomPrefix}:${documentId}\`, ydoc)`, and `docs/claude-reference/modules/collaboration.md` documents `/collaboration/:docType::docId` examples.
+
+Why it matters: the same database row can be opened as `issue:<uuid>`, `wiki:<uuid>`, `doc:<uuid>`, or any other prefix that passes the UUID access check. Each prefix gets a separate in-memory Yjs state and separate browser IndexedDB cache, but they all persist to the same `documents.id`. That can split collaborators for one document into independent rooms and make the last room to persist overwrite content from another room. It also makes document-type conversion and cache invalidation harder to reason about, because the document id is canonical for persistence while the full prefixed room name is canonical for live sync.
+
+Why it is easy to miss: the unified document model makes the prefix look cosmetic, and comments explicitly say all document types map to the unified table. The trap is that the cache key and the database key are not the same thing.
+
+Possible mediation: canonicalize collaboration room identity to the document UUID only, or reject WebSocket upgrades when the supplied prefix does not match the current `documents.document_type` or a documented alias such as `doc`. Use the same canonical key for Yjs docs, awareness, pending saves, and IndexedDB cache naming. Add a regression test that tries to open the same document through two prefixes and proves the server either rejects the wrong prefix or routes both clients to the same Yjs state.
+
+### Team allocation writes are available to any workspace member
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`api/src/routes/team.ts` exposes `POST /api/team/assign` and `DELETE /api/team/assign` with only `authMiddleware`. The assign route validates that the supplied `personId`, `projectId`, or `programId` belongs to the current workspace, but it never checks workspace admin, accountable owner, manager, or any other write authority before mutating sprint allocation state. It can add a person to `sprint.properties.assignee_ids`, create a new sprint document, create program associations, and remove that person from conflicting project allocations in the same week. The delete route similarly allows any authenticated workspace member to remove a person from a sprint allocation after a visibility check on the sprint. The frontend calls these routes from `web/src/pages/TeamMode.tsx`, and the OpenAPI team schemas label some grid/review endpoints as admin-only, but the allocation mutation routes are not registered with equivalent admin requirements.
+
+Why it matters: team allocation is governance data. It drives accountability prompts, weekly plans/retros, dashboards, project allocation grids, and the "one allocation per person per week" model. If every workspace member can change everyone else's allocations, a non-admin can alter planning/accountability state and indirectly affect what work people are prompted to do or review.
+
+Why it is easy to miss: the route has "SECURITY: prevent cross-workspace injection" checks, and those checks are real. But they only prove the referenced IDs are in the workspace; they do not prove the caller is allowed to change allocation state. The code looks careful at the data-integrity boundary while missing the authority boundary.
+
+Possible mediation: require workspace admin or an explicit allocation-manager role for `POST /api/team/assign` and `DELETE /api/team/assign`. If self-service allocation is intended, restrict non-admin users to assigning/removing only their own person document and document that product rule. Register the mutation routes in OpenAPI with the same authorization notes and add tests for member versus admin behavior.
