@@ -187,8 +187,8 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 | Total tests | 1,471 executable tests across 115 files | Web now has 152 passing unit tests; API now has 452 passing unit tests | 2026-05-20 | Web unit gate restored and one focused overlapping comment mark regression added; full source target still incomplete | Add 3 meaningful tests or fix 3 flaky tests | |
 | API unit tests | 451 pass / 0 fail / 0 flaky | 452 pass / 0 fail / 0 flaky | 2026-05-20 | Added project issue-filter regression coverage | Existing tests still pass | |
 | Web unit tests | 138 pass / 13 fail / 0 flaky | 152 pass / 0 fail | 2026-05-20 | Fixed the known 13 failures and added `CommentMark.test.ts` | Existing tests still pass | |
-| E2E tests | 869 listed / not executed | Focused inline-comments E2E not run: Docker is not running | 2026-05-20 | Blocked by environment | Meaningful tests catch real regressions | |
-| Suite runtime | API unit: 10.76s; Web unit: 1.05s | API unit: 11.18s; Web unit: 1.24s | 2026-05-20 | Comparable | Document root cause if fixing flaky tests | |
+| E2E tests | 869 listed / not executed | 862 pass / 1 fail / 6 flaky | 2026-05-20 | First full safe-run baseline captured; no app-behavior changes in the E2E runner work | Meaningful tests catch real regressions | |
+| Suite runtime | API unit: 10.76s; Web unit: 1.05s | API unit: 11.18s; Web unit: 1.24s; E2E: 6.6m | 2026-05-20 | Comparable unit runtime; first full safe-run E2E runtime captured | Document root cause if fixing flaky tests | |
 | Code coverage | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured | | | | Risk-mitigating tests, not page-load assertions | |
 
 ### What Changed
@@ -210,6 +210,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 - `ruby -e "require 'yaml'; YAML.load_file('/Users/michaelhabermas/repos/GAI/ship-shape/api/openapi.yaml')"`: generated OpenAPI YAML parses after fixing the local YAML writer.
 - Final API rerun after correctness fixes: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
 - `pnpm test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape/e2e/inline-comments.spec.ts -g "canceling a comment removes the highlight"`: blocked because Docker is required for Testcontainers and is not running.
+- E2E fast-feedback verification full run: `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors"; screenshot and accessibility snapshot showed seeded nested documents visible in the sidebar, while the assertion searched for a nested `ul` under the expanded item. Current tree semantics expose nested items through ARIA `group` structure, so this is likely a stale test-shape/selector issue rather than evidence that the runner work regressed product behavior.
 
 ---
 

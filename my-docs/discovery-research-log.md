@@ -752,3 +752,19 @@ Why it is easy to miss: the stale claim appears in the docs and at the top of th
 What would make it harmless: the product intentionally changed from durable issue escalation to purely inferred reminders, and the docs/UI/reporting expectations should now describe that softer model.
 
 Possible mediation: choose one model. If severe overdue items should create durable issues, restore the create/complete path and test for `source = 'action_items'` persistence after the threshold. If inference is now intended, update the philosophy/manager docs, remove the stale service header claim, and make reporting pages avoid treating missing `action_items` rows as "no accountability problems."
+
+### Full E2E safe-run baseline exposes stale document-tree selector debt
+
+Severity: Low-Medium
+
+Status: Observed
+
+The first full E2E run through the safe runner after adding fast-feedback lanes used `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` and completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors." The failure occurred while looking for `expandableItem.locator('ul a[href*="/documents/"]')`, before the test reached the actual deep-link auto-expand assertion. The failure screenshot and accessibility snapshot showed the seeded nested documents visible in the sidebar under "Welcome to Ship," but the current accessible tree exposes children through ARIA `group` structure rather than a literal nested `ul` under the expanded item.
+
+Why it matters: this is an example of a test that can look like a product regression while actually tracking stale DOM-shape assumptions after the document-tree accessibility remediation. It weakens trust in the E2E signal unless future triage distinguishes product behavior from selector structure.
+
+Why it is easy to miss: the test name describes a real user-facing behavior, but the failing selector asserts an implementation detail before checking that behavior. The screenshot looks healthy enough that the failure only makes sense after comparing the selector with the accessibility snapshot.
+
+What would prove it real: manually deep-link to a nested document and verify whether the sidebar auto-expands and identifies the current document. If that behavior fails visually or in the accessibility tree, treat it as a product accessibility/navigation defect.
+
+Possible mediation: update the test to locate nested tree items through roles and ARIA relationships instead of nested `ul` structure, then keep the final assertion focused on the user-visible deep-link behavior. Keep the full-run result as the current E2E baseline rather than treating this runner work as introducing an app regression.

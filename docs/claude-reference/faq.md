@@ -94,7 +94,7 @@ Use the `/e2e-test-runner` skill instead, which handles background execution and
 ### How do I debug a failing E2E test?
 
 1. Check error logs: `cat test-results/errors/*.log`
-2. Run with debug: `DEBUG=1 pnpm test:e2e e2e/specific-test.spec.ts`
+2. Run with debug: `DEBUG=1 pnpm test:e2e:run e2e/specific-test.spec.ts`
 3. Use UI mode: `pnpm test:e2e:ui`
 4. View HTML report: `playwright-report/index.html`
 
