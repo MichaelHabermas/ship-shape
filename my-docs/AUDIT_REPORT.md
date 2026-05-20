@@ -21,21 +21,17 @@
 
 ## Executive Summary
 
-Ship is usable under the audited local workload, but the risk is concentrated in a few places: weak route-boundary typing, an oversized initial web bundle, destructive test setup footguns, document-tree accessibility defects, and drift between documented and implemented search APIs.
+Ship is usable under the audited local workload, and the core product direction is sound: the unified document model gives the system a coherent foundation for issues, projects, programs, sprints, people, and weekly planning. The audit did not find a product that is fundamentally broken. It found a product whose main risks are concentrated at the boundaries where that model meets production reality: API route contracts, database row mapping, frontend loading behavior, test isolation, accessibility semantics, and documentation/API alignment.
 
-Fix first:
+The most important pattern is boundary drift. Several high-risk files sit close to request input and database output while relying on unsafe casts, non-null assertions, and implicit shape assumptions. Search is documented differently than it is implemented. Shared document-tree UI appears in core flows but carries markup and accessibility defects. These are not random issues; they are symptoms of a system whose conceptual model is cleaner than some of its enforcement points.
 
-1. Harden API route boundaries in `api/src/routes/weeks.ts`, `api/src/routes/projects.ts`, and `api/src/routes/issues.ts`; these are the densest production type-safety files and sit closest to request data and database rows.
-2. Reduce the initial web bundle by dev-only gating `ReactQueryDevtools`, removing unused dependencies, lazy-loading expensive features, and moving route pages to `React.lazy`.
-3. Add a hard test-database safety guard before anyone runs API tests without an explicit disposable database.
-4. Fix shared document-tree markup; the same ARIA/list defects hit both `/docs` and `/documents/:id`.
-5. Resolve `/api/search/documents`: either implement it or remove it from OpenAPI, then decide whether Docs search should remain client-side.
+Frontend performance is the largest user-facing opportunity. The audited production build ships too much JavaScript through the initial entry path, with expensive editor, collaboration, emoji, and highlighting dependencies contributing to a large main chunk. The issue is less about total app size than about load timing: users pay early for capabilities they may not use immediately.
 
-Post-audit status note: the easy-wins pass resolved parts of items 2-5: React Query Devtools is now dev-only lazy-loaded, the unused persister dependency was removed, the API test database guard was added, shared document-tree markup was fixed for the rescanned `/docs` path, and the false `/search/documents` OpenAPI route was removed. This report remains the baseline audit record; current after-change evidence lives in `my-docs/IMPROVEMENT_REPORT.md`.
+API latency is not the primary performance concern in the local audit. Rate-aware endpoint benchmarks were mostly acceptable at the audited data volume. The more meaningful performance pressure comes from page-load fanout, repeated session writes, large list payloads, and unclear ownership of search behavior between client and server.
 
-Do not overreact to raw API latency. Rate-aware local benchmarks were mostly fast; the deeper bottleneck is page-load fanout, repeated session writes, payload-heavy list endpoints, and unclear search ownership.
+Data and test safety are credible but uneven. The audit used explicit runtime-load data in `ship_dev` and a separate `ship_test_audit` database for destructive checks, which is the right separation. The risk is that the codebase does not make that separation hard enough to misuse. In a system with destructive tests and local PostgreSQL workflows, accidental database targeting remains a material operational footgun.
 
-Data safety note: audit-scale runtime data was added to `ship_dev` as removable rows tagged with `properties.audit_load = true`; the disposable `ship_test_audit` database was used only for destructive API tests and coverage. Keep browser/runtime/performance checks on `ship_dev` and destructive test runs on `ship_test_audit` or another explicit throwaway database.
+Overall, Ship looks like a coherent product with implementation debt in the places that matter most: typed boundaries, initial-load discipline, shared UI semantics, and source-of-truth alignment. The opportunity is not to change the architecture. It is to make the existing architecture more enforceable, so the unified document model remains a strength as the system grows.
 
 ---
 
