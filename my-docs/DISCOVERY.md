@@ -381,3 +381,95 @@ What would prove it real: a production or shadow run where CAIA credentials in S
 What would make it harmless: if the deployment docs and runbooks clearly say CAIA credentials are exclusively managed through the admin UI/Secrets Manager, and save-anyway is a deliberate emergency override with operator-visible warnings.
 
 Possible mediation: update SSM comments/docs to remove CAIA credential claims, make issuer validation failure block saves by default, and require an explicit "save invalid credentials anyway" override if that escape hatch is truly needed.
+
+### Claude context endpoint bypasses private document visibility
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/routes/claude.ts` exposes authenticated `GET /api/claude/context` for standup, review, and retro context. The route passes only `sprint_id` or `project_id` plus `workspaceId` into its helper functions; it does not pass `userId`, does not call `getVisibilityContext()`, and does not apply `VISIBILITY_FILTER_SQL`. The helper queries then return rich context: program names/goals/content, project plans and ICE/monetary fields, sprint plans, standup bodies, review bodies, and issue titles. This is visible in `getStandupContext()`, `getReviewContext()`, and `getRetroContext()`.
+
+Why it matters: this is an AI-integration endpoint, so a Claude/API-token workflow can become a clean private-content exfiltration path when the caller knows a private sprint or project id. "Read-only" is not sufficient protection when the response contains private content.
+
+Why it is easy to miss: the route is labeled read-only and purpose-built for Claude context, so it looks like a harmless convenience layer. The missing piece is that AI context needs the same document visibility boundary as normal document reads.
+
+Possible mediation: pass `userId` into all Claude context helpers, use the shared document visibility middleware/filter for the primary sprint/project and every joined related document, and add regression tests where a non-owner gets no context for private sprint/project ids.
+
+### Claude retro context queries an impossible document shape
+
+Severity: Medium
+
+Status: Confirmed
+
+`api/src/routes/claude.ts` implements retro context by querying `d.sprint_number` and ordering by `d.sprint_number`, but `sprint_number` is stored in `documents.properties`, not as a `documents` column. `api/src/db/schema.sql` and the numbered migrations do not define a `sprint_number` column. The same helper also queries `WHERE d.document_type = 'project_retro'`, but the Postgres `document_type` enum and shared `DocumentType` union do not include `project_retro`. The normal project retro route stores retro state back onto the `project` document row instead.
+
+Why it matters: the Claude retro feature appears to provide rich project-retrospective context, but the code path is likely dead or fake-green. It can fail before returning context, and even if the missing column were fixed, the existing-retro lookup searches for a document type the database cannot represent.
+
+Why it is easy to miss: `project_retro` is a valid accountability type, so the string looks legitimate. The mismatch only appears when comparing accountability types, document types, schema columns, and the project retro route implementation.
+
+Possible mediation: change the sprint query to use `d.properties->>'sprint_number'`, and decide whether project retros are stored as project properties/content or as first-class documents. If they stay on the project row, remove the `project_retro` document lookup from Claude context.
+
+### Activity endpoint exposes private entity existence and activity shape
+
+Severity: Low-Medium
+
+Status: Confirmed
+
+`api/src/routes/activity.ts` handles `GET /api/activity/:entityType/:entityId`. It verifies only that the requested entity id exists in the current workspace with the requested `document_type`; it does not apply document visibility. The program/project/sprint activity queries then count linked documents over the last 30 days, also without visibility filters.
+
+Why it matters: this does not expose document bodies, but it can distinguish "private entity exists" from "invalid id" and can reveal a 30-day activity pattern for private programs, projects, or weeks. That matters because other visibility leaks already expose related ids and titles.
+
+Why it is easy to miss: aggregate activity looks harmless, especially because the response only contains dates and counts. The issue is that counts can still be metadata disclosure.
+
+Possible mediation: apply the same visibility check used by the corresponding program/project/week read endpoint before returning activity. For counts, either count only visible linked documents or return 404 when the root entity is not visible to the requester.
+
+### Dashboard allocation views may leak private project and issue metadata
+
+Severity: Medium
+
+Status: Needs verification
+
+`api/src/routes/dashboard.ts` builds `/api/dashboard/my-focus` and `/api/dashboard/my-week` from sprint allocation data. The allocation queries join allocated sprints to project and program documents and return project titles and program names without applying visibility filters to the sprint, project, or program rows. `my-focus` also fetches recent issue ids, titles, ticket numbers, states, and update times for the allocated project ids without applying issue visibility filters.
+
+Why it matters: if private project visibility is meant to remain creator/admin-only even when a person is allocated to related work, these dashboard endpoints can surface private project/program/issue metadata to the assignee. If allocation intentionally grants visibility, this may be expected behavior rather than a bug.
+
+Why it is easy to miss: dashboards are "my work" surfaces, so it is natural to assume assigned work is visible. The actual product rule needs to be explicit because it crosses assignment semantics with private document semantics.
+
+What would prove it real: in a disposable database, create a private project owned by user A, create a sprint allocated to user B, and verify whether user B's `/api/dashboard/my-week` or `/api/dashboard/my-focus` response includes the private project title, program name, or issue titles.
+
+What would make it harmless: product documentation or access-control policy says allocation membership intentionally grants read visibility to the allocated project/week.
+
+Possible mediation: define the rule. If assignment does not grant visibility, add `VISIBILITY_FILTER_SQL` to the dashboard joins and recent activity query. If assignment does grant visibility, document that explicitly and add tests so it is not mistaken for an accidental leak later.
+
+### API tokens are full delegated bearer credentials, not scoped Claude/tool tokens
+
+Severity: Low-Medium
+
+Status: Needs verification
+
+The product copy frames API tokens as external-tool access: `web/src/pages/WorkspaceSettings.tsx` says "API tokens allow external tools like Claude Code to access Ship on your behalf," and `docs/application-architecture.md` describes them under "CLI tools and automation." The implementation has no scopes: `api/src/routes/api-tokens.ts` accepts only token name and optional expiry. `api/src/middleware/auth.ts` validates a bearer token and attaches the token owner's `userId`, `workspaceId`, and `isSuperAdmin` to the request, making the token act like that user for any route that accepts bearer auth. The MCP server then generates tools from OpenAPI operations and sends the same bearer token for every generated API call.
+
+Why it matters: this may be an intentional full-delegation model, but the UI/docs do not make the blast radius obvious. A "Claude Code" token can be read as narrow automation access when it is actually a bearer credential with the user's normal powers, and potentially super-admin powers for a super-admin token.
+
+Why it is easy to miss: token storage is solid enough to look secure: hashes, prefixes, optional expiration, revocation, and audit events. The assessment-shaped issue is authorization scope, not token secrecy.
+
+What would prove it real: runtime proof that a token created for Claude Code can call mutating document/project/issue endpoints, or that a super-admin-created token can reach super-admin routes. That would show the token is full-account delegation, not just OpenAPI/MCP automation.
+
+What would make it harmless: the product explicitly documents that API tokens have the same authority as the account that creates them, including super-admin powers where applicable.
+
+Possible mediation: either add scopes/read-only tokens for external tools, or update the UI/docs to say "tokens act with your full account permissions." If super-admin bearer use is not intended, block API-token authentication from super-admin-only routes.
+
+### OpenAPI/MCP coverage looks comprehensive but misses live route families
+
+Severity: Medium
+
+Status: Confirmed
+
+`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation, and the generated OpenAPI document has enough paths to look authoritative. But `api/src/app.ts` mounts live route families that are not represented in the generated contract, including setup, admin/debug, invites, several document subroutes, Claude context, and other operational surfaces. The generated `api/openapi.json` currently has 83 paths, and the only paths that start with `/api/` are the already-noted comment paths that double-prefix under the MCP server.
+
+Why it matters: generated API clients, Swagger readers, MCP tooling, and security reviewers can treat OpenAPI as a source of truth while missing whole executable route families. Conversely, routes that are present in OpenAPI can still be wrong, as shown by the comment double-prefix and missing search implementation.
+
+Why it is easy to miss: a large generated spec creates confidence. The drift only appears when comparing Express mounts, router files, OpenAPI registrations, and MCP URL construction together.
+
+Possible mediation: decide which routes are public contract and which are intentionally internal. Register the public ones, document the internal exclusions, and add a route/spec consistency check that catches missing paths and paths that include `/api` when the OpenAPI server URL already supplies it.
