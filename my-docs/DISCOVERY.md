@@ -312,6 +312,8 @@ Status: Confirmed
 
 `api/src/routes/documents.ts` treats document visibility as an access-control boundary. The helper `canAccessDocument()` only grants access when a document is workspace-visible, owned by the requester, or the requester is a workspace admin, and `GET /api/documents/:id` returns 404 when that check fails. The comments router does not apply the same boundary. `GET /api/documents/:id/comments` only filters by `comments.document_id` and `comments.workspace_id`; `POST /api/documents/:id/comments` only verifies that a matching document exists in the workspace; `PATCH /api/comments/:id` lets any workspace member resolve a comment found by comment id and workspace id.
 
+Runtime proof note: verified against a disposable database named `ship_audit_visibility_proof`, then dropped it. A non-owner workspace member logged in successfully, got `404` for `GET /api/documents/:privateId`, but got `200` from `GET /api/documents/:privateId/comments` with `"SECRET comment body"`, got `201` from `POST /api/documents/:privateId/comments`, and got `200` from `PATCH /api/comments/:ownerCommentId` resolving the owner's private-document comment.
+
 Why it matters: private documents are explicitly modeled and tested as hidden from other workspace members, but their comments can be listed, created, or resolved by a workspace member who knows or obtains the private document/comment id. Even if document ids are hard to guess, private document links, logs, browser history, notifications, or copied API payloads can turn this into a real confidentiality break.
 
 Why it is easy to miss: the document routes have serious-looking visibility tests, and comments are mounted under `/api/documents`, which makes them look document-scoped. The missing piece is that the comments router never calls the document visibility helper.
@@ -325,6 +327,8 @@ Severity: Medium-High
 Status: Confirmed
 
 `api/src/middleware/visibility.ts` defines the intended filter for private documents: workspace-visible, creator-owned, or admin. `api/src/routes/backlinks.ts` uses that filter for both the requested document and linked documents. `api/src/routes/associations.ts` is inconsistent: it checks access to the requested document, but `GET /api/documents/:id/associations` joins `documents d ON d.id = da.related_id` and returns `related_title` and `related_document_type` without filtering the related document's visibility. `GET /api/documents/:id/reverse-associations` checks access to the target document, then joins and returns source document titles without filtering source visibility. `GET /api/documents/:id/context` similarly returns ancestors, children, and `belongs_to` documents without applying `VISIBILITY_FILTER_SQL` to those related rows.
+
+Runtime proof note: verified against the same disposable database, then dropped it. A non-owner workspace member could access a visible document and received private related metadata: `GET /api/documents/:visibleId/associations` returned `related_title: "SECRET Project Title"`, `GET /api/documents/:visibleId/reverse-associations` returned `"SECRET Child Title"` and `"SECRET Project Title"`, and `GET /api/documents/:visibleId/context` returned the private project in `children`, `belongs_to`, and `breadcrumbs`.
 
 Why it matters: a workspace-visible document can become a window into nearby private documents. Even when the private document body stays protected, ids, titles, document types, ticket numbers, hierarchy, and program/project/sprint relationships can leak through association/context endpoints.
 
