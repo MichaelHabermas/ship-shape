@@ -26,6 +26,8 @@
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
     "test": "pnpm --filter @ship/api test",
     "test:e2e": "playwright test",
+    "test:e2e:setup": "playwright install chromium",
+    "test:e2e:run": "./scripts/run-e2e.sh",
     "test:e2e:ui": "playwright test --ui",
     "worktree:init": "./scripts/worktree-init.sh",
     "db:seed": "pnpm --filter @ship/api db:seed",
