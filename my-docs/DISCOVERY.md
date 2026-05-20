@@ -303,3 +303,77 @@ What would prove it real: product/docs or tests imply consulted/informed users s
 What would make it harmless: if consulted/informed are intentionally passive metadata and the comments are merely stale.
 
 Possible mediation: update terminology and tests around RACI semantics. If C/I are passive display fields, say so. If they imply workflow behavior, implement or remove the advertised semantics.
+
+### Document comments bypass private document visibility
+
+Severity: High
+
+Status: Confirmed
+
+`api/src/routes/documents.ts` treats document visibility as an access-control boundary. The helper `canAccessDocument()` only grants access when a document is workspace-visible, owned by the requester, or the requester is a workspace admin, and `GET /api/documents/:id` returns 404 when that check fails. The comments router does not apply the same boundary. `GET /api/documents/:id/comments` only filters by `comments.document_id` and `comments.workspace_id`; `POST /api/documents/:id/comments` only verifies that a matching document exists in the workspace; `PATCH /api/comments/:id` lets any workspace member resolve a comment found by comment id and workspace id.
+
+Why it matters: private documents are explicitly modeled and tested as hidden from other workspace members, but their comments can be listed, created, or resolved by a workspace member who knows or obtains the private document/comment id. Even if document ids are hard to guess, private document links, logs, browser history, notifications, or copied API payloads can turn this into a real confidentiality break.
+
+Why it is easy to miss: the document routes have serious-looking visibility tests, and comments are mounted under `/api/documents`, which makes them look document-scoped. The missing piece is that the comments router never calls the document visibility helper.
+
+Possible mediation: extract document visibility checks into a shared helper/middleware and require it for every document-child route, including comments, backlinks, associations, content, and future document-scoped surfaces. Add regression tests where a non-creator workspace member gets 404 for both a private document and its comments.
+
+### Associations and context leak private related document metadata
+
+Severity: Medium-High
+
+Status: Confirmed
+
+`api/src/middleware/visibility.ts` defines the intended filter for private documents: workspace-visible, creator-owned, or admin. `api/src/routes/backlinks.ts` uses that filter for both the requested document and linked documents. `api/src/routes/associations.ts` is inconsistent: it checks access to the requested document, but `GET /api/documents/:id/associations` joins `documents d ON d.id = da.related_id` and returns `related_title` and `related_document_type` without filtering the related document's visibility. `GET /api/documents/:id/reverse-associations` checks access to the target document, then joins and returns source document titles without filtering source visibility. `GET /api/documents/:id/context` similarly returns ancestors, children, and `belongs_to` documents without applying `VISIBILITY_FILTER_SQL` to those related rows.
+
+Why it matters: a workspace-visible document can become a window into nearby private documents. Even when the private document body stays protected, ids, titles, document types, ticket numbers, hierarchy, and program/project/sprint relationships can leak through association/context endpoints.
+
+Why it is easy to miss: each endpoint starts with a legitimate access check, and the route names sound like metadata. The bug is one hop later: related rows need their own visibility filter.
+
+Possible mediation: apply `VISIBILITY_FILTER_SQL` to every joined document returned from association/context endpoints, not only to the primary requested document. Add tests for visible document -> private related document, private source -> visible target reverse association, and private child/ancestor in context results.
+
+### Comments OpenAPI paths accidentally double the `/api` prefix
+
+Severity: Medium
+
+Status: Confirmed
+
+`api/src/openapi/registry.ts` declares the OpenAPI server URL as `/api`, and most registered paths are unprefixed, such as `/documents`, `/issues`, `/auth/login`, and `/documents/{id}/backlinks`. `api/src/openapi/schemas/comments.ts` is the exception: it registers `/api/documents/{id}/comments` and `/api/comments/{id}`. The actual Express routes are mounted in `api/src/app.ts` at `/api/documents` and `/api/comments`, so the runtime URLs are `/api/documents/:id/comments` and `/api/comments/:id`. A client honoring the OpenAPI server URL plus the comment paths would call `/api/api/documents/{id}/comments` and `/api/api/comments/{id}`.
+
+Why it matters: comments are present in the generated contract, but the generated contract points clients and MCP/API automation at non-existent double-prefixed URLs. This is another generated-source-of-truth trap, and it sits right next to the private-document comments issue.
+
+Why it is easy to miss: the path strings look correct if you inspect only the comments schema. The bug appears only when you compare the comments schema against the registry server URL and the rest of the OpenAPI path convention.
+
+Possible mediation: change the comments OpenAPI registrations to `/documents/{id}/comments` and `/comments/{id}`. Add a contract consistency check that fails when any registered path starts with `/api/` while the server URL is already `/api`.
+
+### Super-admin debug user deletion can partially deprovision a user
+
+Severity: Medium
+
+Status: Confirmed
+
+`api/src/routes/admin.ts` mounts all admin routes behind `authMiddleware` and `superAdminMiddleware`, so this is not unauthenticated. The risk is operational: `DELETE /api/admin/debug/users/:id` is a live route labeled "for cleanup" that deletes `sessions`, then `workspace_memberships`, then `users` as three separate pool queries with no transaction. The schema still has `document_history.changed_by UUID REFERENCES users(id)` without `ON DELETE SET NULL` or `ON DELETE CASCADE`, so deleting a user who has history rows can fail at the final `DELETE FROM users` after their sessions and workspace memberships have already been removed.
+
+Why it matters: a cleanup/debug endpoint can strand a real user in a partially deprovisioned state: account row remains, but sessions and workspace access are gone. The route then returns 500, so an operator may retry or manually intervene without realizing the first two deletes already committed.
+
+Why it is easy to miss: the route is super-admin-only and "debug" named, so auditors may stop reading at the middleware. The actual failure mode is the ordering plus missing transaction plus one remaining non-nullifying foreign key.
+
+Possible mediation: either remove production exposure for debug cleanup routes, or wrap the deletion in a transaction and make user deletion semantics explicit across all user foreign keys. If deletion is not a product requirement, replace it with a reversible disable/archive flow.
+
+### CAIA configuration is split between SSM docs, Secrets Manager runtime, and save-anyway validation
+
+Severity: Low-Medium
+
+Status: Needs verification
+
+`api/src/config/ssm.ts` documents CAIA OAuth credentials as living under SSM Parameter Store alongside `DATABASE_URL`, `SESSION_SECRET`, and `CORS_ORIGIN`, but production startup only loads `DATABASE_URL`, `SESSION_SECRET`, `CORS_ORIGIN`, `CDN_DOMAIN`, and `APP_BASE_URL` from SSM. The CAIA runtime instead reads `/ship/{ENVIRONMENT}/caia-credentials` from AWS Secrets Manager via `api/src/services/secrets-manager.ts`. The super-admin credentials UI validates issuer discovery before saving, but explicitly logs "Validation FAILED (will save anyway)" and persists the credentials anyway with only a warning.
+
+Why it matters: this is a configuration split-brain around the primary PIV/OIDC path. A maintainer following SSM-oriented docs or expectations could update the wrong store; a super-admin can also persist a broken issuer/client configuration that startup later logs and swallows via `initializeCAIA().catch(...)` in `api/src/app.ts`.
+
+Why it is easy to miss: each piece is individually reasonable: SSM for app config, Secrets Manager for editable OAuth credentials, admin UI validation, startup validation. The problem is the combined operational story is not fail-closed.
+
+What would prove it real: a production or shadow run where CAIA credentials in SSM are ignored, invalid Secrets Manager credentials are saved by the admin UI, and PIV login fails while the app otherwise stays healthy.
+
+What would make it harmless: if the deployment docs and runbooks clearly say CAIA credentials are exclusively managed through the admin UI/Secrets Manager, and save-anyway is a deliberate emergency override with operator-visible warnings.
+
+Possible mediation: update SSM comments/docs to remove CAIA credential claims, make issuer validation failure block saves by default, and require an explicit "save invalid credentials anyway" override if that escape hatch is truly needed.
