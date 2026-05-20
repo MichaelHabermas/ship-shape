@@ -3,7 +3,7 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema } from './common.js';
+import { UuidSchema, DocumentVisibilitySchema } from './common.js';
 import { DocumentTypeSchema } from './documents.js';
 
 // ============== Search Results ==============
@@ -18,7 +18,7 @@ export const MentionSearchResultSchema = z.object({
     id: UuidSchema,
     title: z.string(),
     document_type: DocumentTypeSchema,
-    visibility: z.enum(['private', 'workspace']).optional(),
+    visibility: DocumentVisibilitySchema.optional(),
   })),
 }).openapi('MentionSearchResult');
 
@@ -46,6 +46,24 @@ export const LearningSearchResponseSchema = z.object({
 
 registry.register('LearningSearchResponse', LearningSearchResponseSchema);
 
+export const DocumentSearchResultSchema = z.object({
+  id: UuidSchema,
+  title: z.string(),
+  document_type: DocumentTypeSchema,
+  visibility: DocumentVisibilitySchema.optional(),
+  ticket_number: z.number().int().nullable().optional(),
+  updated_at: z.string(),
+}).openapi('DocumentSearchResult');
+
+registry.register('DocumentSearchResult', DocumentSearchResultSchema);
+
+export const DocumentSearchResponseSchema = z.object({
+  documents: z.array(DocumentSearchResultSchema),
+  total: z.number().int(),
+}).openapi('DocumentSearchResponse');
+
+registry.register('DocumentSearchResponse', DocumentSearchResponseSchema);
+
 // ============== Register Search Endpoints ==============
 
 registry.registerPath({
@@ -68,6 +86,35 @@ registry.registerPath({
       content: {
         'application/json': {
           schema: MentionSearchResultSchema,
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/search/documents',
+  tags: ['Search'],
+  summary: 'Search document titles',
+  description: 'Title-only metadata search for command palette document navigation.',
+  request: {
+    query: z.object({
+      q: z.string().optional().openapi({
+        description: 'Title search query',
+      }),
+      type: DocumentTypeSchema.optional().openapi({
+        description: 'Optional document type filter',
+      }),
+      limit: z.coerce.number().int().min(1).max(50).optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Document search results',
+      content: {
+        'application/json': {
+          schema: DocumentSearchResponseSchema,
         },
       },
     },

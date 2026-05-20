@@ -8,6 +8,7 @@ import {
   accountabilityTypeSchema,
   belongsToSchema,
   issuePrioritySchema,
+  issueSourceSchema,
   issueStateSchema,
 } from '../schemas/document-boundary.js';
 import {
@@ -52,7 +53,7 @@ const createIssueSchema = z.object({
   assignee_id: z.string().uuid().optional().nullable(),
   belongs_to: z.array(belongsToSchema).optional().default([]),
   // Source for the issue (internal, external, or action_items for system-generated)
-  source: z.enum(['internal', 'external', 'action_items']).optional().default('internal'),
+  source: issueSourceSchema.optional().default('internal'),
   // Due date (ISO date string)
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   // System-generated flag (for action_items issues)
@@ -104,7 +105,7 @@ const listIssuesQuerySchema = z.object({
   program_id: z.string().uuid().optional(),
   project_id: z.string().uuid().optional(),
   sprint_id: z.string().uuid().optional(),
-  source: z.enum(['internal', 'external', 'action_items']).optional(),
+  source: issueSourceSchema.optional(),
   parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional(),
 });
 
@@ -1163,7 +1164,7 @@ const bulkUpdateSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
   action: z.enum(['archive', 'delete', 'restore', 'update']),
   updates: z.object({
-    state: z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
+    state: issueStateSchema.optional(),
     sprint_id: z.string().uuid().nullable().optional(),
     assignee_id: z.string().uuid().nullable().optional(),
     project_id: z.string().uuid().nullable().optional(),

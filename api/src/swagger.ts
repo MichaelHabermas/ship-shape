@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import type { OpenAPIObject } from 'openapi3-ts/oas30';
+import prettier from 'prettier';
 
 // Import the OpenAPI module to register all schemas
 import { generateOpenAPIDocument } from './openapi/index.js';
@@ -55,8 +56,13 @@ function jsonToYaml(obj: unknown, indent = 0): string {
   if (obj === null) return 'null';
   if (obj === undefined) return '';
   if (typeof obj === 'string') {
-    if (obj.includes('\n') || obj.includes(':') || obj.includes('#')) {
-      return `"${obj.replace(/"/g, '\\"')}"`;
+    if (obj.includes('\n')) {
+      const blockIndent = `${spaces}  `;
+      const lines = obj.split('\n').map(line => `${blockIndent}${line}`);
+      return `|\n${lines.join('\n')}`;
+    }
+    if (obj.includes(':') || obj.includes('#')) {
+      return `"${obj.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
     }
     return obj;
   }
@@ -99,8 +105,8 @@ function jsonToYaml(obj: unknown, indent = 0): string {
 }
 
 // Generate static openapi.yaml file
-export function generateOpenApiFile(): void {
-  const yaml = jsonToYaml(swaggerSpec);
+export async function generateOpenApiFile(): Promise<void> {
+  const yaml = await prettier.format(jsonToYaml(swaggerSpec), { parser: 'yaml' });
   const outputPath = path.join(__dirname, '..', 'openapi.yaml');
   fs.writeFileSync(outputPath, yaml, 'utf-8');
   console.log(`OpenAPI spec written to ${outputPath}`);

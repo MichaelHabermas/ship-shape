@@ -1,3 +1,3 @@
 import { generateOpenApiFile } from '../swagger.js';
 
-generateOpenApiFile();
+await generateOpenApiFile();

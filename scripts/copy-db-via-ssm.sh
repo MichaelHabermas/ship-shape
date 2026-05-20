@@ -118,27 +118,37 @@ log_success "Dump complete: $DUMP_FILE ($DUMP_SIZE)"
 
 # Clear shadow database
 log_info "Clearing shadow database..."
-PGPASSWORD="$SHADOW_PASS" psql -h localhost -p $SHADOW_LOCAL_PORT -U postgres -d ship_main -c "
+SCHEMA_LOG="$(mktemp /tmp/ship_shadow_schema.XXXXXX.log)"
+if ! PGPASSWORD="$SHADOW_PASS" psql -h localhost -p $SHADOW_LOCAL_PORT -U postgres -d ship_main -v ON_ERROR_STOP=1 -c "
     DROP SCHEMA IF EXISTS public CASCADE;
     CREATE SCHEMA public;
     GRANT ALL ON SCHEMA public TO postgres;
     GRANT ALL ON SCHEMA public TO public;
-" 2>/dev/null || true
+" > "$SCHEMA_LOG" 2>&1; then
+    log_error "Failed to reset shadow schema. Details:"
+    sed '/NOTICE:/d' "$SCHEMA_LOG" >&2
+    exit 1
+fi
 
 # Restore to shadow
 log_info "Restoring to shadow database..."
 log_warn "This may take several minutes..."
 
-PGPASSWORD="$SHADOW_PASS" psql \
+RESTORE_LOG="$(mktemp /tmp/ship_shadow_restore.XXXXXX.log)"
+if ! PGPASSWORD="$SHADOW_PASS" psql \
     -h localhost \
     -p $SHADOW_LOCAL_PORT \
     -U postgres \
     -d ship_main \
+    -v ON_ERROR_STOP=1 \
     -f "$DUMP_FILE" \
-    --quiet \
-    2>&1 | grep -E "^ERROR" || true
+    --quiet > "$RESTORE_LOG" 2>&1; then
+    log_error "Restore failed. Details:"
+    sed '/NOTICE:/d' "$RESTORE_LOG" >&2
+    exit 1
+fi
 
-log_success "Restore complete"
+log_info "Restore command completed; verifying copied data next"
 
 # Verify
 log_info "Verifying data copy..."
@@ -153,10 +163,11 @@ echo "Users:     Dev=$DEV_USERS  Shadow=$SHADOW_USERS"
 echo "Documents: Dev=$DEV_DOCS  Shadow=$SHADOW_DOCS"
 echo ""
 
-if [[ "$DEV_USERS" == "$SHADOW_USERS" ]]; then
-    log_success "User counts match!"
+if [[ "$DEV_USERS" == "$SHADOW_USERS" ]] && [[ "$DEV_DOCS" == "$SHADOW_DOCS" ]]; then
+    log_success "Data verification passed - counts match"
 else
-    log_warn "User counts differ"
+    log_error "Data verification failed - copied counts do not match"
+    exit 1
 fi
 
 # Check for specific user

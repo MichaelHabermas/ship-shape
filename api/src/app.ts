@@ -28,6 +28,7 @@ import adminCredentialsRoutes from './routes/admin-credentials.js';
 import claudeRoutes from './routes/claude.js';
 import activityRoutes from './routes/activity.js';
 import dashboardRoutes from './routes/dashboard.js';
+import bootstrapRoutes from './routes/bootstrap.js';
 import associationsRoutes from './routes/associations.js';
 import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
@@ -216,6 +217,9 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Dashboard routes are read-only GET endpoints - no CSRF needed
   app.use('/api/dashboard', dashboardRoutes);
+
+  // Bootstrap route is read-only app-shell hydration - no CSRF needed
+  app.use('/api/bootstrap', bootstrapRoutes);
 
   // Accountability routes - inference-based action items (read-only GET)
   app.use('/api/accountability', accountabilityRoutes);

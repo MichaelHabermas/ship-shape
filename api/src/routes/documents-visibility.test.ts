@@ -525,6 +525,22 @@ describe('Document Visibility', () => {
       expect(res.body.documents[0].title).toBe('Searchable Private Doc');
     });
 
+    it('includes private docs in document title search for creator', async () => {
+      await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Searchable Private Doc', 'private', $2)`,
+        [testWorkspaceId, user1Id]
+      );
+
+      const res = await request(app)
+        .get('/api/search/documents?q=Searchable')
+        .set('Cookie', user1SessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.documents).toHaveLength(1);
+      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+    });
+
     it('excludes private docs from search for non-creator', async () => {
       // Create private document with searchable title
       await pool.query(
@@ -541,6 +557,21 @@ describe('Document Visibility', () => {
       expect(res.body.documents).toHaveLength(0);
     });
 
+    it('excludes private docs from document title search for non-creator', async () => {
+      await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Searchable Private Doc', 'private', $2)`,
+        [testWorkspaceId, user1Id]
+      );
+
+      const res = await request(app)
+        .get('/api/search/documents?q=Searchable')
+        .set('Cookie', user2SessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.documents).toHaveLength(0);
+    });
+
     it('includes private docs in search for admin', async () => {
       // Create private document with searchable title
       await pool.query(
@@ -551,6 +582,22 @@ describe('Document Visibility', () => {
 
       const res = await request(app)
         .get('/api/search/mentions?q=Searchable')
+        .set('Cookie', adminSessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.documents).toHaveLength(1);
+      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+    });
+
+    it('includes private docs in document title search for admin', async () => {
+      await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Searchable Private Doc', 'private', $2)`,
+        [testWorkspaceId, user1Id]
+      );
+
+      const res = await request(app)
+        .get('/api/search/documents?q=Searchable')
         .set('Cookie', adminSessionCookie);
 
       expect(res.status).toBe(200);

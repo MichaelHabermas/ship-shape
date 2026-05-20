@@ -85,7 +85,7 @@ echo "Starting Playwright E2E suite in the background..."
 echo "Log: ${RUN_LOG}"
 echo "Progress: ${RESULTS_DIR}/summary.json"
 
-pnpm test:e2e "${PLAYWRIGHT_ARGS[@]}" > "${RUN_LOG}" 2>&1 &
+pnpm test:e2e:raw "${PLAYWRIGHT_ARGS[@]}" > "${RUN_LOG}" 2>&1 &
 pid="$!"
 
 cleanup() {

@@ -219,21 +219,21 @@ Possible mediation: decide whether any artifact is intentionally archival. Other
 
 Severity: Medium
 
-Status: Partially resolved. The false `/search/documents` OpenAPI route was removed in the easy-wins pass. Real document full-text search is still not implemented; `/docs` remains client-side title filtering, and `/api/search/mentions` plus `/api/search/learnings` remain the live backend search routes.
+Status: Partially resolved. The false full-text `/search/documents` OpenAPI route was removed in the easy-wins pass, and the submission-gated pass later added a real title-only `/api/search/documents` endpoint for command-palette lookup. Real document full-text content search is still not implemented; `/docs` remains client-side title filtering.
 
-At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. Current OpenAPI no longer advertises `/search/documents`; real document full-text search remains unimplemented.
+At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. The current route now exists as title-only metadata search for the command palette, not full-text content search.
 
 Why it matters: generated API clients, Swagger users, and MCP/API automation can trust an endpoint that will 404 at runtime. This is a capability mirage, not just stale prose.
 
 Why it is easy to miss: the OpenAPI artifact is generated and looks authoritative. The contradiction only appears when comparing schema registration to the mounted router.
 
-Possible mediation: implement `/api/search/documents`, or remove it from OpenAPI and update docs to say current search is limited to mention search, learning search, and client-side document-title filtering.
+Possible mediation: if product wants full document content search, add it explicitly with separate docs and measurements. Do not broaden the current title-only command-palette endpoint by implication.
 
 ### API coverage pre-commit gate is a changed-file heuristic, not a repo integrity check
 
 Severity: Low-Medium
 
-Status: Confirmed
+Status: Resolved for restore masking; SSM process cleanup risk remains separate.
 
 `scripts/check-api-coverage.sh` says it verifies API coverage for UI routes. In pre-commit it runs with `--staged`, only scans staged JavaScript/TypeScript files, skips non-`web/` files, extracts simple `fetch('/api/...')` and `axios.*('/api/...')` patterns, then exits 0 when no staged UI files are found. Running it with no matching changed files produced "No UI files changed" and exited 0 even though the OpenAPI/router search drift above exists.
 
@@ -258,22 +258,6 @@ Why it matters: first-user bootstrap is a tiny path with huge authority. In a re
 Why it is easy to miss: the code comment calls the user count check "the critical security check," and for normal single-user setup it works.
 
 Possible mediation: wrap setup initialization in a transaction with a database advisory lock, or use a single-row setup lock table / unique sentinel insert that only one request can win.
-
-### Migration runner misclassifies real migration failures as success
-
-Severity: High
-
-Status: Confirmed
-
-`api/src/db/migrate.ts` wraps schema setup and all numbered migration execution in one broad `try`. If any thrown error message includes `already exists`, it logs "Database schema already exists, continuing..." and exits without rethrowing. The comment says "`already exists` errors from schema.sql are fine," but the catch scope includes pending numbered migrations too.
-
-Verification note: the disposable database was only a microscope, not the finding. The preexisting repo issue is the migration runner's broad success-on-`already exists` catch. Verified with a throwaway database: `DATABASE_URL=... pnpm --filter @ship/api db:migrate` printed successful application through `009_audit_logs_nullable_actor`, then hit `010_oauth_state.sql`, printed `Database schema already exists, continuing...`, and exited 0. The database had only 10 rows in `schema_migrations`, ending at `009_audit_logs_nullable_actor`, while the repo has 42 migration files. A later local verification saw the same `010_oauth_state.sql` duplicate-table edge on a fresh disposable database after schema bootstrap; API unit tests still passed against local PostgreSQL, so this remains a migration-runner truthfulness issue rather than an API unit blocker.
-
-Why it matters: migration scripts are deployment-critical. This is a fake-green migration path: a fresh database can look successfully migrated while 32 migrations are unapplied.
-
-Why it is easy to miss: schema setup is mostly idempotent, and the broad catch looks like a friendly bootstrap compatibility path.
-
-Possible mediation: narrow the `already exists` catch to schema bootstrap only, or better, make `schema.sql` fully idempotent and let numbered migration failures always fail closed.
 
 ### Dash-prefixed root progress file is a tiny shell footgun
 
@@ -617,22 +601,6 @@ Why it is easy to miss: the dangerous branch only runs when an output lookup fai
 
 Possible mediation: remove automatic `terraform apply -auto-approve` from application deploy, or require an explicit flag such as `--bootstrap-infra` plus an environment-specific confirmation. Keep deploy scripts read-only with respect to Terraform state unless the command name and docs clearly say they provision infrastructure.
 
-### Document parent links can cross workspaces and cascade-delete across tenants
-
-Severity: High
-
-Status: Confirmed
-
-`api/src/db/schema.sql` defines `documents.parent_id UUID REFERENCES documents(id) ON DELETE CASCADE` without a same-workspace constraint. `api/src/routes/documents.ts` accepts `parent_id` on document create and update. On create, it only tries to inherit visibility when the parent exists in `req.workspaceId`; if the parent id belongs to another workspace, that lookup misses, but the route still inserts the foreign `parent_id`. On update, it similarly reads parent visibility only inside the current workspace, then writes `parent_id` directly.
-
-Runtime proof: verified against a disposable local database that was dropped after the run. A bearer token scoped to Workspace A called `POST /api/documents` with `parent_id` set to a Workspace B document id. The route returned `201`; a DB join showed `child_workspace_id = Workspace A` and `parent_workspace_id = Workspace B`. Deleting the Workspace B parent then reduced the Workspace A child row count to `0` because the database-level `ON DELETE CASCADE` followed the cross-workspace parent pointer.
-
-Why it matters: this is a cross-tenant integrity break, not just a metadata leak. If a cross-workspace parent edge exists, a legitimate delete in one workspace can delete documents in another workspace. It also creates impossible hierarchy states for navigation, breadcrumbs, document trees, and visibility inheritance.
-
-Why it is easy to miss: the route appears workspace-scoped because it creates the child with `workspace_id = req.workspaceId` and does a parent visibility lookup scoped to the workspace. The actual bug is that a failed parent lookup is treated as "no inherited visibility" instead of "invalid parent."
-
-Possible mediation: reject any `parent_id` that does not belong to `req.workspaceId` and is visible/usable by the caller. Add a database-level invariant for hierarchy, such as a composite foreign key or trigger requiring `child.workspace_id = parent.workspace_id`. Add regression tests for create and update with foreign-workspace parents and for cascade behavior.
-
 ### Production Terraform has two competing sources of truth
 
 Severity: Medium-High
@@ -660,22 +628,6 @@ Why it matters: revoking a user's workspace membership stops their REST access, 
 Why it is easy to miss: the collaboration code has serious-looking security comments: "CRITICAL: Validate session before allowing WebSocket connection," visibility checks, rate limits, max payloads, and timeout enforcement. The bug is that it forked the REST auth logic and missed one authorization clause.
 
 Possible mediation: share the REST session validation logic with the WebSocket upgrade path, including workspace membership revocation and super-admin handling. Add a regression test that creates a valid session, deletes the user's `workspace_memberships` row, then verifies REST and WebSocket access both fail. Consider closing existing realtime sockets when membership is removed, just as visibility changes close document sockets.
-
-### Collaboration room names can fork one database document into multiple live Yjs states
-
-Severity: High
-
-Status: Confirmed
-
-`api/src/collaboration/index.ts` stores live collaboration documents and awareness state by full room name: `docs = new Map<string, Y.Doc>()` and `awareness = new Map<string, Awareness>()`. But `parseDocId()` strips the room prefix and returns only the UUID after `:`. The WebSocket upgrade path accepts any `/collaboration/*` room, computes `docId = parseDocId(docName)`, and authorizes with `canAccessDocumentForCollab(docId, ...)`, which checks only document id, workspace, and visibility. It does not verify that the room prefix matches the row's `document_type`. `getOrCreateDoc(docName)` then caches a separate Yjs document under the full `docName`, while `persistDocument(docName, doc)` writes back to `documents WHERE id = parseDocId(docName)`. The frontend and docs both make the room prefix meaningful: `web/src/components/Editor.tsx` uses `new IndexeddbPersistence(\`ship-${roomPrefix}-${documentId}\`, ydoc)` and `new WebsocketProvider(wsUrl, \`${roomPrefix}:${documentId}\`, ydoc)`, and `docs/claude-reference/modules/collaboration.md` documents `/collaboration/:docType::docId` examples.
-
-Why it matters: the same database row can be opened as `issue:<uuid>`, `wiki:<uuid>`, `doc:<uuid>`, or any other prefix that passes the UUID access check. Each prefix gets a separate in-memory Yjs state and separate browser IndexedDB cache, but they all persist to the same `documents.id`. That can split collaborators for one document into independent rooms and make the last room to persist overwrite content from another room. It also makes document-type conversion and cache invalidation harder to reason about, because the document id is canonical for persistence while the full prefixed room name is canonical for live sync.
-
-Runtime proof: verified against a disposable local database that was dropped after the run. A test issue document was opened through both `/collaboration/issue:<uuid>` and `/collaboration/wiki:<uuid>` using the same valid session cookie. The collaboration server logged separate JSON-to-Yjs conversion and cache-clear handling for both room names against the same UUID. Both rooms opened; after writing `issue-room-edit` through the `issue:` room, the row's `content` became `issue-room-edit`. After writing `wiki-room-edit` through the `wiki:` room, the same row's `content` became `wiki-room-edit` plus the original `initial` paragraph, and the stored `yjs_state` changed again. Proof database `ship_proof_yjs_1779250602600` was dropped after capture.
-
-Why it is easy to miss: the unified document model makes the prefix look cosmetic, and comments explicitly say all document types map to the unified table. The trap is that the cache key and the database key are not the same thing.
-
-Possible mediation: canonicalize collaboration room identity to the document UUID only, or reject WebSocket upgrades when the supplied prefix does not match the current `documents.document_type` or a documented alias such as `doc`. Use the same canonical key for Yjs docs, awareness, pending saves, and IndexedDB cache naming. Add a regression test that tries to open the same document through two prefixes and proves the server either rejects the wrong prefix or routes both clients to the same Yjs state.
 
 ### Team allocation writes are available to any workspace member
 
@@ -768,3 +720,17 @@ Why it is easy to miss: the test name describes a real user-facing behavior, but
 What would prove it real: manually deep-link to a nested document and verify whether the sidebar auto-expands and identifies the current document. If that behavior fails visually or in the accessibility tree, treat it as a product accessibility/navigation defect.
 
 Possible mediation: update the test to locate nested tree items through roles and ARIA relationships instead of nested `ul` structure, then keep the final assertion focused on the user-visible deep-link behavior. Keep the full-run result as the current E2E baseline rather than treating this runner work as introducing an app regression.
+
+### Submission-gated structural pass status
+
+Severity: Ledger
+
+Status: Updated 2026-05-20
+
+Rails safety findings moved from provisional risk to implemented foundation work. Raw `pnpm test:e2e` now fails closed with guidance to `pnpm test:e2e:run`, the controlled runner uses `pnpm test:e2e:raw` internally, and DB-copy restore paths no longer print success after failed restore/schema steps. The API benchmark harness now exists, but before/after timing evidence is still required before Category 3 claims.
+
+Boundary-contract drift moved from architectural concern to active regression coverage. Runtime boundary values now feed more OpenAPI schemas, and `api/src/schemas/document-boundary.test.ts` compares document type values across `@ship/shared`, database enum declarations, runtime Zod values, and OpenAPI.
+
+Search status changed: `/api/search/documents` now exists, but only as title-only metadata search for command-palette lookup. This does not resolve the broader full-text search/product-search question, and `/docs` remains client-side title filtering by design.
+
+Bootstrap status changed: `/api/bootstrap` now exists as read-only app-shell hydration and seeds existing TanStack Query keys. It is a fanout-reduction foundation, not yet measured Category 4 proof. The route needs to stay projection-aligned with the underlying list endpoints, especially project status inference and visibility semantics. Post-reset verification added focused route coverage for auth, response shape, and project status inference; the combined bootstrap/search/visibility/boundary rerun passed 43 tests against a temporary disposable Postgres container.

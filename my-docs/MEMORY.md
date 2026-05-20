@@ -8,6 +8,7 @@ Never log: one-off debugging steps, transient session notes, low-confidence obse
 
 Things that should stay true across features, refactors, and fixes.
 
+- Durable choices from audit/improvement work belong in `my-docs/DECISION_LOG.md`; keep `MEMORY.md` to short rules and traps, and use the decision log when a choice needs rationale, alternatives, consequences, and evidence.
 - Type-safety work should prioritize runtime boundary typing: API route request/query parsing, PostgreSQL row-to-domain mappers, and document `properties` narrowing.
 - Week document properties are canonically only `sprint_number` and `owner_id`; route code may still read/write legacy plan/review fields, but type aliases should not present those fields as the source-of-truth week model.
 
@@ -29,7 +30,7 @@ Repo-specific facts that prevent wrong assumptions.
 - If local API tests cannot reach PostgreSQL on 5432, check whether the local Docker/Postgres service for this machine is stopped before treating the API suite as blocked. For verification-only reruns, a fresh disposable database is safer than relying on stale `ship_test_audit` migration bookkeeping.
 - Issues are discoverable through Programs: each program document has an Issues tab. The global `/issues` route exists too, but audits should not assume it is the only or primary path.
 - Local PostgreSQL does not have `pg_stat_statements` enabled, so query-efficiency baselines use the temporary in-process query-count harness plus targeted `EXPLAIN (ANALYZE, BUFFERS)` through `/opt/homebrew/Cellar/libpq/18.3/bin/psql`.
-- Document search is intentionally limited after the easy-wins cleanup: `/docs` uses client-side title filtering, `/api/search/mentions` title-searches documents for mention/embed helpers, and OpenAPI no longer advertises the unmounted `/api/search/documents` route.
+- Document search is intentionally limited: `/docs` uses client-side title filtering, `/api/search/mentions` title-searches documents for mention/embed helpers, and `/api/search/documents` is title-only metadata search for command-palette on-demand lookup. Do not describe it as full-text search.
 - OpenAPI registration paths are mounted under `/api` by the app; schema files should register paths without an extra `/api` prefix.
 - Hook tests that exercise state-changing requests through `apiPost` must mock the CSRF preflight JSON response before the actual request response.
 - Regular authenticated HTTP requests persist `last_activity` at 60-second granularity to avoid page-load write amplification; `/api/auth/extend-session` still writes immediately.
@@ -41,7 +42,11 @@ Places where a small, focused change creates outsized value.
 - Bundle work should target initial-load JavaScript, especially the large `assets/index-*.js` entry chunk. Prefer lazy-loading route pages, emoji picker, editor/collaboration, and highlighting over chasing the existing many tiny chunks.
 - Test-quality work should optimize for trust and risk, not raw test count: green failing web tests, guard API tests against non-disposable databases, then add focused regression tests for workspace isolation and document association behavior.
 - E2E optimization source of truth lives in `docs/claude-reference/testing.md`; `e2e/AGENTS.md` owns test-writing flake patterns, and the Vite memory explosion doc is incident history only. Use `pnpm test:e2e:run`, preserve `vite preview`, tune `PLAYWRIGHT_WORKERS`, set `E2E_RESULTS_DIR` for concurrent lanes/shards, and use Playwright's exit code plus `${E2E_RESULTS_DIR:-test-results}/playwright/.last-run.json` for final status because `summary.json` is progress-only.
+- Raw `pnpm test:e2e` is intentionally a guarded failure that points to `pnpm test:e2e:run`; the raw Playwright script is `pnpm test:e2e:raw` and should only be called by `scripts/run-e2e.sh`.
 - First full post-lane E2E baseline on 2026-05-20: `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` finished in 6.6 minutes with 862 passed, 1 failed, 6 flaky. The hard accessibility tree auto-expand failure looked like a stale selector against the newer ARIA `group` tree shape, not a runner-induced app regression.
+- `/api/bootstrap` is a read-only app-shell hydration endpoint that seeds existing TanStack Query keys. It must preserve the same visibility and projection semantics as the underlying list endpoints; if those routes change, bootstrap is a contract-drift candidate.
+- `pnpm benchmark:api` runs the reproducible API benchmark harness and writes JSON under `test-results/benchmarks/`; do not claim Category 3 or 4 improvements until before/after output is captured under identical data, concurrency, and hardware conditions.
+- `schema.sql` already includes several later-era structures, so numbered migrations that add those same structures must be idempotent. Recent examples: `010_oauth_state.sql`, `025_prevent_circular_parent.sql`, `033_sprint_to_week_rename.sql`, and `035_add_comments.sql`.
 - Keep the API test DB guard in place: destructive setup should only truncate disposable databases such as `ship_test_audit`, with explicit override required for anything else.
 - Inline comment cancellation must remove the exact `commentMark` instance by `commentId`; clearing UI state or removing all marks of the type can leave stale highlights or break overlapping comments.
 - Improvement reports should keep second-pass result placeholders separate from verified evidence. If implementation or measurement has not run, write `TBD` rather than extrapolating from the discovery proof.

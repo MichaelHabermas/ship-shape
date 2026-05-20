@@ -9,6 +9,13 @@ import {
 } from 'react';
 import { api, UserInfo, Workspace } from '@/lib/api';
 import { useWorkspace, WorkspaceWithRole } from '@/contexts/WorkspaceContext';
+import { queryClient } from '@/lib/queryClient';
+import { documentKeys, type WikiDocument } from '@/hooks/useDocumentsQuery';
+import { programKeys, type Program } from '@/hooks/useProgramsQuery';
+import { projectKeys, type Project } from '@/hooks/useProjectsQuery';
+import { issueKeys, type Issue } from '@/hooks/useIssuesQuery';
+import { standupStatusKeys, type StandupStatus } from '@/hooks/useStandupStatusQuery';
+import { actionItemsKeys } from '@/hooks/useActionItemsQuery';
 
 // Cache key for offline auth
 const AUTH_CACHE_KEY = 'ship:auth-cache';
@@ -69,6 +76,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function seedBootstrapQueries(data: Awaited<ReturnType<typeof api.auth.bootstrap>>['data']): void {
+  if (!data) return;
+
+  queryClient.setQueryData<WikiDocument[]>(documentKeys.wikiList(), data.documents as WikiDocument[]);
+  queryClient.setQueryData<Program[]>(programKeys.lists(), data.programs as Program[]);
+  queryClient.setQueryData<Project[]>(projectKeys.lists(), data.projects as Project[]);
+  queryClient.setQueryData<Issue[]>(issueKeys.list(undefined), data.issues as Issue[]);
+  queryClient.setQueryData<StandupStatus>(standupStatusKeys.status(), data.standupStatus as StandupStatus);
+  queryClient.setQueryData(actionItemsKeys.list(), data.actionItems);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,8 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkSession = async () => {
       try {
-        const response = await api.auth.me();
+        const response = await api.auth.bootstrap();
         if (response.success && response.data) {
+          seedBootstrapQueries(response.data);
           setUser(response.data.user);
           setCurrentWorkspace(response.data.currentWorkspace);
           setWorkspaces(response.data.workspaces);

@@ -2,23 +2,24 @@ openapi: 3.0.0
 info:
   title: Ship API
   version: 1.0.0
-  description: "Ship is a project and sprint management platform with real-time collaboration.
+  description: |
+    Ship is a project and sprint management platform with real-time collaboration.
 
-## Authentication
+    ## Authentication
 
-All endpoints (except /auth/login and /health) require authentication via:
-- **Session Cookie**: Automatically set after login (15-minute timeout, 12-hour absolute)
-- **Bearer Token**: API tokens from Settings > API Tokens
+    All endpoints (except /auth/login and /health) require authentication via:
+    - **Session Cookie**: Automatically set after login (15-minute timeout, 12-hour absolute)
+    - **Bearer Token**: API tokens from Settings > API Tokens
 
-## Core Concepts
+    ## Core Concepts
 
-- **Documents**: Everything in Ship is a document (wikis, issues, projects, sprints, etc.)
-- **Document Type**: Each document has a `document_type` that determines its properties
-- **Belongs To**: Documents can be associated via `belongs_to` array (programs, projects, sprints, parent issues)
+    - **Documents**: Everything in Ship is a document (wikis, issues, projects, sprints, etc.)
+    - **Document Type**: Each document has a `document_type` that determines its properties
+    - **Belongs To**: Documents can be associated via `belongs_to` array (programs, projects, sprints, parent issues)
 
-## WebSocket Collaboration
+    ## WebSocket Collaboration
 
-Real-time editing available at `/collaboration/{docType}:{docId}` using Yjs CRDT protocol."
+    Real-time editing available at `/collaboration/{docType}:{docId}` using Yjs CRDT protocol.
   contact:
     name: Ship Team
 servers:
@@ -110,6 +111,19 @@ components:
       required:
         - id
         - type
+    DocumentVisibility:
+      type: string
+      enum:
+        - private
+        - workspace
+      description: Document visibility scope
+    IssueSource:
+      type: string
+      enum:
+        - internal
+        - external
+        - action_items
+      description: Issue source/provenance (never changes after creation)
     UserReference:
       type: object
       properties:
@@ -271,7 +285,7 @@ components:
         title:
           type: string
           minLength: 1
-          maxLength: 500
+          maxLength: 255
           default: Untitled
           description: Document title. Defaults to "Untitled".
         document_type:
@@ -287,6 +301,7 @@ components:
             - weekly_retro
             - standup
             - weekly_review
+          default: wiki
           description: Type of document
         content:
           type: object
@@ -311,15 +326,13 @@ components:
             - workspace
           default: workspace
           description: Document visibility scope
-      required:
-        - document_type
     UpdateDocument:
       type: object
       properties:
         title:
           type: string
           minLength: 1
-          maxLength: 500
+          maxLength: 255
         content:
           type: object
           additionalProperties:
@@ -339,6 +352,21 @@ components:
           enum:
             - private
             - workspace
+          description: Document visibility scope
+        document_type:
+          type: string
+          enum:
+            - wiki
+            - issue
+            - program
+            - project
+            - sprint
+            - person
+            - weekly_plan
+            - weekly_retro
+            - standup
+            - weekly_review
+          description: Type of document
     IssueState:
       type: string
       enum:
@@ -359,13 +387,6 @@ components:
         - low
         - none
       description: Issue priority level
-    IssueSource:
-      type: string
-      enum:
-        - internal
-        - external
-        - action_items
-      description: Issue source/provenance (never changes after creation)
     Issue:
       type: object
       properties:
@@ -378,7 +399,7 @@ components:
           type: string
         display_id:
           type: string
-          description: "Human-readable ticket ID (e.g., \"#42\")"
+          description: 'Human-readable ticket ID (e.g., "#42")'
           example: "#42"
         ticket_number:
           type: integer
@@ -2374,6 +2395,7 @@ components:
                 enum:
                   - private
                   - workspace
+                description: Document visibility scope
             required:
               - id
               - title
@@ -2440,6 +2462,58 @@ components:
           type: integer
       required:
         - learnings
+        - total
+    DocumentSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+        document_type:
+          type: string
+          enum:
+            - wiki
+            - issue
+            - program
+            - project
+            - sprint
+            - person
+            - weekly_plan
+            - weekly_retro
+            - standup
+            - weekly_review
+          description: Type of document
+        visibility:
+          type: string
+          enum:
+            - private
+            - workspace
+          description: Document visibility scope
+        ticket_number:
+          type: integer
+          nullable: true
+        updated_at:
+          type: string
+      required:
+        - id
+        - title
+        - document_type
+        - updated_at
+    DocumentSearchResponse:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentSearchResult"
+        total:
+          type: integer
+      required:
+        - documents
         - total
     UploadRequest:
       type: object
@@ -2713,6 +2787,312 @@ components:
       required:
         - token
         - secret
+    InferredAccountabilityType:
+      type: string
+      enum:
+        - standup
+        - weekly_plan
+        - weekly_review
+        - weekly_retro
+        - week_start
+        - week_issues
+        - project_plan
+        - project_retro
+        - changes_requested_plan
+        - changes_requested_retro
+      description: Type of accountability task
+    InferredActionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Synthetic ID (e.g., "standup-{sprintId}")
+        title:
+          type: string
+          description: Human-readable message describing the action needed
+        state:
+          type: string
+          enum:
+            - todo
+        priority:
+          type: string
+          enum:
+            - high
+        ticket_number:
+          type: number
+          enum:
+            - 0
+        display_id:
+          type: string
+          enum:
+            -
+        is_system_generated:
+          type: boolean
+          enum:
+            - true
+        accountability_type:
+          type: string
+          enum:
+            - standup
+            - weekly_plan
+            - weekly_review
+            - weekly_retro
+            - week_start
+            - week_issues
+            - project_plan
+            - project_retro
+            - changes_requested_plan
+            - changes_requested_retro
+          description: Type of accountability task
+        accountability_target_id:
+          type: string
+          format: uuid
+          description: Document ID to navigate to
+          example: 550e8400-e29b-41d4-a716-446655440000
+        target_title:
+          type: string
+          description: Title of the target document
+        due_date:
+          type: string
+          nullable: true
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: ISO 8601 date string (YYYY-MM-DD)
+          example: 2025-01-30
+        days_overdue:
+          type: integer
+          description: Positive if past due, 0 if due today, negative if upcoming
+      required:
+        - id
+        - title
+        - state
+        - priority
+        - ticket_number
+        - display_id
+        - is_system_generated
+        - accountability_type
+        - accountability_target_id
+        - target_title
+        - due_date
+        - days_overdue
+    AccountabilityActionItemsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InferredActionItem"
+        total:
+          type: integer
+        has_overdue:
+          type: boolean
+          description: True if any item has days_overdue > 0
+        has_due_today:
+          type: boolean
+          description: True if any item has days_overdue === 0
+      required:
+        - items
+        - total
+        - has_overdue
+        - has_due_today
+    BootstrapResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: UUID identifier
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                isSuperAdmin:
+                  type: boolean
+              required:
+                - id
+                - email
+                - name
+                - isSuperAdmin
+            currentWorkspace:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: UUID identifier
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                name:
+                  type: string
+                role:
+                  type: string
+                  nullable: true
+                  enum:
+                    - admin
+                    - member
+              required:
+                - id
+                - name
+            workspaces:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID identifier
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  name:
+                    type: string
+                  role:
+                    type: string
+                    nullable: true
+                    enum:
+                      - admin
+                      - member
+                required:
+                  - id
+                  - name
+            pendingAccountabilityItems:
+              type: array
+              items:
+                nullable: true
+            documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: UUID identifier
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  workspace_id:
+                    type: string
+                    format: uuid
+                    description: UUID identifier
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  document_type:
+                    type: string
+                    enum:
+                      - wiki
+                      - issue
+                      - program
+                      - project
+                      - sprint
+                      - person
+                      - weekly_plan
+                      - weekly_retro
+                      - standup
+                      - weekly_review
+                    description: Type of document
+                  title:
+                    type: string
+                  parent_id:
+                    type: string
+                    nullable: true
+                    format: uuid
+                    description: UUID identifier
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  position:
+                    type: integer
+                    nullable: true
+                  ticket_number:
+                    type: integer
+                    nullable: true
+                  properties:
+                    type: object
+                    nullable: true
+                    additionalProperties:
+                      nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 datetime string
+                    example: "2025-01-30T14:30:00.000Z"
+                  updated_at:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 datetime string
+                    example: "2025-01-30T14:30:00.000Z"
+                  created_by:
+                    type: string
+                    format: uuid
+                    description: UUID identifier
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  visibility:
+                    type: string
+                    enum:
+                      - private
+                      - workspace
+                    description: Document visibility scope
+                required:
+                  - id
+                  - workspace_id
+                  - document_type
+                  - title
+                  - parent_id
+                  - position
+                  - ticket_number
+                  - properties
+                  - created_at
+                  - updated_at
+                  - created_by
+                  - visibility
+            programs:
+              type: array
+              items:
+                $ref: "#/components/schemas/Program"
+            projects:
+              type: array
+              items:
+                $ref: "#/components/schemas/Project"
+            issues:
+              type: array
+              items:
+                $ref: "#/components/schemas/Issue"
+            standupStatus:
+              type: object
+              properties:
+                due:
+                  type: boolean
+                lastPosted:
+                  type: string
+                  nullable: true
+                  format: date-time
+                  description: ISO 8601 datetime string
+                  example: "2025-01-30T14:30:00.000Z"
+              required:
+                - due
+                - lastPosted
+            actionItems:
+              $ref: "#/components/schemas/AccountabilityActionItemsResponse"
+          required:
+            - user
+            - currentWorkspace
+            - workspaces
+            - pendingAccountabilityItems
+            - documents
+            - programs
+            - projects
+            - issues
+            - standupStatus
+            - actionItems
+      required:
+        - success
+        - data
     Backlink:
       type: object
       properties:
@@ -2739,7 +3119,7 @@ components:
           type: string
         display_id:
           type: string
-          description: "Display ID for issues (e.g., \"#42\")"
+          description: 'Display ID for issues (e.g., "#42")'
       required:
         - id
         - document_type
@@ -3585,113 +3965,6 @@ components:
         - previous_retro
         - standups
         - projects
-    InferredAccountabilityType:
-      type: string
-      enum:
-        - standup
-        - weekly_plan
-        - weekly_review
-        - weekly_retro
-        - week_start
-        - week_issues
-        - project_plan
-        - project_retro
-        - changes_requested_plan
-        - changes_requested_retro
-      description: Type of accountability task
-    InferredActionItem:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Synthetic ID (e.g., "standup-{sprintId}")
-        title:
-          type: string
-          description: Human-readable message describing the action needed
-        state:
-          type: string
-          enum:
-            - todo
-        priority:
-          type: string
-          enum:
-            - high
-        ticket_number:
-          type: number
-          enum:
-            - 0
-        display_id:
-          type: string
-          enum:
-            - 
-        is_system_generated:
-          type: boolean
-          enum:
-            - true
-        accountability_type:
-          type: string
-          enum:
-            - standup
-            - weekly_plan
-            - weekly_review
-            - weekly_retro
-            - week_start
-            - week_issues
-            - project_plan
-            - project_retro
-            - changes_requested_plan
-            - changes_requested_retro
-          description: Type of accountability task
-        accountability_target_id:
-          type: string
-          format: uuid
-          description: Document ID to navigate to
-          example: 550e8400-e29b-41d4-a716-446655440000
-        target_title:
-          type: string
-          description: Title of the target document
-        due_date:
-          type: string
-          nullable: true
-          pattern: ^\d{4}-\d{2}-\d{2}$
-          description: ISO 8601 date string (YYYY-MM-DD)
-          example: 2025-01-30
-        days_overdue:
-          type: integer
-          description: Positive if past due, 0 if due today, negative if upcoming
-      required:
-        - id
-        - title
-        - state
-        - priority
-        - ticket_number
-        - display_id
-        - is_system_generated
-        - accountability_type
-        - accountability_target_id
-        - target_title
-        - due_date
-        - days_overdue
-    AccountabilityActionItemsResponse:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/InferredActionItem"
-        total:
-          type: integer
-        has_overdue:
-          type: boolean
-          description: True if any item has days_overdue > 0
-        has_due_today:
-          type: boolean
-          description: True if any item has days_overdue === 0
-      required:
-        - items
-        - total
-        - has_overdue
-        - has_due_today
     WeeklyPlan:
       type: object
       properties:
@@ -6858,6 +7131,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MentionSearchResult"
+  /search/documents:
+    get:
+      tags:
+        - Search
+      summary: Search document titles
+      description: Title-only metadata search for command palette document navigation.
+      parameters:
+        - schema:
+            type: string
+            description: Title search query
+          required: false
+          name: q
+          in: query
+        - schema:
+            type: string
+            enum:
+              - wiki
+              - issue
+              - program
+              - project
+              - sprint
+              - person
+              - weekly_plan
+              - weekly_retro
+              - standup
+              - weekly_review
+            description: Optional document type filter
+          required: false
+          name: type
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+          required: false
+          name: limit
+          in: query
+      responses:
+        200:
+          description: Document search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentSearchResponse"
   /search/learnings:
     get:
       tags:
@@ -7163,6 +7480,34 @@ paths:
           description: Token deleted
         404:
           description: Token not found
+  /accountability/action-items:
+    get:
+      tags:
+        - Accountability
+      summary: Get inferred action items
+      description: Returns action items computed dynamically from project/sprint state. No issues are created; items are inferred on each request.
+      responses:
+        200:
+          description: Inferred action items sorted by urgency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountabilityActionItemsResponse"
+  /bootstrap:
+    get:
+      tags:
+        - Bootstrap
+      summary: Load authenticated app shell data
+      description: Returns authenticated user/workspace context plus the list data needed to hydrate the main application shell query caches.
+      responses:
+        200:
+          description: Bootstrap payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BootstrapResponse"
+        401:
+          description: Not authenticated
   /documents/{id}/backlinks:
     get:
       tags:
@@ -7461,19 +7806,6 @@ paths:
                 $ref: "#/components/schemas/MyWeekResponse"
         404:
           description: Person or workspace not found
-  /accountability/action-items:
-    get:
-      tags:
-        - Accountability
-      summary: Get inferred action items
-      description: Returns action items computed dynamically from project/sprint state. No issues are created; items are inferred on each request.
-      responses:
-        200:
-          description: Inferred action items sorted by urgency
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AccountabilityActionItemsResponse"
   /weekly-plans:
     post:
       tags:
@@ -7865,7 +8197,7 @@ paths:
                 - content
       responses:
         200:
-          description: "Plan analysis result (or {error: \"ai_unavailable\"} if service is down)"
+          description: 'Plan analysis result (or {error: "ai_unavailable"} if service is down)'
           content:
             application/json:
               schema:
@@ -7899,7 +8231,7 @@ paths:
                 - plan_content
       responses:
         200:
-          description: "Retro analysis result (or {error: \"ai_unavailable\"} if service is down)"
+          description: 'Retro analysis result (or {error: "ai_unavailable"} if service is down)'
           content:
             application/json:
               schema:

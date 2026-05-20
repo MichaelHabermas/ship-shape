@@ -11,10 +11,6 @@ interface SearchableDocument {
   title: string;
   document_type: string;
   ticket_number?: number | null;
-  properties?: {
-    prefix?: string;
-    state?: string;
-  };
 }
 
 type ConvertibleDocumentType = 'wiki' | 'issue' | 'project' | 'sprint';
@@ -115,7 +111,7 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
 
       const res = await apiPost('/api/issues', {
         title: 'Untitled',
-        program_id: programs[0].id,
+        belongs_to: [{ id: programs[0].id, type: 'program' }],
       });
 
       if (res.ok) {
@@ -140,30 +136,48 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
     }
   };
 
-  // Fetch documents when palette opens
+  // Search documents when palette opens or query changes
   useEffect(() => {
     if (!open) {
       setSearch('');
+      setDocuments([]);
       return;
     }
+
+    let cancelled = false;
 
     const fetchDocuments = async () => {
       setLoading(true);
       try {
-        const res = await apiGet('/api/documents');
+        const params = new URLSearchParams({
+          q: search,
+          limit: '20',
+        });
+        const res = await apiGet(`/api/search/documents?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
-          setDocuments(data);
+          if (!cancelled) {
+            setDocuments(data.documents);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch documents:', err);
+        if (!cancelled) {
+          console.error('Failed to search documents:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchDocuments();
-  }, [open]);
+    const timeout = window.setTimeout(fetchDocuments, 150);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [open, search]);
 
   // Group documents by type for display
   const groupedDocuments = useMemo(() => {
@@ -195,7 +209,7 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
       case 'program':
         return `/programs/${doc.id}`;
       case 'project':
-        return `/programs/${doc.id}`; // Projects use program routes
+        return `/projects/${doc.id}`;
       case 'sprint':
         return `/sprints/${doc.id}`;
       case 'person':

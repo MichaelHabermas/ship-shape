@@ -12,6 +12,7 @@ import { isWorkspaceAdmin } from '../middleware/visibility.js';
 import { handleVisibilityChange, handleDocumentConversion, invalidateDocumentCache, broadcastToUser } from '../collaboration/index.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
+import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../schemas/document-boundary.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -97,17 +98,14 @@ async function canAccessDocument(
 // Validation schemas
 const createDocumentSchema = z.object({
   title: z.string().min(1).max(255).optional().default('Untitled'),
-  document_type: z.enum(['wiki', 'issue', 'program', 'project', 'sprint', 'person', 'weekly_plan', 'weekly_retro']).optional().default('wiki'),
+  document_type: documentTypeSchema.optional().default('wiki'),
   parent_id: z.string().uuid().optional().nullable(),
   program_id: z.string().uuid().optional().nullable(),
   sprint_id: z.string().uuid().optional().nullable(),
   properties: z.record(z.unknown()).optional(),
-  visibility: z.enum(['private', 'workspace']).optional(),
+  visibility: documentVisibilitySchema.optional(),
   content: z.unknown().optional(),
-  belongs_to: z.array(z.object({
-    id: z.string().uuid(),
-    type: z.enum(['program', 'project', 'sprint', 'parent']),
-  })).optional(),
+  belongs_to: z.array(belongsToSchema).optional(),
 });
 
 const updateDocumentSchema = z.object({
@@ -116,19 +114,16 @@ const updateDocumentSchema = z.object({
   parent_id: z.string().uuid().optional().nullable(),
   position: z.number().int().min(0).optional(),
   properties: z.record(z.unknown()).optional(),
-  visibility: z.enum(['private', 'workspace']).optional(),
-  document_type: z.enum(['wiki', 'issue', 'program', 'project', 'sprint', 'person']).optional(),
+  visibility: documentVisibilitySchema.optional(),
+  document_type: documentTypeSchema.optional(),
   // Issue-specific fields (stored in properties but accepted at top level for convenience)
   state: z.string().optional(),
   priority: z.string().optional(),
   estimate: z.number().nullable().optional(),
   assignee_id: z.string().uuid().nullable().optional(),
-  source: z.enum(['internal', 'external']).optional(),
+  source: issueSourceSchema.optional(),
   rejection_reason: z.string().nullable().optional(),
-  belongs_to: z.array(z.object({
-    id: z.string().uuid(),
-    type: z.enum(['program', 'project', 'sprint', 'parent']),
-  })).optional(),
+  belongs_to: z.array(belongsToSchema).optional(),
   confirm_orphan_children: z.boolean().optional(),
   // Project-specific fields (stored in properties but accepted at top level)
   impact: z.number().min(1).max(10).nullable().optional(),

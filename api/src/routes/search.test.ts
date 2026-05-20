@@ -72,7 +72,7 @@ describe('Search API', () => {
 
   afterAll(async () => {
     // Clean up test data in correct order (foreign keys)
-    await pool.query('DELETE FROM documents WHERE id IN ($1, $2)', [testPersonDocId, testWikiDocId]);
+    await pool.query('DELETE FROM documents WHERE id IN ($1, $2) OR workspace_id = $3', [testPersonDocId, testWikiDocId, testWorkspaceId]);
     await pool.query('DELETE FROM sessions WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [testUserId]);
     await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
@@ -136,6 +136,84 @@ describe('Search API', () => {
     expect(doc).toHaveProperty('id');
     expect(doc).toHaveProperty('title');
     expect(doc).toHaveProperty('document_type');
+  });
+
+  it('GET /api/search/documents returns 401 without auth', async () => {
+    const res = await request(app)
+      .get('/api/search/documents?q=test');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/search/documents searches titles only and returns metadata', async () => {
+    const contentOnlyResult = await pool.query(
+      `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
+       VALUES ($1, 'wiki', 'No Title Match', '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"PaletteOnlyNeedle"}]}]}', $2)
+       RETURNING id`,
+      [testWorkspaceId, testUserId]
+    );
+    const titleResult = await pool.query(
+      `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
+       VALUES ($1, 'wiki', 'PaletteOnlyNeedle Title', '{"type":"doc","content":[]}', $2)
+       RETURNING id`,
+      [testWorkspaceId, testUserId]
+    );
+
+    const res = await request(app)
+      .get('/api/search/documents?q=PaletteOnlyNeedle')
+      .set('Cookie', sessionCookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('documents');
+    expect(res.body).toHaveProperty('total');
+
+    const ids = res.body.documents.map((doc: any) => doc.id);
+    expect(ids).toContain(titleResult.rows[0].id);
+    expect(ids).not.toContain(contentOnlyResult.rows[0].id);
+
+    const doc = res.body.documents.find((item: any) => item.id === titleResult.rows[0].id);
+    expect(doc).toMatchObject({
+      id: titleResult.rows[0].id,
+      title: 'PaletteOnlyNeedle Title',
+      document_type: 'wiki',
+    });
+    expect(doc).not.toHaveProperty('content');
+    expect(doc).not.toHaveProperty('properties');
+  });
+
+  it('GET /api/search/documents filters by document type', async () => {
+    await pool.query(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by)
+       VALUES ($1, 'wiki', 'Type Filter Target', $2),
+              ($1, 'issue', 'Type Filter Target', $2)`,
+      [testWorkspaceId, testUserId]
+    );
+
+    const res = await request(app)
+      .get('/api/search/documents?q=Type%20Filter&type=issue')
+      .set('Cookie', sessionCookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.documents.length).toBeGreaterThan(0);
+    expect(res.body.documents.every((doc: any) => doc.document_type === 'issue')).toBe(true);
+  });
+
+  it('GET /api/search/documents respects limit parameter', async () => {
+    await pool.query(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by)
+       VALUES ($1, 'wiki', 'Limited Palette Search A', $2),
+              ($1, 'wiki', 'Limited Palette Search B', $2),
+              ($1, 'wiki', 'Limited Palette Search C', $2)`,
+      [testWorkspaceId, testUserId]
+    );
+
+    const res = await request(app)
+      .get('/api/search/documents?q=Limited%20Palette%20Search&limit=2')
+      .set('Cookie', sessionCookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.documents).toHaveLength(2);
+    expect(res.body.total).toBe(2);
   });
 });
 

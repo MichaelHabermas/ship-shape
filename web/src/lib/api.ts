@@ -330,6 +330,15 @@ export interface MeResponse {
   pendingAccountabilityItems?: AccountabilityItem[];
 }
 
+export interface BootstrapResponse extends MeResponse {
+  documents: unknown[];
+  programs: unknown[];
+  projects: unknown[];
+  issues: unknown[];
+  standupStatus: unknown;
+  actionItems: unknown;
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -344,6 +353,7 @@ export const api = {
       });
     },
     me: () => request<MeResponse>('/api/auth/me'),
+    bootstrap: () => request<BootstrapResponse>('/api/bootstrap'),
   },
 
   workspaces: {

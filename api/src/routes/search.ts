@@ -51,6 +51,7 @@ searchRouter.get('/mentions', authMiddleware, async (req: Request, res: Response
        FROM documents
        WHERE workspace_id = $1
          AND document_type IN ('wiki', 'issue', 'project', 'program')
+         AND archived_at IS NULL
          AND deleted_at IS NULL
          AND title ILIKE $2
          AND (visibility = 'workspace' OR created_by = $3 OR $4 = TRUE)
@@ -74,6 +75,69 @@ searchRouter.get('/mentions', authMiddleware, async (req: Request, res: Response
   } catch (error) {
     console.error('Error searching mentions:', error);
     res.status(500).json({ error: 'Failed to search mentions' });
+  }
+});
+
+// Search document titles for command palette navigation
+// GET /api/search/documents?q=:query&type=:document_type&limit=:limit
+searchRouter.get('/documents', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const searchQuery = ((req.query.q as string) || '').trim();
+    const documentType = req.query.type as string | undefined;
+    const workspaceId = req.workspaceId!;
+    const userId = req.userId!;
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 50);
+
+    const sanitizedQuery = escapeLikePattern(searchQuery);
+    const isAdmin = await isWorkspaceAdmin(userId, workspaceId);
+
+    const params: (string | boolean | number)[] = [workspaceId, userId, isAdmin];
+    let query = `
+      SELECT id, title, document_type, visibility, ticket_number, updated_at
+      FROM documents
+      WHERE workspace_id = $1
+        AND archived_at IS NULL
+        AND deleted_at IS NULL
+        AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE)
+    `;
+
+    if (searchQuery) {
+      params.push(`%${sanitizedQuery}%`);
+      query += ` AND title ILIKE $${params.length}`;
+    }
+
+    if (documentType) {
+      params.push(documentType);
+      query += ` AND document_type = $${params.length}`;
+    } else {
+      query += ` AND document_type IN ('wiki', 'issue', 'project', 'program', 'sprint', 'person')`;
+    }
+
+    params.push(limit);
+    query += `
+      ORDER BY
+        CASE document_type
+          WHEN 'issue' THEN 1
+          WHEN 'wiki' THEN 2
+          WHEN 'program' THEN 3
+          WHEN 'project' THEN 4
+          WHEN 'sprint' THEN 5
+          WHEN 'person' THEN 6
+          ELSE 7
+        END,
+        updated_at DESC
+      LIMIT $${params.length}
+    `;
+
+    const result = await pool.query(query, params);
+
+    res.json({
+      documents: result.rows,
+      total: result.rows.length,
+    });
+  } catch (error) {
+    console.error('Error searching documents:', error);
+    res.status(500).json({ error: 'Failed to search documents' });
   }
 });
 

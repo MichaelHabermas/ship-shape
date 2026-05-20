@@ -3,58 +3,28 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, DateSchema, BelongsToEntrySchema, BelongsToResponseSchema, UserReferenceSchema } from './common.js';
+import {
+  accountabilityTypeSchema,
+  issuePrioritySchema,
+  issueStateSchema,
+} from '../../schemas/document-boundary.js';
+import { UuidSchema, DateTimeSchema, DateSchema, BelongsToEntrySchema, BelongsToResponseSchema, UserReferenceSchema, IssueSourceSchema } from './common.js';
 
 // ============== Issue Enums ==============
 
-export const IssueStateSchema = z.enum([
-  'triage',
-  'backlog',
-  'todo',
-  'in_progress',
-  'in_review',
-  'done',
-  'cancelled',
-]).openapi({
+export const IssueStateSchema = issueStateSchema.openapi({
   description: 'Issue workflow state',
 });
 
 registry.register('IssueState', IssueStateSchema);
 
-export const IssuePrioritySchema = z.enum([
-  'urgent',
-  'high',
-  'medium',
-  'low',
-  'none',
-]).openapi({
+export const IssuePrioritySchema = issuePrioritySchema.openapi({
   description: 'Issue priority level',
 });
 
 registry.register('IssuePriority', IssuePrioritySchema);
 
-export const IssueSourceSchema = z.enum([
-  'internal',
-  'external',
-  'action_items',
-]).openapi({
-  description: 'Issue source/provenance (never changes after creation)',
-});
-
-registry.register('IssueSource', IssueSourceSchema);
-
-export const AccountabilityTypeSchema = z.enum([
-  'standup',
-  'weekly_plan',
-  'weekly_retro',
-  'weekly_review',
-  'week_start',
-  'week_issues',
-  'project_plan',
-  'project_retro',
-  'changes_requested_plan',
-  'changes_requested_retro',
-]).openapi({
+export const AccountabilityTypeSchema = accountabilityTypeSchema.openapi({
   description: 'Type of accountability task for auto-generated issues',
 });
 
