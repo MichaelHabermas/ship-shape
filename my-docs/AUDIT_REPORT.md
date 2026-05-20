@@ -2,6 +2,22 @@
 
 ---
 
+## Executive Summary
+
+Ship is usable under the audited local workload, and the core product direction is sound: the unified document model gives the system a coherent foundation for issues, projects, programs, sprints, people, and weekly planning. The audit did not find a product that is fundamentally broken. It found a product whose main risks are concentrated at the boundaries where that model meets production reality: API route contracts, database row mapping, frontend loading behavior, test isolation, accessibility semantics, and documentation/API alignment.
+
+The most important pattern is boundary drift. Several high-risk files sit close to request input and database output while relying on unsafe casts, non-null assertions, and implicit shape assumptions. Search is documented differently than it is implemented. Shared document-tree UI appears in core flows but carries markup and accessibility defects. These are not random issues; they are symptoms of a system whose conceptual model is cleaner than some of its enforcement points.
+
+Frontend performance is the largest user-facing opportunity. The audited production build ships too much JavaScript through the initial entry path, with expensive editor, collaboration, emoji, and highlighting dependencies contributing to a large main chunk. The issue is less about total app size than about load timing: users pay early for capabilities they may not use immediately.
+
+API latency is not the primary performance concern in the local audit. Rate-aware endpoint benchmarks were mostly acceptable at the audited data volume. The more meaningful performance pressure comes from page-load fanout, repeated session writes, large list payloads, and unclear ownership of search behavior between client and server.
+
+Data and test safety are credible but uneven. The audit used explicit runtime-load data in `ship_dev` and a separate `ship_test_audit` database for destructive checks, which is the right separation. The risk is that the codebase does not make that separation hard enough to misuse. In a system with destructive tests and local PostgreSQL workflows, accidental database targeting remains a material operational footgun.
+
+Overall, Ship looks like a coherent product with implementation debt in the places that matter most: typed boundaries, initial-load discipline, shared UI semantics, and source-of-truth alignment. The opportunity is not to change the architecture. It is to make the existing architecture more enforceable, so the unified document model remains a strength as the system grows.
+
+---
+
 ## Context
 
 - Audit date/time: 2026-05-19 10:23:21 CDT.
@@ -16,22 +32,6 @@
 - Authenticated login verified with `dev@ship.local`; landing URL: `http://localhost:5174/docs`.
 - Browser console after login shows one `401 Unauthorized` from `:3000/api/auth/me`, followed by successful realtime event connection and pong messages.
 - Runtime flow URL note: the global Issues list is available at `http://localhost:5174/issues`; Issues are also discoverable through Programs, where each program has its own Issues tab.
-
----
-
-## Executive Summary
-
-Ship is usable under the audited local workload, and the core product direction is sound: the unified document model gives the system a coherent foundation for issues, projects, programs, sprints, people, and weekly planning. The audit did not find a product that is fundamentally broken. It found a product whose main risks are concentrated at the boundaries where that model meets production reality: API route contracts, database row mapping, frontend loading behavior, test isolation, accessibility semantics, and documentation/API alignment.
-
-The most important pattern is boundary drift. Several high-risk files sit close to request input and database output while relying on unsafe casts, non-null assertions, and implicit shape assumptions. Search is documented differently than it is implemented. Shared document-tree UI appears in core flows but carries markup and accessibility defects. These are not random issues; they are symptoms of a system whose conceptual model is cleaner than some of its enforcement points.
-
-Frontend performance is the largest user-facing opportunity. The audited production build ships too much JavaScript through the initial entry path, with expensive editor, collaboration, emoji, and highlighting dependencies contributing to a large main chunk. The issue is less about total app size than about load timing: users pay early for capabilities they may not use immediately.
-
-API latency is not the primary performance concern in the local audit. Rate-aware endpoint benchmarks were mostly acceptable at the audited data volume. The more meaningful performance pressure comes from page-load fanout, repeated session writes, large list payloads, and unclear ownership of search behavior between client and server.
-
-Data and test safety are credible but uneven. The audit used explicit runtime-load data in `ship_dev` and a separate `ship_test_audit` database for destructive checks, which is the right separation. The risk is that the codebase does not make that separation hard enough to misuse. In a system with destructive tests and local PostgreSQL workflows, accidental database targeting remains a material operational footgun.
-
-Overall, Ship looks like a coherent product with implementation debt in the places that matter most: typed boundaries, initial-load discipline, shared UI semantics, and source-of-truth alignment. The opportunity is not to change the architecture. It is to make the existing architecture more enforceable, so the unified document model remains a strength as the system grows.
 
 ---
 
