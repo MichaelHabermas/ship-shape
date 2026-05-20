@@ -22,7 +22,8 @@
     "build:api": "pnpm run build:shared && pnpm --filter @ship/api build",
     "build:web": "pnpm run build:shared && pnpm --filter @ship/web build",
     "type-check": "pnpm --recursive run type-check",
-    "lint": "pnpm --recursive run lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
     "test": "pnpm --filter @ship/api test",
     "test:e2e": "playwright test",
@@ -42,12 +43,15 @@
     "@testcontainers/postgresql": "^11.11.0",
     "@types/supertest": "^6.0.3",
     "@vitest/ui": "^4.0.16",
+    "eslint": "^10.4.0",
     "get-port": "^7.1.0",
+    "globals": "^17.6.0",
     "husky": "^9.1.7",
     "prettier": "^3.4.2",
     "supertest": "^7.1.4",
     "testcontainers": "^11.11.0",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.59.4",
     "vitest": "^4.0.16"
   }
 }
