@@ -6869,84 +6869,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LearningSearchResult"
-  /search/documents:
-    get:
-      tags:
-        - Search
-      summary: Search documents
-      description: Full-text search across all document types.
-      parameters:
-        - schema:
-                      type: string
-                    required: true
-                    name: q
-                    in: query
-        - schema:
-                      type: string
-                      enum:
-                        - wiki
-                        - issue
-                        - program
-                        - project
-                        - sprint
-                        - person
-                        - weekly_plan
-                        - weekly_retro
-                        - standup
-                        - weekly_review
-                      description: Filter by document type
-                    required: false
-                    name: type
-                    in: query
-        - schema:
-                      type: integer
-                      minimum: 1
-                      maximum: 100
-                    required: false
-                    name: limit
-                    in: query
-      responses:
-        200:
-          description: Document search results
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      format: uuid
-                      description: UUID identifier
-                      example: 550e8400-e29b-41d4-a716-446655440000
-                    title:
-                      type: string
-                    document_type:
-                      type: string
-                      enum:
-                        - wiki
-                        - issue
-                        - program
-                        - project
-                        - sprint
-                        - person
-                        - weekly_plan
-                        - weekly_retro
-                        - standup
-                        - weekly_review
-                      description: Type of document
-                    content_preview:
-                      type: string
-                      nullable: true
-                    updated_at:
-                      type: string
-                  required:
-                    - id
-                    - title
-                    - document_type
-                    - content_preview
-                    - updated_at
   /files/upload:
     post:
       tags:
@@ -7781,7 +7703,7 @@ paths:
                   $ref: "#/components/schemas/ContentHistoryEntry"
         404:
           description: Weekly retro not found
-  /api/documents/{id}/comments:
+  /documents/{id}/comments:
     get:
       operationId: list_document_comments
       summary: List comments for a document
@@ -7831,7 +7753,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CommentResponse"
-  /api/comments/{id}:
+  /comments/{id}:
     patch:
       operationId: update_comment
       summary: Update a comment (edit content or resolve/un-resolve)

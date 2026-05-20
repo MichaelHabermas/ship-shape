@@ -90,36 +90,3 @@ registry.registerPath({
     },
   },
 });
-
-registry.registerPath({
-  method: 'get',
-  path: '/search/documents',
-  tags: ['Search'],
-  summary: 'Search documents',
-  description: 'Full-text search across all document types.',
-  request: {
-    query: z.object({
-      q: z.string(),
-      type: DocumentTypeSchema.optional().openapi({
-        description: 'Filter by document type',
-      }),
-      limit: z.coerce.number().int().min(1).max(100).optional(),
-    }),
-  },
-  responses: {
-    200: {
-      description: 'Document search results',
-      content: {
-        'application/json': {
-          schema: z.array(z.object({
-            id: UuidSchema,
-            title: z.string(),
-            document_type: DocumentTypeSchema,
-            content_preview: z.string().nullable(),
-            updated_at: z.string(),
-          })),
-        },
-      },
-    },
-  },
-});

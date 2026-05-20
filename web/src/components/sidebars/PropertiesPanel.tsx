@@ -233,9 +233,9 @@ function WeeklyDocumentSidebar({
   weeklyReviewState?: WeeklyReviewActionsState | null;
 }) {
   const docProperties = document.properties || {};
-  const weekNumber = docProperties.week_number as number | undefined;
-  const personId = docProperties.person_id as string | undefined;
-  const projectId = docProperties.project_id as string | undefined;
+  const weekNumber = docProperties.week_number;
+  const personId = docProperties.person_id;
+  const projectId = docProperties.project_id;
 
   const isRetro = document.document_type === 'weekly_retro';
   const isReviewMode = weeklyReviewState?.isReviewMode ?? false;
@@ -387,7 +387,7 @@ function WeeklyDocumentSidebar({
       {/* Content History Panel */}
       <ContentHistoryPanel
         documentId={document.id}
-        documentType={document.document_type as 'weekly_plan' | 'weekly_retro'}
+        documentType={document.document_type}
       />
     </div>
   );
@@ -466,7 +466,7 @@ export function PropertiesPanel({
     // For sprints, also check program_accountable_id (inherited from program)
     // and supervisor relationship (reports_to on the sprint owner's person document)
     if (document.document_type === 'sprint') {
-      const sprintDoc = document as SprintDocument;
+      const sprintDoc = document;
       if (sprintDoc.program_accountable_id === user.id) return true;
       if (sprintDoc.owner_reports_to === user.id) return true;
     }
@@ -500,10 +500,10 @@ export function PropertiesPanel({
         const wikiProps = panelProps as WikiPanelProps;
         return (
           <WikiSidebar
-            document={document as WikiDocument}
+            document={document}
             teamMembers={wikiProps.teamMembers || []}
             currentUserId={wikiProps.currentUserId}
-            onUpdate={onUpdate as (updates: Partial<WikiDocument>) => Promise<void>}
+            onUpdate={onUpdate}
           />
         );
       }
@@ -512,11 +512,11 @@ export function PropertiesPanel({
         const issueProps = panelProps as IssuePanelProps;
         return (
           <IssueSidebar
-            issue={document as IssueDocument}
+            issue={document}
             teamMembers={issueProps.teamMembers || []}
             programs={issueProps.programs || []}
             projects={issueProps.projects || []}
-            onUpdate={onUpdate as (updates: Partial<IssueDocument>) => Promise<void>}
+            onUpdate={onUpdate}
             onConvert={issueProps.onConvert}
             onUndoConversion={issueProps.onUndoConversion}
             onAccept={issueProps.onAccept}
@@ -533,10 +533,10 @@ export function PropertiesPanel({
         const projectProps = panelProps as ProjectPanelProps;
         return (
           <ProjectSidebar
-            project={document as ProjectDocument}
+            project={document}
             programs={projectProps.programs || []}
             people={projectProps.people || []}
-            onUpdate={onUpdate as (updates: Partial<ProjectDocument>) => Promise<void>}
+            onUpdate={onUpdate}
             onConvert={projectProps.onConvert}
             onUndoConversion={projectProps.onUndoConversion}
             isConverting={projectProps.isConverting}
@@ -553,8 +553,8 @@ export function PropertiesPanel({
         const sprintProps = panelProps as SprintPanelProps;
         return (
           <WeekSidebar
-            sprint={document as SprintDocument}
-            onUpdate={onUpdate as (updates: Partial<SprintDocument>) => Promise<void>}
+            sprint={document}
+            onUpdate={onUpdate}
             highlightedFields={highlightedFields}
             people={sprintProps.people}
             existingSprints={sprintProps.existingSprints}
@@ -569,9 +569,9 @@ export function PropertiesPanel({
         const programProps = panelProps as ProgramPanelProps;
         return (
           <ProgramSidebar
-            program={document as ProgramDocument}
+            program={document}
             people={programProps.people || []}
-            onUpdate={onUpdate as (updates: Partial<ProgramDocument>) => Promise<void>}
+            onUpdate={onUpdate}
             highlightedFields={highlightedFields}
           />
         );
@@ -583,7 +583,7 @@ export function PropertiesPanel({
         // Names are fetched via WeeklyDocumentSidebar component
         return (
           <WeeklyDocumentSidebar
-            document={document as WeeklyPlanDocument | WeeklyRetroDocument}
+            document={document}
             weeklyReviewState={weeklyReviewState}
           />
         );

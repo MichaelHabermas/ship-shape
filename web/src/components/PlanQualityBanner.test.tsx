@@ -67,7 +67,7 @@ describe('RetroQualityBanner', () => {
       throw new Error(`Unexpected fetch call: ${method} ${url}`);
     });
 
-    global.fetch = fetchMock as typeof fetch;
+    global.fetch = fetchMock;
 
     const { rerender } = render(
       <RetroQualityBanner

@@ -67,12 +67,13 @@ export function DocumentTreeItem({
 
   return (
     <li
-      role="treeitem"
-      aria-expanded={hasChildren ? isOpen : undefined}
-      aria-selected={isActive}
+      role="none"
       data-testid="doc-item"
     >
       <div
+        role="treeitem"
+        aria-expanded={hasChildren ? isOpen : undefined}
+        aria-selected={isActive}
         className={cn(
           'group flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm',
           'hover:bg-border/30 transition-colors',

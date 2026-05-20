@@ -379,7 +379,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Build update query
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (content !== undefined) {

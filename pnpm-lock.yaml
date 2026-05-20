@@ -243,15 +243,9 @@ importers:
       '@ship/shared':
         specifier: workspace:*
         version: link:../shared
-      '@tanstack/query-sync-storage-persister':
-        specifier: ^5.90.18
-        version: 5.90.18
       '@tanstack/react-query':
         specifier: ^5.90.16
         version: 5.90.16(react@18.3.1)
-      '@tanstack/react-query-devtools':
-        specifier: ^5.91.2
-        version: 5.91.2(@tanstack/react-query@5.90.16(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query-persist-client':
         specifier: ^5.90.18
         version: 5.90.18(@tanstack/react-query@5.90.16(react@18.3.1))(react@18.3.1)
@@ -385,6 +379,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@6.4.1(@types/node@22.19.5)(jiti@1.21.7)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@tanstack/react-query-devtools':
+        specifier: ^5.91.2
+        version: 5.91.2(@tanstack/react-query@5.90.16(react@18.3.1))(react@18.3.1)
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.23(postcss@8.5.6)
@@ -2030,9 +2027,6 @@ packages:
 
   '@tanstack/query-persist-client-core@5.91.15':
     resolution: {integrity: sha512-vnPSfQVo41EKJN8v20nkhWNZPyB1dMJIy5icOvCGzcCJzsmRefYY1owtr63ICOcjOiPPTuNEfPsdjdBhkzYnmA==}
-
-  '@tanstack/query-sync-storage-persister@5.90.18':
-    resolution: {integrity: sha512-tKngFopz/TuAe7LBDg7IOhWPh9blxdQ6QG/vVL2dFzRmlPNcSo4WdCSONqSDioJkcyTwh1YCSlcikmJ1WnSb3Q==}
 
   '@tanstack/react-query-devtools@5.91.2':
     resolution: {integrity: sha512-ZJ1503ay5fFeEYFUdo7LMNFzZryi6B0Cacrgr2h1JRkvikK1khgIq6Nq2EcblqEdIlgB/r7XDW8f8DQ89RuUgg==}
@@ -7145,11 +7139,6 @@ snapshots:
   '@tanstack/query-persist-client-core@5.91.15':
     dependencies:
       '@tanstack/query-core': 5.90.16
-
-  '@tanstack/query-sync-storage-persister@5.90.18':
-    dependencies:
-      '@tanstack/query-core': 5.90.16
-      '@tanstack/query-persist-client-core': 5.91.15
 
   '@tanstack/react-query-devtools@5.91.2(@tanstack/react-query@5.90.16(react@18.3.1))(react@18.3.1)':
     dependencies:

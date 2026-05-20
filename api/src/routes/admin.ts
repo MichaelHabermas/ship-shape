@@ -1498,7 +1498,7 @@ router.get('/debug/users', async (req: Request, res: Response): Promise<void> =>
       if (!membershipsByUser[userId]) {
         membershipsByUser[userId] = [];
       }
-      membershipsByUser[userId]!.push({
+      membershipsByUser[userId].push({
         workspaceId: m.workspace_id,
         workspaceName: m.workspace_name,
         role: m.role,

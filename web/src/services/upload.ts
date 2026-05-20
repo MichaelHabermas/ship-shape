@@ -25,13 +25,38 @@ interface UploadProgress {
 
 type ProgressCallback = (progress: UploadProgress) => void;
 
+interface CsrfTokenResponse {
+  token: string;
+}
+
+interface ApiErrorResponse {
+  error?: string;
+}
+
+interface UploadRequestResponse {
+  fileId: string;
+  uploadUrl: string;
+}
+
+interface FileMetadataResponse {
+  cdn_url: string;
+}
+
+interface ConfirmUploadResponse {
+  cdnUrl: string;
+}
+
+async function readJson<T>(res: Response): Promise<T> {
+  return await res.json() as T;
+}
+
 /**
  * Get CSRF token for API requests
  */
 async function getCsrfToken(): Promise<string> {
   const res = await fetch(`${API_BASE}/api/csrf-token`, { credentials: 'include' });
   if (!res.ok) throw new Error('Failed to get CSRF token');
-  const { token } = await res.json();
+  const { token } = await readJson<CsrfTokenResponse>(res);
   return token;
 }
 
@@ -88,11 +113,11 @@ export async function uploadFile(
     });
 
     if (!uploadReqRes.ok) {
-      const error = await uploadReqRes.json();
+      const error = await readJson<ApiErrorResponse>(uploadReqRes);
       throw new Error(error.error || 'Failed to create upload request');
     }
 
-    const { fileId, uploadUrl, s3Key } = await uploadReqRes.json();
+    const { fileId, uploadUrl } = await readJson<UploadRequestResponse>(uploadReqRes);
     updateProgress({ fileId, progress: 20 });
 
     // Step 2: Upload file data
@@ -118,7 +143,7 @@ export async function uploadFile(
       });
 
       if (!uploadRes.ok) {
-        const error = await uploadRes.json();
+        const error = await readJson<ApiErrorResponse>(uploadRes);
         throw new Error(error.error || 'Failed to upload file');
       }
 
@@ -135,7 +160,7 @@ export async function uploadFile(
         throw new Error('Failed to get file metadata');
       }
 
-      const fileData = await fileRes.json();
+      const fileData = await readJson<FileMetadataResponse>(fileRes);
       updateProgress({ status: 'complete', progress: 100 });
 
       return {
@@ -170,11 +195,11 @@ export async function uploadFile(
       });
 
       if (!confirmRes.ok) {
-        const error = await confirmRes.json();
+        const error = await readJson<ApiErrorResponse>(confirmRes);
         throw new Error(error.error || 'Failed to confirm upload');
       }
 
-      const { cdnUrl } = await confirmRes.json();
+      const { cdnUrl } = await readJson<ConfirmUploadResponse>(confirmRes);
       updateProgress({ status: 'complete', progress: 100 });
 
       return { fileId, cdnUrl };

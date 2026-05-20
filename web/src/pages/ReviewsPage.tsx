@@ -392,8 +392,8 @@ export function ReviewsPage() {
     for (const person of filteredPeople) {
       for (const week of data.weeks) {
         const cell = data.reviews[person.personId]?.[week.number];
-        if (needsPlanReview(cell)) counts[week.number]!.plans += 1;
-        if (needsRetroReview(cell)) counts[week.number]!.retros += 1;
+        if (needsPlanReview(cell)) counts[week.number].plans += 1;
+        if (needsRetroReview(cell)) counts[week.number].retros += 1;
       }
     }
 
@@ -539,7 +539,7 @@ export function ReviewsPage() {
       setSelectedCell(null);
     } else {
       // Refresh the cell data from the latest state
-      const nextItem = batchMode.queue[nextIndex]!;
+      const nextItem = batchMode.queue[nextIndex];
       const freshCell = data?.reviews[nextItem.personId]?.[nextItem.weekNumber];
       const updatedItem = freshCell ? { ...nextItem, cell: freshCell } : nextItem;
       setBatchMode({ ...batchMode, currentIndex: nextIndex });

@@ -60,6 +60,15 @@ const conditionalCsrf = (req: Request, res: Response, next: NextFunction) => {
   return csrfSynchronisedProtection(req, res, next);
 };
 
+function isCsrfError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const candidate = err as { name?: string; message?: string; code?: string; status?: number };
+  return candidate.status === 403
+    && (candidate.name === 'ForbiddenError'
+      || candidate.code === 'EBADCSRFTOKEN'
+      || candidate.message?.toLowerCase().includes('csrf') === true);
+}
+
 // Rate limiting configurations
 // In test/dev environment, use much higher limits to avoid issues
 // Production limits: login=5/15min (failed only), api=100/min
@@ -239,6 +248,15 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   // Initialize CAIA OAuth client at startup
   initializeCAIA().catch((err) => {
     console.warn('CAIA initialization failed:', err);
+  });
+
+  app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (!isCsrfError(err)) {
+      next(err);
+      return;
+    }
+
+    res.status(403).json({ error: 'Invalid or missing CSRF token' });
   });
 
   return app;

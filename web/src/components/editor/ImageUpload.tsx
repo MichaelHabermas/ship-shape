@@ -42,7 +42,7 @@ export const ImageUploadExtension = Extension.create<ImageUploadOptions>({
   },
 
   addProseMirrorPlugins() {
-    const editor = this.editor as Editor;
+    const editor = this.editor;
     const options = this.options;
 
     return [

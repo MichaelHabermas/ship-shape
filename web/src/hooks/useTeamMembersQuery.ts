@@ -50,6 +50,6 @@ export function useAssignableMembersQuery() {
     ...query,
     data: query.data?.filter((m): m is TeamMember & { user_id: string } =>
       !m.isPending && m.user_id !== null
-    ) as AssignableMember[] | undefined,
+    ),
   };
 }

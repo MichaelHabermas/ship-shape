@@ -70,7 +70,7 @@ export const DetailsExtension = Node.create<DetailsOptions>({
         tag: 'details',
         getAttrs: (node) => {
           if (typeof node === 'string') return {};
-          const element = node as HTMLElement;
+          const element = node;
           return {
             open: element.hasAttribute('open'),
           };
@@ -80,7 +80,7 @@ export const DetailsExtension = Node.create<DetailsOptions>({
         tag: 'div[data-type="details"]',
         getAttrs: (node) => {
           if (typeof node === 'string') return {};
-          const element = node as HTMLElement;
+          const element = node;
           return {
             open: element.getAttribute('data-open') === 'true',
           };
@@ -145,7 +145,7 @@ export const DetailsExtension = Node.create<DetailsOptions>({
           }
           return false;
         },
-    } as Partial<RawCommands>;
+    };
   },
 
   addKeyboardShortcuts() {

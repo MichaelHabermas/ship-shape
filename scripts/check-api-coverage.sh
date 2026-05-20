@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # check-api-coverage.sh
 #
-# Pre-commit hook to verify API coverage for UI routes.
-# Scans for new UI routes/components and verifies corresponding API endpoints exist.
+# Narrow pre-commit heuristic for staged UI API calls.
+# It scans changed web files for simple fetch/axios /api calls and checks that a
+# similarly-shaped Express route appears to exist. It is not a repo-wide API
+# coverage, OpenAPI, or route consistency gate.
 #
 # Usage:
 #   ./scripts/check-api-coverage.sh [--staged]
@@ -11,7 +13,7 @@
 #   --staged  Only check staged files (default for pre-commit)
 #
 # Exit codes:
-#   0 - All UI routes have API coverage
+#   0 - No missing staged UI API call heuristics detected
 #   1 - Missing API coverage detected
 
 set -e
@@ -27,7 +29,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo "Checking API coverage for UI routes..."
+echo "Checking staged UI API call route heuristic..."
 
 # Get files to check
 if [ "$STAGED_ONLY" = true ]; then
@@ -37,7 +39,7 @@ else
 fi
 
 if [ -z "$FILES" ]; then
-  echo -e "${GREEN}No UI files changed${NC}"
+  echo -e "${GREEN}No changed JavaScript/TypeScript files to scan${NC}"
   exit 0
 fi
 
@@ -184,7 +186,7 @@ done
 
 # Report results
 if [ ${#MISSING[@]} -eq 0 ]; then
-  echo -e "${GREEN}✓ All UI routes have API coverage${NC}"
+  echo -e "${GREEN}✓ No missing staged UI API call heuristics detected${NC}"
   exit 0
 else
   echo -e "${RED}✗ Missing API coverage detected:${NC}"

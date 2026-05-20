@@ -138,6 +138,6 @@ export const ResizableImage = Node.create({
             attrs: options,
           });
         },
-    } as Partial<RawCommands>;
+    };
   },
 });

@@ -46,7 +46,7 @@ export function ReviewQueueProvider({ children }: { children: React.ReactNode })
   const start = useCallback((queue: QueueItem[]) => {
     if (queue.length === 0) return;
     setState({ queue, currentIndex: 0, active: true });
-    navigateToItem(queue[0]!);
+    navigateToItem(queue[0]);
   }, [navigateToItem]);
 
   const advanceToNext = useCallback(() => {
@@ -58,7 +58,7 @@ export function ReviewQueueProvider({ children }: { children: React.ReactNode })
       navigate('/team/reviews');
     } else {
       setState({ ...s, currentIndex: nextIndex });
-      navigateToItem(s.queue[nextIndex]!);
+      navigateToItem(s.queue[nextIndex]);
     }
   }, [navigate, navigateToItem]);
 

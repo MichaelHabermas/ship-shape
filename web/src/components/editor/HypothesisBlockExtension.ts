@@ -99,6 +99,6 @@ export const HypothesisBlockExtension = Node.create<HypothesisBlockOptions>({
         ({ commands }) => {
           return commands.lift(this.name);
         },
-    } as Partial<RawCommands>;
+    };
   },
 });

@@ -140,7 +140,7 @@ export function useWeeklyReviewActions(
   }, [weeklyDocument?.id, effectiveSprintId]);
 
   // Derive approval state from sprint data (or local override after action)
-  const sprintProps = (sprintData?.properties || {}) as Record<string, unknown>;
+  const sprintProps = (sprintData?.properties || {});
   const planApproval = (sprintProps.plan_approval as ApprovalData | null) ?? null;
   const reviewApproval = (sprintProps.review_approval as ApprovalData | null) ?? null;
   const reviewRating = (sprintProps.review_rating as { value?: number } | null) ?? null;

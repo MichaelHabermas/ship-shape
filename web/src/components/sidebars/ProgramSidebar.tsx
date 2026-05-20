@@ -87,7 +87,7 @@ export function ProgramSidebar({
         <PersonCombobox
           people={people}
           value={program.owner_id || null}
-          onChange={(ownerId) => onUpdate({ owner_id: ownerId } as Partial<Program>)}
+          onChange={(ownerId) => onUpdate({ owner_id: ownerId })}
           placeholder="Select owner..."
         />
       </PropertyRow>
@@ -101,7 +101,7 @@ export function ProgramSidebar({
         <PersonCombobox
           people={people}
           value={program.accountable_id || null}
-          onChange={(accountableId) => onUpdate({ accountable_id: accountableId } as Partial<Program>)}
+          onChange={(accountableId) => onUpdate({ accountable_id: accountableId })}
           placeholder="Select approver..."
         />
       </PropertyRow>
@@ -114,7 +114,7 @@ export function ProgramSidebar({
         <MultiPersonCombobox
           people={people}
           value={program.consulted_ids || []}
-          onChange={(consultedIds) => onUpdate({ consulted_ids: consultedIds } as Partial<Program>)}
+          onChange={(consultedIds) => onUpdate({ consulted_ids: consultedIds })}
           placeholder="Select people..."
         />
       </PropertyRow>
@@ -127,7 +127,7 @@ export function ProgramSidebar({
         <MultiPersonCombobox
           people={people}
           value={program.informed_ids || []}
-          onChange={(informedIds) => onUpdate({ informed_ids: informedIds } as Partial<Program>)}
+          onChange={(informedIds) => onUpdate({ informed_ids: informedIds })}
           placeholder="Select people..."
         />
       </PropertyRow>

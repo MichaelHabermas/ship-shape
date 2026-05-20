@@ -227,7 +227,7 @@ export function IssueSidebar({
     if (programId) {
       newBelongsTo.push({ id: programId, type: 'program' });
     }
-    await onUpdate({ belongs_to: newBelongsTo } as Partial<Issue>);
+    await onUpdate({ belongs_to: newBelongsTo });
   };
 
   // Legacy sprint change handler
@@ -242,7 +242,7 @@ export function IssueSidebar({
     if (sprintId) {
       newBelongsTo.push({ id: sprintId, type: 'sprint' });
     }
-    await onUpdate({ belongs_to: newBelongsTo } as Partial<Issue>);
+    await onUpdate({ belongs_to: newBelongsTo });
   };
 
   const handleReject = () => {

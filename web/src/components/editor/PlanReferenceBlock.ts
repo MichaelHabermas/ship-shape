@@ -100,6 +100,6 @@ export const PlanReferenceBlockExtension = Node.create<PlanReferenceBlockOptions
             })
             .run();
         },
-    } as Partial<RawCommands>;
+    };
   },
 });

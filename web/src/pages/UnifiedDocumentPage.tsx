@@ -291,7 +291,7 @@ export function UnifiedDocumentPage() {
   // Handle update
   const handleUpdate = useCallback(async (updates: Partial<UnifiedDocument>) => {
     if (!id) return;
-    await updateMutation.mutateAsync({ documentId: id, updates: updates as Partial<DocumentResponse> });
+    await updateMutation.mutateAsync({ documentId: id, updates: updates });
   }, [updateMutation, id]);
 
   // Handle delete
@@ -417,7 +417,7 @@ export function UnifiedDocumentPage() {
         impact: (document.impact as number | null) ?? null,
         confidence: (document.confidence as number | null) ?? null,
         ease: (document.ease as number | null) ?? null,
-        color: (document.color as string) || '#3b82f6',
+        color: (document.color) || '#3b82f6',
         emoji: null,
         program_id: programIdFromBelongsTo,
         owner: document.owner as { id: string; name: string; email: string } | null,
@@ -439,7 +439,7 @@ export function UnifiedDocumentPage() {
         parent_id: document.parent_id as string | undefined,
         visibility: document.visibility as 'private' | 'workspace' | undefined,
       }),
-    } as UnifiedDocument;
+    };
   }, [document]);
 
   // Loading state

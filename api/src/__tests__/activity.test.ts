@@ -309,7 +309,7 @@ describe('Activity API', () => {
           .get(`/activity/program/${programId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0] as string;
+        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0];
 
         // Verify query structure includes all relevant associations via document_associations
         expect(activityQuery).toContain('program_projects');
@@ -336,7 +336,7 @@ describe('Activity API', () => {
           .get(`/activity/project/${projectId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0] as string;
+        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0];
 
         expect(activityQuery).toContain('project_sprints');
         // Project and sprint associations use document_associations junction table
@@ -361,7 +361,7 @@ describe('Activity API', () => {
           .get(`/activity/sprint/${sprintId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0] as string;
+        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0];
 
         // Issues linked via junction table
         expect(activityQuery).toContain('document_associations');

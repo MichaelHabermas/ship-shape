@@ -71,6 +71,7 @@ terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/*.tfplan
 terraform/tfplan
+terraform/**/tfplan
 terraform/terraform.tfvars
 terraform/environments/*/terraform.tfvars
 terraform/environments/*/.terraform.lock.hcl
@@ -101,6 +102,7 @@ research/
 
 # Deployment artifacts
 ship-api-*.zip
+deploy-api-*.zip
 
 # Vendor (local SDK links)
 vendor/

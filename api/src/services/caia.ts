@@ -291,7 +291,7 @@ export async function handleCallback(
   let userInfoClaims: Record<string, unknown> = {};
   try {
     const userInfoResponse = await client.fetchUserInfo(config, tokens.access_token, idTokenClaims.sub);
-    userInfoClaims = userInfoResponse as Record<string, unknown>;
+    userInfoClaims = userInfoResponse;
     console.log('[CAIA] Userinfo received:', {
       sub: userInfoClaims.sub,
       email: userInfoClaims.email,
@@ -324,7 +324,7 @@ export async function handleCallback(
     csp,
     ial,
     aal,
-    rawClaims: claims as Record<string, unknown>,
+    rawClaims: claims,
   };
 
   return { user };

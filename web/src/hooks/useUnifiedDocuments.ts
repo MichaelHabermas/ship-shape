@@ -113,22 +113,22 @@ export function useUnifiedDocuments(
   // Extract data with appropriate filtering
   const wikiDocs = useMemo(() => {
     if (!shouldFetchWiki) return [];
-    return (wikiQuery.data || []) as WikiDocument[];
+    return (wikiQuery.data || []);
   }, [shouldFetchWiki, wikiQuery.data]);
 
   const issueDocs = useMemo(() => {
     if (!shouldFetchIssue) return [];
-    return (issuesQuery.data || []) as Issue[];
+    return (issuesQuery.data || []);
   }, [shouldFetchIssue, issuesQuery.data]);
 
   const projectDocs = useMemo(() => {
     if (!shouldFetchProject) return [];
-    return (projectsQuery.data || []) as Project[];
+    return (projectsQuery.data || []);
   }, [shouldFetchProject, projectsQuery.data]);
 
   const programDocs = useMemo(() => {
     if (!shouldFetchProgram) return [];
-    return (programsQuery.data || []) as Program[];
+    return (programsQuery.data || []);
   }, [shouldFetchProgram, programsQuery.data]);
 
   // Combine all documents

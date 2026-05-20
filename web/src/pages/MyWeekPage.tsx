@@ -119,7 +119,7 @@ export function MyWeekPage() {
         <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-semibold text-foreground">Week {week.week_number}</h1>
           {week.is_current && (
-            <span className="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded">Current</span>
+            <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium text-white">Current</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -225,7 +225,7 @@ export function MyWeekPage() {
                   <div className="space-y-0 max-h-[300px] overflow-hidden">
                     {plan.items.map((item, i) => (
                       <div key={i} className="flex items-start gap-2.5 py-1.5">
-                        <span className="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">
+                        <span className="text-[11px] font-semibold text-muted w-4 text-right shrink-0 mt-0.5">
                           {i + 1}.
                         </span>
                         <span className="text-sm text-foreground leading-relaxed">{item.text}</span>
@@ -287,7 +287,7 @@ export function MyWeekPage() {
                   <div className="space-y-0 max-h-[300px] overflow-hidden">
                     {retro.items.map((item, i) => (
                       <div key={i} className="flex items-start gap-2.5 py-1.5">
-                        <span className="text-[11px] font-semibold text-muted/50 w-4 text-right shrink-0 mt-0.5">
+                        <span className="text-[11px] font-semibold text-muted w-4 text-right shrink-0 mt-0.5">
                           {i + 1}.
                         </span>
                         <span className="text-sm text-foreground leading-relaxed">{item.text}</span>

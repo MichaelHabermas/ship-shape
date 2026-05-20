@@ -646,12 +646,15 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
               />
             ))
           ) : (
-            <li className="px-2 py-1 text-sm text-muted">No workspace documents</li>
+            <li role="none">
+              <div role="treeitem" className="px-2 py-1 text-sm text-muted">No workspace documents</div>
+            </li>
           )}
           {workspaceHiddenCount > 0 && (
-            <li>
+            <li role="none">
               <Link
                 to="/docs?filter=workspace"
+                role="treeitem"
                 className="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors"
               >
                 {workspaceHiddenCount} more...
@@ -678,9 +681,10 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
               />
             ))}
             {privateHiddenCount > 0 && (
-              <li>
+              <li role="none">
                 <Link
                   to="/docs?filter=private"
+                  role="treeitem"
                   className="block px-2 py-1.5 text-sm text-muted hover:text-foreground hover:bg-border/30 rounded-md transition-colors"
                 >
                   {privateHiddenCount} more...
@@ -817,13 +821,14 @@ function DocumentTreeItem({
 
   return (
     <li
-      role="treeitem"
-      aria-expanded={hasChildren ? isOpen : undefined}
-      aria-selected={isActive}
+      role="none"
       data-tree-item
       data-testid="doc-item"
     >
       <div
+        role="treeitem"
+        aria-expanded={hasChildren ? isOpen : undefined}
+        aria-selected={isActive}
         className={cn(
           'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors group',
           isActive

@@ -2,14 +2,20 @@
 
 ---
 
+## Easy Wins Pass Summary
+
+This pass captured quick, safe improvements from the audit work: contract drift fixes, repo/build hygiene, production bundle splitting, accessibility fixes, narrow type-safety cleanup, API test safety, CSRF JSON handling, comments visibility checks, and migration-runner error handling. The intentionally deferred items are still listed near the end so this report remains the current ledger for this work batch, not a final submission checklist.
+
+---
+
 ## Context
 
-- Improvement date/time:
-- Code state:
-- Environment:
-- Database:
-- Runtime:
-- Evidence:
+- Improvement date/time: 2026-05-20 local
+- Code state: easy-wins implementation pass, uncommitted
+- Environment: local pnpm workspace
+- Database: `ship_test_audit` for API unit verification; `ship_dev`/dev server for browser checks
+- Runtime: API `http://localhost:3001`, web `http://localhost:5175`
+- Evidence: `pnpm type-check`, `pnpm build:api`, `pnpm build:web`, API unit suite, axe scan, OpenAPI path inspection, ESLint JSON count
 
 ---
 
@@ -21,12 +27,13 @@
 
 ### Measurement Method
 
+ESLint JSON output for `api/src` and `web/src`, filtered for production files by excluding tests and test helpers. Type-check remains the correctness gate.
 
 ### Scorecard
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total `any` types | 278 total / 94 production | | | | 25% total violation reduction | |
+| Total `any` types | 278 total / 94 production | 247 total / 70 production | 2026-05-20 | -31 total / -24 production | 25% total violation reduction | |
 | Total type assertions (`as`) | 713 total / 504 production | | | | Meaningful reduction | |
 | Total non-null assertions (`!`) | 348 total / 325 production | | | | Meaningful reduction | |
 | Total `@ts-ignore` / `@ts-expect-error` | 1 total / 0 production | | | | No production suppressions | |
@@ -34,9 +41,15 @@
 
 ### What Changed
 
+- Ran ESLint autofix for redundant assertions.
+- Typed upload service JSON response boundaries in `web/src/services/upload.ts`.
+- Changed narrow dynamic SQL parameter arrays from `any[]` to `unknown[]` where type-check accepted it cleanly.
 
 ### Evidence
 
+- `pnpm type-check`: pass.
+- ESLint JSON count after pass: 6,411 total warnings; 4,950 production warnings.
+- Production `no-explicit-any`: 94 -> 70.
 
 ---
 
@@ -48,22 +61,30 @@
 
 ### Measurement Method
 
+Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 ### Scorecard
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total production bundle size | 2,262.65 KB JS/CSS | | | | 15% reduction in total production bundle size | |
-| Largest chunk | `assets/index-C2vAyoQ1.js` (2,025.10 KB) | | | | 20% reduction in initial page load bundle if using code splitting target | |
+| Total production bundle size | 2,262.65 KB JS/CSS | 2,262.44 KB JS/CSS | 2026-05-20 | -0.21 KB | 15% reduction in total production bundle size | |
+| Largest chunk | `assets/index-C2vAyoQ1.js` (2,025.10 KB) | `assets/index-Bru9KqDv.js` (1,802.32 KB) | 2026-05-20 | -222.78 KB / -11.0% | 20% reduction in initial page load bundle if using code splitting target | |
 | Number of chunks | 262 JS/CSS chunks | | | | Before/after bundle analysis output | |
 | Top 3 largest dependencies | `emoji-picker-react` (399.59 KB), `highlight.js` (377.92 KB), `yjs` (264.92 KB) | | | | No functionality removal | |
 | Unused dependencies identified | `@tanstack/query-sync-storage-persister` | | | | Remove only if still confirmed unused | |
 
 ### What Changed
 
+- Dev-only lazy import for React Query Devtools.
+- Lazy-loaded `emoji-picker-react` behind the emoji picker UI.
+- Removed unused `@tanstack/query-sync-storage-persister` dependency after confirming no source/package imports.
 
 ### Evidence
 
+- `pnpm build:web`: pass.
+- Largest production entry chunk: 2,025.10 KB -> 1,802.32 KB.
+- New emoji picker async chunk: 271.11 KB.
+- `rg "ReactQueryDevtools|Open Tanstack query devtools" web/dist/assets`: no production bundle matches.
 
 ---
 
@@ -88,6 +109,7 @@
 
 ### What Changed
 
+- Skipped for this pass. Existing local latencies were already low; quick fixes here would be fake precision without changing the bottleneck.
 
 ### Evidence
 
@@ -115,6 +137,7 @@
 
 ### What Changed
 
+- Skipped for this pass. Query count and slow-query work needs targeted EXPLAIN evidence and is not quick/easy/safe enough for this pass.
 
 ### Evidence
 
@@ -143,9 +166,12 @@
 
 ### What Changed
 
+- Added a destructive-test-DB guard in API test setup so truncation only runs against disposable database names such as `ship_test_audit`, unless explicitly overridden.
 
 ### Evidence
 
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 451 tests passed.
+- Live-fire verification against a real dev DB was not run; the reviewer blocked it as unsafe because a broken guard could wipe real dev data.
 
 ---
 
@@ -173,9 +199,14 @@
 
 ### What Changed
 
+- CSRF failures now return JSON 403 instead of falling through to Express HTML/error output.
+- Comments routes now check document visibility before listing, creating, updating, or deleting comments.
+- Migration bootstrap still tolerates `schema.sql` "already exists" during initial setup, but numbered migration failures no longer get broadly swallowed.
 
 ### Evidence
 
+- API unit suite: 28 files passed, 451 tests passed.
+- Missing-CSRF probe against local API returned `403`, `content-type: application/json; charset=utf-8`, body `{"error":"Invalid or missing CSRF token"}`.
 
 ---
 
@@ -187,6 +218,7 @@
 
 ### Measurement Method
 
+Targeted axe scan using `@axe-core/playwright` against local dev pages after login where needed.
 
 ### Scorecard
 
@@ -199,14 +231,51 @@
 | Lighthouse accessibility score: `/documents/:programId/issues` | 100 | | | | Before/after Lighthouse reports or axe scan output | |
 | Lighthouse accessibility score: `/my-week` | 96 | | | | Before/after Lighthouse reports or axe scan output | |
 | Lighthouse accessibility score: `/projects` | 100 | | | | Before/after Lighthouse reports or axe scan output | |
-| Total Critical/Serious violations | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | | | | Fix all Critical/Serious violations on top 3 pages if using violation target | |
+| Total Critical/Serious violations | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | Axe: 0 violations on `/login`, `/docs`, `/my-week`, `/projects` targeted scan | 2026-05-20 | Fixed targeted Critical/Serious set | Fix all Critical/Serious violations on top 3 pages if using violation target | |
 | Keyboard navigation completeness | Partial pass | | | | Existing keyboard behavior preserved or improved | |
 | Screen reader usability | VoiceOver partial pass | | | | Existing screen reader behavior preserved or improved | |
-| Color contrast failures | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes | | | | Critical/Serious violations fixed on selected pages | |
-| Missing ARIA labels or roles | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark | | | | Critical/Serious violations fixed on selected pages | |
+| Color contrast failures | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes | 0 on targeted rescan of `/my-week` and `/projects` | 2026-05-20 | Fixed | Critical/Serious violations fixed on selected pages | |
+| Missing ARIA labels or roles | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark | 0 on targeted rescan of `/login` and `/docs` | 2026-05-20 | Fixed targeted pages | Critical/Serious violations fixed on selected pages | |
 
 ### What Changed
 
+- Added a `main` landmark to `/login`.
+- Fixed contrast on `/my-week`, `/projects`, and shared filter-tab count badges.
+- Fixed document tree semantics so `tree` containers expose direct `treeitem` children through presentational list wrappers.
 
 ### Evidence
 
+- Axe scan output: `/login`, `/docs`, `/my-week`, `/projects` all returned `violations: []`.
+- Manual browser snapshots confirmed `/docs` exposes tree/treeitem semantics and `/my-week` + `/projects` render after the contrast changes.
+
+---
+
+## Additional Contract And Hygiene Wins
+
+- Fixed Comments OpenAPI paths so generated contracts no longer double-prefix `/api`.
+- Removed the advertised but unmounted `/search/documents` OpenAPI route instead of pretending full-text search exists.
+- Regenerated `api/openapi.yaml` and `api/openapi.json`.
+- Removed tracked generated/deployment debris: old deploy zips, Terraform plan binary, dev service worker output, and disposable progress/deployment notes.
+- Added ignore rules for `deploy-api-*.zip` and `terraform/**/tfplan`.
+- API build now cleans `api/dist` first and excludes source tests from production build output.
+- Clarified `scripts/check-api-coverage.sh` as a staged heuristic, not real coverage.
+
+### Evidence
+
+- OpenAPI path inspection: comments paths now appear as `/documents/{id}/comments` and `/comments/{id}`; no `/api/documents/{id}/comments`, `/api/comments/{id}`, or `/search/documents` matches remain.
+- `pnpm build:api`: pass.
+- `find api/dist -path '*test*' -o -path '*__tests__*'`: no output.
+- `./scripts/check-api-coverage.sh --staged`: pass; no staged JS/TS files to scan.
+- `git diff --check`: pass.
+
+---
+
+## Deferred Or Skipped
+
+- Real document full-text search: skipped; false OpenAPI contract removed instead.
+- API latency/query optimization: skipped; needs benchmark/EXPLAIN-driven work, not quick fixes.
+- Setup initialize race lock/transaction: deferred; security-sensitive.
+- Super-admin API token policy and API-token docs/UI: deferred pending policy decision.
+- Association/context visibility leaks: deferred; broader query surface than this pass.
+- Route row-mapper typing: deferred; real type-safety work, but not quick if done honestly.
+- Process-level unhandled rejection handlers: skipped; easy to add badly without shutdown semantics.

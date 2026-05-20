@@ -210,7 +210,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
     created_at: document.created_at,
     updated_at: document.updated_at,
     created_by: document.created_by as string | undefined,
-    properties: document.properties as Record<string, unknown> | undefined,
+    properties: document.properties,
     impact: (document.impact as number | null) ?? null,
     confidence: (document.confidence as number | null) ?? null,
     ease: (document.ease as number | null) ?? null,

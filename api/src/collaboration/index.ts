@@ -260,7 +260,7 @@ async function getOrCreateDoc(docName: string): Promise<Y.Doc> {
 
   // Set up persistence and broadcast on changes
   doc.on('update', (update: Uint8Array, origin: any) => {
-    schedulePersist(docName, doc!);
+    schedulePersist(docName, doc);
 
     // Broadcast update to all other clients in this room (except sender)
     const encoder = encoding.createEncoder();
@@ -289,7 +289,7 @@ function getAwareness(docName: string, doc: Y.Doc): awarenessProtocol.Awareness 
     const changedClients = added.concat(updated, removed);
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, messageAwareness);
-    encoding.writeVarUint8Array(encoder, awarenessProtocol.encodeAwarenessUpdate(aw!, changedClients));
+    encoding.writeVarUint8Array(encoder, awarenessProtocol.encodeAwarenessUpdate(aw, changedClients));
     const message = encoding.toUint8Array(encoder);
 
     // Broadcast to all connections in this room

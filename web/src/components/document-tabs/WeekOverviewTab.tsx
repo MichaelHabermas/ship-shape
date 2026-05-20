@@ -120,13 +120,13 @@ export default function SprintOverviewTab({ documentId, document }: DocumentTabP
     created_at: document.created_at,
     updated_at: document.updated_at,
     created_by: document.created_by as string | undefined,
-    properties: document.properties as Record<string, unknown> | undefined,
+    properties: document.properties,
     start_date: (document.start_date as string) || '',
     end_date: (document.end_date as string) || '',
     status: ((document.status as string) || 'planning') as 'planning' | 'active' | 'completed',
     program_id: programId,
     plan: (document.plan as string) || '',
-    owner_id: document.owner_id as string | null | undefined,
+    owner_id: document.owner_id,
   }), [document, programId]);
 
   if (!user) return null;

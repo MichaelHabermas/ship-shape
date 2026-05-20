@@ -758,7 +758,7 @@ export function Editor({
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         const json = editor.getJSON();
-        onContentChange(json as Record<string, unknown>);
+        onContentChange(json);
       }, 3000);
     };
 

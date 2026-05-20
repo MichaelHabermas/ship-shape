@@ -184,7 +184,7 @@ async function request<T>(
       return {
         success: false,
         error: { code: 'NETWORK_ERROR', message: 'Server returned non-JSON response' },
-      } as ApiResponse<T>;
+      };
     }
     handleSessionExpired(); // never returns
   }
@@ -492,7 +492,7 @@ export const api = {
       request<{ logs: AuditLog[] }>(`/api/admin/audit-logs${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ''}`),
 
     exportAuditLogs: (params?: { workspaceId?: string; userId?: string; action?: string; from?: string; to?: string }) =>
-      `${API_URL}/api/admin/audit-logs/export${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ''}`,
+      `${API_URL}/api/admin/audit-logs/export${params ? `?${new URLSearchParams(params)}` : ''}`,
 
     // Impersonation
     startImpersonation: (userId: string) =>

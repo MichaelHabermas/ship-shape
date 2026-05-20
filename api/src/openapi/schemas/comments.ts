@@ -46,7 +46,7 @@ registry.register('UpdateComment', UpdateCommentSchema);
 
 registry.registerPath({
   method: 'get',
-  path: '/api/documents/{id}/comments',
+  path: '/documents/{id}/comments',
   operationId: 'list_document_comments',
   summary: 'List comments for a document',
   tags: ['Comments'],
@@ -63,7 +63,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'post',
-  path: '/api/documents/{id}/comments',
+  path: '/documents/{id}/comments',
   operationId: 'create_document_comment',
   summary: 'Create a comment on a document',
   tags: ['Comments'],
@@ -81,7 +81,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'patch',
-  path: '/api/comments/{id}',
+  path: '/comments/{id}',
   operationId: 'update_comment',
   summary: 'Update a comment (edit content or resolve/un-resolve)',
   tags: ['Comments'],
@@ -99,7 +99,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'delete',
-  path: '/api/comments/{id}',
+  path: '/comments/{id}',
   operationId: 'delete_comment',
   summary: 'Delete a comment',
   tags: ['Comments'],

@@ -190,7 +190,7 @@ export function ProjectSidebar({
         <PersonCombobox
           people={people}
           value={project.owner?.id || null}
-          onChange={(ownerId) => onUpdate({ owner_id: ownerId } as Partial<Project>)}
+          onChange={(ownerId) => onUpdate({ owner_id: ownerId })}
           placeholder="Select owner..."
         />
       </PropertyRow>
@@ -200,7 +200,7 @@ export function ProjectSidebar({
         <PersonCombobox
           people={people}
           value={project.accountable_id || null}
-          onChange={(accountableId) => onUpdate({ accountable_id: accountableId } as Partial<Project>)}
+          onChange={(accountableId) => onUpdate({ accountable_id: accountableId })}
           placeholder="Select approver..."
         />
       </PropertyRow>
@@ -210,7 +210,7 @@ export function ProjectSidebar({
         <MultiPersonCombobox
           people={people}
           value={project.consulted_ids || []}
-          onChange={(consultedIds) => onUpdate({ consulted_ids: consultedIds } as Partial<Project>)}
+          onChange={(consultedIds) => onUpdate({ consulted_ids: consultedIds })}
           placeholder="Select people..."
         />
       </PropertyRow>
@@ -220,7 +220,7 @@ export function ProjectSidebar({
         <MultiPersonCombobox
           people={people}
           value={project.informed_ids || []}
-          onChange={(informedIds) => onUpdate({ informed_ids: informedIds } as Partial<Project>)}
+          onChange={(informedIds) => onUpdate({ informed_ids: informedIds })}
           placeholder="Select people..."
         />
       </PropertyRow>
@@ -233,7 +233,7 @@ export function ProjectSidebar({
               <input
                 type="checkbox"
                 checked={project.has_design_review || false}
-                onChange={(e) => onUpdate({ has_design_review: e.target.checked } as Partial<Project>)}
+                onChange={(e) => onUpdate({ has_design_review: e.target.checked })}
                 className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent focus:ring-offset-background"
               />
               <span className="ml-2 text-sm text-foreground">Design review approved</span>
@@ -242,7 +242,7 @@ export function ProjectSidebar({
               <textarea
                 placeholder="Optional notes about design review..."
                 value={project.design_review_notes || ''}
-                onChange={(e) => onUpdate({ design_review_notes: e.target.value } as Partial<Project>)}
+                onChange={(e) => onUpdate({ design_review_notes: e.target.value })}
                 className="w-full p-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent resize-none"
                 rows={3}
                 maxLength={2000}

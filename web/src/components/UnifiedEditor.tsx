@@ -240,9 +240,9 @@ export function UnifiedEditor({
     setIsChangingType(true);
     try {
       if (onTypeChange) {
-        await onTypeChange(newType as DocumentType);
+        await onTypeChange(newType);
       } else {
-        await onUpdate({ document_type: newType as DocumentType } as Partial<UnifiedDocument>);
+        await onUpdate({ document_type: newType as DocumentType });
       }
     } finally {
       setIsChangingType(false);
@@ -262,7 +262,7 @@ export function UnifiedEditor({
   const handlePlanChange = useCallback(async (plan: string) => {
     if (document.document_type !== 'sprint' && document.document_type !== 'project') return;
     // Update the plan property
-    await onUpdate({ plan } as Partial<UnifiedDocument>);
+    await onUpdate({ plan });
   }, [document.document_type, onUpdate]);
 
   // Determine room prefix based on document type if not provided
@@ -295,7 +295,7 @@ export function UnifiedEditor({
         return {
           teamMembers: wikiData.teamMembers || [],
           currentUserId: user?.id,
-        } as WikiPanelProps;
+        };
       }
       case 'issue': {
         const issueData = sidebarData as IssueSidebarData;
@@ -310,7 +310,7 @@ export function UnifiedEditor({
           isConverting: issueData.isConverting,
           isUndoing: issueData.isUndoing,
           onAssociationChange: issueData.onAssociationChange,
-        } as IssuePanelProps;
+        };
       }
       case 'project': {
         const projectData = sidebarData as ProjectSidebarData;
@@ -321,20 +321,20 @@ export function UnifiedEditor({
           onUndoConversion: projectData.onUndoConversion,
           isConverting: projectData.isConverting,
           isUndoing: projectData.isUndoing,
-        } as ProjectPanelProps;
+        };
       }
       case 'sprint': {
         const sprintData = sidebarData as SprintSidebarData;
         return {
           people: sprintData.people || [],
           existingSprints: sprintData.existingSprints || [],
-        } as SprintPanelProps;
+        };
       }
       case 'program': {
         const programData = sidebarData as ProgramSidebarData;
         return {
           people: programData.people || [],
-        } as ProgramPanelProps;
+        };
       }
       default:
         return {};
@@ -358,7 +358,7 @@ export function UnifiedEditor({
       <PropertiesPanel
         document={document as PanelDocument}
         panelProps={panelProps}
-        onUpdate={onUpdate as (updates: Partial<PanelDocument>) => Promise<void>}
+        onUpdate={onUpdate}
         highlightedFields={missingFields}
         weeklyReviewState={weeklyReviewState}
       />

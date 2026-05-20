@@ -705,7 +705,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     const existingIssue = existing.rows[0];
     const currentProps = existingIssue.properties || {};
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     const data = parsed.data;
@@ -920,7 +920,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Log all changes to history (within transaction)
     const automatedBy = data.claude_metadata?.updated_by;
     for (const change of changes) {
-      await logDocumentChange(id!, change.field, change.oldValue, change.newValue, req.userId!, automatedBy, client);
+      await logDocumentChange(id, change.field, change.oldValue, change.newValue, req.userId!, automatedBy, client);
     }
 
     // If we have document updates, do the UPDATE
@@ -1207,7 +1207,7 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
         }
 
         const setClauses: string[] = ['updated_at = NOW()'];
-        const values: any[] = [validIds, workspaceId];
+        const values: unknown[] = [validIds, workspaceId];
         let paramIdx = 3;
 
         if (updates.state !== undefined) {
@@ -1417,7 +1417,7 @@ router.post('/:id/accept', authMiddleware, async (req: Request, res: Response) =
     );
 
     // Log the state change
-    await logDocumentChange(id!, 'state', 'triage', 'backlog', req.userId!);
+    await logDocumentChange(id, 'state', 'triage', 'backlog', req.userId!);
 
     const issue = extractIssueFromRow(result.rows[0]);
     res.json({ ...issue, display_id: `#${issue.ticket_number}` });
@@ -1629,7 +1629,7 @@ router.post('/:id/reject', authMiddleware, async (req: Request, res: Response) =
     );
 
     // Log the state change
-    await logDocumentChange(id!, 'state', 'triage', 'cancelled', req.userId!);
+    await logDocumentChange(id, 'state', 'triage', 'cancelled', req.userId!);
 
     const issue = extractIssueFromRow(result.rows[0]);
     res.json({ ...issue, display_id: `#${issue.ticket_number}` });

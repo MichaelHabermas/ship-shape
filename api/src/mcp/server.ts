@@ -204,7 +204,7 @@ function resolveRef(
   if (!schemaName || !spec.components?.schemas) {
     return undefined;
   }
-  return spec.components.schemas[schemaName] as SchemaObject | undefined;
+  return spec.components.schemas[schemaName];
 }
 
 /**
@@ -244,7 +244,7 @@ function openApiToJsonSchema(
     result.properties = {};
     for (const [key, prop] of Object.entries(schema.properties)) {
       (result.properties as Record<string, unknown>)[key] = openApiToJsonSchema(
-        prop as SchemaObject | ReferenceObject,
+        prop,
         spec
       );
     }
@@ -256,7 +256,7 @@ function openApiToJsonSchema(
 
   if (schema.items) {
     result.items = openApiToJsonSchema(
-      schema.items as SchemaObject | ReferenceObject,
+      schema.items,
       spec
     );
   }
@@ -279,13 +279,13 @@ function buildInputSchema(
     for (const param of operation.parameters) {
       if (param.name && param.schema) {
         const paramSchema = openApiToJsonSchema(
-          param.schema as SchemaObject | ReferenceObject,
+          param.schema,
           spec
         );
         if (param.description) {
           paramSchema.description = param.description;
         }
-        properties[param.name] = paramSchema as object;
+        properties[param.name] = paramSchema;
         if (param.required) {
           required.push(param.name);
         }
@@ -297,7 +297,7 @@ function buildInputSchema(
   if (operation.requestBody?.content?.["application/json"]?.schema) {
     const bodySchema = openApiToJsonSchema(
       operation.requestBody.content["application/json"]
-        .schema as SchemaObject | ReferenceObject,
+        .schema,
       spec
     );
 
@@ -330,7 +330,7 @@ function generateTools(openApiSpec: OpenAPIObject): Tool[] {
     const methods = ["get", "post", "put", "patch", "delete"] as const;
 
     for (const method of methods) {
-      const operation = pathItem[method] as OperationObject | undefined;
+      const operation = pathItem[method];
       if (!operation) continue;
 
       const operationId =
@@ -484,7 +484,7 @@ async function main() {
     try {
       const result = await executeToolCall(
         name,
-        (args || {}) as Record<string, unknown>
+        (args || {})
       );
 
       return {
