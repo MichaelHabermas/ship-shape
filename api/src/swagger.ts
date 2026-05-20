@@ -65,10 +65,12 @@ function jsonToYaml(obj: unknown, indent = 0): string {
   if (Array.isArray(obj)) {
     if (obj.length === 0) return '[]';
     return obj.map(item => {
-      const value = jsonToYaml(item, indent + 1);
       if (typeof item === 'object' && item !== null) {
-        return `${spaces}- ${value.trim().replace(/^/, '').replace(/\n/g, `\n${spaces}  `)}`;
+        const value = jsonToYaml(item, indent + 1).trim();
+        const [firstLine, ...rest] = value.split('\n');
+        return `${spaces}- ${firstLine}${rest.length ? `\n${rest.join('\n')}` : ''}`;
       }
+      const value = jsonToYaml(item, indent + 1);
       return `${spaces}- ${value}`;
     }).join('\n');
   }
@@ -78,8 +80,14 @@ function jsonToYaml(obj: unknown, indent = 0): string {
     if (entries.length === 0) return '{}';
     return entries.map(([key, value]) => {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        if (Object.keys(value).length === 0) {
+          return `${spaces}${key}: {}`;
+        }
         return `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
       } else if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return `${spaces}${key}: []`;
+        }
         return `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
       } else {
         return `${spaces}${key}: ${jsonToYaml(value, indent)}`;

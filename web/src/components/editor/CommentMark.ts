@@ -86,7 +86,7 @@ export const CommentMark = Mark.create<CommentMarkOptions, CommentMarkStorage>({
           doc.descendants((node, pos) => {
             node.marks.forEach((mark) => {
               if (mark.type.name === this.name && mark.attrs.commentId === commentId) {
-                tr.removeMark(pos, pos + node.nodeSize, mark.type);
+                tr.removeMark(pos, pos + node.nodeSize, mark);
               }
             });
           });

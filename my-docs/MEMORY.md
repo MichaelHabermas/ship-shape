@@ -31,6 +31,8 @@ Repo-specific facts that prevent wrong assumptions.
 - Local PostgreSQL does not have `pg_stat_statements` enabled, so query-efficiency baselines use the temporary in-process query-count harness plus targeted `EXPLAIN (ANALYZE, BUFFERS)` through `/opt/homebrew/Cellar/libpq/18.3/bin/psql`.
 - Document search is intentionally limited after the easy-wins cleanup: `/docs` uses client-side title filtering, `/api/search/mentions` title-searches documents for mention/embed helpers, and OpenAPI no longer advertises the unmounted `/api/search/documents` route.
 - OpenAPI registration paths are mounted under `/api` by the app; schema files should register paths without an extra `/api` prefix.
+- Hook tests that exercise state-changing requests through `apiPost` must mock the CSRF preflight JSON response before the actual request response.
+- Regular authenticated HTTP requests persist `last_activity` at 60-second granularity to avoid page-load write amplification; `/api/auth/extend-session` still writes immediately.
 
 ## Leverage Points
 
@@ -39,6 +41,7 @@ Places where a small, focused change creates outsized value.
 - Bundle work should target initial-load JavaScript, especially the large `assets/index-*.js` entry chunk. Prefer lazy-loading route pages, emoji picker, editor/collaboration, and highlighting over chasing the existing many tiny chunks.
 - Test-quality work should optimize for trust and risk, not raw test count: green failing web tests, guard API tests against non-disposable databases, then add focused regression tests for workspace isolation and document association behavior.
 - Keep the API test DB guard in place: destructive setup should only truncate disposable databases such as `ship_test_audit`, with explicit override required for anything else.
+- Inline comment cancellation must remove the exact `commentMark` instance by `commentId`; clearing UI state or removing all marks of the type can leave stale highlights or break overlapping comments.
 - Improvement reports should keep second-pass result placeholders separate from verified evidence. If implementation or measurement has not run, write `TBD` rather than extrapolating from the discovery proof.
 
 ## Sharp Edges

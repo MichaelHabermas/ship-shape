@@ -162,6 +162,26 @@ describe('Issues API', () => {
       expect(hasSprintIssue).toBe(true)
     })
 
+    it('should filter issues by project_id', async () => {
+      const unrelatedIssueResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', 'Unrelated Project Issue', 'workspace', $2, $3)
+         RETURNING id`,
+        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+      )
+      const unrelatedIssueId = unrelatedIssueResult.rows[0].id
+
+      const res = await request(app)
+        .get(`/api/issues?project_id=${testProjectId}`)
+        .set('Cookie', sessionCookie)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toBeInstanceOf(Array)
+      const issueIds = res.body.map((i: { id: string }) => i.id)
+      expect(issueIds).toContain(testIssueId)
+      expect(issueIds).not.toContain(unrelatedIssueId)
+    })
+
     it('should reject unauthenticated request', async () => {
       const res = await request(app)
         .get('/api/issues')

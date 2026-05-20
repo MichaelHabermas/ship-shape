@@ -14,6 +14,7 @@ export const InferredAccountabilityTypeSchema = z.enum([
   'standup',
   'weekly_plan',
   'weekly_review',
+  'weekly_retro',
   'week_start',
   'week_issues',
   'project_plan',

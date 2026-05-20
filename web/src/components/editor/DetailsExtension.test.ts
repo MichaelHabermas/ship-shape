@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DetailsExtension } from './DetailsExtension';
+import { DetailsContent, DetailsExtension, DetailsSummary } from './DetailsExtension';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -13,7 +13,7 @@ describe('DetailsExtension', () => {
   it('should be configured as a block node with content', () => {
     const extension = DetailsExtension;
     expect(extension.config.group).toBe('block');
-    expect(extension.config.content).toBe('block+');
+    expect(extension.config.content).toBe('detailsSummary detailsContent');
     expect(extension.config.defining).toBe(true);
   });
 
@@ -55,7 +55,7 @@ describe('DetailsExtension', () => {
 
   it('should work in editor context', () => {
     const editor = new Editor({
-      extensions: [StarterKit, DetailsExtension],
+      extensions: [StarterKit, DetailsExtension, DetailsSummary, DetailsContent],
       content: '<p>Test content</p>',
     });
 
@@ -67,7 +67,7 @@ describe('DetailsExtension', () => {
 
   it('should allow inserting details via command', () => {
     const editor = new Editor({
-      extensions: [StarterKit, DetailsExtension],
+      extensions: [StarterKit, DetailsExtension, DetailsSummary, DetailsContent],
       content: '<p>Test content</p>',
     });
 

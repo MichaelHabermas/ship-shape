@@ -47,7 +47,7 @@ export type DocumentType =
 export type IssueState = 'triage' | 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 
 // Issue priorities
-export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent';
+export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent' | 'none';
 
 // Issue source - provenance, never changes after creation
 export type IssueSource = 'internal' | 'external' | 'action_items';

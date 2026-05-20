@@ -10,12 +10,18 @@ This pass captured quick, safe improvements from the audit work: contract drift 
 
 This pass harvested the next low-risk items from the audit ledger: typed route-level PostgreSQL row boundaries, removed easy editor/ProseMirror `any` usage, converted major route pages to lazy chunks, and reconciled stale discovery/doc status. The week route typing keeps canonical week properties distinct from legacy plan/review fields already read and written by existing endpoints, so the source-of-truth model is not widened by the type cleanup. It intentionally did not take on broad auth/request typing, security authorization findings, database performance work, or flaky-test repair.
 
+## Structural Foundation Pass Summary
+
+This pass tackled the cart-before-horse items from the audit: shared API boundary schemas, fewer duplicated document/property aliases in high-risk routes, transaction-aware association helpers, green web unit tests, exact inline comment mark removal, honest search documentation, corrected OpenAPI search/session contracts, and throttled session activity writes. Follow-up correctness review restored `project_id` issue filtering, hardened duplicate association sync, fixed the generated YAML writer, aligned inferred accountability OpenAPI with `weekly_retro`, and made `/auth/session` report the effective sliding inactivity expiry. It did not add real server-backed document search or a bootstrap endpoint; those remain deferred product/performance decisions.
+
+This report is a work ledger, not a final source-of-truth completion claim. Categories 3 and 4 remain intentionally incomplete until measured before/after improvements are made, and Category 5 is improved but does not yet satisfy the full "3 meaningful tests or 3 flaky fixes" source requirement.
+
 | Area | Target | Latest Result | Evidence |
 |------|--------|---------------|----------|
-| Type safety | Remove real `any` usage at API/Web boundaries | AST `any` count is now 216 total / 32 production | `pnpm type-check`, AST counter |
-| Bundle splitting | Reduce initial entry chunk via route-level lazy loading | Entry chunk is now `assets/index-CQekVCcO.js` at 509.53 KB; 295 JS/CSS chunks emitted | `pnpm build:web`, dist asset byte count |
+| Type safety | Remove real `any` usage at API/Web boundaries | Shared boundary schemas added; high-risk route aliases now derive more from `@ship/shared`; previous AST `any` count remains 216 total / 32 production pending rerun | `pnpm type-check`, prior AST counter |
+| Bundle splitting | Reduce initial entry chunk via route-level lazy loading | Entry chunk is around 509.5 KB after route-level lazy loading; build hash varies by rebuild; 295 JS/CSS chunks emitted in the last full web build | `pnpm build:web`, dist asset byte count |
 | Verification | Preserve build/type correctness | Type-check, API build, and web build pass | `pnpm type-check`, `pnpm build:api`, `pnpm build:web` |
-| Test state | Record existing blockers honestly | API unit suite passes; web unit suite still has the same 13 known failures | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test` |
+| Test state | Restore trust in normal unit gates | API unit suite passes; web unit suite passes; focused inline-comment E2E blocked because Docker is not running; this does not yet satisfy the full Category 5 source target | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test`, `pnpm test:e2e:run ...inline-comments...` |
 
 ---
 
@@ -26,7 +32,7 @@ This pass harvested the next low-risk items from the audit ledger: typed route-l
 - Environment: local pnpm workspace
 - Database: `ship_test_audit` for API unit verification; disposable `ship_test_check_20260520` was also used while validating local PostgreSQL recovery; `ship_dev`/dev server for browser checks
 - Runtime: API `http://localhost:3001`, web `http://localhost:5175`
-- Evidence: `pnpm type-check`, `pnpm build:api`, `pnpm build:web`, AST type-safety count, production bundle output, web unit suite attempt, API unit suite run
+- Evidence: `pnpm type-check`, `pnpm build:api`, `pnpm build:web`, AST type-safety count, production bundle output, web unit suite run, API unit suite run, OpenAPI generation
 
 ---
 
@@ -57,6 +63,7 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 - Changed narrow dynamic SQL parameter arrays from `any[]` to `unknown[]` where type-check accepted it cleanly. This is cleanup, not counted as the main meaningful type-safety win.
 - Second pass typed local PostgreSQL row boundaries in route files, replaced the remaining `states as any` SQL parameter cast, and typed editor/ProseMirror helper callbacks with library types.
 - Week/sprint route row typing now separates canonical week properties (`sprint_number`, `owner_id`) from legacy route fields that existing plan/review endpoints still read or write.
+- Structural pass added API-local boundary schemas for shared document concepts, aligned issue priority/accountability enums, routed issue-list query parsing through Zod, made document association helpers transaction-capable, and moved high-risk route property aliases closer to `@ship/shared` types.
 
 ### Evidence
 
@@ -66,6 +73,7 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 - AST non-null assertion count after second pass: 348 total / 325 production.
 - ESLint JSON was not rerun in the second pass; AST counts remain the official measurement.
 - Production `any` count by official AST counter: 94 -> 32.
+- `pnpm type-check`: pass after structural boundary changes.
 
 ---
 
@@ -176,24 +184,32 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 
 | Metric | Baseline | Latest | Last Measured | Change | Required Change | Stretch Goal |
 |--------|----------|--------|---------------|--------|-----------------|--------------|
-| Total tests | 1,471 executable tests across 115 files | | | | Add 3 meaningful tests or fix 3 flaky tests | |
-| API unit tests | 451 pass / 0 fail / 0 flaky | 451 pass / 0 fail / 0 flaky | 2026-05-20 | No regression | Existing tests still pass | |
-| Web unit tests | 138 pass / 13 fail / 0 flaky | 138 pass / 13 fail | 2026-05-20 | No change from known failing baseline | Existing tests still pass | |
-| E2E tests | 869 listed / not executed | | | | Meaningful tests catch real regressions | |
-| Suite runtime | API unit: 10.76s; Web unit: 1.05s | | | | Document root cause if fixing flaky tests | |
+| Total tests | 1,471 executable tests across 115 files | Web now has 152 passing unit tests; API now has 452 passing unit tests | 2026-05-20 | Web unit gate restored and one focused overlapping comment mark regression added; full source target still incomplete | Add 3 meaningful tests or fix 3 flaky tests | |
+| API unit tests | 451 pass / 0 fail / 0 flaky | 452 pass / 0 fail / 0 flaky | 2026-05-20 | Added project issue-filter regression coverage | Existing tests still pass | |
+| Web unit tests | 138 pass / 13 fail / 0 flaky | 152 pass / 0 fail | 2026-05-20 | Fixed the known 13 failures and added `CommentMark.test.ts` | Existing tests still pass | |
+| E2E tests | 869 listed / not executed | Focused inline-comments E2E not run: Docker is not running | 2026-05-20 | Blocked by environment | Meaningful tests catch real regressions | |
+| Suite runtime | API unit: 10.76s; Web unit: 1.05s | API unit: 11.18s; Web unit: 1.24s | 2026-05-20 | Comparable | Document root cause if fixing flaky tests | |
 | Code coverage | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured | | | | Risk-mitigating tests, not page-load assertions | |
 
 ### What Changed
 
 - Added a destructive-test-DB guard in API test setup so truncation only runs against disposable database names such as `ship_test_audit`, unless explicitly overridden.
+- Fixed stale web unit tests for document tab contracts, DetailsExtension child nodes, and CSRF-aware session extension.
+- Fixed inline comment cancellation by removing the exact `commentMark` instance for the requested `commentId`, with a focused overlapping-mark unit regression.
 
 ### Evidence
 
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 451 tests passed.
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
 - Live-fire verification against a real dev DB was not run; the reviewer blocked it as unsafe because a broken guard could wipe real dev data.
 - Second-pass API verification initially failed while local PostgreSQL was down. After starting the local PostgreSQL container, `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed with 28 files and 451 tests.
 - Migration command caveat: rerunning migrations against existing `ship_test_audit` hit stale migration bookkeeping at `010_oauth_state.sql`; a fresh disposable database also showed the schema/migration duplicate `oauth_state` edge, so this remains a migration-runner cleanup item separate from API unit correctness.
-- `pnpm --filter @ship/web test`: failed with the existing 13 web unit failures from `document-tabs`, `DetailsExtension`, and one `useSessionTimeout` expectation.
+- `pnpm --filter @ship/web test`: 17 files passed, 152 tests passed.
+- `pnpm --filter @ship/web exec vitest run web/src/lib/document-tabs.test.ts web/src/components/editor/DetailsExtension.test.ts web/src/hooks/useSessionTimeout.test.ts web/src/components/editor/CommentMark.test.ts`: 4 files passed, 67 tests passed.
+- Correctness review targeted API rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/associations-regression.test.ts src/routes/auth.test.ts`: 3 files passed, 50 tests passed.
+- Correctness review targeted web rerun: `pnpm --filter @ship/web exec vitest run src/components/editor/CommentMark.test.ts src/hooks/useSessionTimeout.test.ts src/components/editor/DetailsExtension.test.ts src/lib/document-tabs.test.ts`: 4 files passed, 67 tests passed. Existing React `act(...)` warnings remain in `useSessionTimeout.test.ts`.
+- `ruby -e "require 'yaml'; YAML.load_file('/Users/michaelhabermas/repos/GAI/ship-shape/api/openapi.yaml')"`: generated OpenAPI YAML parses after fixing the local YAML writer.
+- Final API rerun after correctness fixes: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
+- `pnpm test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape/e2e/inline-comments.spec.ts -g "canceling a comment removes the highlight"`: blocked because Docker is required for Testcontainers and is not running.
 
 ---
 
@@ -224,6 +240,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count.
 - CSRF failures now return JSON 403 instead of falling through to Express HTML/error output. This is the Category 6 fix with direct before/after API evidence.
 - Comments routes now check document visibility before listing, creating, updating, or deleting comments. This is tracked as an authorization/safety fix, not as proof toward the Category 6 user-facing error-handling target.
 - Migration bootstrap still tolerates `schema.sql` "already exists" during initial setup, but numbered migration failures no longer get broadly swallowed. This is tracked as operational safety, not as proof toward the Category 6 user-facing error-handling target.
+- Session activity writes are now throttled server-side: authenticated requests still validate inactivity against stored `last_activity`, but only update `last_activity` and refresh the cookie after the 60-second activity threshold.
 
 ### Evidence
 
@@ -276,6 +293,9 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 
 - Fixed Comments OpenAPI paths so generated contracts no longer double-prefix `/api`.
 - Removed the advertised but unmounted `/search/documents` OpenAPI route instead of pretending full-text search exists.
+- Fixed `/search/learnings` OpenAPI response shape to `{ learnings, total }`.
+- Fixed `/auth/session` OpenAPI response shape to the timeout-tracking payload actually returned by the route.
+- Updated canonical docs to state that `/docs` search is client-side title filtering; real server-backed document search remains deferred.
 - Regenerated `api/openapi.yaml` and `api/openapi.json`.
 - Removed tracked generated/deployment debris: old deploy zips, Terraform plan binary, dev service worker output, and disposable progress/deployment notes.
 - Added ignore rules for `deploy-api-*.zip` and `terraform/**/tfplan`.
@@ -295,9 +315,10 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 ## Deferred Or Skipped
 
 - Real document full-text search: skipped; false OpenAPI contract removed instead.
+- Bootstrap endpoint for app-shell hydration: skipped; still a good later 10x option if page-load fanout remains the next bottleneck.
 - API latency/query optimization: skipped; needs benchmark/EXPLAIN-driven work, not quick fixes.
 - Setup initialize race lock/transaction: deferred; security-sensitive.
 - Super-admin API token policy and API-token docs/UI: deferred pending policy decision.
 - Association/context visibility leaks: deferred; broader query surface than this pass.
-- Route row-mapper typing: deferred; real type-safety work, but not quick if done honestly.
+- Full route row-mapper typing: partially started for high-risk routes; broader dashboard/comments/auth route typing deferred.
 - Process-level unhandled rejection handlers: skipped; easy to add badly without shutdown semantics.

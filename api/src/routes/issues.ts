@@ -1,8 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
+import type { IssueProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+  accountabilityTypeSchema,
+  belongsToSchema,
+  issuePrioritySchema,
+  issueStateSchema,
+} from '../schemas/document-boundary.js';
 import {
   logDocumentChange,
   getTimestampUpdates,
@@ -17,19 +24,6 @@ type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
 type QueryParam = string | boolean | null | string[];
-
-type IssueProperties = {
-  state?: string;
-  priority?: string;
-  assignee_id?: string | null;
-  estimate?: number | null;
-  source?: string;
-  rejection_reason?: string | null;
-  due_date?: string | null;
-  is_system_generated?: boolean;
-  accountability_target_id?: string | null;
-  accountability_type?: string | null;
-};
 
 type IssueRow = {
   id: string;
@@ -50,22 +44,13 @@ type IssueRow = {
   created_by_name?: string | null;
 };
 
-// BelongsTo entry schema for associations
-const belongsToEntrySchema = z.object({
-  id: z.string().uuid(),
-  type: z.enum(['program', 'project', 'sprint', 'parent']),
-});
-
-// Accountability types enum for validation
-const accountabilityTypes = ['standup', 'weekly_plan', 'weekly_review', 'week_start', 'week_issues', 'project_plan', 'project_retro'] as const;
-
 // Validation schemas
 const createIssueSchema = z.object({
   title: z.string().min(1).max(500),
-  state: z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional().default('backlog'),
-  priority: z.enum(['urgent', 'high', 'medium', 'low', 'none']).optional().default('medium'),
+  state: issueStateSchema.optional().default('backlog'),
+  priority: issuePrioritySchema.optional().default('medium'),
   assignee_id: z.string().uuid().optional().nullable(),
-  belongs_to: z.array(belongsToEntrySchema).optional().default([]),
+  belongs_to: z.array(belongsToSchema).optional().default([]),
   // Source for the issue (internal, external, or action_items for system-generated)
   source: z.enum(['internal', 'external', 'action_items']).optional().default('internal'),
   // Due date (ISO date string)
@@ -74,15 +59,15 @@ const createIssueSchema = z.object({
   is_system_generated: z.boolean().optional().default(false),
   // Accountability tracking for action_items issues
   accountability_target_id: z.string().uuid().optional().nullable(),
-  accountability_type: z.enum(accountabilityTypes).optional().nullable(),
+  accountability_type: accountabilityTypeSchema.optional().nullable(),
 });
 
 const updateIssueSchema = z.object({
   title: z.string().min(1).max(500).optional(),
-  state: z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
-  priority: z.enum(['urgent', 'high', 'medium', 'low', 'none']).optional(),
+  state: issueStateSchema.optional(),
+  priority: issuePrioritySchema.optional(),
   assignee_id: z.string().uuid().optional().nullable(),
-  belongs_to: z.array(belongsToEntrySchema).optional(),
+  belongs_to: z.array(belongsToSchema).optional(),
   estimate: z.number().positive().nullable().optional(),
   // Confirm closing parent with incomplete children (removes their parent association)
   confirm_orphan_children: z.boolean().optional(),
@@ -112,9 +97,20 @@ const rejectIssueSchema = z.object({
   reason: z.string().min(1).max(1000),
 });
 
+const listIssuesQuerySchema = z.object({
+  state: z.string().optional(),
+  priority: issuePrioritySchema.optional(),
+  assignee_id: z.string().optional(),
+  program_id: z.string().uuid().optional(),
+  project_id: z.string().uuid().optional(),
+  sprint_id: z.string().uuid().optional(),
+  source: z.enum(['internal', 'external', 'action_items']).optional(),
+  parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional(),
+});
+
 // Helper to extract issue properties from row (without belongs_to - added separately)
 function extractIssueFromRow(row: IssueRow) {
-  const props = row.properties || {};
+  const props: Partial<IssueProperties> = row.properties || {};
   return {
     id: row.id,
     title: row.title,
@@ -148,7 +144,12 @@ function extractIssueFromRow(row: IssueRow) {
 // List issues with filters
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { state, priority, assignee_id, program_id, sprint_id, source, parent_filter } = req.query;
+    const parsedQuery = listIssuesQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      res.status(400).json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() });
+      return;
+    }
+    const { state, priority, assignee_id, program_id, project_id, sprint_id, source, parent_filter } = parsedQuery.data;
     const userId = req.userId!;
     const workspaceId = req.workspaceId!;
 
@@ -179,19 +180,19 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     // Filter by source if specified (internal or external)
     if (source) {
       query += ` AND d.properties->>'source' = $${params.length + 1}`;
-      params.push(source as string);
+      params.push(source);
     }
     // No default filtering - show all issues regardless of source
 
     if (state) {
-      const states = (state as string).split(',');
+      const states = state.split(',');
       query += ` AND d.properties->>'state' = ANY($${params.length + 1})`;
       params.push(states);
     }
 
     if (priority) {
       query += ` AND d.properties->>'priority' = $${params.length + 1}`;
-      params.push(priority as string);
+      params.push(priority);
     }
 
     if (assignee_id) {
@@ -199,7 +200,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         query += ` AND (d.properties->>'assignee_id' IS NULL OR d.properties->>'assignee_id' = '')`;
       } else {
         query += ` AND d.properties->>'assignee_id' = $${params.length + 1}`;
-        params.push(assignee_id as string);
+        params.push(assignee_id);
       }
     }
 
@@ -209,7 +210,16 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         SELECT 1 FROM document_associations da
         WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'program'
       )`;
-      params.push(program_id as string);
+      params.push(program_id);
+    }
+
+    // Filter by project via junction table
+    if (project_id) {
+      query += ` AND EXISTS (
+        SELECT 1 FROM document_associations da
+        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'project'
+      )`;
+      params.push(project_id);
     }
 
     // Filter by sprint via junction table
@@ -218,7 +228,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         SELECT 1 FROM document_associations da
         WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'sprint'
       )`;
-      params.push(sprint_id as string);
+      params.push(sprint_id);
     }
 
     // Filter by parent/sub-issue status

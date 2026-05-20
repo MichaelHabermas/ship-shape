@@ -365,11 +365,7 @@ Client (IndexedDB)          Server (PostgreSQL)
 
 ### Search
 
-**Server search with offline fallback**:
-
-- Primary: Full-text search on PostgreSQL server
-- Offline: Search locally synced documents in IndexedDB
-- UI indicates when showing "offline results only"
+`/docs` search is client-side title filtering over the loaded document list. There is no `/api/search/documents` endpoint; server-side search is limited to specific workflows such as mention autocomplete and learning lookup.
 
 ## Configuration
 

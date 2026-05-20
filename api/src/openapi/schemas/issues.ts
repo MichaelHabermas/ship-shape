@@ -46,11 +46,14 @@ registry.register('IssueSource', IssueSourceSchema);
 export const AccountabilityTypeSchema = z.enum([
   'standup',
   'weekly_plan',
+  'weekly_retro',
   'weekly_review',
   'week_start',
   'week_issues',
   'project_plan',
   'project_retro',
+  'changes_requested_plan',
+  'changes_requested_retro',
 ]).openapi({
   description: 'Type of accountability task for auto-generated issues',
 });
@@ -235,7 +238,7 @@ registry.registerPath({
   path: '/issues',
   tags: ['Issues'],
   summary: 'List issues',
-  description: 'List issues with optional filtering by state, priority, assignee, program, sprint, and more.',
+  description: 'List issues with optional filtering by state, priority, assignee, program, project, sprint, and more.',
   request: {
     query: z.object({
       state: z.string().optional().openapi({
@@ -247,6 +250,7 @@ registry.registerPath({
         description: 'Filter by assignee ID. Use "null" or "unassigned" for unassigned issues.',
       }),
       program_id: UuidSchema.optional(),
+      project_id: UuidSchema.optional(),
       sprint_id: UuidSchema.optional(),
       source: IssueSourceSchema.optional(),
       parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional().openapi({

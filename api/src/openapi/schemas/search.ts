@@ -27,14 +27,24 @@ registry.register('MentionSearchResult', MentionSearchResultSchema);
 export const LearningSearchResultSchema = z.object({
   id: UuidSchema,
   title: z.string(),
+  category: z.string().nullable(),
+  tags: z.array(z.string()).nullable(),
+  source_prd: z.string().nullable(),
+  source_sprint_id: z.string().nullable(),
   content_preview: z.string().nullable(),
   program_id: UuidSchema.nullable(),
-  program_name: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 }).openapi('LearningSearchResult');
 
 registry.register('LearningSearchResult', LearningSearchResultSchema);
+
+export const LearningSearchResponseSchema = z.object({
+  learnings: z.array(LearningSearchResultSchema),
+  total: z.number().int(),
+}).openapi('LearningSearchResponse');
+
+registry.register('LearningSearchResponse', LearningSearchResponseSchema);
 
 // ============== Register Search Endpoints ==============
 
@@ -72,7 +82,7 @@ registry.registerPath({
   description: 'Search wiki documents for learnings. Filters by program optionally.',
   request: {
     query: z.object({
-      q: z.string().openapi({
+      q: z.string().optional().openapi({
         description: 'Search query',
       }),
       program_id: UuidSchema.optional(),
@@ -84,7 +94,7 @@ registry.registerPath({
       description: 'Learning search results',
       content: {
         'application/json': {
-          schema: z.array(LearningSearchResultSchema),
+          schema: LearningSearchResponseSchema,
         },
       },
     },

@@ -411,13 +411,15 @@ router.get('/session', authMiddleware, async (req: Request, res: Response): Prom
 
     // Calculate absolute expiry based on session creation time
     const createdAt = new Date(session.created_at);
+    const lastActivity = new Date(session.last_activity);
+    const inactivityExpiresAt = new Date(lastActivity.getTime() + SESSION_TIMEOUT_MS);
     const absoluteExpiresAt = new Date(createdAt.getTime() + ABSOLUTE_SESSION_TIMEOUT_MS);
 
     res.json({
       success: true,
       data: {
         createdAt: session.created_at,
-        expiresAt: session.expires_at, // Inactivity-based expiry
+        expiresAt: inactivityExpiresAt.toISOString(),
         absoluteExpiresAt: absoluteExpiresAt.toISOString(),
         lastActivity: session.last_activity,
       },

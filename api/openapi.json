@@ -561,11 +561,14 @@
             "enum": [
               "standup",
               "weekly_plan",
+              "weekly_retro",
               "weekly_review",
               "week_start",
               "week_issues",
               "project_plan",
-              "project_retro"
+              "project_retro",
+              "changes_requested_plan",
+              "changes_requested_retro"
             ],
             "description": "Type of accountability task for auto-generated issues"
           },
@@ -747,11 +750,14 @@
             "enum": [
               "standup",
               "weekly_plan",
+              "weekly_retro",
               "weekly_review",
               "week_start",
               "week_issues",
               "project_plan",
-              "project_retro"
+              "project_retro",
+              "changes_requested_plan",
+              "changes_requested_retro"
             ],
             "description": "Type of accountability task for auto-generated issues"
           }
@@ -3081,6 +3087,25 @@
           "title": {
             "type": "string"
           },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_prd": {
+            "type": "string",
+            "nullable": true
+          },
+          "source_sprint_id": {
+            "type": "string",
+            "nullable": true
+          },
           "content_preview": {
             "type": "string",
             "nullable": true
@@ -3092,10 +3117,6 @@
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
-          "program_name": {
-            "type": "string",
-            "nullable": true
-          },
           "created_at": {
             "type": "string"
           },
@@ -3106,11 +3127,32 @@
         "required": [
           "id",
           "title",
+          "category",
+          "tags",
+          "source_prd",
+          "source_sprint_id",
           "content_preview",
           "program_id",
-          "program_name",
           "created_at",
           "updated_at"
+        ]
+      },
+      "LearningSearchResponse": {
+        "type": "object",
+        "properties": {
+          "learnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearningSearchResult"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "learnings",
+          "total"
         ]
       },
       "UploadRequest": {
@@ -3338,68 +3380,51 @@
       "SessionResponse": {
         "type": "object",
         "properties": {
-          "user": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "UUID identifier",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
-              },
-              "email": {
-                "type": "string",
-                "format": "email"
-              },
-              "name": {
-                "type": "string"
-              },
-              "is_admin": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "id",
-              "email",
-              "name"
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
             ]
           },
-          "workspace": {
+          "data": {
             "type": "object",
-            "nullable": true,
             "properties": {
-              "id": {
+              "createdAt": {
                 "type": "string",
-                "format": "uuid",
-                "description": "UUID identifier",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
+                "format": "date-time",
+                "description": "When the session was created",
+                "example": "2025-01-30T14:30:00.000Z"
               },
-              "name": {
-                "type": "string"
-              },
-              "slug": {
-                "type": "string"
-              },
-              "person_id": {
+              "expiresAt": {
                 "type": "string",
-                "format": "uuid",
-                "description": "Person document ID for current user",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
+                "format": "date-time",
+                "description": "Effective inactivity expiry derived from lastActivity",
+                "example": "2025-01-30T14:30:00.000Z"
               },
-              "role": {
-                "type": "string"
+              "absoluteExpiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Absolute session expiry based on creation time",
+                "example": "2025-01-30T14:30:00.000Z"
+              },
+              "lastActivity": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last activity timestamp used for sliding expiration",
+                "example": "2025-01-30T14:30:00.000Z"
               }
             },
             "required": [
-              "id",
-              "name",
-              "slug"
+              "createdAt",
+              "expiresAt",
+              "absoluteExpiresAt",
+              "lastActivity"
             ]
           }
         },
         "required": [
-          "user",
-          "workspace"
+          "success",
+          "data"
         ]
       },
       "APIToken": {
@@ -4673,6 +4698,7 @@
           "standup",
           "weekly_plan",
           "weekly_review",
+          "weekly_retro",
           "week_start",
           "week_issues",
           "project_plan",
@@ -4729,6 +4755,7 @@
               "standup",
               "weekly_plan",
               "weekly_review",
+              "weekly_retro",
               "week_start",
               "week_issues",
               "project_plan",
@@ -5709,7 +5736,7 @@
           "Issues"
         ],
         "summary": "List issues",
-        "description": "List issues with optional filtering by state, priority, assignee, program, sprint, and more.",
+        "description": "List issues with optional filtering by state, priority, assignee, program, project, sprint, and more.",
         "parameters": [
           {
             "schema": {
@@ -5755,6 +5782,17 @@
             },
             "required": false,
             "name": "program_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": false,
+            "name": "project_id",
             "in": "query"
           },
           {
@@ -6469,11 +6507,14 @@
                             "enum": [
                               "standup",
                               "weekly_plan",
+                              "weekly_retro",
                               "weekly_review",
                               "week_start",
                               "week_issues",
                               "project_plan",
-                              "project_retro"
+                              "project_retro",
+                              "changes_requested_plan",
+                              "changes_requested_retro"
                             ],
                             "description": "Type of accountability task for auto-generated issues"
                           },
@@ -9481,7 +9522,7 @@
               "type": "string",
               "description": "Search query"
             },
-            "required": true,
+            "required": false,
             "name": "q",
             "in": "query"
           },
@@ -9513,10 +9554,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LearningSearchResult"
-                  }
+                  "$ref": "#/components/schemas/LearningSearchResponse"
                 }
               }
             }

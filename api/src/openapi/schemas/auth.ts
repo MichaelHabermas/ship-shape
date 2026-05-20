@@ -38,21 +38,21 @@ registry.register('LoginResponse', LoginResponseSchema);
 // ============== Session ==============
 
 export const SessionResponseSchema = z.object({
-  user: z.object({
-    id: UuidSchema,
-    email: z.string().email(),
-    name: z.string(),
-    is_admin: z.boolean().optional(),
-  }),
-  workspace: z.object({
-    id: UuidSchema,
-    name: z.string(),
-    slug: z.string(),
-    person_id: UuidSchema.optional().openapi({
-      description: 'Person document ID for current user',
+  success: z.literal(true),
+  data: z.object({
+    createdAt: DateTimeSchema.openapi({
+      description: 'When the session was created',
     }),
-    role: z.string().optional(),
-  }).nullable(),
+    expiresAt: DateTimeSchema.openapi({
+      description: 'Effective inactivity expiry derived from lastActivity',
+    }),
+    absoluteExpiresAt: DateTimeSchema.openapi({
+      description: 'Absolute session expiry based on creation time',
+    }),
+    lastActivity: DateTimeSchema.openapi({
+      description: 'Last activity timestamp used for sliding expiration',
+    }),
+  }),
 }).openapi('SessionResponse');
 
 registry.register('SessionResponse', SessionResponseSchema);
