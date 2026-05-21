@@ -3,6 +3,8 @@ import request from 'supertest';
 import crypto from 'crypto';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
+import { BootstrapResponseSchema } from '../openapi/schemas/bootstrap.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 describe('Bootstrap API', () => {
   const app = createApp('http://localhost:5173');
@@ -95,10 +97,16 @@ describe('Bootstrap API', () => {
       .get('/api/bootstrap')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    const bootstrap = expectOpenApiResponse({
+      method: 'get',
+      path: '/bootstrap',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'BootstrapResponse',
+      schema: BootstrapResponseSchema,
+    });
 
-    const data = res.body.data;
+    const data = bootstrap.data;
     expect(data.user.email).toBe(testEmail);
     expect(data.currentWorkspace.id).toBe(testWorkspaceId);
     expect(data.documents.some((doc: any) => doc.title === 'Bootstrap Wiki')).toBe(true);

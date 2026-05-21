@@ -3,6 +3,8 @@ import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
+import { WorkspaceListResponseSchema } from '../openapi/schemas/workspaces.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
 
 describe('Workspaces API', () => {
   const app = createApp()
@@ -116,13 +118,18 @@ describe('Workspaces API', () => {
         .get('/api/workspaces')
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.workspaces)).toBe(true)
-      expect(response.body.data.workspaces.length).toBeGreaterThan(0)
-      expect(response.body.data.workspaces[0]).toHaveProperty('id')
-      expect(response.body.data.workspaces[0]).toHaveProperty('name')
-      expect(response.body.data.workspaces[0]).toHaveProperty('role')
+      const listed = expectOpenApiResponse({
+        method: 'get',
+        path: '/workspaces',
+        status: 200,
+        response,
+        openApiSchemaName: 'WorkspaceListResponse',
+        schema: WorkspaceListResponseSchema,
+      })
+      expect(listed.data.workspaces.length).toBeGreaterThan(0)
+      expect(listed.data.workspaces[0]).toHaveProperty('id')
+      expect(listed.data.workspaces[0]).toHaveProperty('name')
+      expect(listed.data.workspaces[0]).toHaveProperty('role')
     })
 
     it('should return 401 when not authenticated', async () => {

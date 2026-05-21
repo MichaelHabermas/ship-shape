@@ -3,6 +3,8 @@ import request from 'supertest';
 import crypto from 'crypto';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
+import { UploadResponseSchema } from '../openapi/schemas/files.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 describe('Files API', () => {
   const app = createApp('http://localhost:5173');
@@ -98,15 +100,19 @@ describe('Files API', () => {
         sizeBytes: 1024,
       });
 
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('fileId');
-    expect(res.body).toHaveProperty('uploadUrl');
-    expect(res.body).toHaveProperty('s3Key');
-    expect(typeof res.body.fileId).toBe('string');
-    expect(typeof res.body.uploadUrl).toBe('string');
+    const upload = expectOpenApiResponse({
+      method: 'post',
+      path: '/files/upload',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'UploadResponse',
+      schema: UploadResponseSchema,
+    });
+    expect(upload.fileId).toBeTruthy();
+    expect(upload.uploadUrl).toBeTruthy();
 
     // Save fileId for later tests
-    testFileId = res.body.fileId;
+    testFileId = upload.fileId;
 
     // Verify file record was created in database
     const dbResult = await pool.query(

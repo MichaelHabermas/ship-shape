@@ -142,6 +142,37 @@ components:
       required:
         - id
         - name
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+      required:
+        - success
+    ApiErrorBody:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+    ApiErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        error:
+          $ref: "#/components/schemas/ApiErrorBody"
+      required:
+        - success
+        - error
     DocumentType:
       type: string
       enum:
@@ -2415,10 +2446,17 @@ components:
         name:
           type: string
         sprintStartDate:
-          type: string
-          pattern: ^\d{4}-\d{2}-\d{2}$
+          anyOf:
+            - type: string
+              pattern: ^\d{4}-\d{2}-\d{2}$
+              description: ISO 8601 date string (YYYY-MM-DD)
+              example: 2025-01-30
+            - type: string
+              format: date-time
+              description: ISO 8601 datetime string
+              example: "2025-01-30T14:30:00.000Z"
+            - nullable: true
           description: Anchor date for computing sprint numbers and dates
-          example: 2025-01-30
         archivedAt:
           type: string
           nullable: true
@@ -2500,6 +2538,75 @@ components:
           pattern: ^\d{4}-\d{2}-\d{2}$
           description: ISO 8601 date string (YYYY-MM-DD)
           example: 2025-01-30
+    WorkspaceMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        userId:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          nullable: true
+          enum:
+            - admin
+            - member
+        personDocumentId:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        joinedAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        isArchived:
+          type: boolean
+      required:
+        - id
+        - userId
+        - email
+        - name
+        - role
+        - personDocumentId
+        - joinedAt
+        - isArchived
+    WorkspaceMembersListData:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceMember"
+      required:
+        - members
+    WorkspaceMembersListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/WorkspaceMembersListData"
+      required:
+        - success
+        - data
     MentionSearchResult:
       type: object
       properties:
@@ -4718,15 +4825,507 @@ components:
           type: boolean
       required:
         - available
-    SuccessResponse:
+    SetupStatusData:
+      type: object
+      properties:
+        needsSetup:
+          type: boolean
+      required:
+        - needsSetup
+    SetupStatusResponse:
       type: object
       properties:
         success:
           type: boolean
           enum:
             - true
+        data:
+          $ref: "#/components/schemas/SetupStatusData"
       required:
         - success
+        - data
+    SetupInitializeRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - password
+        - name
+    SetupInitializeData:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+            isSuperAdmin:
+              type: boolean
+          required:
+            - id
+            - email
+            - name
+            - isSuperAdmin
+        message:
+          type: string
+      required:
+        - user
+        - message
+    SetupInitializeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/SetupInitializeData"
+      required:
+        - success
+        - data
+    InviteDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - admin
+            - member
+        workspaceId:
+          type: string
+          format: uuid
+        workspaceName:
+          type: string
+        invitedBy:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        userExists:
+          type: boolean
+        alreadyMember:
+          type: boolean
+      required:
+        - id
+        - email
+        - role
+        - workspaceId
+        - workspaceName
+        - invitedBy
+        - expiresAt
+        - userExists
+        - alreadyMember
+    InviteDetailsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/InviteDetails"
+      required:
+        - success
+        - data
+    InviteAcceptRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 1
+    InviteAcceptData:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+          required:
+            - id
+            - email
+            - name
+        workspace:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            role:
+              type: string
+              enum:
+                - admin
+                - member
+          required:
+            - id
+            - name
+            - role
+      required:
+        - user
+        - workspace
+    InviteAcceptResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/InviteAcceptData"
+      required:
+        - success
+        - data
+    FeedbackItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+        state:
+          type: string
+        ticket_number:
+          type: integer
+          nullable: true
+        program_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        program_name:
+          type: string
+          nullable: true
+        program_prefix:
+          type: string
+          nullable: true
+        program_color:
+          type: string
+          nullable: true
+        content:
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        created_by_name:
+          type: string
+          nullable: true
+      required:
+        - id
+        - title
+        - state
+        - created_at
+        - updated_at
+    CreateFeedbackRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        program_id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        submitter_email:
+          type: string
+          format: email
+        content:
+          nullable: true
+      required:
+        - title
+        - program_id
+    FeedbackProgramPublic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+        prefix:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+      required:
+        - id
+        - name
+        - prefix
+    AuthProviderStatusData:
+      type: object
+      properties:
+        available:
+          type: boolean
+      required:
+        - available
+    AuthProviderStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AuthProviderStatusData"
+      required:
+        - success
+        - data
+    AuthProviderLoginData:
+      type: object
+      properties:
+        authorizationUrl:
+          type: string
+          format: uri
+      required:
+        - authorizationUrl
+    AuthProviderLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AuthProviderLoginData"
+      required:
+        - success
+        - data
+    AdminWorkspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+        sprintStartDate:
+          type: string
+          nullable: true
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: ISO 8601 date string (YYYY-MM-DD)
+          example: 2025-01-30
+        archivedAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        memberCount:
+          type: integer
+      required:
+        - id
+        - name
+        - archivedAt
+        - createdAt
+        - updatedAt
+    AdminWorkspacesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          properties:
+            workspaces:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminWorkspace"
+          required:
+            - workspaces
+      required:
+        - success
+        - data
+    AdminJsonResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties:
+            nullable: true
+      required:
+        - success
+        - data
+    CredentialsPageHtml:
+      type: string
+      description: HTML admin credentials page
+    CredentialsStatus:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        redirectUri:
+          type: string
+        secretPath:
+          type: string
+      required:
+        - configured
+    CredentialsStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/CredentialsStatus"
+      required:
+        - success
+        - data
+    SaveCredentialsRequest:
+      type: object
+      properties:
+        issuerUrl:
+          type: string
+          format: uri
+        clientId:
+          type: string
+          minLength: 1
+        clientSecret:
+          type: string
+      required:
+        - issuerUrl
+        - clientId
+    CredentialsMutationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties:
+            nullable: true
+      required:
+        - success
+        - data
+    DocumentContentPayload:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+        content:
+          type: object
+          nullable: true
+          additionalProperties:
+            nullable: true
+      required:
+        - id
+        - title
+        - content
+    WorkspaceSwitchData:
+      type: object
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - workspaceId
+    WorkspaceSwitchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/WorkspaceSwitchData"
+      required:
+        - success
+        - data
+    AdminCreateWorkspaceData:
+      type: object
+      properties:
+        workspace:
+          $ref: "#/components/schemas/AdminWorkspace"
+      required:
+        - workspace
+    AdminCreateWorkspaceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: "#/components/schemas/AdminCreateWorkspaceData"
+      required:
+        - success
+        - data
   parameters: {}
 paths:
   /documents:
@@ -4905,6 +5504,174 @@ paths:
       responses:
         204:
           description: Document deleted
+        404:
+          description: Document not found
+  /documents/{id}/content:
+    get:
+      tags:
+        - Documents
+      summary: Get document TipTap content
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Document content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentContentPayload"
+        404:
+          description: Document not found
+    patch:
+      tags:
+        - Documents
+      summary: Update document TipTap content
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              nullable: true
+              additionalProperties:
+                nullable: true
+      responses:
+        200:
+          description: Content updated
+        404:
+          description: Document not found
+  /documents/converted/list:
+    get:
+      tags:
+        - Documents
+      summary: List converted documents
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - wiki
+              - issue
+              - program
+              - project
+              - sprint
+              - person
+              - weekly_plan
+              - weekly_retro
+              - standup
+              - weekly_review
+            description: Type of document
+          required: false
+          name: original_type
+          in: query
+        - schema:
+            type: string
+            enum:
+              - wiki
+              - issue
+              - program
+              - project
+              - sprint
+              - person
+              - weekly_plan
+              - weekly_retro
+              - standup
+              - weekly_review
+            description: Type of document
+          required: false
+          name: converted_type
+          in: query
+      responses:
+        200:
+          description: Converted documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+  /documents/{id}/convert:
+    post:
+      tags:
+        - Documents
+      summary: Convert document to another type
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_type:
+                  type: string
+                  enum:
+                    - wiki
+                    - issue
+                    - program
+                    - project
+                    - sprint
+                    - person
+                    - weekly_plan
+                    - weekly_retro
+                    - standup
+                    - weekly_review
+                  description: Type of document
+              required:
+                - target_type
+      responses:
+        200:
+          description: Document converted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        404:
+          description: Document not found
+  /documents/{id}/undo-conversion:
+    post:
+      tags:
+        - Documents
+      summary: Undo document type conversion
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Conversion undone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
         404:
           description: Document not found
   /issues:
@@ -5289,6 +6056,38 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/IssueHistoryEntry"
+        404:
+          description: Issue not found
+    post:
+      tags:
+        - Issues
+      summary: Append issue history entry
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                field:
+                  type: string
+                old_value:
+                  nullable: true
+                new_value:
+                  nullable: true
+              required:
+                - field
+      responses:
+        201:
+          description: History entry created
         404:
           description: Issue not found
   /issues/{id}/iterations:
@@ -5741,6 +6540,177 @@ paths:
                 $ref: "#/components/schemas/Project"
         404:
           description: Project not found
+    post:
+      tags:
+        - Projects
+      summary: Save project retro
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectRetro"
+      responses:
+        200:
+          description: Retro saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        404:
+          description: Project not found
+  /projects/{id}/issues:
+    get:
+      tags:
+        - Projects
+      summary: List project issues
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Project issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+        404:
+          description: Project not found
+  /projects/{id}/weeks:
+    get:
+      tags:
+        - Projects
+      summary: List project weeks
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Project weeks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+        404:
+          description: Project not found
+  /projects/{id}/sprints:
+    get:
+      tags:
+        - Projects
+      summary: List project sprints
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Project sprints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+        404:
+          description: Project not found
+    post:
+      tags:
+        - Projects
+      summary: Create project sprint
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                nullable: true
+      responses:
+        201:
+          description: Sprint created
+        404:
+          description: Project not found
+  /projects/{id}/approve-plan:
+    post:
+      tags:
+        - Projects
+      summary: Approve project plan
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Plan approved
+        404:
+          description: Project not found
+  /projects/{id}/approve-retro:
+    post:
+      tags:
+        - Projects
+      summary: Approve project retro
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Retro approved
+        404:
+          description: Project not found
   /programs:
     get:
       tags:
@@ -6140,42 +7110,6 @@ paths:
           description: Validation error
         409:
           description: Sprint number already exists for this program
-  /weeks/all:
-    get:
-      tags:
-        - Weeks
-      summary: List all weeks
-      description: Get all sprints with optional filtering.
-      parameters:
-        - schema:
-            type: string
-            format: uuid
-            description: UUID identifier
-            example: 550e8400-e29b-41d4-a716-446655440000
-          required: false
-          name: program_id
-          in: query
-        - schema:
-            type: integer
-            nullable: true
-          required: false
-          name: from_sprint
-          in: query
-        - schema:
-            type: integer
-            nullable: true
-          required: false
-          name: to_sprint
-          in: query
-      responses:
-        200:
-          description: List of all weeks
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Week"
   /weeks/{id}:
     get:
       tags:
@@ -6956,6 +7890,159 @@ paths:
                   - removed_after_start
         404:
           description: Sprint not found
+  /weeks/lookup:
+    get:
+      tags:
+        - Weeks
+      summary: Lookup week by sprint number
+      parameters:
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: sprint_number
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: false
+          name: program_id
+          in: query
+      responses:
+        200:
+          description: Week lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Week"
+  /weeks/lookup-person:
+    get:
+      tags:
+        - Weeks
+      summary: Lookup week for a person
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: person_id
+          in: query
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: sprint_number
+          in: query
+      responses:
+        200:
+          description: Person week lookup
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /weeks/my-week:
+    get:
+      tags:
+        - Weeks
+      summary: Get current user week dashboard
+      responses:
+        200:
+          description: My week data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /weeks/my-action-items:
+    get:
+      tags:
+        - Weeks
+      summary: Get current user action items
+      responses:
+        200:
+          description: Action items
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /weeks/{id}/unapprove-plan:
+    post:
+      tags:
+        - Weeks
+      summary: Unapprove week plan
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Plan unapproved
+        404:
+          description: Week not found
+  /weeks/{id}/iterations:
+    get:
+      tags:
+        - Weeks
+      summary: List week iterations
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Iterations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+    post:
+      tags:
+        - Weeks
+      summary: Create week iteration
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                nullable: true
+      responses:
+        201:
+          description: Iteration created
+        404:
+          description: Week not found
   /standups/status:
     get:
       tags:
@@ -7146,34 +8233,89 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TeamGridResponse"
-  /team:
+  /team/projects:
     get:
       tags:
         - Team
-      summary: List team members
-      description: List all person documents in the workspace.
-      parameters:
-        - schema:
-            type: boolean
-            nullable: true
-          required: false
-          name: includeArchived
-          in: query
+      summary: List team projects
       responses:
         200:
-          description: List of team members
+          description: Projects
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /team/programs:
+    get:
+      tags:
+        - Team
+      summary: List team programs
+      responses:
+        200:
+          description: Programs
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /team/assignments:
+    get:
+      tags:
+        - Team
+      summary: List team assignments
+      responses:
+        200:
+          description: Assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /team/assign:
+    post:
+      tags:
+        - Team
+      summary: Create team assignment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                nullable: true
+      responses:
+        200:
+          description: Assignment created
+    delete:
+      tags:
+        - Team
+      summary: Remove team assignment
+      responses:
+        204:
+          description: Assignment removed
+  /team/people:
+    get:
+      tags:
+        - Team
+      summary: List team people
+      responses:
+        200:
+          description: People
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Person"
-  /team/{id}:
+  /team/people/{personId}/sprint-metrics:
     get:
       tags:
         - Team
-      summary: Get team member
-      description: Get a specific person document by ID.
+      summary: Get person sprint metrics
       parameters:
         - schema:
             type: string
@@ -7181,98 +8323,73 @@ paths:
             description: UUID identifier
             example: 550e8400-e29b-41d4-a716-446655440000
           required: true
-          name: id
+          name: personId
           in: path
       responses:
         200:
-          description: Person details
+          description: Sprint metrics
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Person"
-        404:
-          description: Person not found
-    patch:
-      tags:
-        - Team
-      summary: Update team member
-      description: Update a person document (name, role, capacity, etc.).
-      parameters:
-        - schema:
-            type: string
-            format: uuid
-            description: UUID identifier
-            example: 550e8400-e29b-41d4-a716-446655440000
-          required: true
-          name: id
-          in: path
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  minLength: 1
-                  maxLength: 200
-                role:
-                  type: string
-                  maxLength: 100
-                capacity_hours:
-                  type: number
+                type: object
+                additionalProperties:
                   nullable: true
-                  minimum: 0
-                  exclusiveMinimum: true
+  /team/accountability:
+    get:
+      tags:
+        - Team
+      summary: Get team accountability data
       responses:
         200:
-          description: Updated person
+          description: Accountability data
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Person"
-        404:
-          description: Person not found
-  /team/{id}/archive:
-    post:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /team/accountability-grid:
+    get:
       tags:
         - Team
-      summary: Archive team member
-      description: Archive a person document (soft delete).
-      parameters:
-        - schema:
-            type: string
-            format: uuid
-            description: UUID identifier
-            example: 550e8400-e29b-41d4-a716-446655440000
-          required: true
-          name: id
-          in: path
+      summary: Get accountability grid (v1)
       responses:
         200:
-          description: Person archived
-        404:
-          description: Person not found
-  /team/{id}/restore:
-    post:
+          description: Accountability grid
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /team/accountability-grid-v2:
+    get:
       tags:
         - Team
-      summary: Restore team member
-      description: Restore an archived person document.
-      parameters:
-        - schema:
-            type: string
-            format: uuid
-            description: UUID identifier
-            example: 550e8400-e29b-41d4-a716-446655440000
-          required: true
-          name: id
-          in: path
+      summary: Get accountability grid (v2)
       responses:
         200:
-          description: Person restored
-        404:
-          description: Person not found
+          description: Accountability grid v2
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+  /team/accountability-grid-v3:
+    get:
+      tags:
+        - Team
+      summary: Get accountability grid (v3)
+      responses:
+        200:
+          description: Accountability grid v3
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
   /workspaces:
     get:
       tags:
@@ -7286,27 +8403,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WorkspaceListResponse"
-    post:
-      tags:
-        - Workspaces
-      summary: Create workspace
-      description: Create a new workspace. Requires admin privileges.
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateWorkspace"
-      responses:
-        201:
-          description: Created workspace
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Workspace"
-        400:
-          description: Validation error
-        403:
-          description: Insufficient privileges
   /workspaces/current:
     get:
       tags:
@@ -7358,32 +8454,44 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    enum:
-                      - true
-                  data:
-                    type: object
-                    properties:
-                      workspace:
-                        $ref: "#/components/schemas/Workspace"
-                    required:
-                      - workspace
-                required:
-                  - success
-                  - data
+                $ref: "#/components/schemas/WorkspaceSwitchResponse"
         403:
           description: No access to workspace
         404:
           description: Workspace not found
-  /workspaces/{id}:
-    patch:
+  /workspaces/{id}/members:
+    get:
       tags:
         - Workspaces
-      summary: Update workspace
-      description: Update workspace settings. Requires workspace admin role.
+      summary: List workspace members
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: boolean
+            nullable: true
+          required: false
+          name: includeArchived
+          in: query
+      responses:
+        200:
+          description: Members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceMembersListResponse"
+        403:
+          description: Workspace admin required
+    post:
+      tags:
+        - Workspaces
+      summary: Add existing user to workspace
       parameters:
         - schema:
             type: string
@@ -7397,18 +8505,253 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateWorkspace"
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: UUID identifier
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+              required:
+                - userId
       responses:
-        200:
-          description: Updated workspace
+        201:
+          description: Member added
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Workspace"
+                $ref: "#/components/schemas/WorkspaceMembersListResponse"
         403:
-          description: Not a workspace admin
-        404:
-          description: Workspace not found
+          description: Workspace admin required
+        409:
+          description: User already a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /workspaces/{id}/members/{userId}:
+    patch:
+      tags:
+        - Workspaces
+      summary: Update workspace member
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: userId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+              required:
+                - role
+      responses:
+        200:
+          description: Member updated
+        403:
+          description: Workspace admin required
+    delete:
+      tags:
+        - Workspaces
+      summary: Archive workspace member
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: userId
+          in: path
+      responses:
+        200:
+          description: Member archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        403:
+          description: Workspace admin required
+  /workspaces/{id}/members/{userId}/restore:
+    post:
+      tags:
+        - Workspaces
+      summary: Restore archived workspace member
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: userId
+          in: path
+      responses:
+        200:
+          description: Member restored
+        403:
+          description: Workspace admin required
+  /workspaces/{id}/invites:
+    get:
+      tags:
+        - Workspaces
+      summary: List workspace invites
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Invites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+    post:
+      tags:
+        - Workspaces
+      summary: Create workspace invite
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+              required:
+                - email
+      responses:
+        201:
+          description: Invite created
+  /workspaces/{id}/invites/{inviteId}:
+    delete:
+      tags:
+        - Workspaces
+      summary: Revoke workspace invite
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: inviteId
+          in: path
+      responses:
+        200:
+          description: Invite revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+  /workspaces/{id}/audit-logs:
+    get:
+      tags:
+        - Workspaces
+      summary: List workspace audit logs
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: page
+          in: query
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: limit
+          in: query
+      responses:
+        200:
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
   /search/mentions:
     get:
       tags:
@@ -8150,6 +9493,32 @@ paths:
                   $ref: "#/components/schemas/Association"
         404:
           description: Document not found
+  /documents/{id}/context:
+    get:
+      tags:
+        - Documents
+      summary: Get document context tree
+      description: Get ancestors, children, and siblings for hierarchical navigation.
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Document context tree
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+        404:
+          description: Document not found
   /claude/context:
     get:
       tags:
@@ -8679,3 +10048,966 @@ paths:
                 $ref: "#/components/schemas/RetroAnalysisResult"
         429:
           description: Rate limit exceeded (max 10 per hour)
+  /invites/{token}:
+    get:
+      tags:
+        - Invites
+      summary: Validate invite token
+      security: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: token
+          in: path
+      responses:
+        200:
+          description: Invite details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteDetailsResponse"
+        400:
+          description: Invite used or expired
+        404:
+          description: Invalid invite
+        500:
+          description: Internal server error
+  /invites/{token}/accept:
+    post:
+      tags:
+        - Invites
+      summary: Accept workspace invite
+      security: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: token
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteAcceptRequest"
+      responses:
+        201:
+          description: Invite accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteAcceptResponse"
+        400:
+          description: Validation error
+        404:
+          description: Invalid invite
+        500:
+          description: Internal server error
+  /feedback:
+    post:
+      tags:
+        - Feedback
+      summary: Submit public feedback
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFeedbackRequest"
+      responses:
+        201:
+          description: Feedback created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackItem"
+        400:
+          description: Validation error
+        500:
+          description: Internal server error
+  /feedback/program/{programId}:
+    get:
+      tags:
+        - Feedback
+      summary: Get public program info for feedback form
+      security: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: programId
+          in: path
+      responses:
+        200:
+          description: Program metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackProgramPublic"
+        404:
+          description: Program not found
+        500:
+          description: Internal server error
+  /feedback/{id}:
+    get:
+      tags:
+        - Feedback
+      summary: Get feedback by ID
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Feedback details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackItem"
+        404:
+          description: Feedback not found
+        500:
+          description: Internal server error
+  /auth/caia/status:
+    get:
+      tags:
+        - CAIA Auth
+      summary: Get CAIA auth configuration status
+      security: []
+      responses:
+        200:
+          description: Provider status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProviderStatusResponse"
+  /auth/caia/login:
+    get:
+      tags:
+        - CAIA Auth
+      summary: Start CAIA OAuth login
+      security: []
+      responses:
+        200:
+          description: Authorization URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProviderLoginResponse"
+        500:
+          description: Failed to initiate login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        503:
+          description: Provider not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /auth/caia/callback:
+    get:
+      tags:
+        - CAIA Auth
+      summary: Handle CAIA OAuth callback
+      security: []
+      responses:
+        302:
+          description: Redirect after authentication
+        400:
+          description: Invalid OAuth callback
+        500:
+          description: Authentication failed
+  /auth/piv/status:
+    get:
+      tags:
+        - PIV Auth
+      summary: Get PIV auth configuration status
+      security: []
+      responses:
+        200:
+          description: Provider status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProviderStatusResponse"
+  /auth/piv/login:
+    get:
+      tags:
+        - PIV Auth
+      summary: Start PIV OAuth login
+      security: []
+      responses:
+        200:
+          description: Authorization URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProviderLoginResponse"
+        500:
+          description: Failed to initiate login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        503:
+          description: Provider not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /auth/piv/callback:
+    get:
+      tags:
+        - PIV Auth
+      summary: Handle PIV OAuth callback
+      security: []
+      responses:
+        302:
+          description: Redirect after authentication
+        400:
+          description: Invalid OAuth callback
+        500:
+          description: Authentication failed
+  /admin/workspaces:
+    get:
+      tags:
+        - Admin
+      summary: List all workspaces (super-admin)
+      parameters:
+        - schema:
+            type: boolean
+            nullable: true
+          required: false
+          name: includeArchived
+          in: query
+      responses:
+        200:
+          description: Workspace list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminWorkspacesResponse"
+        403:
+          description: Super admin required
+    post:
+      tags:
+        - Admin
+      summary: Create workspace (super-admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+              required:
+                - name
+      responses:
+        201:
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCreateWorkspaceResponse"
+        403:
+          description: Super admin required
+  /admin/workspaces/{id}:
+    get:
+      tags:
+        - Admin
+      summary: Get workspace by ID (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+    patch:
+      tags:
+        - Admin
+      summary: Update workspace (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/workspaces/{id}/archive:
+    post:
+      tags:
+        - Admin
+      summary: Archive workspace (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Workspace archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        403:
+          description: Super admin required
+  /admin/workspaces/{id}/members:
+    get:
+      tags:
+        - Admin
+      summary: List workspace members (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+    post:
+      tags:
+        - Admin
+      summary: Add workspace member (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+              required:
+                - email
+      responses:
+        201:
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+        409:
+          description: User already a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /admin/workspaces/{workspaceId}/members/{userId}:
+    patch:
+      tags:
+        - Admin
+      summary: Update workspace member (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspaceId
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: userId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+              required:
+                - role
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+    delete:
+      tags:
+        - Admin
+      summary: Remove workspace member (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspaceId
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: userId
+          in: path
+      responses:
+        200:
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        403:
+          description: Super admin required
+  /admin/workspaces/{id}/invites:
+    get:
+      tags:
+        - Admin
+      summary: List workspace invites (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+    post:
+      tags:
+        - Admin
+      summary: Create workspace invite (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - member
+              required:
+                - email
+      responses:
+        201:
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+        409:
+          description: Invite already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /admin/workspaces/{workspaceId}/invites/{inviteId}:
+    delete:
+      tags:
+        - Admin
+      summary: Revoke workspace invite (super-admin)
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: workspaceId
+          in: path
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: inviteId
+          in: path
+      responses:
+        200:
+          description: Invite revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        403:
+          description: Super admin required
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: List users (super-admin)
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/users/search:
+    get:
+      tags:
+        - Admin
+      summary: Search users (super-admin)
+      parameters:
+        - schema:
+            type: string
+          required: false
+          name: q
+          in: query
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: limit
+          in: query
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/users/{id}/super-admin:
+    patch:
+      tags:
+        - Admin
+      summary: Toggle super-admin flag
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isSuperAdmin:
+                  type: boolean
+              required:
+                - isSuperAdmin
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/audit-logs:
+    get:
+      tags:
+        - Admin
+      summary: List audit logs (super-admin)
+      parameters:
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: page
+          in: query
+        - schema:
+            type: integer
+            nullable: true
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: false
+          name: workspaceId
+          in: query
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: false
+          name: userId
+          in: query
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/audit-logs/export:
+    get:
+      tags:
+        - Admin
+      summary: Export audit logs (super-admin)
+      responses:
+        200:
+          description: CSV export
+        403:
+          description: Super admin required
+  /admin/impersonate/{userId}:
+    post:
+      tags:
+        - Admin
+      summary: Start impersonation session
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: userId
+          in: path
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/impersonate:
+    delete:
+      tags:
+        - Admin
+      summary: End impersonation session
+      responses:
+        200:
+          description: Impersonation ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        403:
+          description: Super admin required
+  /admin/debug/users:
+    get:
+      tags:
+        - Admin
+      summary: List users for debug tooling
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/debug/orphans:
+    get:
+      tags:
+        - Admin
+      summary: List orphan records for debug tooling
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/debug/orphans/fix:
+    post:
+      tags:
+        - Admin
+      summary: Fix orphan records
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/debug/users/{id}:
+    delete:
+      tags:
+        - Admin
+      summary: Delete debug user record
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJsonResponse"
+        403:
+          description: Super admin required
+  /admin/credentials:
+    get:
+      tags:
+        - Admin
+        - Credentials
+      summary: Admin credentials configuration page
+      responses:
+        200:
+          description: HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+                description: HTML admin credentials page
+        403:
+          description: Super admin required
+  /admin/credentials/status:
+    get:
+      tags:
+        - Admin
+        - Credentials
+      summary: Get CAIA credentials configuration status
+      responses:
+        200:
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CredentialsStatusResponse"
+        403:
+          description: Super admin required
+  /admin/credentials/save:
+    post:
+      tags:
+        - Admin
+        - Credentials
+      summary: Save CAIA OAuth credentials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveCredentialsRequest"
+      responses:
+        200:
+          description: Credentials saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CredentialsMutationResponse"
+        400:
+          description: Validation error
+        403:
+          description: Super admin required
+  /admin/credentials/test:
+    post:
+      tags:
+        - Admin
+        - Credentials
+      summary: Test CAIA issuer discovery
+      responses:
+        200:
+          description: Discovery test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CredentialsMutationResponse"
+        403:
+          description: Super admin required
+  /admin/credentials/test-api:
+    post:
+      tags:
+        - Admin
+        - Credentials
+      summary: Test CAIA API connectivity
+      responses:
+        200:
+          description: API test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CredentialsMutationResponse"
+        403:
+          description: Super admin required
+  /setup/status:
+    get:
+      tags:
+        - Setup
+      summary: Check whether initial setup is required
+      description:
+      operationId:
+      security: []
+      responses:
+        200:
+          description: Setup status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupStatusResponse"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /setup/initialize:
+    post:
+      tags:
+        - Setup
+      summary: Create first super admin and workspace
+      description:
+      operationId:
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetupInitializeRequest"
+      responses:
+        201:
+          description: Setup complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupInitializeResponse"
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        403:
+          description: Setup already completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"

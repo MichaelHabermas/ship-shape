@@ -8,6 +8,11 @@ if [ -f "./scripts/check-api-coverage.sh" ]; then
   ./scripts/check-api-coverage.sh --staged
 fi
 
+# OpenAPI route coverage must match runtime Express routes
+if [ -f "./scripts/check-openapi-routes.mjs" ]; then
+  pnpm openapi:check:strict
+fi
+
 # Open source compliance checks (secrets scan + AI analysis)
 if command -v comply &> /dev/null; then
   # NOTE: --skip-trivy is temporary workaround for compliance-toolkit bug

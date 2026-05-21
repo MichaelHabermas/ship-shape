@@ -31,7 +31,7 @@ Completes deferred slices F1–F7 from the deepening pass: collab E2E proof, `us
 | F2 | `useCollabSession` + shared `COLLAB_*` | `web/src/hooks/useCollabSession.ts`; slimmed `Editor.tsx`; `useCollabSession.test.ts` (7 tests: mocks, clear-cache msg `3`, close `4101`, stable callbacks) |
 | F3 | `getOrCreateDoc` → `resolveInitialContent` | `api/src/collaboration/index.ts`; codec string/XML parsing; collab + codec vitest **53 pass** |
 | F4 | `listIssuesMetadata` + route wiring | `documents-repository.ts`; `issues.ts` list; `documents.ts` PATCH content → `updateDocumentContent` |
-| F5 | OpenAPI pilot | `useIssuesQuery` `fetchIssues` → `apiClient.GET('/issues')`; `pnpm openapi:check` still **82 missing / 8 stale** (report-only) |
+| F5 | OpenAPI contract | Full route registration **195/195**; `pnpm openapi:check:strict` in pre-commit; `expectOpenApiResponse` on auth/setup/workspaces/files/feedback/bootstrap; `defineRoute` pilot on setup |
 | F6 | Perf benchmarks | **TBD** — `pnpm benchmark:api` requires API on `:3000` (ECONNREFUSED); prior artifacts in `test-results/benchmarks/api-2026-05-21T03-11-53-590Z.json` |
 | F7 | E2E fixtures | `authenticatedPage`, `createIssueDoc`, `gotoIssues`, `openFirstIssueFromList`; collab specs use `login` from `app.ts` |
 
@@ -564,6 +564,8 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - 2026-05-21 | `env DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test -- src/__tests__/auth.test.ts src/routes/api-tokens.test.ts src/routes/documents-visibility.test.ts src/routes/associations-regression.test.ts src/__tests__/activity.test.ts` | focused authz-adjacent API batch after adversarial fixes | sandbox local-DB block on first try -> rerun with local DB access | pass | 34 files / 498 tests passed.
 - 2026-05-21 | `pnpm --filter @ship/api db:migrate` | migrations 039 and 040 | sandbox `tsx` IPC block on first try -> rerun with local DB access | pass | migrations applied to local dev DB.
 - 2026-05-21 | `pnpm openapi:generate` and `pnpm openapi:check` | generated API contract | `tsx` IPC block on first generate try -> rerun succeeded; coverage check remains report-only | pass/report-only | 195 runtime routes, 121 OpenAPI operations, 82 missing, 8 stale.
+- 2026-05-21 | `pnpm openapi:check:strict` + contract completion pass | OpenAPI route/spec parity | removed 8 stale ops; added admin/setup/feedback/invites/caia-auth and partial-family paths; strict gate 0 missing / 0 stale | pass | `docs/openapi-contract.md`; `defineRoute` pilot on setup; contract tests on `ship_test_audit`.
+- 2026-05-21 | Multi-agent fidelity audit + schema fixes | handler/OpenAPI body alignment | P0 envelope/status/field mismatches on CAIA, workspaces, feedback, setup, invites, documents, admin | pass | `ApiErrorResponseSchema` in common; `defineRoute` validation uses standard error envelope; 501 API tests pass after fixes.
 
 ### Claim Boundary
 

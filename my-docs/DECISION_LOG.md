@@ -474,6 +474,38 @@ Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, a
 
 **Decision Gist**: Runtime validation is valuable, but only after the OpenAPI source is honest enough to validate against.
 
+### D021: Full OpenAPI Route Coverage With Strict Pre-Commit Gate
+
+Status: Accepted
+
+Decision: Register all 195 runtime API routes in OpenAPI (including admin and public families), remove stale operations, enforce `pnpm openapi:check:strict` in Husky pre-commit, expand test-time `expectOpenApiResponse` coverage, and pilot `defineRoute` on setup routes. Keep production response middleware deferred.
+
+Why: D018–D019 left 82 missing and 8 stale operations, so generated types and MCP tools could not trust the contract. Full registration with a strict gate prevents regression without adding per-request production overhead.
+
+Alternatives considered: Document admin routes as intentional exclusions; add production middleware first; big-bang `defineRoute` migration. Exclusions were rejected in favor of full registration. Production middleware before honest schemas would fail noisily. Incremental `defineRoute` rollout limits blast radius.
+
+Consequences: `pnpm openapi:generate` must run when OpenAPI schemas change. New routes require schema registration (via `registerPath` or `defineRoute`). Frontend migrations can proceed route-family by route-family. Next 10x: migrate files/auth to `defineRoute`, then optional `OPENAPI_VALIDATE_RESPONSES` in staging.
+
+Evidence: `pnpm openapi:check:strict` reports 195 runtime / 195 OpenAPI, 0 missing, 0 stale. New modules: `admin.ts`, `admin-credentials.ts`, `caia-auth.ts`, `feedback.ts`, `invites.ts`, `setup.ts`, `route-helpers.ts`. Contract tests pass on `ship_test_audit` for openapi-contract, files, feedback, workspaces, bootstrap, and `define-route.test.ts`.
+
+**Decision Gist**: The OpenAPI contract is now complete and enforced locally; runtime production validation remains a later opt-in.
+
+### D022: OpenAPI Path Parity Requires Handler-Aligned Schemas
+
+Status: Accepted
+
+Decision: After achieving 195/195 path coverage, run a handler-vs-schema fidelity audit and fix P0 mismatches (wrong status codes, envelopes, and field names) before treating OpenAPI as client-trustworthy. Introduce shared `ApiErrorResponseSchema` and `SuccessResponseSchema` in `common.ts`; fix `defineRoute` validation errors to use the standard `{ success: false, error: { code, message } }` envelope.
+
+Why: Strict route counting can pass while generated types lie about response bodies (e.g. CAIA `available` vs `configured`, workspaces switch returning `workspaceId` only, feedback GET without envelope).
+
+Alternatives considered: Leave loose `z.record(z.unknown())` everywhere; change handlers to match incorrect specs. Loosening hides bugs; mass handler changes are higher risk than spec alignment for established clients.
+
+Consequences: New registrations should match runtime JSON on success and error paths. Remaining loose admin/team schemas are documented debt. Production `OPENAPI_VALIDATE_RESPONSES` stays deferred until targeted families have strict schemas.
+
+Evidence: Multi-agent audit 2026-05-21; fixes in `caia-auth.ts`, `workspaces.ts`, `feedback.ts`, `invites.ts`, `setup.ts`/`define-route.ts`, `documents.ts`, `backlinks.ts`, `admin.ts`; `pnpm openapi:check:strict` and 501 API tests pass on `ship_test_audit`.
+
+**Decision Gist**: Path coverage is the floor; envelope and field alignment is the ceiling for trusting generated clients.
+
 ### D020: Document Authorization Is A Service Boundary
 
 Status: Accepted

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
+import { FeedbackProgramPublicSchema } from '../openapi/schemas/feedback.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 describe('Public Feedback API', () => {
   const app = createApp();
@@ -60,9 +62,16 @@ describe('Public Feedback API', () => {
   it('returns public program info only when feedback is enabled', async () => {
     const enabledRes = await request(app).get(`/api/feedback/program/${enabledProgramId}`);
 
-    expect(enabledRes.status).toBe(200);
-    expect(enabledRes.body.name).toBe('Enabled Program');
-    expect(enabledRes.body.prefix).toBe('EN');
+    const program = expectOpenApiResponse({
+      method: 'get',
+      path: '/feedback/program/{programId}',
+      status: 200,
+      response: enabledRes,
+      openApiSchemaName: 'FeedbackProgramPublic',
+      schema: FeedbackProgramPublicSchema,
+    });
+    expect(program.name).toBe('Enabled Program');
+    expect(program.prefix).toBe('EN');
 
     const disabledRes = await request(app).get(`/api/feedback/program/${disabledProgramId}`);
     expect(disabledRes.status).toBe(404);

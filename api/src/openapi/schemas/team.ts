@@ -165,130 +165,94 @@ registry.registerPath({
   },
 });
 
+const TeamJsonResponseSchema = z.record(z.unknown());
+
 registry.registerPath({
   method: 'get',
-  path: '/team',
+  path: '/team/projects',
   tags: ['Team'],
-  summary: 'List team members',
-  description: 'List all person documents in the workspace.',
-  request: {
-    query: z.object({
-      includeArchived: z.coerce.boolean().optional(),
-    }),
-  },
-  responses: {
-    200: {
-      description: 'List of team members',
-      content: {
-        'application/json': {
-          schema: z.array(PersonSchema),
-        },
-      },
-    },
-  },
+  summary: 'List team projects',
+  responses: { 200: { description: 'Projects', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
 });
 
 registry.registerPath({
   method: 'get',
-  path: '/team/{id}',
+  path: '/team/programs',
   tags: ['Team'],
-  summary: 'Get team member',
-  description: 'Get a specific person document by ID.',
-  request: {
-    params: z.object({
-      id: UuidSchema,
-    }),
-  },
-  responses: {
-    200: {
-      description: 'Person details',
-      content: {
-        'application/json': {
-          schema: PersonSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Person not found',
-    },
-  },
+  summary: 'List team programs',
+  responses: { 200: { description: 'Programs', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
 });
 
 registry.registerPath({
-  method: 'patch',
-  path: '/team/{id}',
+  method: 'get',
+  path: '/team/assignments',
   tags: ['Team'],
-  summary: 'Update team member',
-  description: 'Update a person document (name, role, capacity, etc.).',
-  request: {
-    params: z.object({
-      id: UuidSchema,
-    }),
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            name: z.string().min(1).max(200).optional(),
-            role: z.string().max(100).optional(),
-            capacity_hours: z.number().positive().optional().nullable(),
-          }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Updated person',
-      content: {
-        'application/json': {
-          schema: PersonSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Person not found',
-    },
-  },
+  summary: 'List team assignments',
+  responses: { 200: { description: 'Assignments', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
 });
 
 registry.registerPath({
   method: 'post',
-  path: '/team/{id}/archive',
+  path: '/team/assign',
   tags: ['Team'],
-  summary: 'Archive team member',
-  description: 'Archive a person document (soft delete).',
-  request: {
-    params: z.object({
-      id: UuidSchema,
-    }),
-  },
-  responses: {
-    200: {
-      description: 'Person archived',
-    },
-    404: {
-      description: 'Person not found',
-    },
-  },
+  summary: 'Create team assignment',
+  request: { body: { content: { 'application/json': { schema: z.record(z.unknown()) } } } },
+  responses: { 200: { description: 'Assignment created' } },
 });
 
 registry.registerPath({
-  method: 'post',
-  path: '/team/{id}/restore',
+  method: 'delete',
+  path: '/team/assign',
   tags: ['Team'],
-  summary: 'Restore team member',
-  description: 'Restore an archived person document.',
-  request: {
-    params: z.object({
-      id: UuidSchema,
-    }),
-  },
-  responses: {
-    200: {
-      description: 'Person restored',
-    },
-    404: {
-      description: 'Person not found',
-    },
-  },
+  summary: 'Remove team assignment',
+  responses: { 204: { description: 'Assignment removed' } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/team/people',
+  tags: ['Team'],
+  summary: 'List team people',
+  responses: { 200: { description: 'People', content: { 'application/json': { schema: z.array(PersonSchema) } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/team/people/{personId}/sprint-metrics',
+  tags: ['Team'],
+  summary: 'Get person sprint metrics',
+  request: { params: z.object({ personId: UuidSchema }) },
+  responses: { 200: { description: 'Sprint metrics', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/team/accountability',
+  tags: ['Team'],
+  summary: 'Get team accountability data',
+  responses: { 200: { description: 'Accountability data', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/team/accountability-grid',
+  tags: ['Team'],
+  summary: 'Get accountability grid (v1)',
+  responses: { 200: { description: 'Accountability grid', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/team/accountability-grid-v2',
+  tags: ['Team'],
+  summary: 'Get accountability grid (v2)',
+  responses: { 200: { description: 'Accountability grid v2', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/team/accountability-grid-v3',
+  tags: ['Team'],
+  summary: 'Get accountability grid (v3)',
+  responses: { 200: { description: 'Accountability grid v3', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
 });

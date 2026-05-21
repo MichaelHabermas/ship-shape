@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { CsrfTokenResponseSchema, LoginResponseSchema, SessionResponseSchema } from '../openapi/schemas/auth.js';
+import { SetupStatusResponseSchema } from '../openapi/schemas/setup.js';
+import { WorkspaceListResponseSchema } from '../openapi/schemas/workspaces.js';
 import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 type IdRow = {
@@ -123,5 +125,39 @@ describe('OpenAPI runtime response contracts', () => {
 
     expect(login.data.user.email).toBe(testEmail);
     expect(login.data.currentWorkspace?.id).toBe(testWorkspaceId);
+  });
+
+  it('validates GET /setup/status against the OpenAPI response schema', async () => {
+    const response = await request(app).get('/api/setup/status');
+    const status = expectOpenApiResponse({
+      method: 'get',
+      path: '/setup/status',
+      status: 200,
+      response,
+      openApiSchemaName: 'SetupStatusResponse',
+      schema: SetupStatusResponseSchema,
+    });
+    expect(typeof status.data.needsSetup).toBe('boolean');
+  });
+
+  it('validates GET /workspaces against the OpenAPI response schema', async () => {
+    if (!sessionId) {
+      throw new Error('Test setup did not create a session');
+    }
+
+    const response = await request(app)
+      .get('/api/workspaces')
+      .set('Cookie', `session_id=${sessionId}`);
+
+    const workspaces = expectOpenApiResponse({
+      method: 'get',
+      path: '/workspaces',
+      status: 200,
+      response,
+      openApiSchemaName: 'WorkspaceListResponse',
+      schema: WorkspaceListResponseSchema,
+    });
+
+    expect(workspaces.data.workspaces.some((workspace) => workspace.id === testWorkspaceId)).toBe(true);
   });
 });
