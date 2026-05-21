@@ -66,7 +66,7 @@ export function useUploads() {
  * Currently we only block browser navigation via beforeunload.
  */
 export function useUploadNavigationWarning() {
-  const { isUploading, uploadCount } = useUploads();
+  const { uploadCount } = useUploads();
 
   return {
     isBlocked: false, // Disabled until we migrate to data router

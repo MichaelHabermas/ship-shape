@@ -11,10 +11,7 @@ import { useDocuments, WikiDocument } from '@/contexts/DocumentsContext';
 import { usePrograms, Program } from '@/contexts/ProgramsContext';
 import { useIssues, Issue } from '@/contexts/IssuesContext';
 import { useProjects, Project } from '@/contexts/ProjectsContext';
-import { useCurrentDocumentType, useCurrentDocument } from '@/contexts/CurrentDocumentContext';
-import { documentKeys } from '@/hooks/useDocumentsQuery';
-import { issueKeys } from '@/hooks/useIssuesQuery';
-import { programKeys } from '@/hooks/useProgramsQuery';
+import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { useStandupStatusQuery } from '@/hooks/useStandupStatusQuery';
 import { useActionItemsQuery, actionItemsKeys } from '@/hooks/useActionItemsQuery';
 import { useTeamMembersQuery } from '@/hooks/useTeamMembersQuery';
@@ -44,7 +41,7 @@ export function AppLayout() {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
-  const { documents, createDocument, updateDocument, deleteDocument } = useDocuments();
+  const { documents, createDocument } = useDocuments();
   const { programs, updateProgram } = usePrograms();
   const { issues, createIssue, updateIssue } = useIssues();
   const { projects, createProject, updateProject } = useProjects();
@@ -145,7 +142,7 @@ export function AppLayout() {
   }, []);
 
   // Get current document type and ID for /documents/:id routes
-  const { currentDocumentType, currentDocumentId, currentDocumentProjectId } = useCurrentDocument();
+  const { currentDocumentType, currentDocumentId: _currentDocumentId, currentDocumentProjectId } = useCurrentDocument();
 
   // Determine active mode from path or document type
   const getActiveMode = (): Mode => {
@@ -1106,14 +1103,12 @@ function IssuesList({
   }, []);
 
   const handleChangeStatus = useCallback(async (issue: Issue, state: string) => {
-    const originalState = issue.state;
     await onUpdateIssue(issue.id, { state });
     showToast(`Status changed to ${state.replace('_', ' ')}`, 'success');
     setContextMenu(null);
   }, [onUpdateIssue, showToast]);
 
   const handleArchive = useCallback(async (issue: Issue) => {
-    const originalState = issue.state;
     await onUpdateIssue(issue.id, { state: 'cancelled' });
     showToast('Issue archived', 'success');
     setContextMenu(null);

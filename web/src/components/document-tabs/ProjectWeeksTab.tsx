@@ -174,7 +174,7 @@ export default function ProjectWeeksTab({ documentId }: DocumentTabProps) {
 
         const gridData: AllocationGridData = await res.json();
         setData(gridData);
-      } catch (err) {
+      } catch {
         setError('Failed to load allocation data');
       } finally {
         setLoading(false);

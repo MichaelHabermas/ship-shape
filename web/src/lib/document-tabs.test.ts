@@ -198,7 +198,7 @@ describe('documentTabConfigs structure', () => {
   });
 
   it('each tab has required properties', () => {
-    for (const [docType, tabs] of Object.entries(documentTabConfigs)) {
+    for (const tabs of Object.values(documentTabConfigs)) {
       for (const tab of tabs) {
         expect(tab).toHaveProperty('id');
         expect(tab).toHaveProperty('label');
@@ -210,7 +210,7 @@ describe('documentTabConfigs structure', () => {
   });
 
   it('tab IDs are unique within each document type', () => {
-    for (const [docType, tabs] of Object.entries(documentTabConfigs)) {
+    for (const tabs of Object.values(documentTabConfigs)) {
       const ids = tabs.map(t => t.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);

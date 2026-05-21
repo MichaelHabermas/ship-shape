@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useIssuesQuery, useUpdateIssue, getSprintId, getProjectId, getProgramId } from '@/hooks/useIssuesQuery';
+import { useIssuesQuery, getSprintId, getProjectId, getProgramId } from '@/hooks/useIssuesQuery';
 import { Issue } from '@/contexts/IssuesContext';
 import { cn } from '@/lib/cn';
 import { apiPatch } from '@/lib/api';

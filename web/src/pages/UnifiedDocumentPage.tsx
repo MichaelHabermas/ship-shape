@@ -183,7 +183,7 @@ export function UnifiedDocumentPage() {
         const error = await res.json();
         showToast(error.error || 'Failed to undo conversion', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('Failed to undo conversion', 'error');
     }
   }, [document, id, queryClient, showToast]);
@@ -223,7 +223,7 @@ export function UnifiedDocumentPage() {
         const error = await res.json();
         showToast(error.error || 'Failed to convert document', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('Failed to convert document', 'error');
     }
   }, [document, id, navigate, queryClient, showToast]);

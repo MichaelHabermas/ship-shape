@@ -130,7 +130,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
         const error = await res.json();
         showToast(error.error || 'Failed to convert document', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('Failed to convert document', 'error');
     }
   }, [documentId, navigate, queryClient, showToast]);
@@ -160,7 +160,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
         const error = await res.json();
         showToast(error.error || 'Failed to undo conversion', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('Failed to undo conversion', 'error');
     } finally {
       setIsUndoing(false);

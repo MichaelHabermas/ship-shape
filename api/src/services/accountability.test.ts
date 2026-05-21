@@ -29,7 +29,6 @@ import { checkMissingAccountability } from './accountability.js';
 describe('Accountability Service', () => {
   const userId = 'user-123';
   const workspaceId = 'workspace-456';
-  const sprintId = 'sprint-789';
   const projectId = 'project-abc';
   const personId = 'person-doc-123';
 

@@ -478,15 +478,6 @@ async function seed() {
         // Sprint properties with full planning details
         // Dates and status are computed at runtime from sprint_number + workspace.sprint_start_date
         // Confidence is 0-100 scale (different from project ICE scores which are 1-10)
-        const sprintGoals = [
-          'Complete core feature implementation and initial testing',
-          'Deliver bug fixes and stability improvements',
-          'Optimize performance and reduce technical debt',
-          'Build out user-facing features with accessibility',
-          'Finalize integrations and prepare for release',
-          'Focus on documentation and developer experience',
-          'Ship incremental improvements based on feedback',
-        ];
         const sprintPlans = [
           'If we complete these features, we will unblock the next milestone.',
           'Fixing these issues will reduce user-reported problems by 50%.',

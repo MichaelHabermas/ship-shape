@@ -212,8 +212,6 @@ export function ProjectsPage() {
   const handleBulkArchive = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    const count = ids.length;
-
     // Archive each project
     let success = 0;
     for (const id of ids) {
@@ -244,8 +242,6 @@ export function ProjectsPage() {
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    const count = ids.length;
-
     let success = 0;
     for (const id of ids) {
       const result = await deleteProject(id);

@@ -16,7 +16,6 @@ import {
   getTimestampUpdates,
   getBelongsToAssociations,
   getBelongsToAssociationsBatch,
-  TRACKED_FIELDS,
   type BelongsToEntry,
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';

@@ -92,7 +92,7 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 - Structural pass added API-local boundary schemas for shared document concepts, aligned issue priority/accountability enums, routed issue-list query parsing through Zod, made document association helpers transaction-capable, and moved high-risk route property aliases closer to `@ship/shared` types.
 - Submission-gated pass exported boundary value tuples, reused runtime boundary schemas in OpenAPI for document, visibility, association, issue source/state/priority, and accountability concepts, and added a drift test across shared/runtime/OpenAPI/DB document values.
 - Evidence-runner pass moved issue create/update request validation into shared runtime boundary schemas reused by OpenAPI, added `IssueProperties` property-key drift coverage, and kept the slice limited to issue boundary contracts.
-- Easy-sweep pass removed local `any` usage from Yjs/TipTap conversion and feedback/content-history boundaries, replaced guarded non-null assertions with explicit guards or existing authenticated-route context, normalized a few request/header/query reads, and cleared low-risk unused symbols in touched API/Web files.
+- Easy-sweep pass removed local `any` usage from Yjs/TipTap conversion and feedback/content-history boundaries, replaced guarded non-null assertions with explicit guards or existing authenticated-route context, normalized a few request/header/query reads, and cleared `@typescript-eslint/no-unused-vars` across `web/src`, `api/src`, and `shared/src`.
 
 ### Evidence
 
@@ -109,7 +109,7 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 - Evidence-runner focused boundary rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/documents-visibility.test.ts src/schemas/document-boundary.test.ts`: 3 files passed, 51 tests passed.
 - `pnpm --filter @ship/api type-check`: pass.
 - 2026-05-21 | official AST counter | `web/src`, `api/src`, `shared/src`, `e2e`; production excludes tests | `any` 230/32 -> 210/12, `as` 653/449 -> 649/445, non-null 356/323 -> 306/273 | pass | measured with the `AUDIT_REPORT.md` TypeScript AST counter.
-- 2026-05-21 | `pnpm exec eslint web/src api/src shared/src --ext .ts,.tsx --format json` | source worklist | 5723 total / 4119 production warnings -> 5488 total / 3908 production warnings | pass with warnings only | `/private/tmp/ship-shape-eslint-after.json`.
+- 2026-05-21 | `pnpm exec eslint web/src api/src shared/src --ext .ts,.tsx --format json` | source worklist | 5723 total / 4119 production warnings -> 5380 total / 3818 production warnings; `no-unused-vars` 92 total / 78 production -> 0 | pass with warnings only | `/private/tmp/ship-shape-eslint-final2.json`.
 - 2026-05-21 | `pnpm type-check` | all workspaces | pass -> pass | pass | shared, API, and web type-checks completed.
 - 2026-05-21 | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/workspaces.test.ts src/routes/backlinks.test.ts src/routes/auth.test.ts src/__tests__/extractHypothesis.test.ts src/__tests__/auth.test.ts` | focused touched API behavior | blocked in sandbox, then 5 files / 109 tests passed with local PostgreSQL approval | pass | disposable `ship_test_audit` database.
 

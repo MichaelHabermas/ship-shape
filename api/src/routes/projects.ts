@@ -793,13 +793,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       propsChanged = true;
     }
 
-    // Track if plan was written for the first time
-    let planWasWritten = false;
     if (data.plan !== undefined) {
-      // Check if this is the first time writing a non-empty plan
-      if (data.plan && !currentProps.plan) {
-        planWasWritten = true;
-      }
       newProps.plan = data.plan;
       propsChanged = true;
 

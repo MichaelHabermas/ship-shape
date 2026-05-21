@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import * as Y from 'yjs'
 import { pool } from '../../db/client.js'
 import crypto from 'crypto'
@@ -242,11 +242,6 @@ describe('Collaboration Server', () => {
     })
 
     it('should handle empty document conversion', async () => {
-      const emptyContent = {
-        type: 'doc',
-        content: []
-      }
-
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
 

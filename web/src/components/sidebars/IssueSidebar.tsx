@@ -221,7 +221,7 @@ export function IssueSidebar({
   }, [issue.id, onAssociationChange]);
 
   // Legacy program change handler (updates belongs_to via onUpdate)
-  const handleProgramChange = async (programId: string | null) => {
+  const _handleProgramChange = async (programId: string | null) => {
     // Build new belongs_to array with updated program
     const newBelongsTo = belongsTo.filter(bt => bt.type !== 'program' && bt.type !== 'sprint');
     if (programId) {
@@ -537,4 +537,3 @@ export function IssueSidebar({
     </div>
   );
 }
-

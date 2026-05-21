@@ -20,16 +20,6 @@ config({ path: join(__dirname, '../../../.env') });
 
 const { Pool } = pg;
 
-interface OrphanReport {
-  category: string;
-  entity_type: string;
-  entity_id: string;
-  entity_title: string;
-  workspace_name: string;
-  created_at: Date;
-  additional_info: Record<string, unknown>;
-}
-
 async function runDiagnostic() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,

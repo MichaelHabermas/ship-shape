@@ -105,7 +105,6 @@ function getDropPos(view: EditorView, x: number, y: number): number | null {
 
   if (depth > 0) {
     // Get the DOM node to determine if we're in the top or bottom half
-    const node = $pos.node(depth);
     const nodeStart = $pos.before(depth);
     const dom = view.nodeDOM(nodeStart);
 

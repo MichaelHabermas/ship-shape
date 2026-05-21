@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { TEMPLATE_HEADINGS, extractText, hasContent } from '../utils/document-content.js';
+import { hasContent } from '../utils/document-content.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -105,7 +105,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
     const minDate = sprints[0]?.startDate || today.toISOString().split('T')[0];
     const maxDate = sprints[sprints.length - 1]?.endDate || today.toISOString().split('T')[0];
 
-    const dbSprintsResult = await pool.query(
+    await pool.query(
       `SELECT d.id, d.title as name, d.properties->>'start_date' as start_date, d.properties->>'end_date' as end_date,
               prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'emoji' as program_emoji, p.properties->>'color' as program_color

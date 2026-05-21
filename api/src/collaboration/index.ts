@@ -14,7 +14,6 @@ import cookie from 'cookie';
 
 const messageSync = 0;
 const messageAwareness = 1;
-const messageCustomEvent = 2;
 const messageClearCache = 3; // Tells browser to clear IndexedDB cache before sync
 
 // Rate limiting configuration
