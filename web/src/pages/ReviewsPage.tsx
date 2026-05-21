@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-import { apiPost, apiGet } from '@/lib/api';
+import { apiPost, apiGet, readJson } from '@/lib/api';
 import { formatDateRange } from '@/lib/date-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useReviewQueue } from '@/contexts/ReviewQueueContext';
@@ -298,7 +298,7 @@ export function ReviewsPage() {
       setLoading(true);
       const res = await apiGet(`/api/team/reviews?sprint_count=8`);
       if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
-      const json = await res.json();
+      const json = await readJson<ReviewsData>(res);
       setData(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load reviews');
@@ -326,7 +326,10 @@ export function ReviewsPage() {
         });
       }
 
-      groups.get(groupKey)!.people.push(person);
+      const group = groups.get(groupKey);
+      if (group) {
+        group.people.push(person);
+      }
     }
 
     const sorted = Array.from(groups.values()).sort((a, b) => {
@@ -1065,11 +1068,11 @@ function ReviewPanel({
         ]);
 
         if (planRes.ok) {
-          const plans = await planRes.json();
+          const plans = await readJson<WeeklyDoc[]>(planRes);
           if (plans.length > 0) setPlanDoc(plans[0]);
         }
         if (retroRes.ok) {
-          const retros = await retroRes.json();
+          const retros = await readJson<WeeklyDoc[]>(retroRes);
           if (retros.length > 0) setRetroDoc(retros[0]);
         }
       } catch (err) {

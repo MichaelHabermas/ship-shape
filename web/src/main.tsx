@@ -87,15 +87,6 @@ function SprintTabRedirect({ tab }: { tab?: string }) {
   return <Navigate to={targetPath} replace />;
 }
 
-function PlaceholderPage({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center">
-      <h1 className="text-xl font-medium text-foreground">{title}</h1>
-      <p className="mt-1 text-sm text-muted">{subtitle}</p>
-    </div>
-  );
-}
-
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -255,7 +246,12 @@ function AppRoutes() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root');
+if (!root) {
+  throw new Error('Root element not found');
+}
+
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <PersistQueryClientProvider
       client={queryClient}

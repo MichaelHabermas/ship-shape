@@ -84,7 +84,8 @@ export function AdminDashboardPage() {
   async function handleToggleSuperAdmin(userId: string, currentValue: boolean) {
     const res = await api.admin.toggleSuperAdmin(userId, !currentValue);
     if (res.success && res.data) {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isSuperAdmin: res.data!.isSuperAdmin } : u));
+      const { isSuperAdmin: nextIsSuperAdmin } = res.data;
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isSuperAdmin: nextIsSuperAdmin } : u));
     }
   }
 

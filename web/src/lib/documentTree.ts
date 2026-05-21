@@ -20,9 +20,11 @@ export function buildDocumentTree(documents: WikiDocument[]): DocumentTreeNode[]
 
   // Build parent-child relationships
   for (const doc of documents) {
-    const node = nodeMap.get(doc.id)!;
-    if (doc.parent_id && nodeMap.has(doc.parent_id)) {
-      nodeMap.get(doc.parent_id)!.children.push(node);
+    const node = nodeMap.get(doc.id);
+    if (!node) continue;
+    const parent = doc.parent_id ? nodeMap.get(doc.parent_id) : undefined;
+    if (parent) {
+      parent.children.push(node);
     } else {
       rootNodes.push(node);
     }

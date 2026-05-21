@@ -44,9 +44,13 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 
 const sessionSecret = process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production';
 
+function getHeaderValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 // CSRF protection setup
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
-  getTokenFromRequest: (req) => req.headers['x-csrf-token'] as string,
+  getTokenFromRequest: (req) => getHeaderValue(req.headers['x-csrf-token']) ?? '',
 });
 
 // Conditional CSRF middleware - skip for API token auth (Bearer tokens are not vulnerable to CSRF)
@@ -109,8 +113,8 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     // sets X-Forwarded-Proto to "http". Override it to "https" when request comes via CloudFront.
     app.use((req, _res, next) => {
       // CloudFront adds Via header like "2.0 <id>.cloudfront.net (CloudFront)"
-      const viaHeader = req.headers['via'] as string;
-      if (viaHeader && viaHeader.includes('cloudfront')) {
+      const viaHeader = getHeaderValue(req.headers.via);
+      if (viaHeader?.toLowerCase().includes('cloudfront')) {
         req.headers['x-forwarded-proto'] = 'https';
       }
       next();

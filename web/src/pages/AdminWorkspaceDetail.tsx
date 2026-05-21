@@ -123,7 +123,8 @@ export function AdminWorkspaceDetailPage() {
     });
 
     if (res.success && res.data) {
-      setInvites(prev => [res.data!.invite, ...prev]);
+      const { invite } = res.data;
+      setInvites(prev => [invite, ...prev]);
       setInviteEmail('');
       setInviteSubjectDn('');
       setShowPivField(false);
@@ -176,7 +177,8 @@ export function AdminWorkspaceDetailPage() {
     });
 
     if (res.success && res.data) {
-      setMembers(prev => [...prev, res.data!.member]);
+      const { member } = res.data;
+      setMembers(prev => [...prev, member]);
       setSelectedUser(null);
       setUserSearch('');
       setSearchResults([]);

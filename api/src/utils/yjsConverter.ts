@@ -10,6 +10,26 @@ import * as Y from 'yjs';
 // Mark types that should be converted from wrapper elements to text marks
 const MARK_TYPES = new Set(['bold', 'italic', 'strike', 'underline', 'code', 'link']);
 
+interface TipTapMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
+interface TipTapNode {
+  type: string;
+  content?: TipTapNode[];
+  text?: string;
+  marks?: TipTapMark[];
+  attrs?: Record<string, unknown>;
+}
+
+interface TipTapDoc {
+  type: 'doc';
+  content: TipTapNode[];
+}
+
+type YjsElement = Y.XmlElement<{ [key: string]: string }>;
+
 /**
  * Check if an element is an inline mark (bold, italic, etc.) rather than a block element
  */
@@ -17,31 +37,53 @@ function isMarkElement(nodeName: string): boolean {
   return MARK_TYPES.has(nodeName);
 }
 
+function isYjsText(value: unknown): value is Y.XmlText {
+  return value instanceof Y.XmlText;
+}
+
+function isYjsElement(value: unknown): value is YjsElement {
+  return value instanceof Y.XmlElement;
+}
+
+function getXmlTextValue(textNode: Y.XmlText): string {
+  const value = textNode.toString() as unknown;
+  return typeof value === 'string' ? value : String(value);
+}
+
+function getElementAttributes(element: YjsElement): Record<string, unknown> {
+  const attrs = element.getAttributes() as unknown;
+  return attrs && typeof attrs === 'object' ? attrs as Record<string, unknown> : {};
+}
+
+function hasTipTapContent(content: unknown): content is { content: TipTapNode[] } {
+  return !!content && typeof content === 'object' && Array.isArray((content as { content?: unknown }).content);
+}
+
 /**
  * Extract text content and marks from a mark element (e.g., <bold>text</bold>)
  * Returns array of text nodes with marks applied
  */
-function extractTextWithMarks(element: Y.XmlElement, inheritedMarks: any[] = []): any[] {
+function extractTextWithMarks(element: YjsElement, inheritedMarks: TipTapMark[] = []): TipTapNode[] {
   const nodeName = element.nodeName;
-  const attrs = element.getAttributes();
+  const attrs = getElementAttributes(element);
 
   // Build mark for this element
-  const mark: any = { type: nodeName };
+  const mark: TipTapMark = { type: nodeName };
   if (nodeName === 'link' && attrs.href) {
     mark.attrs = { href: attrs.href, target: attrs.target || '_blank' };
   }
 
   const currentMarks = [...inheritedMarks, mark];
-  const result: any[] = [];
+  const result: TipTapNode[] = [];
 
   for (let i = 0; i < element.length; i++) {
-    const child = element.get(i);
-    if (child instanceof Y.XmlText) {
-      const text = child.toString();
+    const child: unknown = element.get(i);
+    if (isYjsText(child)) {
+      const text = getXmlTextValue(child);
       if (text) {
         result.push({ type: 'text', text, marks: currentMarks });
       }
-    } else if (child instanceof Y.XmlElement) {
+    } else if (isYjsElement(child)) {
       if (isMarkElement(child.nodeName)) {
         // Nested mark (e.g., <bold><italic>text</italic></bold>)
         result.push(...extractTextWithMarks(child, currentMarks));
@@ -59,27 +101,27 @@ function extractTextWithMarks(element: Y.XmlElement, inheritedMarks: any[] = [])
  * Convert Yjs XmlFragment to TipTap JSON
  * This is used when reading documents that were edited via the collaborative editor
  */
-export function yjsToJson(fragment: Y.XmlFragment): any {
-  const content: any[] = [];
+export function yjsToJson(fragment: Y.XmlFragment): TipTapDoc {
+  const content: TipTapNode[] = [];
 
   for (let i = 0; i < fragment.length; i++) {
-    const item = fragment.get(i);
-    if (item instanceof Y.XmlText) {
+    const item: unknown = fragment.get(i);
+    if (isYjsText(item)) {
       // Handle text nodes with formatting
-      const text = item.toString();
+      const text = getXmlTextValue(item);
       if (text) {
         content.push({ type: 'text', text });
       }
-    } else if (item instanceof Y.XmlElement) {
+    } else if (isYjsElement(item)) {
       // Check if this is a mark element (bold, italic, etc.)
       if (isMarkElement(item.nodeName)) {
         content.push(...extractTextWithMarks(item));
       } else {
         // Handle block element nodes
-        const node: any = { type: item.nodeName };
+        const node: TipTapNode = { type: item.nodeName };
 
         // Get attributes
-        const attrs = item.getAttributes();
+        const attrs = getElementAttributes(item);
         if (Object.keys(attrs).length > 0) {
           // Convert string attributes to proper types (e.g., level should be number)
           const typedAttrs: Record<string, unknown> = {};
@@ -112,24 +154,24 @@ export function yjsToJson(fragment: Y.XmlFragment): any {
 /**
  * Helper to convert element children recursively
  */
-function yjsElementToJson(element: Y.XmlElement): any[] {
-  const content: any[] = [];
+function yjsElementToJson(element: YjsElement): TipTapNode[] {
+  const content: TipTapNode[] = [];
 
   for (let i = 0; i < element.length; i++) {
-    const item = element.get(i);
-    if (item instanceof Y.XmlText) {
-      const text = item.toString();
+    const item: unknown = element.get(i);
+    if (isYjsText(item)) {
+      const text = getXmlTextValue(item);
       if (text) {
         content.push({ type: 'text', text });
       }
-    } else if (item instanceof Y.XmlElement) {
+    } else if (isYjsElement(item)) {
       // Check if this is a mark element (bold, italic, etc.)
       if (isMarkElement(item.nodeName)) {
         content.push(...extractTextWithMarks(item));
       } else {
-        const node: any = { type: item.nodeName };
+        const node: TipTapNode = { type: item.nodeName };
 
-        const attrs = item.getAttributes();
+        const attrs = getElementAttributes(item);
         if (Object.keys(attrs).length > 0) {
           const typedAttrs: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(attrs)) {
@@ -161,8 +203,8 @@ function yjsElementToJson(element: Y.XmlElement): any[] {
  * Convert TipTap JSON content to Yjs XmlFragment
  * Must be called within a transaction for proper Yjs integration
  */
-export function jsonToYjs(doc: Y.Doc, fragment: Y.XmlFragment, content: any) {
-  if (!content || !Array.isArray(content.content)) return;
+export function jsonToYjs(doc: Y.Doc, fragment: Y.XmlFragment, content: unknown) {
+  if (!hasTipTapContent(content)) return;
 
   doc.transact(() => {
     for (const node of content.content) {
@@ -172,7 +214,7 @@ export function jsonToYjs(doc: Y.Doc, fragment: Y.XmlFragment, content: any) {
         fragment.push([text]);
         text.insert(0, node.text || '');
         if (node.marks) {
-          const attrs: Record<string, any> = {};
+          const attrs: Record<string, unknown> = {};
           for (const mark of node.marks) {
             attrs[mark.type] = mark.attrs || true;
           }
@@ -200,14 +242,14 @@ export function jsonToYjs(doc: Y.Doc, fragment: Y.XmlFragment, content: any) {
 /**
  * Helper to add children without wrapping in another transaction
  */
-function jsonToYjsChildren(doc: Y.Doc, parent: Y.XmlElement, children: any[]) {
+function jsonToYjsChildren(doc: Y.Doc, parent: YjsElement, children: TipTapNode[]) {
   for (const node of children) {
     if (node.type === 'text') {
       const text = new Y.XmlText();
       parent.push([text]);
       text.insert(0, node.text || '');
       if (node.marks) {
-        const attrs: Record<string, any> = {};
+        const attrs: Record<string, unknown> = {};
         for (const mark of node.marks) {
           attrs[mark.type] = mark.attrs || true;
         }
@@ -232,7 +274,7 @@ function jsonToYjsChildren(doc: Y.Doc, parent: Y.XmlElement, children: any[]) {
  * Load document content from Yjs binary state
  * Returns TipTap JSON content or null if unable to convert
  */
-export function loadContentFromYjsState(yjsState: Buffer): any | null {
+export function loadContentFromYjsState(yjsState: Buffer): TipTapDoc | null {
   try {
     const doc = new Y.Doc();
     Y.applyUpdate(doc, yjsState);

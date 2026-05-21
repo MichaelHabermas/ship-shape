@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete, readJson } from '@/lib/api';
 import { computeICEScore } from '@ship/shared';
 
 // Inferred project status based on sprint relationships
@@ -96,7 +96,7 @@ async function fetchProjects(): Promise<Project[]> {
     error.status = res.status;
     throw error;
   }
-  return res.json();
+  return readJson<Project[]>(res);
 }
 
 // Create project
@@ -122,7 +122,7 @@ async function createProjectApi(data: CreateProjectData): Promise<Project> {
     error.status = res.status;
     throw error;
   }
-  return res.json();
+  return readJson<Project>(res);
 }
 
 // Update project
@@ -133,7 +133,7 @@ async function updateProjectApi(id: string, updates: Partial<Project>): Promise<
     error.status = res.status;
     throw error;
   }
-  return res.json();
+  return readJson<Project>(res);
 }
 
 // Delete project
@@ -359,14 +359,17 @@ async function fetchProjectIssues(projectId: string): Promise<ProjectIssue[]> {
     error.status = res.status;
     throw error;
   }
-  return res.json();
+  return readJson<ProjectIssue[]>(res);
 }
 
 // Hook to get project issues
 export function useProjectIssuesQuery(projectId: string | undefined) {
   return useQuery({
     queryKey: projectId ? projectKeys.issues(projectId) : ['disabled'],
-    queryFn: () => fetchProjectIssues(projectId!),
+    queryFn: () => {
+      if (!projectId) throw new Error('Project id is required');
+      return fetchProjectIssues(projectId);
+    },
     enabled: !!projectId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
@@ -380,14 +383,17 @@ async function fetchProjectWeeks(projectId: string): Promise<ProjectWeek[]> {
     error.status = res.status;
     throw error;
   }
-  return res.json();
+  return readJson<ProjectWeek[]>(res);
 }
 
 // Hook to get project weeks
 export function useProjectWeeksQuery(projectId: string | undefined) {
   return useQuery({
     queryKey: projectId ? projectKeys.weeks(projectId) : ['disabled'],
-    queryFn: () => fetchProjectWeeks(projectId!),
+    queryFn: () => {
+      if (!projectId) throw new Error('Project id is required');
+      return fetchProjectWeeks(projectId);
+    },
     enabled: !!projectId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });

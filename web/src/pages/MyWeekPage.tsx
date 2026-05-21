@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useMyWeekQuery, StandupSlot } from '@/hooks/useMyWeekQuery';
-import { apiPost } from '@/lib/api';
+import { useMyWeekQuery } from '@/hooks/useMyWeekQuery';
+import type { StandupSlot } from '@/hooks/useMyWeekQuery';
+import { apiPost, readJson } from '@/lib/api';
 import { cn } from '@/lib/cn';
+
+interface CreatedDocumentResponse {
+  id: string;
+}
 
 function formatDateRange(startDate: string, endDate: string): string {
   const start = new Date(startDate + 'T00:00:00Z');
@@ -51,7 +56,7 @@ export function MyWeekPage() {
         week_number: data.week.week_number,
       });
       if (res.ok) {
-        const doc = await res.json();
+        const doc = await readJson<CreatedDocumentResponse>(res);
         navigate(`/documents/${doc.id}`);
       }
     } finally {
@@ -68,7 +73,7 @@ export function MyWeekPage() {
         week_number: weekNum,
       });
       if (res.ok) {
-        const doc = await res.json();
+        const doc = await readJson<CreatedDocumentResponse>(res);
         navigate(`/documents/${doc.id}`);
       }
     } finally {
@@ -81,7 +86,7 @@ export function MyWeekPage() {
     try {
       const res = await apiPost('/api/standups', { date });
       if (res.ok) {
-        const doc = await res.json();
+        const doc = await readJson<CreatedDocumentResponse>(res);
         navigate(`/documents/${doc.id}`);
       }
     } finally {
@@ -170,23 +175,23 @@ export function MyWeekPage() {
         )}
 
         {/* Previous Week Retro Nudge */}
-        {showPreviousRetroNudge && (
+        {showPreviousRetroNudge && previous_retro && (
           <div className="mb-6 rounded-lg border border-orange-500/30 bg-orange-500/10 px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-300">Last week's retro is not complete</p>
-                <p className="text-xs text-orange-300/70 mt-0.5">Week {previous_retro!.week_number} retro needs your input</p>
+                <p className="text-xs text-orange-300/70 mt-0.5">Week {previous_retro.week_number} retro needs your input</p>
               </div>
-              {previous_retro!.id ? (
+              {previous_retro.id ? (
                 <Link
-                  to={`/documents/${previous_retro!.id}`}
+                  to={`/documents/${previous_retro.id}`}
                   className="text-xs font-medium text-orange-300 hover:text-orange-200 underline"
                 >
                   Complete retro
                 </Link>
               ) : (
                 <button
-                  onClick={() => handleCreateRetro(previous_retro!.week_number)}
+                  onClick={() => handleCreateRetro(previous_retro.week_number)}
                   disabled={creating === 'retro'}
                   className="text-xs font-medium text-orange-300 hover:text-orange-200 underline disabled:opacity-50"
                 >

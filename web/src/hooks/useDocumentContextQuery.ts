@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
+import { apiGet, readJson } from '@/lib/api';
 
 export interface BreadcrumbItem {
   id: string;
@@ -51,14 +51,17 @@ async function fetchDocumentContext(id: string): Promise<DocumentContext> {
     error.status = res.status;
     throw error;
   }
-  return res.json();
+  return readJson<DocumentContext>(res);
 }
 
 // Hook to get document context (ancestors + children + breadcrumbs)
 export function useDocumentContextQuery(id: string | undefined) {
   return useQuery({
     queryKey: documentContextKeys.detail(id || ''),
-    queryFn: () => fetchDocumentContext(id!),
+    queryFn: () => {
+      if (!id) throw new Error('Document id is required');
+      return fetchDocumentContext(id);
+    },
     enabled: !!id,
     staleTime: 1000 * 60 * 2, // 2 minutes
     refetchOnMount: 'always',

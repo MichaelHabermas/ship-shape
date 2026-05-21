@@ -3,6 +3,7 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 type RouterType = ReturnType<typeof Router>;
 
@@ -32,8 +33,7 @@ async function canAccessDocument(documentId: string, userId: string, workspaceId
 documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request, res: Response) => {
   try {
     const documentId = req.params.id;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     if (typeof documentId !== 'string') {
       res.status(400).json({ error: 'Document id is required' });
@@ -81,8 +81,7 @@ documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request,
 documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request, res: Response) => {
   try {
     const documentId = req.params.id;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     if (typeof documentId !== 'string') {
       res.status(400).json({ error: 'Document id is required' });
@@ -164,8 +163,7 @@ const updateCommentSchema = z.object({
 commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const commentId = req.params.id;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     if (typeof commentId !== 'string') {
       res.status(400).json({ error: 'Comment id is required' });
@@ -262,8 +260,7 @@ commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response)
 commentsRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const commentId = req.params.id;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     if (typeof commentId !== 'string') {
       res.status(400).json({ error: 'Comment id is required' });

@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
+import { apiGet, readJson } from '@/lib/api';
+
+type TipTapContent = Record<string, unknown>;
 
 export interface ContentHistoryEntry {
   id: number;
-  old_content: any | null;
-  new_content: any | null;
+  old_content: TipTapContent | null;
+  new_content: TipTapContent | null;
   created_at: string;
   changed_by: {
     id: string;
@@ -31,7 +33,7 @@ export function useContentHistoryQuery(
       if (!response.ok) {
         throw new Error('Failed to fetch content history');
       }
-      return response.json();
+      return readJson<ContentHistoryEntry[]>(response);
     },
     enabled: !!documentId,
   });
