@@ -23,6 +23,12 @@ export function successEnvelope<T extends z.ZodTypeAny>(dataSchema: T, name?: st
 
 export const JsonObjectSchema = z.record(z.unknown());
 
+export {
+  ApiErrorBodySchema,
+  ApiErrorResponseSchema,
+  SuccessResponseSchema as SuccessOnlyResponseSchema,
+} from './common.js';
+
 export const EmptySuccessSchema = successEnvelope(z.object({}).passthrough(), 'EmptySuccessData');
 
 export const standardErrorResponse = {

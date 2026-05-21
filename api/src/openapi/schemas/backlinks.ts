@@ -4,6 +4,7 @@
 
 import { z, registry } from '../registry.js';
 import { UuidSchema, DateTimeSchema, BelongsToTypeSchema } from './common.js';
+import { jsonResponse, SuccessOnlyResponseSchema } from './route-helpers.js';
 import { DocumentTypeSchema } from './documents.js';
 
 // ============== Backlink ==============
@@ -84,17 +85,7 @@ registry.registerPath({
     },
   },
   responses: {
-    200: {
-      description: 'Links updated',
-      content: {
-        'application/json': {
-          schema: z.object({
-            added: z.number().int(),
-            removed: z.number().int(),
-          }),
-        },
-      },
-    },
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Links updated'),
     404: {
       description: 'Document not found',
     },

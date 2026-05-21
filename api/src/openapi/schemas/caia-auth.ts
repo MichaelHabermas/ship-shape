@@ -3,16 +3,28 @@
  */
 
 import { z, registry } from '../registry.js';
+import { ApiErrorResponseSchema } from './common.js';
 import { jsonResponse, successEnvelope } from './route-helpers.js';
 
-const AuthProviderStatusSchema = z.object({
-  configured: z.boolean(),
-  issuerUrl: z.string().optional(),
-  loginAvailable: z.boolean().optional(),
-}).passthrough().openapi('AuthProviderStatus');
+const AuthProviderStatusDataSchema = z.object({
+  available: z.boolean(),
+}).openapi('AuthProviderStatusData');
 
-const AuthProviderStatusResponseSchema = successEnvelope(AuthProviderStatusSchema, 'AuthProviderStatusResponse');
+const AuthProviderStatusResponseSchema = successEnvelope(
+  AuthProviderStatusDataSchema,
+  'AuthProviderStatusResponse'
+);
 registry.register('AuthProviderStatusResponse', AuthProviderStatusResponseSchema);
+
+const AuthProviderLoginDataSchema = z.object({
+  authorizationUrl: z.string().url(),
+}).openapi('AuthProviderLoginData');
+
+const AuthProviderLoginResponseSchema = successEnvelope(
+  AuthProviderLoginDataSchema,
+  'AuthProviderLoginResponse'
+);
+registry.register('AuthProviderLoginResponse', AuthProviderLoginResponseSchema);
 
 function registerProviderPaths(prefix: 'caia' | 'piv') {
   const tag = prefix === 'caia' ? 'CAIA Auth' : 'PIV Auth';
@@ -35,8 +47,9 @@ function registerProviderPaths(prefix: 'caia' | 'piv') {
     summary: `Start ${prefix.toUpperCase()} OAuth login`,
     security: [],
     responses: {
-      302: { description: 'Redirect to identity provider' },
-      503: { description: 'Provider not configured' },
+      200: jsonResponse(AuthProviderLoginResponseSchema, 'Authorization URL'),
+      503: jsonResponse(ApiErrorResponseSchema, 'Provider not configured'),
+      500: jsonResponse(ApiErrorResponseSchema, 'Failed to initiate login'),
     },
   });
 

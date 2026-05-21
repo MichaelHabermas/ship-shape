@@ -3,7 +3,8 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, DateSchema } from './common.js';
+import { UuidSchema, DateTimeSchema, DateSchema, ApiErrorResponseSchema } from './common.js';
+import { jsonResponse, successEnvelope, SuccessOnlyResponseSchema } from './route-helpers.js';
 
 // ============== Workspace ==============
 
@@ -114,19 +115,15 @@ registry.registerPath({
     }),
   },
   responses: {
-    200: {
-      description: 'Workspace switched',
-      content: {
-        'application/json': {
-          schema: z.object({
-            success: z.literal(true),
-            data: z.object({
-              workspace: WorkspaceSchema,
-            }),
-          }),
-        },
-      },
-    },
+    200: jsonResponse(
+      successEnvelope(
+        z.object({
+          workspaceId: UuidSchema,
+        }).openapi('WorkspaceSwitchData'),
+        'WorkspaceSwitchResponse'
+      ),
+      'Workspace switched'
+    ),
     403: {
       description: 'No access to workspace',
     },
@@ -137,21 +134,35 @@ registry.registerPath({
 });
 
 const WorkspaceMemberSchema = z.object({
-  userId: UuidSchema,
+  id: UuidSchema,
+  userId: UuidSchema.nullable(),
   email: z.string().email(),
   name: z.string(),
-  role: z.enum(['admin', 'member']),
-  archivedAt: DateTimeSchema.nullable().optional(),
-}).passthrough();
+  role: z.enum(['admin', 'member']).nullable(),
+  personDocumentId: UuidSchema.nullable(),
+  joinedAt: DateTimeSchema.nullable(),
+  isArchived: z.boolean(),
+}).openapi('WorkspaceMember');
+
+registry.register('WorkspaceMember', WorkspaceMemberSchema);
+
+const WorkspaceMembersListResponseSchema = successEnvelope(
+  z.object({ members: z.array(WorkspaceMemberSchema) }).openapi('WorkspaceMembersListData'),
+  'WorkspaceMembersListResponse'
+);
+registry.register('WorkspaceMembersListResponse', WorkspaceMembersListResponseSchema);
 
 registry.registerPath({
   method: 'get',
   path: '/workspaces/{id}/members',
   tags: ['Workspaces'],
   summary: 'List workspace members',
-  request: { params: z.object({ id: UuidSchema }) },
+  request: {
+    params: z.object({ id: UuidSchema }),
+    query: z.object({ includeArchived: z.coerce.boolean().optional() }),
+  },
   responses: {
-    200: { description: 'Members', content: { 'application/json': { schema: z.array(WorkspaceMemberSchema) } } },
+    200: jsonResponse(WorkspaceMembersListResponseSchema, 'Members'),
     403: { description: 'Workspace admin required' },
   },
 });
@@ -160,12 +171,25 @@ registry.registerPath({
   method: 'post',
   path: '/workspaces/{id}/members',
   tags: ['Workspaces'],
-  summary: 'Invite or add workspace member',
+  summary: 'Add existing user to workspace',
   request: {
     params: z.object({ id: UuidSchema }),
-    body: { content: { 'application/json': { schema: z.object({ email: z.string().email(), role: z.enum(['admin', 'member']).optional() }) } } },
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            userId: UuidSchema,
+            role: z.enum(['admin', 'member']).optional(),
+          }),
+        },
+      },
+    },
   },
-  responses: { 201: { description: 'Member invited' }, 403: { description: 'Workspace admin required' } },
+  responses: {
+    201: jsonResponse(WorkspaceMembersListResponseSchema, 'Member added'),
+    403: { description: 'Workspace admin required' },
+    409: jsonResponse(ApiErrorResponseSchema, 'User already a member'),
+  },
 });
 
 registry.registerPath({
@@ -186,7 +210,10 @@ registry.registerPath({
   tags: ['Workspaces'],
   summary: 'Archive workspace member',
   request: { params: z.object({ id: UuidSchema, userId: UuidSchema }) },
-  responses: { 204: { description: 'Member archived' }, 403: { description: 'Workspace admin required' } },
+  responses: {
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Member archived'),
+    403: { description: 'Workspace admin required' },
+  },
 });
 
 registry.registerPath({
@@ -225,7 +252,7 @@ registry.registerPath({
   tags: ['Workspaces'],
   summary: 'Revoke workspace invite',
   request: { params: z.object({ id: UuidSchema, inviteId: UuidSchema }) },
-  responses: { 204: { description: 'Invite revoked' } },
+  responses: { 200: jsonResponse(SuccessOnlyResponseSchema, 'Invite revoked') },
 });
 
 registry.registerPath({

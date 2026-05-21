@@ -247,7 +247,13 @@ registry.registerPath({
   },
 });
 
-const DocumentContentSchema = z.record(z.unknown()).nullable().openapi('DocumentContent');
+const DocumentContentPayloadSchema = z
+  .object({
+    id: UuidSchema,
+    title: z.string(),
+    content: z.record(z.unknown()).nullable(),
+  })
+  .openapi('DocumentContentPayload');
 
 registry.registerPath({
   method: 'get',
@@ -258,7 +264,7 @@ registry.registerPath({
   responses: {
     200: {
       description: 'Document content',
-      content: { 'application/json': { schema: DocumentContentSchema } },
+      content: { 'application/json': { schema: DocumentContentPayloadSchema } },
     },
     404: { description: 'Document not found' },
   },
@@ -271,7 +277,7 @@ registry.registerPath({
   summary: 'Update document TipTap content',
   request: {
     params: z.object({ id: UuidSchema }),
-    body: { content: { 'application/json': { schema: DocumentContentSchema } } },
+    body: { content: { 'application/json': { schema: z.record(z.unknown()).nullable() } } },
   },
   responses: {
     200: { description: 'Content updated' },

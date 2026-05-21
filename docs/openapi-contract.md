@@ -28,3 +28,7 @@ Use `expectOpenApiResponse` from `api/src/test/openapi-response.ts` in integrati
 `defineRoute` in `api/src/openapi/define-route.ts` registers OpenAPI and parses request inputs. Pilot: `api/src/routes/setup.ts`. Import side effects for generation: `api/src/openapi/index.ts` loads setup routes so `openapi:generate` includes defineRoute registrations.
 
 Production response validation remains deferred.
+
+## Verification note (2026-05-21)
+
+Path parity (`openapi:check:strict`) is necessary but not sufficient. A follow-up audit fixed handler/schema mismatches on CAIA auth, setup errors, workspaces members/switch, feedback GET, invites accept, documents content, backlinks links, and several admin status/body shapes. Remaining debt: many admin/team routes still use `JsonObject`/`passthrough` schemas — tighten when those families are migrated to `apiClient` or `defineRoute`.

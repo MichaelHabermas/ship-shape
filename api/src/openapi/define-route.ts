@@ -6,6 +6,7 @@
 import type { Request, RequestHandler, Response } from 'express';
 import type { z } from 'zod';
 
+import { ERROR_CODES } from '@ship/shared';
 import { registry } from './registry.js';
 
 export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
@@ -127,8 +128,11 @@ export function defineRoute<T extends RouteRequestSchemas>(
     } catch (error) {
       if (error instanceof RouteValidationError) {
         res.status(error.statusCode).json({
-          error: 'validation_error',
-          message: error.message,
+          success: false,
+          error: {
+            code: ERROR_CODES.VALIDATION_ERROR,
+            message: error.message,
+          },
         });
         return;
       }

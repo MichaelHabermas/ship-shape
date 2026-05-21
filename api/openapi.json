@@ -180,6 +180,53 @@
           "name"
         ]
       },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "ApiErrorBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiErrorBody"
+          }
+        },
+        "required": [
+          "success",
+          "error"
+        ]
+      },
       "DocumentType": {
         "type": "string",
         "enum": [
@@ -3232,6 +3279,98 @@
             "example": "2025-01-30"
           }
         }
+      },
+      "WorkspaceMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "admin",
+              "member"
+            ]
+          },
+          "personDocumentId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "joinedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "isArchived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "email",
+          "name",
+          "role",
+          "personDocumentId",
+          "joinedAt",
+          "isArchived"
+        ]
+      },
+      "WorkspaceMembersListData": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceMember"
+            }
+          }
+        },
+        "required": [
+          "members"
+        ]
+      },
+      "WorkspaceMembersListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceMembersListData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
       },
       "MentionSearchResult": {
         "type": "object",
@@ -6429,17 +6568,34 @@
               "name"
             ]
           },
-          "workspaceId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sessionId": {
-            "type": "string"
+          "workspace": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "admin",
+                  "member"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "role"
+            ]
           }
         },
         "required": [
           "user",
-          "workspaceId"
+          "workspace"
         ]
       },
       "InviteAcceptResponse": {
@@ -6553,24 +6709,6 @@
           "program_id"
         ]
       },
-      "FeedbackResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [
-              true
-            ]
-          },
-          "data": {
-            "$ref": "#/components/schemas/FeedbackItem"
-          }
-        },
-        "required": [
-          "success",
-          "data"
-        ]
-      },
       "FeedbackProgramPublic": {
         "type": "object",
         "properties": {
@@ -6598,21 +6736,15 @@
           "prefix"
         ]
       },
-      "AuthProviderStatus": {
+      "AuthProviderStatusData": {
         "type": "object",
         "properties": {
-          "configured": {
-            "type": "boolean"
-          },
-          "issuerUrl": {
-            "type": "string"
-          },
-          "loginAvailable": {
+          "available": {
             "type": "boolean"
           }
         },
         "required": [
-          "configured"
+          "available"
         ]
       },
       "AuthProviderStatusResponse": {
@@ -6625,7 +6757,37 @@
             ]
           },
           "data": {
-            "$ref": "#/components/schemas/AuthProviderStatus"
+            "$ref": "#/components/schemas/AuthProviderStatusData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "AuthProviderLoginData": {
+        "type": "object",
+        "properties": {
+          "authorizationUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "authorizationUrl"
+        ]
+      },
+      "AuthProviderLoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthProviderLoginData"
           }
         },
         "required": [
@@ -6813,14 +6975,47 @@
           "data"
         ]
       },
-      "DocumentContent": {
+      "DocumentContentPayload": {
         "type": "object",
-        "nullable": true,
-        "additionalProperties": {
-          "nullable": true
-        }
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "content"
+        ]
       },
-      "SuccessResponse": {
+      "WorkspaceSwitchData": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "workspaceId"
+        ]
+      },
+      "WorkspaceSwitchResponse": {
         "type": "object",
         "properties": {
           "success": {
@@ -6828,10 +7023,43 @@
             "enum": [
               true
             ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkspaceSwitchData"
           }
         },
         "required": [
-          "success"
+          "success",
+          "data"
+        ]
+      },
+      "AdminCreateWorkspaceData": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/AdminWorkspace"
+          }
+        },
+        "required": [
+          "workspace"
+        ]
+      },
+      "AdminCreateWorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminCreateWorkspaceData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
         ]
       }
     },
@@ -7140,7 +7368,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DocumentContent"
+                  "$ref": "#/components/schemas/DocumentContentPayload"
                 }
               }
             }
@@ -7172,7 +7400,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DocumentContent"
+                "type": "object",
+                "nullable": true,
+                "additionalProperties": {
+                  "nullable": true
+                }
               }
             }
           }
@@ -11549,30 +11781,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "workspace": {
-                          "$ref": "#/components/schemas/Workspace"
-                        }
-                      },
-                      "required": [
-                        "workspace"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/WorkspaceSwitchResponse"
                 }
               }
             }
@@ -11603,6 +11812,15 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "required": false,
+            "name": "includeArchived",
+            "in": "query"
           }
         ],
         "responses": {
@@ -11611,45 +11829,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "userId": {
-                        "type": "string",
-                        "format": "uuid",
-                        "description": "UUID identifier",
-                        "example": "550e8400-e29b-41d4-a716-446655440000"
-                      },
-                      "email": {
-                        "type": "string",
-                        "format": "email"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "role": {
-                        "type": "string",
-                        "enum": [
-                          "admin",
-                          "member"
-                        ]
-                      },
-                      "archivedAt": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "date-time",
-                        "description": "ISO 8601 datetime string",
-                        "example": "2025-01-30T14:30:00.000Z"
-                      }
-                    },
-                    "required": [
-                      "userId",
-                      "email",
-                      "name",
-                      "role"
-                    ]
-                  }
+                  "$ref": "#/components/schemas/WorkspaceMembersListResponse"
                 }
               }
             }
@@ -11663,7 +11843,7 @@
         "tags": [
           "Workspaces"
         ],
-        "summary": "Invite or add workspace member",
+        "summary": "Add existing user to workspace",
         "parameters": [
           {
             "schema": {
@@ -11683,9 +11863,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
+                  "userId": {
                     "type": "string",
-                    "format": "email"
+                    "format": "uuid",
+                    "description": "UUID identifier",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                   },
                   "role": {
                     "type": "string",
@@ -11696,7 +11878,7 @@
                   }
                 },
                 "required": [
-                  "email"
+                  "userId"
                 ]
               }
             }
@@ -11704,10 +11886,27 @@
         },
         "responses": {
           "201": {
-            "description": "Member invited"
+            "description": "Member added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceMembersListResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Workspace admin required"
+          },
+          "409": {
+            "description": "User already a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11802,8 +12001,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Member archived"
+          "200": {
+            "description": "Member archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Workspace admin required"
@@ -11970,8 +12176,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Invite revoked"
+          "200": {
+            "description": "Invite revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14105,7 +14318,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Invite accepted",
             "content": {
               "application/json": {
@@ -14228,7 +14441,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FeedbackResponse"
+                  "$ref": "#/components/schemas/FeedbackItem"
                 }
               }
             }
@@ -14271,11 +14484,35 @@
         "summary": "Start CAIA OAuth login",
         "security": [],
         "responses": {
-          "302": {
-            "description": "Redirect to identity provider"
+          "200": {
+            "description": "Authorization URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthProviderLoginResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to initiate login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Provider not configured"
+            "description": "Provider not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14329,11 +14566,35 @@
         "summary": "Start PIV OAuth login",
         "security": [],
         "responses": {
-          "302": {
-            "description": "Redirect to identity provider"
+          "200": {
+            "description": "Authorization URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthProviderLoginResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to initiate login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Provider not configured"
+            "description": "Provider not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14415,12 +14676,12 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Success",
+          "201": {
+            "description": "Workspace created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminJsonResponse"
+                  "$ref": "#/components/schemas/AdminCreateWorkspaceResponse"
                 }
               }
             }
@@ -14537,11 +14798,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Workspace archived",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminJsonResponse"
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
@@ -14631,8 +14892,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Success",
+          "201": {
+            "description": "Member added",
             "content": {
               "application/json": {
                 "schema": {
@@ -14643,6 +14904,16 @@
           },
           "403": {
             "description": "Super admin required"
+          },
+          "409": {
+            "description": "User already a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14749,13 +15020,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminJsonResponse"
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
-          },
-          "204": {
-            "description": "Member removed"
           },
           "403": {
             "description": "Super admin required"
@@ -14842,8 +15110,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Success",
+          "201": {
+            "description": "Invite created",
             "content": {
               "application/json": {
                 "schema": {
@@ -14854,6 +15122,16 @@
           },
           "403": {
             "description": "Super admin required"
+          },
+          "409": {
+            "description": "Invite already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14890,11 +15168,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Invite revoked",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminJsonResponse"
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
@@ -15148,11 +15426,11 @@
         "summary": "End impersonation session",
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Impersonation ended",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminJsonResponse"
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
@@ -15424,7 +15702,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupStatusResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -15464,7 +15742,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupInitializeResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -15474,7 +15752,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupInitializeResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -15484,7 +15762,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupInitializeResponse"
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }

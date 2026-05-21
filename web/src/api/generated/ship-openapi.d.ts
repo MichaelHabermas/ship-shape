@@ -243,7 +243,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocumentContent"];
+                        "application/json": components["schemas"]["DocumentContentPayload"];
                     };
                 };
                 /** @description Document not found */
@@ -272,7 +272,9 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["DocumentContent"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    } | null;
                 };
             };
             responses: {
@@ -4328,13 +4330,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            success: true;
-                            data: {
-                                workspace: components["schemas"]["Workspace"];
-                            };
-                        };
+                        "application/json": components["schemas"]["WorkspaceSwitchResponse"];
                     };
                 };
                 /** @description No access to workspace */
@@ -4369,7 +4365,9 @@ export interface paths {
         /** List workspace members */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    includeArchived?: boolean | null;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -4384,25 +4382,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /**
-                             * Format: uuid
-                             * @description UUID identifier
-                             * @example 550e8400-e29b-41d4-a716-446655440000
-                             */
-                            userId: string;
-                            /** Format: email */
-                            email: string;
-                            name: string;
-                            /** @enum {string} */
-                            role: "admin" | "member";
-                            /**
-                             * Format: date-time
-                             * @description ISO 8601 datetime string
-                             * @example 2025-01-30T14:30:00.000Z
-                             */
-                            archivedAt?: string | null;
-                        }[];
+                        "application/json": components["schemas"]["WorkspaceMembersListResponse"];
                     };
                 };
                 /** @description Workspace admin required */
@@ -4415,7 +4395,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Invite or add workspace member */
+        /** Add existing user to workspace */
         post: {
             parameters: {
                 query?: never;
@@ -4428,20 +4408,26 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** Format: email */
-                        email: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID identifier
+                         * @example 550e8400-e29b-41d4-a716-446655440000
+                         */
+                        userId: string;
                         /** @enum {string} */
                         role?: "admin" | "member";
                     };
                 };
             };
             responses: {
-                /** @description Member invited */
+                /** @description Member added */
                 201: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["WorkspaceMembersListResponse"];
+                    };
                 };
                 /** @description Workspace admin required */
                 403: {
@@ -4449,6 +4435,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description User already a member */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -4482,11 +4477,13 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Member archived */
-                204: {
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["SuccessResponse"];
+                    };
                 };
                 /** @description Workspace admin required */
                 403: {
@@ -4674,11 +4671,13 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Invite revoked */
-                204: {
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["SuccessResponse"];
+                    };
                 };
             };
         };
@@ -6984,7 +6983,7 @@ export interface paths {
             };
             responses: {
                 /** @description Invite accepted */
-                200: {
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7152,7 +7151,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FeedbackResponse"];
+                        "application/json": components["schemas"]["FeedbackItem"];
                     };
                 };
                 /** @description Feedback not found */
@@ -7232,19 +7231,32 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Redirect to identity provider */
-                302: {
+                /** @description Authorization URL */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AuthProviderLoginResponse"];
+                    };
+                };
+                /** @description Failed to initiate login */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Provider not configured */
                 503: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7357,19 +7369,32 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Redirect to identity provider */
-                302: {
+                /** @description Authorization URL */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AuthProviderLoginResponse"];
+                    };
+                };
+                /** @description Failed to initiate login */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
                 /** @description Provider not configured */
                 503: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7483,13 +7508,13 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Success */
-                200: {
+                /** @description Workspace created */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminJsonResponse"];
+                        "application/json": components["schemas"]["AdminCreateWorkspaceResponse"];
                     };
                 };
                 /** @description Super admin required */
@@ -7608,13 +7633,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Success */
+                /** @description Workspace archived */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminJsonResponse"];
+                        "application/json": components["schemas"]["SuccessResponse"];
                     };
                 };
                 /** @description Super admin required */
@@ -7691,8 +7716,8 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Success */
-                200: {
+                /** @description Member added */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7706,6 +7731,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description User already a member */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7744,15 +7778,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminJsonResponse"];
+                        "application/json": components["schemas"]["SuccessResponse"];
                     };
-                };
-                /** @description Member removed */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
                 };
                 /** @description Super admin required */
                 403: {
@@ -7864,8 +7891,8 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Success */
-                200: {
+                /** @description Invite created */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7879,6 +7906,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Invite already exists */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
                 };
             };
         };
@@ -7911,13 +7947,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Success */
+                /** @description Invite revoked */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminJsonResponse"];
+                        "application/json": components["schemas"]["SuccessResponse"];
                     };
                 };
                 /** @description Super admin required */
@@ -8228,13 +8264,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Success */
+                /** @description Impersonation ended */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AdminJsonResponse"];
+                        "application/json": components["schemas"]["SuccessResponse"];
                     };
                 };
                 /** @description Super admin required */
@@ -8683,7 +8719,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SetupStatusResponse"];
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -8734,7 +8770,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SetupInitializeResponse"];
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
                 /** @description Setup already completed */
@@ -8743,7 +8779,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SetupInitializeResponse"];
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
                 /** @description Internal server error */
@@ -8752,7 +8788,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SetupInitializeResponse"];
+                        "application/json": components["schemas"]["ApiErrorResponse"];
                     };
                 };
             };
@@ -8832,6 +8868,19 @@ export interface components {
              * @description User email address
              */
             email?: string;
+        };
+        SuccessResponse: {
+            /** @enum {boolean} */
+            success: true;
+        };
+        ApiErrorBody: {
+            code: string;
+            message: string;
+        };
+        ApiErrorResponse: {
+            /** @enum {boolean} */
+            success: false;
+            error: components["schemas"]["ApiErrorBody"];
         };
         /**
          * @description Type of document
@@ -10201,6 +10250,46 @@ export interface components {
              */
             sprintStartDate?: string;
         };
+        WorkspaceMember: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            userId: string | null;
+            /** Format: email */
+            email: string;
+            name: string;
+            /** @enum {string|null} */
+            role: "admin" | "member" | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            personDocumentId: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            joinedAt: string | null;
+            isArchived: boolean;
+        };
+        WorkspaceMembersListData: {
+            members: components["schemas"]["WorkspaceMember"][];
+        };
+        WorkspaceMembersListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["WorkspaceMembersListData"];
+        };
         MentionSearchResult: {
             people: {
                 /**
@@ -11484,9 +11573,13 @@ export interface components {
                 email: string;
                 name: string;
             };
-            /** Format: uuid */
-            workspaceId: string;
-            sessionId?: string;
+            workspace: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                /** @enum {string} */
+                role: "admin" | "member";
+            };
         };
         InviteAcceptResponse: {
             /** @enum {boolean} */
@@ -11539,11 +11632,6 @@ export interface components {
             submitter_email?: string;
             content?: unknown;
         };
-        FeedbackResponse: {
-            /** @enum {boolean} */
-            success: true;
-            data: components["schemas"]["FeedbackItem"];
-        };
         FeedbackProgramPublic: {
             /**
              * Format: uuid
@@ -11555,15 +11643,22 @@ export interface components {
             prefix: string | null;
             color?: string | null;
         };
-        AuthProviderStatus: {
-            configured: boolean;
-            issuerUrl?: string;
-            loginAvailable?: boolean;
+        AuthProviderStatusData: {
+            available: boolean;
         };
         AuthProviderStatusResponse: {
             /** @enum {boolean} */
             success: true;
-            data: components["schemas"]["AuthProviderStatus"];
+            data: components["schemas"]["AuthProviderStatusData"];
+        };
+        AuthProviderLoginData: {
+            /** Format: uri */
+            authorizationUrl: string;
+        };
+        AuthProviderLoginResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["AuthProviderLoginData"];
         };
         AdminWorkspace: {
             /**
@@ -11637,12 +11732,38 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        DocumentContent: {
-            [key: string]: unknown;
-        } | null;
-        SuccessResponse: {
+        DocumentContentPayload: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            title: string;
+            content: {
+                [key: string]: unknown;
+            } | null;
+        };
+        WorkspaceSwitchData: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            workspaceId: string;
+        };
+        WorkspaceSwitchResponse: {
             /** @enum {boolean} */
             success: true;
+            data: components["schemas"]["WorkspaceSwitchData"];
+        };
+        AdminCreateWorkspaceData: {
+            workspace: components["schemas"]["AdminWorkspace"];
+        };
+        AdminCreateWorkspaceResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["AdminCreateWorkspaceData"];
         };
     };
     responses: never;

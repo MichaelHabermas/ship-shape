@@ -565,6 +565,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - 2026-05-21 | `pnpm --filter @ship/api db:migrate` | migrations 039 and 040 | sandbox `tsx` IPC block on first try -> rerun with local DB access | pass | migrations applied to local dev DB.
 - 2026-05-21 | `pnpm openapi:generate` and `pnpm openapi:check` | generated API contract | `tsx` IPC block on first generate try -> rerun succeeded; coverage check remains report-only | pass/report-only | 195 runtime routes, 121 OpenAPI operations, 82 missing, 8 stale.
 - 2026-05-21 | `pnpm openapi:check:strict` + contract completion pass | OpenAPI route/spec parity | removed 8 stale ops; added admin/setup/feedback/invites/caia-auth and partial-family paths; strict gate 0 missing / 0 stale | pass | `docs/openapi-contract.md`; `defineRoute` pilot on setup; contract tests on `ship_test_audit`.
+- 2026-05-21 | Multi-agent fidelity audit + schema fixes | handler/OpenAPI body alignment | P0 envelope/status/field mismatches on CAIA, workspaces, feedback, setup, invites, documents, admin | pass | `ApiErrorResponseSchema` in common; `defineRoute` validation uses standard error envelope; 501 API tests pass after fixes.
 
 ### Claim Boundary
 

@@ -34,9 +34,12 @@ const InviteAcceptDataSchema = z.object({
     email: z.string().email(),
     name: z.string(),
   }),
-  workspaceId: z.string().uuid(),
-  sessionId: z.string().optional(),
-}).passthrough().openapi('InviteAcceptData');
+  workspace: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    role: z.enum(['admin', 'member']),
+  }),
+}).openapi('InviteAcceptData');
 
 const InviteAcceptResponseSchema = successEnvelope(InviteAcceptDataSchema, 'InviteAcceptResponse');
 registry.register('InviteAcceptResponse', InviteAcceptResponseSchema);
@@ -71,7 +74,7 @@ registry.registerPath({
     },
   },
   responses: {
-    200: jsonResponse(InviteAcceptResponseSchema, 'Invite accepted'),
+    201: jsonResponse(InviteAcceptResponseSchema, 'Invite accepted'),
     400: { description: 'Validation error' },
     404: { description: 'Invalid invite' },
     500: { description: 'Internal server error' },

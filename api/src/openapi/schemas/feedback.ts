@@ -32,9 +32,6 @@ const CreateFeedbackRequestSchema = z.object({
 
 registry.register('CreateFeedbackRequest', CreateFeedbackRequestSchema);
 
-const FeedbackResponseSchema = successEnvelope(FeedbackItemSchema, 'FeedbackResponse');
-registry.register('FeedbackResponse', FeedbackResponseSchema);
-
 export const FeedbackProgramPublicSchema = z.object({
   id: UuidSchema,
   name: z.string(),
@@ -87,7 +84,7 @@ registry.registerPath({
   summary: 'Get feedback by ID',
   request: { params: IdParamSchema },
   responses: {
-    200: jsonResponse(FeedbackResponseSchema, 'Feedback details'),
+    200: jsonResponse(FeedbackItemSchema, 'Feedback details'),
     404: { description: 'Feedback not found' },
     500: { description: 'Internal server error' },
   },

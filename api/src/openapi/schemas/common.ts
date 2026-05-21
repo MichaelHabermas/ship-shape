@@ -110,3 +110,22 @@ registry.register('UserReference', UserReferenceSchema);
 export const SuccessResponseSchema = z.object({
   success: z.literal(true),
 }).openapi('SuccessResponse');
+
+registry.register('SuccessResponse', SuccessResponseSchema);
+
+export const ApiErrorBodySchema = z
+  .object({
+    code: z.string(),
+    message: z.string(),
+  })
+  .openapi('ApiErrorBody');
+
+export const ApiErrorResponseSchema = z
+  .object({
+    success: z.literal(false),
+    error: ApiErrorBodySchema,
+  })
+  .openapi('ApiErrorResponse');
+
+registry.register('ApiErrorBody', ApiErrorBodySchema);
+registry.register('ApiErrorResponse', ApiErrorResponseSchema);

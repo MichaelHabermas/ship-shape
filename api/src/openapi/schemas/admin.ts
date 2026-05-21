@@ -3,8 +3,14 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, DateSchema } from './common.js';
-import { jsonResponse, JsonObjectSchema, successEnvelope, IdParamSchema } from './route-helpers.js';
+import { UuidSchema, DateTimeSchema, DateSchema, ApiErrorResponseSchema } from './common.js';
+import {
+  jsonResponse,
+  JsonObjectSchema,
+  successEnvelope,
+  IdParamSchema,
+  SuccessOnlyResponseSchema,
+} from './route-helpers.js';
 
 const AdminWorkspaceSchema = z.object({
   id: UuidSchema,
@@ -77,6 +83,16 @@ adminPath('post', '/admin/workspaces', 'Create workspace (super-admin)', {
       },
     },
   },
+  responses: {
+    201: jsonResponse(
+      successEnvelope(
+        z.object({ workspace: AdminWorkspaceSchema }).openapi('AdminCreateWorkspaceData'),
+        'AdminCreateWorkspaceResponse'
+      ),
+      'Workspace created'
+    ),
+    403: { description: 'Super admin required' },
+  },
 });
 
 adminPath('get', '/admin/workspaces/{id}', 'Get workspace by ID (super-admin)', {
@@ -98,6 +114,10 @@ adminPath('patch', '/admin/workspaces/{id}', 'Update workspace (super-admin)', {
 
 adminPath('post', '/admin/workspaces/{id}/archive', 'Archive workspace (super-admin)', {
   request: { params: WorkspaceIdParams },
+  responses: {
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Workspace archived'),
+    403: { description: 'Super admin required' },
+  },
 });
 
 adminPath('get', '/admin/workspaces/{id}/members', 'List workspace members (super-admin)', {
@@ -118,6 +138,11 @@ adminPath('post', '/admin/workspaces/{id}/members', 'Add workspace member (super
       },
     },
   },
+  responses: {
+    201: jsonResponse(AdminJsonResponseSchema, 'Member added'),
+    403: { description: 'Super admin required' },
+    409: jsonResponse(ApiErrorResponseSchema, 'User already a member'),
+  },
 });
 
 adminPath('patch', '/admin/workspaces/{workspaceId}/members/{userId}', 'Update workspace member (super-admin)', {
@@ -136,8 +161,7 @@ adminPath('patch', '/admin/workspaces/{workspaceId}/members/{userId}', 'Update w
 adminPath('delete', '/admin/workspaces/{workspaceId}/members/{userId}', 'Remove workspace member (super-admin)', {
   request: { params: WorkspaceMemberParams },
   responses: {
-    200: jsonResponse(AdminJsonResponseSchema, 'Member removed'),
-    204: { description: 'Member removed' },
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Member removed'),
     403: { description: 'Super admin required' },
   },
 });
@@ -160,10 +184,19 @@ adminPath('post', '/admin/workspaces/{id}/invites', 'Create workspace invite (su
       },
     },
   },
+  responses: {
+    201: jsonResponse(AdminJsonResponseSchema, 'Invite created'),
+    403: { description: 'Super admin required' },
+    409: jsonResponse(ApiErrorResponseSchema, 'Invite already exists'),
+  },
 });
 
 adminPath('delete', '/admin/workspaces/{workspaceId}/invites/{inviteId}', 'Revoke workspace invite (super-admin)', {
   request: { params: WorkspaceInviteParams },
+  responses: {
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Invite revoked'),
+    403: { description: 'Super admin required' },
+  },
 });
 
 adminPath('get', '/admin/users', 'List users (super-admin)');
@@ -208,7 +241,12 @@ adminPath('post', '/admin/impersonate/{userId}', 'Start impersonation session', 
   request: { params: ImpersonateParams },
 });
 
-adminPath('delete', '/admin/impersonate', 'End impersonation session');
+adminPath('delete', '/admin/impersonate', 'End impersonation session', {
+  responses: {
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Impersonation ended'),
+    403: { description: 'Super admin required' },
+  },
+});
 
 adminPath('get', '/admin/debug/users', 'List users for debug tooling');
 adminPath('get', '/admin/debug/orphans', 'List orphan records for debug tooling');

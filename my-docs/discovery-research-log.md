@@ -830,6 +830,16 @@ Evidence: `pnpm openapi:check:strict` → 195 runtime / 195 OpenAPI, 0 missing, 
 
 Deferred 10x: production `OPENAPI_VALIDATE_RESPONSES`, broad `defineRoute` migration for files/auth.
 
+### OpenAPI fidelity audit and fixes (2026-05-21)
+
+Severity: Ledger
+
+Status: Resolved (P0 handler/schema alignment)
+
+Multi-agent verification after path parity found **real** drift: CAIA status/login JSON vs redirect docs, feedback GET envelope, workspaces switch/members shapes, setup `defineRoute` validation error format, invites 201 body, documents content wrapper, admin 201 vs 200 and success-only deletes. Fixed OpenAPI schemas (and `defineRoute` error envelope) to match runtime handlers; re-ran `openapi:check:strict`, type-check, and 501 API tests on `ship_test_audit` — all pass.
+
+Remaining debt: admin list routes and team accountability grids still use loose `JsonObject`/`passthrough` — acceptable for path gate, not for production response validation. See D022.
+
 ---
 
 ## Architecture pass baseline (2026-05-21)

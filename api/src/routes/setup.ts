@@ -5,6 +5,7 @@ import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from '../db/welcomeDocument.js';
 import { defineRoute } from '../openapi/define-route.js';
+import { ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import {
   SetupInitializeRequestSchema,
   SetupInitializeResponseSchema,
@@ -23,7 +24,7 @@ router.get(
     security: [],
     responses: {
       200: { schema: SetupStatusResponseSchema, description: 'Setup status' },
-      500: { schema: SetupStatusResponseSchema, description: 'Internal server error' },
+      500: { schema: ApiErrorResponseSchema, description: 'Internal server error' },
     },
     handler: async (_req, res) => {
       try {
@@ -63,9 +64,9 @@ router.post(
     },
     responses: {
       201: { schema: SetupInitializeResponseSchema, description: 'Setup complete' },
-      400: { schema: SetupInitializeResponseSchema, description: 'Validation error' },
-      403: { schema: SetupInitializeResponseSchema, description: 'Setup already completed' },
-      500: { schema: SetupInitializeResponseSchema, description: 'Internal server error' },
+      400: { schema: ApiErrorResponseSchema, description: 'Validation error' },
+      403: { schema: ApiErrorResponseSchema, description: 'Setup already completed' },
+      500: { schema: ApiErrorResponseSchema, description: 'Internal server error' },
     },
     handler: async (_req, res, { body }) => {
       const { email, password, name } = body!;
