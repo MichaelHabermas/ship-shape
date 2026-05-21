@@ -2,6 +2,75 @@
 
 ---
 
+## Architecture Deepening Pass Summary (2026-05-21)
+
+Structural pass implementing all eight architecture-deepening clusters (seven product seams + E2E fixture harness). No git commits in this pass; verification below.
+
+| Cluster | Deliverable | Category tie-in |
+|---------|-------------|-----------------|
+| #6 Associations | `syncAssociationOfType*`, `syncProgramAssociation`; issues/projects migrated | Category 5 — regression suite still passes (485 API tests) |
+| #3 Document types | `shared/src/document-view.ts`; `UnifiedEditor` + partial `PropertiesPanel` | Category 1 — fewer duplicated web interfaces |
+| HM E2E fixtures | `e2e/fixtures/app.ts`; backlinks, mentions, check-aria migrated | Category 5 — check-aria no longer silent-skips |
+| #2 Plan shared | `shared/src/content-extract.ts`; API re-export; Editor uses shared | Category 5 — `shared-content-boundary.test.ts` |
+| #7 Repo slice | `documents-repository.ts`, `getDocumentTypeById` for collab | Foundation for Cat 3/4 — claims `TBD` |
+| #5 Yjs codec | `document-content-codec.ts` + unit tests | Category 5 |
+| #4 Mentions/links | `shared/document-mentions.ts`; API JSON→links integration test | Category 5 |
+| #1 Collab protocol | `shared/collab-protocol.ts`; canonical server rooms | Category 6 — prevents cross-prefix data fork |
+
+Evidence: `pnpm type-check` pass; `DATABASE_URL=…/ship_test_audit pnpm --filter @ship/api test` 33 files / 485 tests pass; `pnpm --filter @ship/web test` 158 pass. E2E targeted runs not re-benchmarked in this pass (Docker/Testcontainers optional). D020–D024 in `DECISION_LOG.md`.
+
+---
+
+## Architecture Follow-up Pass Summary (2026-05-21)
+
+Completes deferred slices F1–F7 from the deepening pass: collab E2E proof, `useCollabSession`, server codec wiring, repository expansion, OpenAPI hook pilot, E2E fixtures, and doc updates. No git commits.
+
+| ID | Deliverable | Evidence |
+|----|-------------|----------|
+| F1 | Collab E2E: `document-isolation` + `content-caching` | **7/7 pass** — `E2E_RESULTS_DIR=test-results/arch-followup-collab PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/document-isolation.spec.ts e2e/content-caching.spec.ts` |
+| F2 | `useCollabSession` + shared `COLLAB_*` | `web/src/hooks/useCollabSession.ts`; slimmed `Editor.tsx`; `useCollabSession.test.ts` (7 tests: mocks, clear-cache msg `3`, close `4101`, stable callbacks) |
+| F3 | `getOrCreateDoc` → `resolveInitialContent` | `api/src/collaboration/index.ts`; codec string/XML parsing; collab + codec vitest **53 pass** |
+| F4 | `listIssuesMetadata` + route wiring | `documents-repository.ts`; `issues.ts` list; `documents.ts` PATCH content → `updateDocumentContent` |
+| F5 | OpenAPI pilot | `useIssuesQuery` `fetchIssues` → `apiClient.GET('/issues')`; `pnpm openapi:check` still **82 missing / 8 stale** (report-only) |
+| F6 | Perf benchmarks | **TBD** — `pnpm benchmark:api` requires API on `:3000` (ECONNREFUSED); prior artifacts in `test-results/benchmarks/api-2026-05-21T03-11-53-590Z.json` |
+| F7 | E2E fixtures | `authenticatedPage`, `createIssueDoc`, `gotoIssues`, `openFirstIssueFromList`; collab specs use `login` from `app.ts` |
+
+Category mapping (honest): F1/F2 **support** Cat 5/6 infrastructure but do **not** close GFA Cat 1/5/6 gates alone; F3/F7 → Cat 5 structural tests; F4 → Cat 4 indirect (SQL relocation, no new benchmark); F5 → typed-client pilot only (not 25% `any` reduction); F6 → Cat 3/4 **TBD** until API server + rerun.
+
+D025–D028 in `DECISION_LOG.md`.
+
+---
+
+## Architecture Follow-up Verification Pass (2026-05-21)
+
+Multi-agent audit (collab parity, SQL relocation, SOLID/F2d, philosophy + GFA alignment) followed by orchestrator fixes and full re-gates.
+
+| Audit area | Initial verdict | Fix applied |
+|------------|-----------------|-------------|
+| Collab `getOrCreateDoc` empty `content: []` | Minor regression (`content.length` guard) | Use `Array.isArray(resolved.docJson.content)` |
+| Collab close codes / message types | Drift risk (literals `4101` etc.) | Import all `COLLAB_*` from `@ship/shared` on server |
+| `useCollabSession` callback deps | Medium — full session teardown on parent re-render | Ref-stable `onBack` / `onDocumentConverted` |
+| WS `message` listener | Medium — leak on reconnect | `removeEventListener` in cleanup; attach on `connected` |
+| F2d unit tests | **Not satisfied** (constants only) | 7 behavioral tests with mocked `y-websocket` / `y-indexeddb` |
+| `listIssuesMetadata` / `updateDocumentContent` | **PASS** — logic-equivalent | None |
+| GFA category over-claims in deepening table | Misleading Cat 1/6 tie-ins | Wording corrected above |
+| F7 `content-caching` duplicate login | Partial fixture adoption | All describes use `login` from `app.ts` |
+
+**Post-fix verification:**
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | Pass |
+| API tests (`ship_test_audit`) | **489** pass |
+| Web tests | **165** pass (includes 7 `useCollabSession` tests) |
+| Collab + codec vitest | **55** pass |
+| Collab E2E | **7/7** — `test-results/arch-verify-collab/` |
+| `pnpm benchmark:api` | **TBD** — API not listening on `:3000` during verify |
+
+Philosophy: no new content tables; Editor canonical; hook owns transport (soft caveat: `alert` in hook matches prior Editor pattern).
+
+---
+
 ## Medium-Risk Dependency Cleanup Pass Summary
 
 This pass ran in a clean worktree from `master` (`bb36575012bd4ef1375aa5427cfc100de89264fc`) on `codex/dependency-security-cleanup`. It upgraded medium/low-risk dependencies without crossing the excluded migration lines: no React 19, TipTap 3, Zod 4, Tailwind 4, TypeScript 6, Vite 8, `@vitejs/plugin-react@6`, `y-websocket@3`, Node baseline change, or Express 5 app migration.

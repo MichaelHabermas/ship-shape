@@ -2,6 +2,154 @@
 
 Durable choices made during the audit/improvement work. This file exists so we can defend why structural decisions were made, what they do not claim, and what future work must preserve.
 
+## 2026-05-21: Architecture Deepening Pass
+
+### D020: Canonical Collaboration Room Names
+
+Status: Accepted
+
+Decision: On WebSocket upgrade, resolve `document_type` from the database and use `buildCollaborationRoomName(document_type, documentId)` as the sole in-memory room key. Log and ignore client room prefixes that do not match `document_type` (legacy `doc:` prefix still allowed for wiki only via `roomPrefixMatchesDocumentType`).
+
+Why: Discovery 2 showed `issue:` and `wiki:` rooms for the same UUID persisted different Yjs states into one row. Canonical rooms prevent forked realtime state.
+
+Alternatives considered: Reject mismatched prefixes with 403 (stricter, breaks old clients); client-only fix (insufficient). Server canonicalization fixes persistence without requiring every client to update simultaneously.
+
+Consequences: Protocol constants live in `shared/src/collab-protocol.ts`. Future Editor/collab changes must not reintroduce ad-hoc close codes or message types in only one tier.
+
+Evidence: `api/src/collaboration/index.ts` upgrade path uses `getDocumentTypeById` and `buildCollaborationRoomName`.
+
+**Decision Gist**: One Yjs room per document row — always `{document_type}:{uuid}` on the server.
+
+### D021: Shared Content Extractors And Mention IDs
+
+Status: Accepted
+
+Decision: Move TipTap JSON extractors (`extractHypothesisFromContent`, section extractors, `checkDocumentCompleteness`) and `extractDocumentMentionIds` into `@ship/shared`. API keeps a thin re-export file for existing import paths.
+
+Why: Client and server duplicated plan extraction with different whitespace rules; mention ID extraction was only tested via E2E.
+
+Alternatives considered: API-only module imported by web (violates monorepo boundary); duplicate logic with sync tests. Shared package is the existing cross-tier contract home.
+
+Consequences: Web `Editor.tsx` must import from `@ship/shared`, not maintain parallel extractors. New content-shape rules belong in `shared/src/content-extract.ts` first.
+
+Evidence: `api/src/__tests__/shared-content-boundary.test.ts`; `api/src/routes/backlinks.test.ts` editor-boundary test using `extractDocumentMentionIds` → POST links → GET backlinks.
+
+**Decision Gist**: TipTap content semantics are defined once in `@ship/shared` and consumed by API and web.
+
+### D022: Unified Association Write Helpers
+
+Status: Accepted
+
+Decision: Route association mutations through `syncBelongsToAssociations`, `syncProgramAssociation`, `syncAssociationOfType`, and `syncAssociationOfTypeForDocuments` in `document-crud.ts`. Migrate issues create/PATCH and projects program_id paths off inline SQL.
+
+Why: Four mutation styles for one junction table created regression risk (`associations-regression.test.ts`).
+
+Alternatives considered: New `AssociationSyncService` class (more abstraction than needed); REST-only associations router. Helper functions match existing `document-crud` style.
+
+Consequences: New association side effects (carryover, broadcasts) should wrap helpers inside transactions, not reintroduce inline DELETE/INSERT.
+
+Evidence: `api/src/routes/issues.ts`, `api/src/routes/projects.ts` migrations; existing regression suite still applies.
+
+**Decision Gist**: `document_associations` writes go through `document-crud` helpers, not per-route SQL copies.
+
+### D023: Document View Types And E2E App Fixtures
+
+Status: Accepted
+
+Decision: Add `shared/src/document-view.ts` for web editor/sidebar view types; wire `UnifiedEditor` and partial `PropertiesPanel` imports. Add `e2e/fixtures/app.ts` for shared login and wiki document creation. Harden `e2e/check-aria.spec.ts` to fail when seed tree lacks expandable nodes.
+
+Why: Parallel TS unions drifted from `@ship/shared`; E2E duplicated setup and `check-aria` silently skipped.
+
+Alternatives considered: OpenAPI-only web types (coverage incomplete); monolithic isolated-env refactor (deferred).
+
+Consequences: Panel-only fields remain local extensions on shared views. More specs should migrate to `app.ts` fixtures over time.
+
+Evidence: `pnpm type-check` passes; `e2e/fixtures/app.ts`; backlinks/mentions/check-aria imports.
+
+**Decision Gist**: Durable web document shapes and E2E auth/doc helpers live in shared modules, not per-file copies.
+
+### D024: Document Repository And Content Codec Slices
+
+Status: Accepted
+
+Decision: Add narrow modules `api/src/db/documents-repository.ts` (read/update helpers, `getDocumentTypeById`) and `api/src/db/document-content-codec.ts` (Yjs ↔ JSON encode/decode/`resolveInitialContent`) without rewriting god routes in this pass.
+
+Why: eelon-scope: full repository for all routes is churn-heavy; slices establish seams for Category 3/4 work later.
+
+Alternatives considered: Full `weeks.ts` extraction (deferred); inline SQL forever (blocks measurement). Slice is the leverage point.
+
+Consequences: Collab upgrade and future perf work should call repository/codec helpers instead of growing `collaboration/index.ts` further. Category 3/4 claims remain `TBD` until benchmarks rerun.
+
+Evidence: `api/src/db/__tests__/document-content-codec.test.ts` round-trip tests.
+
+**Decision Gist**: SQL and Yjs conversion get named boundaries; route files shrink incrementally, not in one rewrite.
+
+## 2026-05-21: Architecture Follow-up Pass
+
+### D025: useCollabSession Owns Transport Only
+
+Status: Accepted
+
+Decision: Extract IndexedDB gate, WebSocket provider lifecycle, awareness dedupe, and shared-protocol message/close handling into `web/src/hooks/useCollabSession.ts`. `Editor.tsx` keeps TipTap/extensions; the hook returns `{ syncStatus, connectedUsers, provider, roomName }` and uses `buildCollaborationRoomName(documentType ?? roomPrefix, documentId)` with `COLLAB_*` from `@ship/shared`.
+
+Why: ~220 lines of collab logic in `Editor.tsx` duplicated protocol literals and blocked E2E confidence in room naming.
+
+Alternatives considered: React Query collab cache (overkill); class-based `CollabSession` (more surface than needed). Hook matches existing hooks folder.
+
+Consequences: Any new collab client behavior belongs in the hook + shared protocol, not inline in `Editor.tsx`.
+
+Evidence: `useCollabSession.test.ts` (7 mocked behavioral tests after verify pass); collab E2E 7/7 in `test-results/arch-followup-collab/` and `arch-verify-collab/`. Verify pass: ref-stable callbacks, WS `message` listener cleanup.
+
+**Decision Gist**: Editor renders; `useCollabSession` transports Yjs with shared protocol constants.
+
+### D026: getOrCreateDoc Uses DocumentContentCodec
+
+Status: Accepted
+
+Decision: `api/src/collaboration/index.ts` `getOrCreateDoc` loads initial state via `resolveInitialContent` from `document-content-codec.ts` instead of inline JSON/Yjs branches. `parseTipTapContent` in the codec handles JSON strings and skips XML-like legacy strings.
+
+Why: D024 created the codec but left duplicated load logic in collab; drift risk on API-created docs.
+
+Alternatives considered: Delete codec and keep inline (rejects D024); full repository load path (deferred). Codec call preserves logging and `freshFromJsonDocs`.
+
+Consequences: New collab load rules must extend `resolveInitialContent` / codec tests first.
+
+Evidence: `document-content-codec.test.ts` (+ string/XML, corrupt yjs fallback, empty `content: []`); `src/collaboration` vitest suite pass. Verify pass fixed `getOrCreateDoc` to accept empty doc arrays (not only `content.length > 0`).
+
+**Decision Gist**: Server collab bootstrapping shares one content-resolution function with tests.
+
+### D027: Repository Slice — Issues List And PATCH Content
+
+Status: Accepted
+
+Decision: Expand `documents-repository.ts` with `listIssuesMetadata` (D015 projection SQL) and wire `GET /api/issues` list + `PATCH /api/documents/:id/content` to repository helpers. Explicitly exclude `weeks.ts` / `team.ts` in this pass.
+
+Why: eelon-scope: one list query block + one content UPDATE is high leverage without god-route rewrite.
+
+Alternatives considered: Full issues route extraction (churn); leave SQL inline (blocks Cat 4 measurement). Relocation only — no response shape change.
+
+Consequences: Further issues/documents SQL should move into the repository before new filters or projections.
+
+Evidence: `issues.ts` calls `listIssuesMetadata`; `documents.ts` calls `updateDocumentContent`; type-check pass.
+
+**Decision Gist**: List and content-update SQL live in `documents-repository`, not scattered copies.
+
+### D028: OpenAPI Pilot On GET /issues List
+
+Status: Accepted
+
+Decision: Migrate `useIssuesQuery` `fetchIssues` to typed `apiClient.GET('/issues')` because `/issues` is registered and not stale. Defer other hooks until their route families are covered.
+
+Why: D018 requires family-by-family migration; `GET /issues` is the safest covered read.
+
+Alternatives considered: Broad hook migration (false confidence with 82 missing routes); stay on `apiGet` forever. Pilot proves the pattern.
+
+Consequences: Next OpenAPI migrations should follow the same gate: `pnpm openapi:check` per family, then `apiClient`, then optional `expectOpenApiResponse`.
+
+Evidence: `web/src/hooks/useIssuesQuery.ts`; `pnpm openapi:check` 2026-05-21 (82 missing, 8 stale, report-only).
+
+**Decision Gist**: One covered list endpoint uses the generated client; the rest wait for contract honesty.
+
 ## 2026-05-21: Medium-Risk Dependency Cleanup Pass
 
 ### D018: Dependency Cleanup Stays Inside Current Framework Lines

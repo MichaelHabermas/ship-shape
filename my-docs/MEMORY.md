@@ -76,12 +76,23 @@ Places where a small, focused change creates outsized value.
 - Dependency cleanup is security/evidence hygiene, not completion of the Week 4 seven-category product outcomes by itself. It can support the source-of-truth work, but do not count it as a category win unless tied to a measured source requirement.
 - Keep `jsdom` on the Node-compatible line unless the repo intentionally raises its Node floor. `jsdom@29` requires a newer practical Node baseline than the current `>=20.0.0` declaration, so this branch keeps `jsdom@27.4.0` and pins root `@types/node` to the Node 22 line.
 - E2E dependency-gate reality from 2026-05-21: the full suite is not clean on `master` for the failing spec group. For dependency branches, use smoke plus targeted dependency-sensitive specs as the immediate pass/fail signal, then compare any full-suite failures against clean master before labeling them regressions.
+- Architecture follow-up collab gate (2026-05-21): `E2E_RESULTS_DIR=test-results/arch-followup-collab PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/document-isolation.spec.ts e2e/content-caching.spec.ts` — 7/7 pass with Docker. Use `login` from `e2e/fixtures/app.ts`; `authenticatedPage` fixture available for new specs.
+- `useCollabSession` (`web/src/hooks/useCollabSession.ts`) owns IndexedDB + WebSocket + shared `COLLAB_*` protocol; `Editor.tsx` must not reintroduce transport logic or magic close codes.
+- `getOrCreateDoc` uses `resolveInitialContent` from `document-content-codec.ts`; extend codec tests when changing load behavior.
+- `listIssuesMetadata` in `documents-repository.ts` is the SQL home for `GET /api/issues` list projection; `updateDocumentContent` for PATCH content.
+- `fetchIssues` in `useIssuesQuery` uses typed `apiClient.GET('/issues')` — pilot only; other hooks stay on legacy helpers until OpenAPI coverage exists.
+- Category 3/4 rerun after architecture follow-up: start API (`pnpm dev:api` or deploy), then `pnpm benchmark:api` and `pnpm perf:query-count-api` on `ship_dev`. Follow-up pass left benchmarks **TBD** when API was not listening on `:3000`.
+- Architecture follow-up **verification** (2026-05-21): multi-agent audit found and fixed empty-doc collab regression, server `COLLAB_*` drift, hook callback-deps teardown, WS listener leak, and weak F2d tests. Re-gates: API **489**, web **165**, collab E2E **7/7** (`test-results/arch-verify-collab/`). Do not count `useCollabSession.test` as a GFA Cat 5 “meaningful test” until it exercises behavior (now 7 mocked tests do).
+- GFA category mapping trap: architecture deepening **supports** Cat 5/6 (collab protocol, E2E isolation) but does **not** satisfy Cat 1 (25% type-safety reduction) or full Cat 6 (error-handling gaps + screenshot) by itself.
 
 ## Sharp Edges
 
 Known traps, fragile paths, or easy ways to break things.
 
-_None yet._
+- Architecture deepening pass (2026-05-21): collaboration WebSocket rooms are canonicalized server-side to `{document_type}:{uuid}` so `issue:` / `wiki:` prefixes cannot fork one DB row into separate Yjs states. Client `roomPrefix` should match `document_type` (legacy `doc:` accepted only for wiki).
+- Association writes for issues/projects should go through `syncBelongsToAssociations`, `syncProgramAssociation`, or `syncAssociationOfTypeForDocuments` in `api/src/utils/document-crud.ts`, not inline DELETE/INSERT in routes.
+- Plan/hypothesis extraction is canonical in `@ship/shared` (`content-extract.ts`); API re-exports via `api/src/utils/extractHypothesis.ts`; web Editor imports shared extractors directly.
+- E2E shared entrypoints: `e2e/fixtures/app.ts` (`login`, `createWikiDoc`, `setDocumentTitle`) — prefer over per-spec copies.
 
 ## User And Team Preferences
 
