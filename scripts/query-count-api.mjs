@@ -24,11 +24,25 @@ const endpoints = (process.env.QUERY_COUNT_ENDPOINTS || [
   '/api/dashboard/my-week',
   '/api/projects',
   '/api/bootstrap',
+  '/api/search/content?q=auditloadrareterm&limit=10',
+  '/api/search/content?q=auditloadmediumterm&limit=10',
+  '/api/search/content?q=auditloadcommonterm&limit=10',
+  '/api/search/content?q=auditloadnomatchterm&limit=10',
 ].join(','))
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
 const flowDefinitions = [
+  {
+    name: 'content_search_distribution',
+    description: 'Content search across deterministic seeded rare, medium, common, and no-match terms.',
+    requests: [
+      '/api/search/content?q=auditloadrareterm&limit=10',
+      '/api/search/content?q=auditloadmediumterm&limit=10',
+      '/api/search/content?q=auditloadcommonterm&limit=10',
+      '/api/search/content?q=auditloadnomatchterm&limit=10',
+    ],
+  },
   {
     name: 'old_docs_startup_fanout',
     description: 'Pre-bootstrap protected docs startup fanout: auth plus app-shell list/status requests.',

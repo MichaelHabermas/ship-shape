@@ -20,6 +20,12 @@ const userCount = positiveInt(process.env.AUDIT_LOAD_USERS, 20);
 const sprintCount = positiveInt(process.env.AUDIT_LOAD_SPRINTS, 10);
 const batchSize = positiveInt(process.env.AUDIT_LOAD_BATCH_SIZE, 500);
 const cleanup = process.argv.includes('--cleanup') || process.env.AUDIT_LOAD_CLEANUP === '1';
+const searchTerms = {
+  rare: process.env.AUDIT_LOAD_SEARCH_RARE_TERM || 'auditloadrareterm',
+  medium: process.env.AUDIT_LOAD_SEARCH_MEDIUM_TERM || 'auditloadmediumterm',
+  common: process.env.AUDIT_LOAD_SEARCH_COMMON_TERM || 'auditloadcommonterm',
+  no_match: process.env.AUDIT_LOAD_SEARCH_NO_MATCH_TERM || 'auditloadnomatchterm',
+};
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: databaseUrl });
@@ -29,13 +35,21 @@ function positiveInt(value, fallback) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function searchTermsForIndex(index) {
+  const terms = [searchTerms.common];
+  if (index % 10 === 0) terms.push(searchTerms.medium);
+  if (index === 1) terms.push(searchTerms.rare);
+  return terms;
+}
+
 function makeContent(index) {
+  const terms = searchTermsForIndex(index);
   return {
     type: 'doc',
     content: [
       {
         type: 'paragraph',
-        content: [{ type: 'text', text: `Audit load measurement document ${index}` }],
+        content: [{ type: 'text', text: `Audit load measurement document ${index} ${terms.join(' ')}` }],
       },
     ],
   };
@@ -244,12 +258,14 @@ async function seedDocuments(client, workspaceId, actorUserId) {
     const params = [workspaceId, actorUserId, tag];
 
     for (let index = start; index <= end; index++) {
+      const documentSearchTerms = searchTermsForIndex(index);
       params.push(
         `Audit Load ${String(index).padStart(6, '0')}`,
         JSON.stringify(makeContent(index)),
         JSON.stringify({
           audit_load_tag: tag,
           audit_load_sequence: index,
+          audit_load_search_terms: documentSearchTerms,
           state: ['todo', 'in_progress', 'done', 'cancelled'][index % 4],
           priority: ['low', 'medium', 'high'][index % 3],
           estimate: (index % 8) + 1,
@@ -349,7 +365,7 @@ try {
     const documents = await seedDocuments(client, workspaceId, actorUserId);
     const auditLogs = await seedAuditLogs(client, workspaceId, actorUserId);
     await client.query('COMMIT');
-    console.log(JSON.stringify({ tag, workspace: workspaceName, cleanup: false, users, sprints, documents, audit_logs: auditLogs }, null, 2));
+    console.log(JSON.stringify({ tag, workspace: workspaceName, cleanup: false, search_terms: searchTerms, users, sprints, documents, audit_logs: auditLogs }, null, 2));
   }
 } catch (error) {
   await client.query('ROLLBACK');

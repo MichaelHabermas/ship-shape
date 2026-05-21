@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,14 +17,23 @@ const outputPath = resolve(
   rootDir,
   process.env.BENCHMARK_OUTPUT || `test-results/benchmarks/api-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
 );
+const latestOutputPath = resolve(rootDir, process.env.BENCHMARK_LATEST_OUTPUT || 'test-results/benchmarks/latest.json');
 
-const endpoints = [
+const defaultEndpoints = [
   '/api/documents?type=wiki',
   '/api/issues',
   '/api/dashboard/my-week',
   '/api/projects',
   '/api/bootstrap',
+  '/api/search/content?q=auditloadrareterm&limit=10',
+  '/api/search/content?q=auditloadmediumterm&limit=10',
+  '/api/search/content?q=auditloadcommonterm&limit=10',
+  '/api/search/content?q=auditloadnomatchterm&limit=10',
 ];
+const endpoints = (process.env.BENCHMARK_ENDPOINTS || defaultEndpoints.join(','))
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 function cookieHeaderFrom(headers) {
   const rawCookies = typeof headers.getSetCookie === 'function'
@@ -144,9 +153,16 @@ const report = {
 
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
+await mkdir(dirname(latestOutputPath), { recursive: true });
+if (latestOutputPath === outputPath) {
+  await writeFile(latestOutputPath, `${JSON.stringify(report, null, 2)}\n`);
+} else {
+  await copyFile(outputPath, latestOutputPath);
+}
 
 const badRows = results.filter((row) => row.failures > 0 || row.non_2xx > 0);
 console.log(`API benchmark written to ${outputPath}`);
+console.log(`Latest API benchmark written to ${latestOutputPath}`);
 if (badRows.length > 0) {
   console.error(JSON.stringify(badRows, null, 2));
   process.exit(1);

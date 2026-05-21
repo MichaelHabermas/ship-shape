@@ -2674,6 +2674,39 @@ components:
       required:
         - documents
         - total
+    ContentSearchResult:
+      allOf:
+        - $ref: "#/components/schemas/DocumentSearchResult"
+        - type: object
+          default:
+          properties:
+            rank:
+              type: number
+              description: PostgreSQL full-text rank using weighted title and body vectors.
+            snippet:
+              type: string
+              description: Highlighted search snippet from matching content or title.
+          required:
+            - rank
+            - snippet
+    ContentSearchResponse:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentSearchResult"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - documents
+        - total
+        - limit
+        - offset
     UploadRequest:
       type: object
       properties:
@@ -7334,6 +7367,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DocumentSearchResponse"
+  /search/content:
+    get:
+      tags:
+        - Search
+      summary: Search document content
+      description: Full-content document search over titles and extracted TipTap text. Applies workspace/private visibility before pagination.
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: Full-text search query
+          required: true
+          name: q
+          in: query
+        - schema:
+            type: string
+            enum:
+              - wiki
+              - issue
+              - program
+              - project
+              - sprint
+              - person
+              - weekly_plan
+              - weekly_retro
+              - standup
+              - weekly_review
+            description: Optional document type filter
+          required: false
+          name: type
+          in: query
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+          required: false
+          name: limit
+          in: query
+        - schema:
+            type: integer
+            nullable: true
+            minimum: 0
+          required: false
+          name: offset
+          in: query
+      responses:
+        200:
+          description: Content search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentSearchResponse"
+        400:
+          description: Invalid query
   /search/learnings:
     get:
       tags:

@@ -15,6 +15,12 @@ config({ path: resolve(rootDir, 'api/.env') });
 const databaseUrl = process.env.DATABASE_URL || 'postgresql://localhost/ship_dev';
 const workspaceName = process.env.EXPLAIN_WORKSPACE || 'Ship Workspace';
 const email = process.env.EXPLAIN_EMAIL || 'dev@ship.local';
+const searchTerms = {
+  rare: process.env.EXPLAIN_SEARCH_RARE_TERM || process.env.AUDIT_LOAD_SEARCH_RARE_TERM || 'auditloadrareterm',
+  medium: process.env.EXPLAIN_SEARCH_MEDIUM_TERM || process.env.AUDIT_LOAD_SEARCH_MEDIUM_TERM || 'auditloadmediumterm',
+  common: process.env.EXPLAIN_SEARCH_COMMON_TERM || process.env.AUDIT_LOAD_SEARCH_COMMON_TERM || 'auditloadcommonterm',
+  no_match: process.env.EXPLAIN_SEARCH_NO_MATCH_TERM || process.env.AUDIT_LOAD_SEARCH_NO_MATCH_TERM || 'auditloadnomatchterm',
+};
 const outputPath = resolve(
   rootDir,
   process.env.EXPLAIN_OUTPUT || `test-results/perf/explain-performance-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
@@ -60,8 +66,50 @@ async function explain(client, name, sql, params) {
 
 function queryCatalog({ workspace_id: workspaceId, user_id: userId, is_admin: isAdmin }) {
   const visibilitySql = '(d.visibility = \'workspace\' OR d.created_by = $2 OR $3 = TRUE)';
+  const contentSearchSql = `WITH search_query AS (
+                              SELECT websearch_to_tsquery('english', $4) AS query
+                            ),
+                            visible_matches AS (
+                              SELECT d.id, d.title, d.document_type, d.visibility, d.ticket_number, d.updated_at,
+                                     ts_rank_cd(i.search_vector, search_query.query) AS rank,
+                                     COALESCE(
+                                       NULLIF(ts_headline(
+                                         'english',
+                                         i.content_text,
+                                         search_query.query,
+                                         'StartSel=<mark>, StopSel=</mark>, MaxWords=24, MinWords=8, ShortWord=3'
+                                       ), ''),
+                                       ts_headline(
+                                         'english',
+                                         i.title,
+                                         search_query.query,
+                                         'StartSel=<mark>, StopSel=</mark>, MaxWords=16, MinWords=4, ShortWord=3'
+                                       )
+                                     ) AS snippet
+                              FROM document_search_index i
+                              JOIN documents d ON d.id = i.document_id
+                              CROSS JOIN search_query
+                              WHERE d.workspace_id = $1
+                                AND ${visibilitySql}
+                                AND d.archived_at IS NULL
+                                AND d.deleted_at IS NULL
+                                AND i.search_vector @@ search_query.query
+                            ),
+                            counted_matches AS (
+                              SELECT *, COUNT(*) OVER()::int AS total
+                              FROM visible_matches
+                            )
+                            SELECT id, title, document_type, visibility, ticket_number, updated_at, rank, snippet, total
+                            FROM counted_matches
+                            ORDER BY rank DESC, updated_at DESC
+                            LIMIT $5 OFFSET $6`;
 
   return [
+    ...Object.entries(searchTerms).map(([bucket, term]) => ({
+      name: `content_search_${bucket}`,
+      sql: contentSearchSql,
+      params: [workspaceId, userId, isAdmin, term, 10, 0],
+    })),
     {
       name: 'documents_list_wiki',
       sql: `SELECT id, workspace_id, document_type, title, parent_id, position,
