@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useQueryClient } from '@tanstack/react-query';
@@ -709,6 +709,80 @@ function hasActiveDescendant(node: DocumentTreeNode, activeId?: string): boolean
   return false;
 }
 
+function getVisibleTreeItems(tree: Element): HTMLElement[] {
+  return Array.from(tree.querySelectorAll<HTMLElement>('[role="treeitem"]')).filter((item) => {
+    return item.offsetParent !== null;
+  });
+}
+
+function focusTreeItem(item: HTMLElement | null) {
+  item?.focus();
+  item?.scrollIntoView({ block: 'nearest' });
+}
+
+function handleDocumentTreeItemKeyDown(
+  event: ReactKeyboardEvent<HTMLDivElement>,
+  options: {
+    hasChildren: boolean;
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+  }
+) {
+  const tree = event.currentTarget.closest('[role="tree"]');
+  if (!tree) return;
+
+  const items = getVisibleTreeItems(tree);
+  const currentIndex = items.indexOf(event.currentTarget);
+  if (currentIndex === -1) return;
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      focusTreeItem(items[Math.min(currentIndex + 1, items.length - 1)]);
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      focusTreeItem(items[Math.max(currentIndex - 1, 0)]);
+      break;
+    case 'Home':
+      event.preventDefault();
+      focusTreeItem(items[0]);
+      break;
+    case 'End':
+      event.preventDefault();
+      focusTreeItem(items[items.length - 1]);
+      break;
+    case 'ArrowRight':
+      if (!options.hasChildren) return;
+      event.preventDefault();
+      if (!options.isOpen) {
+        options.setIsOpen(true);
+      } else {
+        focusTreeItem(items[Math.min(currentIndex + 1, items.length - 1)]);
+      }
+      break;
+    case 'ArrowLeft':
+      event.preventDefault();
+      if (options.hasChildren && options.isOpen) {
+        options.setIsOpen(false);
+        return;
+      }
+      focusTreeItem(
+        event.currentTarget
+          .closest('ul[role="group"]')
+          ?.closest('li[data-tree-item]')
+          ?.querySelector<HTMLElement>(':scope > [role="treeitem"]') ?? null
+      );
+      break;
+    case 'Enter':
+    case ' ':
+      if (event.target !== event.currentTarget) return;
+      event.preventDefault();
+      event.currentTarget.querySelector<HTMLAnchorElement>('a[href]')?.click();
+      break;
+  }
+}
+
 function DocumentTreeItem({
   document,
   activeId,
@@ -829,28 +903,30 @@ function DocumentTreeItem({
         role="treeitem"
         aria-expanded={hasChildren ? isOpen : undefined}
         aria-selected={isActive}
+        tabIndex={0}
         className={cn(
           'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors group',
           isActive
             ? 'bg-border/50 text-foreground'
             : 'text-muted hover:bg-border/30 hover:text-foreground',
-          'focus-within:bg-border/30 focus-within:text-foreground'
+          'focus:bg-border/30 focus:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-within:bg-border/30 focus-within:text-foreground'
         )}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onContextMenu={handleContextMenu}
+        onKeyDown={(event) => handleDocumentTreeItemKeyDown(event, { hasChildren, isOpen, setIsOpen })}
       >
         {/* Expand/collapse button - always visible for accessibility */}
         {hasChildren ? (
           <button
             type="button"
-            className="w-4 h-4 flex-shrink-0 flex items-center justify-center p-0 rounded hover:bg-border/50"
+            className="h-6 w-6 flex-shrink-0 flex items-center justify-center p-0 rounded hover:bg-border/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? 'Collapse' : 'Expand'}
           >
             <ChevronIcon isOpen={isOpen} />
           </button>
         ) : (
-          <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+          <div className="h-6 w-6 flex-shrink-0 flex items-center justify-center">
             <DocIcon />
           </div>
         )}
@@ -870,9 +946,10 @@ function DocumentTreeItem({
           ref={menuButtonRef}
           type="button"
           onClick={handleMenuButtonClick}
-          className="p-0.5 rounded hover:bg-border/50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          className="flex h-6 w-6 items-center justify-center rounded hover:bg-border/50 opacity-0 group-hover:opacity-100 focus:opacity-100 group-focus-within:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="Document actions"
           aria-haspopup="menu"
+          aria-expanded={contextMenu !== null}
         >
           <MoreHorizontalIcon className="h-3.5 w-3.5" />
         </button>
@@ -950,6 +1027,7 @@ function ChevronIcon({ isOpen }: { isOpen: boolean }) {
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"

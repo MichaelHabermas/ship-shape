@@ -196,6 +196,19 @@ BEFORE INSERT OR UPDATE OF parent_id ON documents
 FOR EACH ROW
 EXECUTE FUNCTION prevent_circular_parent();
 
+-- Derived full-content search index (rebuildable from documents)
+CREATE TABLE IF NOT EXISTS document_search_index (
+  document_id UUID PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  document_type document_type NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  properties_text TEXT NOT NULL DEFAULT '',
+  content_text TEXT NOT NULL DEFAULT '',
+  search_vector TSVECTOR NOT NULL,
+  source_updated_at TIMESTAMPTZ NOT NULL,
+  indexed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Relationship type enum for document associations
 DO $$
 BEGIN
@@ -369,6 +382,14 @@ CREATE INDEX IF NOT EXISTS idx_documents_active ON documents(workspace_id, docum
 -- Document conversion indexes
 CREATE INDEX IF NOT EXISTS idx_documents_converted_to ON documents(converted_to_id) WHERE converted_to_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_documents_converted_from ON documents(converted_from_id) WHERE converted_from_id IS NOT NULL;
+
+-- Document search index indexes
+CREATE INDEX IF NOT EXISTS document_search_index_workspace_type_idx
+  ON document_search_index (workspace_id, document_type);
+CREATE INDEX IF NOT EXISTS document_search_index_source_updated_at_idx
+  ON document_search_index (source_updated_at);
+CREATE INDEX IF NOT EXISTS document_search_index_vector_idx
+  ON document_search_index USING GIN (search_vector);
 
 -- Document associations indexes
 CREATE INDEX IF NOT EXISTS idx_document_associations_document_id ON document_associations(document_id);

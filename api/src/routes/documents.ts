@@ -13,6 +13,7 @@ import { handleVisibilityChange, handleDocumentConversion, invalidateDocumentCac
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../schemas/document-boundary.js';
+import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -546,6 +547,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
 
     // Invalidate collaboration cache so connected clients get fresh content
     invalidateDocumentCache(id);
+    await upsertDocumentSearchIndex(id);
 
     res.json({
       id: result.rows[0].id,
@@ -612,6 +614,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
+    await upsertDocumentSearchIndex(newDoc.id);
 
     // Broadcast accountability update for document types that affect action items
     // Sprint plans clear the "write sprint plan" action item
@@ -1013,6 +1016,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
+    await upsertDocumentSearchIndex(id);
 
     // Post-commit operations (non-transactional)
 

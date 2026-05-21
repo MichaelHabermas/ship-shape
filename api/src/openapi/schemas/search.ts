@@ -64,6 +64,26 @@ export const DocumentSearchResponseSchema = z.object({
 
 registry.register('DocumentSearchResponse', DocumentSearchResponseSchema);
 
+export const ContentSearchResultSchema = DocumentSearchResultSchema.extend({
+  rank: z.number().openapi({
+    description: 'PostgreSQL full-text rank using weighted title and body vectors.',
+  }),
+  snippet: z.string().openapi({
+    description: 'Highlighted search snippet from matching content or title.',
+  }),
+}).openapi('ContentSearchResult');
+
+registry.register('ContentSearchResult', ContentSearchResultSchema);
+
+export const ContentSearchResponseSchema = z.object({
+  documents: z.array(ContentSearchResultSchema),
+  total: z.number().int(),
+  limit: z.number().int(),
+  offset: z.number().int(),
+}).openapi('ContentSearchResponse');
+
+registry.register('ContentSearchResponse', ContentSearchResponseSchema);
+
 // ============== Register Search Endpoints ==============
 
 registry.registerPath({
@@ -117,6 +137,39 @@ registry.registerPath({
           schema: DocumentSearchResponseSchema,
         },
       },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/search/content',
+  tags: ['Search'],
+  summary: 'Search document content',
+  description: 'Full-content document search over titles and extracted TipTap text. Applies workspace/private visibility before pagination.',
+  request: {
+    query: z.object({
+      q: z.string().min(1).openapi({
+        description: 'Full-text search query',
+      }),
+      type: DocumentTypeSchema.optional().openapi({
+        description: 'Optional document type filter',
+      }),
+      limit: z.coerce.number().int().min(1).max(50).optional(),
+      offset: z.coerce.number().int().min(0).optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Content search results',
+      content: {
+        'application/json': {
+          schema: ContentSearchResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid query',
     },
   },
 });

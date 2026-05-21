@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocuments, WikiDocument } from '@/contexts/DocumentsContext';
 import { buildDocumentTree } from '@/lib/documentTree';
@@ -7,6 +7,7 @@ import { DocumentsListSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
+import { apiGet } from '@/lib/api';
 import { SelectableList, RowRenderProps, UseSelectionReturn } from '@/components/SelectableList';
 import { useColumnVisibility, ColumnDefinition } from '@/hooks/useColumnVisibility';
 import { useListFilters, ViewMode } from '@/hooks/useListFilters';
@@ -35,10 +36,34 @@ const COLUMN_VISIBILITY_KEY = 'documents-column-visibility';
 
 type VisibilityFilter = 'all' | 'workspace' | 'private';
 
+type ContentSearchDocument = WikiDocument & {
+  rank: number;
+  snippet: string | null;
+  ticket_number: number | null;
+};
+
+type ContentSearchResponse = {
+  documents: Array<{
+    id: string;
+    title: string | null;
+    document_type: string;
+    visibility: 'private' | 'workspace';
+    ticket_number: number | null;
+    updated_at: string;
+    rank: number;
+    snippet: string | null;
+  }>;
+  total: number;
+};
+
 export function DocumentsPage() {
   const { documents, loading, createDocument, deleteDocument } = useDocuments();
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
+  const [contentSearchResults, setContentSearchResults] = useState<ContentSearchDocument[]>([]);
+  const [contentSearchLoading, setContentSearchLoading] = useState(false);
+  const [contentSearchError, setContentSearchError] = useState<string | null>(null);
+  const searchRequestId = useRef(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -73,10 +98,67 @@ export function DocumentsPage() {
   const filterParam = searchParams.get('filter');
   const visibilityFilter: VisibilityFilter =
     filterParam === 'workspace' || filterParam === 'private' ? filterParam : 'all';
+  const normalizedSearch = search.trim();
+  const isContentSearchActive = normalizedSearch.length > 0;
+
+  useEffect(() => {
+    if (!normalizedSearch) {
+      searchRequestId.current += 1;
+      setContentSearchResults([]);
+      setContentSearchLoading(false);
+      setContentSearchError(null);
+      return;
+    }
+
+    const requestId = searchRequestId.current + 1;
+    searchRequestId.current = requestId;
+    setContentSearchLoading(true);
+    setContentSearchError(null);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          q: normalizedSearch,
+          limit: '50',
+        });
+        const res = await apiGet(`/api/search/content?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error('Search failed');
+        }
+
+        const data = await res.json() as ContentSearchResponse;
+        if (searchRequestId.current !== requestId) return;
+
+        setContentSearchResults(data.documents.map((doc) => ({
+          id: doc.id,
+          title: doc.title ?? 'Untitled',
+          document_type: doc.document_type,
+          parent_id: null,
+          position: 0,
+          created_at: doc.updated_at,
+          updated_at: doc.updated_at,
+          visibility: doc.visibility,
+          rank: doc.rank,
+          snippet: doc.snippet,
+          ticket_number: doc.ticket_number,
+        })));
+      } catch (error) {
+        if (searchRequestId.current !== requestId) return;
+        setContentSearchError(error instanceof Error ? error.message : 'Search failed');
+        setContentSearchResults([]);
+      } finally {
+        if (searchRequestId.current === requestId) {
+          setContentSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [normalizedSearch]);
 
   // Filter documents by visibility and search
   const filteredDocuments = useMemo(() => {
-    let filtered = documents;
+    let filtered: WikiDocument[] = isContentSearchActive ? contentSearchResults : documents;
 
     // Filter by visibility
     if (visibilityFilter === 'workspace') {
@@ -85,16 +167,8 @@ export function DocumentsPage() {
       filtered = filtered.filter(d => d.visibility === 'private');
     }
 
-    // Filter by search
-    if (search.trim()) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(d =>
-        d.title.toLowerCase().includes(searchLower)
-      );
-    }
-
     return filtered;
-  }, [documents, visibilityFilter, search]);
+  }, [contentSearchResults, documents, isContentSearchActive, visibilityFilter]);
 
   // Build tree structure from filtered documents (for tree view)
   const documentTree = useMemo(() => buildDocumentTree(filteredDocuments), [filteredDocuments]);
@@ -144,12 +218,13 @@ export function DocumentsPage() {
   }
 
   function handleFilterChange(filter: VisibilityFilter) {
+    const nextParams = new URLSearchParams(searchParams);
     if (filter === 'all') {
-      searchParams.delete('filter');
+      nextParams.delete('filter');
     } else {
-      searchParams.set('filter', filter);
+      nextParams.set('filter', filter);
     }
-    setSearchParams(searchParams);
+    setSearchParams(nextParams);
   }
 
   // Delete with notification
@@ -201,6 +276,7 @@ export function DocumentsPage() {
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        aria-label="Search documents"
         placeholder="Search..."
         className={cn(
           'w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm',
@@ -254,7 +330,14 @@ export function DocumentsPage() {
       )}
 
       {/* Content */}
-      {filteredDocuments.length === 0 ? (
+      {isContentSearchActive ? (
+        <ContentSearchResults
+          documents={filteredDocuments as ContentSearchDocument[]}
+          loading={contentSearchLoading}
+          error={contentSearchError}
+          onOpenDocument={(id) => navigate(`/documents/${id}`)}
+        />
+      ) : filteredDocuments.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             {documents.length === 0 ? (
@@ -396,6 +479,119 @@ function DocumentRowContent({ document, visibleColumns }: { document: WikiDocume
       )}
     </>
   );
+}
+
+function ContentSearchResults({
+  documents,
+  loading,
+  error,
+  onOpenDocument,
+}: {
+  documents: ContentSearchDocument[];
+  loading: boolean;
+  error: string | null;
+  onOpenDocument: (id: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-sm text-muted" role="status" aria-live="polite">
+        Searching documents...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-center" role="alert">
+          <p className="text-sm font-medium text-foreground">Search unavailable</p>
+          <p className="mt-1 text-sm text-muted">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (documents.length === 0) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted">No documents found</p>
+          <p className="mt-1 text-sm text-muted">Try a different search term or visibility filter</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-auto p-6 pb-20">
+      <ul className="mx-auto max-w-4xl space-y-2" aria-label="Document search results">
+        {documents.map((doc) => (
+          <li key={doc.id}>
+            <button
+              type="button"
+              onClick={() => onOpenDocument(doc.id)}
+              className={cn(
+                'block w-full rounded-md border border-border bg-background px-4 py-3 text-left transition-colors',
+                'hover:border-accent hover:bg-muted/40',
+                'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background'
+              )}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {doc.title || 'Untitled'}
+                </span>
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                  {formatDocumentType(doc.document_type)}
+                </span>
+                {doc.ticket_number ? (
+                  <span className="shrink-0 text-xs text-muted">#{doc.ticket_number}</span>
+                ) : null}
+                <span className="ml-auto shrink-0 text-xs text-muted">
+                  {new Date(doc.updated_at).toLocaleDateString()}
+                </span>
+              </div>
+              {doc.snippet ? (
+                <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted">
+                  <HighlightedSnippet snippet={doc.snippet} />
+                </p>
+              ) : null}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function HighlightedSnippet({ snippet }: { snippet: string }) {
+  const parts = snippet.split(/(<mark>|<\/mark>)/);
+  let highlighted = false;
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part === '<mark>') {
+          highlighted = true;
+          return null;
+        }
+        if (part === '</mark>') {
+          highlighted = false;
+          return null;
+        }
+        return highlighted ? (
+          <mark key={index} className="rounded bg-accent/20 px-0.5 text-foreground">
+            {part}
+          </mark>
+        ) : (
+          <span key={index}>{part}</span>
+        );
+      })}
+    </>
+  );
+}
+
+function formatDocumentType(type: string): string {
+  return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 function TrashIcon({ className }: { className?: string }) {

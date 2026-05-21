@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -19,6 +19,7 @@ function DocumentIcon({ className }: { className?: string }) {
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -41,6 +42,7 @@ function ChevronIcon({ isOpen, className }: { isOpen: boolean; className?: strin
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -50,6 +52,80 @@ function ChevronIcon({ isOpen, className }: { isOpen: boolean; className?: strin
       />
     </svg>
   );
+}
+
+function getVisibleTreeItems(tree: Element): HTMLElement[] {
+  return Array.from(tree.querySelectorAll<HTMLElement>('[role="treeitem"]')).filter((item) => {
+    return item.offsetParent !== null;
+  });
+}
+
+function focusTreeItem(item: HTMLElement | null) {
+  item?.focus();
+  item?.scrollIntoView({ block: 'nearest' });
+}
+
+function handleDocumentTreeItemKeyDown(
+  event: KeyboardEvent<HTMLDivElement>,
+  options: {
+    hasChildren: boolean;
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+  }
+) {
+  const tree = event.currentTarget.closest('[role="tree"]');
+  if (!tree) return;
+
+  const items = getVisibleTreeItems(tree);
+  const currentIndex = items.indexOf(event.currentTarget);
+  if (currentIndex === -1) return;
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      focusTreeItem(items[Math.min(currentIndex + 1, items.length - 1)]);
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      focusTreeItem(items[Math.max(currentIndex - 1, 0)]);
+      break;
+    case 'Home':
+      event.preventDefault();
+      focusTreeItem(items[0]);
+      break;
+    case 'End':
+      event.preventDefault();
+      focusTreeItem(items[items.length - 1]);
+      break;
+    case 'ArrowRight':
+      if (!options.hasChildren) return;
+      event.preventDefault();
+      if (!options.isOpen) {
+        options.setIsOpen(true);
+      } else {
+        focusTreeItem(items[Math.min(currentIndex + 1, items.length - 1)]);
+      }
+      break;
+    case 'ArrowLeft':
+      event.preventDefault();
+      if (options.hasChildren && options.isOpen) {
+        options.setIsOpen(false);
+        return;
+      }
+      focusTreeItem(
+        event.currentTarget
+          .closest('ul[role="group"]')
+          ?.closest('li[data-testid="doc-item"]')
+          ?.querySelector<HTMLElement>(':scope > [role="treeitem"]') ?? null
+      );
+      break;
+    case 'Enter':
+    case ' ':
+      if (event.target !== event.currentTarget) return;
+      event.preventDefault();
+      event.currentTarget.querySelector<HTMLAnchorElement>('a[href]')?.click();
+      break;
+  }
 }
 
 export function DocumentTreeItem({
@@ -74,21 +150,23 @@ export function DocumentTreeItem({
         role="treeitem"
         aria-expanded={hasChildren ? isOpen : undefined}
         aria-selected={isActive}
+        tabIndex={0}
         className={cn(
           'group flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm',
-          'hover:bg-border/30 transition-colors',
+          'hover:bg-border/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset',
           isActive && 'bg-accent/10 text-accent'
         )}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onKeyDown={(event) => handleDocumentTreeItemKeyDown(event, { hasChildren, isOpen, setIsOpen })}
       >
         {/* Expand/collapse button - always visible for accessibility */}
         {hasChildren ? (
           <Tooltip content={isOpen ? 'Collapse' : 'Expand'}>
             <button
               type="button"
-              className="w-4 h-4 flex-shrink-0 flex items-center justify-center p-0 rounded hover:bg-border/50"
+              className="h-6 w-6 flex-shrink-0 flex items-center justify-center p-0 rounded hover:bg-border/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               onClick={() => setIsOpen(!isOpen)}
               aria-label={isOpen ? 'Collapse' : 'Expand'}
             >
@@ -96,7 +174,7 @@ export function DocumentTreeItem({
             </button>
           </Tooltip>
         ) : (
-          <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+          <div className="h-6 w-6 flex-shrink-0 flex items-center justify-center">
             <DocumentIcon className="text-muted" />
           </div>
         )}
@@ -116,8 +194,8 @@ export function DocumentTreeItem({
             <button
               type="button"
               className={cn(
-                'flex-shrink-0 p-0.5 rounded hover:bg-red-100 hover:text-red-600 transition-opacity',
-                isHovered ? 'opacity-100' : 'opacity-0'
+                'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded hover:bg-red-100 hover:text-red-600 transition-opacity',
+                isHovered ? 'opacity-100' : 'opacity-0 focus:opacity-100 group-focus-within:opacity-100'
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -132,6 +210,7 @@ export function DocumentTreeItem({
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -149,8 +228,8 @@ export function DocumentTreeItem({
           <button
             type="button"
             className={cn(
-              'flex-shrink-0 p-0.5 rounded hover:bg-border/50 transition-opacity',
-              isHovered ? 'opacity-100' : 'opacity-50'
+              'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded hover:bg-border/50 transition-opacity',
+              isHovered ? 'opacity-100' : 'opacity-50 focus:opacity-100 group-focus-within:opacity-100'
             )}
             onClick={() => onCreateChild(document.id)}
             aria-label="Add sub-document"
@@ -160,6 +239,7 @@ export function DocumentTreeItem({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"

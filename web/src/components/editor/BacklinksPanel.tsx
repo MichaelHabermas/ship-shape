@@ -28,12 +28,20 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
   const { showToast } = useToast();
 
   useEffect(() => {
-    if (!documentId) return;
+    setBacklinks([]);
+    setContextMenu(null);
+    setStatus('ready');
+
+    if (!documentId) {
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let hasLoadedSuccessfully = false;
     let lastLoggedError = '';
+    setLoading(true);
 
     const clearRetryTimer = () => {
       if (retryTimer) {
@@ -182,7 +190,7 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
   const handleOpenInNewTab = useCallback(() => {
     if (contextMenu) {
       const url = window.location.origin + getDocumentUrl(contextMenu.backlink);
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
       setContextMenu(null);
     }
   }, [contextMenu]);
@@ -257,7 +265,7 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
               <button
                 onClick={() => handleNavigate(backlink)}
                 onContextMenu={(e) => handleContextMenu(e, backlink)}
-                className="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-border transition-colors"
+                className="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
               >
                 <div className="flex items-center gap-2">
                   <span className="rounded bg-border px-1.5 py-0.5 text-[10px] font-medium text-[#bdbdbd] whitespace-nowrap">
@@ -277,10 +285,12 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
               <button
                 type="button"
                 onClick={(e) => handleMenuClick(e, backlink)}
-                className="absolute right-1 top-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-border/50 text-muted hover:text-foreground transition-opacity"
+                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-border/50 text-muted hover:text-foreground transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 aria-label={`Actions for ${backlink.title || 'Untitled'}`}
+                aria-haspopup="menu"
+                aria-expanded={contextMenu?.backlink.id === backlink.id}
               >
-                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <circle cx="12" cy="5" r="2" />
                   <circle cx="12" cy="12" r="2" />
                   <circle cx="12" cy="19" r="2" />
@@ -315,7 +325,7 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
 // Icons
 function OpenIcon({ className }: { className?: string }) {
   return (
-    <svg className={cn('h-4 w-4', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg className={cn('h-4 w-4', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
       <rect x="9" y="3" width="6" height="4" rx="1" />
     </svg>
@@ -324,7 +334,7 @@ function OpenIcon({ className }: { className?: string }) {
 
 function ExternalLinkIcon({ className }: { className?: string }) {
   return (
-    <svg className={cn('h-4 w-4', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg className={cn('h-4 w-4', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
       <polyline points="15 3 21 3 21 9" />
       <line x1="10" y1="14" x2="21" y2="3" />
@@ -334,7 +344,7 @@ function ExternalLinkIcon({ className }: { className?: string }) {
 
 function LinkIcon({ className }: { className?: string }) {
   return (
-    <svg className={cn('h-4 w-4', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg className={cn('h-4 w-4', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
