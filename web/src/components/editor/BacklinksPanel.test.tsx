@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -12,14 +12,22 @@ const backlink = {
   title: 'Source Doc',
 };
 
-function renderPanel() {
-  return render(
+function panelUi(documentId: string) {
+  return (
     <MemoryRouter>
       <ToastProvider>
-        <BacklinksPanel documentId="target-doc" />
+        <BacklinksPanel documentId={documentId} />
       </ToastProvider>
     </MemoryRouter>
   );
+}
+
+function renderPanel(documentId = 'target-doc') {
+  return render(panelUi(documentId));
+}
+
+function rerenderPanel(rerender: ReturnType<typeof render>['rerender'], documentId: string) {
+  rerender(panelUi(documentId));
 }
 
 function jsonResponse(data: unknown): Promise<Response> {
@@ -167,5 +175,57 @@ describe('BacklinksPanel', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('clears backlinks from the previous document while loading a new document', async () => {
+    const secondResponse = deferredJsonResponse([{
+      id: 'next-source-doc',
+      document_type: 'wiki',
+      title: 'Next Source Doc',
+    }]);
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => jsonResponse([backlink]))
+      .mockReturnValueOnce(secondResponse.promise);
+    global.fetch = fetchMock;
+
+    const { rerender } = renderPanel();
+
+    await act(flushPromises);
+    expect(screen.getByText('Source Doc')).toBeInTheDocument();
+
+    rerenderPanel(rerender, 'next-target-doc');
+    await act(flushPromises);
+
+    expect(screen.queryByText('Source Doc')).not.toBeInTheDocument();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+
+    await act(async () => {
+      secondResponse.resolve();
+      await flushPromises();
+    });
+
+    expect(screen.getByText('Next Source Doc')).toBeInTheDocument();
+  });
+
+  it('exposes backlink action menu state and hides decorative menu icons from assistive tech', async () => {
+    global.fetch = vi.fn(() => jsonResponse([backlink]));
+
+    renderPanel();
+
+    await act(flushPromises);
+
+    const menuButton = screen.getByRole('button', { name: 'Actions for Source Doc' });
+    expect(menuButton).toHaveAttribute('aria-haspopup', 'menu');
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    expect(menuButton.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+
+    fireEvent.click(menuButton);
+
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menu', { name: 'Context menu' })).toBeInTheDocument();
+    for (const icon of screen.getByRole('menu').querySelectorAll('svg')) {
+      expect(icon).toHaveAttribute('aria-hidden', 'true');
+    }
   });
 });

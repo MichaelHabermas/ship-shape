@@ -995,6 +995,49 @@ test.describe('Phase 2: Serious Violations', () => {
       // Wait up to 5 seconds for selection to appear
       await expect(selectedTreeItem).toBeVisible({ timeout: 5000 })
     })
+
+    test('document tree supports arrow-key focus and expand/collapse', async ({ page }) => {
+      await login(page)
+      await page.goto('/docs')
+      await page.waitForLoadState('networkidle')
+
+      const sidebar = page.locator('[aria-label="Document list"]')
+      await expect(sidebar).toBeVisible({ timeout: 5000 })
+
+      const sidebarTree = sidebar.locator('[role="tree"][aria-label*="documents"]').first()
+      await expect(sidebarTree).toBeVisible({ timeout: 5000 })
+
+      const visibleTreeItemCount = await sidebarTree.locator('[role="treeitem"]').count()
+      expect(visibleTreeItemCount, 'Seed data should provide at least two visible document tree items. Run: pnpm db:seed').toBeGreaterThanOrEqual(2)
+
+      const focusedTreeItemIndex = async () => page.evaluate(() => {
+        const tree = document.querySelector('[aria-label="Document list"] [role="tree"][aria-label*="documents"]')
+        const items = Array.from(tree?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [])
+          .filter((item) => item.offsetParent !== null)
+        return items.indexOf(document.activeElement as HTMLElement)
+      })
+
+      await sidebarTree.locator('[role="treeitem"]').first().focus()
+      await expect.poll(focusedTreeItemIndex).toBe(0)
+
+      await page.keyboard.press('ArrowDown')
+      await expect.poll(focusedTreeItemIndex).toBe(1)
+
+      await page.keyboard.press('ArrowUp')
+      await expect.poll(focusedTreeItemIndex).toBe(0)
+
+      const expandableItem = sidebarTree.locator('[role="treeitem"][aria-expanded]').first()
+      await expect(expandableItem).toBeVisible({ timeout: 5000 })
+      await expandableItem.focus()
+
+      if ((await expandableItem.getAttribute('aria-expanded')) === 'true') {
+        await page.keyboard.press('ArrowLeft')
+        await expect(expandableItem).toHaveAttribute('aria-expanded', 'false')
+      }
+
+      await page.keyboard.press('ArrowRight')
+      await expect(expandableItem).toHaveAttribute('aria-expanded', 'true')
+    })
   })
 
   test.describe('2.14-2.18 Additional Serious Fixes', () => {

@@ -30,9 +30,21 @@ async function expectNoPageErrors(errors: string[]) {
 }
 
 async function captureCategory6Evidence(page: Page, testInfo: TestInfo, name: string) {
+  const body = page.locator('body')
+  await expect(body).toBeVisible()
+
+  const bodyText = (await body.textContent())?.trim() ?? ''
+  expect(bodyText, 'Category 6 runtime evidence must capture a nonblank UI').not.toHaveLength(0)
+  expect(bodyText).not.toContain('Something went wrong')
+
   await page.screenshot({
-    path: testInfo.outputPath(`${CATEGORY_6_ARTIFACT_PREFIX}-${name}.png`),
+    path: testInfo.outputPath(`${CATEGORY_6_ARTIFACT_PREFIX}-${name}-viewport.png`),
+    animations: 'disabled',
+  })
+  await page.screenshot({
+    path: testInfo.outputPath(`${CATEGORY_6_ARTIFACT_PREFIX}-${name}-fullpage.png`),
     fullPage: true,
+    animations: 'disabled',
   })
 }
 
@@ -72,8 +84,8 @@ test.describe('Error Handling', () => {
     const pageErrors = collectPageErrors(page)
     let documentsRequestFailed = false
 
-    // Intercept API request and return 500 error
-    await page.route('**/api/documents', (route) => {
+    // Intercept initial app-shell data and return a 500 error.
+    await page.route('**/api/bootstrap**', (route) => {
       documentsRequestFailed = true
       route.fulfill({
         status: 500,
@@ -190,7 +202,7 @@ test.describe('Error Handling', () => {
   test('editor remains usable after error', async ({ page }) => {
     // Intercept documents API and fail it initially
     let requestCount = 0
-    await page.route('**/api/documents', (route) => {
+    await page.route('**/api/documents**', (route) => {
       requestCount++
       if (requestCount === 1) {
         // Fail first request
@@ -228,7 +240,7 @@ test.describe('Error Handling', () => {
     // Intercept API requests and return CSRF error
     const csrfResponses: Array<{ status: number; contentType: string; body: string }> = []
     await page.route('**/api/**', (route) => {
-      if (route.request().method() === 'POST' || route.request().method() === 'PUT') {
+      if (['PATCH', 'POST', 'PUT'].includes(route.request().method())) {
         csrfResponses.push({
           status: 403,
           contentType: 'application/json',
@@ -256,6 +268,17 @@ test.describe('Error Handling', () => {
     await page.keyboard.type('Still working')
     await expect(editor).toContainText('Still working')
 
+    const documentId = page.url().match(/\/documents\/([a-f0-9-]+)/)?.[1]
+    expect(documentId).toBeTruthy()
+    await page.evaluate(async (id) => {
+      await fetch(`/api/documents/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: 'CSRF failure probe' }),
+      })
+    }, documentId)
+
+    await expect.poll(() => csrfResponses.length).toBeGreaterThan(0)
     expect(csrfResponses).not.toHaveLength(0)
     for (const response of csrfResponses) {
       expect(response.status).toBe(403)
