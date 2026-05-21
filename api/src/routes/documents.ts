@@ -15,6 +15,14 @@ import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../schemas/document-boundary.js';
 import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
 import { updateDocumentContent } from '../db/documents-repository.js';
+import {
+  expectedTypeForRelationship,
+  getActor,
+  getDocumentAccessContext,
+  getReadableDocument,
+  requireReferenceableDocument,
+  visibilityPredicate,
+} from '../services/document-access.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -73,6 +81,27 @@ type ConvertedDocumentRow = {
   converted_ticket_number: number | null;
   converted_by_name: string | null;
 };
+
+async function validateDocumentReferences(
+  client: { query: typeof pool.query },
+  actor: ReturnType<typeof getActor>,
+  references: Array<{ id: string; type?: 'program' | 'project' | 'sprint' | 'parent'; label: string }>
+): Promise<{ ok: boolean; error?: string }> {
+  for (const reference of references) {
+    try {
+      await requireReferenceableDocument(
+        client,
+        actor,
+        reference.id,
+        reference.type ? expectedTypeForRelationship(reference.type) : undefined
+      );
+    } catch {
+      return { ok: false, error: `${reference.label} not found` };
+    }
+  }
+
+  return { ok: true };
+}
 
 // Check if user can access a document (visibility check)
 async function canAccessDocument(
@@ -282,6 +311,8 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const userId = String(req.userId);
     const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     const { canAccess, doc } = await canAccessDocument(id, userId, workspaceId);
 
@@ -369,9 +400,13 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
         `SELECT da.related_id as id, da.relationship_type as type,
                 d.title, (d.properties->>'color') as color
          FROM document_associations da
-         LEFT JOIN documents d ON d.id = da.related_id
-         WHERE da.document_id = $1`,
-        [id]
+         JOIN documents d ON d.id = da.related_id
+         WHERE da.document_id = $1
+           AND d.workspace_id = $2
+           AND d.archived_at IS NULL
+           AND d.deleted_at IS NULL
+           AND ${visibilityPredicate('d', '$3', '$4')}`,
+        [id, workspaceId, userId, isAdmin]
       );
       belongs_to = assocResult.rows.map(row => ({
         id: row.id,
@@ -576,21 +611,37 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { title, document_type, parent_id, program_id, sprint_id, properties, content, belongs_to } = parsed.data;
+    const actor = getActor(req);
     let { visibility } = parsed.data;
 
     // If parent_id is provided and visibility is not specified, inherit from parent
     if (parent_id && !visibility) {
-      const parentResult = await client.query(
-        'SELECT visibility FROM documents WHERE id = $1 AND workspace_id = $2',
-        [parent_id, req.workspaceId]
-      );
-      if (parentResult.rows[0]) {
-        visibility = parentResult.rows[0].visibility;
+      const parent = await getReadableDocument(client, actor, parent_id);
+      if (!parent) {
+        res.status(404).json({ error: 'Parent document not found' });
+        return;
       }
+      visibility = parent.visibility;
     }
 
     // Default to 'workspace' visibility if not specified
     visibility = visibility || 'workspace';
+
+    const references = [
+      ...(parent_id ? [{ id: parent_id, type: 'parent' as const, label: 'Parent document' }] : []),
+      ...(program_id ? [{ id: program_id, type: 'program' as const, label: 'Program' }] : []),
+      ...(sprint_id ? [{ id: sprint_id, type: 'sprint' as const, label: 'Sprint' }] : []),
+      ...((belongs_to || []).map((association) => ({
+        id: association.id,
+        type: association.type,
+        label: `${association.type} document`,
+      }))),
+    ];
+    const referencesResult = await validateDocumentReferences(client, actor, references);
+    if (!referencesResult.ok) {
+      res.status(404).json({ error: referencesResult.error });
+      return;
+    }
 
     await client.query('BEGIN');
 
@@ -645,6 +696,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const userId = String(req.userId);
     const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
 
     const parsed = updateDocumentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -667,6 +719,22 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const data = parsed.data;
 
+    const references = [
+      ...(data.parent_id ? [{ id: data.parent_id, type: 'parent' as const, label: 'Parent document' }] : []),
+      ...(data.program_id ? [{ id: data.program_id, type: 'program' as const, label: 'Program' }] : []),
+      ...(data.sprint_id ? [{ id: data.sprint_id, type: 'sprint' as const, label: 'Sprint' }] : []),
+      ...((data.belongs_to || []).map((association) => ({
+        id: association.id,
+        type: association.type,
+        label: `${association.type} document`,
+      }))),
+    ];
+    const referencesResult = await validateDocumentReferences(client, actor, references);
+    if (!referencesResult.ok) {
+      res.status(404).json({ error: referencesResult.error });
+      return;
+    }
+
     // Check permission for visibility changes
     if (data.visibility !== undefined && data.visibility !== existing.visibility) {
       const isCreator = existing.created_by === userId;
@@ -680,11 +748,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Handle moving private doc to workspace parent (changes visibility to workspace)
     if (data.parent_id !== undefined && data.parent_id !== null && data.visibility === undefined) {
-      const parentResult = await client.query(
-        'SELECT visibility FROM documents WHERE id = $1 AND workspace_id = $2',
-        [data.parent_id, workspaceId]
-      );
-      if (parentResult.rows[0]?.visibility === 'workspace' && existing.visibility === 'private') {
+      const parent = await getReadableDocument(client, actor, data.parent_id);
+      if (parent?.visibility === 'workspace' && existing.visibility === 'private') {
         // Moving private doc under workspace parent makes it workspace-visible
         data.visibility = 'workspace';
       }
@@ -899,15 +964,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
       // Add new sprint association if sprint_id is not null
       if (data.sprint_id !== null) {
-        // Verify the sprint exists
-        const sprintCheck = await client.query(
-          `SELECT id FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint' AND deleted_at IS NULL`,
-          [data.sprint_id, workspaceId]
-        );
-
-        if (sprintCheck.rows.length > 0) {
-          await addBelongsToAssociation(id, data.sprint_id, 'sprint', client);
-        }
+        await addBelongsToAssociation(id, data.sprint_id, 'sprint', client);
       }
     }
 
@@ -917,15 +974,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
       // Add new program association if program_id is not null
       if (data.program_id !== null) {
-        // Verify the program exists
-        const programCheck = await client.query(
-          `SELECT id FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'program' AND deleted_at IS NULL`,
-          [data.program_id, workspaceId]
-        );
-
-        if (programCheck.rows.length > 0) {
-          await addBelongsToAssociation(id, data.program_id, 'program', client);
-        }
+        await addBelongsToAssociation(id, data.program_id, 'program', client);
       }
     }
 

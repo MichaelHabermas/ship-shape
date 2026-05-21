@@ -31,9 +31,13 @@ async function validateApiToken(token: string): Promise<{
   const tokenHash = hashToken(token);
 
   const result = await pool.query(
-    `SELECT t.id, t.user_id, t.workspace_id, t.expires_at, t.revoked_at, u.is_super_admin
+    `SELECT t.id, t.user_id, t.workspace_id, t.expires_at, t.revoked_at,
+            u.is_super_admin, wm.user_id AS membership_user_id
      FROM api_tokens t
      JOIN users u ON t.user_id = u.id
+     LEFT JOIN workspace_memberships wm
+       ON wm.user_id = t.user_id
+      AND wm.workspace_id = t.workspace_id
      WHERE t.token_hash = $1`,
     [tokenHash]
   );
@@ -47,6 +51,10 @@ async function validateApiToken(token: string): Promise<{
 
   // Check if expired
   if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) return null;
+
+  // Super-admin tokens can authenticate globally; all other tokens require
+  // current membership in the token workspace.
+  if (!tokenRow.is_super_admin && !tokenRow.membership_user_id) return null;
 
   // Update last_used_at
   await pool.query(

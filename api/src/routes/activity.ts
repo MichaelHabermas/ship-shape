@@ -2,6 +2,12 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { z } from 'zod';
+import {
+  getActor,
+  getDocumentAccessContext,
+  getReadableDocument,
+  visibilityPredicate,
+} from '../services/document-access.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -56,25 +62,22 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
   try {
     const { entityType, entityId } = req.params;
     const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
 
     // Validate entity type
     const typeResult = entityTypeSchema.safeParse(entityType);
     if (!typeResult.success) {
-      res.status(400).json({ error: 'Invalid entity type. Must be program, project, or week.' });
+      res.status(400).json({ error: 'Invalid entity type. Must be program, project, or sprint.' });
       return;
     }
 
-    // Verify entity exists and belongs to workspace
-    const entityCheck = await pool.query(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = $3`,
-      [entityId, workspaceId, entityType]
-    );
-
-    if (entityCheck.rows.length === 0) {
+    // Verify entity exists and is readable.
+    if (!(await getReadableDocument(pool, actor, String(entityId), typeResult.data))) {
       res.status(404).json({ error: 'Entity not found' });
       return;
     }
+
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     // Build query based on entity type
     // Activity includes:
@@ -99,29 +102,38 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
             JOIN document_associations da ON d.id = da.document_id
               AND da.relationship_type = 'program' AND da.related_id = $1
             WHERE d.document_type = 'project' AND d.workspace_id = $2
+              AND d.archived_at IS NULL
+              AND d.deleted_at IS NULL
+              AND ${visibilityPredicate('d', '$3', '$4')}
           ),
           program_sprints AS (
             SELECT d.id FROM documents d
             JOIN document_associations da ON d.id = da.document_id
               AND da.relationship_type = 'project' AND da.related_id IN (SELECT id FROM program_projects)
             WHERE d.document_type = 'sprint' AND d.workspace_id = $2
+              AND d.archived_at IS NULL
+              AND d.deleted_at IS NULL
+              AND ${visibilityPredicate('d', '$3', '$4')}
           ),
           activity_counts AS (
             SELECT updated_at::date AS activity_date, COUNT(*) AS count
-            FROM documents
-            WHERE workspace_id = $2
+            FROM documents d
+            WHERE d.workspace_id = $2
+              AND d.archived_at IS NULL
+              AND d.deleted_at IS NULL
+              AND ${visibilityPredicate('d', '$3', '$4')}
               AND (
                 -- Direct program documents (linked via document_associations)
-                id IN (SELECT document_id FROM document_associations WHERE related_id = $1 AND relationship_type = 'program')
+                d.id IN (SELECT document_id FROM document_associations WHERE related_id = $1 AND relationship_type = 'program')
                 -- Project documents (linked to projects in this program)
-                OR id IN (SELECT document_id FROM document_associations WHERE related_id IN (SELECT id FROM program_projects) AND relationship_type = 'project')
+                OR d.id IN (SELECT document_id FROM document_associations WHERE related_id IN (SELECT id FROM program_projects) AND relationship_type = 'project')
                 -- Sprint documents (issues, standups linked via document_associations)
-                OR id IN (SELECT document_id FROM document_associations WHERE related_id IN (SELECT id FROM program_sprints) AND relationship_type = 'sprint')
+                OR d.id IN (SELECT document_id FROM document_associations WHERE related_id IN (SELECT id FROM program_sprints) AND relationship_type = 'sprint')
                 -- The program document itself
-                OR id = $1
+                OR d.id = $1
               )
-              AND updated_at >= CURRENT_DATE - INTERVAL '29 days'
-            GROUP BY updated_at::date
+              AND d.updated_at >= CURRENT_DATE - INTERVAL '29 days'
+            GROUP BY d.updated_at::date
           )
           SELECT dr.date::text, COALESCE(ac.count, 0)::integer AS count
           FROM date_range dr
@@ -145,24 +157,30 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
             JOIN documents d ON d.id = da.document_id
             WHERE da.related_id = $1 AND da.relationship_type = 'project'
               AND d.document_type = 'sprint' AND d.workspace_id = $2
+              AND d.archived_at IS NULL
+              AND d.deleted_at IS NULL
+              AND ${visibilityPredicate('d', '$3', '$4')}
           ),
           activity_counts AS (
             SELECT updated_at::date AS activity_date, COUNT(*) AS count
-            FROM documents
-            WHERE workspace_id = $2
+            FROM documents d
+            WHERE d.workspace_id = $2
+              AND d.archived_at IS NULL
+              AND d.deleted_at IS NULL
+              AND ${visibilityPredicate('d', '$3', '$4')}
               AND (
                 -- Sprints linked to this project via document_associations
-                id IN (SELECT id FROM project_sprints)
+                d.id IN (SELECT id FROM project_sprints)
                 -- Documents linked to sprints via junction table (issues)
-                OR id IN (SELECT da.document_id FROM document_associations da
+                OR d.id IN (SELECT da.document_id FROM document_associations da
                           JOIN project_sprints ps ON ps.id = da.related_id AND da.relationship_type = 'sprint')
                 -- Documents linked directly to project via junction table (issues)
-                OR id IN (SELECT document_id FROM document_associations WHERE related_id = $1 AND relationship_type = 'project')
+                OR d.id IN (SELECT document_id FROM document_associations WHERE related_id = $1 AND relationship_type = 'project')
                 -- The project document itself
-                OR id = $1
+                OR d.id = $1
               )
-              AND updated_at >= CURRENT_DATE - INTERVAL '29 days'
-            GROUP BY updated_at::date
+              AND d.updated_at >= CURRENT_DATE - INTERVAL '29 days'
+            GROUP BY d.updated_at::date
           )
           SELECT dr.date::text, COALESCE(ac.count, 0)::integer AS count
           FROM date_range dr
@@ -183,16 +201,19 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
           ),
           activity_counts AS (
             SELECT updated_at::date AS activity_date, COUNT(*) AS count
-            FROM documents
-            WHERE workspace_id = $2
+            FROM documents d
+            WHERE d.workspace_id = $2
+              AND d.archived_at IS NULL
+              AND d.deleted_at IS NULL
+              AND ${visibilityPredicate('d', '$3', '$4')}
               AND (
                 -- Documents linked to this sprint via junction table (issues)
-                id IN (SELECT document_id FROM document_associations WHERE related_id = $1 AND relationship_type = 'sprint')
+                d.id IN (SELECT document_id FROM document_associations WHERE related_id = $1 AND relationship_type = 'sprint')
                 -- The sprint document itself
-                OR id = $1
+                OR d.id = $1
               )
-              AND updated_at >= CURRENT_DATE - INTERVAL '29 days'
-            GROUP BY updated_at::date
+              AND d.updated_at >= CURRENT_DATE - INTERVAL '29 days'
+            GROUP BY d.updated_at::date
           )
           SELECT dr.date::text, COALESCE(ac.count, 0)::integer AS count
           FROM date_range dr
@@ -206,7 +227,7 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
         return;
     }
 
-    const result = await pool.query(activityQuery, [entityId, workspaceId]);
+    const result = await pool.query(activityQuery, [entityId, workspaceId, actor.userId, isAdmin]);
 
     res.json({
       days: result.rows.map(row => ({
