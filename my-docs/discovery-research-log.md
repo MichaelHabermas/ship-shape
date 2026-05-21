@@ -140,6 +140,8 @@ Severity: Medium
 
 Architecture docs describe server search with offline fallback, the backend exposes mention and learning search endpoints, and the Docs page filters the already-loaded document list client-side by title. The term "search" means different things in different layers. This is a good candidate if later work touches search, but it is currently less central than the top three.
 
+Status update 2026-05-21: Search now has explicit split ownership. `/api/search/documents` remains title-only for command-palette lookup, and `/api/search/content` is the full-content search product endpoint used by `/docs`. DB-backed evidence was captured after starting the existing Docker PostgreSQL container: focused search tests passed 26/26, query-count evidence shows three SQL queries per content-search request, EXPLAIN uses `document_search_index_vector_idx`, and bounded benchmark output was written to `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json`.
+
 ### Repeated local types and mechanical route boilerplate are creating product-model drift
 
 Severity: High
@@ -219,15 +221,15 @@ Possible mediation: decide whether any artifact is intentionally archival. Other
 
 Severity: Medium
 
-Status: Partially resolved. The false full-text `/search/documents` OpenAPI route was removed in the easy-wins pass, and the submission-gated pass later added a real title-only `/api/search/documents` endpoint for command-palette lookup. Real document full-text content search is still not implemented; `/docs` remains client-side title filtering.
+Status: Resolved with DB-backed evidence. The false full-text `/search/documents` OpenAPI route was removed in the easy-wins pass, the submission-gated pass added real title-only `/api/search/documents` for command-palette lookup, and the 2026-05-21 search pass added distinct `/api/search/content` for full-content document search. `/docs` now uses the content-search endpoint.
 
-At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. The current route now exists as title-only metadata search for the command palette, not full-text content search.
+At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. The current command-palette route exists as title-only metadata search, while full-content search is deliberately separate at `/api/search/content`.
 
 Why it matters: generated API clients, Swagger users, and MCP/API automation can trust an endpoint that will 404 at runtime. This is a capability mirage, not just stale prose.
 
 Why it is easy to miss: the OpenAPI artifact is generated and looks authoritative. The contradiction only appears when comparing schema registration to the mounted router.
 
-Possible mediation: if product wants full document content search, add it explicitly with separate docs and measurements. Do not broaden the current title-only command-palette endpoint by implication.
+Mediation chosen: full document content search was added explicitly as `/api/search/content`, with derived Postgres indexing, visibility filtering, ranking, snippets, and separate performance/evidence rails. Do not broaden the current title-only command-palette endpoint by implication.
 
 ### API coverage pre-commit gate is a changed-file heuristic, not a repo integrity check
 
@@ -721,7 +723,7 @@ What proved it resolved: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm t
 
 Possible mediation: update the test to locate nested tree items through roles and ARIA relationships instead of nested `ul` structure, then keep the final assertion focused on the user-visible deep-link behavior. Keep the full-run result as the current E2E baseline rather than treating this runner work as introducing an app regression.
 
-Resolution note: the selector now scopes to the sidebar ARIA tree, locates the expandable row as `li[data-tree-item]`, finds nested links through the row's `role="group"`, and scopes the expanded-parent assertion to the refreshed sidebar tree. The change is test-trust cleanup and is not counted toward Category 5. A focused safe-run was attempted by the worker but blocked because Docker was not running.
+Resolution note: the selector now scopes to the sidebar ARIA tree, locates the expandable row as `li[data-tree-item]`, finds nested links through the row's `role="group"`, and scopes the expanded-parent assertion to the refreshed sidebar tree. The change is test-trust cleanup and is not counted toward Category 5.
 
 ### Submission-gated structural pass status
 
@@ -733,9 +735,9 @@ Rails safety findings moved from provisional risk to implemented foundation work
 
 Boundary-contract drift moved from architectural concern to active regression coverage. Runtime boundary values now feed more OpenAPI schemas, and `api/src/schemas/document-boundary.test.ts` compares document type values across `@ship/shared`, database enum declarations, runtime Zod values, and OpenAPI.
 
-High-utility search status: `/api/search/documents` exists only as title-only command-palette metadata search. This does not resolve the full-text content search question, and `/docs` remains client-side title filtering by design.
+High-utility search status: `/api/search/documents` exists only as title-only command-palette metadata search. `/api/search/content` now exists for full-content document search, and `/docs` uses it. Runtime DB-backed artifacts now exist: `test-results/perf/query-count-api-2026-05-21T15-33-21-438Z.json`, `test-results/perf/explain-performance-2026-05-21T15-33-25-144Z.json`, and `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json`.
 
-Bootstrap status changed: `/api/bootstrap` now exists as read-only app-shell hydration and seeds existing TanStack Query keys. It is a fanout-reduction foundation, not yet measured Category 4 proof. The route needs to stay projection-aligned with the underlying list endpoints, especially project status inference and visibility semantics. Post-reset verification added focused route coverage for auth, response shape, and project status inference; the combined bootstrap/search/visibility/boundary rerun passed 43 tests against a temporary disposable Postgres container.
+Bootstrap status changed: `/api/bootstrap` now exists as read-only app-shell hydration and seeds existing TanStack Query keys. It has flow-level Category 4 query-count proof for the protected docs startup app-shell flow, but it is not a Category 3 endpoint P95 win. The route needs to stay projection-aligned with the underlying list endpoints, especially project status inference and visibility semantics. Post-reset verification added focused route coverage for auth, response shape, and project status inference; the combined bootstrap/search/visibility/boundary rerun passed 43 tests against a temporary disposable Postgres container.
 
 ### Evidence-runner and trust pass status
 
@@ -745,9 +747,9 @@ Status: Updated 2026-05-20
 
 Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. The important behavior is that missing proof stays explicit as `not_measured`.
 
-Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Closeout artifacts were written under `test-results/perf/` on 2026-05-20. Categories 3 and 4 still need before/after runs under identical conditions before any improvement claim is defensible.
+Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Closeout artifacts were written under `test-results/perf/` on 2026-05-20. Category 3 still needs before/after endpoint P95 runs under identical conditions before a completion claim is defensible; later bootstrap evidence covers the Category 4 query-count branch for one app-shell flow.
 
-Closeout axe verification found the document-tree remediation only partially complete. The repeatable `pnpm a11y:closeout` runner now writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, a real `/documents/:id`, and `/my-week`. Current output: `/docs` has 0 violations; the selected document page has 1 serious `color-contrast` node on a small badge; `/my-week` has 1 serious `color-contrast` violation across 10 nodes. This keeps Category 7 incomplete despite the document-page structural fix.
+Closeout axe verification was updated after the remaining contrast fixes. The repeatable `pnpm a11y:closeout -- --fail-on-serious` runner writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, a real `/documents/:id`, and `/my-week`; current output is 0 violations on all three scanned pages. Lighthouse was not rerun, and manual keyboard/a11y polish gaps remain outside the axe gate.
 
 Manual closeout filled in the runtime parts that axe cannot judge. Backlinks passed the degraded-state scenario after creating a real mention: the target document retained its saved backlink while offline, showed the stale/offline status, cleared it on reconnect, and the backlink navigated correctly. Remaining manual findings worth automating or fixing next are the Action Items modal tab order/focus visibility, docs tree arrow-key navigation, and the confusing `POST /api/weekly-retros` 403 that appears while retro edits still save through the document path.
 

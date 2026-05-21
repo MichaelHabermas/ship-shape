@@ -18,28 +18,32 @@ This pass tackled the cart-before-horse items from the audit: shared API boundar
 
 This pass started from the remaining cart-before-horse work: fake-green rails, boundary contract drift, app-shell fanout, and command-palette search. Raw `pnpm test:e2e` now fails with guidance and the controlled runner uses the raw Playwright script internally. Shadow DB restore paths now fail closed instead of masking restore errors. Runtime boundary schemas now feed more OpenAPI schemas, with a focused contract drift test. The app has a read-only `/api/bootstrap` endpoint that hydrates existing React Query caches without replacing page-level APIs. Server-backed document search is title-only and used by the command palette only; `/docs` search remains client-side title filtering.
 
-This report is a work ledger, not a final source-of-truth completion claim. Categories 3 and 4 remain intentionally incomplete until measured before/after improvements are made, and Category 5 now satisfies the full "3 meaningful tests or 3 flaky fixes" source requirement.
+This report is a work ledger, not a final source-of-truth completion claim. At this pass, Categories 3 and 4 remained intentionally incomplete until measured before/after improvements were made; later sections record the partial Category 3 benchmark evidence and Category 4 flow-level query-count proof. Category 5 now satisfies the full "3 meaningful tests or 3 flaky fixes" source requirement.
 
 Durable choices from this pass are tracked in `my-docs/DECISION_LOG.md` so the rationale, alternatives, consequences, and evidence remain reviewable.
 
 ## Evidence-Runner And Trust Pass Summary
 
-This pass added a repo-local evidence runner foundation, repeatable performance/query measurement scripts, a repeatable closeout axe runner, the third meaningful Category 5 regression, a stale E2E tree-selector fix, Backlinks offline/degraded behavior, and a narrow issue-boundary schema slice shared by runtime validation and OpenAPI. It intentionally does not claim Category 3 or 4 completion: the new scripts create the measurement rails, but before/after endpoint/query improvements still need to be captured under identical conditions. Category 6 is improved and manually observed, but still needs a saved screenshot/recording artifact before it should be claimed complete. Category 7 closeout now clears the repeatable axe gate for `/docs`, the selected document page, and `/my-week`.
+This pass added a repo-local evidence runner foundation, repeatable performance/query measurement scripts, a repeatable closeout axe runner, the third meaningful Category 5 regression, a stale E2E tree-selector fix, Backlinks offline/degraded behavior, and a narrow issue-boundary schema slice shared by runtime validation and OpenAPI. At this point it intentionally did not claim Category 3 or 4 completion: the new scripts created the measurement rails, but before/after endpoint/query improvements still needed to be captured under identical conditions. Category 6 is improved and manually observed, but still needs a saved screenshot/recording artifact before it should be claimed complete. Category 7 closeout now clears the repeatable axe gate for `/docs`, the selected document page, and `/my-week`.
 
 ## Category 6 Runtime Evidence Pass Summary
 
-This pass tightened `e2e/error-handling.spec.ts` so the runtime-error scenarios can now produce named Playwright screenshots and assert more than page visibility: API interception happened, CSRF failures stayed JSON-shaped, edited text remained present after failure/offline paths, nonblank fallback UI rendered, and no uncaught browser `pageerror` occurred. The focused runtime run was not executed because Docker was not running, and this repo's isolated E2E fixture requires Testcontainers PostgreSQL. The focused list/compile check passed and enumerated all 8 tests in the file.
+This pass tightened `e2e/error-handling.spec.ts` so the runtime-error scenarios can now produce named Playwright screenshots and assert more than page visibility: API interception happened, CSRF failures stayed JSON-shaped, edited text remained present after failure/offline paths, nonblank fallback UI rendered, and no uncaught browser `pageerror` occurred. After the existing Docker PostgreSQL container was started, the focused runtime run passed with 8 tests and wrote screenshots under `test-results/category-6-runtime-evidence-final2/playwright/`.
 
 ## Category 3/4 Performance Evidence Pass Summary
 
 This pass extended `pnpm perf:query-count-api` from endpoint-only capture to flow-level evidence for old protected docs startup fanout versus current `/api/bootstrap`. The 2026-05-21 run against `ship_dev` measured old startup fanout at 7 requests, 33 SQL queries, 984,044 response bytes, and 32 ms total elapsed; current bootstrap measured 1 request, 24 SQL queries, 984,123 response bytes, and 17 ms elapsed. That is a 27.3% query-count reduction and 85.7% request-count reduction for the app-shell flow. A later Category 3 projection pass reduced issue-list/bootstrap payload bytes, but bootstrap P95 still needs more proof before Category 3 is closed.
+
+## Full-Content Search Product Pass Summary
+
+This pass implemented real document content search as its own product surface. `/api/search/documents` remains title-only for command-palette lookup, while new `/api/search/content` searches a derived Postgres full-text index with visibility filtering before limit, archived/deleted exclusion, rank, snippet, type filtering, selected property weighting, REST/collaboration index refresh, and OpenAPI coverage. `/docs` now calls the content-search endpoint and renders ranked snippets instead of filtering loaded document titles on the client. Search performance/evidence rails now include deterministic content-search seed terms, benchmark endpoints, query-count coverage, EXPLAIN coverage, and `pnpm --filter @ship/api search:reindex` for backfill/repair. Initial blocked checks were resolved by starting the existing Docker Postgres container. Current passing checks include API/web type-check, focused DB-backed search tests, BacklinksPanel web tests, API build, OpenAPI generation, content-search seed/query-count/EXPLAIN/benchmark evidence, Category 6 Playwright runtime evidence, and `git diff --check`.
 
 | Area | Target | Latest Result | Evidence |
 | ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Type safety | Remove real `any` usage at API/Web boundaries | Shared boundary schemas added; high-risk route aliases now derive more from `@ship/shared`; previous AST `any` count remains 216 total / 32 production pending rerun | `pnpm type-check`, prior AST counter |
 | Boundary contracts | Keep shared/runtime/OpenAPI document concepts aligned           | Added shared/runtime/OpenAPI/DB drift coverage for document and visibility values; OpenAPI regenerated after bootstrap/search schema additions                                                                | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/bootstrap.test.ts src/schemas/document-boundary.test.ts src/routes/search.test.ts src/routes/documents-visibility.test.ts --config /dev/null`, OpenAPI YAML/JSON parse |
 | Rails safety       | Remove fake-green execution paths                               | Raw E2E entrypoint now guides to `test:e2e:run`; DB-copy restore failures are no longer masked; API benchmark runner added for repeatable endpoint evidence                                                   | `pnpm test:e2e`, `pnpm test:e2e:run -- --list`, `node --check scripts/benchmark-api.mjs` |
-| Bootstrap/search   | Reduce request fanout and avoid command-palette full-list fetch | Added `/api/bootstrap`; command palette now calls title-only `/api/search/documents`; `/docs` search unchanged | Focused API tests: 4 files passed, 43 tests passed; `pnpm --filter @ship/api type-check`; `pnpm --filter @ship/web type-check` |
+| Bootstrap/search   | Reduce request fanout and add real document content search | Added `/api/bootstrap`; command palette still calls title-only `/api/search/documents`; `/docs` now calls full-content `/api/search/content` backed by `document_search_index` | `DATABASE_URL=postgresql://ship:ship_dev_password@127.0.0.1:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/search.test.ts --config /dev/null`: 1 file / 26 tests passed; `test-results/perf/query-count-api-2026-05-21T15-33-21-438Z.json`; `test-results/perf/explain-performance-2026-05-21T15-33-25-144Z.json`; `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json` |
 | Evidence rails | Make submission proof repeatable and honest | Added `pnpm evidence:run`, `pnpm evidence:compare`, `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`; final-review evidence run now fails the manifest when a nested claim fails | `pnpm evidence:run -- --phase final-review --run-id codex-final-review`; `pnpm evidence:compare codex-final-check codex-final-review`; `node --check scripts/{seed-audit-load,query-count-api,explain-performance}.mjs` |
 | Bundle splitting   | Reduce initial entry chunk via route-level lazy loading         | Entry chunk is around 509.5 KB after route-level lazy loading; build hash varies by rebuild; 295 JS/CSS chunks emitted in the last full web build                                                             | `pnpm build:web`, dist asset byte count |
 | Verification       | Preserve build/type correctness | Type-check, API build, and web build pass | `pnpm type-check`, `pnpm build:api`, `pnpm build:web` |
@@ -313,9 +317,8 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - API unit suite: 28 files passed, 452 tests passed in the current post-correctness run.
 - Missing-CSRF probe against local API returned `403`, `content-type: application/json; charset=utf-8`, body `{"error":"Invalid or missing CSRF token"}`.
 - `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
-- Focused E2E runtime attempt: `E2E_RESULTS_DIR=test-results/category-6-runtime-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts` was blocked before Playwright started because Docker was not running: `Docker is required for Playwright E2E tests because Testcontainers starts PostgreSQL per worker.`
-- Focused E2E list/compile check: `E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-list pnpm test:e2e:run e2e/error-handling.spec.ts -- --list` passed and listed 8 tests in `e2e/error-handling.spec.ts`.
-- Category 6 now has screenshot-producing E2E hooks, but the actual runtime screenshot artifacts still need to be captured by rerunning the focused file once Docker is available.
+- Focused E2E runtime run: `E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts`: 8 passed / 0 failed.
+- Category 6 screenshot artifacts were captured under `test-results/category-6-runtime-evidence-final2/playwright/`, including `category-6-runtime-evidence-api-500-documents-list-viewport.png`, `category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png`, `category-6-runtime-evidence-csrf-json-editor-usable-viewport.png`, and `category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png` plus matching full-page screenshots.
 
 ---
 
@@ -371,7 +374,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - Removed the advertised but unmounted `/search/documents` OpenAPI route instead of pretending full-text search exists.
 - Fixed `/search/learnings` OpenAPI response shape to `{ learnings, total }`.
 - Fixed `/auth/session` OpenAPI response shape to the timeout-tracking payload actually returned by the route.
-- Updated canonical docs to state that `/docs` search is client-side title filtering; real server-backed document search remains deferred.
+- Updated canonical docs to state that `/docs` search uses server-backed `/api/search/content`, while `/api/search/documents` remains title-only for command-palette lookup.
 - Regenerated `api/openapi.yaml` and `api/openapi.json`.
 - Removed tracked generated/deployment debris: old deploy zips, Terraform plan binary, dev service worker output, and disposable progress/deployment notes.
 - Added ignore rules for `deploy-api-*.zip` and `terraform/**/tfplan`.
@@ -383,7 +386,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 ### Evidence
 
 - OpenAPI path inspection: comments paths now appear as `/documents/{id}/comments` and `/comments/{id}`; no `/api/documents/{id}/comments`, `/api/comments/{id}`, or `/search/documents` matches remain.
-- Submission-gated follow-up changed `/api/search/documents` from a removed false full-text contract into a real title-only command-palette endpoint; full-text document search remains deferred.
+- Full-content search follow-up added distinct `/api/search/content`; `/api/search/documents` remains the title-only command-palette endpoint.
 - OpenAPI YAML now parses and passes `pnpm exec prettier --check api/openapi.yaml` after fixing the generator's multiline YAML output.
 - Docker-backed migration rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_dev pnpm --filter @ship/api db:migrate` passes.
 - Sidecar DB migration rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api db:migrate` passes.
@@ -399,13 +402,13 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 
 ## Deferred Or Skipped
 
-- Real document full-text search: skipped; command-palette title-only `/api/search/documents` is implemented, but content search remains a separate product decision.
-- Bootstrap endpoint for app-shell hydration: implemented as foundation; request/query-count scripts now exist, but before/after query-count measurement is still `TBD`.
+- Real document full-text search: implemented as `/api/search/content` with a derived Postgres index and DB-backed evidence. Focused search tests passed 26/26, query-count evidence shows three SQL queries per content-search request, EXPLAIN evidence shows `document_search_index_vector_idx` usage, and the bounded content-search benchmark wrote `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json`.
+- Bootstrap endpoint for app-shell hydration: implemented, with flow-level query-count proof captured for the protected docs startup app-shell flow. It does not close Category 3 endpoint P95.
 - API latency/query optimization: skipped; needs benchmark/EXPLAIN-driven work, not quick fixes.
 - Setup initialize race lock/transaction: deferred; security-sensitive.
 - Super-admin API token policy and API-token docs/UI: deferred pending policy decision.
 - Association/context visibility leaks: deferred; broader query surface than this pass.
 - Full route row-mapper typing: partially started for high-risk routes; broader dashboard/comments/auth route typing deferred.
-- Process-level unhandled rejection handlers: skipped; easy to add badly without shutdown semantics.
-- Category 6 screenshot/recording evidence: deferred; Backlinks behavior has unit coverage but not the required runtime artifact.
-- Category 7 final completion: deferred because `pnpm a11y:closeout` still finds serious color-contrast violations on the selected document page and `/my-week`, and Lighthouse is not installed in the repo-local toolchain.
+- Process-level unhandled rejection handlers: still skipped; easy to add badly without coordinated HTTP/WebSocket/DB shutdown semantics.
+- Category 6 screenshot/recording evidence: completed for the focused runtime file; broader full-suite E2E remains outside this pass.
+- Category 7 Lighthouse rerun: still deferred because `lighthouse` is not installed in the repo-local toolchain. The axe closeout branch currently passes with 0 violations on `/docs`, the selected document page, and `/my-week`; manual keyboard/a11y polish gaps remain outside that axe gate.

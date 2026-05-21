@@ -142,7 +142,7 @@ CREATE TABLE document_associations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   related_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  relationship_type TEXT NOT NULL,  -- 'program' | 'project' | 'week'
+  relationship_type TEXT NOT NULL,  -- 'program' | 'project' | 'sprint'
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE (document_id, related_id, relationship_type)
 );
@@ -194,10 +194,10 @@ import {
 } from '../utils/document-crud.js';
 
 // Add a single association (idempotent - uses ON CONFLICT DO NOTHING)
-await addBelongsToAssociation(issueId, weekId, 'week');
+await addBelongsToAssociation(issueId, weekId, 'sprint');
 
 // Remove a single association
-await removeBelongsToAssociation(issueId, weekId, 'week');
+await removeBelongsToAssociation(issueId, weekId, 'sprint');
 
 // Remove all associations of a type
 await removeAssociationsByType(issueId, 'program');
@@ -211,7 +211,7 @@ await updateWeekAssociation(documentId, newWeekId);
 await syncBelongsToAssociations(issueId, [
   { id: programId, type: 'program' },
   { id: projectId, type: 'project' },
-  { id: weekId, type: 'week' },
+  { id: weekId, type: 'sprint' },
 ]);
 ```
 
@@ -246,7 +246,7 @@ If you need to add a new association type (e.g., 'team', 'milestone'):
 1. Add the type to `BelongsToEntry` in `document-crud.ts`
 2. Create type-specific helpers (e.g., `getTeamAssociation`, `updateTeamAssociation`)
 3. Update documentation
-4. No schema changes needed - junction table handles any relationship_type string
+4. Update the `relationship_type` enum/schema boundary and docs
 
 ## Week Model
 
@@ -270,7 +270,7 @@ function getWeekNumber(date: Date, workspaceStartDate: Date): number {
 What IS stored is the **Week document** - one per program per week window:
 
 - `document_type: 'sprint'` (historical type name)
-- `program_id`: which program
+- Program association: which program owns this week document
 - `properties.sprint_number`: which 7-day window (REQUIRED, historical field name)
 - `properties.owner_id`: **REQUIRED** - person accountable for this week
 - Document body: week goals, context, description (everything is a document)
@@ -384,17 +384,17 @@ Program mode displays weeks in **three sections**:
 Issues flow from backlog to active week work:
 
 ```
-Backlog (project_id set, no week)
+Backlog (project association set, no week association)
     ↓
-Assigned to Week (week association set, project_id kept)
+Assigned to Week (sprint association set, project association kept)
     ↓
 Done (completed_at set)
 ```
 
-Issues maintain **both** project and week associations:
+Issues maintain **both** project and sprint associations:
 
-- `project_id` - which project this issue belongs to (persistent)
-- Week association - which week this issue is being worked in (changes)
+- Project association - which project this issue belongs to (persistent)
+- Sprint association - which week this issue is being worked in (changes)
 
 ## Ticket Numbers
 
@@ -437,8 +437,8 @@ Properties that calculate from children are **computed on-demand**:
 The app is **offline-tolerant** (server is source of truth), not offline-first:
 - Documents cached in IndexedDB for fast reads
 - Writes go to server immediately when online
-- Offline writes queued, synced on reconnect
-- Last-write-wins conflict resolution
+- Metadata/list mutations require network connectivity and are not queued offline
+- Editor content can persist locally through Yjs/y-indexeddb and sync on reconnect
 
 ### IndexedDB Indexing
 
@@ -449,8 +449,7 @@ Create indexes for common query patterns:
 { keyPath: "id" }                              // Primary key
 { keyPath: "workspace_id" }                    // All docs in workspace
 { keyPath: ["workspace_id", "document_type"] } // Docs by type
-{ keyPath: ["program_id", "document_type"] }   // Docs in program
-{ keyPath: ["week_id"] }                       // Docs in week
+// Program/week membership comes from document_associations, not legacy columns
 { keyPath: "updated_at" }                      // Sync ordering
 ```
 
@@ -867,7 +866,7 @@ Use `side="right"` for icons in the left rail, `side="bottom"` for icons in head
 1. **Permissions**: Workspace-level only (you're in or you're out)
 2. **States/Labels**: Values in properties JSONB, not separate tables
 3. **Initial sync**: Recent + accessed documents (last 30 days + previously touched)
-4. **Search**: `/api/search/documents` exists only for title-only command-palette metadata search; `/docs` uses client-side title filtering over loaded documents; no full-text content search
+4. **Search**: `/api/search/documents` exists only for title-only command-palette metadata search; `/api/search/content` is the server-backed full-content search endpoint used by `/docs`
 5. **File attachments**: References only, files stored in S3/blob storage
 6. **Real-time**: Full collaboration (presence, cursors, live updates via WebSocket + Yjs)
 7. **Offboarding**: Wipe IndexedDB immediately when user removed

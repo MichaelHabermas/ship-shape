@@ -2,6 +2,40 @@
 
 Durable choices made during the audit/improvement work. This file exists so we can defend why structural decisions were made, what they do not claim, and what future work must preserve.
 
+## 2026-05-21: Full-Content Search Product Pass
+
+### D016: Content Search Gets Its Own Endpoint And Derived Index
+
+Status: Accepted
+
+Decision: Keep `/api/search/documents` title-only for command-palette lookup, and add `/api/search/content` as the user-facing full-content document search endpoint. `/docs` uses `/api/search/content`. The searchable index lives in `document_search_index` as derived, rebuildable state with weighted `tsvector` data: title `A`, selected properties `B`, TipTap body text `C`.
+
+Why: The product needed real document content search, but broadening the command-palette endpoint would blur two different jobs: fast navigation by title versus ranked content discovery. A derived Postgres full-text index gives visibility-aware search without adding an external search service or making indexed text a new source of truth.
+
+Alternatives considered: Reuse `/api/search/documents`; query `documents.content::text ILIKE`; add an external search engine. Reusing the endpoint breaks the command-palette contract. `ILIKE` over JSON content is neither ranked nor performance-evidence friendly. An external engine is unnecessary until Postgres full-text search is proven insufficient.
+
+Consequences: Search writes must keep the index fresh after REST document create/update and collaboration persistence, and repair/backfill scripts must be able to rebuild it from source documents. Visibility filtering stays in SQL before `LIMIT`: workspace-visible docs, creator-owned private docs, or admin-visible docs. Archived and deleted documents stay excluded.
+
+Evidence: Implementation added migration `038_document_search_index.sql`, fresh-schema bootstrap support, TipTap/property extraction utilities, `/api/search/content`, OpenAPI schema registration, API tests, `/docs` UI integration, `search:reindex`, and benchmark/query-count/EXPLAIN coverage for content search. Focused DB-backed search tests passed: `src/routes/search.test.ts` 26/26. Content-search query-count evidence is `test-results/perf/query-count-api-2026-05-21T15-33-21-438Z.json`; EXPLAIN evidence is `test-results/perf/explain-performance-2026-05-21T15-33-25-144Z.json` and shows `document_search_index_vector_idx` bitmap index scans; bounded benchmark evidence is `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json`.
+
+**Decision Gist**: Full-content document search is a distinct product endpoint backed by a derived Postgres full-text index; command-palette search remains title-only.
+
+### D017: Authenticated Route Context Replaces New Non-Null Assertions
+
+Status: Accepted
+
+Decision: Add `getAuthenticatedRouteContext(req)` and use it in newly touched authenticated routes instead of adding more `req.userId!` / `req.workspaceId!` assertions.
+
+Why: Auth middleware does attach those fields, but repeated non-null assertions smear the boundary across route code. A small helper keeps the invariant explicit without a broad route rewrite.
+
+Alternatives considered: Leave assertions in place; globally type `authMiddleware` to refine `Request`; rewrite all authenticated routes. Leaving assertions continues drift. A global Express type refinement is not reliable through middleware composition. A repo-wide rewrite is churnier than the current need.
+
+Consequences: New or touched authenticated routes should prefer the helper. Existing assertions can be retired opportunistically when a route is already being changed.
+
+Evidence: `api/src/routes/search.ts` now uses the helper, and `pnpm --filter @ship/api type-check` passes.
+
+**Decision Gist**: Newly touched authenticated routes should acquire user/workspace ids through a route-context helper, not scattered non-null assertions.
+
 ## 2026-05-20: Submission-Gated Foundation Pass
 
 ### D001: Bootstrap Is An App-Shell Hydration Boundary
@@ -16,25 +50,25 @@ Alternatives considered: Leave startup fanout as-is and optimize individual list
 
 Consequences: `/api/bootstrap` must stay projection-aligned with the underlying list endpoints for visibility, document associations, project status inference, and standup status semantics. The client seeds existing TanStack Query keys and lets `staleTime`/invalidation govern freshness; it does not force `refetchOnMount: 'always'` after bootstrap hydration. If a list endpoint changes, bootstrap is a contract-drift candidate and should be tested.
 
-Evidence: Focused bootstrap/search/visibility/boundary tests pass against `ship_test_audit`; `IMPROVEMENT_REPORT.md` keeps Category 3 and 4 measurement as `TBD` until before/after benchmark and query-count evidence exists.
+Evidence: Focused bootstrap/search/visibility/boundary tests pass against `ship_test_audit`; at the time, `IMPROVEMENT_REPORT.md` kept Category 3 and 4 measurement as `TBD` until before/after benchmark and query-count evidence existed. D014 later added flow-level query-count evidence for the bootstrap app-shell flow.
 
 **Decision Gist**: `/api/bootstrap` preloads existing startup data in one authenticated request to reduce app-shell fanout without replacing normal page APIs as the source of truth.
 
 ### D002: Document Search Is Title-Only For Command Palette
 
-Status: Accepted
+Status: Superseded in part by D016
 
-Decision: Implement `/api/search/documents` as title-only, metadata-only search for command-palette navigation. Do not claim or imply full-text document content search. Keep `/docs` search as client-side title filtering for now.
+Decision: Implement `/api/search/documents` as title-only, metadata-only search for command-palette navigation. Do not claim or imply full-text document content search from that endpoint. At the time, `/docs` search remained client-side title filtering.
 
 Why: The audit found a false OpenAPI full-text search contract. The submission-gated plan needed to stop command palette from fetching all documents, but full-text content search is a larger product and indexing decision. Title-only search solves the immediate fanout issue without inventing search semantics the product has not chosen.
 
 Alternatives considered: Remove `/search/documents` entirely; implement full-text search now; replace `/docs` search with server search. Removing it preserves honesty but does not reduce command-palette fanout. Full-text search now risks scope creep and unmeasured ranking/security decisions. Replacing `/docs` search changes user-facing behavior beyond the command-palette requirement.
 
-Consequences: Search docs and OpenAPI must call this endpoint title-only. Future full-text search should be a distinct decision with visibility, indexing, ranking, and measurement evidence.
+Consequences: Search docs and OpenAPI must call this endpoint title-only. D016 later added full-content search as the distinct `/api/search/content` endpoint with visibility, indexing, ranking, and measurement rails.
 
 Evidence: Focused search tests cover auth, title-only behavior, type filtering, limits, and visibility. `discovery-research-log.md` marks the old false full-text contract as partially resolved.
 
-**Decision Gist**: `/api/search/documents` is title-only command-palette search, reducing document fetch fanout without pretending we built full-text content search.
+**Decision Gist**: `/api/search/documents` remains title-only command-palette search; full-content search lives separately at `/api/search/content`.
 
 ### D003: Runtime Boundary Schemas Are The Primitive Contract Source
 
@@ -174,11 +208,11 @@ Why: `/api/bootstrap` is a strong app-shell fanout foundation, but it does not b
 
 Alternatives considered: Claim bootstrap as an API latency win; optimize endpoints first and measure afterward. Bootstrap is a flow/fanout improvement, not a direct endpoint P95 reduction. Optimizing before fixed measurement recreates the audit problem.
 
-Consequences: Category 3 and 4 remain incomplete until before/after results are captured under identical data volume, concurrency, and hardware. `ship_dev` remains the runtime/performance database, while `ship_test_audit` remains the destructive test database.
+Consequences: Category 3 remains incomplete until before/after endpoint P95 results meet the source requirement under identical data volume, concurrency, and hardware. D014 later captured Category 4 flow-level query-count proof for bootstrap. `ship_dev` remains the runtime/performance database, while `ship_test_audit` remains the destructive test database.
 
 Evidence: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs` pass; the scripts are exposed through `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`. `seed-audit-load` is workspace-scoped and tops up tagged issue documents, users/person docs, sprints, and audit logs. Closeout artifacts were written to `test-results/perf/query-count-api-2026-05-20T23-37-27-346Z.json` and `test-results/perf/explain-performance-2026-05-20T23-37-37-930Z.json`.
 
-**Decision Gist**: Performance work now has measurement rails, but Categories 3 and 4 are not complete until before/after evidence is captured.
+**Decision Gist**: Performance work now has measurement rails; Category 3 still needs endpoint P95 proof, while Category 4 has later flow-level query-count proof in D014.
 
 ### D012: Backlinks Offline State Is Degraded, Not Dead
 
@@ -204,7 +238,7 @@ Decision: Use `pnpm a11y:closeout` as a repeatable Playwright/axe reporter for `
 
 Why: The manual closeout found real product/a11y signals, but some are currently known failures. A report-first runner saves manual effort without making the normal E2E lane fail on already-known debt.
 
-Consequences: Category 7 can be remeasured quickly, and the report can become a gate later. Current output still shows serious color-contrast failures on the selected document page and `/my-week`, so Category 7 remains incomplete.
+Consequences: Category 7 can be remeasured quickly, and the report can become a gate when serious violations are resolved. Later closeout evidence showed the `--fail-on-serious` gate passing on `/docs`, a selected document page, and `/my-week`; Lighthouse remains unrereun.
 
 Evidence: `pnpm a11y:closeout` writes `test-results/a11y-closeout/axe-summary.json` and screenshots.
 
