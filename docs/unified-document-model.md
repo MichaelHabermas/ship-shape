@@ -23,11 +23,12 @@ Following Notion's paradigm: **everything is a document with properties**. The d
 
 ### Permissions Model
 
-**Workspace-level only** - simplest model:
+**Workspace membership plus document visibility** - no per-program ACLs:
 
 - You're in the workspace or you're not
-- All workspace members see all documents
-- No per-program or per-document access controls
+- Workspace-visible documents are visible to workspace members
+- Private documents are visible to their creator and workspace admins
+- No per-program ACLs
 - Roles (admin, member) are workspace-scoped
 
 ### Authorization vs Content Separation
@@ -69,7 +70,7 @@ The `document_type` field describes **what kind** of document it is:
 | `issue`        | Work item (tracked task)   | State, assignees, priority, ticket number, dates |
 | `program`      | Product/Initiative         | Long-lived container, has members, ticket prefix |
 | `project`      | Time-bounded deliverable   | Groups issues, has dates, belongs to program     |
-| `sprint`       | Week container (historical DB name) | Week number, program_id, contains week's work |
+| `sprint`       | Week container (historical DB name) | Week number, relationship associations, contains week's work |
 | `weekly_plan`  | Weekly planning doc        | Child of week, required before week starts       |
 | `weekly_retro` | Weekly retrospective       | Child of week, required after week ends          |
 | `person`       | User profile page          | `properties.user_id` links to auth user, capacity, skills |
@@ -77,12 +78,14 @@ The `document_type` field describes **what kind** of document it is:
 
 ## Document Location
 
-The `program_id` field describes **where** the document lives:
+`parent_id` is the hierarchy column. Program, project, and week membership live in `document_associations`, not legacy `program_id`, `project_id`, or `sprint_id` columns.
 
-| Value          | Location        | Example                                         |
-| -------------- | --------------- | ----------------------------------------------- |
-| `null`         | Workspace-level | Org documentation like "Engineering Onboarding" |
-| `<program_id>` | Program-level   | Program specs, program issues                   |
+| Relationship | Storage | Example |
+| ------------ | ------- | ------- |
+| Hierarchy | `documents.parent_id` | A child page under a parent issue |
+| Program membership | `document_associations` with `relationship_type = 'program'` | Program specs, program issues |
+| Project membership | `document_associations` with `relationship_type = 'project'` | Issues grouped under a project |
+| Week membership | `document_associations` with `relationship_type = 'sprint'` | Issues assigned to a week |
 
 ## Week Model
 
@@ -113,7 +116,7 @@ Program (AUTH)
 
 Week documents have:
 
-- `program_id`: which program
+- Program/project/week membership through `document_associations`
 - `properties.sprint_number`: which 7-day window (REQUIRED, historical field name)
 - `properties.owner_id`: person accountable for this week (REQUIRED)
 - Document body: week goals, context, description (everything is a document)
@@ -187,14 +190,14 @@ Issues flow from backlog to week (the "conveyor belt"):
 ```
 Backlog (in Project)  →  Assigned to Week  →  Done
      ↓                         ↓
-  project_id: "proj_1"    week assignment set
-  week: null              project_id: "proj_1" (kept)
+ project association      week association set
+ no week association      project association kept
 ```
 
 Issues maintain **multiple associations**:
 
-- `program_id` - always set (required)
-- `project_id` - set when belongs to a project
+- Program association - always set when scoped to a program
+- Project association - set when belongs to a project
 - Week assignment - set when assigned to active week work
 
 ## Data Model
@@ -208,12 +211,9 @@ interface Document {
   workspace_id: string;
   document_type: DocumentType;
 
-  // Location/associations (columns, not in properties)
-  program_id: string | null; // null = workspace-level
-  project_id: string | null; // for issues
+  // Hierarchy column
   parent_id: string | null; // document tree nesting
-  // Note: sprint_id column was dropped by migration 027.
-  // Week assignments now use the document_associations table.
+  // Program/project/week membership is stored in document_associations.
 
   // Content
   title: string; // Always "Untitled" for new docs
@@ -232,7 +232,7 @@ interface Document {
 
 ### Relationship Strategy
 
-Association fields (`program_id`, `project_id`, `parent_id`) are **columns** for efficient querying. Week assignments use the `document_associations` table (`sprint_id` column was dropped by migration 027). Everything else type-specific goes in `properties` JSONB.
+`parent_id` is the only relationship column. Program, project, and week assignments use the `document_associations` table. Everything else type-specific goes in `properties` JSONB.
 
 ### Properties System
 
@@ -451,14 +451,14 @@ When a user is removed from a workspace:
 
 ### Documents View (Workspace Level)
 
-Shows workspace-level documents (`program_id = null`):
+Shows documents with no program/project/week association:
 
 - Org-level wikis like "Engineering Onboarding"
 - Cross-program documentation
 
 ### Program View
 
-Shows documents where `program_id = <current_program>`:
+Shows documents associated to the current program through `document_associations`:
 
 - Program documentation (wikis)
 - Projects and their issues

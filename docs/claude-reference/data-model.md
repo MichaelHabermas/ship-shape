@@ -45,10 +45,7 @@ CREATE TABLE documents (
   parent_id UUID REFERENCES documents(id) ON DELETE CASCADE,
   position INTEGER DEFAULT 0,
 
-  -- Associations (transitioning to document_associations table)
-  program_id UUID REFERENCES documents(id) ON DELETE SET NULL,
-  project_id UUID REFERENCES documents(id) ON DELETE SET NULL,
-  -- Note: sprint_id was dropped by migration 027. Week assignments use document_associations.
+  -- Program/project/week membership uses document_associations.
 
   -- Type-specific properties (JSONB)
   properties JSONB DEFAULT '{}',
@@ -120,9 +117,8 @@ Additional states: `cancelled`, custom states per workspace.
 CREATE INDEX idx_documents_workspace_id ON documents(workspace_id);
 CREATE INDEX idx_documents_parent_id ON documents(parent_id);
 CREATE INDEX idx_documents_document_type ON documents(document_type);
-CREATE INDEX idx_documents_program_id ON documents(program_id);
-CREATE INDEX idx_documents_project_id ON documents(project_id);
--- Note: idx_documents_sprint_id was dropped with the sprint_id column (migration 027)
+CREATE INDEX idx_document_associations_related_type ON document_associations(related_id, relationship_type);
+CREATE INDEX idx_document_associations_document_type ON document_associations(document_id, relationship_type);
 CREATE INDEX idx_documents_properties ON documents USING GIN (properties);
 CREATE INDEX idx_documents_visibility ON documents(visibility);
 

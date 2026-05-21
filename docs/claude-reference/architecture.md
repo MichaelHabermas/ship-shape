@@ -86,12 +86,9 @@ interface Document {
   content: Record<string, unknown>;  // TipTap JSON
   yjs_state?: Uint8Array;        // CRDT state for collaboration
 
-  // Associations (columns for efficient querying)
-  program_id?: string | null;
-  project_id?: string | null;
+  // Hierarchy column
   parent_id?: string | null;
-  // Note: sprint_id was dropped by migration 027.
-  // Week assignments now use the document_associations table.
+  // Program/project/week membership lives in document_associations.
 
   // Type-specific properties (JSONB)
   properties: Record<string, unknown>;
@@ -365,14 +362,13 @@ CREATE TABLE sessions (
 );
 ```
 
-### 5. Properties in JSONB, Associations in Columns
+### 5. Properties in JSONB, Associations in Junction Table
 
-Association fields (`program_id`, `project_id`) are columns for efficient joins. Week assignments use the `document_associations` table (`sprint_id` column was dropped by migration 027). Type-specific properties go in JSONB.
+`parent_id` is the hierarchy column. Program, project, and week membership use `document_associations`. Type-specific properties go in JSONB.
 
 ```sql
--- api/src/db/schema.sql:107-116
-program_id UUID REFERENCES documents(id),
-project_id UUID REFERENCES documents(id),
+-- api/src/db/schema.sql
+parent_id UUID REFERENCES documents(id) ON DELETE CASCADE,
 properties JSONB DEFAULT '{}',
 ```
 

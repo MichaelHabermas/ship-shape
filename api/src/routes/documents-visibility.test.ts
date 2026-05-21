@@ -534,6 +534,121 @@ describe('Document Visibility', () => {
     });
   });
 
+  describe('Document reference validation', () => {
+    it('blocks creating a child under an unreadable private parent', async () => {
+      const parentResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'User1 Private Parent', 'private', $2)
+         RETURNING id`,
+        [testWorkspaceId, user1Id]
+      );
+      const parentId = parentResult.rows[0].id;
+
+      const res = await request(app)
+        .post('/api/documents')
+        .set('Cookie', user2SessionCookie)
+        .set('X-CSRF-Token', user2CsrfToken)
+        .send({ title: 'Blocked Child', document_type: 'wiki', parent_id: parentId });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Parent document not found');
+    });
+
+    it('blocks moving a document under an unreadable private parent', async () => {
+      const parentResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'User1 Private Parent', 'private', $2)
+         RETURNING id`,
+        [testWorkspaceId, user1Id]
+      );
+      const parentId = parentResult.rows[0].id;
+
+      const docResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'User2 Doc', 'workspace', $2)
+         RETURNING id`,
+        [testWorkspaceId, user2Id]
+      );
+      const docId = docResult.rows[0].id;
+
+      const res = await request(app)
+        .patch(`/api/documents/${docId}`)
+        .set('Cookie', user2SessionCookie)
+        .set('X-CSRF-Token', user2CsrfToken)
+        .send({ parent_id: parentId });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Parent document not found');
+    });
+  });
+
+  describe('Association visibility', () => {
+    it('filters unreadable related documents from associations', async () => {
+      const sourceResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Workspace Source', 'workspace', $2)
+         RETURNING id`,
+        [testWorkspaceId, user2Id]
+      );
+      const sourceId = sourceResult.rows[0].id;
+
+      const privateRelatedResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Hidden Related', 'private', $2)
+         RETURNING id`,
+        [testWorkspaceId, user1Id]
+      );
+      const privateRelatedId = privateRelatedResult.rows[0].id;
+
+      await pool.query(
+        `INSERT INTO document_associations (document_id, related_id, relationship_type)
+         VALUES ($1, $2, 'parent')`,
+        [sourceId, privateRelatedId]
+      );
+
+      const res = await request(app)
+        .get(`/api/documents/${sourceId}/associations`)
+        .set('Cookie', user2SessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(0);
+    });
+
+    it('blocks creating an association to an unreadable private document', async () => {
+      const sourceResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Workspace Source', 'workspace', $2)
+         RETURNING id`,
+        [testWorkspaceId, user2Id]
+      );
+      const sourceId = sourceResult.rows[0].id;
+
+      const privateRelatedResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Hidden Related', 'private', $2)
+         RETURNING id`,
+        [testWorkspaceId, user1Id]
+      );
+      const privateRelatedId = privateRelatedResult.rows[0].id;
+
+      const res = await request(app)
+        .post(`/api/documents/${sourceId}/associations`)
+        .set('Cookie', user2SessionCookie)
+        .set('X-CSRF-Token', user2CsrfToken)
+        .send({ related_id: privateRelatedId, relationship_type: 'parent' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Document not found');
+
+      const assocResult = await pool.query(
+        `SELECT id FROM document_associations
+         WHERE document_id = $1 AND related_id = $2`,
+        [sourceId, privateRelatedId]
+      );
+      expect(assocResult.rows).toHaveLength(0);
+    });
+  });
+
   describe('Search', () => {
     it('includes private docs in search for creator', async () => {
       // Create private document with searchable title

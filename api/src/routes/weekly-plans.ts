@@ -4,6 +4,13 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
 import { extractText } from '../utils/document-content.js';
+import {
+  getActor,
+  getDocumentAccessContext,
+  getReadableDocument,
+  requireSelfOrAdminPerson,
+  visibilityPredicate,
+} from '../services/document-access.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -192,26 +199,22 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const { person_id, project_id, week_number } = parsed.data;
     const workspaceId = req.workspaceId!;
     const userId = req.userId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor, client);
 
-    // Verify person exists in this workspace
-    const personResult = await client.query(
-      `SELECT id, title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-      [person_id, workspaceId]
-    );
-    if (personResult.rows.length === 0) {
+    let person;
+    try {
+      person = await requireSelfOrAdminPerson(client, actor, person_id);
+    } catch {
       res.status(404).json({ error: 'Person not found' });
       return;
     }
-    const personName = personResult.rows[0].title;
+    const personName = person.title;
 
     // Verify project exists if provided.
     // Note that project_id is a legacy field that is no longer present on new documents
     if (project_id) {
-      const projectResult = await client.query(
-        `SELECT id, title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
-        [project_id, workspaceId]
-      );
-      if (projectResult.rows.length === 0) {
+      if (!(await getReadableDocument(client, actor, project_id, 'project'))) {
         res.status(404).json({ error: 'Project not found' });
         return;
       }
@@ -225,8 +228,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
          AND document_type = 'weekly_plan'
          AND (properties->>'person_id') = $2
          AND (properties->>'week_number')::int = $3
-         AND archived_at IS NULL`,
-      [workspaceId, person_id, week_number]
+         AND archived_at IS NULL
+         AND deleted_at IS NULL
+         AND ${visibilityPredicate('documents', '$4', '$5')}`,
+      [workspaceId, person_id, week_number, userId, isAdmin]
     );
 
     if (existingResult.rows.length > 0) {
@@ -329,20 +334,37 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
     const { person_id, project_id, week_number } = req.query;
 
     let query = `
       SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
              p.title as person_name, pr.title as project_name
       FROM documents d
-      LEFT JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
-      LEFT JOIN documents pr ON (d.properties->>'project_id')::uuid = pr.id
+      LEFT JOIN documents p
+        ON (d.properties->>'person_id')::uuid = p.id
+       AND p.workspace_id = $1
+       AND p.document_type = 'person'
+       AND p.deleted_at IS NULL
+       AND p.archived_at IS NULL
+       AND ${visibilityPredicate('p', '$2', '$3')}
+      LEFT JOIN documents pr
+        ON (d.properties->>'project_id')::uuid = pr.id
+       AND pr.workspace_id = $1
+       AND pr.document_type = 'project'
+       AND pr.deleted_at IS NULL
+       AND pr.archived_at IS NULL
+       AND ${visibilityPredicate('pr', '$2', '$3')}
       WHERE d.workspace_id = $1
         AND d.document_type = 'weekly_plan'
         AND d.archived_at IS NULL
+        AND d.deleted_at IS NULL
+        AND ${visibilityPredicate('d', '$2', '$3')}
+        AND (p.properties->>'user_id' = $2 OR $3 = TRUE)
     `;
-    const params: (string | number)[] = [workspaceId];
-    let paramIndex = 2;
+    const params: (string | number | boolean)[] = [workspaceId, actor.userId, isAdmin];
+    let paramIndex = 4;
 
     if (person_id) {
       query += ` AND (d.properties->>'person_id') = $${paramIndex++}`;
@@ -408,16 +430,18 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.get('/:id/history', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
 
     // Verify document exists and is a weekly_plan
-    const docCheck = await pool.query(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'weekly_plan'`,
-      [id, workspaceId]
-    );
-
-    if (docCheck.rows.length === 0) {
+    const document = await getReadableDocument(pool, actor, String(id), 'weekly_plan');
+    if (!document) {
+      res.status(404).json({ error: 'Weekly plan not found' });
+      return;
+    }
+    const personId = typeof document.properties?.person_id === 'string' ? document.properties.person_id : '';
+    try {
+      await requireSelfOrAdminPerson(pool, actor, personId);
+    } catch {
       res.status(404).json({ error: 'Weekly plan not found' });
       return;
     }
@@ -470,21 +494,41 @@ router.get('/:id/history', authMiddleware, async (req: Request, res: Response) =
  *       404:
  *         description: Weekly plan not found
  */
+router.get('/project-allocation-grid/:projectId', authMiddleware, getProjectAllocationGrid);
+
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     const result = await pool.query(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               p.title as person_name, pr.title as project_name
        FROM documents d
-       LEFT JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
-       LEFT JOIN documents pr ON (d.properties->>'project_id')::uuid = pr.id
+       LEFT JOIN documents p
+         ON (d.properties->>'person_id')::uuid = p.id
+        AND p.workspace_id = $2
+        AND p.document_type = 'person'
+        AND p.archived_at IS NULL
+        AND p.deleted_at IS NULL
+        AND ${visibilityPredicate('p', '$3', '$4')}
+       LEFT JOIN documents pr
+         ON (d.properties->>'project_id')::uuid = pr.id
+        AND pr.workspace_id = $2
+        AND pr.document_type = 'project'
+        AND pr.archived_at IS NULL
+        AND pr.deleted_at IS NULL
+        AND ${visibilityPredicate('pr', '$3', '$4')}
        WHERE d.id = $1
          AND d.workspace_id = $2
-         AND d.document_type = 'weekly_plan'`,
-      [id, workspaceId]
+         AND d.document_type = 'weekly_plan'
+         AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}
+         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+      [id, workspaceId, actor.userId, isAdmin]
     );
 
     if (result.rows.length === 0) {
@@ -569,25 +613,21 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
     const { person_id, project_id, week_number } = parsed.data;
     const workspaceId = req.workspaceId!;
     const userId = req.userId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor, client);
 
-    // Verify person exists in this workspace
-    const personResult = await client.query(
-      `SELECT id, title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-      [person_id, workspaceId]
-    );
-    if (personResult.rows.length === 0) {
+    let person;
+    try {
+      person = await requireSelfOrAdminPerson(client, actor, person_id);
+    } catch {
       res.status(404).json({ error: 'Person not found' });
       return;
     }
-    const personName = personResult.rows[0].title;
+    const personName = person.title;
 
     // Verify project exists if provided
     if (project_id) {
-      const projectResult = await client.query(
-        `SELECT id, title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
-        [project_id, workspaceId]
-      );
-      if (projectResult.rows.length === 0) {
+      if (!(await getReadableDocument(client, actor, project_id, 'project'))) {
         res.status(404).json({ error: 'Project not found' });
         return;
       }
@@ -601,8 +641,10 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
          AND document_type = 'weekly_retro'
          AND (properties->>'person_id') = $2
          AND (properties->>'week_number')::int = $3
-         AND archived_at IS NULL`,
-      [workspaceId, person_id, week_number]
+         AND archived_at IS NULL
+         AND deleted_at IS NULL
+         AND ${visibilityPredicate('documents', '$4', '$5')}`,
+      [workspaceId, person_id, week_number, userId, isAdmin]
     );
 
     if (existingResult.rows.length > 0) {
@@ -645,8 +687,10 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
          AND document_type = 'weekly_plan'
          AND (properties->>'person_id') = $2
          AND (properties->>'week_number')::int = $3
-         AND archived_at IS NULL`,
-      [workspaceId, person_id, week_number]
+         AND archived_at IS NULL
+         AND deleted_at IS NULL
+         AND ${visibilityPredicate('documents', '$4', '$5')}`,
+      [workspaceId, person_id, week_number, userId, isAdmin]
     );
 
     if (planResult.rows.length > 0 && planResult.rows[0].content) {
@@ -724,20 +768,37 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
 weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
     const { person_id, project_id, week_number } = req.query;
 
     let query = `
       SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
              p.title as person_name, pr.title as project_name
       FROM documents d
-      LEFT JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
-      LEFT JOIN documents pr ON (d.properties->>'project_id')::uuid = pr.id
+      LEFT JOIN documents p
+        ON (d.properties->>'person_id')::uuid = p.id
+       AND p.workspace_id = $1
+       AND p.document_type = 'person'
+       AND p.deleted_at IS NULL
+       AND p.archived_at IS NULL
+       AND ${visibilityPredicate('p', '$2', '$3')}
+      LEFT JOIN documents pr
+        ON (d.properties->>'project_id')::uuid = pr.id
+       AND pr.workspace_id = $1
+       AND pr.document_type = 'project'
+       AND pr.deleted_at IS NULL
+       AND pr.archived_at IS NULL
+       AND ${visibilityPredicate('pr', '$2', '$3')}
       WHERE d.workspace_id = $1
         AND d.document_type = 'weekly_retro'
         AND d.archived_at IS NULL
+        AND d.deleted_at IS NULL
+        AND ${visibilityPredicate('d', '$2', '$3')}
+        AND (p.properties->>'user_id' = $2 OR $3 = TRUE)
     `;
-    const params: (string | number)[] = [workspaceId];
-    let paramIndex = 2;
+    const params: (string | number | boolean)[] = [workspaceId, actor.userId, isAdmin];
+    let paramIndex = 4;
 
     if (person_id) {
       query += ` AND (d.properties->>'person_id') = $${paramIndex++}`;
@@ -803,16 +864,18 @@ weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) 
 weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
 
     // Verify document exists and is a weekly_retro
-    const docCheck = await pool.query(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'weekly_retro'`,
-      [id, workspaceId]
-    );
-
-    if (docCheck.rows.length === 0) {
+    const document = await getReadableDocument(pool, actor, String(id), 'weekly_retro');
+    if (!document) {
+      res.status(404).json({ error: 'Weekly retro not found' });
+      return;
+    }
+    const personId = typeof document.properties?.person_id === 'string' ? document.properties.person_id : '';
+    try {
+      await requireSelfOrAdminPerson(pool, actor, personId);
+    } catch {
       res.status(404).json({ error: 'Weekly retro not found' });
       return;
     }
@@ -869,17 +932,35 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
   try {
     const { id } = req.params;
     const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     const result = await pool.query(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               p.title as person_name, pr.title as project_name
        FROM documents d
-       LEFT JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
-       LEFT JOIN documents pr ON (d.properties->>'project_id')::uuid = pr.id
+       LEFT JOIN documents p
+         ON (d.properties->>'person_id')::uuid = p.id
+        AND p.workspace_id = $2
+        AND p.document_type = 'person'
+        AND p.archived_at IS NULL
+        AND p.deleted_at IS NULL
+        AND ${visibilityPredicate('p', '$3', '$4')}
+       LEFT JOIN documents pr
+         ON (d.properties->>'project_id')::uuid = pr.id
+        AND pr.workspace_id = $2
+        AND pr.document_type = 'project'
+        AND pr.archived_at IS NULL
+        AND pr.deleted_at IS NULL
+        AND ${visibilityPredicate('pr', '$3', '$4')}
        WHERE d.id = $1
          AND d.workspace_id = $2
-         AND d.document_type = 'weekly_retro'`,
-      [id, workspaceId]
+         AND d.document_type = 'weekly_retro'
+         AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}
+         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+      [id, workspaceId, actor.userId, isAdmin]
     );
 
     if (result.rows.length === 0) {
@@ -925,18 +1006,15 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
  *       200:
  *         description: Allocation grid data
  */
-router.get('/project-allocation-grid/:projectId', authMiddleware, async (req: Request, res: Response) => {
+async function getProjectAllocationGrid(req: Request, res: Response) {
   try {
     const { projectId } = req.params;
     const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
-    // Verify project exists
-    const projectResult = await pool.query(
-      `SELECT id, title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
-      [projectId, workspaceId]
-    );
-
-    if (projectResult.rows.length === 0) {
+    const project = await getReadableDocument(pool, actor, String(projectId), 'project');
+    if (!project) {
       res.status(404).json({ error: 'Project not found' });
       return;
     }
@@ -970,8 +1048,15 @@ router.get('/project-allocation-grid/:projectId', authMiddleware, async (req: Re
        WHERE s.workspace_id = $1
          AND s.document_type = 'sprint'
          AND (s.properties->>'project_id')::uuid = $2
-         AND s.deleted_at IS NULL`,
-      [workspaceId, projectId]
+         AND s.deleted_at IS NULL
+         AND s.archived_at IS NULL
+         AND ${visibilityPredicate('s', '$3', '$4')}
+         AND p.workspace_id = $1
+         AND p.deleted_at IS NULL
+         AND p.archived_at IS NULL
+         AND ${visibilityPredicate('p', '$3', '$4')}
+         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+      [workspaceId, projectId, actor.userId, isAdmin]
     );
 
     // Group allocations by person
@@ -990,23 +1075,41 @@ router.get('/project-allocation-grid/:projectId', authMiddleware, async (req: Re
     // Get all weekly plans for this project (include content to check if "done")
     const plansResult = await pool.query(
       `SELECT (properties->>'person_id') as person_id, (properties->>'week_number')::int as week_number, id, content
-       FROM documents
-       WHERE workspace_id = $1
-         AND document_type = 'weekly_plan'
-         AND (properties->>'project_id') = $2
-         AND deleted_at IS NULL`,
-      [workspaceId, projectId]
+       FROM documents d
+       JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
+       WHERE d.workspace_id = $1
+         AND d.document_type = 'weekly_plan'
+         AND (d.properties->>'project_id') = $2
+         AND d.deleted_at IS NULL
+         AND d.archived_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}
+         AND p.workspace_id = $1
+         AND p.document_type = 'person'
+         AND p.deleted_at IS NULL
+         AND p.archived_at IS NULL
+         AND ${visibilityPredicate('p', '$3', '$4')}
+         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+      [workspaceId, projectId, actor.userId, isAdmin]
     );
 
     // Get all weekly retros for this project (include content to check if "done")
     const retrosResult = await pool.query(
       `SELECT (properties->>'person_id') as person_id, (properties->>'week_number')::int as week_number, id, content
-       FROM documents
-       WHERE workspace_id = $1
-         AND document_type = 'weekly_retro'
-         AND (properties->>'project_id') = $2
-         AND deleted_at IS NULL`,
-      [workspaceId, projectId]
+       FROM documents d
+       JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
+       WHERE d.workspace_id = $1
+         AND d.document_type = 'weekly_retro'
+         AND (d.properties->>'project_id') = $2
+         AND d.deleted_at IS NULL
+         AND d.archived_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}
+         AND p.workspace_id = $1
+         AND p.document_type = 'person'
+         AND p.deleted_at IS NULL
+         AND p.archived_at IS NULL
+         AND ${visibilityPredicate('p', '$3', '$4')}
+         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+      [workspaceId, projectId, actor.userId, isAdmin]
     );
 
     // Helper to extract all text from a TipTap document
@@ -1151,7 +1254,7 @@ router.get('/project-allocation-grid/:projectId', authMiddleware, async (req: Re
 
     res.json({
       projectId,
-      projectTitle: projectResult.rows[0].title,
+      projectTitle: project.title,
       currentSprintNumber,
       weeks,
       people,
@@ -1160,6 +1263,6 @@ router.get('/project-allocation-grid/:projectId', authMiddleware, async (req: Re
     console.error('Get project allocation grid error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}
 
 export default router;

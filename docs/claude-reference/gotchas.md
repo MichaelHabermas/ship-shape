@@ -34,29 +34,22 @@ Sessions have **two** independent timeouts - missing either one logs users out.
 
 **Gotcha:** The collaboration WebSocket enforces the same timeouts. Long-idle editing sessions will disconnect.
 
-## 3. Document Associations - Dual System
+## 3. Document Associations - Junction Table Plus Parent Hierarchy
 
-Documents use BOTH direct columns AND a junction table for associations. This is a migration in progress.
+Documents use `parent_id` for hierarchy and `document_associations` for program, project, and week membership.
 
-**Old system (columns):**
+**Hierarchy column:**
 ```sql
--- api/src/db/schema.sql:107-109
-program_id UUID REFERENCES documents(id)
-project_id UUID REFERENCES documents(id)
--- Note: sprint_id was dropped by migration 027
+parent_id UUID REFERENCES documents(id) ON DELETE CASCADE
 ```
 
-**New system (junction table):**
+**Membership junction table:**
 ```sql
 -- api/src/db/migrations/020_document_associations.sql
 document_associations(document_id, related_id, relationship_type)
 ```
 
-**Key locations:**
-- `/Users/jonesshaw/Documents/code/ship/api/src/db/migrations/021_migrate_associations.sql` - Migrates data from columns to junction
-- `/Users/jonesshaw/Documents/code/ship/api/src/db/seed.ts:532-564` - Seed data writes to BOTH systems
-
-**Gotcha:** When creating associations, you may need to write to both systems. The old columns are kept for rollback safety (see migration 021, line 67).
+**Gotcha:** Do not recreate legacy `program_id`, `project_id`, or `sprint_id` document columns. They were removed by migrations; code should use `document_associations` for program/project/week membership and `parent_id` only for hierarchy.
 
 ## 4. Error Response Inconsistency
 

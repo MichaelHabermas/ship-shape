@@ -3,6 +3,7 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { getActor, getDocumentAccessContext, visibilityPredicate } from '../services/document-access.js';
 
 type RouterType = ReturnType<typeof Router>;
 
@@ -77,9 +78,16 @@ publicFeedbackRouter.post('/', async (req: Request, res: Response) => {
 
     const { title, program_id, submitter_email, content } = parsed.data;
 
-    // Verify program exists and get its workspace_id
+    // Verify public feedback is enabled for this workspace-visible program.
     const programResult = await pool.query(
-      `SELECT id, workspace_id, properties->>'prefix' as prefix FROM documents WHERE id = $1 AND document_type = 'program'`,
+      `SELECT id, workspace_id, properties->>'prefix' as prefix
+       FROM documents
+       WHERE id = $1
+         AND document_type = 'program'
+         AND visibility = 'workspace'
+         AND archived_at IS NULL
+         AND deleted_at IS NULL
+         AND properties->>'public_feedback_enabled' = 'true'`,
       [program_id]
     );
 
@@ -148,7 +156,13 @@ publicFeedbackRouter.get('/program/:programId', async (req: Request, res: Respon
 
     const result = await pool.query(
       `SELECT id, title as name, properties->>'prefix' as prefix, properties->>'color' as color
-       FROM documents WHERE id = $1 AND document_type = 'program'`,
+       FROM documents
+       WHERE id = $1
+         AND document_type = 'program'
+         AND visibility = 'workspace'
+         AND archived_at IS NULL
+         AND deleted_at IS NULL
+         AND properties->>'public_feedback_enabled' = 'true'`,
       [programId]
     );
 
@@ -167,7 +181,9 @@ publicFeedbackRouter.get('/program/:programId', async (req: Request, res: Respon
 // Get single feedback item
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { workspaceId } = getAuthenticatedRouteContext(req);
+    const { workspaceId, userId } = getAuthenticatedRouteContext(req);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
     const id = getRouteParam(req.params.id);
 
     // Validate UUID format
@@ -189,8 +205,14 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
        LEFT JOIN document_associations prog_da ON d.id = prog_da.document_id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id AND p.document_type = 'program'
        LEFT JOIN users creator ON d.created_by = creator.id
-       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'issue' AND d.properties->>'source' = 'external'`,
-      [id, workspaceId]
+       WHERE d.id = $1
+         AND d.workspace_id = $2
+         AND d.document_type = 'issue'
+         AND d.properties->>'source' = 'external'
+         AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}`,
+      [id, workspaceId, userId, isAdmin]
     );
 
     if (result.rows.length === 0) {

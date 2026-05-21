@@ -2,6 +2,14 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+  expectedTypeForRelationship,
+  getActor,
+  getDocumentAccessContext,
+  getReadableDocument,
+  requireAssociationAccess,
+  visibilityPredicate,
+} from '../services/document-access.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -12,22 +20,6 @@ const createAssociationSchema = z.object({
   relationship_type: z.enum(['parent', 'project', 'sprint', 'program']),
   metadata: z.record(z.unknown()).optional(),
 });
-
-// Check if user can access document
-async function canAccessDocument(
-  docId: string,
-  userId: string,
-  workspaceId: string
-): Promise<boolean> {
-  const result = await pool.query(
-    `SELECT id FROM documents
-     WHERE id = $1 AND workspace_id = $2
-       AND (visibility = 'workspace' OR created_by = $3 OR
-            (SELECT role FROM workspace_memberships WHERE workspace_id = $2 AND user_id = $3) = 'admin')`,
-    [docId, workspaceId, userId]
-  );
-  return result.rows.length > 0;
-}
 
 // Valid relationship types
 const validTypes = ['parent', 'project', 'sprint', 'program'] as const;
@@ -43,11 +35,11 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
     const id = String(req.params.id);
     // Normalize query param (could be string or string[])
     const typeParam = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
-    const userId = String(req.userId);
-    const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     // Check access
-    if (!(await canAccessDocument(id, userId, workspaceId))) {
+    if (!(await getReadableDocument(pool, actor, id))) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
@@ -64,15 +56,19 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
       FROM document_associations da
       JOIN documents d ON d.id = da.related_id
       WHERE da.document_id = $1
+        AND d.workspace_id = $2
+        AND d.archived_at IS NULL
+        AND d.deleted_at IS NULL
+        AND ${visibilityPredicate('d', '$3', '$4')}
     `;
-    const params: string[] = [id];
+    const params: Array<string | boolean> = [id, actor.workspaceId, actor.userId, isAdmin];
 
     // Filter by relationship type if provided
     if (typeParam) {
       if (!isValidRelationshipType(typeParam)) {
         return res.status(400).json({ error: 'Invalid relationship type' });
       }
-      query += ` AND da.relationship_type = $2`;
+      query += ` AND da.relationship_type = $5`;
       params.push(typeParam);
     }
 
@@ -91,8 +87,7 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
 router.post('/:id/associations', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const userId = String(req.userId);
-    const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
 
     // Validate input
     const parseResult = createAssociationSchema.safeParse(req.body);
@@ -102,23 +97,15 @@ router.post('/:id/associations', authMiddleware, async (req: Request, res: Respo
 
     const { related_id, relationship_type, metadata } = parseResult.data;
 
-    // Check access to source document
-    if (!(await canAccessDocument(id, userId, workspaceId))) {
-      return res.status(404).json({ error: 'Document not found' });
-    }
-
-    // Check related document exists in same workspace
-    const relatedDoc = await pool.query(
-      'SELECT id FROM documents WHERE id = $1 AND workspace_id = $2',
-      [related_id, workspaceId]
-    );
-    if (relatedDoc.rows.length === 0) {
-      return res.status(400).json({ error: 'Related document not found' });
-    }
-
     // Prevent self-reference
     if (id === related_id) {
       return res.status(400).json({ error: 'Cannot create self-referencing association' });
+    }
+
+    try {
+      await requireAssociationAccess(pool, actor, id, related_id, relationship_type);
+    } catch {
+      return res.status(404).json({ error: 'Document not found' });
     }
 
     // Create association (ON CONFLICT handles duplicate check)
@@ -146,11 +133,16 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
     const relatedId = String(req.params.relatedId);
     // Normalize query param (could be string or string[])
     const typeParam = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
-    const userId = String(req.userId);
-    const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
 
-    // Check access
-    if (!(await canAccessDocument(id, userId, workspaceId))) {
+    const source = await getReadableDocument(pool, actor, id);
+    const related = await getReadableDocument(
+      pool,
+      actor,
+      relatedId,
+      typeParam && isValidRelationshipType(typeParam) ? expectedTypeForRelationship(typeParam) : undefined
+    );
+    if (!source || !related) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
@@ -188,11 +180,11 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
     const id = String(req.params.id);
     // Normalize query param (could be string or string[])
     const typeParam = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
-    const userId = String(req.userId);
-    const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     // Check access
-    if (!(await canAccessDocument(id, userId, workspaceId))) {
+    if (!(await getReadableDocument(pool, actor, id))) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
@@ -211,14 +203,16 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
       WHERE da.related_id = $1
         AND d.workspace_id = $2
         AND d.archived_at IS NULL
+        AND d.deleted_at IS NULL
+        AND ${visibilityPredicate('d', '$3', '$4')}
     `;
-    const params: string[] = [id, workspaceId];
+    const params: Array<string | boolean> = [id, actor.workspaceId, actor.userId, isAdmin];
 
     if (typeParam) {
       if (!isValidRelationshipType(typeParam)) {
         return res.status(400).json({ error: 'Invalid relationship type' });
       }
-      query += ` AND da.relationship_type = $3`;
+      query += ` AND da.relationship_type = $5`;
       params.push(typeParam);
     }
 
@@ -237,11 +231,11 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
 router.get('/:id/context', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const userId = String(req.userId);
-    const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     // Check access
-    if (!(await canAccessDocument(id, userId, workspaceId))) {
+    if (!(await getReadableDocument(pool, actor, id))) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
@@ -254,9 +248,15 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
               prog.properties->>'color' as program_color
        FROM documents d
        LEFT JOIN document_associations prog_da ON d.id = prog_da.document_id AND prog_da.relationship_type = 'program'
-       LEFT JOIN documents prog ON prog_da.related_id = prog.id AND prog.document_type = 'program'
+       LEFT JOIN documents prog
+         ON prog_da.related_id = prog.id
+        AND prog.document_type = 'program'
+        AND prog.workspace_id = $2
+        AND prog.archived_at IS NULL
+        AND prog.deleted_at IS NULL
+        AND ${visibilityPredicate('prog', '$3', '$4')}
        WHERE d.id = $1`,
-      [id]
+      [id, actor.workspaceId, actor.userId, isAdmin]
     );
 
     if (currentDoc.rows.length === 0) {
@@ -279,6 +279,8 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
           AND da.relationship_type = 'parent'
           AND d.workspace_id = $2
           AND d.archived_at IS NULL
+          AND d.deleted_at IS NULL
+          AND ${visibilityPredicate('d', '$3', '$4')}
 
         UNION ALL
 
@@ -295,9 +297,11 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
         WHERE da.relationship_type = 'parent'
           AND d.workspace_id = $2
           AND d.archived_at IS NULL
+          AND d.deleted_at IS NULL
+          AND ${visibilityPredicate('d', '$3', '$4')}
       )
       SELECT * FROM ancestors ORDER BY depth DESC`,
-      [id, workspaceId]
+      [id, actor.workspaceId, actor.userId, isAdmin]
     );
 
     // Get children (documents that have this document as parent)
@@ -307,16 +311,25 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
         d.title,
         d.document_type,
         d.ticket_number,
-        (SELECT COUNT(*) FROM document_associations da2
-         WHERE da2.related_id = d.id AND da2.relationship_type = 'parent') as child_count
+        (SELECT COUNT(*)
+         FROM document_associations da2
+         JOIN documents child ON child.id = da2.document_id
+         WHERE da2.related_id = d.id
+           AND da2.relationship_type = 'parent'
+           AND child.workspace_id = $2
+           AND child.archived_at IS NULL
+           AND child.deleted_at IS NULL
+           AND ${visibilityPredicate('child', '$3', '$4')}) as child_count
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id
        WHERE da.related_id = $1
          AND da.relationship_type = 'parent'
          AND d.workspace_id = $2
          AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}
        ORDER BY d.title`,
-      [id, workspaceId]
+      [id, actor.workspaceId, actor.userId, isAdmin]
     );
 
     // Get belongs_to associations (project, sprint, program)
@@ -334,13 +347,15 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
          AND da.relationship_type IN ('project', 'sprint', 'program')
          AND d.workspace_id = $2
          AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}
        ORDER BY
          CASE da.relationship_type
            WHEN 'program' THEN 1
            WHEN 'project' THEN 2
            WHEN 'sprint' THEN 3
          END`,
-      [id, workspaceId]
+      [id, actor.workspaceId, actor.userId, isAdmin]
     );
 
     // Build breadcrumb path: Program > Project > Sprint > Parent Issues > Current
