@@ -4,91 +4,24 @@ import { Editor } from '@/components/Editor';
 import { PropertiesPanel } from '@/components/sidebars/PropertiesPanel';
 import { WeeklyReviewSubNav } from '@/components/review/WeeklyReviewSubNav';
 import { useWeeklyReviewActions } from '@/hooks/useWeeklyReviewActions';
-import type {
-  PanelDocument,
-} from '@/components/sidebars/PropertiesPanel';
+import type { PanelDocument } from '@/components/sidebars/PropertiesPanel';
 import { DocumentTypeSelector, getMissingRequiredFields } from '@/components/sidebars/DocumentTypeSelector';
 import type { DocumentType as SelectableDocumentType } from '@/components/sidebars/DocumentTypeSelector';
 import { useAuth } from '@/hooks/useAuth';
 import { PlanQualityBanner, RetroQualityBanner } from '@/components/PlanQualityBanner';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Person } from '@/components/PersonCombobox';
-import type { BelongsTo } from '@ship/shared';
+import type {
+  EditorDocumentType,
+  UnifiedDocumentView,
+  IssueDocumentView,
+  ProjectDocumentView,
+  SprintDocumentView,
+} from '@ship/shared';
 
-export type DocumentType = 'wiki' | 'issue' | 'project' | 'sprint' | 'program' | 'person' | 'weekly_plan' | 'weekly_retro';
+export type DocumentType = EditorDocumentType | 'person';
 
-// Base document interface - common properties across all document types
-interface BaseDocument {
-  id: string;
-  title: string;
-  document_type: DocumentType;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string | null;
-  properties?: Record<string, unknown>;
-}
-
-// Wiki document
-interface WikiDocument extends BaseDocument {
-  document_type: 'wiki';
-  parent_id?: string | null;
-  visibility?: 'private' | 'workspace';
-}
-
-// Issue document
-interface IssueDocument extends BaseDocument {
-  document_type: 'issue';
-  state: string;
-  priority: string;
-  estimate: number | null;
-  assignee_id: string | null;
-  assignee_name?: string | null;
-  assignee_archived?: boolean;
-  program_id: string | null;
-  sprint_id: string | null;
-  source?: 'internal' | 'external';
-  rejection_reason?: string | null;
-  converted_from_id?: string | null;
-  display_id?: string;
-  belongs_to?: BelongsTo[];
-}
-
-// Project document
-interface ProjectDocument extends BaseDocument {
-  document_type: 'project';
-  impact: number | null;
-  confidence: number | null;
-  ease: number | null;
-  ice_score?: number | null;
-  color: string;
-  emoji: string | null;
-  program_id: string | null;
-  owner?: { id: string; name: string; email: string } | null;
-  owner_id?: string | null;
-  // RACI fields
-  accountable_id?: string | null;
-  consulted_ids?: string[];
-  informed_ids?: string[];
-  sprint_count?: number;
-  issue_count?: number;
-  converted_from_id?: string | null;
-}
-
-// Sprint document
-interface SprintDocument extends BaseDocument {
-  document_type: 'sprint';
-  start_date: string;
-  end_date: string;
-  status: 'planning' | 'active' | 'completed';
-  program_id: string | null;
-  program_name?: string;
-  issue_count?: number;
-  completed_count?: number;
-  plan?: string;
-}
-
-// Union type for all document types
-export type UnifiedDocument = WikiDocument | IssueDocument | ProjectDocument | SprintDocument | BaseDocument;
+export type UnifiedDocument = UnifiedDocumentView;
 
 // Sidebar data types
 interface WikiSidebarData {
@@ -207,14 +140,14 @@ export function UnifiedEditor({
       const props: Record<string, unknown> = {
         ...document.properties,
         // Include top-level fields that might be required
-        state: (document as IssueDocument).state,
-        priority: (document as IssueDocument).priority,
-        impact: (document as ProjectDocument).impact,
-        confidence: (document as ProjectDocument).confidence,
-        ease: (document as ProjectDocument).ease,
-        start_date: (document as SprintDocument).start_date,
-        end_date: (document as SprintDocument).end_date,
-        status: (document as SprintDocument).status,
+        state: (document as IssueDocumentView).state,
+        priority: (document as IssueDocumentView).priority,
+        impact: (document as ProjectDocumentView).impact,
+        confidence: (document as ProjectDocumentView).confidence,
+        ease: (document as ProjectDocumentView).ease,
+        start_date: (document as SprintDocumentView).start_date,
+        end_date: (document as SprintDocumentView).end_date,
+        status: (document as SprintDocumentView).status,
       };
       return getMissingRequiredFields(selectableType, props);
     }

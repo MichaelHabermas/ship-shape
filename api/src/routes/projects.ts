@@ -6,7 +6,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import type { ProjectProperties, WeekProperties } from '@ship/shared';
 import { DEFAULT_PROJECT_PROPERTIES, computeICEScore } from '@ship/shared';
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
-import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
+import { logDocumentChange, getLatestDocumentFieldHistory, syncProgramAssociation } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 
 type RouterType = ReturnType<typeof Router>;
@@ -661,14 +661,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       [req.workspaceId, title, JSON.stringify(properties), req.userId]
     );
 
-    // Create program association in junction table (mirrors PATCH behavior)
     if (program_id) {
-      await pool.query(
-        `INSERT INTO document_associations (document_id, related_id, relationship_type)
-         VALUES ($1, $2, 'program')
-         ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-        [result.rows[0]!.id, program_id]
-      );
+      await syncProgramAssociation(result.rows[0]!.id, program_id);
     }
 
     // Get user info for owner response (only if owner_id is set)
@@ -703,7 +697,11 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // Update project
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id;
+    if (typeof id !== 'string') {
+      res.status(400).json({ error: 'Invalid project id' });
+      return;
+    }
     const userId = req.userId!;
     const workspaceId = req.workspaceId!;
 
@@ -869,22 +867,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       );
     }
 
-    // Handle program_id update via document_associations
     if (data.program_id !== undefined) {
-      // First delete any existing program association
-      await pool.query(
-        `DELETE FROM document_associations WHERE document_id = $1 AND relationship_type = 'program'`,
-        [id]
-      );
-      // If program_id is not null, create new association
-      if (data.program_id) {
-        await pool.query(
-          `INSERT INTO document_associations (document_id, related_id, relationship_type)
-           VALUES ($1, $2, 'program')
-           ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-          [id, data.program_id]
-        );
-      }
+      await syncProgramAssociation(id, data.program_id ?? null);
     }
 
     // Re-query to get full project with owner info and inferred status (allocation-based)

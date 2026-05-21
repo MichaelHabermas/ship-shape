@@ -8,13 +8,24 @@ import * as decoding from 'lib0/decoding';
 import { pool } from '../db/client.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent } from '../utils/extractHypothesis.js';
 import { yjsToJson, jsonToYjs } from '../utils/yjsConverter.js';
+import { resolveInitialContent } from '../db/document-content-codec.js';
 import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
-import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
+import {
+  SESSION_TIMEOUT_MS,
+  ABSOLUTE_SESSION_TIMEOUT_MS,
+  COLLAB_MESSAGE_SYNC as messageSync,
+  COLLAB_MESSAGE_AWARENESS as messageAwareness,
+  COLLAB_MESSAGE_CLEAR_CACHE as messageClearCache,
+  COLLAB_CLOSE_CODE_CONVERSION,
+  COLLAB_CLOSE_CODE_CONTENT_UPDATE,
+  COLLAB_CLOSE_CODE_ACCESS_REVOKED,
+  buildCollaborationRoomName,
+  parseDocumentIdFromRoomName,
+  parseCollaborationRoomName,
+  roomPrefixMatchesDocumentType,
+} from '@ship/shared';
+import { getDocumentTypeById } from '../db/documents-repository.js';
 import cookie from 'cookie';
-
-const messageSync = 0;
-const messageAwareness = 1;
-const messageClearCache = 3; // Tells browser to clear IndexedDB cache before sync
 
 // Rate limiting configuration
 const RATE_LIMIT = {
@@ -97,11 +108,8 @@ const eventConns = new Map<WebSocket, { userId: string; workspaceId: string }>()
 // Debounce persistence (save every 2 seconds after changes)
 const pendingSaves = new Map<string, NodeJS.Timeout>();
 
-// Extract document ID from room name (format: "type:uuid")
-// All document types (doc, issue, program, sprint) map to the unified documents table
 function parseDocId(docName: string): string {
-  const parts = docName.split(':');
-  return parts.length > 1 ? parts[1]! : parts[0]!;
+  return parseDocumentIdFromRoomName(docName);
 }
 
 // Track last content history log time per document to avoid excessive logging
@@ -209,49 +217,24 @@ async function getOrCreateDoc(docName: string): Promise<Y.Doc> {
       [docId]
     );
 
-    if (result.rows[0]?.yjs_state) {
-      // Load from binary Yjs state (preferred path - content was previously synced)
+    const row = result.rows[0];
+    const resolved = resolveInitialContent({
+      content: row?.content ?? null,
+      yjs_state: row?.yjs_state ?? null,
+    });
+
+    if (resolved.useYjsState && row?.yjs_state) {
       console.log(`[Collaboration] Loading ${docName} from yjs_state`);
-      Y.applyUpdate(doc, result.rows[0].yjs_state);
-    } else if (result.rows[0]?.content) {
-      // Fallback: convert JSON content to Yjs (for API-created documents)
+      Y.applyUpdate(doc, row.yjs_state);
+    } else if (resolved.docJson != null && Array.isArray(resolved.docJson.content)) {
       console.log(`[Collaboration] Converting JSON content to Yjs for ${docName}`);
-      try {
-        let jsonContent = result.rows[0].content;
-        const originalContent = jsonContent;
-
-        // Parse if it's a string (might be JSON string or XML-like from old toJSON)
-        if (typeof jsonContent === 'string') {
-          // Skip if it looks like XML from XmlFragment.toJSON() (starts with <)
-          if (jsonContent.trim().startsWith('<')) {
-            console.log(`[Collaboration] Skipping XML-like content for ${docName}, starting with empty document`);
-            jsonContent = null;
-          } else {
-            jsonContent = JSON.parse(jsonContent);
-          }
-        }
-
-        if (jsonContent && jsonContent.type === 'doc' && Array.isArray(jsonContent.content)) {
-          const fragment = doc.getXmlFragment('default');
-          jsonToYjs(doc, fragment, jsonContent);
-          console.log(`[Collaboration] Successfully converted content for ${docName}: ${jsonContent.content.length} top-level nodes`);
-          // Mark this doc as freshly loaded from JSON - clients should clear their cache
-          freshFromJsonDocs.add(docName);
-          // Persist the converted state so this only happens once
-          schedulePersist(docName, doc);
-        } else {
-          // Log why conversion was skipped to help diagnose issues
-          console.warn(`[Collaboration] Content conversion skipped for ${docName}:`, {
-            hasContent: !!jsonContent,
-            type: jsonContent?.type,
-            isContentArray: Array.isArray(jsonContent?.content),
-            contentSample: typeof originalContent === 'string' ? originalContent.substring(0, 100) : JSON.stringify(originalContent).substring(0, 100),
-          });
-        }
-      } catch (parseErr) {
-        console.error(`[Collaboration] Failed to parse JSON content for ${docName}:`, parseErr);
-        // Start with empty document if content is corrupted
-      }
+      const fragment = doc.getXmlFragment('default');
+      jsonToYjs(doc, fragment, resolved.docJson);
+      console.log(
+        `[Collaboration] Successfully converted content for ${docName}: ${resolved.docJson.content.length} top-level nodes`
+      );
+      freshFromJsonDocs.add(docName);
+      schedulePersist(docName, doc);
     } else {
       console.log(`[Collaboration] No content found for ${docName}, starting with empty document`);
     }
@@ -473,7 +456,7 @@ export function invalidateDocumentCache(docId: string): void {
       if (ws.readyState === WebSocket.OPEN) {
         // Close with custom code 4101 (content updated via API)
         // Frontend should handle this by reconnecting to get fresh content
-        ws.close(4101, 'Content updated');
+        ws.close(COLLAB_CLOSE_CODE_CONTENT_UPDATE, 'Content updated');
       }
     }
 
@@ -523,7 +506,7 @@ export function handleDocumentConversion(
   for (const { ws } of connectionsToNotify) {
     if (ws.readyState === WebSocket.OPEN) {
       // Close with custom code 4100 (document converted) and JSON reason
-      ws.close(4100, closeReason);
+      ws.close(COLLAB_CLOSE_CODE_CONVERSION, closeReason);
     }
   }
 }
@@ -570,7 +553,7 @@ export async function handleVisibilityChange(
 
       // Close with code 4403 (custom code for "access revoked")
       // Frontend should handle this code and show appropriate message
-      ws.close(4403, 'Document access revoked');
+      ws.close(COLLAB_CLOSE_CODE_ACCESS_REVOKED, 'Document access revoked');
     }
   }
 }
@@ -665,16 +648,31 @@ export function setupCollaboration(server: Server) {
       return;
     }
 
-    const docName = url.pathname.replace('/collaboration/', '');
-    const docId = parseDocId(docName);
+    const requestedRoom = url.pathname.replace('/collaboration/', '');
+    const docId = parseDocumentIdFromRoomName(requestedRoom);
 
-    // Check document access (visibility check)
     const canAccess = await canAccessDocumentForCollab(docId, sessionData.userId, sessionData.workspaceId);
     if (!canAccess) {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
       return;
     }
+
+    const documentType = await getDocumentTypeById(docId, sessionData.workspaceId);
+    if (!documentType) {
+      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    const parsedRoom = parseCollaborationRoomName(requestedRoom);
+    if (parsedRoom && !roomPrefixMatchesDocumentType(parsedRoom.prefix, documentType)) {
+      console.warn(
+        `[Collaboration] Room prefix "${parsedRoom.prefix}" does not match document_type "${documentType}"; using canonical room`
+      );
+    }
+
+    const docName = buildCollaborationRoomName(documentType, docId);
 
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request, docName, sessionData);

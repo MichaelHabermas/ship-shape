@@ -14,6 +14,7 @@ import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extrac
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../schemas/document-boundary.js';
 import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
+import { updateDocumentContent } from '../db/documents-repository.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -536,23 +537,27 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
       goals: extractedGoals,
     };
 
-    // Update content and clear yjs_state (forces regeneration on next collaboration session)
-    const result = await pool.query(
-      `UPDATE documents
-       SET content = $1, yjs_state = NULL, properties = $2, updated_at = now()
-       WHERE id = $3 AND workspace_id = $4
-       RETURNING id, title, content`,
-      [JSON.stringify(content), JSON.stringify(newProps), id, workspaceId]
+    await updateDocumentContent(id, workspaceId, content, null, newProps);
+
+    const result = await pool.query<{ id: string; title: string; content: unknown }>(
+      `SELECT id, title, content FROM documents WHERE id = $1 AND workspace_id = $2`,
+      [id, workspaceId]
     );
 
     // Invalidate collaboration cache so connected clients get fresh content
     invalidateDocumentCache(id);
     await upsertDocumentSearchIndex(id);
 
+    const updated = result.rows[0];
+    if (!updated) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
     res.json({
-      id: result.rows[0].id,
-      title: result.rows[0].title,
-      content: result.rows[0].content,
+      id: updated.id,
+      title: updated.title,
+      content: updated.content,
     });
   } catch (err) {
     console.error('Update document content error:', err);
