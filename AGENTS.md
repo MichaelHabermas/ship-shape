@@ -17,6 +17,7 @@ Use multiple profiles only when the task clearly crosses boundaries. If no profi
 - Never modify `api/src/db/schema.sql` for existing tables; use numbered migrations.
 - PostgreSQL is local, not Docker.
 - For E2E, use `/e2e-test-runner`; if unavailable, use `pnpm test:e2e:run`.
+- For `gh` (PRs, issues): default repo is **origin** (`MichaelHabermas/ship-shape`). Run `./scripts/setup-gh-default.sh` after clone; never use `US-Department-of-the-Treasury/ship` as the gh target. Treasury is remote `treasury` (fetch-only).
 
 ## Default Commands
 
