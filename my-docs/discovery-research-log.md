@@ -2,6 +2,65 @@
 
 ---
 
+## Dependency Cleanup Discovery: Safe Patch Overrides Beat Framework-Major Migrations
+
+### Name
+
+Medium-risk dependency cleanup can clear current audit advisories without crossing product framework majors
+
+### Severity
+
+Medium
+
+### Where Found
+
+- `package.json`: added pnpm overrides for `flatted@3.4.2`, `markdown-it@14.1.1`, `qs@6.15.2`, `yaml@2.9.0`, and scoped `picomatch` overrides.
+- `api/package.json`: direct Express runtime stayed on the 4.x line and moved to `^4.22.2`.
+- `web/package.json`: Vite stayed on the 6.x line and React stayed on 18.
+- Verification: `pnpm audit --prod --json` and `pnpm audit --json` both reported 0 advisories after the cleanup.
+
+### What It Does And Why It Matters
+
+The dependency graph had two different kinds of risk: easy patched versions inside the current architecture, and major migrations that would change the product surface. The high-leverage move was not "upgrade everything"; it was to update current-line packages and use explicit pnpm overrides for patched transitives whose parents had not yet floated to safe patch versions.
+
+The audit caught two important cleanup mistakes before closeout. First, a global `picomatch@4.0.4` override was too broad because chokidar-era consumers such as `anymatch@3.1.3`, `micromatch@4.0.8`, and `readdirp@3.6.0` still declare the 2.x line; the final override is scoped so those paths keep `picomatch@2.3.2` while Vite/Vitest/tinyglobby paths use 4.0.4. Second, `jsdom@29.1.1` would silently raise the practical Node floor beyond the repo's `>=20.0.0` declaration, so the final branch keeps `jsdom@27.4.0` and pins root `@types/node` to the Node 22 type line.
+
+This cleared the audit without forcing Express 5, React 19, TipTap 3, Zod 4, Tailwind 4, TypeScript 6, Vite 8, `@vitejs/plugin-react@6`, or `y-websocket@3`. That keeps the cleanup aligned with the ShipShape source-of-truth expectation: evidence-backed improvement without broad product behavior changes.
+
+### Future Application
+
+When `pnpm audit` points at a transitive vulnerability, first check whether a safe patched version satisfies the existing parent range. If yes, prefer a narrow override with a doc entry. If the fix requires a parent major or product framework major, split it into a dedicated migration branch with focused compatibility tests.
+
+---
+
+## Dependency Cleanup Discovery: Full E2E Is Not A Clean Dependency Gate Yet
+
+### Name
+
+Broad E2E failures overlap with clean master and should not be overclaimed as dependency regressions
+
+### Severity
+
+Medium
+
+### Where Found
+
+- Dependency branch full run: `E2E_RESULTS_DIR=test-results/dep-cleanup-full PLAYWRIGHT_WORKERS=2 pnpm test:e2e:run` ended 816 passed / 7 failed / 47 skipped / 870 total.
+- Clean-master comparison worktree: `E2E_RESULTS_DIR=test-results/baseline-failing-specs PLAYWRIGHT_WORKERS=2 pnpm test:e2e:run e2e/accessibility-remediation.spec.ts e2e/team-mode.spec.ts e2e/inline-comments.spec.ts e2e/project-weeks.spec.ts e2e/feedback-consolidation.spec.ts e2e/my-week-stale-data.spec.ts e2e/session-timeout.spec.ts e2e/program-mode-week-ux.spec.ts` ended 230 passed / 6 failed / 236 total.
+- Targeted dependency-sensitive checks passed: smoke 27/27, icons 1/1, isolated Testcontainers 4/4.
+
+### What It Does And Why It Matters
+
+The full suite is valuable, but it is not currently clean enough to be the only dependency-upgrade gate. The dependency branch failures were concentrated in feature/a11y specs around accessibility target sizes, duplicate locators, stale-data setup, inline-comment highlight cleanup, Radix id selector escaping, and week UX state. A clean-master run of the same spec group also failed, which means the failure set overlaps existing broad-suite debt.
+
+The important distinction is evidentiary: the dependency branch cannot honestly claim full E2E green, but the targeted checks most likely to catch Vite/SVGR/Playwright/Testcontainers regressions did pass.
+
+### Future Application
+
+For dependency-only branches, keep running full E2E when Playwright or Testcontainers changes, but compare failures against clean master before calling them regressions. Use smoke plus targeted dependency-sensitive specs as the immediate safety gate, and track full-suite failures separately unless a failure appears only on the dependency branch. The 2026-05-21 baseline comparison artifact lives under `/Users/michaelhabermas/repos/GAI/ship-shape-baseline-e2e/test-results/baseline-failing-specs/`.
+
+---
+
 ## Discovery 1
 
 ### Name
