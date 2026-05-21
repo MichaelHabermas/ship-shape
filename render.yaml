@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: ship-shape-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && CI=true pnpm install --frozen-lockfile && pnpm build:api
+    startCommand: pnpm --filter @ship/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENVIRONMENT
+        value: render
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ship-shape-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://ship-shape-web.onrender.com
+      - key: APP_BASE_URL
+        value: https://ship-shape-web.onrender.com
+      - key: CDN_DOMAIN
+        value: ship-shape-web.onrender.com
+      - key: AWS_REGION
+        value: us-east-1
+
+  - type: web
+    name: ship-shape-web
+    runtime: static
+    plan: free
+    buildCommand: corepack enable && CI=true pnpm install --frozen-lockfile && pnpm build:shared && pnpm --filter @ship/web exec tsc && VITE_API_URL=https://ship-shape-api.onrender.com VITE_WS_URL=https://ship-shape-api.onrender.com VITE_APP_ENV=production pnpm --filter @ship/web exec vite build
+    staticPublishPath: ./web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_APP_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://ship-shape-api.onrender.com
+      - key: VITE_WS_URL
+        value: https://ship-shape-api.onrender.com
+
+databases:
+  - name: ship-shape-db
+    databaseName: ship_shape
+    user: ship_shape
+    plan: free
+    postgresMajorVersion: "15"

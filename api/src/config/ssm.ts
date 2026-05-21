@@ -40,6 +40,17 @@ export async function loadProductionSecrets(): Promise<void> {
     return; // Use .env files for local dev
   }
 
+  if (
+    process.env.DATABASE_URL
+    && process.env.SESSION_SECRET
+    && process.env.CORS_ORIGIN
+    && process.env.APP_BASE_URL
+  ) {
+    process.env.CDN_DOMAIN = process.env.CDN_DOMAIN || new URL(process.env.APP_BASE_URL).host;
+    console.log('Production secrets loaded from environment variables');
+    return;
+  }
+
   const environment = process.env.ENVIRONMENT || 'prod';
   const basePath = `/ship/${environment}`;
 

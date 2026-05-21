@@ -77,13 +77,19 @@ function getRedirectUri(): string {
  * Fetches from Secrets Manager on each call (no caching)
  */
 export async function isCAIAConfigured(): Promise<boolean> {
-  // In local dev without Secrets Manager, fall back to env vars
-  if (process.env.NODE_ENV !== 'production') {
-    return !!(
-      process.env.CAIA_ISSUER_URL &&
-      process.env.CAIA_CLIENT_ID &&
-      process.env.CAIA_CLIENT_SECRET
-    );
+  const hasEnvCredentials = !!(
+    process.env.CAIA_ISSUER_URL &&
+    process.env.CAIA_CLIENT_ID &&
+    process.env.CAIA_CLIENT_SECRET
+  );
+
+  if (hasEnvCredentials) {
+    return true;
+  }
+
+  // In local dev or non-AWS deployments, do not require Secrets Manager.
+  if (process.env.NODE_ENV !== 'production' || process.env.ENVIRONMENT === 'render') {
+    return false;
   }
 
   const result = await getCAIACredentials();
@@ -147,17 +153,16 @@ async function discoverIssuer(): Promise<client.Configuration> {
  * @throws Error if credentials not configured
  */
 async function fetchCredentials(): Promise<CAIACredentials> {
-  // In local dev, use env vars
-  if (process.env.NODE_ENV !== 'production') {
-    const issuer_url = process.env.CAIA_ISSUER_URL;
-    const client_id = process.env.CAIA_CLIENT_ID;
-    const client_secret = process.env.CAIA_CLIENT_SECRET;
+  const issuer_url = process.env.CAIA_ISSUER_URL;
+  const client_id = process.env.CAIA_CLIENT_ID;
+  const client_secret = process.env.CAIA_CLIENT_SECRET;
 
-    if (!issuer_url || !client_id || !client_secret) {
-      throw new Error('CAIA not configured: set CAIA_ISSUER_URL, CAIA_CLIENT_ID, CAIA_CLIENT_SECRET');
-    }
-
+  if (issuer_url && client_id && client_secret) {
     return { issuer_url, client_id, client_secret };
+  }
+
+  if (process.env.NODE_ENV !== 'production' || process.env.ENVIRONMENT === 'render') {
+    throw new Error('CAIA not configured: set CAIA_ISSUER_URL, CAIA_CLIENT_ID, CAIA_CLIENT_SECRET');
   }
 
   // In production, fetch from Secrets Manager

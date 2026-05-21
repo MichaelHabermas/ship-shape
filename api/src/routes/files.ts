@@ -117,10 +117,9 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
       [fileId, workspaceId, userId, filename, mimeType, sizeBytes, s3Key]
     );
 
-    // For local development: use a local upload endpoint
-    // For production: generate S3 presigned URL for direct browser upload
-    const isProduction = process.env.NODE_ENV === 'production';
-    const uploadUrl = isProduction
+    // Use S3 when configured; otherwise use local storage for lightweight deployments.
+    const useS3 = process.env.NODE_ENV === 'production' && !!S3_BUCKET_NAME;
+    const uploadUrl = useS3
       ? await generateS3PresignedUrl(s3Key, mimeType, sizeBytes)
       : `/api/files/${fileId}/local-upload`;
 
@@ -247,9 +246,9 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
     // For local dev: file was already saved in local-upload
 
     // Generate CDN URL
-    const isProduction = process.env.NODE_ENV === 'production';
+    const useS3 = process.env.NODE_ENV === 'production' && !!S3_BUCKET_NAME;
     let cdnUrl: string;
-    if (isProduction) {
+    if (useS3) {
       const cdnDomain = process.env.CDN_DOMAIN;
       if (!cdnDomain) {
         throw new Error('CDN_DOMAIN environment variable is required in production');
