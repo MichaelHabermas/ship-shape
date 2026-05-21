@@ -1,6 +1,40 @@
-# 7Improvement Report
+# Improvement Report
 
 ---
+
+## Medium-Risk Dependency Cleanup Pass Summary
+
+This pass ran in a clean worktree from `master` (`bb36575012bd4ef1375aa5427cfc100de89264fc`) on `codex/dependency-security-cleanup`. It upgraded medium/low-risk dependencies without crossing the excluded migration lines: no React 19, TipTap 3, Zod 4, Tailwind 4, TypeScript 6, Vite 8, `@vitejs/plugin-react@6`, `y-websocket@3`, Node baseline change, or Express 5 app migration.
+
+The pass reduced `pnpm audit` from known Vite/Rollup/Testcontainers/SVGO/uuid and later transitive advisories to zero reported advisories as of 2026-05-21. The final implementation also added pnpm overrides for patched transitive versions that package parents did not otherwise resolve: `flatted@3.4.2`, `markdown-it@14.1.1`, `qs@6.15.2`, `yaml@2.9.0`, and scoped `picomatch` overrides that keep legacy chokidar consumers on `picomatch@2.3.2` while moving Vite/Vitest/tinyglobby paths to `picomatch@4.0.4`.
+
+### Dependency Changes
+
+- API/runtime: `dotenv` 16.4.7 -> `^17.4.2`, `express` 4.21/4.22.1 -> 4.22.2, `uuid` 11.0.3 -> 11.1.1.
+- Web/runtime: `emoji-picker-react` 4.16.1 -> 4.19.1, `react-router-dom` 7.1.1/7.12.x -> 7.15.1, `tailwind-merge` 2.6.0 -> 3.6.0.
+- Build/test tooling: Vite stays on 6 (`^6.4.2`), `vite-plugin-svgr` 5.2.0, `autoprefixer` 10.5.0, `jsdom` remains on 27.4.0 to preserve the declared Node floor, root `@types/node` is pinned to the Node 22 type line, `@playwright/test` 1.60.0, Testcontainers packages 12.0.0, `@types/dockerode` 4.0.1, `@types/supertest` 7.2.0.
+
+### Verification
+
+- `pnpm install --frozen-lockfile`: pass.
+- `pnpm audit --prod --audit-level low`: 0 advisories.
+- `pnpm audit --audit-level low`: 0 advisories.
+- `pnpm type-check`: pass.
+- `pnpm lint`: pass with existing warning volume, 0 errors / 5452 warnings.
+- `pnpm build`: pass; existing Vite chunk-size warnings remain.
+- Disposable DB `ship_shape_dep_cleanup_test`: migration pass, 43 migrations applied.
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_shape_dep_cleanup_test pnpm test`: 30 files / 477 tests passed.
+- `pnpm --filter @ship/web test`: 19 files / 158 tests passed; expected hook-error assertion output still prints during the suite.
+- `pnpm --filter @ship/api openapi:generate`: pass; no tracked OpenAPI diff.
+- `E2E_RESULTS_DIR=test-results/dep-cleanup-smoke PLAYWRIGHT_WORKERS=2 pnpm test:e2e:smoke`: 27/27 passed.
+- `E2E_RESULTS_DIR=test-results/dep-cleanup-icons PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/icons.spec.ts`: 1/1 passed.
+- `E2E_RESULTS_DIR=test-results/dep-cleanup-isolation PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/spike-isolated.spec.ts`: 4/4 passed; wrapper printed a stale failure-log path despite exit 0.
+- Full E2E did not pass: `E2E_RESULTS_DIR=test-results/dep-cleanup-full PLAYWRIGHT_WORKERS=2 pnpm test:e2e:run` ended 811 passed / 7 hard failed / 5 flaky / 47 did not run in the Playwright log; the progress summary counted flaky tests as passed. A clean-master baseline rerun of the same failing spec files in `/Users/michaelhabermas/repos/GAI/ship-shape-baseline-e2e` produced overlapping failures at `test-results/baseline-failing-specs/`, so the broad-suite failures are not unique to this dependency branch, but they remain unclosed evidence.
+- Post-audit correction rerun after scoping `picomatch`, keeping `jsdom` on 27.4.0, and pinning root Node types: `pnpm type-check`, `pnpm build`, API unit tests, web unit tests, `pnpm audit --audit-level low`, `pnpm audit --prod --audit-level low`, E2E smoke, E2E icons, and isolated Testcontainers E2E all passed.
+
+### Full E2E Failure Notes
+
+Dependency branch full-suite failure logs included accessibility target-size/listbox checks, duplicate locator strictness in project-week tests, stale-data button timeouts, inline-comment highlight removal, session-timeout Radix id selector escaping, feedback row lookup, and week UX selection. Clean-master comparison reproduced overlapping failures in the same spec group, especially accessibility remediation, inline comments, project weeks, and session timeout; the extra hard dependency-branch failure in `program-mode-week-ux.spec.ts` remains inconclusive. Treat the targeted dependency-sensitive E2E checks as the pass signal for this dependency cleanup; do not claim the full suite is green.
 
 ## Easy Wins Pass Summary
 

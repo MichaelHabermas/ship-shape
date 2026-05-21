@@ -2,6 +2,24 @@
 
 Durable choices made during the audit/improvement work. This file exists so we can defend why structural decisions were made, what they do not claim, and what future work must preserve.
 
+## 2026-05-21: Medium-Risk Dependency Cleanup Pass
+
+### D018: Dependency Cleanup Stays Inside Current Framework Lines
+
+Status: Accepted
+
+Decision: Take only medium/low-risk dependency upgrades that preserve the current framework lines: React 18, TipTap 2, Zod 3, Tailwind 3, TypeScript 5, Vite 6, `@vitejs/plugin-react` 4, `y-websocket` 2, `jsdom` 27, Node 20+ as declared, and direct Express 4 runtime. Accept Testcontainers 12 and Playwright 1.60 as dev/test platform upgrades because the repo wrapper and targeted E2E checks passed.
+
+Why: The dependency audit had real security value, especially Vite/Rollup, Testcontainers transitives, SVGO, `uuid`, Express transitives, and YAML/Markdown parsing transitives. Crossing product framework majors at the same time would mix supply-chain cleanup with source migration risk.
+
+Alternatives considered: Jump to Vite 8/React 19/Tailwind 4/TipTap 3/Zod 4 together; only document audit risk without changing packages; rely solely on `pnpm audit` recommendations. The first option is too many migrations in one branch. The second leaves known patched vulnerabilities in place. The third would push unsafe majors such as Express 5 or Zod 4 without project-specific compatibility checks.
+
+Consequences: `pnpm.overrides` now pins patched transitive versions for `flatted`, `markdown-it`, `qs`, and `yaml`, plus scoped `picomatch` overrides. The `picomatch` override must stay scoped: legacy chokidar consumers still need the 2.x line, while Vite/Vitest/tinyglobby paths can use 4.x. Root `@types/node` is pinned to the Node 22 type line to avoid accidental Node 25 type drift. `jsdom` intentionally stays on 27.4.0 because 29.x would silently raise the effective Node floor. These overrides should be reviewed during future parent-package upgrades and removed when no longer needed. `@modelcontextprotocol/sdk` still brings Express 5 transitively, but the app's direct API runtime remains Express 4.22.2.
+
+Evidence: `pnpm audit --prod --audit-level low` and `pnpm audit --audit-level low` both reported 0 advisories after the corrected pass. Static/build/unit/OpenAPI checks passed. E2E smoke, icons, and isolated Testcontainers checks passed. Full E2E remained non-green, but a clean-master comparison of the same failing spec files in `/Users/michaelhabermas/repos/GAI/ship-shape-baseline-e2e/test-results/baseline-failing-specs/` also failed, so the broad-suite failures are tracked as existing/overlapping E2E debt rather than a proven dependency-branch regression.
+
+**Decision Gist**: Use same-current-line dependency upgrades plus explicit patched transitive overrides; defer framework-major migrations to dedicated branches.
+
 ## 2026-05-21: Full-Content Search Product Pass
 
 ### D016: Content Search Gets Its Own Endpoint And Derived Index

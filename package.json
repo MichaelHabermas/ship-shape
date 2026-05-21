@@ -56,9 +56,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
-    "@playwright/test": "^1.57.0",
-    "@testcontainers/postgresql": "^11.11.0",
-    "@types/supertest": "^6.0.3",
+    "@playwright/test": "^1.60.0",
+    "@testcontainers/postgresql": "^12.0.0",
+    "@types/supertest": "^7.2.0",
     "@vitest/ui": "^4.1.7",
     "eslint": "^10.4.0",
     "get-port": "^7.2.0",
@@ -66,9 +66,26 @@
     "husky": "^9.1.7",
     "prettier": "^3.8.3",
     "supertest": "^7.1.4",
-    "testcontainers": "^11.11.0",
+    "testcontainers": "^12.0.0",
+    "@types/node": "^22.19.5",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.7"
+  },
+  "pnpm": {
+    "overrides": {
+      "flatted": "3.4.2",
+      "jsdom": "27.4.0",
+      "markdown-it": "14.1.1",
+      "anymatch@3.1.3>picomatch": "2.3.2",
+      "micromatch@4.0.8>picomatch": "2.3.2",
+      "readdirp@3.6.0>picomatch": "2.3.2",
+      "tinyglobby@0.2.15>picomatch": "4.0.4",
+      "tinyglobby@0.2.16>picomatch": "4.0.4",
+      "vite@6.4.2>picomatch": "4.0.4",
+      "vitest@4.1.7>picomatch": "4.0.4",
+      "qs": "6.15.2",
+      "yaml": "2.9.0"
+    }
   }
 }
