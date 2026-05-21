@@ -26,6 +26,7 @@
     "lint:fix": "eslint . --fix",
     "openapi:generate": "pnpm --filter @ship/api openapi:generate && pnpm exec openapi-typescript api/openapi.json -o web/src/api/generated/ship-openapi.d.ts",
     "openapi:check": "node ./scripts/check-openapi-routes.mjs",
+    "openapi:check:strict": "node ./scripts/check-openapi-routes.mjs --strict",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",
     "test": "pnpm --filter @ship/api test",
     "test:e2e": "./scripts/e2e-guidance.sh",
