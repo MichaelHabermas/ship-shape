@@ -172,7 +172,7 @@ Active Week Work (week assignment set)
 Done (completed_at set)
 ```
 
-- Issues keep their `project_id` (which project they belong to)
+- Issues keep their project association (which project they belong to)
 - Issues gain a week assignment when pulled into active work
 - The Week document serves as a container for that week's work
 

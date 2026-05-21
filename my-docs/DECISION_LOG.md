@@ -473,3 +473,35 @@ Consequences: The next API-contract 10x path is ordered: route/spec coverage, st
 Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, and `api/src/routes/openapi-contract.test.ts` validates `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login` against their registered OpenAPI component schemas. The focused DB-backed test run passed. `pnpm openapi:check` is report-only today and currently reports 82 missing routes and 8 stale operations. `web/src/api/client.ts` uses `openapi-fetch` with legacy-compatible CSRF/session/JSON behavior, but it does not perform production response validation.
 
 **Decision Gist**: Runtime validation is valuable, but only after the OpenAPI source is honest enough to validate against.
+
+### D020: Document Authorization Is A Service Boundary
+
+Status: Accepted
+
+Decision: Centralize document/workspace authorization in `api/src/services/document-access.ts` and have route code ask intent-shaped questions such as readable document, referenceable document, association access, and self-or-admin person access.
+
+Why: The fail-open paths shared the same root cause: authorization was a route-by-route convention. Workspace matching alone is not enough for document references because private documents and removed memberships can still be guessed by UUID.
+
+Alternatives considered: Patch each route with local SQL; move immediately to broad ACL tables. Local SQL would preserve the root cause. ACL tables would contradict the current source-of-truth intent: workspace membership plus document visibility, not per-program ACLs.
+
+Consequences: Routes own request intent; the service owns access rules. New mutations that accept document IDs must validate those IDs through the service before mutating. Aggregate SQL may still use a predicate helper, but that predicate must remain actor-scoped.
+
+Evidence: `pnpm type-check` passes after adding `document-access.ts` and wiring API token, documents, associations, feedback, weekly plan/retro, and activity paths. The focused authz-adjacent API batch passed against disposable `ship_test_audit`: 34 files / 498 tests.
+
+**Decision Gist**: Authorization moves from copy-pasted route convention to a shared service boundary.
+
+### D021: Hybrid Fail-Closed Guardrails Beat A Schema Rewrite
+
+Status: Accepted
+
+Decision: Use a hybrid strategy: route/service authorization for actor-specific checks, plus low-risk database guards for impossible states such as cross-workspace/deleted association targets and wrong target types for `program`, `project`, and `sprint` relationships.
+
+Why: Actor visibility cannot be enforced by generic foreign keys, but same-workspace and target-type invariants can. Those invariants make dangerous internal helpers safer without forcing a broad schema redesign.
+
+Alternatives considered: Application-only checks; broad session/token/membership foreign-key rewrites; per-program ACLs. Application-only checks leave unsafe internal write paths. Broad FK work creates churn around super-admin token assumptions and sessions. Per-program ACLs weaken the project intent.
+
+Consequences: `api_tokens` authentication now requires current workspace membership unless the user is super-admin, and migration `039_fail_closed_document_access_guards.sql` revokes orphaned non-super-admin tokens while adding narrow trigger guards. Migration `040_relationship_mutation_guards.sql` cleans existing invalid relationship rows and blocks later document workspace/type/soft-delete mutations from leaving cross-workspace, deleted, or wrong-type relationships behind. `parent_id` remains hierarchy; `document_associations` owns program/project/sprint relationships.
+
+Evidence: Migrations `039_fail_closed_document_access_guards.sql` and `040_relationship_mutation_guards.sql` plus matching `schema.sql` trigger definitions. `pnpm --filter @ship/api db:migrate`, `pnpm type-check`, and the focused API batch pass.
+
+**Decision Gist**: Actor auth lives in code; structural impossibilities are blocked in the database.

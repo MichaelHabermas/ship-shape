@@ -537,8 +537,34 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - API latency/query optimization: skipped; needs benchmark/EXPLAIN-driven work, not quick fixes.
 - Setup initialize race lock/transaction: deferred; security-sensitive.
 - Super-admin API token policy and API-token docs/UI: deferred pending policy decision.
-- Association/context visibility leaks: deferred; broader query surface than this pass.
+- Association/context visibility leaks: addressed in the fail-closed authorization hardening pass below; rerun DB-backed regression coverage against a disposable database before calling it fully closed.
 - Full route row-mapper typing: partially started for high-risk routes; broader dashboard/comments/auth route typing deferred.
 - Process-level unhandled rejection handlers: still skipped; easy to add badly without coordinated HTTP/WebSocket/DB shutdown semantics.
 - Category 6 screenshot/recording evidence: completed for the focused runtime file; broader full-suite E2E remains outside this pass.
 - Category 7 Lighthouse rerun: still deferred because `lighthouse` is not installed in the repo-local toolchain. The axe closeout branch currently passes with 0 violations on `/docs`, the selected document page, and `/my-week`; manual keyboard/a11y polish gaps remain outside that axe gate.
+
+## Fail-Closed Authorization Hardening Pass
+
+### What Changed
+
+- Added centralized document authorization helpers in `api/src/services/document-access.ts`.
+- API bearer tokens now fail closed unless the token is unrevoked, unexpired, the user exists, and the user is either super-admin or still has workspace membership.
+- Public feedback now requires an enabled workspace-visible program: `properties.public_feedback_enabled = true`, `visibility = 'workspace'`, not archived, not deleted.
+- Document create/update validates `parent_id`, `program_id`, `sprint_id`, and `belongs_to` references before mutations.
+- Association list/create/delete/reverse/context routes now require actor-readable source and related documents.
+- Weekly plan/retro list/detail/history/create and project allocation grid now apply visibility and self-or-admin person scope.
+- Activity routes now require readable root entities and count only actor-visible, non-archived, non-deleted documents.
+- Added migrations `039_fail_closed_document_access_guards.sql` and `040_relationship_mutation_guards.sql` plus schema parity for narrow DB guardrails.
+- Parallel adversarial review found and fixed second-order leaks in protected feedback detail, `GET /documents/:id` relationship enrichment, weekly plan/retro person/project joins, route ordering for project allocation grid, and relationship drift after document type/workspace/soft-delete mutations.
+
+### Evidence
+
+- 2026-05-21 | `pnpm type-check` | shared/api/web | pass after route/service/migration implementation | pass | terminal output.
+- 2026-05-21 | `pnpm --filter @ship/api test -- src/middleware/auth.test.ts src/routes/api-tokens.test.ts src/routes/documents-visibility.test.ts src/routes/associations-regression.test.ts src/routes/feedback-authorization.test.ts src/__tests__/activity.test.ts` | focused authz tests | blocked by database safety guard because `DATABASE_URL` pointed at non-disposable `ship_dev` | blocked, not a code failure | setup refused destructive truncation.
+- 2026-05-21 | `env DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test -- src/__tests__/auth.test.ts src/routes/api-tokens.test.ts src/routes/documents-visibility.test.ts src/routes/associations-regression.test.ts src/__tests__/activity.test.ts` | focused authz-adjacent API batch after adversarial fixes | sandbox local-DB block on first try -> rerun with local DB access | pass | 34 files / 498 tests passed.
+- 2026-05-21 | `pnpm --filter @ship/api db:migrate` | migrations 039 and 040 | sandbox `tsx` IPC block on first try -> rerun with local DB access | pass | migrations applied to local dev DB.
+- 2026-05-21 | `pnpm openapi:generate` and `pnpm openapi:check` | generated API contract | `tsx` IPC block on first generate try -> rerun succeeded; coverage check remains report-only | pass/report-only | 195 runtime routes, 121 OpenAPI operations, 82 missing, 8 stale.
+
+### Claim Boundary
+
+This hardening is security and correctness work. It does not complete a Week 4 GFA category by itself, and it does not change the Category 3 status. Do not claim all seven categories complete unless the missing second endpoint P95 proof exists.

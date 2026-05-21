@@ -896,3 +896,28 @@ Parallel audits: collab protocol parity, repository SQL equivalence, thermo-nucl
 **Re-gates:** type-check pass; API 489; web 165; collab+codec 55; collab E2E 7/7 (`arch-verify-collab`). Perf benchmarks still TBD (API off during verify).
 
 **GFA honesty:** deepening/follow-up tables must not claim Cat 1/5/6 completion from this slice alone; F1 E2E is data-integrity evidence for D020, not Cat 6 “three error-handling gaps + screenshot.”
+
+---
+
+## Fail-closed authorization hardening (2026-05-21)
+
+Deep exploratory pass confirmed six fail-open families:
+
+- API bearer tokens stayed usable after non-admin workspace membership removal.
+- Public feedback accepted any program UUID instead of requiring explicit public feedback enablement.
+- Document create/update accepted inaccessible `parent_id`, `program_id`, `sprint_id`, and `belongs_to` references; some direct association updates silently no-opped.
+- Association list/reverse/context routes filtered source access but leaked related private document metadata.
+- Weekly plan/retro routes lacked self-or-admin person scope and did not consistently apply document visibility.
+- Activity counts included private/deleted/archived linked documents in aggregate counts.
+
+Resolution evidence from this pass:
+
+- Added `api/src/services/document-access.ts` as the shared authorization service.
+- Patched API token validation, public feedback, document create/update, associations, weekly plan/retro, project allocation grid, and activity routes.
+- Added migrations `039_fail_closed_document_access_guards.sql` and `040_relationship_mutation_guards.sql` plus matching `schema.sql` trigger definitions for narrow structural guardrails.
+- Parallel verification found and fixed protected feedback detail leakage, document detail `belongs_to` metadata leakage, weekly single-read person/project metadata leakage, project allocation grid route ordering, and relationship drift on document mutation/soft-delete.
+- `pnpm type-check` passes.
+- Migrations `039_fail_closed_document_access_guards.sql` and `040_relationship_mutation_guards.sql` applied through `pnpm --filter @ship/api db:migrate`.
+- Focused authz-adjacent API batch passed against disposable `ship_test_audit`: 34 files / 498 tests.
+
+GFA honesty: this is security/authorization hardening. Do not count it as Week 4 category completion unless tied to a source-required measurement.

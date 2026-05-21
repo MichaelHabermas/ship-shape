@@ -91,6 +91,8 @@ Known traps, fragile paths, or easy ways to break things.
 
 - Architecture deepening pass (2026-05-21): collaboration WebSocket rooms are canonicalized server-side to `{document_type}:{uuid}` so `issue:` / `wiki:` prefixes cannot fork one DB row into separate Yjs states. Client `roomPrefix` should match `document_type` (legacy `doc:` accepted only for wiki).
 - Association writes for issues/projects should go through `syncBelongsToAssociations`, `syncProgramAssociation`, or `syncAssociationOfTypeForDocuments` in `api/src/utils/document-crud.ts`, not inline DELETE/INSERT in routes.
+- Document references must be actor-authorized before mutation, not merely workspace-matched. For `parent_id`, `program_id`, `sprint_id`, and `belongs_to`, validate readability/referenceability first so inaccessible references cannot be silently ignored or used to erase existing associations.
+- Relationship DB guardrails are intentionally hybrid: actor-specific visibility lives in `document-access.ts`, while migrations 039/040 block structural impossibilities such as cross-workspace, deleted, or wrong-type relationships and clean them on unsafe document mutations.
 - Plan/hypothesis extraction is canonical in `@ship/shared` (`content-extract.ts`); API re-exports via `api/src/utils/extractHypothesis.ts`; web Editor imports shared extractors directly.
 - E2E shared entrypoints: `e2e/fixtures/app.ts` (`login`, `createWikiDoc`, `setDocumentTitle`) — prefer over per-spec copies.
 
