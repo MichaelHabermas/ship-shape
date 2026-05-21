@@ -31,23 +31,6 @@ async function loginAsMember(page: Page) {
   await login(page, 'bob.martinez@ship.local')
 }
 
-// Helper to get a document ID from the current workspace
-async function getFirstDocumentId(page: Page): Promise<string | null> {
-  await page.goto('/docs')
-  await page.waitForLoadState('networkidle')
-
-  // Try to get a document link
-  const docLink = page.locator('button[class*="rounded"]').first()
-  if (await docLink.count() === 0) return null
-
-  await docLink.click()
-  await page.waitForURL(/\/documents\//)
-
-  const url = page.url()
-  const match = url.match(/\/documents\/([a-f0-9-]+)/)
-  return match ? match[1] : null
-}
-
 test.describe('Authorization - Super Admin Access Control', () => {
   test('non-super-admin cannot access /admin when logged in', async ({ page }) => {
     // Login as regular member (bob.martinez is not super-admin)
@@ -147,7 +130,7 @@ test.describe('Authorization - Workspace Admin Access Control', () => {
 })
 
 test.describe('Authorization - Cross-Workspace Isolation', () => {
-  test('cannot access document from another workspace via direct URL', async ({ page, request }) => {
+  test('cannot access document from another workspace via direct URL', async ({ page }) => {
     // This test requires having documents in different workspaces
     // For now, test that accessing a non-existent doc returns 404/403
 

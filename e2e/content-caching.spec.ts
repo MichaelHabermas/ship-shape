@@ -138,13 +138,6 @@ test.describe('WebSocket Connection Reliability', () => {
 
 });
 
-// Helper to get CSRF token
-async function getCsrfToken(page: import('@playwright/test').Page): Promise<string> {
-  const response = await page.request.get('/api/csrf-token');
-  const data = await response.json();
-  return data.token;
-}
-
 test.describe('API Content Update Invalidates Browser Cache', () => {
 
   test.beforeEach(async ({ page }) => {

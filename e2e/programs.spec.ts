@@ -238,9 +238,6 @@ test.describe('Programs', () => {
     // Create new program
     await page.getByRole('button', { name: /new program/i }).click()
     await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 5000 })
-    const programUrl = page.url()
-    const programId = programUrl.split('/documents/')[1]
-
     // Click Projects tab
     await page.locator('main').getByRole('tab', { name: 'Projects' }).click()
 
@@ -261,9 +258,6 @@ test.describe('Programs', () => {
     // Create new program
     await page.getByRole('button', { name: /new program/i }).click()
     await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 5000 })
-    const programUrl = page.url()
-    const programId = programUrl.split('/documents/')[1]
-
     // Click Weeks tab
     await page.locator('main').getByRole('tab', { name: 'Weeks' }).click()
 

@@ -35,7 +35,7 @@ registry.register('CreateComment', CreateCommentSchema);
 
 export const UpdateCommentSchema = z.object({
   content: z.string().min(1).max(10000).optional(),
-  resolved_at: z.union([DateTimeSchema, z.null()]).optional().openapi({
+  resolved_at: DateTimeSchema.nullable().optional().openapi({
     description: 'Set to ISO datetime to resolve, null to un-resolve',
   }),
 }).openapi('UpdateComment');

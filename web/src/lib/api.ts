@@ -1,5 +1,7 @@
 // In development, Vite proxy handles /api routes (see vite.config.ts)
 // In production, use VITE_API_URL or relative URLs
+import { clearTypedApiCsrfToken } from '@/api/client';
+
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 interface ApiResponse<T> {
@@ -84,6 +86,7 @@ async function ensureCsrfToken(): Promise<string> {
 // Clear CSRF token on logout or session change
 export function clearCsrfToken(): void {
   csrfToken = null;
+  clearTypedApiCsrfToken();
 }
 
 // Simple helpers that return Response objects (for contexts that need res.ok checks)

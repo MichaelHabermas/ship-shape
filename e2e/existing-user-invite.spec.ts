@@ -183,7 +183,7 @@ test.describe('Existing User Invite Flow', () => {
     // Get initial member count from the Members heading
     const memberHeading = page.getByRole('heading', { name: /Members \((\d+)\)/ })
     const headingText = await memberHeading.textContent()
-    const initialCount = parseInt(headingText?.match(/\d+/)?.[0] || '0')
+    parseInt(headingText?.match(/\d+/)?.[0] || '0')
 
     // We'll invite bob.martinez@ship.local who should already exist in the seed data
     // But for this test, let's create a new workspace and invite dev user to it

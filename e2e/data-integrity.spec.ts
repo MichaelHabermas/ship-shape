@@ -336,7 +336,6 @@ test.describe('Data Integrity - Mentions', () => {
     // Select first result
     const firstOption = page.locator('[role="option"]').first()
     if (await firstOption.isVisible()) {
-      const mentionText = await firstOption.textContent()
       await firstOption.click()
 
       // Wait for mention to be inserted

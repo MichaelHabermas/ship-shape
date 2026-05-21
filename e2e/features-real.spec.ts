@@ -185,9 +185,6 @@ test.describe('TIER 1: Image Upload - REAL TESTS', () => {
   test('uploaded image persists after page reload', async ({ page }) => {
     await loginAndCreateDoc(page);
 
-    // Get current URL to return to
-    const docUrl = page.url();
-
     // Upload image
     await page.keyboard.type('/image');
     await page.waitForTimeout(500);

@@ -3,9 +3,6 @@ import { test, expect, Page } from './fixtures/isolated-env'
 
 const CATEGORY_6_ARTIFACT_PREFIX = 'category-6-runtime-evidence'
 
-// Get API URL from environment
-const API_URL = process.env.VITE_API_URL || 'http://localhost:3147'
-
 // Helper to login
 async function login(page: Page) {
   await page.goto('/login')
