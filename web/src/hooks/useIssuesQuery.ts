@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch } from '@/lib/api';
+import { apiPost, apiPatch } from '@/lib/api';
+import { apiClient, assertApiData } from '@/api/client';
 import type { CascadeWarning, IncompleteChild, BelongsTo, BelongsToType } from '@ship/shared';
 
 // Custom error type for cascade warning (409 response)
@@ -117,21 +118,16 @@ function transformIssue(apiIssue: Record<string, unknown>): Issue {
 
 // Fetch issues with optional filters
 async function fetchIssues(filters?: IssueFilters): Promise<Issue[]> {
-  const params = new URLSearchParams();
-  if (filters?.programId) params.append('program_id', filters.programId);
-  if (filters?.projectId) params.append('project_id', filters.projectId);
-  if (filters?.sprintId) params.append('sprint_id', filters.sprintId);
-
-  const queryString = params.toString();
-  const url = queryString ? `/api/issues?${queryString}` : '/api/issues';
-
-  const res = await apiGet(url);
-  if (!res.ok) {
-    const error = new Error('Failed to fetch issues') as Error & { status: number };
-    error.status = res.status;
-    throw error;
-  }
-  const data = await res.json();
+  const result = await apiClient.GET('/issues', {
+    params: {
+      query: {
+        ...(filters?.programId ? { program_id: filters.programId } : {}),
+        ...(filters?.projectId ? { project_id: filters.projectId } : {}),
+        ...(filters?.sprintId ? { sprint_id: filters.sprintId } : {}),
+      },
+    },
+  });
+  const data = assertApiData(result, 'Failed to fetch issues');
   return (data as Record<string, unknown>[]).map(transformIssue);
 }
 

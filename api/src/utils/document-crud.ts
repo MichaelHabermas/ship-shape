@@ -278,6 +278,62 @@ export async function removeAssociationsByType(
   );
 }
 
+/**
+ * Sync a single relationship type for one document (e.g. program on projects).
+ * Clears existing associations of that type, then inserts the new target when provided.
+ */
+export async function syncAssociationOfType(
+  documentId: string,
+  relationshipType: BelongsToType,
+  relatedId: string | null,
+  queryRunner?: QueryRunner
+): Promise<void> {
+  await removeAssociationsByType(documentId, relationshipType, queryRunner);
+  if (relatedId) {
+    await addBelongsToAssociation(documentId, relatedId, relationshipType, queryRunner);
+  }
+}
+
+/**
+ * Sync program association for a project document (API field: program_id).
+ */
+export async function syncProgramAssociation(
+  documentId: string,
+  programId: string | null,
+  queryRunner?: QueryRunner
+): Promise<void> {
+  await syncAssociationOfType(documentId, 'program', programId, queryRunner);
+}
+
+/**
+ * Bulk-sync one relationship type for many documents (e.g. bulk issue project/sprint moves).
+ */
+export async function syncAssociationOfTypeForDocuments(
+  documentIds: string[],
+  relationshipType: BelongsToType,
+  relatedId: string | null,
+  queryRunner?: QueryRunner
+): Promise<void> {
+  if (documentIds.length === 0) return;
+  const db = queryRunner || pool;
+  await db.query(
+    `DELETE FROM document_associations
+     WHERE document_id = ANY($1) AND relationship_type = $2`,
+    [documentIds, relationshipType]
+  );
+  if (relatedId) {
+    const insertValues = documentIds
+      .map((_, i) => `($${i + 1}, $${documentIds.length + 1}, $${documentIds.length + 2})`)
+      .join(', ');
+    await db.query(
+      `INSERT INTO document_associations (document_id, related_id, relationship_type)
+       VALUES ${insertValues}
+       ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
+      [...documentIds, relatedId, relationshipType]
+    );
+  }
+}
+
 // =============================================================================
 // Type-Specific Association Helpers
 // =============================================================================

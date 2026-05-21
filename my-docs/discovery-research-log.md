@@ -841,3 +841,58 @@ Typed PostgreSQL test helpers also turned out to be a small leverage point. `api
 The runtime-validation decision is deliberately staged, not skipped by accident. This pass chose generated compile-time OpenAPI types first, then added test-time validation as the safe next step. `api/src/test/openapi-response.ts` can assert operation/status/component-schema presence and validate runtime JSON with the Zod schema, and `api/src/routes/openapi-contract.test.ts` proves the pattern for `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login`. Production response validation remains deferred until route/spec coverage is honest enough.
 
 Current 10x options from this pass: make `pnpm openapi:check -- --strict` a family-by-family gate once missing/stale operations are burned down; expand test-time runtime validation for generated-client endpoints after coverage is honest; optionally add staging-only production validation behind an environment flag; turn the typed pg helper into the standard test pattern for command/no-content database mocks; and treat frontend API migrations as contract work, not mechanical cast replacement.
+
+---
+
+## Architecture pass baseline (2026-05-21)
+
+| # | Cluster | Key paths | Tests before pass |
+|---|---------|-----------|-------------------|
+| 1 | Collab protocol | `Editor.tsx` (~1107), `collaboration/index.ts` (~835) | Collab integration only |
+| 2 | Plan extraction | `extractHypothesis.ts` (API), inline `Editor.tsx` | `extractHypothesis.test.ts` API-only |
+| 3 | Document types | `UnifiedEditor`, `PropertiesPanel`, `shared/document.ts` | `document-boundary.test.ts` |
+| 4 | Mentions → backlinks | `MentionExtension`, `Editor` link sync, `backlinks.ts` | Shallow extension smoke; SQL in backlinks tests |
+| 5 | Yjs ↔ JSON | `yjsConverter.ts`, `collaboration/getOrCreateDoc` | Embedded in collab tests (~1500 lines) |
+| 6 | Association writes | `document-crud.ts`, `issues.ts`, `projects.ts` | `associations-regression.test.ts` |
+| 7 | Routes + hooks | God routes, `useUnifiedDocuments`, OpenAPI vs `lib/api` | Route integration tests |
+| HM | E2E fixtures | `isolated-env.ts`, per-spec `login` copies | Full E2E only |
+
+Orchestration order executed: foundation (#6, #3, HM) → domain (#2, #7 slice) → integration (#5, #4, #1).
+
+---
+
+## Architecture follow-up baseline (2026-05-21)
+
+Deferred items from the deepening pass and their completion status:
+
+| ID | Was open | Resolution |
+|----|----------|------------|
+| F1 | Collab E2E not rerun | **Done** — 7/7 pass (`test-results/arch-followup-collab/`) |
+| F2 | No `useCollabSession`; Editor protocol literals | **Done** — hook + shared `COLLAB_*`; Editor slimmed |
+| F3 | Codec unused in `getOrCreateDoc` | **Done** — `resolveInitialContent` wired |
+| F4 | Repository not wired to routes | **Done** — `listIssuesMetadata`, `updateDocumentContent` |
+| F5 | OpenAPI hook pilot | **Done** — `GET /issues` via `apiClient`; 82 missing routes remain |
+| F6 | Cat 3/4 benchmarks | **TBD** — API not on `:3000` during follow-up; use prior `api-2026-05-21T03-11-53-590Z.json` |
+| F7 | E2E fixtures incomplete | **Done** — `app.ts` extended; collab specs use shared `login` |
+
+Discovery 2 (collab room fork): mitigated in first pass (D020); **E2E evidence** now exists via isolation + caching specs.
+
+Fragmented association writes: mitigated in first pass (D022); no additional route migrations in follow-up.
+
+---
+
+## Architecture follow-up verification (2026-05-21)
+
+Parallel audits: collab protocol parity, repository SQL equivalence, thermo-nuclear F2d/SOLID review, philosophy + GFA alignment.
+
+**Findings fixed by orchestrator:**
+
+- `getOrCreateDoc` accepted empty TipTap `content: []` again (regression from `content.length` guard).
+- Server collaboration used literal close codes instead of `@ship/shared` constants.
+- `useCollabSession` tore down session when parent passed new `onBack` identity; WS `message` listener not removed on cleanup.
+- F2d tests were constants-only; replaced with 7 mocked hook tests (clear-cache `3`, close `4101`, stable callbacks, unmount cleanup).
+- `content-caching.spec.ts` WebSocket describe still duplicated inline login → `login` from `app.ts`.
+
+**Re-gates:** type-check pass; API 489; web 165; collab+codec 55; collab E2E 7/7 (`arch-verify-collab`). Perf benchmarks still TBD (API off during verify).
+
+**GFA honesty:** deepening/follow-up tables must not claim Cat 1/5/6 completion from this slice alone; F1 E2E is data-integrity evidence for D020, not Cat 6 “three error-handling gaps + screenshot.”

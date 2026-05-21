@@ -1,5 +1,6 @@
-import { test, expect, Page } from './fixtures/isolated-env'
+import { test, expect } from './fixtures/isolated-env'
 import { triggerMentionPopup } from './fixtures/test-helpers'
+import { login, createWikiDoc, setDocumentTitle } from './fixtures/app'
 
 /**
  * Backlinks E2E Tests
@@ -7,43 +8,13 @@ import { triggerMentionPopup } from './fixtures/test-helpers'
  * Tests backlink panel display, creation, removal, and navigation.
  */
 
-// Helper to login before each test
-async function login(page: Page) {
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
-
-// Helper to create a new document and get to the editor
-async function createNewDocument(page: Page) {
-  await page.goto('/docs')
-  await page.getByRole('button', { name: 'New Document', exact: true }).click()
-  await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 10000 })
-  await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 5000 })
-  return page.url()
-}
-
-// Helper to set document title
-async function setDocumentTitle(page: Page, title: string) {
-  const titleInput = page.getByPlaceholder('Untitled')
-  await expect(titleInput).toBeVisible({ timeout: 5000 })
-  await titleInput.fill(title)
-  await page.waitForResponse(
-    resp => resp.url().includes('/api/documents/') && resp.request().method() === 'PATCH',
-    { timeout: 5000 }
-  )
-  await page.waitForTimeout(500)
-}
-
 test.describe('Backlinks', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
   })
 
   test('backlinks panel shows in sidebar', async ({ page }) => {
-    await createNewDocument(page)
+    await createWikiDoc(page)
 
     // Look for backlinks panel in properties sidebar (right side)
     // Common selectors: "Backlinks", "Referenced by", or a data attribute
@@ -59,11 +30,11 @@ test.describe('Backlinks', () => {
 
   test('creating mention adds backlink', async ({ page }) => {
     // Create Document A (will be mentioned)
-    const docAUrl = await createNewDocument(page)
+    const docAUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Document A')
 
     // Create Document B (will mention Document A)
-    await createNewDocument(page)
+    await createWikiDoc(page)
     await setDocumentTitle(page, 'Document B')
 
     const editor = page.locator('.ProseMirror')
@@ -109,11 +80,11 @@ test.describe('Backlinks', () => {
 
   test('removing mention removes backlink', async ({ page }) => {
     // Create Document A (will be mentioned)
-    const docAUrl = await createNewDocument(page)
+    const docAUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Doc to Mention')
 
     // Create Document B (will mention Document A, then remove it)
-    await createNewDocument(page)
+    await createWikiDoc(page)
     await setDocumentTitle(page, 'Doc with Mention')
 
     const editor = page.locator('.ProseMirror')
@@ -185,7 +156,7 @@ test.describe('Backlinks', () => {
     await setDocumentTitle(page, 'Target Document')
 
     // Create Document Y that mentions X
-    await createNewDocument(page)
+    await createWikiDoc(page)
     await setDocumentTitle(page, 'Referencing Document')
 
     const editor = page.locator('.ProseMirror')
@@ -369,7 +340,7 @@ test.describe('Backlinks', () => {
   })
 
   test('backlinks panel shows empty state when no backlinks', async ({ page }) => {
-    await createNewDocument(page)
+    await createWikiDoc(page)
     await setDocumentTitle(page, 'Lonely Document')
 
     // Wait a moment for any potential backlinks to load

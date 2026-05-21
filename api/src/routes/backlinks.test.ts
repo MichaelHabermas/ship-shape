@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import { extractDocumentMentionIds } from '@ship/shared';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 
@@ -464,6 +465,35 @@ describe('Backlinks API', () => {
       // Cleanup
       await pool.query('DELETE FROM documents WHERE id = $1', [otherDocId]);
       await pool.query('DELETE FROM workspaces WHERE id = $1', [otherWorkspaceId]);
+    });
+
+    it('syncs links from TipTap JSON mention ids (editor boundary)', async () => {
+      const targetId = testDoc2Id;
+      const content = {
+        type: 'doc',
+        content: [
+          {
+            type: 'mention',
+            attrs: { mentionType: 'document', id: targetId, label: 'Target' },
+          },
+        ],
+      };
+      const mentionIds = extractDocumentMentionIds(content);
+      expect(mentionIds).toContain(targetId);
+
+      const postRes = await request(app)
+        .post(`/api/documents/${testDocId}/links`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ target_ids: mentionIds });
+      expect(postRes.status).toBe(200);
+
+      const getRes = await request(app)
+        .get(`/api/documents/${targetId}/backlinks`)
+        .set('Cookie', sessionCookie);
+      expect(getRes.status).toBe(200);
+      expect(Array.isArray(getRes.body)).toBe(true);
+      expect(getRes.body.some((b: { id: string }) => b.id === testDocId)).toBe(true);
     });
   });
 });

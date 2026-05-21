@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
+import { listIssuesMetadata } from '../db/documents-repository.js';
 import { z } from 'zod';
 import type { IssueProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
@@ -16,6 +17,8 @@ import {
   getTimestampUpdates,
   getBelongsToAssociations,
   getBelongsToAssociationsBatch,
+  syncBelongsToAssociations,
+  syncAssociationOfTypeForDocuments,
   type BelongsToEntry,
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
@@ -145,124 +148,25 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const userId = req.userId!;
     const workspaceId = req.workspaceId!;
 
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    let query = `
-      SELECT d.id, d.title, d.properties, d.ticket_number,
-             d.created_at, d.updated_at, d.created_by,
-             d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
-             d.converted_from_id,
-             u.name as assignee_name,
-             CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
-      FROM documents d
-      LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-      LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-        AND person_doc.document_type = 'person'
-        AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-      WHERE d.workspace_id = $1 AND d.document_type = 'issue'
-        AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
-    `;
-    const params: QueryParam[] = [workspaceId, userId, isAdmin];
-
-    // Exclude archived and deleted issues by default
-    query += ` AND d.archived_at IS NULL AND d.deleted_at IS NULL`;
-
-    // Filter by source if specified (internal or external)
-    if (source) {
-      query += ` AND d.properties->>'source' = $${params.length + 1}`;
-      params.push(source);
-    }
-    // No default filtering - show all issues regardless of source
-
-    if (state) {
-      const states = state.split(',');
-      query += ` AND d.properties->>'state' = ANY($${params.length + 1})`;
-      params.push(states);
-    }
-
-    if (priority) {
-      query += ` AND d.properties->>'priority' = $${params.length + 1}`;
-      params.push(priority);
-    }
-
-    if (assignee_id) {
-      if (assignee_id === 'null' || assignee_id === 'unassigned') {
-        query += ` AND (d.properties->>'assignee_id' IS NULL OR d.properties->>'assignee_id' = '')`;
-      } else {
-        query += ` AND d.properties->>'assignee_id' = $${params.length + 1}`;
-        params.push(assignee_id);
-      }
-    }
-
-    // Filter by program via junction table
-    if (program_id) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM document_associations da
-        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'program'
-      )`;
-      params.push(program_id);
-    }
-
-    // Filter by project via junction table
-    if (project_id) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM document_associations da
-        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'project'
-      )`;
-      params.push(project_id);
-    }
-
-    // Filter by sprint via junction table
-    if (sprint_id) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM document_associations da
-        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'sprint'
-      )`;
-      params.push(sprint_id);
-    }
-
-    // Filter by parent/sub-issue status
-    if (parent_filter) {
-      if (parent_filter === 'top_level') {
-        // Issues that have NO parent (not a sub-issue)
-        query += ` AND NOT EXISTS (
-          SELECT 1 FROM document_associations da
-          WHERE da.document_id = d.id AND da.relationship_type = 'parent'
-        )`;
-      } else if (parent_filter === 'has_children') {
-        // Issues that HAVE at least one child (sub-issue)
-        query += ` AND EXISTS (
-          SELECT 1 FROM document_associations da
-          WHERE da.related_id = d.id AND da.relationship_type = 'parent'
-        )`;
-      } else if (parent_filter === 'is_sub_issue') {
-        // Issues that ARE sub-issues (have a parent)
-        query += ` AND EXISTS (
-          SELECT 1 FROM document_associations da
-          WHERE da.document_id = d.id AND da.relationship_type = 'parent'
-        )`;
-      }
-    }
-
-    query += ` ORDER BY
-      CASE d.properties->>'priority'
-        WHEN 'urgent' THEN 1
-        WHEN 'high' THEN 2
-        WHEN 'medium' THEN 3
-        WHEN 'low' THEN 4
-        ELSE 5
-      END,
-      d.updated_at DESC`;
-
-    const result = await pool.query<IssueRow>(query, params);
+    const rows = await listIssuesMetadata(workspaceId, userId, isAdmin, {
+      state,
+      priority,
+      assignee_id,
+      program_id,
+      project_id,
+      sprint_id,
+      source,
+      parent_filter,
+    });
 
     // Extract issues and batch-fetch associations to avoid N+1 queries
-    const issueIds = result.rows.map(row => row.id);
+    const issueIds = rows.map(row => row.id);
     const associationsMap = await getBelongsToAssociationsBatch(issueIds);
 
-    const issues = result.rows.map(row => {
-      const issue = extractIssueListItemFromRow(row);
+    const issues = rows.map(row => {
+      const issue = extractIssueListItemFromRow(row as IssueRow);
       return {
         ...issue,
         belongs_to: associationsMap.get(row.id) || [],
@@ -657,15 +561,11 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     const newIssueId = result.rows[0].id;
 
-    // Create associations from belongs_to array
-    for (const assoc of belongs_to) {
-      await client.query(
-        `INSERT INTO document_associations (document_id, related_id, relationship_type)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-        [newIssueId, assoc.id, assoc.type]
-      );
-    }
+    await syncBelongsToAssociations(
+      newIssueId,
+      belongs_to.map((assoc) => ({ id: assoc.id, type: assoc.type })),
+      client
+    );
 
     await client.query('COMMIT');
 
@@ -967,23 +867,12 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       );
     }
 
-    // Handle belongs_to association updates in junction table
     if (belongsToChanged) {
-      // Delete all existing associations for this document
-      await client.query(
-        `DELETE FROM document_associations WHERE document_id = $1`,
-        [id]
+      await syncBelongsToAssociations(
+        id,
+        newBelongsTo.map((assoc) => ({ id: assoc.id, type: assoc.type })),
+        client
       );
-
-      // Insert new associations
-      for (const assoc of newBelongsTo) {
-        await client.query(
-          `INSERT INTO document_associations (document_id, related_id, relationship_type)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-          [id, assoc.id, assoc.type]
-        );
-      }
     }
 
     // Fetch the updated issue
@@ -1267,68 +1156,36 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
           values
         );
 
-        // Handle project_id via document_associations table
         if (updates.project_id !== undefined) {
-          // Remove existing project associations for all updated issues
-          await client.query(
-            `DELETE FROM document_associations
-             WHERE document_id = ANY($1) AND relationship_type = 'project'`,
-            [validIds]
-          );
-
-          // Add new project associations if project_id is not null
-          if (updates.project_id !== null) {
-            // Verify the project exists and user has access
+          let projectId: string | null = updates.project_id;
+          if (projectId !== null) {
             const projectCheck = await client.query(
               `SELECT id FROM documents
                WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
                  AND deleted_at IS NULL`,
-              [updates.project_id, workspaceId]
+              [projectId, workspaceId]
             );
-
-            if (projectCheck.rows.length > 0) {
-              // Insert associations for all valid issues
-              const insertValues = validIds.map((_, i) => `($${i + 1}, $${validIds.length + 1}, 'project')`).join(', ');
-              await client.query(
-                `INSERT INTO document_associations (document_id, related_id, relationship_type)
-                 VALUES ${insertValues}
-                 ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-                [...validIds, updates.project_id]
-              );
+            if (projectCheck.rows.length === 0) {
+              projectId = null;
             }
           }
+          await syncAssociationOfTypeForDocuments(validIds, 'project', projectId, client);
         }
 
-        // Handle sprint_id via document_associations table
         if (updates.sprint_id !== undefined) {
-          // Remove existing sprint associations for all updated issues
-          await client.query(
-            `DELETE FROM document_associations
-             WHERE document_id = ANY($1) AND relationship_type = 'sprint'`,
-            [validIds]
-          );
-
-          // Add new sprint associations if sprint_id is not null
-          if (updates.sprint_id !== null) {
-            // Verify the sprint exists and user has access
+          let sprintId: string | null = updates.sprint_id;
+          if (sprintId !== null) {
             const sprintCheck = await client.query(
               `SELECT id FROM documents
                WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
                  AND deleted_at IS NULL`,
-              [updates.sprint_id, workspaceId]
+              [sprintId, workspaceId]
             );
-
-            if (sprintCheck.rows.length > 0) {
-              // Insert associations for all valid issues
-              const insertValues = validIds.map((_, i) => `($${i + 1}, $${validIds.length + 1}, 'sprint')`).join(', ');
-              await client.query(
-                `INSERT INTO document_associations (document_id, related_id, relationship_type)
-                 VALUES ${insertValues}
-                 ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-                [...validIds, updates.sprint_id]
-              );
+            if (sprintCheck.rows.length === 0) {
+              sprintId = null;
             }
           }
+          await syncAssociationOfTypeForDocuments(validIds, 'sprint', sprintId, client);
         }
         break;
 

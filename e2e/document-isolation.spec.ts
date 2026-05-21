@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/isolated-env';
+import { login, createWikiDoc } from './fixtures/app';
 
 // Helper to get editor text content without collaboration cursor labels
 async function getEditorTextWithoutCursor(page: import('@playwright/test').Page): Promise<string> {
@@ -51,11 +52,7 @@ async function createNewDocument(page: import('@playwright/test').Page): Promise
 test.describe('Document Isolation - Critical Data Integrity', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'dev@ship.local');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/(issues|docs)/);
+    await login(page);
   });
 
   test('content typed in one document does NOT appear in another document', async ({ page }) => {
@@ -316,11 +313,7 @@ test.describe('Document Isolation - Critical Data Integrity', () => {
 test.describe('Document Isolation - Cross Document Type', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'dev@ship.local');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/(issues|docs)/);
+    await login(page);
   });
 
 });

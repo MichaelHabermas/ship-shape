@@ -1,14 +1,10 @@
 import { test, expect } from './fixtures/isolated-env';
+import { login } from './fixtures/app';
 
 test.describe('Content Caching - High Performance Navigation', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Login first
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'dev@ship.local');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/(issues|docs)/);
+    await login(page);
   });
 
   test('toggling between two documents shows no blank flash', async ({ page }) => {
@@ -58,11 +54,7 @@ test.describe('Content Caching - High Performance Navigation', () => {
 test.describe('WebSocket Connection Reliability', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'dev@ship.local');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/(issues|docs)/);
+    await login(page);
   });
 
   test('WebSocket connects successfully on document load', async ({ page }) => {
@@ -141,11 +133,7 @@ test.describe('WebSocket Connection Reliability', () => {
 test.describe('API Content Update Invalidates Browser Cache', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'dev@ship.local');
-    await page.fill('input[name="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/(issues|docs)/);
+    await login(page);
   });
 
 });

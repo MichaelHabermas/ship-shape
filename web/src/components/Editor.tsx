@@ -17,9 +17,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { IndexeddbPersistence } from 'y-indexeddb';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ScrollFade } from '@/components/ui/ScrollFade';
@@ -90,8 +88,6 @@ interface EditorProps {
   titleSuffix?: string;
 }
 
-type SyncStatus = 'connecting' | 'cached' | 'synced' | 'disconnected';
-
 // Generate a consistent color from a string
 function stringToColor(str: string): string {
   let hash = 0;
@@ -102,61 +98,8 @@ function stringToColor(str: string): string {
   return `hsl(${hue}, 70%, 60%)`;
 }
 
-// Extract document mention IDs from TipTap JSON content
-function extractDocumentMentionIds(content: JSONContent): string[] {
-  const mentionIds: string[] = [];
-
-  function traverse(node: JSONContent) {
-    if (node.type === 'mention' && node.attrs?.mentionType === 'document' && node.attrs?.id) {
-      mentionIds.push(node.attrs.id);
-    }
-    if (node.content) {
-      for (const child of node.content) {
-        traverse(child);
-      }
-    }
-  }
-
-  traverse(content);
-  return [...new Set(mentionIds)]; // Deduplicate
-}
-
-// Extract hypothesis text from hypothesisBlock node in TipTap JSON content
-function extractHypothesisText(content: JSONContent): string | null {
-  let hypothesisText: string | null = null;
-
-  function traverse(node: JSONContent) {
-    if (node.type === 'hypothesisBlock') {
-      // Extract plain text from hypothesis block content
-      const textParts: string[] = [];
-      const extractText = (n: JSONContent) => {
-        if (n.type === 'text' && n.text) {
-          textParts.push(n.text);
-        }
-        if (n.content) {
-          for (const child of n.content) {
-            extractText(child);
-          }
-        }
-      };
-      if (node.content) {
-        for (const child of node.content) {
-          extractText(child);
-        }
-      }
-      hypothesisText = textParts.join('');
-      return; // Stop after first hypothesis block
-    }
-    if (node.content) {
-      for (const child of node.content) {
-        traverse(child);
-      }
-    }
-  }
-
-  traverse(content);
-  return hypothesisText;
-}
+import { extractDocumentMentionIds, extractHypothesisFromContent } from '@ship/shared';
+import { useCollabSession } from '@/hooks/useCollabSession';
 
 export function Editor({
   documentId,
@@ -225,10 +168,19 @@ export function Editor({
       el.style.height = `${el.scrollHeight}px`;
     }
   }, [title]);
-  const [provider, setProvider] = useState<WebsocketProvider | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('connecting');
   const [isBrowserOnline, setIsBrowserOnline] = useState(navigator.onLine);
-  const [connectedUsers, setConnectedUsers] = useState<{ name: string; color: string }[]>([]);
+  const color = userColor || stringToColor(userName);
+
+  const { provider, syncStatus, connectedUsers } = useCollabSession({
+    documentId,
+    documentType,
+    roomPrefix,
+    userName,
+    userColor: color,
+    ydoc,
+    onBack,
+    onDocumentConverted,
+  });
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(() => {
     return localStorage.getItem('ship:rightSidebarCollapsed') === 'true';
   });
@@ -261,7 +213,13 @@ export function Editor({
     };
   }, []);
 
-  const color = userColor || stringToColor(userName);
+  // Abort pending uploads when switching documents
+  useEffect(() => {
+    return () => {
+      imageUploadAbortRef.current.abort();
+      imageUploadAbortRef.current = new AbortController();
+    };
+  }, [documentId]);
 
   // Auto-focus and select title if "Untitled" (new document)
   // Uses double requestAnimationFrame to run AFTER useFocusOnNavigate's
@@ -281,226 +239,6 @@ export function Editor({
       });
     }
   }, []);
-
-  // Setup IndexedDB persistence and WebSocket provider
-  useEffect(() => {
-    let wsProvider: WebsocketProvider | null = null;
-    let hasCachedContent = false;
-    let cancelled = false;
-    // Store the updateUsers callback so we can properly remove it on cleanup
-    let updateUsersCallback: (() => void) | null = null;
-
-    // Create IndexedDB persistence for content caching
-    // This loads cached content BEFORE WebSocket connects for instant navigation
-    const indexeddbProvider = new IndexeddbPersistence(`ship-${roomPrefix}-${documentId}`, ydoc);
-
-    // Wait for IndexedDB to load cached content (with timeout)
-    // This ensures cached content shows instantly before WebSocket syncs
-    const waitForCache = new Promise<void>((resolve) => {
-      // Resolve immediately if already synced
-      if (indexeddbProvider.synced) {
-        hasCachedContent = true;
-        setSyncStatus('cached');
-        resolve();
-        return;
-      }
-
-      // Wait for sync event
-      const onSynced = () => {
-        hasCachedContent = true;
-        setSyncStatus((prev) => prev === 'connecting' ? 'cached' : prev);
-        console.log(`[Editor] IndexedDB synced for ${roomPrefix}:${documentId}`);
-        resolve();
-      };
-      indexeddbProvider.on('synced', onSynced);
-
-      // Timeout after 300ms - don't block forever if no cache exists
-      setTimeout(() => {
-        indexeddbProvider.off('synced', onSynced);
-        resolve();
-      }, 300);
-    });
-
-    // Connect WebSocket AFTER cache loads (or timeout)
-    waitForCache.then(() => {
-      if (cancelled) return;
-
-      // In production, use current host with wss:// (through CloudFront)
-      // In development, Vite proxy handles /collaboration WebSocket (see vite.config.ts)
-      const apiUrl = import.meta.env.VITE_API_URL ?? '';
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = apiUrl
-        ? apiUrl.replace(/^http/, 'ws') + '/collaboration'
-        : `${wsProtocol}//${window.location.host}/collaboration`;
-      // Listen for custom "clear cache" message (type 3) from server
-      // This is sent when the server loaded content fresh from JSON (API update/create)
-      // We need to clear IndexedDB to prevent stale cached content from merging
-      const MESSAGE_TYPE_CLEAR_CACHE = 3;
-      const handleRawMessage = (event: MessageEvent) => {
-        if (cancelled) return;
-        try {
-          const data = new Uint8Array(event.data);
-          if (data.length > 0 && data[0] === MESSAGE_TYPE_CLEAR_CACHE) {
-            console.log(`[Editor] Received cache clear signal for ${documentId}, clearing IndexedDB`);
-            // Clear the Y.Doc to remove any cached content before server sync
-            ydoc.transact(() => {
-              const fragment = ydoc.getXmlFragment('default');
-              // Delete all content from the fragment
-              while (fragment.length > 0) {
-                fragment.delete(0, 1);
-              }
-            });
-            // Also clear IndexedDB for future visits
-            indexeddbProvider.clearData().then(() => {
-              console.log(`[Editor] IndexedDB cache cleared for ${documentId} (fresh from JSON)`);
-              hasCachedContent = false;
-            }).catch((err) => {
-              console.error(`[Editor] Failed to clear IndexedDB cache for ${documentId}:`, err);
-            });
-          }
-        } catch {
-          // Ignore errors from processing non-binary messages
-        }
-      };
-
-      // Create WebSocket provider with connect: false so we can add listener first
-      wsProvider = new WebsocketProvider(wsUrl, `${roomPrefix}:${documentId}`, ydoc, {
-        connect: false,
-      });
-
-      // Add raw message listener before connecting
-      // y-websocket creates its own WebSocket, we need to hook into it
-      const originalConnect = wsProvider.connect.bind(wsProvider);
-      wsProvider.connect = () => {
-        originalConnect();
-        // Add listener to the new WebSocket
-        if (wsProvider?.ws) {
-          wsProvider.ws.addEventListener('message', handleRawMessage);
-        }
-      };
-
-      // Now connect
-      wsProvider.connect();
-
-      wsProvider.on('status', (event: { status: string }) => {
-        if (cancelled) return; // Don't update state if effect was cleaned up
-        console.log(`[Editor] WebSocket status: ${event.status} for ${roomPrefix}:${documentId}`);
-        if (event.status === 'connected') {
-          setSyncStatus('synced');
-        } else if (event.status === 'disconnected') {
-          // If we have cached content, show 'cached' instead of 'disconnected'
-          setSyncStatus(hasCachedContent ? 'cached' : 'disconnected');
-        }
-      });
-
-      // Handle WebSocket close events to detect access revoked, document converted, or content updated
-      wsProvider.on('connection-close', (event: CloseEvent | null) => {
-        if (cancelled) return; // Don't process if effect was cleaned up
-        if (event?.code === 4403) {
-          console.log(`[Editor] Access revoked for document ${documentId}`);
-          // Disable auto-reconnect since access was revoked
-          wsProvider!.shouldConnect = false;
-          // Show user-friendly message
-          alert('Access to this document has been revoked. The document is now private.');
-          // Navigate back if possible
-          onBack?.();
-        } else if (event?.code === 4100) {
-          console.log(`[Editor] Document ${documentId} was converted`);
-          // Disable auto-reconnect since document was converted
-          wsProvider!.shouldConnect = false;
-          // Parse conversion info from close reason
-          try {
-            const conversionInfo = JSON.parse(event.reason || '{}');
-            if (conversionInfo.newDocId && conversionInfo.newDocType && onDocumentConverted) {
-              onDocumentConverted(conversionInfo.newDocId, conversionInfo.newDocType);
-            } else {
-              // Fallback if callback not provided or info missing
-              alert('This document was converted. Please refresh to view the new document.');
-              onBack?.();
-            }
-          } catch {
-            console.error('[Editor] Failed to parse conversion info:', event.reason);
-            alert('This document was converted. Please refresh to view the new document.');
-            onBack?.();
-          }
-        } else if (event?.code === 4101) {
-          // Content updated via API - clear IndexedDB cache to prevent stale content merge
-          console.log(`[Editor] Content updated via API for ${documentId}, clearing IndexedDB cache`);
-          // Clear the IndexedDB cache so stale content doesn't merge with new content
-          indexeddbProvider.clearData().then(() => {
-            console.log(`[Editor] IndexedDB cache cleared for ${documentId}`);
-            hasCachedContent = false;
-          }).catch((err) => {
-            console.error(`[Editor] Failed to clear IndexedDB cache for ${documentId}:`, err);
-          });
-          // y-websocket will auto-reconnect, now with fresh state from server
-        }
-      });
-
-      wsProvider.on('sync', (isSynced: boolean) => {
-        if (cancelled) return; // Don't update state if effect was cleaned up
-        console.log(`[Editor] WebSocket sync: ${isSynced} for ${roomPrefix}:${documentId}`);
-        if (isSynced) {
-          setSyncStatus('synced');
-        }
-      });
-
-      // Set awareness info
-      wsProvider.awareness.setLocalStateField('user', {
-        name: userName,
-        color: color,
-      });
-
-      // Track connected users - store callback reference for proper cleanup
-      // Deduplicate by user name to handle race conditions where stale awareness
-      // states exist briefly during page refresh (before old connection cleanup)
-      updateUsersCallback = () => {
-        if (cancelled) return; // Don't update state if effect was cleaned up
-        const users: { name: string; color: string }[] = [];
-        const seenNames = new Set<string>();
-        wsProvider!.awareness.getStates().forEach((state) => {
-          if (state.user && !seenNames.has(state.user.name)) {
-            seenNames.add(state.user.name);
-            users.push(state.user);
-          }
-        });
-        setConnectedUsers(users);
-      };
-
-      wsProvider.awareness.on('change', updateUsersCallback);
-      updateUsersCallback();
-
-      if (!cancelled) {
-        setProvider(wsProvider);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-
-      // Abort any pending image uploads to prevent them from completing into wrong document
-      imageUploadAbortRef.current.abort();
-      // Create a new AbortController for the next document
-      imageUploadAbortRef.current = new AbortController();
-
-      if (wsProvider) {
-        // CRITICAL: Clear awareness state before destroying to prevent ghost cursors
-        // This notifies other clients that this user has left the document
-        wsProvider.awareness.setLocalState(null);
-        // Remove the awareness change listener using the stored callback reference
-        if (updateUsersCallback) {
-          wsProvider.awareness.off('change', updateUsersCallback);
-        }
-        // Destroy provider (disconnects WebSocket)
-        wsProvider.destroy();
-      }
-      // Destroy IndexedDB persistence
-      indexeddbProvider.destroy();
-      // Clear provider state
-      setProvider(null);
-      setConnectedUsers([]);
-    };
-  }, [documentId, userName, color, ydoc, roomPrefix, onBack, onDocumentConverted]);
 
   // Create slash commands extension (memoized to avoid recreation)
   // documentId is in deps to ensure fresh AbortSignal when switching documents
@@ -777,7 +515,7 @@ export function Editor({
 
     const syncPlan = () => {
       const json = editor.getJSON();
-      const plan = extractHypothesisText(json);
+      const plan = extractHypothesisFromContent(json);
 
       // Only sync if plan has changed (including when it becomes null/empty)
       if (plan === lastSyncedPlanRef.current) {
