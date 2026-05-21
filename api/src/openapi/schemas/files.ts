@@ -3,7 +3,7 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema } from './common.js';
+import { UuidSchema, DateTimeSchema, SuccessResponseSchema } from './common.js';
 
 // ============== File Upload ==============
 
@@ -25,14 +25,14 @@ export const UploadRequestSchema = z.object({
 registry.register('UploadRequest', UploadRequestSchema);
 
 export const UploadResponseSchema = z.object({
-  uploadUrl: z.string().url().openapi({
-    description: 'Presigned URL to PUT the file (expires in 15 minutes)',
+  uploadUrl: z.string().openapi({
+    description: 'Presigned URL or local upload endpoint for uploading the file',
   }),
   fileId: UuidSchema.openapi({
     description: 'File ID to use when referencing this file',
   }),
-  publicUrl: z.string().url().openapi({
-    description: 'URL where the file will be accessible after upload',
+  s3Key: z.string().openapi({
+    description: 'Storage key for the uploaded file',
   }),
 }).openapi('UploadResponse');
 
@@ -41,17 +41,24 @@ registry.register('UploadResponse', UploadResponseSchema);
 export const FileMetadataSchema = z.object({
   id: UuidSchema,
   filename: z.string(),
-  mimeType: z.string(),
-  sizeBytes: z.number().int(),
-  uploadedBy: UuidSchema,
-  documentId: UuidSchema.nullable().openapi({
-    description: 'Document this file is attached to',
-  }),
-  publicUrl: z.string().url(),
-  createdAt: DateTimeSchema,
+  mime_type: z.string(),
+  size_bytes: z.number().int(),
+  cdn_url: z.string().nullable(),
+  status: z.string(),
+  created_at: DateTimeSchema,
 }).openapi('FileMetadata');
 
 registry.register('FileMetadata', FileMetadataSchema);
+
+export const ConfirmUploadResponseSchema = z.object({
+  fileId: UuidSchema,
+  cdnUrl: z.string().openapi({
+    description: 'URL where the uploaded file can be served',
+  }),
+  status: z.literal('uploaded'),
+}).openapi('ConfirmUploadResponse');
+
+registry.register('ConfirmUploadResponse', ConfirmUploadResponseSchema);
 
 // ============== Register File Endpoints ==============
 
@@ -94,41 +101,6 @@ registry.registerPath({
 });
 
 registry.registerPath({
-  method: 'post',
-  path: '/files/{fileId}/attach',
-  tags: ['Files'],
-  summary: 'Attach file to document',
-  description: 'Associate an uploaded file with a document.',
-  request: {
-    params: z.object({
-      fileId: UuidSchema,
-    }),
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            documentId: UuidSchema,
-          }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'File attached',
-      content: {
-        'application/json': {
-          schema: FileMetadataSchema,
-        },
-      },
-    },
-    404: {
-      description: 'File or document not found',
-    },
-  },
-});
-
-registry.registerPath({
   method: 'get',
   path: '/files/{fileId}',
   tags: ['Files'],
@@ -154,6 +126,100 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: 'get',
+  path: '/files/{fileId}/serve',
+  tags: ['Files'],
+  summary: 'Serve uploaded file',
+  description: 'Serve an uploaded file from local storage. Used by local development uploads.',
+  request: {
+    params: z.object({
+      fileId: UuidSchema,
+    }),
+  },
+  responses: {
+    200: {
+      description: 'File bytes',
+      content: {
+        'application/octet-stream': {
+          schema: z.string().openapi({ format: 'binary' }),
+        },
+      },
+    },
+    400: {
+      description: 'Invalid file ID format',
+    },
+    404: {
+      description: 'File not found',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/files/{fileId}/local-upload',
+  tags: ['Files'],
+  summary: 'Upload file bytes locally',
+  description: 'Upload raw file bytes to local storage for development environments.',
+  request: {
+    params: z.object({
+      fileId: UuidSchema,
+    }),
+    body: {
+      content: {
+        'application/octet-stream': {
+          schema: z.string().openapi({ format: 'binary' }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'File uploaded',
+      content: {
+        'application/json': {
+          schema: SuccessResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid file ID format or file data',
+    },
+    404: {
+      description: 'File not found or already uploaded',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/files/{fileId}/confirm',
+  tags: ['Files'],
+  summary: 'Confirm upload complete',
+  description: 'Mark an uploaded file as complete after direct S3 upload.',
+  request: {
+    params: z.object({
+      fileId: UuidSchema,
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Upload confirmed',
+      content: {
+        'application/json': {
+          schema: ConfirmUploadResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: 'Invalid file ID format',
+    },
+    404: {
+      description: 'File not found',
+    },
+  },
+});
+
+registry.registerPath({
   method: 'delete',
   path: '/files/{fileId}',
   tags: ['Files'],
@@ -165,8 +231,13 @@ registry.registerPath({
     }),
   },
   responses: {
-    204: {
+    200: {
       description: 'File deleted',
+      content: {
+        'application/json': {
+          schema: SuccessResponseSchema,
+        },
+      },
     },
     403: {
       description: 'Forbidden - not the uploader or admin',

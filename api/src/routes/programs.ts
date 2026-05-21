@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { logAuditEvent } from '../services/audit.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -30,6 +31,97 @@ type ProgramRow = {
   owner_name?: string | null;
   owner_email?: string | null;
 };
+
+type ProgramOwnerRow = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type ProgramExistsRow = {
+  id: string;
+  properties?: ProgramProperties | null;
+  sprint_start_date?: Date | string | null;
+};
+
+type ProgramIssueRow = {
+  id: string;
+  title: string;
+  properties: Record<string, unknown> | null;
+  ticket_number: number | string | null;
+  sprint_id: string | null;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  assignee_name: string | null;
+  assignee_archived: boolean | 't' | 'f' | null;
+};
+
+type ProgramProjectRow = {
+  id: string;
+  title: string;
+  properties: Record<string, unknown> | null;
+  program_id: string;
+  archived_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  owner_id: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+  sprint_count: string | number | null;
+  issue_count: string | number | null;
+};
+
+type ProgramSprintRow = {
+  id: string;
+  name: string;
+  properties: Record<string, unknown> | null;
+  owner_id: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+  issue_count: string | number | null;
+  completed_count: string | number | null;
+  started_count: string | number | null;
+  total_estimate_hours: string | number | null;
+  has_plan: boolean | 't' | 'f' | null;
+  has_retro: boolean | 't' | 'f' | null;
+  plan_created_at: Date | null;
+  retro_created_at: Date | null;
+};
+
+type MergePreviewProgramRow = {
+  id: string;
+  title: string;
+  properties: Record<string, unknown> | null;
+  archived_at: Date | null;
+};
+
+type MergeCountRow = {
+  document_type: string;
+  count: string | number;
+};
+
+type CountRow = {
+  count: string | number;
+};
+
+type MovedChildRow = {
+  document_id: string;
+  document_type: string;
+};
+
+function toNumber(value: string | number | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  return typeof value === 'number' ? value : Number(value);
+}
+
+function requireFirstRow<T>(rows: T[]): T {
+  const row = rows[0];
+  if (!row) {
+    throw new Error('Expected query to return a row');
+  }
+  return row;
+}
 
 // Helper to extract program from row
 function extractProgramFromRow(row: ProgramRow) {
@@ -84,8 +176,7 @@ const updateProgramSchema = z.object({
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const includeArchived = req.query.archived === 'true';
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -126,8 +217,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -155,7 +245,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(extractProgramFromRow(result.rows[0]!));
+    res.json(extractProgramFromRow(requireFirstRow(result.rows)));
   } catch (err) {
     console.error('Get program error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -172,6 +262,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { title, color, emoji, owner_id, accountable_id, consulted_ids, informed_ids } = parsed.data;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Build properties JSONB with RACI fields
     const properties: Record<string, unknown> = {
@@ -189,18 +280,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'program', $2, $3, $4)
        RETURNING id, title, properties, archived_at, created_at, updated_at`,
-      [req.workspaceId, title, JSON.stringify(properties), req.userId]
+      [workspaceId, title, JSON.stringify(properties), userId]
     );
 
     // Get user info for owner response
-    const userResult = await pool.query(
+    const userResult = await pool.query<ProgramOwnerRow>(
       'SELECT id, name, email FROM users WHERE id = $1',
-      [req.userId]
+      [userId]
     );
     const user = userResult.rows[0];
 
     res.status(201).json({
-      ...extractProgramFromRow(result.rows[0]!),
+      ...extractProgramFromRow(requireFirstRow(result.rows)),
       issue_count: 0,
       sprint_count: 0,
       owner: user ? {
@@ -219,8 +310,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = updateProgramSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -232,7 +322,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify program exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProgramExistsRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -244,7 +334,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
+    const currentProps = requireFirstRow(existing.rows).properties || {};
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -312,11 +402,11 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     await pool.query(
       `UPDATE documents SET ${updates.join(', ')}
        WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1} AND document_type = 'program'`,
-      [...values, id, req.workspaceId]
+      [...values, id, workspaceId]
     );
 
     // Re-query to get full program with owner info
-    const result = await pool.query(
+    const result = await pool.query<ProgramRow>(
       `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
               COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
               u.name as owner_name, u.email as owner_email
@@ -326,7 +416,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       [id]
     );
 
-    res.json(extractProgramFromRow(result.rows[0]));
+    res.json(extractProgramFromRow(requireFirstRow(result.rows)));
   } catch (err) {
     console.error('Update program error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -337,14 +427,13 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // First verify user can access the program
-    const accessCheck = await pool.query(
+    const accessCheck = await pool.query<ProgramExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -379,14 +468,13 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify program exists and user can access it
-    const programExists = await pool.query(
+    const programExists = await pool.query<ProgramExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -399,7 +487,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Also filter the issues by visibility - join via document_associations
-    const result = await pool.query(
+    const result = await pool.query<ProgramIssueRow>(
       `SELECT d.id, d.title, d.properties, d.ticket_number,
               d.created_at, d.updated_at, d.created_by,
               u.name as assignee_name,
@@ -458,14 +546,13 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify program exists and user can access it
-    const programExists = await pool.query(
+    const programExists = await pool.query<ProgramExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -478,7 +565,7 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
     }
 
     // Fetch projects belonging to this program via document_associations
-    const result = await pool.query(
+    const result = await pool.query<ProgramProjectRow>(
       `SELECT d.id, d.title, d.properties, $1::uuid as program_id, d.archived_at, d.created_at, d.updated_at,
               (d.properties->>'owner_id')::uuid as owner_id,
               u.name as owner_name, u.email as owner_email,
@@ -502,9 +589,9 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
     // Transform rows to project format
     const projects = result.rows.map(row => {
       const props = row.properties || {};
-      const impact = props.impact ?? 3;
-      const confidence = props.confidence ?? 3;
-      const ease = props.ease ?? 3;
+      const impact = toNumber(props.impact as string | number | null | undefined) || 3;
+      const confidence = toNumber(props.confidence as string | number | null | undefined) || 3;
+      const ease = toNumber(props.ease as string | number | null | undefined) || 3;
 
       return {
         id: row.id,
@@ -524,8 +611,8 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
           name: row.owner_name,
           email: row.owner_email,
         } : null,
-        sprint_count: parseInt(row.sprint_count) || 0,
-        issue_count: parseInt(row.issue_count) || 0,
+        sprint_count: toNumber(row.sprint_count),
+        issue_count: toNumber(row.issue_count),
       };
     });
 
@@ -541,14 +628,13 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
 router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify program exists and user can access it
-    const programCheck = await pool.query(
+    const programCheck = await pool.query<ProgramExistsRow>(
       `SELECT d.id, w.sprint_start_date
        FROM documents d
        JOIN workspaces w ON d.workspace_id = w.id
@@ -562,11 +648,11 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
       return;
     }
 
-    const sprintStartDate = programCheck.rows[0].sprint_start_date;
+    const sprintStartDate = requireFirstRow(programCheck.rows).sprint_start_date;
 
     // Also filter sprints by visibility - join via document_associations
     // Include subqueries for weekly_plan and weekly_retro existence
-    const result = await pool.query(
+    const result = await pool.query<ProgramSprintRow>(
       `SELECT d.id, d.title as name, d.properties,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
               (SELECT COUNT(*) FROM documents i
@@ -607,10 +693,10 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
           name: row.owner_name,
           email: row.owner_email,
         } : null,
-        issue_count: parseInt(row.issue_count) || 0,
-        completed_count: parseInt(row.completed_count) || 0,
-        started_count: parseInt(row.started_count) || 0,
-        total_estimate_hours: parseFloat(row.total_estimate_hours) || 0,
+        issue_count: toNumber(row.issue_count),
+        completed_count: toNumber(row.completed_count),
+        started_count: toNumber(row.started_count),
+        total_estimate_hours: toNumber(row.total_estimate_hours),
         has_plan: row.has_plan === true || row.has_plan === 't',
         has_retro: row.has_retro === true || row.has_retro === 't',
         plan_created_at: row.plan_created_at || null,
@@ -637,8 +723,7 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
   try {
     const sourceId = req.params.id;
     const targetId = req.query.target_id as string;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     if (!targetId) {
       res.status(400).json({ error: 'target_id query parameter is required' });
@@ -653,7 +738,7 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Fetch both programs
-    const programsResult = await pool.query(
+    const programsResult = await pool.query<MergePreviewProgramRow>(
       `SELECT id, title, properties, archived_at
        FROM documents
        WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'program'
@@ -682,7 +767,7 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
     }
 
     // Count child entities via document_associations
-    const countsResult = await pool.query(
+    const countsResult = await pool.query<MergeCountRow>(
       `SELECT d.document_type, COUNT(*) as count
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
@@ -691,7 +776,7 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
     );
 
     // Count direct child documents (parent_id pointing at source program)
-    const childDocsResult = await pool.query(
+    const childDocsResult = await pool.query<CountRow>(
       `SELECT COUNT(*) as count FROM documents WHERE parent_id = $1`,
       [sourceId]
     );
@@ -700,13 +785,13 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
       projects: 0,
       issues: 0,
       sprints: 0,
-      wikis: parseInt(childDocsResult.rows[0]?.count) || 0,
+      wikis: toNumber(childDocsResult.rows[0]?.count),
     };
 
     for (const row of countsResult.rows) {
-      if (row.document_type === 'project') counts.projects = parseInt(row.count);
-      else if (row.document_type === 'issue') counts.issues = parseInt(row.count);
-      else if (row.document_type === 'sprint') counts.sprints = parseInt(row.count);
+      if (row.document_type === 'project') counts.projects = toNumber(row.count);
+      else if (row.document_type === 'issue') counts.issues = toNumber(row.count);
+      else if (row.document_type === 'sprint') counts.sprints = toNumber(row.count);
     }
 
     // Check for conflicts
@@ -742,8 +827,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
   const client = await pool.connect();
   try {
     const sourceId = String(req.params.id);
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = mergeProgramSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -761,7 +845,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Fetch both programs
-    const programsResult = await pool.query(
+    const programsResult = await pool.query<MergePreviewProgramRow>(
       `SELECT id, title, properties, archived_at
        FROM documents
        WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'program'
@@ -798,7 +882,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
     await client.query('BEGIN');
 
     // 1. Get all child document IDs before re-parenting (for history logging)
-    const childrenResult = await client.query(
+    const childrenResult = await client.query<MovedChildRow>(
       `SELECT da.document_id, d.document_type
        FROM document_associations da
        JOIN documents d ON d.id = da.document_id
@@ -886,7 +970,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
     await client.query('COMMIT');
 
     // Return updated target program
-    const result = await pool.query(
+    const result = await pool.query<ProgramRow>(
       `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
               COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
               u.name as owner_name, u.email as owner_email,
@@ -902,7 +986,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
       [targetId]
     );
 
-    res.json(extractProgramFromRow(result.rows[0]));
+    res.json(extractProgramFromRow(requireFirstRow(result.rows)));
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Merge program error:', err);

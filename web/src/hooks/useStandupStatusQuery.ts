@@ -1,10 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
+import { apiClient, assertApiData } from '@/api/client';
+import type { components } from '@/api/generated/ship-openapi';
 
-export interface StandupStatus {
-  due: boolean;
-  lastPosted: string | null;
-}
+export type StandupStatus = components['schemas']['StandupStatus'];
 
 // Query keys
 export const standupStatusKeys = {
@@ -14,13 +12,8 @@ export const standupStatusKeys = {
 
 // Fetch standup status
 async function fetchStandupStatus(): Promise<StandupStatus> {
-  const res = await apiGet('/api/standups/status');
-  if (!res.ok) {
-    const error = new Error('Failed to fetch standup status') as Error & { status: number };
-    error.status = res.status;
-    throw error;
-  }
-  return res.json();
+  const response = await apiClient.GET('/standups/status');
+  return assertApiData(response, 'Failed to fetch standup status');
 }
 
 // Hook to get standup due status
