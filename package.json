@@ -55,20 +55,20 @@
     "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.11.0",
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.57.0",
     "@testcontainers/postgresql": "^11.11.0",
     "@types/supertest": "^6.0.3",
-    "@vitest/ui": "^4.0.16",
+    "@vitest/ui": "^4.1.7",
     "eslint": "^10.4.0",
-    "get-port": "^7.1.0",
+    "get-port": "^7.2.0",
     "globals": "^17.6.0",
     "husky": "^9.1.7",
-    "prettier": "^3.4.2",
+    "prettier": "^3.8.3",
     "supertest": "^7.1.4",
     "testcontainers": "^11.11.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.59.4",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.7"
   }
 }
