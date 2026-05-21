@@ -297,6 +297,7 @@ describe('authMiddleware', () => {
             user_id: 'user-123',
             workspace_id: 'ws-123',
             is_super_admin: false,
+            membership_user_id: 'user-123',
           }]))
         // Mock update last_used_at
         .mockResolvedValueOnce(pgCommand(1));
@@ -354,6 +355,7 @@ describe('authMiddleware', () => {
             user_id: 'api-user',
             workspace_id: 'api-ws',
             is_super_admin: false,
+            membership_user_id: 'api-user',
           }]))
         .mockResolvedValueOnce(pgCommand(1));
 
@@ -362,6 +364,24 @@ describe('authMiddleware', () => {
       expect(req.userId).toBe('api-user');
       expect(req.isApiToken).toBe(true);
       expect(next).toHaveBeenCalled();
+    });
+
+    it('rejects bearer token when the user no longer belongs to the token workspace', async () => {
+      const { req, res, next } = createMockReqResWithAuth('Bearer ship_removedmember');
+
+      vi.mocked(pool.query).mockResolvedValueOnce(pgResult([{
+        id: 'token-1',
+        user_id: 'user-123',
+        workspace_id: 'ws-123',
+        is_super_admin: false,
+        membership_user_id: null,
+      }]));
+
+      await authMiddleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
+      expect(pool.query).toHaveBeenCalledTimes(1);
     });
   });
 });

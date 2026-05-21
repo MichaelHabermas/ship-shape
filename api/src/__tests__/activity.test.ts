@@ -15,6 +15,7 @@ vi.mock('../middleware/auth.js', () => ({
   authMiddleware: (req: Request, _res: Response, next: NextFunction) => {
     req.workspaceId = 'test-workspace-id';
     req.userId = 'test-user-id';
+    req.isSuperAdmin = false;
     next();
   },
 }));
@@ -28,6 +29,24 @@ function createTestApp() {
   app.use(express.json());
   app.use('/activity', activityRouter);
   return app;
+}
+
+function mockReadableEntityThenActivity(entityId: string, rows: Array<{ date: string; count: number }>) {
+  vi.mocked(pool.query)
+    .mockResolvedValueOnce(pgResult([{ role: 'member' }], 1))
+    .mockResolvedValueOnce(pgResult([{
+      id: entityId,
+      title: 'Entity',
+      document_type: 'program',
+      workspace_id: 'test-workspace-id',
+      created_by: 'someone-else',
+      visibility: 'workspace',
+      properties: {},
+      archived_at: null,
+      deleted_at: null,
+    }], 1))
+    .mockResolvedValueOnce(pgResult([{ role: 'member' }], 1))
+    .mockResolvedValueOnce(pgResult(rows));
 }
 
 describe('Activity API', () => {
@@ -44,15 +63,11 @@ describe('Activity API', () => {
         const programId = 'program-123';
         const workspaceId = 'test-workspace-id';
 
-        // Mock entity exists check
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: programId }], 1))
-          // Mock activity query
-          .mockResolvedValueOnce(pgResult([
-              { date: '2024-01-01', count: 5 },
-              { date: '2024-01-02', count: 3 },
-              { date: '2024-01-03', count: 0 },
-            ]));
+        mockReadableEntityThenActivity(programId, [
+          { date: '2024-01-01', count: 5 },
+          { date: '2024-01-02', count: 3 },
+          { date: '2024-01-03', count: 0 },
+        ]);
 
         const response = await request(app)
           .get(`/activity/program/${programId}`)
@@ -66,10 +81,10 @@ describe('Activity API', () => {
           ],
         });
 
-        // Verify entity check query
+        // Verify readable entity check query
         expect(pool.query).toHaveBeenCalledWith(
-          expect.stringContaining('SELECT id FROM documents'),
-          [programId, workspaceId, 'program']
+          expect.stringContaining('FROM documents d'),
+          [programId, workspaceId, 'test-user-id', false, 'program']
         );
       });
 
@@ -77,12 +92,10 @@ describe('Activity API', () => {
         const projectId = 'project-456';
         const workspaceId = 'test-workspace-id';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: projectId }], 1))
-          .mockResolvedValueOnce(pgResult([
-              { date: '2024-01-10', count: 12 },
-              { date: '2024-01-11', count: 8 },
-            ]));
+        mockReadableEntityThenActivity(projectId, [
+          { date: '2024-01-10', count: 12 },
+          { date: '2024-01-11', count: 8 },
+        ]);
 
         const response = await request(app)
           .get(`/activity/project/${projectId}`)
@@ -96,8 +109,8 @@ describe('Activity API', () => {
         });
 
         expect(pool.query).toHaveBeenCalledWith(
-          expect.stringContaining('SELECT id FROM documents'),
-          [projectId, workspaceId, 'project']
+          expect.stringContaining('FROM documents d'),
+          [projectId, workspaceId, 'test-user-id', false, 'project']
         );
       });
 
@@ -105,11 +118,9 @@ describe('Activity API', () => {
         const sprintId = 'sprint-789';
         const workspaceId = 'test-workspace-id';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: sprintId }], 1))
-          .mockResolvedValueOnce(pgResult([
-              { date: '2024-01-20', count: 15 },
-            ]));
+        mockReadableEntityThenActivity(sprintId, [
+          { date: '2024-01-20', count: 15 },
+        ]);
 
         const response = await request(app)
           .get(`/activity/sprint/${sprintId}`)
@@ -122,17 +133,15 @@ describe('Activity API', () => {
         });
 
         expect(pool.query).toHaveBeenCalledWith(
-          expect.stringContaining('SELECT id FROM documents'),
-          [sprintId, workspaceId, 'sprint']
+          expect.stringContaining('FROM documents d'),
+          [sprintId, workspaceId, 'test-user-id', false, 'sprint']
         );
       });
 
       it('returns empty array for entity with no activity', async () => {
         const programId = 'empty-program';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: programId }], 1))
-          .mockResolvedValueOnce(pgResult([]));
+        mockReadableEntityThenActivity(programId, []);
 
         const response = await request(app)
           .get(`/activity/program/${programId}`)
@@ -151,7 +160,7 @@ describe('Activity API', () => {
           .expect(400);
 
         expect(response.body).toEqual({
-          error: 'Invalid entity type. Must be program, project, or week.',
+          error: 'Invalid entity type. Must be program, project, or sprint.',
         });
 
         // Should not query database for invalid type
@@ -161,7 +170,9 @@ describe('Activity API', () => {
       it('returns 404 when entity does not exist', async () => {
         const nonExistentId = 'non-existent-id';
 
-        vi.mocked(pool.query).mockResolvedValueOnce(pgResult([], 0));
+        vi.mocked(pool.query)
+          .mockResolvedValueOnce(pgResult([{ role: 'member' }], 1))
+          .mockResolvedValueOnce(pgResult([], 0));
 
         const response = await request(app)
           .get(`/activity/program/${nonExistentId}`)
@@ -176,7 +187,9 @@ describe('Activity API', () => {
         const programId = 'other-workspace-program';
 
         // Entity exists but not in user's workspace
-        vi.mocked(pool.query).mockResolvedValueOnce(pgResult([], 0));
+        vi.mocked(pool.query)
+          .mockResolvedValueOnce(pgResult([{ role: 'member' }], 1))
+          .mockResolvedValueOnce(pgResult([], 0));
 
         const response = await request(app)
           .get(`/activity/program/${programId}`)
@@ -209,9 +222,7 @@ describe('Activity API', () => {
         const programId = 'program-123';
         const workspaceId = 'test-workspace-id';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: programId }], 1))
-          .mockResolvedValueOnce(pgResult([]));
+        mockReadableEntityThenActivity(programId, []);
 
         await request(app)
           .get(`/activity/program/${programId}`)
@@ -220,13 +231,13 @@ describe('Activity API', () => {
         // Verify workspace_id is included in entity check
         expect(pool.query).toHaveBeenCalledWith(
           expect.stringContaining('workspace_id = $2'),
-          [programId, workspaceId, 'program']
+          [programId, workspaceId, 'test-user-id', false, 'program']
         );
 
         // Verify workspace_id is included in activity query
         expect(pool.query).toHaveBeenCalledWith(
-          expect.stringContaining('WHERE workspace_id = $2'),
-          [programId, workspaceId]
+          expect.stringContaining('WHERE d.workspace_id = $2'),
+          [programId, workspaceId, 'test-user-id', false]
         );
       });
     });
@@ -235,12 +246,10 @@ describe('Activity API', () => {
       it('queries exactly 30 days of activity', async () => {
         const programId = 'program-123';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: programId }], 1))
-          .mockResolvedValueOnce(pgResult(Array.from({ length: 30 }, (_, i) => ({
-              date: `2024-01-${String(i + 1).padStart(2, '0')}`,
-              count: i % 3,
-            }))));
+        mockReadableEntityThenActivity(programId, Array.from({ length: 30 }, (_, i) => ({
+          date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+          count: i % 3,
+        })));
 
         const response = await request(app)
           .get(`/activity/program/${programId}`)
@@ -252,7 +261,7 @@ describe('Activity API', () => {
         // Verify query uses 29 days interval (today + 29 previous days = 30 total)
         expect(pool.query).toHaveBeenCalledWith(
           expect.stringContaining("INTERVAL '29 days'"),
-          [programId, 'test-workspace-id']
+          [programId, 'test-workspace-id', 'test-user-id', false]
         );
       });
     });
@@ -261,15 +270,13 @@ describe('Activity API', () => {
       it('program query includes direct documents, projects, and sprints', async () => {
         const programId = 'program-123';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: programId }], 1))
-          .mockResolvedValueOnce(pgResult([]));
+        mockReadableEntityThenActivity(programId, []);
 
         await request(app)
           .get(`/activity/program/${programId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0];
+        const activityQuery = vi.mocked(pool.query).mock.calls[3]![0];
 
         // Verify query structure includes all relevant associations via document_associations
         expect(activityQuery).toContain('program_projects');
@@ -283,15 +290,13 @@ describe('Activity API', () => {
       it('project query includes direct documents and sprints', async () => {
         const projectId = 'project-456';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: projectId }], 1))
-          .mockResolvedValueOnce(pgResult([]));
+        mockReadableEntityThenActivity(projectId, []);
 
         await request(app)
           .get(`/activity/project/${projectId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0];
+        const activityQuery = vi.mocked(pool.query).mock.calls[3]![0];
 
         expect(activityQuery).toContain('project_sprints');
         // Project and sprint associations use document_associations junction table
@@ -303,20 +308,18 @@ describe('Activity API', () => {
       it('sprint query includes direct documents only', async () => {
         const sprintId = 'sprint-789';
 
-        vi.mocked(pool.query)
-          .mockResolvedValueOnce(pgResult([{ id: sprintId }], 1))
-          .mockResolvedValueOnce(pgResult([]));
+        mockReadableEntityThenActivity(sprintId, []);
 
         await request(app)
           .get(`/activity/sprint/${sprintId}`)
           .expect(200);
 
-        const activityQuery = vi.mocked(pool.query).mock.calls[1]![0];
+        const activityQuery = vi.mocked(pool.query).mock.calls[3]![0];
 
         // Issues linked via junction table
         expect(activityQuery).toContain('document_associations');
         expect(activityQuery).toContain("relationship_type = 'sprint'");
-        expect(activityQuery).toContain('OR id = $1'); // Sprint document itself
+        expect(activityQuery).toContain('OR d.id = $1'); // Sprint document itself
         expect(activityQuery).not.toContain('project_sprints');
       });
     });
