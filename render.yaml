@@ -47,5 +47,5 @@ databases:
   - name: ship-shape-db
     databaseName: ship_shape
     user: ship_shape
-    plan: free
+    plan: basic-256mb
     postgresMajorVersion: "15"
