@@ -61,19 +61,6 @@ function getAvailableMemoryGB(): number {
   return freeMem / (1024 * 1024 * 1024);
 }
 
-/**
- * Calculate safe number of workers based on available memory.
- * Each worker needs roughly: 150MB (Postgres) + 100MB (API) + 50MB (preview) = ~300MB minimum
- * Add buffer for tests, browser, etc = ~500MB per worker safe estimate
- */
-function getSafeWorkerCount(): number {
-  const availableGB = getAvailableMemoryGB();
-  const memPerWorker = 0.5; // 500MB per worker
-  const reserveGB = 2; // Keep 2GB free for OS and other processes
-  const safeCount = Math.max(1, Math.floor((availableGB - reserveGB) / memPerWorker));
-  return Math.min(safeCount, 8); // Cap at 8 regardless
-}
-
 // Only warn if memory is critically low (config handles worker calculation)
 const availableMem = getAvailableMemoryGB();
 if (availableMem < 4) {

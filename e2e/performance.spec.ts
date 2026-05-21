@@ -439,7 +439,7 @@ test.describe('Performance - Many Images', () => {
     imagePaths.forEach(p => {
       try {
         fs.unlinkSync(p)
-      } catch (e) {
+      } catch (_e) {
         // Ignore errors
       }
     })
@@ -527,7 +527,7 @@ test.describe('Performance - Many Images', () => {
     imagePaths.forEach(p => {
       try {
         fs.unlinkSync(p)
-      } catch (e) {
+      } catch (_e) {
         // Ignore errors
       }
     })

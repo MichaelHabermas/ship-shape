@@ -3,7 +3,7 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema } from './common.js';
+import { UuidSchema, DateTimeSchema, SuccessResponseSchema } from './common.js';
 
 // ============== Login ==============
 
@@ -19,21 +19,61 @@ export const LoginRequestSchema = z.object({
 
 registry.register('LoginRequest', LoginRequestSchema);
 
+export const AuthUserSchema = z.object({
+  id: UuidSchema,
+  email: z.string().email(),
+  name: z.string(),
+  isSuperAdmin: z.boolean(),
+}).openapi('AuthUser');
+
+registry.register('AuthUser', AuthUserSchema);
+
+export const AuthWorkspaceSchema = z.object({
+  id: UuidSchema,
+  name: z.string(),
+  role: z.string(),
+}).openapi('AuthWorkspace');
+
+registry.register('AuthWorkspace', AuthWorkspaceSchema);
+
+export const AuthContextDataSchema = z.object({
+  user: AuthUserSchema,
+  currentWorkspace: AuthWorkspaceSchema.nullable(),
+  workspaces: z.array(AuthWorkspaceSchema),
+  pendingAccountabilityItems: z.array(z.unknown()),
+}).openapi('AuthContextData');
+
+registry.register('AuthContextData', AuthContextDataSchema);
+
 export const LoginResponseSchema = z.object({
-  user: z.object({
-    id: UuidSchema,
-    email: z.string().email(),
-    name: z.string(),
-    is_admin: z.boolean().optional(),
-  }),
-  workspace: z.object({
-    id: UuidSchema,
-    name: z.string(),
-    slug: z.string(),
-  }).nullable().optional(),
+  success: z.literal(true),
+  data: AuthContextDataSchema,
 }).openapi('LoginResponse');
 
 registry.register('LoginResponse', LoginResponseSchema);
+
+export const CurrentUserResponseSchema = z.object({
+  success: z.literal(true),
+  data: AuthContextDataSchema,
+}).openapi('CurrentUserResponse');
+
+registry.register('CurrentUserResponse', CurrentUserResponseSchema);
+
+export const AuthErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+  }),
+}).openapi('AuthErrorResponse');
+
+registry.register('AuthErrorResponse', AuthErrorResponseSchema);
+
+export const CsrfTokenResponseSchema = z.object({
+  token: z.string(),
+}).openapi('CsrfTokenResponse');
+
+registry.register('CsrfTokenResponse', CsrfTokenResponseSchema);
 
 // ============== Session ==============
 
@@ -56,6 +96,16 @@ export const SessionResponseSchema = z.object({
 }).openapi('SessionResponse');
 
 registry.register('SessionResponse', SessionResponseSchema);
+
+export const ExtendSessionResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    expiresAt: DateTimeSchema,
+    lastActivity: DateTimeSchema,
+  }),
+}).openapi('ExtendSessionResponse');
+
+registry.register('ExtendSessionResponse', ExtendSessionResponseSchema);
 
 // ============== API Token ==============
 
@@ -126,7 +176,7 @@ registry.registerPath({
       description: 'Invalid credentials',
       content: {
         'application/json': {
-          schema: z.object({ error: z.literal('Invalid credentials') }),
+          schema: AuthErrorResponseSchema,
         },
       },
     },
@@ -144,9 +194,59 @@ registry.registerPath({
       description: 'Logout successful',
       content: {
         'application/json': {
-          schema: z.object({ success: z.literal(true) }),
+          schema: SuccessResponseSchema,
         },
       },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/auth/me',
+  tags: ['Authentication'],
+  summary: 'Get current user',
+  description: 'Get the authenticated user, current workspace, and accessible workspaces.',
+  responses: {
+    200: {
+      description: 'Current user information',
+      content: {
+        'application/json': {
+          schema: CurrentUserResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: 'Not authenticated',
+    },
+    404: {
+      description: 'User not found',
+      content: {
+        'application/json': {
+          schema: AuthErrorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/auth/extend-session',
+  tags: ['Authentication'],
+  summary: 'Extend current session',
+  description: 'Refresh the authenticated session inactivity timeout.',
+  responses: {
+    200: {
+      description: 'Session extended',
+      content: {
+        'application/json': {
+          schema: ExtendSessionResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: 'Not authenticated',
     },
   },
 });
@@ -168,6 +268,25 @@ registry.registerPath({
     },
     401: {
       description: 'Not authenticated',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/csrf-token',
+  tags: ['Authentication'],
+  summary: 'Get CSRF token',
+  description: 'Issue a CSRF token for session-protected mutating requests.',
+  security: [],
+  responses: {
+    200: {
+      description: 'CSRF token',
+      content: {
+        'application/json': {
+          schema: CsrfTokenResponseSchema,
+        },
+      },
     },
   },
 });

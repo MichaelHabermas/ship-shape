@@ -745,8 +745,6 @@ test.describe('Accessibility', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Verify focus is inside the modal
-    const focusedElement = page.locator(':focus');
-    const modalElement = modal;
     // Check that the focused element is inside the modal
     const isFocusedInModal = await page.evaluate(() => {
       const focused = document.activeElement;

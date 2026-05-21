@@ -1,4 +1,4 @@
-import { test, expect, Page, Browser } from './fixtures/isolated-env'
+import { test, expect, Page } from './fixtures/isolated-env'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'

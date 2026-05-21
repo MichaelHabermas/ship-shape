@@ -110,8 +110,6 @@ test.describe('Table of Contents (TOC)', () => {
       { level: 1, text: 'First Heading' }
     ])
 
-    const editor = page.locator('.ProseMirror')
-
     // Add TOC
     await page.keyboard.press('Enter')
     await page.keyboard.type('/toc')
@@ -126,6 +124,7 @@ test.describe('Table of Contents (TOC)', () => {
     await expect(toc).toBeVisible({ timeout: 3000 })
 
     // Add new heading
+    const editor = page.locator('.ProseMirror')
     await editor.click()
     await page.keyboard.press('End')
     await page.keyboard.press('Enter')
@@ -147,8 +146,6 @@ test.describe('Table of Contents (TOC)', () => {
       { level: 2, text: 'Delete This' },
       { level: 2, text: 'Keep This Too' }
     ])
-
-    const editor = page.locator('.ProseMirror')
 
     // Add TOC
     await page.keyboard.press('Enter')
@@ -193,8 +190,6 @@ test.describe('Table of Contents (TOC)', () => {
     await addHeadings(page, [
       { level: 1, text: 'Original Title' }
     ])
-
-    const editor = page.locator('.ProseMirror')
 
     // Add TOC
     await page.keyboard.press('Enter')
@@ -250,8 +245,6 @@ test.describe('Table of Contents (TOC)', () => {
       { level: 1, text: 'Section Three' }
     ])
 
-    const editor = page.locator('.ProseMirror')
-
     // Add some content to make document scrollable
     await page.keyboard.press('End')
     await page.keyboard.press('Enter')
@@ -303,8 +296,6 @@ test.describe('Table of Contents (TOC)', () => {
       { level: 1, text: 'Chapter Two' }
     ])
 
-    const editor = page.locator('.ProseMirror')
-
     // Add TOC
     await page.keyboard.press('End')
     await page.keyboard.press('Enter')
@@ -348,8 +339,6 @@ test.describe('Table of Contents (TOC)', () => {
       { level: 1, text: 'Persistent Heading' },
       { level: 2, text: 'Subheading' }
     ])
-
-    const editor = page.locator('.ProseMirror')
 
     // Add TOC
     await page.keyboard.press('Enter')

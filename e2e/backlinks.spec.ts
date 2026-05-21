@@ -63,7 +63,7 @@ test.describe('Backlinks', () => {
     await setDocumentTitle(page, 'Document A')
 
     // Create Document B (will mention Document A)
-    const docBUrl = await createNewDocument(page)
+    await createNewDocument(page)
     await setDocumentTitle(page, 'Document B')
 
     const editor = page.locator('.ProseMirror')
@@ -113,7 +113,7 @@ test.describe('Backlinks', () => {
     await setDocumentTitle(page, 'Doc to Mention')
 
     // Create Document B (will mention Document A, then remove it)
-    const docBUrl = await createNewDocument(page)
+    await createNewDocument(page)
     await setDocumentTitle(page, 'Doc with Mention')
 
     const editor = page.locator('.ProseMirror')
@@ -185,7 +185,7 @@ test.describe('Backlinks', () => {
     await setDocumentTitle(page, 'Target Document')
 
     // Create Document Y that mentions X
-    const docYUrl = await createNewDocument(page)
+    await createNewDocument(page)
     await setDocumentTitle(page, 'Referencing Document')
 
     const editor = page.locator('.ProseMirror')

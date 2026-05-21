@@ -53,44 +53,10 @@ async function getPersonIdForUser(
   return person.id;
 }
 
-// Helper to find or create a sprint that has the user assigned
-async function getAssignedSprintId(
-  page: import('@playwright/test').Page,
-  apiUrl: string,
-  csrfToken: string,
-  personId: string
-): Promise<string | null> {
-  // Get active weeks
-  const weeksResponse = await page.request.get(`${apiUrl}/api/weeks`);
-  expect(weeksResponse.ok()).toBe(true);
-  const weeksData = await weeksResponse.json();
-
-  if (weeksData.weeks.length === 0) return null;
-
-  // The seed data creates sprints with assignee_ids. Check if any sprint
-  // has the person allocated. If not, we need to find one that can be used.
-  for (const week of weeksData.weeks) {
-    const sprintResponse = await page.request.get(`${apiUrl}/api/weeks/${week.id}`);
-    if (sprintResponse.ok()) {
-      const sprint = await sprintResponse.json();
-      // Check if this sprint has assignee_ids that include personId
-      const assigneeIds = sprint.assignee_ids || [];
-      if (Array.isArray(assigneeIds) && assigneeIds.includes(personId)) {
-        return sprint.id;
-      }
-    }
-  }
-
-  // If no sprint has the person assigned, try to find any sprint
-  // The admin user is the accountable person so request-changes will work
-  // But the action items check is for the sprint owner/assignee
-  return weeksData.weeks[0]?.id || null;
-}
-
 test.describe('Changes Requested Notifications', () => {
   test('action-items includes changes_requested_plan after requesting plan changes', async ({ page, apiServer }) => {
     const { csrfToken, userId } = await loginAsAdmin(page, apiServer.url);
-    const personId = await getPersonIdForUser(page, apiServer.url, userId);
+    await getPersonIdForUser(page, apiServer.url, userId);
 
     // Get a sprint to request changes on
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
@@ -142,7 +108,7 @@ test.describe('Changes Requested Notifications', () => {
 
   test('action-items includes changes_requested_retro after requesting retro changes', async ({ page, apiServer }) => {
     const { csrfToken, userId } = await loginAsAdmin(page, apiServer.url);
-    const personId = await getPersonIdForUser(page, apiServer.url, userId);
+    await getPersonIdForUser(page, apiServer.url, userId);
 
     // Get a sprint
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);

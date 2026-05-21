@@ -473,10 +473,8 @@ test.describe('File Attachments', () => {
     // This test verifies the alert message contains the size limit info
 
     // Listen for alert dialog about file size
-    let alertReceived = false;
     page.on('dialog', async (dialog) => {
       if (dialog.message().includes('1GB') || dialog.message().includes('too large')) {
-        alertReceived = true;
         await dialog.accept();
       } else {
         await dialog.accept();

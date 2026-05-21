@@ -3538,8 +3538,7 @@
         "properties": {
           "uploadUrl": {
             "type": "string",
-            "format": "uri",
-            "description": "Presigned URL to PUT the file (expires in 15 minutes)"
+            "description": "Presigned URL or local upload endpoint for uploading the file"
           },
           "fileId": {
             "type": "string",
@@ -3547,16 +3546,15 @@
             "description": "File ID to use when referencing this file",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
-          "publicUrl": {
+          "s3Key": {
             "type": "string",
-            "format": "uri",
-            "description": "URL where the file will be accessible after upload"
+            "description": "Storage key for the uploaded file"
           }
         },
         "required": [
           "uploadUrl",
           "fileId",
-          "publicUrl"
+          "s3Key"
         ]
       },
       "FileMetadata": {
@@ -3571,30 +3569,20 @@
           "filename": {
             "type": "string"
           },
-          "mimeType": {
+          "mime_type": {
             "type": "string"
           },
-          "sizeBytes": {
+          "size_bytes": {
             "type": "integer"
           },
-          "uploadedBy": {
+          "cdn_url": {
             "type": "string",
-            "format": "uuid",
-            "description": "UUID identifier",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
+            "nullable": true
           },
-          "documentId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid",
-            "description": "Document this file is attached to",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
+          "status": {
+            "type": "string"
           },
-          "publicUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "createdAt": {
+          "created_at": {
             "type": "string",
             "format": "date-time",
             "description": "ISO 8601 datetime string",
@@ -3604,12 +3592,37 @@
         "required": [
           "id",
           "filename",
-          "mimeType",
-          "sizeBytes",
-          "uploadedBy",
-          "documentId",
-          "publicUrl",
-          "createdAt"
+          "mime_type",
+          "size_bytes",
+          "cdn_url",
+          "status",
+          "created_at"
+        ]
+      },
+      "ConfirmUploadResponse": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "cdnUrl": {
+            "type": "string",
+            "description": "URL where the uploaded file can be served"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "uploaded"
+            ]
+          }
+        },
+        "required": [
+          "fileId",
+          "cdnUrl",
+          "status"
         ]
       },
       "ActivityDay": {
@@ -3666,61 +3679,166 @@
           "password"
         ]
       },
-      "LoginResponse": {
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isSuperAdmin": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "isSuperAdmin"
+        ]
+      },
+      "AuthWorkspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role"
+        ]
+      },
+      "AuthContextData": {
         "type": "object",
         "properties": {
           "user": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "UUID identifier",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "currentWorkspace": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthWorkspace"
               },
-              "email": {
-                "type": "string",
-                "format": "email"
-              },
-              "name": {
-                "type": "string"
-              },
-              "is_admin": {
-                "type": "boolean"
+              {
+                "nullable": true
               }
-            },
-            "required": [
-              "id",
-              "email",
-              "name"
             ]
           },
-          "workspace": {
+          "workspaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthWorkspace"
+            }
+          },
+          "pendingAccountabilityItems": {
+            "type": "array",
+            "items": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "user",
+          "currentWorkspace",
+          "workspaces",
+          "pendingAccountabilityItems"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthContextData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CurrentUserResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthContextData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "AuthErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
             "type": "object",
-            "nullable": true,
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "UUID identifier",
-                "example": "550e8400-e29b-41d4-a716-446655440000"
-              },
-              "name": {
+              "code": {
                 "type": "string"
               },
-              "slug": {
+              "message": {
                 "type": "string"
               }
             },
             "required": [
-              "id",
-              "name",
-              "slug"
+              "code",
+              "message"
             ]
           }
         },
         "required": [
-          "user"
+          "success",
+          "error"
+        ]
+      },
+      "CsrfTokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ]
       },
       "SessionResponse": {
@@ -3764,6 +3882,42 @@
               "createdAt",
               "expiresAt",
               "absoluteExpiresAt",
+              "lastActivity"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ExtendSessionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 datetime string",
+                "example": "2025-01-30T14:30:00.000Z"
+              },
+              "lastActivity": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 datetime string",
+                "example": "2025-01-30T14:30:00.000Z"
+              }
+            },
+            "required": [
+              "expiresAt",
               "lastActivity"
             ]
           }
@@ -5916,21 +6070,11 @@
             "maxLength": 10000
           },
           "resolved_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time",
-                "description": "ISO 8601 datetime string",
-                "example": "2025-01-30T14:30:00.000Z"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "nullable": true
-              }
-            ],
-            "description": "Set to ISO datetime to resolve, null to un-resolve"
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "Set to ISO datetime to resolve, null to un-resolve",
+            "example": "2025-01-30T14:30:00.000Z"
           }
         }
       },
@@ -6055,6 +6199,20 @@
         },
         "required": [
           "available"
+        ]
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "success"
         ]
       }
     },
@@ -10364,63 +10522,6 @@
         }
       }
     },
-    "/files/{fileId}/attach": {
-      "post": {
-        "tags": [
-          "Files"
-        ],
-        "summary": "Attach file to document",
-        "description": "Associate an uploaded file with a document.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "UUID identifier",
-              "example": "550e8400-e29b-41d4-a716-446655440000"
-            },
-            "required": true,
-            "name": "fileId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "documentId": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "UUID identifier",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                  }
-                },
-                "required": [
-                  "documentId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "File attached",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileMetadata"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File or document not found"
-          }
-        }
-      }
-    },
     "/files/{fileId}": {
       "get": {
         "tags": [
@@ -10476,11 +10577,149 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "File deleted"
+          "200": {
+            "description": "File deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden - not the uploader or admin"
+          },
+          "404": {
+            "description": "File not found"
+          }
+        }
+      }
+    },
+    "/files/{fileId}/serve": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Serve uploaded file",
+        "description": "Serve an uploaded file from local storage. Used by local development uploads.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file ID format"
+          },
+          "404": {
+            "description": "File not found"
+          }
+        }
+      }
+    },
+    "/files/{fileId}/local-upload": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Upload file bytes locally",
+        "description": "Upload raw file bytes to local storage for development environments.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file ID format or file data"
+          },
+          "404": {
+            "description": "File not found or already uploaded"
+          }
+        }
+      }
+    },
+    "/files/{fileId}/confirm": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Confirm upload complete",
+        "description": "Mark an uploaded file as complete after direct S3 upload.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file ID format"
           },
           "404": {
             "description": "File not found"
@@ -10575,18 +10814,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "enum": [
-                        "Invalid credentials"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/AuthErrorResponse"
                 }
               }
             }
@@ -10607,21 +10835,68 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ]
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get current user",
+        "description": "Get the authenticated user, current workspace, and accessible workspaces.",
+        "responses": {
+          "200": {
+            "description": "Current user information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/extend-session": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Extend current session",
+        "description": "Refresh the authenticated session inactivity timeout.",
+        "responses": {
+          "200": {
+            "description": "Session extended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtendSessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
           }
         }
       }
@@ -10646,6 +10921,28 @@
           },
           "401": {
             "description": "Not authenticated"
+          }
+        }
+      }
+    },
+    "/csrf-token": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get CSRF token",
+        "description": "Issue a CSRF token for session-protected mutating requests.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "CSRF token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsrfTokenResponse"
+                }
+              }
+            }
           }
         }
       }

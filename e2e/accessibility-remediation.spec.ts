@@ -1454,9 +1454,8 @@ test.describe('Phase 4: Minor Violations', () => {
         const code = codeBlocks.nth(i)
         const className = await code.getAttribute('class')
         const dataLang = await code.getAttribute('data-language')
-        // Many code blocks will have language-* class
-        const hasLangIndication = className?.includes('language-') || dataLang
-        // Not all code blocks need language, but if syntax highlighted they should
+        const hasLangIndication = className?.includes('language-') || Boolean(dataLang)
+        expect(hasLangIndication).toBeTruthy()
       }
     })
   })

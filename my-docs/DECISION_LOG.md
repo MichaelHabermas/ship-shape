@@ -293,3 +293,35 @@ Consequences: Frontend list, kanban, and picker surfaces must treat some issue m
 Evidence: Valid before benchmark `test-results/benchmarks/api-2026-05-21T02-40-19-503Z.json`; final after benchmark `test-results/benchmarks/api-2026-05-21T03-11-53-590Z.json`; payload spot check after compaction measured `/api/issues` at 307,043 bytes and `/api/bootstrap` at 429,806 bytes on the audit-load dev database. `GET /api/issues` P95 improved by 30.0% at 10c and 26.7% at 25c in the final run, while `/api/bootstrap` P95 remains mixed.
 
 **Decision Gist**: List/app-shell issue data is a compact metadata contract; full editor content belongs on issue detail routes.
+
+### D018: OpenAPI Is The Generated Frontend API Type Source
+
+Status: Accepted
+
+Decision: Use OpenAPI as the generated frontend API contract source. Generate `web/src/api/generated/ship-openapi.d.ts` from `api/openapi.json` with `openapi-typescript`, use `openapi-fetch` through `web/src/api/client.ts`, and keep legacy `apiGet`/`apiPost` helpers only as compatibility shims for uncovered or intentionally raw endpoints.
+
+Why: Hand-maintained frontend response casts and `readJson<T>` calls made the API boundary easy to drift. A generated client makes request params, bodies, and responses flow from the same contract used for API docs and MCP-facing route registration.
+
+Alternatives considered: Continue local frontend interfaces and casts; add runtime validation first; migrate all frontend calls immediately. Local casts recreate the current drift. Runtime validation is a valuable future 10x option, but it is larger and does not replace compile-time contract generation. Immediate broad migration is unsafe because the route/spec checker currently shows incomplete and stale OpenAPI coverage.
+
+Consequences: Route-family work that touches frontend API shape should update OpenAPI first, regenerate types, then migrate callers. `pnpm openapi:check` is report-first for now because the existing contract is incomplete; treating it as a hard gate would block on pre-existing drift. Use `pnpm openapi:check -- --strict` when a route-family pass is ready to make coverage blocking. The next 10x step is route/spec coverage enforcement, then optional runtime response validation for trust-boundary hardening.
+
+Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. `pnpm openapi:check` reports 195 runtime routes, 121 OpenAPI operations, 82 missing, and 8 stale after fixing duplicate route mounts, path-param normalization, and the files/auth route families on 2026-05-21. `pnpm type-check` passes after the first typed-client migrations.
+
+**Decision Gist**: OpenAPI is now the frontend API type source, but coverage debt must be closed before broad generated-client migration.
+
+### D019: Runtime Response Validation Waits For Honest Route Coverage
+
+Status: Accepted
+
+Decision: Do not add production runtime response validation as the next blanket move. Use test-time response validation first: selected integration tests should assert that runtime JSON responses match the same Zod schemas that generate OpenAPI. Close OpenAPI coverage for each migrated route family before making that family strict.
+
+Why: Runtime validation only improves trust if the schema being enforced is true. The current checker still reports 195 runtime routes, 121 OpenAPI operations, 82 runtime routes missing from OpenAPI, and 8 stale OpenAPI operations. Test-time validation catches drift without adding request-path production risk while the contract is still being cleaned up.
+
+Alternatives considered: Add production middleware immediately; skip runtime validation entirely; migrate all frontend calls to generated types first. Immediate middleware is premature while stale/missing route coverage is known. Skipping validation leaves the trust boundary compile-time only. Broad migration first would spread generated false confidence through more UI code.
+
+Consequences: The next API-contract 10x path is ordered: route/spec coverage, strict coverage gate, targeted test-time response validation, optional staging-only production validation, then broader generated-client migration. Runtime validators should focus on endpoints where malformed server data can silently corrupt UI state, not every low-risk read on day one.
+
+Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, and `api/src/routes/openapi-contract.test.ts` validates `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login` against their registered OpenAPI component schemas. The focused DB-backed test run passed. `pnpm openapi:check` is report-only today and currently reports 82 missing routes and 8 stale operations. `web/src/api/client.ts` uses `openapi-fetch` with legacy-compatible CSRF/session/JSON behavior, but it does not perform production response validation.
+
+**Decision Gist**: Runtime validation is valuable, but only after the OpenAPI source is honest enough to validate against.

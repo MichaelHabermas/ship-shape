@@ -548,9 +548,9 @@ Severity: Medium
 
 Status: Confirmed
 
-Status update: Current generated OpenAPI has 82 paths and 113 operations. The comments double-prefix and false document-search route were fixed, but the broader route-family coverage drift remains.
+Status update: Current generated OpenAPI has 90 paths and 121 operations. The comments double-prefix, false document-search route, and auth session/login/current-user/CSRF coverage gaps were fixed, but the broader route-family coverage drift remains.
 
-`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation, and the generated OpenAPI document has enough paths to look authoritative. But `api/src/app.ts` mounts live route families that are not represented in the generated contract, including setup, admin/debug, invites, several document subroutes, Claude context, and other operational surfaces. Current `api/openapi.json` has 82 paths and no `/api/`-prefixed paths after the easy-wins cleanup.
+`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation, and the generated OpenAPI document has enough paths to look authoritative. But `api/src/app.ts` mounts live route families that are not represented in the generated contract, including setup, admin/debug, invites, several document subroutes, Claude context, and other operational surfaces. Current `api/openapi.json` has 90 paths and no `/api/`-prefixed paths after the OpenAPI typed-client pass.
 
 Why it matters: generated API clients, Swagger readers, MCP tooling, and security reviewers can treat OpenAPI as a source of truth while missing whole executable route families. Conversely, routes that are present in OpenAPI can still be wrong, as shown by the comment double-prefix and missing search implementation.
 
@@ -817,3 +817,27 @@ The Radix `DialogContent requires a DialogTitle` console warning observed while 
 Category 5 moved from incomplete to source-requirement complete via three meaningful regressions: exact inline comment mark removal, project issue filtering through `document_associations`, and private document comment visibility returning `404` to a non-creator workspace member. The focused API rerun passed 51 tests against `ship_test_audit` after the sandboxed attempt failed to reach local PostgreSQL.
 
 Backlinks runtime behavior changed from console-only failure to degraded state. The panel preserves last successful backlinks, exposes offline/stale state through `role="status"` and `aria-live="polite"`, pauses polling offline, and retries on reconnect. This is a real Category 6 improvement, but runtime screenshot/recording evidence is still required before claiming the category complete.
+
+### OpenAPI typed-client pass exposed contract coverage as the next bottleneck
+
+Severity: Ledger
+
+Status: Updated 2026-05-21
+
+OpenAPI is now the chosen generated frontend API typing source, with `openapi-typescript`, `openapi-fetch`, `pnpm openapi:generate`, and `web/src/api/client.ts` in place. The first safe migrations are intentionally small: comments and standup status use generated path/body/response types. Correctness review tightened the typed client to preserve the legacy CSRF retry behavior against the current server response shape and to clear the typed CSRF cache when legacy logout clears its cache.
+
+The same review found a false-confidence schema shape in comments: `UpdateComment.resolved_at` generated as `string | unknown | unknown`. The OpenAPI schema now uses `DateTimeSchema.nullable().optional()`, and generated frontend types now expose `resolved_at?: string | null`.
+
+The contract preflight showed the real limiter: OpenAPI is side-effect registered from schema files, not route-introspected from Express. The latest `pnpm openapi:check` reports 195 runtime routes, 121 OpenAPI operations, 82 runtime routes missing from OpenAPI, and 8 stale OpenAPI operations after fixing duplicate router mounts, path-param normalization, and the files/auth route families. Missing families include admin/debug/workspace membership surfaces, setup, public feedback, invites, CAIA/PIV, document conversion/content/context, team accountability/grid/people endpoints, project issue/week/sprint endpoints, week lookup/my-week/action-items/iterations, and workspace member/invite/audit-log routes. Stale operations still include old team CRUD/archive/restore, old workspaces create/patch, and `/weeks/all`.
+
+Why it matters: generated frontend types are only as true as the OpenAPI contract. Broad frontend migration before closing the missing/stale route list would replace local casts with generated false confidence. The safe path is contract coverage first for each route family, then migration of covered calls.
+
+Evidence: `pnpm openapi:generate` passes with sandbox escalation for `tsx` IPC and writes `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. `pnpm openapi:check` reports route/spec counts, enforces the no-double-`/api` convention, and has `--strict` for the future hard gate.
+
+Correctness review also found that unused-variable cleanup can silently hollow out tests when the computed value was only used for an assertion. The touched E2E specs now restore assertion checks for code-block language indication, team sorting, syntax highlighting tokens, dashed hierarchy lines, and TOC editor interaction.
+
+Typed PostgreSQL test helpers also turned out to be a small leverage point. `api/src/test/pg-result.ts` now exposes `pgResult()` for row-returning mocks and `pgCommand()` for no-row command results, including `UPDATE`/`DELETE` paths that feed empty or no-content responses. The helper is already used in auth, activity, projects, iterations, and accountability tests, removing repeated `as any` casts around mocked `pg.QueryResult` shapes.
+
+The runtime-validation decision is deliberately staged, not skipped by accident. This pass chose generated compile-time OpenAPI types first, then added test-time validation as the safe next step. `api/src/test/openapi-response.ts` can assert operation/status/component-schema presence and validate runtime JSON with the Zod schema, and `api/src/routes/openapi-contract.test.ts` proves the pattern for `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login`. Production response validation remains deferred until route/spec coverage is honest enough.
+
+Current 10x options from this pass: make `pnpm openapi:check -- --strict` a family-by-family gate once missing/stale operations are burned down; expand test-time runtime validation for generated-client endpoints after coverage is honest; optionally add staging-only production validation behind an environment flag; turn the typed pg helper into the standard test pattern for command/no-content database mocks; and treat frontend API migrations as contract work, not mechanical cast replacement.

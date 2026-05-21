@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { pgResult } from '../test/pg-result.js';
 
 // Mock pool before importing service
 vi.mock('../db/client.js', () => ({
@@ -36,7 +37,7 @@ describe('Accountability Service', () => {
     vi.mocked(pool.query).mockReset();
     // Default fallback: return empty rows for any unmocked query calls
     // This prevents crashes when new accountability checks are added
-    vi.mocked(pool.query).mockResolvedValue({ rows: [] } as any);
+    vi.mocked(pool.query).mockResolvedValue(pgResult([]));
     vi.mocked(isBusinessDay).mockReturnValue(true);
     vi.mocked(getAllocations).mockReset().mockResolvedValue([]);
   });
@@ -49,13 +50,9 @@ describe('Accountability Service', () => {
   const mockSetupQueries = (sprintStartDate = '2024-01-01') => {
     return vi.mocked(pool.query)
       // 1. Workspace query
-      .mockResolvedValueOnce({
-        rows: [{ sprint_start_date: sprintStartDate }],
-      } as any)
+      .mockResolvedValueOnce(pgResult([{ sprint_start_date: sprintStartDate }]))
       // 2. Person document lookup
-      .mockResolvedValueOnce({
-        rows: [{ id: personId }],
-      } as any);
+      .mockResolvedValueOnce(pgResult([{ id: personId }]));
   };
 
   /**
@@ -71,18 +68,18 @@ describe('Accountability Service', () => {
     vi.mocked(isBusinessDay).mockReturnValue(false); // skip standup checks
     return mockSetupQueries(sprintStartDate)
       // owned sprints
-      .mockResolvedValueOnce({ rows: [] } as any)
+      .mockResolvedValueOnce(pgResult([]))
       // past sprints without review
-      .mockResolvedValueOnce({ rows: [] } as any)
+      .mockResolvedValueOnce(pgResult([]))
       // completed projects without retro
-      .mockResolvedValueOnce({ rows: [] } as any)
+      .mockResolvedValueOnce(pgResult([]))
       // changes_requested check
-      .mockResolvedValueOnce({ rows: [] } as any);
+      .mockResolvedValueOnce(pgResult([]));
   };
 
   describe('checkMissingAccountability', () => {
     it('returns empty array when workspace not found', async () => {
-      vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
+      vi.mocked(pool.query).mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -107,12 +104,12 @@ describe('Accountability Service', () => {
     it('handles workspace start date as Date object', async () => {
       const startDate = new Date('2024-01-01');
       vi.mocked(pool.query)
-        .mockResolvedValueOnce({ rows: [{ sprint_start_date: startDate }] } as any)
-        .mockResolvedValueOnce({ rows: [{ id: personId }] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any);
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: startDate }]))
+        .mockResolvedValueOnce(pgResult([{ id: personId }]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
       expect(result).toBeDefined();
@@ -120,10 +117,10 @@ describe('Accountability Service', () => {
 
     it('handles workspace start date as string', async () => {
       mockSetupQueries()
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any)
-        .mockResolvedValueOnce({ rows: [] } as any);
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
       expect(result).toBeDefined();
@@ -151,7 +148,7 @@ describe('Accountability Service', () => {
         .mockResolvedValueOnce([{ projectId, projectName: 'Test Project' }]); // next sprint (Week 2)
 
       // Plan query for Week 2 - no plan exists
-      vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
+      vi.mocked(pool.query).mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -172,7 +169,7 @@ describe('Accountability Service', () => {
         .mockResolvedValueOnce([]); // next sprint (Week 3) - no allocations
 
       // Plan query for Week 2 - no plan exists
-      vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
+      vi.mocked(pool.query).mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -208,7 +205,7 @@ describe('Accountability Service', () => {
         .mockResolvedValueOnce([]); // next (Week 3)
 
       // Plan query for Week 2 - no plan exists
-      vi.mocked(pool.query).mockResolvedValueOnce({ rows: [] } as any);
+      vi.mocked(pool.query).mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -235,9 +232,9 @@ describe('Accountability Service', () => {
 
       // Plan query for Week 1 - plan exists (done)
       vi.mocked(pool.query)
-        .mockResolvedValueOnce({ rows: [{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'My plan' }] } }] } as any)
+        .mockResolvedValueOnce(pgResult([{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'My plan' }] } }]))
         // Retro query for Week 1 - no retro
-        .mockResolvedValueOnce({ rows: [] } as any);
+        .mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -258,7 +255,7 @@ describe('Accountability Service', () => {
 
       // Plan query for Week 1 - plan exists
       vi.mocked(pool.query)
-        .mockResolvedValueOnce({ rows: [{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'My plan' }] } }] } as any);
+        .mockResolvedValueOnce(pgResult([{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'My plan' }] } }]));
       // Retro is NOT queried because today < retroDueStr
 
       const result = await checkMissingAccountability(userId, workspaceId);
@@ -280,9 +277,9 @@ describe('Accountability Service', () => {
 
       // Plan query - plan exists
       vi.mocked(pool.query)
-        .mockResolvedValueOnce({ rows: [{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'My plan' }] } }] } as any)
+        .mockResolvedValueOnce(pgResult([{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'My plan' }] } }]))
         // Retro query - no retro
-        .mockResolvedValueOnce({ rows: [] } as any);
+        .mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -314,15 +311,15 @@ describe('Accountability Service', () => {
       // (standup skipped because isBusinessDay=false)
       mockSetupQueries()
         // owned sprints (sprint accountability) - no sprints owned
-        .mockResolvedValueOnce({ rows: [] } as any)
+        .mockResolvedValueOnce(pgResult([]))
         // Week 1 plan - exists (done)
-        .mockResolvedValueOnce({ rows: [{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'done' }] } }] } as any)
+        .mockResolvedValueOnce(pgResult([{ id: 'plan-1', content: { type: 'doc', content: [{ type: 'text', text: 'done' }] } }]))
         // Week 1 retro - exists (done) (today Jan 7 >= retroDueStr Jan 4)
-        .mockResolvedValueOnce({ rows: [{ id: 'retro-1', content: { type: 'doc', content: [{ type: 'text', text: 'done' }] } }] } as any)
+        .mockResolvedValueOnce(pgResult([{ id: 'retro-1', content: { type: 'doc', content: [{ type: 'text', text: 'done' }] } }]))
         // Week 2 plan - NOT exists
-        .mockResolvedValueOnce({ rows: [] } as any)
+        .mockResolvedValueOnce(pgResult([]))
         // changes_requested check
-        .mockResolvedValueOnce({ rows: [] } as any);
+        .mockResolvedValueOnce(pgResult([]));
 
       const result = await checkMissingAccountability(userId, workspaceId);
 
@@ -351,7 +348,7 @@ describe('Accountability Service', () => {
 
       // Week 2 plan - NOT exists
       vi.mocked(pool.query)
-        .mockResolvedValueOnce({ rows: [] } as any);
+        .mockResolvedValueOnce(pgResult([]));
       // Week 3 plan is not checked because today < planDueStr for Week 3
 
       const result = await checkMissingAccountability(userId, workspaceId);
