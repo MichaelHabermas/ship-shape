@@ -367,3 +367,93 @@ registry.registerPath({
     },
   },
 });
+
+registry.registerPath({
+  method: 'get',
+  path: '/projects/{id}/issues',
+  tags: ['Projects'],
+  summary: 'List project issues',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: { description: 'Project issues', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+    404: { description: 'Project not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/projects/{id}/weeks',
+  tags: ['Projects'],
+  summary: 'List project weeks',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: { description: 'Project weeks', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+    404: { description: 'Project not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/projects/{id}/sprints',
+  tags: ['Projects'],
+  summary: 'List project sprints',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: { description: 'Project sprints', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+    404: { description: 'Project not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/projects/{id}/sprints',
+  tags: ['Projects'],
+  summary: 'Create project sprint',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: { content: { 'application/json': { schema: z.record(z.unknown()) } } },
+  },
+  responses: {
+    201: { description: 'Sprint created' },
+    404: { description: 'Project not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/projects/{id}/retro',
+  tags: ['Projects'],
+  summary: 'Save project retro',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: { content: { 'application/json': { schema: ProjectRetroSchema } } },
+  },
+  responses: {
+    200: { description: 'Retro saved', content: { 'application/json': { schema: ProjectResponseSchema } } },
+    404: { description: 'Project not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/projects/{id}/approve-plan',
+  tags: ['Projects'],
+  summary: 'Approve project plan',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: { description: 'Plan approved' },
+    404: { description: 'Project not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/projects/{id}/approve-retro',
+  tags: ['Projects'],
+  summary: 'Approve project retro',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: { description: 'Retro approved' },
+    404: { description: 'Project not found' },
+  },
+});

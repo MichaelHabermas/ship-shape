@@ -138,31 +138,6 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'get',
-  path: '/weeks/all',
-  tags: ['Weeks'],
-  summary: 'List all weeks',
-  description: 'Get all sprints with optional filtering.',
-  request: {
-    query: z.object({
-      program_id: UuidSchema.optional(),
-      from_sprint: z.coerce.number().int().optional(),
-      to_sprint: z.coerce.number().int().optional(),
-    }),
-  },
-  responses: {
-    200: {
-      description: 'List of all weeks',
-      content: {
-        'application/json': {
-          schema: z.array(WeekResponseSchema),
-        },
-      },
-    },
-  },
-});
-
-registry.registerPath({
-  method: 'get',
   path: '/weeks/{id}',
   tags: ['Weeks'],
   summary: 'Get week by ID',
@@ -802,4 +777,68 @@ registry.registerPath({
       description: 'Sprint not found',
     },
   },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/weeks/lookup',
+  tags: ['Weeks'],
+  summary: 'Lookup week by sprint number',
+  request: { query: z.object({ sprint_number: z.coerce.number().int(), program_id: UuidSchema.optional() }) },
+  responses: { 200: { description: 'Week lookup result', content: { 'application/json': { schema: WeekResponseSchema } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/weeks/lookup-person',
+  tags: ['Weeks'],
+  summary: 'Lookup week for a person',
+  request: { query: z.object({ person_id: UuidSchema, sprint_number: z.coerce.number().int().optional() }) },
+  responses: { 200: { description: 'Person week lookup', content: { 'application/json': { schema: z.record(z.unknown()) } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/weeks/my-week',
+  tags: ['Weeks'],
+  summary: 'Get current user week dashboard',
+  responses: { 200: { description: 'My week data', content: { 'application/json': { schema: z.record(z.unknown()) } } } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/weeks/my-action-items',
+  tags: ['Weeks'],
+  summary: 'Get current user action items',
+  responses: { 200: { description: 'Action items', content: { 'application/json': { schema: z.record(z.unknown()) } } } },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/weeks/{id}/unapprove-plan',
+  tags: ['Weeks'],
+  summary: 'Unapprove week plan',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: { 200: { description: 'Plan unapproved' }, 404: { description: 'Week not found' } },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/weeks/{id}/iterations',
+  tags: ['Weeks'],
+  summary: 'List week iterations',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: { 200: { description: 'Iterations', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } } },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/weeks/{id}/iterations',
+  tags: ['Weeks'],
+  summary: 'Create week iteration',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: { content: { 'application/json': { schema: z.record(z.unknown()) } } },
+  },
+  responses: { 201: { description: 'Iteration created' }, 404: { description: 'Week not found' } },
 });

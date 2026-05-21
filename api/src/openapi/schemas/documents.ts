@@ -246,3 +246,84 @@ registry.registerPath({
     },
   },
 });
+
+const DocumentContentSchema = z.record(z.unknown()).nullable().openapi('DocumentContent');
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents/{id}/content',
+  tags: ['Documents'],
+  summary: 'Get document TipTap content',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: {
+      description: 'Document content',
+      content: { 'application/json': { schema: DocumentContentSchema } },
+    },
+    404: { description: 'Document not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/documents/{id}/content',
+  tags: ['Documents'],
+  summary: 'Update document TipTap content',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: { content: { 'application/json': { schema: DocumentContentSchema } } },
+  },
+  responses: {
+    200: { description: 'Content updated' },
+    404: { description: 'Document not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents/converted/list',
+  tags: ['Documents'],
+  summary: 'List converted documents',
+  request: {
+    query: z.object({
+      original_type: DocumentTypeSchema.optional(),
+      converted_type: DocumentTypeSchema.optional(),
+    }),
+  },
+  responses: {
+    200: { description: 'Converted documents', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/documents/{id}/convert',
+  tags: ['Documents'],
+  summary: 'Convert document to another type',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({ target_type: DocumentTypeSchema }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'Document converted', content: { 'application/json': { schema: BaseDocumentSchema } } },
+    404: { description: 'Document not found' },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/documents/{id}/undo-conversion',
+  tags: ['Documents'],
+  summary: 'Undo document type conversion',
+  request: { params: z.object({ id: UuidSchema }) },
+  responses: {
+    200: { description: 'Conversion undone', content: { 'application/json': { schema: BaseDocumentSchema } } },
+    404: { description: 'Document not found' },
+  },
+});

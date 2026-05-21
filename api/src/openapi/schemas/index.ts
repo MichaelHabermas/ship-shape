@@ -29,6 +29,12 @@ export * from './accountability.js';
 export * from './weekly-plans.js';
 export * from './comments.js';
 export * from './ai.js';
+export * from './setup.js';
+export * from './invites.js';
+export * from './feedback.js';
+export * from './caia-auth.js';
+export * from './admin.js';
+export * from './admin-credentials.js';
 
 // Re-export registry and generator for convenience
 export { registry, generateOpenAPIDocument } from '../registry.js';

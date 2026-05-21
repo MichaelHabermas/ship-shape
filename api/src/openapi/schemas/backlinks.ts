@@ -215,3 +215,25 @@ registry.registerPath({
     },
   },
 });
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents/{id}/context',
+  tags: ['Documents'],
+  summary: 'Get document context tree',
+  description: 'Get ancestors, children, and siblings for hierarchical navigation.',
+  request: {
+    params: z.object({ id: UuidSchema }),
+  },
+  responses: {
+    200: {
+      description: 'Document context tree',
+      content: {
+        'application/json': {
+          schema: z.record(z.unknown()),
+        },
+      },
+    },
+    404: { description: 'Document not found' },
+  },
+});

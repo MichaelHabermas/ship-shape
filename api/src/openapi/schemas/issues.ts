@@ -623,3 +623,28 @@ registry.registerPath({
     },
   },
 });
+
+registry.registerPath({
+  method: 'post',
+  path: '/issues/{id}/history',
+  tags: ['Issues'],
+  summary: 'Append issue history entry',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            field: z.string(),
+            old_value: z.unknown().optional(),
+            new_value: z.unknown().optional(),
+          }).passthrough(),
+        },
+      },
+    },
+  },
+  responses: {
+    201: { description: 'History entry created' },
+    404: { description: 'Issue not found' },
+  },
+});
