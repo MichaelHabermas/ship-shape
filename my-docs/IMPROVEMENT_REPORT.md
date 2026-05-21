@@ -24,7 +24,7 @@ Durable choices from this pass are tracked in `my-docs/DECISION_LOG.md` so the r
 
 ## Evidence-Runner And Trust Pass Summary
 
-This pass added a repo-local evidence runner foundation, repeatable performance/query measurement scripts, the third meaningful Category 5 regression, a stale E2E tree-selector fix, Backlinks offline/degraded behavior, and a narrow issue-boundary schema slice shared by runtime validation and OpenAPI. It intentionally does not claim Category 3 or 4 completion: the new scripts create the measurement rails, but before/after endpoint/query improvements still need to be captured under identical conditions. Category 6 is improved but still needs the required screenshot/recording evidence before it should be claimed complete. Category 7 still needs a targeted `/documents/:id` axe/Lighthouse rerun.
+This pass added a repo-local evidence runner foundation, repeatable performance/query measurement scripts, the third meaningful Category 5 regression, a stale E2E tree-selector fix, Backlinks offline/degraded behavior, and a narrow issue-boundary schema slice shared by runtime validation and OpenAPI. It intentionally does not claim Category 3 or 4 completion: the new scripts create the measurement rails, but before/after endpoint/query improvements still need to be captured under identical conditions. Category 6 is improved but still needs the required screenshot/recording evidence before it should be claimed complete. Category 7 remains incomplete: closeout axe proof cleared `/documents/:id`, but `/my-week` still has serious color-contrast violations.
 
 | Area | Target | Latest Result | Evidence |
 | ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -35,7 +35,7 @@ This pass added a repo-local evidence runner foundation, repeatable performance/
 | Evidence rails | Make submission proof repeatable and honest | Added `pnpm evidence:run`, `pnpm evidence:compare`, `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`; final-review evidence run now fails the manifest when a nested claim fails | `pnpm evidence:run -- --phase final-review --run-id codex-final-review`; `pnpm evidence:compare codex-final-check codex-final-review`; `node --check scripts/{seed-audit-load,query-count-api,explain-performance}.mjs` |
 | Bundle splitting   | Reduce initial entry chunk via route-level lazy loading         | Entry chunk is around 509.5 KB after route-level lazy loading; build hash varies by rebuild; 295 JS/CSS chunks emitted in the last full web build                                                             | `pnpm build:web`, dist asset byte count |
 | Verification       | Preserve build/type correctness | Type-check, API build, and web build pass | `pnpm type-check`, `pnpm build:api`, `pnpm build:web` |
-| Test state         | Restore trust in normal unit gates                              | Category 5 now has three meaningful regressions; full API and web unit suites pass; stale accessibility tree selector was fixed but focused E2E verification is still blocked locally because Docker is not running | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test`, focused route/boundary reruns |
+| Test state         | Restore trust in normal unit gates                              | Category 5 now has three meaningful regressions; full API and web unit suites pass; stale accessibility tree selector now passes its focused E2E rerun | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test`, `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"` |
 
 ---
 
@@ -163,7 +163,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 ### Evidence
 
 - `node --check scripts/benchmark-api.mjs`: pass.
-- `pnpm evidence:run -- --phase final-review --run-id codex-final-review`: completed and writes `my-docs/evidence-runs/codex-final-review/`; the manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`.
+- `pnpm evidence:run -- --phase closeout --run-id closeout-check`: completed and writes `my-docs/evidence-runs/closeout-check/`; the manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`.
 - Before/after benchmark output for the new bootstrap path is still `TBD`; do not claim Category 3 completion from this pass.
 
 ---
@@ -199,6 +199,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - `/api/search/documents` has focused route coverage for auth, title-only behavior, type filtering, limits, and visibility.
 - Focused route/contract rerun against a temporary disposable Postgres container: 4 files passed, 43 tests passed.
 - Measurement script syntax checks passed: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs`.
+- Closeout rail outputs were produced: `test-results/perf/query-count-api-2026-05-20T23-37-27-346Z.json` and `test-results/perf/explain-performance-2026-05-20T23-37-37-930Z.json`.
 - Before/after query-count output and `EXPLAIN ANALYZE` evidence are still `TBD`; do not claim Category 4 completion from this pass.
 
 ---
@@ -217,7 +218,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 | -------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------ |
 | Unit tests     | API baseline: 451 pass / 0 fail; Web baseline: 138 pass / 13 fail                           | API: 466 pass; Web: 154 pass | 2026-05-20    | Category 5 now has three meaningful regressions: overlapping comment marks, project issue filtering, and private document comment visibility | Add 3 meaningful tests or fix 3 flaky tests     |              |
 | API unit tests | 451 pass / flaky status not fully assessed                                                  | 466 pass; flakiness not fully assessed | 2026-05-20    | Added private document comment visibility regression and risk comment for project issue-filter coverage | Existing tests still pass                       |              |
-| Web unit tests | 138 pass / 13 fail / flaky status not fully assessed                                        | 154 pass; flakiness not fully assessed | 2026-05-20    | Added `BacklinksPanel.test.tsx`; existing `CommentMark.test.ts` remains the inline-comment regression | Existing tests still pass                       |              |
+| Web unit tests | 138 pass / 13 fail / flaky status not fully assessed                                        | 155 pass; flakiness not fully assessed | 2026-05-20    | Added `BacklinksPanel.test.tsx`; existing `CommentMark.test.ts` remains the inline-comment regression | Existing tests still pass                       |              |
 | E2E tests      | 869 listed / not executed                                                                   | 862 pass / 1 fail / 6 flaky                                  | 2026-05-20    | First full safe-run baseline captured; no app-behavior changes in the E2E runner work                                            | Meaningful tests catch real regressions         |              |
 | Suite runtime  | API unit: 10.76s; Web unit: 1.05s                                                           | API unit: 11.18s; Web unit: 1.24s; E2E: 6.6m                 | 2026-05-20    | Comparable unit runtime; first full safe-run E2E runtime captured                                                                | Document root cause if fixing flaky tests       |              |
 | Code coverage  | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured |                                                              |               |                                                                                                                                  | Risk-mitigating tests, not page-load assertions |              |
@@ -244,13 +245,13 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Correctness review targeted web rerun: `pnpm --filter @ship/web exec vitest run src/components/editor/CommentMark.test.ts src/hooks/useSessionTimeout.test.ts src/components/editor/DetailsExtension.test.ts src/lib/document-tabs.test.ts`: 4 files passed, 67 tests passed. Existing React `act(...)` warnings remain in `useSessionTimeout.test.ts`.
 - `ruby -e "require 'yaml'; YAML.load_file('/Users/michaelhabermas/repos/GAI/ship-shape/api/openapi.yaml')"`: generated OpenAPI YAML parses after fixing the local YAML writer.
 - Final API rerun after correctness fixes: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
-- Focused inline-comment E2E rerun: `pnpm test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape/e2e/inline-comments.spec.ts -g "canceling a comment removes the highlight"` is currently blocked locally because Docker is required for Testcontainers and is not running.
+- Focused inline-comment E2E rerun was not rerun during closeout; unit-level inline comment regression remains covered by `CommentMark.test.ts`, and the closeout E2E slot was used for the stale accessibility tree selector proof.
 - Separate full E2E baseline: `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors"; screenshot and accessibility snapshot showed seeded nested documents visible in the sidebar, while the assertion searched for a nested `ul` under the expanded item. Current tree semantics expose nested items through ARIA `group` structure, so this is likely a stale test-shape/selector issue rather than evidence that the runner work regressed product behavior.
 - Evidence-runner focused API rerun after adding the private comment visibility regression: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/documents-visibility.test.ts src/schemas/document-boundary.test.ts`: 3 files passed, 51 tests passed. Initial sandboxed attempt failed with `EPERM` connecting to local PostgreSQL; the approved local-Postgres rerun passed.
 - Evidence-runner focused web rerun: `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
 - Full API suite rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 30 files passed, 466 tests passed.
 - Full web suite rerun: `pnpm --filter @ship/web test`: 18 files passed, 155 tests passed. Existing React `act(...)` warnings remain in `useSessionTimeout.test.ts`.
-- Focused E2E rerun for the tree selector remains blocked locally because Docker/Testcontainers is not running.
+- Focused E2E rerun for the tree selector passed: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"`: 1 passed / 0 failed.
 
 ---
 
@@ -313,11 +314,11 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 | Lighthouse accessibility score: `/documents/:programId/issues` | 100                                                                                                                      |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
 | Lighthouse accessibility score: `/my-week`                     | 96                                                                                                                       |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
 | Lighthouse accessibility score: `/projects`                    | 100                                                                                                                      |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
-| Total Critical/Serious violations                              | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | Axe: 0 violations on `/login`, `/docs`, `/my-week`, `/projects` targeted scan; `/documents/:id` not yet rerun | 2026-05-20    | Fixed targeted set only | Fix all Critical/Serious violations on explicitly chosen top 3 pages if using violation target |              |
+| Total Critical/Serious violations                              | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | Closeout axe: `/docs` 0, `/documents/:id` 0, `/my-week` 1 serious `color-contrast` violation across 13 nodes | 2026-05-20    | Document page fixed; `/my-week` still fails | Fix all Critical/Serious violations on explicitly chosen top 3 pages if using violation target |              |
 | Keyboard navigation completeness                               | Partial pass                                                                                                             |                                                                                                               |               |                         | Existing keyboard behavior preserved or improved                                               |              |
 | Screen reader usability                                        | VoiceOver partial pass                                                                                                   |                                                                                                               |               |                         | Existing screen reader behavior preserved or improved                                          |              |
-| Color contrast failures                                        | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes                                                           | 0 on targeted rescan of `/my-week` and `/projects`                                                            | 2026-05-20    | Fixed                   | Critical/Serious violations fixed on selected pages                                            |              |
-| Missing ARIA labels or roles                                   | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark                     | 0 on targeted rescan of `/login` and `/docs`                                                                  | 2026-05-20    | Fixed targeted pages    | Critical/Serious violations fixed on selected pages                                            |              |
+| Color contrast failures                                        | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes                                                           | Closeout axe: `/my-week` still has 13 serious color-contrast nodes                                            | 2026-05-20    | Improved but not fixed  | Critical/Serious violations fixed on selected pages                                            |              |
+| Missing ARIA labels or roles                                   | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark                     | 0 on closeout axe scan of `/docs` and `/documents/:id`                                                        | 2026-05-20    | Fixed targeted pages    | Critical/Serious violations fixed on selected pages                                            |              |
 
 ### What Changed
 
@@ -328,9 +329,9 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 
 ### Evidence
 
-- Axe scan output: `/login`, `/docs`, `/my-week`, `/projects` all returned `violations: []`; `/documents/:id` still needs a targeted rerun before claiming full coverage of the original document-page finding.
-- Manual browser snapshots confirmed `/docs` exposes tree/treeitem semantics and `/my-week` + `/projects` render after the contrast changes.
-- Focused E2E verification for the updated selector remains blocked locally because Docker/Testcontainers is not running.
+- Closeout axe output: `test-results/a11y-closeout/axe-summary.json` shows `/docs` and `/documents/:id` at 0 violations, but `/my-week` still has 1 serious `color-contrast` violation across 13 nodes. Screenshots were saved beside the summary.
+- Focused E2E verification for the updated selector passed: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"`: 1 passed / 0 failed.
+- Lighthouse was not rerun because `lighthouse` is not installed in the repo-local toolchain (`pnpm exec lighthouse --version` returns command not found).
 
 ---
 
@@ -360,8 +361,8 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - `find api/dist -path '*test*' -o -path '*__tests__*'`: no output.
 - `./scripts/check-api-coverage.sh --staged`: pass; no staged JS/TS files to scan.
 - `git diff --check`: pass.
-- `pnpm evidence:run -- --phase final-review --run-id codex-final-review`: completed; the manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`.
-- `pnpm evidence:compare codex-final-check codex-final-review`: pass.
+- `pnpm evidence:run -- --phase closeout --run-id closeout-check`: completed; the manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`.
+- `pnpm evidence:compare codex-final-review closeout-check`: pass.
 - `node --check scripts/evidence/run.mjs`, `node --check scripts/evidence/compare.mjs`, `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs`: pass.
 
 ---
@@ -377,4 +378,4 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - Full route row-mapper typing: partially started for high-risk routes; broader dashboard/comments/auth route typing deferred.
 - Process-level unhandled rejection handlers: skipped; easy to add badly without shutdown semantics.
 - Category 6 screenshot/recording evidence: deferred; Backlinks behavior has unit coverage but not the required runtime artifact.
-- Category 7 `/documents/:id` axe/Lighthouse rerun: deferred because the local E2E/browser evidence path is blocked until Docker/Testcontainers is running.
+- Category 7 final completion: deferred because closeout axe found `/my-week` still has serious color-contrast violations, and Lighthouse is not installed in the repo-local toolchain.

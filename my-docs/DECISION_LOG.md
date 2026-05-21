@@ -176,7 +176,7 @@ Alternatives considered: Claim bootstrap as an API latency win; optimize endpoin
 
 Consequences: Category 3 and 4 remain incomplete until before/after results are captured under identical data volume, concurrency, and hardware. `ship_dev` remains the runtime/performance database, while `ship_test_audit` remains the destructive test database.
 
-Evidence: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs` pass; the scripts are exposed through `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`. `seed-audit-load` is workspace-scoped and tops up tagged issue documents, users/person docs, sprints, and audit logs.
+Evidence: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs` pass; the scripts are exposed through `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`. `seed-audit-load` is workspace-scoped and tops up tagged issue documents, users/person docs, sprints, and audit logs. Closeout artifacts were written to `test-results/perf/query-count-api-2026-05-20T23-37-27-346Z.json` and `test-results/perf/explain-performance-2026-05-20T23-37-37-930Z.json`.
 
 **Decision Gist**: Performance work now has measurement rails, but Categories 3 and 4 are not complete until before/after evidence is captured.
 

@@ -709,7 +709,7 @@ Possible mediation: choose one model. If severe overdue items should create dura
 
 Severity: Low-Medium
 
-Status: Selector fixed; focused E2E rerun blocked locally until Docker/Testcontainers is running
+Status: Resolved by focused E2E rerun on 2026-05-20
 
 The first full E2E run through the safe runner after adding fast-feedback lanes used `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` and completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors." The failure occurred while looking for `expandableItem.locator('ul a[href*="/documents/"]')`, before the test reached the actual deep-link auto-expand assertion. The failure screenshot and accessibility snapshot showed the seeded nested documents visible in the sidebar under "Welcome to Ship," but the current accessible tree exposes children through ARIA `group` structure rather than a literal nested `ul` under the expanded item.
 
@@ -717,7 +717,7 @@ Why it matters: this is an example of a test that can look like a product regres
 
 Why it is easy to miss: the test name describes a real user-facing behavior, but the failing selector asserts an implementation detail before checking that behavior. The screenshot looks healthy enough that the failure only makes sense after comparing the selector with the accessibility snapshot.
 
-What would prove it real: manually deep-link to a nested document and verify whether the sidebar auto-expands and identifies the current document. If that behavior fails visually or in the accessibility tree, treat it as a product accessibility/navigation defect.
+What proved it resolved: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"` passed with 1 test passed / 0 failed.
 
 Possible mediation: update the test to locate nested tree items through roles and ARIA relationships instead of nested `ul` structure, then keep the final assertion focused on the user-visible deep-link behavior. Keep the full-run result as the current E2E baseline rather than treating this runner work as introducing an app regression.
 
@@ -745,7 +745,9 @@ Status: Updated 2026-05-20
 
 Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. The important behavior is that missing proof stays explicit as `not_measured`.
 
-Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Categories 3 and 4 still need before/after runs under identical conditions before any improvement claim is defensible.
+Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Closeout artifacts were written under `test-results/perf/` on 2026-05-20. Categories 3 and 4 still need before/after runs under identical conditions before any improvement claim is defensible.
+
+Closeout axe verification found the document-tree remediation only partially complete. A one-off Playwright axe scan wrote `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, `/documents/:id`, and `/my-week`. `/docs` and `/documents/:id` had 0 violations; `/my-week` still had 1 serious `color-contrast` violation across 13 nodes. This keeps Category 7 incomplete despite the document-page fix.
 
 Category 5 moved from incomplete to source-requirement complete via three meaningful regressions: exact inline comment mark removal, project issue filtering through `document_associations`, and private document comment visibility returning `404` to a non-creator workspace member. The focused API rerun passed 51 tests against `ship_test_audit` after the sandboxed attempt failed to reach local PostgreSQL.
 
