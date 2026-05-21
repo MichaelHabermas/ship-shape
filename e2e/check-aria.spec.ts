@@ -1,42 +1,19 @@
 import { test, expect } from './fixtures/isolated-env';
-
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login')
-  const setupButton = page.getByRole('button', { name: /create admin account/i })
-  const signInButton = page.getByRole('button', { name: 'Sign in', exact: true })
-  await expect(setupButton.or(signInButton)).toBeVisible({ timeout: 10000 })
-  
-  if (await setupButton.isVisible()) {
-    await page.locator('#name').fill('Dev User')
-    await page.locator('#email').fill('dev@ship.local')
-    await page.locator('#password').fill('admin123')
-    await setupButton.click()
-  } else {
-    await page.locator('#email').fill('dev@ship.local')
-    await page.locator('#password').fill('admin123')
-    await signInButton.click()
-  }
-  await page.waitForLoadState('networkidle')
-}
+import { login } from './fixtures/app';
 
 test('check aria-expanded elements', async ({ page }) => {
   await login(page);
   await page.goto('/docs');
   await page.waitForLoadState('networkidle');
 
-  // Sidebar tree MUST exist - exactly like test 2.13
   const sidebar = page.locator('#sidebar-content, aside[aria-label="Document list"]');
-  console.log('Sidebar visible:', await sidebar.isVisible());
+  await expect(sidebar.first()).toBeVisible({ timeout: 10000 });
 
-  // Find a document that has children (indicated by aria-expanded attribute)
   const expandableItem = page.locator('[aria-expanded]').first();
-  const hasExpandable = await expandableItem.count() > 0;
-  console.log('Has expandable item:', hasExpandable);
-
-  if (!hasExpandable) {
-    console.log('SKIP: No nested documents');
-    return;
-  }
+  await expect(
+    expandableItem,
+    'Seed data should provide nested wiki documents with aria-expanded. Check isolated-env nested wiki tree.'
+  ).toBeVisible({ timeout: 10000 });
 
   // Log what expandableItem is
   const itemTag = await expandableItem.evaluate(el => el.tagName);

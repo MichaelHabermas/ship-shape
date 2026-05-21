@@ -1,4 +1,5 @@
 import { test, expect, Page } from './fixtures/isolated-env';
+import { login } from './fixtures/app';
 
 // Helper to create a new document using the available buttons
 async function createNewDocument(page: Page) {
@@ -38,14 +39,7 @@ async function createNewDocument(page: Page) {
 
 test.describe('Mentions', () => {
   test.beforeEach(async ({ page }) => {
-    // Login before each test
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-
-    // Wait for app to load
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
+    await login(page);
   });
 
   test('typing @ opens mention popup', async ({ page }) => {
