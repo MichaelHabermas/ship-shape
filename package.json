@@ -46,6 +46,7 @@
     "perf:seed-audit-load": "node ./scripts/seed-audit-load.mjs",
     "perf:query-count-api": "node ./scripts/query-count-api.mjs",
     "perf:explain": "node ./scripts/explain-performance.mjs",
+    "a11y:closeout": "node ./scripts/a11y-closeout.mjs",
     "worktree:init": "./scripts/worktree-init.sh",
     "db:seed": "pnpm --filter @ship/api db:seed",
     "db:migrate": "pnpm --filter @ship/api db:migrate",

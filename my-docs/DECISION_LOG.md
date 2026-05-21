@@ -195,3 +195,17 @@ Consequences: Backlinks can display stale data with an explicit status. This imp
 Evidence: `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts` passes.
 
 **Decision Gist**: Backlinks keep useful stale context and expose degraded state instead of failing silently or noisily.
+
+### D013: Closeout Accessibility Runs Stay Report-First Until Known Debt Is Fixed
+
+Status: Accepted
+
+Decision: Use `pnpm a11y:closeout` as a repeatable Playwright/axe reporter for `/docs`, a real `/documents/:id`, and `/my-week`. Keep it non-blocking by default, with `-- --fail-on-serious` available when the known contrast debt is resolved and the team wants a hard gate.
+
+Why: The manual closeout found real product/a11y signals, but some are currently known failures. A report-first runner saves manual effort without making the normal E2E lane fail on already-known debt.
+
+Consequences: Category 7 can be remeasured quickly, and the report can become a gate later. Current output still shows serious color-contrast failures on the selected document page and `/my-week`, so Category 7 remains incomplete.
+
+Evidence: `pnpm a11y:closeout` writes `test-results/a11y-closeout/axe-summary.json` and screenshots.
+
+**Decision Gist**: Automate the repeatable accessibility scan now; turn it into a blocker only after the known violations are gone.
