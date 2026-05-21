@@ -412,8 +412,6 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
     const programs = await programsResponse.json()
     expect(programs.length).toBeGreaterThan(0)
     const programId = programs[0].id
-    const programName = programs[0].name
-
     const sprintNumber = 97 // Use high number to avoid conflicts
 
     const assignResponse = await page.request.post('/api/team/assign', {
@@ -548,9 +546,6 @@ test.describe('Full Pending User Allocation Flow (Story 7)', () => {
     // Use a more specific selector - find the exact user cell that contains just the name
     // The team member column cells contain an initial avatar and the name text
     // Look for the specific element that displays the user name without matching the whole grid
-    const userNameElement = page.locator('[class*="TeamMember"]').filter({ hasText: testName }).first()
-      .or(page.locator('div').filter({ hasText: new RegExp(`^${testName.charAt(0)}$`) }).locator('..').filter({ hasText: testName }).first())
-
     // Check if this specific element (or its immediate siblings) contains "(pending)"
     // The pending label appears right after the name in the same parent container
     const userNameText = await page.getByText(testName).first().textContent()

@@ -1,7 +1,4 @@
 import { test, expect, Page } from './fixtures/isolated-env'
-import * as fs from 'fs'
-import * as path from 'path'
-import * as os from 'os'
 
 // Helper to login
 async function login(page: Page) {
@@ -37,17 +34,6 @@ async function createNewDocument(page: Page) {
   )
 
   await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 5000 })
-}
-
-// Create a test image file
-function createTestImageFile(): string {
-  const pngBuffer = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
-    'base64'
-  )
-  const tmpPath = path.join(os.tmpdir(), `test-image-${Date.now()}.png`)
-  fs.writeFileSync(tmpPath, pngBuffer)
-  return tmpPath
 }
 
 test.describe('Edge Cases', () => {

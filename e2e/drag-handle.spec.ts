@@ -474,9 +474,6 @@ test.describe('Drag Handle - Block Reordering', () => {
         const proseMirror = document.querySelector('.ProseMirror') as HTMLElement
         if (!proseMirror) throw new Error('ProseMirror element not found')
 
-        // Get the editor instance from the view
-        const view = (proseMirror as any).pmViewDesc?.view || (proseMirror as any).__vue__?.editor || (window as any).__TIPTAP_EDITOR__
-
         // Alternative: Use the React-based approach - find the editor from window
         // The Editor component often exposes the editor on window for debugging
         // Let's try to dispatch a custom event that the editor can handle
@@ -633,9 +630,6 @@ test.describe('Drag Handle - Block Reordering', () => {
     test('reordered content persists after page reload', async ({ page }) => {
       await createNewDocument(page)
       await addParagraphs(page, ['ALPHA', 'BETA', 'GAMMA'])
-
-      // Get the current URL to navigate back
-      const docUrl = page.url()
 
       // Drag to reorder
       await dragBlockToPosition(page, 0, 2, 'after')

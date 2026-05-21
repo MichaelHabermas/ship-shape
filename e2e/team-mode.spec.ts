@@ -256,12 +256,11 @@ test.describe('Team Mode (Phase 7)', () => {
       // Filter to just get names (exclude program headers)
       const names = userNames.filter(name => !name.includes('Unassigned') && name.length > 2)
 
-      // Verify names are sorted alphabetically (comparing adjacent pairs)
+      expect(names.length).toBeGreaterThan(0)
       for (let i = 1; i < names.length; i++) {
         const prevName = names[i - 1].replace(/^[A-Z]\s*/, '')
         const currName = names[i].replace(/^[A-Z]\s*/, '')
-        // Within each group, names should be sorted
-        // This is a basic check - in practice the grouping may reset sorting
+        expect(prevName.localeCompare(currName)).toBeLessThanOrEqual(0)
       }
     })
 
@@ -394,8 +393,6 @@ test.describe('Team Mode (Phase 7)', () => {
       expect(initialText).toMatch(/Unassigned.*\d+/)
 
       // Count visible user rows before collapse
-      const userRowsBefore = await page.locator('[class*="flex"][class*="items-center"][class*="gap-2"]').filter({ hasText: /^[A-Z]\s/ }).count()
-
       // Click to collapse
       await groupHeader.click()
 

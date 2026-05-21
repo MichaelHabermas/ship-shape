@@ -356,7 +356,6 @@ test.describe('Mentions', () => {
     // Insert a mention
     const option = page.locator('[role="option"]').first();
     if (await option.isVisible()) {
-      const originalLabel = await option.textContent();
       await option.click();
 
       // Verify mention was inserted

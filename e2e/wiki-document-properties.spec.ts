@@ -95,8 +95,6 @@ test.describe('Wiki Document Properties Sidebar', () => {
       const firstDoc = tree.getByRole('link').first();
       await firstDoc.click();
       await page.waitForURL(/\/documents\/.+/);
-      const docUrl = page.url();
-
       // Wait for editor to load
       await page.waitForSelector('.ProseMirror', { timeout: 10000 });
 
@@ -216,8 +214,6 @@ test.describe('Wiki Document Properties Sidebar', () => {
       // Get initial updated timestamp
       const updatedLabel = page.locator('label:has-text("Updated")');
       const updatedValue = updatedLabel.locator('..').locator('p');
-      const initialUpdated = await updatedValue.textContent();
-
       // Wait a second to ensure timestamp difference
       await page.waitForTimeout(1000);
 

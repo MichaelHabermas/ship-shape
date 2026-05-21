@@ -98,37 +98,6 @@ async function deleteDocument(page: Page, docId: string) {
   });
 }
 
-// Helper to change visibility via the dropdown
-async function setVisibility(page: Page, visibility: 'private' | 'workspace') {
-  // Find the properties sidebar and look for the Visibility dropdown
-  const propertiesSidebar = page.getByLabel('Document properties');
-
-  // Find the dropdown button in the visibility section (it shows current value: "Workspace" or "Private")
-  // The button contains either "Workspace" or "Private" text based on current state
-  const dropdownTrigger = propertiesSidebar.getByRole('button').filter({
-    has: page.getByText(/^(Workspace|Private)$/)
-  }).first();
-
-  await expect(dropdownTrigger).toBeVisible({ timeout: 5000 });
-  await dropdownTrigger.click();
-
-  // Wait for the Popover to open
-  const popoverContent = page.locator('[data-radix-popper-content-wrapper]');
-  await expect(popoverContent).toBeVisible({ timeout: 3000 });
-
-  // Click the desired visibility option
-  const optionLabel = visibility === 'private' ? 'Private' : 'Workspace';
-  const option = popoverContent.getByRole('button', { name: optionLabel });
-  await expect(option).toBeVisible({ timeout: 3000 });
-  await option.click();
-
-  // Wait for the popover to close and the update to complete
-  await expect(popoverContent).not.toBeVisible({ timeout: 3000 });
-
-  // Wait for the API update to complete
-  await page.waitForTimeout(500);
-}
-
 test.describe('Private Documents', () => {
   // Sidebar organization
   test('shows Private and Workspace sections in sidebar', async ({ page }) => {

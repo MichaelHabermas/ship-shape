@@ -115,7 +115,9 @@ test.describe('Syntax Highlighting - Code Blocks', () => {
       return spans.length > 0
     })
 
-    // Note: If highlighting doesn't happen immediately, content should still be there
+    expect(hasHighlighting).toBe(true)
+
+    // Content should still be present after highlighting wraps tokens
     const codeContent = await codeBlock.textContent()
     expect(codeContent).toContain('function')
     expect(codeContent).toContain('hello')

@@ -929,17 +929,12 @@ test.describe('Phase 2 Continued: Progress Graph & Visual Details', () => {
     // It's only shown if there are completed issues, so we look for the dashed border class
     const dashedLine = page.locator('[class*="border-dashed"]').first()
 
-    // If there's an active sprint with completed issues, we should see the dashed prediction line
-    // Otherwise, it won't be visible - that's expected behavior
-    const hasDashedLine = await dashedLine.isVisible().catch(() => false)
-
     // At minimum, the progress graph container should exist
     const progressGraph = page.locator('[class*="bg-accent"]').first()
     await expect(progressGraph).toBeVisible({ timeout: 5000 })
 
-    // The dashed line may or may not be visible depending on sprint state
-    // Just verify the graph exists - the dashed line appears when there's progress
-    expect(await progressGraph.isVisible()).toBeTruthy()
+    // The dashed prediction line should be present when the progress graph is rendered
+    await expect(dashedLine).toBeVisible({ timeout: 5000 })
   })
 
   test('progress graph shows scope and completed indicators (div-based)', async ({ page }) => {
@@ -1131,11 +1126,6 @@ test.describe('Phase 3 Continued: Past Windows & Validation', () => {
     const emptyWindow = page.locator('[data-active]').filter({ hasText: /Week of/ }).first()
 
     if (await emptyWindow.isVisible().catch(() => false)) {
-      // Get the week date from the window
-      const windowText = await emptyWindow.textContent()
-      const dateMatch = windowText?.match(/Week of (\w+ \d+)/)
-      const expectedWeekDate = dateMatch ? dateMatch[1] : null
-
       await emptyWindow.click()
 
       // Wait for create modal
