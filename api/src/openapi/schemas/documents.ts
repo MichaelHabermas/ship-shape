@@ -3,22 +3,12 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, BelongsToResponseSchema } from './common.js';
+import { documentTypeSchema } from '../../schemas/document-boundary.js';
+import { UuidSchema, DateTimeSchema, DocumentVisibilitySchema } from './common.js';
 
 // ============== Document Types ==============
 
-export const DocumentTypeSchema = z.enum([
-  'wiki',
-  'issue',
-  'program',
-  'project',
-  'sprint',
-  'person',
-  'weekly_plan',
-  'weekly_retro',
-  'standup',
-  'weekly_review',
-]).openapi({
+export const DocumentTypeSchema = documentTypeSchema.openapi({
   description: 'Type of document',
 });
 
@@ -64,10 +54,10 @@ registry.register('DocumentListItem', DocumentListItemSchema);
 // ============== Create/Update Document ==============
 
 export const CreateDocumentSchema = z.object({
-  title: z.string().min(1).max(500).optional().default('Untitled').openapi({
+  title: z.string().min(1).max(255).optional().default('Untitled').openapi({
     description: 'Document title. Defaults to "Untitled".',
   }),
-  document_type: DocumentTypeSchema,
+  document_type: DocumentTypeSchema.optional().default('wiki'),
   content: z.record(z.unknown()).optional().openapi({
     description: 'TipTap JSON content',
   }),
@@ -77,19 +67,18 @@ export const CreateDocumentSchema = z.object({
   parent_id: UuidSchema.nullable().optional().openapi({
     description: 'Parent document ID (for hierarchical wikis)',
   }),
-  visibility: z.enum(['private', 'workspace']).optional().default('workspace').openapi({
-    description: 'Document visibility scope',
-  }),
+  visibility: DocumentVisibilitySchema.optional().default('workspace'),
 }).openapi('CreateDocument');
 
 registry.register('CreateDocument', CreateDocumentSchema);
 
 export const UpdateDocumentSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
+  title: z.string().min(1).max(255).optional(),
   content: z.record(z.unknown()).optional(),
   properties: z.record(z.unknown()).optional(),
   parent_id: UuidSchema.nullable().optional(),
-  visibility: z.enum(['private', 'workspace']).optional(),
+  visibility: DocumentVisibilitySchema.optional(),
+  document_type: DocumentTypeSchema.optional(),
 }).openapi('UpdateDocument');
 
 registry.register('UpdateDocument', UpdateDocumentSchema);

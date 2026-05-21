@@ -141,7 +141,7 @@ export function SelectableList<T extends { id: string }>({
           </thead>
         )}
         <tbody>
-          {items.map((item, index) => {
+          {items.map((item) => {
             const itemId = getItemId(item);
             const isSelected = selection.isSelected(itemId);
             const isFocused = selection.isFocused(itemId);

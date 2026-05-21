@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { readJson } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatDateRange } from '@/lib/date-utils';
 
@@ -86,9 +87,9 @@ export function AccountabilityGrid({ showArchived = false }: AccountabilityGridP
           }
           return;
         }
-        const json = await res.json();
+        const json = await readJson<AccountabilityGridData>(res);
         setData(json);
-      } catch (err) {
+      } catch {
         setError('Failed to load accountability data');
       } finally {
         setLoading(false);
@@ -135,7 +136,10 @@ export function AccountabilityGrid({ showArchived = false }: AccountabilityGridP
         });
       }
 
-      groups.get(groupKey)!.projects.push(project);
+      const group = groups.get(groupKey);
+      if (group) {
+        group.projects.push(project);
+      }
     }
 
     // Sort groups alphabetically, with "No Program" last

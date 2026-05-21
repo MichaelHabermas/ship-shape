@@ -48,7 +48,7 @@ export function DashboardPage() {
 
   const { data: weeksData, isLoading: weeksLoading } = useActiveWeeksQuery();
   const { projects, loading: projectsLoading } = useProjects();
-  const { data: actionItemsData, isLoading: actionItemsLoading } = useDashboardActionItems();
+  const { data: actionItemsData } = useDashboardActionItems();
   const [recentStandups, setRecentStandups] = useState<Standup[]>([]);
   const [standupsLoading, setStandupsLoading] = useState(true);
 

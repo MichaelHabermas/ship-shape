@@ -281,6 +281,33 @@ describe('Document Visibility', () => {
     });
   });
 
+  describe('Document-scoped comments visibility', () => {
+    it('returns 404 for private document comments accessed by non-creator workspace member', async () => {
+      const docResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Private Comment Doc', 'private', $2)
+         RETURNING id`,
+        [testWorkspaceId, user1Id]
+      );
+      const docId = docResult.rows[0].id;
+      const commentThreadId = crypto.randomUUID();
+
+      await pool.query(
+        `INSERT INTO comments (document_id, comment_id, author_id, workspace_id, content)
+         VALUES ($1, $2, $3, $4, 'private comment body')`,
+        [docId, commentThreadId, user1Id, testWorkspaceId]
+      );
+
+      // Risk: comments are document child data; leaking them would bypass the private document 404 boundary.
+      const res = await request(app)
+        .get(`/api/documents/${docId}/comments`)
+        .set('Cookie', user2SessionCookie);
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Document not found');
+    });
+  });
+
   describe('Creating documents', () => {
     it('creates document with workspace visibility by default', async () => {
       const res = await request(app)
@@ -525,6 +552,22 @@ describe('Document Visibility', () => {
       expect(res.body.documents[0].title).toBe('Searchable Private Doc');
     });
 
+    it('includes private docs in document title search for creator', async () => {
+      await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Searchable Private Doc', 'private', $2)`,
+        [testWorkspaceId, user1Id]
+      );
+
+      const res = await request(app)
+        .get('/api/search/documents?q=Searchable')
+        .set('Cookie', user1SessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.documents).toHaveLength(1);
+      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+    });
+
     it('excludes private docs from search for non-creator', async () => {
       // Create private document with searchable title
       await pool.query(
@@ -541,6 +584,21 @@ describe('Document Visibility', () => {
       expect(res.body.documents).toHaveLength(0);
     });
 
+    it('excludes private docs from document title search for non-creator', async () => {
+      await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Searchable Private Doc', 'private', $2)`,
+        [testWorkspaceId, user1Id]
+      );
+
+      const res = await request(app)
+        .get('/api/search/documents?q=Searchable')
+        .set('Cookie', user2SessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.documents).toHaveLength(0);
+    });
+
     it('includes private docs in search for admin', async () => {
       // Create private document with searchable title
       await pool.query(
@@ -551,6 +609,22 @@ describe('Document Visibility', () => {
 
       const res = await request(app)
         .get('/api/search/mentions?q=Searchable')
+        .set('Cookie', adminSessionCookie);
+
+      expect(res.status).toBe(200);
+      expect(res.body.documents).toHaveLength(1);
+      expect(res.body.documents[0].title).toBe('Searchable Private Doc');
+    });
+
+    it('includes private docs in document title search for admin', async () => {
+      await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
+         VALUES ($1, 'wiki', 'Searchable Private Doc', 'private', $2)`,
+        [testWorkspaceId, user1Id]
+      );
+
+      const res = await request(app)
+        .get('/api/search/documents?q=Searchable')
         .set('Cookie', adminSessionCookie);
 
       expect(res.status).toBe(200);

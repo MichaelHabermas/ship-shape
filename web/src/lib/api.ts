@@ -11,6 +11,10 @@ interface ApiResponse<T> {
   };
 }
 
+interface CsrfTokenResponse {
+  token: string;
+}
+
 // CSRF token cache for state-changing requests
 let csrfToken: string | null = null;
 
@@ -18,6 +22,11 @@ let csrfToken: string | null = null;
 function isJsonResponse(response: Response): boolean {
   const contentType = response.headers.get('content-type');
   return contentType?.includes('application/json') ?? false;
+}
+
+export async function readJson<T>(response: Response): Promise<T> {
+  const data = (await response.json()) as unknown;
+  return data as T;
 }
 
 /**
@@ -63,10 +72,13 @@ async function ensureCsrfToken(): Promise<string> {
       }
       throw new Error('Failed to get CSRF token');
     }
-    const data = await response.json();
+    const data = await readJson<CsrfTokenResponse>(response);
     csrfToken = data.token;
   }
-  return csrfToken!;
+  if (!csrfToken) {
+    throw new Error('Failed to get CSRF token');
+  }
+  return csrfToken;
 }
 
 // Clear CSRF token on logout or session change
@@ -189,7 +201,7 @@ async function request<T>(
     handleSessionExpired(); // never returns
   }
 
-  const data: ApiResponse<T> = await response.json();
+  const data = await readJson<ApiResponse<T>>(response);
 
   // Handle session expiration - redirect to login with expired=true
   // Only for SESSION_EXPIRED (actual expiration), not UNAUTHORIZED (no session existed)
@@ -217,7 +229,7 @@ async function request<T>(
     if (!isJsonResponse(retryResponse)) {
       handleSessionExpired(); // never returns
     }
-    return retryResponse.json();
+    return readJson<ApiResponse<T>>(retryResponse);
   }
 
   return data;
@@ -330,6 +342,15 @@ export interface MeResponse {
   pendingAccountabilityItems?: AccountabilityItem[];
 }
 
+export interface BootstrapResponse extends MeResponse {
+  documents: unknown[];
+  programs: unknown[];
+  projects: unknown[];
+  issues: unknown[];
+  standupStatus: unknown;
+  actionItems: unknown;
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -344,6 +365,7 @@ export const api = {
       });
     },
     me: () => request<MeResponse>('/api/auth/me'),
+    bootstrap: () => request<BootstrapResponse>('/api/bootstrap'),
   },
 
   workspaces: {

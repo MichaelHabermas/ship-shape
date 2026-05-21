@@ -82,7 +82,7 @@ export function TeamDirectoryPage() {
       } else {
         showToast('Failed to remove member', 'error');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('Failed to remove member', 'error');
     }
     setContextMenu(null);

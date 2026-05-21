@@ -519,7 +519,7 @@ Port allocation uses worker-specific ranges to avoid collisions:
 ```typescript
 // e2e/fixtures/isolated-env.ts:37-44
 async function getWorkerPort(workerIndex: number): Promise<number> {
-  const BASE_PORT = 50000;
+  const BASE_PORT = 10000;
   const PORTS_PER_WORKER = 100;
   const startPort = BASE_PORT + workerIndex * PORTS_PER_WORKER;
   return getPort({ port: portNumbers(startPort, startPort + 99) });

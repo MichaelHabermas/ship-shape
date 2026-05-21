@@ -62,7 +62,7 @@ interface FileAttachmentAttrs {
 
 function FileAttachmentComponent({ node }: ReactNodeViewProps) {
   const { filename, url, size, mimeType, uploading } = node.attrs as FileAttachmentAttrs;
-  const [uploadProgress, setUploadProgress] = useState(uploading ? 0 : 100);
+  const [uploadProgress, _setUploadProgress] = useState(uploading ? 0 : 100);
 
   const fileIcon = getFileIcon(mimeType);
   const formattedSize = size ? formatFileSize(size) : '';

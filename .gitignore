@@ -47,6 +47,8 @@ Thumbs.db
 
 # Evidence/verification screenshots
 evidence/
+!scripts/evidence/
+!scripts/evidence/**
 *.png
 
 # Playwright test artifacts

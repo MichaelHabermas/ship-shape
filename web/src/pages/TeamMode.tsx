@@ -4,7 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { ProjectCombobox, Project } from '@/components/ProjectCombobox';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
-import { apiPost, apiGet, apiDelete } from '@/lib/api';
+import { apiPost, apiGet, apiDelete, readJson } from '@/lib/api';
 import { formatDateRange } from '@/lib/date-utils';
 
 interface User {
@@ -39,6 +39,11 @@ interface TeamGridData {
   users: User[];
   weeks: Sprint[];
   currentSprintNumber: number;
+}
+
+interface AssignmentResponse {
+  error?: string;
+  issuesOrphaned?: Array<{ id: string; title: string }>;
 }
 
 const SPRINTS_PER_LOAD = 5;
@@ -156,7 +161,10 @@ export function TeamModePage() {
         });
       }
 
-      groups.get(groupKey)!.users.push(user);
+      const group = groups.get(groupKey);
+      if (group) {
+        group.users.push(user);
+      }
     }
 
     // Sort groups: alphabetically by name, with Unassigned last
@@ -196,7 +204,6 @@ export function TeamModePage() {
     issuesOrphaned: Array<{ id: string; title: string }>;
     onConfirm: () => void;
   } | null>(null);
-  const [operationLoading, setOperationLoading] = useState<string | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -242,7 +249,7 @@ export function TeamModePage() {
       const url = `/api/team/grid${params.toString() ? `?${params}` : ''}`;
       const res = await apiGet(url);
       if (!res.ok) throw new Error('Failed to fetch team grid');
-      const json: TeamGridData = await res.json();
+      const json = await readJson<TeamGridData>(res);
 
       if (json.weeks.length > 0) {
         setSprintRange({
@@ -261,7 +268,7 @@ export function TeamModePage() {
     try {
       const res = await apiGet(`/api/team/projects`);
       if (res.ok) {
-        const json = await res.json();
+        const json = await readJson<Project[]>(res);
         setProjects(json);
       }
     } catch (err) {
@@ -273,7 +280,7 @@ export function TeamModePage() {
     try {
       const res = await apiGet(`/api/team/assignments`);
       if (res.ok) {
-        const json = await res.json();
+        const json = await readJson<Record<string, Record<number, Assignment>>>(res);
         setAssignments(json);
       }
     } catch (err) {
@@ -306,7 +313,7 @@ export function TeamModePage() {
     try {
       const res = await apiPost(`/api/team/assign`, { personId, projectId, sprintNumber });
 
-      const json = await res.json();
+      const json = await readJson<AssignmentResponse>(res);
 
       if (!res.ok) {
         // Rollback optimistic update
@@ -323,7 +330,7 @@ export function TeamModePage() {
         setError(json.error || 'Failed to assign');
         return;
       }
-    } catch (err) {
+    } catch {
       // Rollback optimistic update
       setAssignments(prev => {
         const newAssignments = { ...prev };
@@ -354,7 +361,7 @@ export function TeamModePage() {
     try {
       const res = await apiDelete(`/api/team/assign`, { personId, sprintNumber });
 
-      const json = await res.json();
+      const json = await readJson<AssignmentResponse>(res);
 
       if (!res.ok) {
         // Rollback optimistic update
@@ -372,10 +379,10 @@ export function TeamModePage() {
       }
 
       // If there were orphaned issues, show them in a dialog (unless skipped)
-      if (json.issuesOrphaned?.length > 0 && !skipConfirmation) {
+      if ((json.issuesOrphaned?.length ?? 0) > 0 && !skipConfirmation) {
         // Issues were already moved to backlog
       }
-    } catch (err) {
+    } catch {
       // Rollback optimistic update
       if (previousAssignment) {
         setAssignments(prev => ({
@@ -440,7 +447,7 @@ export function TeamModePage() {
 
       const res = await apiGet(`/api/team/grid?${params}`);
       if (!res.ok) throw new Error('Failed to fetch more sprints');
-      const newData: TeamGridData = await res.json();
+      const newData = await readJson<TeamGridData>(res);
 
       const scrollContainer = scrollContainerRef.current;
       const prevScrollLeft = scrollContainer?.scrollLeft || 0;
@@ -788,8 +795,6 @@ export function TeamModePage() {
                           const assignment = assignments[user.personId]?.[sprint.number];
                           const previousWeekAssignment = assignments[user.personId]?.[sprint.number - 1];
                           const cellKey = `${user.personId}-${sprint.number}`;
-                          const isLoading = operationLoading === cellKey;
-
                           return (
                             <SprintCell
                               key={cellKey}
@@ -797,7 +802,7 @@ export function TeamModePage() {
                               previousWeekAssignment={previousWeekAssignment}
                               projects={projects}
                               isCurrent={sprint.isCurrent}
-                              loading={isLoading}
+                              loading={false}
                               isPending={isPending}
                               onChange={(projectId) => {
                                 handleCellChange(
@@ -957,4 +962,3 @@ function ViewAsIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-

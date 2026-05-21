@@ -942,7 +942,7 @@ export function IssuesList({
   });
 
   // Kanban checkbox click handler
-  const handleKanbanCheckboxClick = useCallback((id: string, e: React.MouseEvent) => {
+  const handleKanbanCheckboxClick = useCallback((id: string, _e: React.MouseEvent) => {
     setSelectedIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -1355,7 +1355,7 @@ function IssueRowContent({ issue, visibleColumns, sprints, onSprintChange, isOut
     <>
       {visibleColumns.has('id') && (
         <td className={cn("px-4 py-3 text-sm text-muted", cellClass)} role="gridcell">
-          #{issue.ticket_number}
+          {issue.ticket_number ? `#${issue.ticket_number}` : ''}
         </td>
       )}
       {visibleColumns.has('title') && (

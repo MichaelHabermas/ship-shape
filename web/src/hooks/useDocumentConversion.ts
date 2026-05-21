@@ -33,7 +33,7 @@ export function useDocumentConversion(options: UseDocumentConversionOptions = {}
   const convert = useCallback(async (
     documentId: string,
     sourceType: DocumentType,
-    documentTitle: string
+    _documentTitle: string
   ): Promise<ConversionResult | null> => {
     setIsConverting(true);
     const targetType = sourceType === 'issue' ? 'project' : 'issue';
@@ -79,7 +79,7 @@ export function useDocumentConversion(options: UseDocumentConversionOptions = {}
 
   const undoConversion = useCallback(async (
     documentId: string,
-    documentType: DocumentType
+    _documentType: DocumentType
   ): Promise<ConversionResult | null> => {
     setIsConverting(true);
 

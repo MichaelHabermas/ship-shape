@@ -14,7 +14,7 @@
  */
 
 import { pool } from '../db/client.js';
-import { addBusinessDays, isBusinessDay } from '../utils/business-days.js';
+import { isBusinessDay } from '../utils/business-days.js';
 import { hasContent } from '../utils/document-content.js';
 import { getAllocations } from '../utils/allocation.js';
 import type { AccountabilityType } from '@ship/shared';
@@ -241,7 +241,7 @@ async function checkSprintAccountability(
   workspaceStartDate: Date,
   sprintDuration: number,
   today: Date,
-  personId: string | null
+  _personId: string | null
 ): Promise<MissingAccountabilityItem[]> {
   const items: MissingAccountabilityItem[] = [];
 
@@ -262,8 +262,6 @@ async function checkSprintAccountability(
   for (const sprint of sprintsResult.rows) {
     const props = sprint.properties || {};
     const sprintNumber = props.sprint_number || 1;
-    const projectId = sprint.project_id || null;
-
     // Calculate sprint start date
     const sprintStartDate = new Date(workspaceStartDate);
     sprintStartDate.setUTCDate(sprintStartDate.getUTCDate() + (sprintNumber - 1) * sprintDuration);
@@ -439,130 +437,9 @@ async function checkWeeklyPersonAccountability(
   return items;
 }
 
-/**
- * Check for completed sprints without review (>1 business day since end).
- */
-async function checkMissingSprintReviews(
-  userId: string,
-  workspaceId: string,
-  workspaceStartDate: Date,
-  sprintDuration: number,
-  today: Date,
-  todayStr: string
-): Promise<MissingAccountabilityItem[]> {
-  const items: MissingAccountabilityItem[] = [];
-
-  // Find past sprints where user is owner without review
-  const sprintsResult = await pool.query(
-    `SELECT s.id, s.title, s.properties
-     FROM documents s
-     WHERE s.workspace_id = $1
-       AND s.document_type = 'sprint'
-       AND (s.properties->>'owner_id')::uuid = $2
-       AND s.deleted_at IS NULL
-       AND s.archived_at IS NULL
-       AND NOT EXISTS (
-         SELECT 1 FROM documents r
-         JOIN document_associations da ON da.document_id = r.id AND da.related_id = s.id AND da.relationship_type = 'sprint'
-         WHERE r.document_type = 'weekly_review'
-           AND r.workspace_id = $1
-       )`,
-    [workspaceId, userId]
-  );
-
-  for (const sprint of sprintsResult.rows) {
-    const props = sprint.properties || {};
-    const sprintNumber = props.sprint_number || 1;
-
-    // Calculate sprint end date
-    const sprintStartDate = new Date(workspaceStartDate);
-    sprintStartDate.setUTCDate(sprintStartDate.getUTCDate() + (sprintNumber - 1) * sprintDuration);
-    const sprintEndDate = new Date(sprintStartDate);
-    sprintEndDate.setUTCDate(sprintEndDate.getUTCDate() + sprintDuration - 1);
-
-    // Skip if sprint hasn't ended yet
-    if (today <= sprintEndDate) {
-      continue;
-    }
-
-    // Check if >1 business day has passed since sprint end
-    const sprintEndStr = sprintEndDate.toISOString().split('T')[0] ?? '';
-    if (!sprintEndStr) continue;
-    const reviewDueDate = addBusinessDays(sprintEndStr, 1);
-
-    if (todayStr > reviewDueDate) {
-      const sprintTitle = sprint.title || `Week ${sprintNumber}`;
-      items.push({
-        type: 'weekly_review',
-        targetId: sprint.id,
-        targetTitle: sprintTitle,
-        targetType: 'sprint',
-        dueDate: reviewDueDate,
-        message: `Complete review for ${sprintTitle}`,
-      });
-    }
-  }
-
-  return items;
-}
-
 // checkProjectPlan REMOVED - replaced by weekly_plan documents per person/project/week.
 // The old system checked properties.plan on project docs, but that field was never
 // exposed in the UI and has been superseded by checkWeeklyPersonAccountability().
-
-/**
- * Check for completed projects without retro.
- * A project is considered completed when all its issues are done.
- */
-async function checkProjectRetros(
-  userId: string,
-  workspaceId: string
-): Promise<MissingAccountabilityItem[]> {
-  const items: MissingAccountabilityItem[] = [];
-
-  // Find projects where user is owner, have issues, all issues done, but no retro
-  const projectsResult = await pool.query(
-    `SELECT p.id, p.title, p.properties
-     FROM documents p
-     WHERE p.workspace_id = $1
-       AND p.document_type = 'project'
-       AND (p.properties->>'owner_id')::uuid = $2
-       AND p.deleted_at IS NULL
-       AND p.archived_at IS NULL
-       AND (p.properties->>'plan_validated' IS NULL)
-       AND EXISTS (
-         SELECT 1 FROM document_associations da
-         JOIN documents i ON i.id = da.document_id
-         WHERE da.related_id = p.id
-           AND da.relationship_type = 'project'
-           AND i.document_type = 'issue'
-           AND i.deleted_at IS NULL
-       )
-       AND NOT EXISTS (
-         SELECT 1 FROM document_associations da
-         JOIN documents i ON i.id = da.document_id
-         WHERE da.related_id = p.id
-           AND da.relationship_type = 'project'
-           AND i.document_type = 'issue'
-           AND i.deleted_at IS NULL
-           AND i.properties->>'state' NOT IN ('done', 'cancelled')
-       )`,
-    [workspaceId, userId]
-  );
-
-  for (const project of projectsResult.rows) {
-    items.push({
-      type: 'project_retro',
-      targetId: project.id,
-      targetTitle: project.title || 'Untitled Project',
-      targetType: 'project',
-      dueDate: null, // No specific due date for project retro
-      message: `Complete retro for ${project.title || 'project'}`,
-    });
-  }
-
-  return items;
-}
 
 /**
  * Check for plans/retros where manager requested changes.

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
+import type { WeekProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import {
@@ -15,8 +16,7 @@ import { extractText } from '../utils/document-content.js';
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
 
-type CanonicalWeekProperties = {
-  sprint_number?: number;
+type CanonicalWeekProperties = Partial<Pick<WeekProperties, 'sprint_number' | 'owner_id'>> & {
   owner_id?: string | null;
 };
 
@@ -1526,8 +1526,6 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     const newProps = { ...currentProps };
     const data = parsed.data;
     const now = new Date().toISOString();
-    let planWasWritten = false;
-
     // If plan is being updated, append old one to history
     if (data.plan !== undefined && data.plan !== currentProps.plan) {
       // Initialize history if doesn't exist
@@ -1548,10 +1546,6 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
       newProps.plan = data.plan;
       newProps.plan_history = currentHistory;
 
-      // Track if we're writing a non-empty plan for the first time
-      if (data.plan && !currentProps.plan) {
-        planWasWritten = true;
-      }
     }
 
     // Update success_criteria and confidence directly

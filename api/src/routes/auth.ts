@@ -158,7 +158,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         workspaceId,
         expiresAt,
         new Date(),
-        req.headers['user-agent'] || 'unknown',
+        req.get('user-agent') || 'unknown',
         req.ip || req.socket.remoteAddress || 'unknown',
       ]
     );
@@ -179,7 +179,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     });
 
     // Pending accountability items will be fetched via /api/accountability/action-items
-    const pendingAccountabilityItems: any[] = [];
+    const pendingAccountabilityItems: unknown[] = [];
 
     // Set cookie with hardened security options
     res.cookie('session_id', sessionId, {
@@ -229,7 +229,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
   try {
     await logAuditEvent({
       workspaceId: req.workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: req.userId,
       action: 'auth.logout',
       req,
     });
@@ -309,7 +309,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     }
 
     // Pending accountability items will be fetched via /api/accountability/action-items
-    const pendingAccountabilityItems: any[] = [];
+    const pendingAccountabilityItems: unknown[] = [];
 
     res.json({
       success: true,
@@ -355,7 +355,7 @@ router.post('/extend-session', authMiddleware, async (req: Request, res: Respons
 
     await logAuditEvent({
       workspaceId: req.workspaceId,
-      actorUserId: req.userId!,
+      actorUserId: req.userId,
       action: 'auth.extend_session',
       req,
     });
@@ -411,13 +411,15 @@ router.get('/session', authMiddleware, async (req: Request, res: Response): Prom
 
     // Calculate absolute expiry based on session creation time
     const createdAt = new Date(session.created_at);
+    const lastActivity = new Date(session.last_activity);
+    const inactivityExpiresAt = new Date(lastActivity.getTime() + SESSION_TIMEOUT_MS);
     const absoluteExpiresAt = new Date(createdAt.getTime() + ABSOLUTE_SESSION_TIMEOUT_MS);
 
     res.json({
       success: true,
       data: {
         createdAt: session.created_at,
-        expiresAt: session.expires_at, // Inactivity-based expiry
+        expiresAt: inactivityExpiresAt.toISOString(),
         absoluteExpiresAt: absoluteExpiresAt.toISOString(),
         lastActivity: session.last_activity,
       },

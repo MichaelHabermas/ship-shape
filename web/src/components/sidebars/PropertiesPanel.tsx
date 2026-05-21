@@ -12,7 +12,7 @@ import { ProjectSidebar } from '@/components/sidebars/ProjectSidebar';
 import { WeekSidebar } from '@/components/sidebars/WeekSidebar';
 import { ProgramSidebar } from '@/components/sidebars/ProgramSidebar';
 import { ContentHistoryPanel } from '@/components/ContentHistoryPanel';
-import { PlanQualityAssistant, RetroQualityAssistant } from '@/components/sidebars/QualityAssistant';
+import { RetroQualityAssistant } from '@/components/sidebars/QualityAssistant';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/hooks/useAuth';
 import { apiGet } from '@/lib/api';
@@ -394,7 +394,7 @@ function WeeklyDocumentSidebar({
 }
 
 /** Wrapper that fetches plan content for the retro quality assistant */
-function RetroQualityAssistantWrapper({
+function _RetroQualityAssistantWrapper({
   documentId,
   content,
   personId,

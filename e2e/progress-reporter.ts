@@ -4,8 +4,8 @@
  * Writes minimal progress updates to JSONL file for live monitoring.
  * Errors are written to separate files to avoid output explosion.
  *
- * Progress file: test-results/progress.jsonl
- * Error logs: test-results/errors/{test-file}.log
+ * Progress file: ${E2E_RESULTS_DIR:-test-results}/progress.jsonl
+ * Error logs: ${E2E_RESULTS_DIR:-test-results}/errors/{test-file}.log
  */
 
 import type {
@@ -28,7 +28,7 @@ interface ProgressEntry {
   error?: string;
 }
 
-const RESULTS_DIR = 'test-results';
+const RESULTS_DIR = process.env.E2E_RESULTS_DIR ?? 'test-results';
 const PROGRESS_FILE = path.join(RESULTS_DIR, 'progress.jsonl');
 const ERRORS_DIR = path.join(RESULTS_DIR, 'errors');
 

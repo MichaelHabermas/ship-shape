@@ -74,7 +74,7 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
   );
 }
 
-export function ContextTreeNav({ documentId, documentType }: ContextTreeNavProps) {
+export function ContextTreeNav({ documentId, documentType: _documentType }: ContextTreeNavProps) {
   const { data: context, isLoading, error } = useDocumentContextQuery(documentId);
 
   if (isLoading) {

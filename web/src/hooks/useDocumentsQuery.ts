@@ -74,7 +74,6 @@ export function useDocumentsQuery(type: string = 'wiki') {
     queryKey,
     queryFn: () => fetchDocuments(type),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: 'always',
   });
 }
 

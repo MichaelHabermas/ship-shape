@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSessionTimeout } from './useSessionTimeout';
+import { clearCsrfToken } from '@/lib/api';
 
 /**
  * Unit Tests for useSessionTimeout Hook
@@ -20,23 +21,61 @@ const ACTIVITY_THROTTLE_MS = 30 * 1000; // 30 seconds
 // Mock fetch globally
 const mockFetch = vi.fn();
 
+function jsonResponse(body: object, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+function sessionInfo(overrides: Partial<{ createdAt: string; expiresAt: string; lastActivity: string }> = {}) {
+  return {
+    success: true,
+    data: {
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
+      lastActivity: new Date().toISOString(),
+      ...overrides,
+    },
+  };
+}
+
+function mockSuccessfulSessionFetch(overrides?: Partial<{ createdAt: string; expiresAt: string; lastActivity: string }>) {
+  mockFetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString();
+
+    if (url.endsWith('/api/auth/session')) {
+      expect(init).toEqual({ credentials: 'include' });
+      return jsonResponse(sessionInfo(overrides));
+    }
+
+    if (url.endsWith('/api/csrf-token')) {
+      expect(init).toEqual({ credentials: 'include' });
+      return jsonResponse({ token: 'test-csrf-token' });
+    }
+
+    if (url.endsWith('/api/auth/extend-session')) {
+      expect(init).toMatchObject({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'X-CSRF-Token': 'test-csrf-token',
+        }),
+      });
+      return jsonResponse({ success: true });
+    }
+
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+}
+
 describe('useSessionTimeout', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     // Reset fetch mock
     mockFetch.mockReset();
-    // Default: return successful session info
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: {
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-          lastActivity: new Date().toISOString(),
-        },
-      }),
-    });
+    clearCsrfToken();
+    mockSuccessfulSessionFetch();
     global.fetch = mockFetch;
     // Mock document event listeners
     vi.spyOn(document, 'addEventListener');
@@ -145,9 +184,6 @@ describe('useSessionTimeout', () => {
 
     it('does NOT call onTimeout if dismissed before 0', async () => {
       const onTimeout = vi.fn();
-      // Mock successful extend-session response
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
-
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
 
       // Advance to warning
@@ -174,8 +210,6 @@ describe('useSessionTimeout', () => {
   describe('Activity Reset', () => {
     it('resetTimer() hides warning modal', async () => {
       const onTimeout = vi.fn();
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
-
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
 
       // Advance to show warning
@@ -195,8 +229,6 @@ describe('useSessionTimeout', () => {
 
     it('resetTimer() resets lastActivity to now', async () => {
       const onTimeout = vi.fn();
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
-
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
       const initialActivity = result.current.lastActivity;
 
@@ -215,8 +247,6 @@ describe('useSessionTimeout', () => {
 
     it('after resetTimer(), warning appears 14 min later (not sooner)', async () => {
       const onTimeout = vi.fn();
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
-
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
 
       // Advance 10 minutes
@@ -249,8 +279,6 @@ describe('useSessionTimeout', () => {
 
     it('resetTimer() clears countdown interval', async () => {
       const onTimeout = vi.fn();
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
-
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
 
       // Advance to show warning
@@ -280,17 +308,7 @@ describe('useSessionTimeout', () => {
   describe('Absolute Timeout', () => {
     it('shows absolute warning at 11:55 from session start', async () => {
       const sessionCreatedAt = new Date().toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: sessionCreatedAt,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: sessionCreatedAt });
 
       const onTimeout = vi.fn();
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
@@ -312,17 +330,7 @@ describe('useSessionTimeout', () => {
 
     it('absolute warning has 5-minute countdown', async () => {
       const sessionCreatedAt = new Date().toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: sessionCreatedAt,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: sessionCreatedAt });
 
       const onTimeout = vi.fn();
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
@@ -342,17 +350,7 @@ describe('useSessionTimeout', () => {
 
     it('activity does NOT reset absolute timeout', async () => {
       const sessionCreatedAt = new Date().toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: sessionCreatedAt,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: sessionCreatedAt });
 
       const onTimeout = vi.fn();
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
@@ -387,17 +385,7 @@ describe('useSessionTimeout', () => {
       const almostTwelveHoursAgo = new Date(
         Date.now() - (ABSOLUTE_SESSION_TIMEOUT_MS - ABSOLUTE_WARNING_THRESHOLD_MS)
       ).toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: almostTwelveHoursAgo,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: almostTwelveHoursAgo });
 
       const onTimeout = vi.fn();
       renderHook(() => useSessionTimeout(onTimeout));
@@ -435,17 +423,7 @@ describe('useSessionTimeout', () => {
       const almostAtAbsoluteWarning = new Date(
         Date.now() - (ABSOLUTE_SESSION_TIMEOUT_MS - ABSOLUTE_WARNING_THRESHOLD_MS - 60 * 1000)
       ).toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: almostAtAbsoluteWarning,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: almostAtAbsoluteWarning });
 
       const onTimeout = vi.fn();
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
@@ -467,17 +445,7 @@ describe('useSessionTimeout', () => {
     it('inactivity warning takes precedence if both imminent', async () => {
       // Session created 11:50 ago - both warnings would trigger soon
       const sessionCreatedAt = new Date(Date.now() - (ABSOLUTE_SESSION_TIMEOUT_MS - 10 * 60 * 1000)).toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: sessionCreatedAt,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: sessionCreatedAt });
 
       const onTimeout = vi.fn();
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
@@ -622,8 +590,6 @@ describe('useSessionTimeout', () => {
 
     it('clears interval when warning dismissed', async () => {
       const onTimeout = vi.fn();
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
-
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
 
       // Advance to show warning
@@ -664,17 +630,7 @@ describe('useSessionTimeout', () => {
       const elevenFiftyFourAgo = new Date(
         Date.now() - (ABSOLUTE_SESSION_TIMEOUT_MS - ABSOLUTE_WARNING_THRESHOLD_MS - 60 * 1000)
       ).toISOString();
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            createdAt: elevenFiftyFourAgo,
-            expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-            lastActivity: new Date().toISOString(),
-          },
-        }),
-      });
+      mockSuccessfulSessionFetch({ createdAt: elevenFiftyFourAgo });
 
       const onTimeout = vi.fn();
       const { result } = renderHook(() => useSessionTimeout(onTimeout));
@@ -717,17 +673,9 @@ describe('useSessionTimeout', () => {
 describe('useSessionTimeout - Edge Cases', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: {
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
-          lastActivity: new Date().toISOString(),
-        },
-      }),
-    });
+    mockFetch.mockReset();
+    clearCsrfToken();
+    mockSuccessfulSessionFetch();
     global.fetch = mockFetch;
   });
 
@@ -776,7 +724,7 @@ describe('useSessionTimeout - Edge Cases', () => {
 
   it('handles resetTimer called when not showing warning', async () => {
     const onTimeout = vi.fn();
-    (global.fetch as Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+    mockSuccessfulSessionFetch();
 
     const { result } = renderHook(() => useSessionTimeout(onTimeout));
 
@@ -792,7 +740,7 @@ describe('useSessionTimeout - Edge Cases', () => {
 
   it('handles multiple resetTimer calls in quick succession', async () => {
     const onTimeout = vi.fn();
-    (global.fetch as Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+    mockSuccessfulSessionFetch();
 
     const { result } = renderHook(() => useSessionTimeout(onTimeout));
 

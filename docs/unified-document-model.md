@@ -365,11 +365,7 @@ Client (IndexedDB)          Server (PostgreSQL)
 
 ### Search
 
-**Server search with offline fallback**:
-
-- Primary: Full-text search on PostgreSQL server
-- Offline: Search locally synced documents in IndexedDB
-- UI indicates when showing "offline results only"
+`/api/search/documents` exists only for title-only command-palette metadata search. `/docs` search is client-side title filtering over the loaded document list. Ship does not provide full-text content search for documents.
 
 ## Configuration
 

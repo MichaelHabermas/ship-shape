@@ -148,7 +148,7 @@ export function ProgramsPage() {
   }, [selectedIds, deleteProgram, clearSelection, showToast]);
 
   // Render function for program rows
-  const renderProgramRow = useCallback((program: Program, { isSelected }: RowRenderProps) => (
+  const renderProgramRow = useCallback((program: Program, { isSelected: _isSelected }: RowRenderProps) => (
     <ProgramRowContent program={program} visibleColumns={visibleColumns} />
   ), [visibleColumns]);
 

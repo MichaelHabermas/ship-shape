@@ -28,6 +28,7 @@ import adminCredentialsRoutes from './routes/admin-credentials.js';
 import claudeRoutes from './routes/claude.js';
 import activityRoutes from './routes/activity.js';
 import dashboardRoutes from './routes/dashboard.js';
+import bootstrapRoutes from './routes/bootstrap.js';
 import associationsRoutes from './routes/associations.js';
 import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
@@ -43,9 +44,13 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 
 const sessionSecret = process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production';
 
+function getHeaderValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 // CSRF protection setup
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
-  getTokenFromRequest: (req) => req.headers['x-csrf-token'] as string,
+  getTokenFromRequest: (req) => getHeaderValue(req.headers['x-csrf-token']) ?? '',
 });
 
 // Conditional CSRF middleware - skip for API token auth (Bearer tokens are not vulnerable to CSRF)
@@ -108,8 +113,8 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     // sets X-Forwarded-Proto to "http". Override it to "https" when request comes via CloudFront.
     app.use((req, _res, next) => {
       // CloudFront adds Via header like "2.0 <id>.cloudfront.net (CloudFront)"
-      const viaHeader = req.headers['via'] as string;
-      if (viaHeader && viaHeader.includes('cloudfront')) {
+      const viaHeader = getHeaderValue(req.headers.via);
+      if (viaHeader?.toLowerCase().includes('cloudfront')) {
         req.headers['x-forwarded-proto'] = 'https';
       }
       next();
@@ -216,6 +221,9 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // Dashboard routes are read-only GET endpoints - no CSRF needed
   app.use('/api/dashboard', dashboardRoutes);
+
+  // Bootstrap route is read-only app-shell hydration - no CSRF needed
+  app.use('/api/bootstrap', bootstrapRoutes);
 
   // Accountability routes - inference-based action items (read-only GET)
   app.use('/api/accountability', accountabilityRoutes);

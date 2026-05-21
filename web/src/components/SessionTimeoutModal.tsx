@@ -129,8 +129,6 @@ export function SessionTimeoutModal({
         <Dialog.Content
           role="alertdialog"
           aria-modal="true"
-          aria-labelledby="session-timeout-title"
-          aria-describedby="session-timeout-description"
           className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-background p-6 shadow-xl focus:outline-none"
           onKeyDown={handleKeyDown}
           onMouseMove={handleActivity}
@@ -148,17 +146,11 @@ export function SessionTimeoutModal({
               : ''}
           </div>
 
-          <Dialog.Title
-            id="session-timeout-title"
-            className="text-lg font-semibold text-foreground"
-          >
+          <Dialog.Title className="text-lg font-semibold text-foreground">
             {title}
           </Dialog.Title>
 
-          <Dialog.Description
-            id="session-timeout-description"
-            className="mt-2 text-sm text-muted"
-          >
+          <Dialog.Description className="mt-2 text-sm text-muted">
             {description}
           </Dialog.Description>
 

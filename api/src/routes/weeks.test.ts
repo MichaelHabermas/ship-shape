@@ -15,7 +15,6 @@ describe('Sprints API', () => {
   let testWorkspaceId: string
   let testUserId: string
   let testProgramId: string
-  let testProjectId: string
 
   beforeAll(async () => {
     // Create test workspace
@@ -70,13 +69,12 @@ describe('Sprints API', () => {
     testProgramId = programResult.rows[0].id
 
     // Create a project
-    const projectResult = await pool.query(
+    await pool.query(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, parent_id)
        VALUES ($1, 'project', 'Test Project', 'workspace', $2)
        RETURNING id`,
       [testWorkspaceId, testProgramId]
     )
-    testProjectId = projectResult.rows[0].id
   })
 
   afterAll(async () => {

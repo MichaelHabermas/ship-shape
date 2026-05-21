@@ -25,7 +25,7 @@ This document describes the application architecture for the Ship greenfield reb
 | **Rich Text**      | TipTap + Yjs             | Offline-tolerant via IndexedDB cache      |
 | **State Mgmt**     | TanStack Query           | Caching, optimistic updates, persistence  |
 | **UI Components**  | shadcn/ui                | Tailwind + Radix, copy-paste ownership    |
-| **Router**         | React Router v6          | Boring, ubiquitous, works with Vite       |
+| **Router**         | React Router v7          | Boring, ubiquitous, works with Vite       |
 | **Forms**          | React Hook Form          | Performant, good validation               |
 | **Dates**          | date-fns                 | Modular, tree-shakeable, immutable        |
 | **i18n**           | react-i18next            | Structured for future translations        |
@@ -140,6 +140,8 @@ Simple RESTful endpoints:
 | PATCH  | `/api/documents/:id` | Update document               |
 | DELETE | `/api/documents/:id` | Delete document               |
 | GET    | `/api/programs`      | List programs                 |
+
+The `/api/search/documents` endpoint exists only for title-only command-palette metadata search. The `/api/search/content` endpoint provides server-backed full-content document search for `/docs` using a rebuildable PostgreSQL `document_search_index` table. The index stores derived searchable text and weighted `tsvector` data; `documents.content` and collaboration Yjs state remain the source of truth.
 
 ### WebSocket Protocol
 
@@ -306,7 +308,7 @@ const mutation = useMutation({
 
 ## Real-Time Collaboration
 
-**Offline-tolerant** - editing works offline, collaboration resumes on reconnect.
+**Offline-tolerant editor** - editor content can persist locally through y-indexeddb, and collaboration resumes on reconnect. Metadata/list mutations do not queue offline.
 
 ### TipTap + Yjs Integration
 
@@ -341,9 +343,10 @@ awareness.setLocalState({
 
 - Document opens with cached content (IndexedDB)
 - No presence indicators when offline
-- Edits saved locally, queued for sync
-- On reconnect: Yjs CRDT auto-merges changes, presence restored
-- No data loss - offline edits always preserved
+- Editor content may be saved locally by y-indexeddb
+- On reconnect: Yjs CRDT sync resumes and presence is restored
+- Metadata/list mutations still require network connectivity and roll back on failure
+- Network recovery and data preservation must be verified with E2E/runtime checks
 
 ## Authentication
 
@@ -498,12 +501,14 @@ test("create and edit document", async ({ page }) => {
 ```
 
 ```bash
-# Run tests (Chromium only)
-pnpm test:e2e
+# Run tests through the safe background runner
+pnpm test:e2e:run
 
 # Run specific test file
-pnpm test:e2e e2e/weeks.spec.ts
+pnpm test:e2e:run e2e/weeks.spec.ts
 ```
+
+For lane scripts, worker tuning, sharding, and result directory isolation, see `docs/claude-reference/testing.md`.
 
 ### Test Categories
 
@@ -571,12 +576,14 @@ import { cn } from "@/lib/utils";
 
 ### Implementation
 
-shadcn/ui (Radix primitives) provides:
+shadcn/ui (Radix primitives) helps with:
 
 - Proper ARIA attributes
 - Focus trapping in modals
 - Keyboard shortcuts
 - Screen reader announcements
+
+These primitives do not prove Section 508/WCAG compliance by themselves; the app still needs axe, keyboard, screen reader, and contrast verification.
 
 ### Testing
 
@@ -690,7 +697,7 @@ async function migrate() {
 pnpm install
 
 # Start database
-docker compose up -d postgres
+docker compose -f docker-compose.local.yml up -d postgres
 
 # Run migrations
 pnpm db:migrate
@@ -711,11 +718,11 @@ pnpm dev
 
 ```json
 {
-  "dev": "concurrently \"pnpm --filter api dev\" \"pnpm --filter web dev\"",
-  "build": "pnpm --filter api build && pnpm --filter web build",
-  "test": "pnpm --filter api test && pnpm --filter web test",
-  "db:migrate": "pnpm --filter api db:migrate",
-  "db:generate": "pnpm --filter api db:generate"
+  "dev": "./scripts/dev.sh",
+  "build": "pnpm --recursive run build",
+  "test": "pnpm --filter @ship/api test",
+  "test:e2e:run": "./scripts/run-e2e.sh",
+  "db:migrate": "pnpm --filter @ship/api db:migrate"
 }
 ```
 
@@ -795,8 +802,8 @@ This enables:
 6. **Real-time**: WebSocket on same Express process
 7. **Auth**: PIV + password fallback
 8. **State management**: TanStack Query + light Zustand
-9. **Offline model**: Offline-tolerant (queue writes, last-write-wins)
-10. **Collab editing**: Real-time only (requires connection)
+9. **Offline model**: Superseded by 2025-01-15 decision; current metadata/list mutations do not queue offline
+10. **Collab editing**: Superseded by 2025-01-15 decision; editor content uses Yjs/y-indexeddb for offline-tolerant content caching
 
 **Rationale for Key Choices:**
 
@@ -838,7 +845,7 @@ This enables:
 
 1. **Secrets management**: SSM Parameter Store (AWS-native, gov-compliant)
 2. **CI/CD**: Manual deploys initially (scripts, not pipeline)
-3. **Router**: React Router v6 (boring technology, ubiquitous)
+3. **Router**: React Router v7 (boring technology, ubiquitous)
 4. **i18n**: react-i18next (structure for future, English only initially)
 5. **Forms**: React Hook Form (performant, good validation)
 6. **Document export**: Not initially (browser print if needed)

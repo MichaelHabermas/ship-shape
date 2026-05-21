@@ -1,0 +1,17 @@
+branch: master
+commit: e3b7b91feaa0d5c93b38175146593fc919d7c35c
+
+status --short:
+ M api/src/openapi/schemas/issues.ts
+ M api/src/routes/documents-visibility.test.ts
+ M api/src/routes/issues.test.ts
+ M api/src/routes/issues.ts
+ M api/src/schemas/document-boundary.test.ts
+ M api/src/schemas/document-boundary.ts
+ M e2e/accessibility-remediation.spec.ts
+ M package.json
+ M web/src/components/editor/BacklinksPanel.tsx
+?? scripts/explain-performance.mjs
+?? scripts/query-count-api.mjs
+?? scripts/seed-audit-load.mjs
+?? web/src/components/editor/BacklinksPanel.test.tsx

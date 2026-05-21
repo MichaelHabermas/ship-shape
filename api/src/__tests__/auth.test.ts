@@ -26,7 +26,7 @@ function createMockReqRes(cookies: Record<string, string> = {}) {
 
 describe('authMiddleware', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('session validation', () => {
@@ -244,6 +244,10 @@ describe('authMiddleware', () => {
         .mockResolvedValueOnce({ rows: [] } as any);
 
       await authMiddleware(req, res, next);
+      expect(pool.query).toHaveBeenCalledWith(
+        'UPDATE sessions SET last_activity = $1 WHERE id = $2',
+        [expect.any(Date), 'valid-session']
+      );
       expect(res.cookie).toHaveBeenCalledWith('session_id', 'valid-session', {
         httpOnly: true,
         secure: false, // NODE_ENV is 'test', not 'production'
@@ -274,6 +278,10 @@ describe('authMiddleware', () => {
         .mockResolvedValueOnce({ rows: [] } as any);
 
       await authMiddleware(req, res, next);
+      expect(pool.query).not.toHaveBeenCalledWith(
+        'UPDATE sessions SET last_activity = $1 WHERE id = $2',
+        expect.any(Array)
+      );
       expect(res.cookie).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
     });

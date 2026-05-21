@@ -6,11 +6,6 @@ import { WeeklyReviewSubNav } from '@/components/review/WeeklyReviewSubNav';
 import { useWeeklyReviewActions } from '@/hooks/useWeeklyReviewActions';
 import type {
   PanelDocument,
-  WikiPanelProps,
-  IssuePanelProps,
-  ProjectPanelProps,
-  SprintPanelProps,
-  ProgramPanelProps,
 } from '@/components/sidebars/PropertiesPanel';
 import { DocumentTypeSelector, getMissingRequiredFields } from '@/components/sidebars/DocumentTypeSelector';
 import type { DocumentType as SelectableDocumentType } from '@/components/sidebars/DocumentTypeSelector';

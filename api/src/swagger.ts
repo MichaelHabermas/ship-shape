@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import type { OpenAPIObject } from 'openapi3-ts/oas30';
+import prettier from 'prettier';
 
 // Import the OpenAPI module to register all schemas
 import { generateOpenAPIDocument } from './openapi/index.js';
@@ -55,8 +56,13 @@ function jsonToYaml(obj: unknown, indent = 0): string {
   if (obj === null) return 'null';
   if (obj === undefined) return '';
   if (typeof obj === 'string') {
-    if (obj.includes('\n') || obj.includes(':') || obj.includes('#')) {
-      return `"${obj.replace(/"/g, '\\"')}"`;
+    if (obj.includes('\n')) {
+      const blockIndent = `${spaces}  `;
+      const lines = obj.split('\n').map(line => `${blockIndent}${line}`);
+      return `|\n${lines.join('\n')}`;
+    }
+    if (obj.includes(':') || obj.includes('#')) {
+      return `"${obj.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
     }
     return obj;
   }
@@ -65,10 +71,12 @@ function jsonToYaml(obj: unknown, indent = 0): string {
   if (Array.isArray(obj)) {
     if (obj.length === 0) return '[]';
     return obj.map(item => {
-      const value = jsonToYaml(item, indent + 1);
       if (typeof item === 'object' && item !== null) {
-        return `${spaces}- ${value.trim().replace(/^/, '').replace(/\n/g, `\n${spaces}  `)}`;
+        const value = jsonToYaml(item, indent + 1).trim();
+        const [firstLine, ...rest] = value.split('\n');
+        return `${spaces}- ${firstLine}${rest.length ? `\n${rest.join('\n')}` : ''}`;
       }
+      const value = jsonToYaml(item, indent + 1);
       return `${spaces}- ${value}`;
     }).join('\n');
   }
@@ -78,8 +86,14 @@ function jsonToYaml(obj: unknown, indent = 0): string {
     if (entries.length === 0) return '{}';
     return entries.map(([key, value]) => {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        if (Object.keys(value).length === 0) {
+          return `${spaces}${key}: {}`;
+        }
         return `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
       } else if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return `${spaces}${key}: []`;
+        }
         return `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}`;
       } else {
         return `${spaces}${key}: ${jsonToYaml(value, indent)}`;
@@ -91,8 +105,8 @@ function jsonToYaml(obj: unknown, indent = 0): string {
 }
 
 // Generate static openapi.yaml file
-export function generateOpenApiFile(): void {
-  const yaml = jsonToYaml(swaggerSpec);
+export async function generateOpenApiFile(): Promise<void> {
+  const yaml = await prettier.format(jsonToYaml(swaggerSpec), { parser: 'yaml' });
   const outputPath = path.join(__dirname, '..', 'openapi.yaml');
   fs.writeFileSync(outputPath, yaml, 'utf-8');
   console.log(`OpenAPI spec written to ${outputPath}`);

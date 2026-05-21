@@ -8,12 +8,12 @@ import * as decoding from 'lib0/decoding';
 import { pool } from '../db/client.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent } from '../utils/extractHypothesis.js';
 import { yjsToJson, jsonToYjs } from '../utils/yjsConverter.js';
+import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
 import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
 import cookie from 'cookie';
 
 const messageSync = 0;
 const messageAwareness = 1;
-const messageCustomEvent = 2;
 const messageClearCache = 3; // Tells browser to clear IndexedDB cache before sync
 
 // Rate limiting configuration
@@ -173,6 +173,7 @@ async function persistDocument(docName: string, doc: Y.Doc) {
       `UPDATE documents SET yjs_state = $1, content = $2, properties = $3, updated_at = now() WHERE id = $4`,
       [Buffer.from(state), JSON.stringify(content), JSON.stringify(updatedProps), docId]
     );
+    await upsertDocumentSearchIndex(docId);
   } catch (err) {
     console.error('Failed to persist document:', err);
   }

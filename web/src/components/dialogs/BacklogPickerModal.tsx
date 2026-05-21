@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useIssuesQuery, useUpdateIssue, getSprintId, getProjectId, getProgramId } from '@/hooks/useIssuesQuery';
+import { useIssuesQuery, getSprintId, getProjectId, getProgramId } from '@/hooks/useIssuesQuery';
 import { Issue } from '@/contexts/IssuesContext';
 import { cn } from '@/lib/cn';
 import { apiPatch } from '@/lib/api';
@@ -90,7 +90,7 @@ export function BacklogPickerModal({ isOpen, onClose, context, onIssuesAdded }: 
     const filtered = searchQuery
       ? available.filter(issue =>
           issue.title.toLowerCase().includes(searchLower) ||
-          issue.ticket_number.toString().includes(searchLower)
+          issue.ticket_number?.toString().includes(searchLower)
         )
       : available;
 

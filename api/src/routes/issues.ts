@@ -1,14 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
+import type { IssueProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+  createIssueRequestSchema,
+  issuePrioritySchema,
+  issueSourceSchema,
+  issueStateSchema,
+  updateIssueRequestSchema,
+} from '../schemas/document-boundary.js';
 import {
   logDocumentChange,
   getTimestampUpdates,
   getBelongsToAssociations,
   getBelongsToAssociationsBatch,
-  TRACKED_FIELDS,
   type BelongsToEntry,
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
@@ -18,25 +25,12 @@ const router: RouterType = Router();
 
 type QueryParam = string | boolean | null | string[];
 
-type IssueProperties = {
-  state?: string;
-  priority?: string;
-  assignee_id?: string | null;
-  estimate?: number | null;
-  source?: string;
-  rejection_reason?: string | null;
-  due_date?: string | null;
-  is_system_generated?: boolean;
-  accountability_target_id?: string | null;
-  accountability_type?: string | null;
-};
-
 type IssueRow = {
   id: string;
   title: string;
   properties: IssueProperties | null;
   ticket_number: number | null;
-  content: unknown;
+  content?: unknown;
   created_at: Date;
   updated_at: Date;
   created_by: string;
@@ -50,72 +44,30 @@ type IssueRow = {
   created_by_name?: string | null;
 };
 
-// BelongsTo entry schema for associations
-const belongsToEntrySchema = z.object({
-  id: z.string().uuid(),
-  type: z.enum(['program', 'project', 'sprint', 'parent']),
-});
-
-// Accountability types enum for validation
-const accountabilityTypes = ['standup', 'weekly_plan', 'weekly_review', 'week_start', 'week_issues', 'project_plan', 'project_retro'] as const;
-
 // Validation schemas
-const createIssueSchema = z.object({
-  title: z.string().min(1).max(500),
-  state: z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional().default('backlog'),
-  priority: z.enum(['urgent', 'high', 'medium', 'low', 'none']).optional().default('medium'),
-  assignee_id: z.string().uuid().optional().nullable(),
-  belongs_to: z.array(belongsToEntrySchema).optional().default([]),
-  // Source for the issue (internal, external, or action_items for system-generated)
-  source: z.enum(['internal', 'external', 'action_items']).optional().default('internal'),
-  // Due date (ISO date string)
-  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-  // System-generated flag (for action_items issues)
-  is_system_generated: z.boolean().optional().default(false),
-  // Accountability tracking for action_items issues
-  accountability_target_id: z.string().uuid().optional().nullable(),
-  accountability_type: z.enum(accountabilityTypes).optional().nullable(),
-});
+const createIssueSchema = createIssueRequestSchema;
 
-const updateIssueSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
-  state: z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
-  priority: z.enum(['urgent', 'high', 'medium', 'low', 'none']).optional(),
-  assignee_id: z.string().uuid().optional().nullable(),
-  belongs_to: z.array(belongsToEntrySchema).optional(),
-  estimate: z.number().positive().nullable().optional(),
-  // Confirm closing parent with incomplete children (removes their parent association)
-  confirm_orphan_children: z.boolean().optional(),
-  // Claude Code integration metadata
-  claude_metadata: z.object({
-    updated_by: z.literal('claude'),
-    story_id: z.string().optional(),
-    prd_name: z.string().optional(),
-    session_context: z.string().optional(),
-    // Confidence score (0-100) for story completion
-    confidence: z.number().int().min(0).max(100).optional(),
-    // Telemetry for completed stories
-    telemetry: z.object({
-      iterations: z.number().int().min(1).optional(),
-      feedback_loops: z.object({
-        type_check: z.number().int().min(0).optional(),
-        test: z.number().int().min(0).optional(),
-        build: z.number().int().min(0).optional(),
-      }).optional(),
-      time_elapsed_seconds: z.number().int().min(0).optional(),
-      files_changed: z.array(z.string()).optional(),
-    }).optional(),
-  }).optional(),
-});
+const updateIssueSchema = updateIssueRequestSchema;
 
 const rejectIssueSchema = z.object({
   reason: z.string().min(1).max(1000),
 });
 
+const listIssuesQuerySchema = z.object({
+  state: z.string().optional(),
+  priority: issuePrioritySchema.optional(),
+  assignee_id: z.string().optional(),
+  program_id: z.string().uuid().optional(),
+  project_id: z.string().uuid().optional(),
+  sprint_id: z.string().uuid().optional(),
+  source: issueSourceSchema.optional(),
+  parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional(),
+});
+
 // Helper to extract issue properties from row (without belongs_to - added separately)
-function extractIssueFromRow(row: IssueRow) {
-  const props = row.properties || {};
-  return {
+function extractIssueFromRow(row: IssueRow, options: { includeContent?: boolean } = {}) {
+  const props: Partial<IssueProperties> = row.properties || {};
+  const issue = {
     id: row.id,
     title: row.title,
     state: props.state || 'backlog',
@@ -130,7 +82,6 @@ function extractIssueFromRow(row: IssueRow) {
     accountability_target_id: props.accountability_target_id || null,
     accountability_type: props.accountability_type || null,
     ticket_number: row.ticket_number,
-    content: row.content,
     created_at: row.created_at,
     updated_at: row.updated_at,
     created_by: row.created_by,
@@ -143,12 +94,54 @@ function extractIssueFromRow(row: IssueRow) {
     assignee_archived: row.assignee_archived || false,
     created_by_name: row.created_by_name,
   };
+
+  if (options.includeContent === false) {
+    return issue;
+  }
+
+  return {
+    ...issue,
+    content: row.content ?? null,
+  };
+}
+
+function extractIssueListItemFromRow(row: IssueRow) {
+  const props: Partial<IssueProperties> = row.properties || {};
+  return {
+    id: row.id,
+    title: row.title,
+    state: props.state || 'backlog',
+    priority: props.priority || 'medium',
+    source: props.source || 'internal',
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    ...(props.estimate !== undefined && props.estimate !== null ? { estimate: props.estimate } : {}),
+    ...(row.assignee_name ? { assignee_name: row.assignee_name } : {}),
+    ...(props.assignee_id ? { assignee_id: props.assignee_id } : {}),
+    ...(row.ticket_number !== null ? { ticket_number: row.ticket_number, display_id: `#${row.ticket_number}` } : {}),
+    ...(row.assignee_archived ? { assignee_archived: true } : {}),
+    ...(props.rejection_reason ? { rejection_reason: props.rejection_reason } : {}),
+    ...(props.due_date ? { due_date: props.due_date } : {}),
+    ...(props.is_system_generated ? { is_system_generated: true } : {}),
+    ...(props.accountability_target_id ? { accountability_target_id: props.accountability_target_id } : {}),
+    ...(props.accountability_type ? { accountability_type: props.accountability_type } : {}),
+    ...(row.started_at ? { started_at: row.started_at } : {}),
+    ...(row.completed_at ? { completed_at: row.completed_at } : {}),
+    ...(row.cancelled_at ? { cancelled_at: row.cancelled_at } : {}),
+    ...(row.reopened_at ? { reopened_at: row.reopened_at } : {}),
+    ...(row.converted_from_id ? { converted_from_id: row.converted_from_id } : {}),
+  };
 }
 
 // List issues with filters
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { state, priority, assignee_id, program_id, sprint_id, source, parent_filter } = req.query;
+    const parsedQuery = listIssuesQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      res.status(400).json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() });
+      return;
+    }
+    const { state, priority, assignee_id, program_id, project_id, sprint_id, source, parent_filter } = parsedQuery.data;
     const userId = req.userId!;
     const workspaceId = req.workspaceId!;
 
@@ -157,7 +150,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     let query = `
       SELECT d.id, d.title, d.properties, d.ticket_number,
-             d.content,
              d.created_at, d.updated_at, d.created_by,
              d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
              d.converted_from_id,
@@ -179,19 +171,19 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     // Filter by source if specified (internal or external)
     if (source) {
       query += ` AND d.properties->>'source' = $${params.length + 1}`;
-      params.push(source as string);
+      params.push(source);
     }
     // No default filtering - show all issues regardless of source
 
     if (state) {
-      const states = (state as string).split(',');
+      const states = state.split(',');
       query += ` AND d.properties->>'state' = ANY($${params.length + 1})`;
       params.push(states);
     }
 
     if (priority) {
       query += ` AND d.properties->>'priority' = $${params.length + 1}`;
-      params.push(priority as string);
+      params.push(priority);
     }
 
     if (assignee_id) {
@@ -199,7 +191,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         query += ` AND (d.properties->>'assignee_id' IS NULL OR d.properties->>'assignee_id' = '')`;
       } else {
         query += ` AND d.properties->>'assignee_id' = $${params.length + 1}`;
-        params.push(assignee_id as string);
+        params.push(assignee_id);
       }
     }
 
@@ -209,7 +201,16 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         SELECT 1 FROM document_associations da
         WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'program'
       )`;
-      params.push(program_id as string);
+      params.push(program_id);
+    }
+
+    // Filter by project via junction table
+    if (project_id) {
+      query += ` AND EXISTS (
+        SELECT 1 FROM document_associations da
+        WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'project'
+      )`;
+      params.push(project_id);
     }
 
     // Filter by sprint via junction table
@@ -218,7 +219,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         SELECT 1 FROM document_associations da
         WHERE da.document_id = d.id AND da.related_id = $${params.length + 1} AND da.relationship_type = 'sprint'
       )`;
-      params.push(sprint_id as string);
+      params.push(sprint_id);
     }
 
     // Filter by parent/sub-issue status
@@ -261,10 +262,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const associationsMap = await getBelongsToAssociationsBatch(issueIds);
 
     const issues = result.rows.map(row => {
-      const issue = extractIssueFromRow(row);
+      const issue = extractIssueListItemFromRow(row);
       return {
         ...issue,
-        display_id: `#${issue.ticket_number}`,
         belongs_to: associationsMap.get(row.id) || [],
       };
     });
@@ -1153,7 +1153,7 @@ const bulkUpdateSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
   action: z.enum(['archive', 'delete', 'restore', 'update']),
   updates: z.object({
-    state: z.enum(['triage', 'backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
+    state: issueStateSchema.optional(),
     sprint_id: z.string().uuid().nullable().optional(),
     assignee_id: z.string().uuid().nullable().optional(),
     project_id: z.string().uuid().nullable().optional(),

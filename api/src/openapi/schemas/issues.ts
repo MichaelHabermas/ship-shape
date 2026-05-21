@@ -3,55 +3,30 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, DateSchema, BelongsToEntrySchema, BelongsToResponseSchema, UserReferenceSchema } from './common.js';
+import {
+  accountabilityTypeSchema,
+  createIssueRequestSchema,
+  issuePrioritySchema,
+  issueStateSchema,
+  updateIssueRequestSchema,
+} from '../../schemas/document-boundary.js';
+import { UuidSchema, DateTimeSchema, DateSchema, BelongsToResponseSchema, UserReferenceSchema, IssueSourceSchema } from './common.js';
 
 // ============== Issue Enums ==============
 
-export const IssueStateSchema = z.enum([
-  'triage',
-  'backlog',
-  'todo',
-  'in_progress',
-  'in_review',
-  'done',
-  'cancelled',
-]).openapi({
+export const IssueStateSchema = issueStateSchema.openapi({
   description: 'Issue workflow state',
 });
 
 registry.register('IssueState', IssueStateSchema);
 
-export const IssuePrioritySchema = z.enum([
-  'urgent',
-  'high',
-  'medium',
-  'low',
-  'none',
-]).openapi({
+export const IssuePrioritySchema = issuePrioritySchema.openapi({
   description: 'Issue priority level',
 });
 
 registry.register('IssuePriority', IssuePrioritySchema);
 
-export const IssueSourceSchema = z.enum([
-  'internal',
-  'external',
-  'action_items',
-]).openapi({
-  description: 'Issue source/provenance (never changes after creation)',
-});
-
-registry.register('IssueSource', IssueSourceSchema);
-
-export const AccountabilityTypeSchema = z.enum([
-  'standup',
-  'weekly_plan',
-  'weekly_review',
-  'week_start',
-  'week_issues',
-  'project_plan',
-  'project_retro',
-]).openapi({
+export const AccountabilityTypeSchema = accountabilityTypeSchema.openapi({
   description: 'Type of accountability task for auto-generated issues',
 });
 
@@ -107,62 +82,29 @@ export const IssueResponseSchema = z.object({
   }),
 }).openapi('Issue');
 
+export const IssueListResponseSchema = IssueResponseSchema
+  .omit({ content: true, ticket_number: true, display_id: true, assignee_id: true, assignee_name: true, estimate: true })
+  .extend({
+    ticket_number: z.number().int().optional(),
+    display_id: z.string().optional(),
+    assignee_id: UuidSchema.optional(),
+    assignee_name: z.string().optional(),
+    estimate: z.number().positive().optional(),
+  })
+  .openapi('IssueListItem');
+
 registry.register('Issue', IssueResponseSchema);
+registry.register('IssueListItem', IssueListResponseSchema);
 
 // ============== Create Issue ==============
 
-export const CreateIssueSchema = z.object({
-  title: z.string().min(1).max(500).openapi({
-    description: 'Issue title',
-    example: 'Fix login button not responding',
-  }),
-  state: IssueStateSchema.optional().default('backlog'),
-  priority: IssuePrioritySchema.optional().default('medium'),
-  assignee_id: UuidSchema.optional().nullable(),
-  belongs_to: z.array(BelongsToEntrySchema).optional().default([]).openapi({
-    description: 'Associate with programs, projects, sprints, or parent issues',
-  }),
-  source: IssueSourceSchema.optional().default('internal'),
-  due_date: DateSchema.optional().nullable(),
-  is_system_generated: z.boolean().optional().default(false),
-  accountability_target_id: UuidSchema.optional().nullable(),
-  accountability_type: AccountabilityTypeSchema.optional().nullable(),
-}).openapi('CreateIssue');
+export const CreateIssueSchema = createIssueRequestSchema.openapi('CreateIssue');
 
 registry.register('CreateIssue', CreateIssueSchema);
 
 // ============== Update Issue ==============
 
-export const UpdateIssueSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
-  state: IssueStateSchema.optional(),
-  priority: IssuePrioritySchema.optional(),
-  assignee_id: UuidSchema.optional().nullable(),
-  belongs_to: z.array(BelongsToEntrySchema).optional(),
-  estimate: z.number().positive().nullable().optional(),
-  confirm_orphan_children: z.boolean().optional().openapi({
-    description: 'Confirm closing parent issue with incomplete children',
-  }),
-  claude_metadata: z.object({
-    updated_by: z.literal('claude'),
-    story_id: z.string().optional(),
-    prd_name: z.string().optional(),
-    session_context: z.string().optional(),
-    confidence: z.number().int().min(0).max(100).optional(),
-    telemetry: z.object({
-      iterations: z.number().int().min(1).optional(),
-      feedback_loops: z.object({
-        type_check: z.number().int().min(0).optional(),
-        test: z.number().int().min(0).optional(),
-        build: z.number().int().min(0).optional(),
-      }).optional(),
-      time_elapsed_seconds: z.number().int().min(0).optional(),
-      files_changed: z.array(z.string()).optional(),
-    }).optional(),
-  }).optional().openapi({
-    description: 'Metadata for Claude Code integration',
-  }),
-}).openapi('UpdateIssue');
+export const UpdateIssueSchema = updateIssueRequestSchema.openapi('UpdateIssue');
 
 registry.register('UpdateIssue', UpdateIssueSchema);
 
@@ -235,7 +177,7 @@ registry.registerPath({
   path: '/issues',
   tags: ['Issues'],
   summary: 'List issues',
-  description: 'List issues with optional filtering by state, priority, assignee, program, sprint, and more.',
+  description: 'List issues with optional filtering by state, priority, assignee, program, project, sprint, and more.',
   request: {
     query: z.object({
       state: z.string().optional().openapi({
@@ -247,6 +189,7 @@ registry.registerPath({
         description: 'Filter by assignee ID. Use "null" or "unassigned" for unassigned issues.',
       }),
       program_id: UuidSchema.optional(),
+      project_id: UuidSchema.optional(),
       sprint_id: UuidSchema.optional(),
       source: IssueSourceSchema.optional(),
       parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional().openapi({
@@ -259,7 +202,7 @@ registry.registerPath({
       description: 'List of issues',
       content: {
         'application/json': {
-          schema: z.array(IssueResponseSchema),
+          schema: z.array(IssueListResponseSchema),
         },
       },
     },

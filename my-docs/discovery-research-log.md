@@ -140,6 +140,8 @@ Severity: Medium
 
 Architecture docs describe server search with offline fallback, the backend exposes mention and learning search endpoints, and the Docs page filters the already-loaded document list client-side by title. The term "search" means different things in different layers. This is a good candidate if later work touches search, but it is currently less central than the top three.
 
+Status update 2026-05-21: Search now has explicit split ownership. `/api/search/documents` remains title-only for command-palette lookup, and `/api/search/content` is the full-content search product endpoint used by `/docs`. DB-backed evidence was captured after starting the existing Docker PostgreSQL container: focused search tests passed 26/26, query-count evidence shows three SQL queries per content-search request, EXPLAIN uses `document_search_index_vector_idx`, and bounded benchmark output was written to `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json`.
+
 ### Repeated local types and mechanical route boilerplate are creating product-model drift
 
 Severity: High
@@ -219,21 +221,21 @@ Possible mediation: decide whether any artifact is intentionally archival. Other
 
 Severity: Medium
 
-Status: Partially resolved. The false `/search/documents` OpenAPI route was removed in the easy-wins pass. Real document full-text search is still not implemented; `/docs` remains client-side title filtering, and `/api/search/mentions` plus `/api/search/learnings` remain the live backend search routes.
+Status: Resolved with DB-backed evidence. The false full-text `/search/documents` OpenAPI route was removed in the easy-wins pass, the submission-gated pass added real title-only `/api/search/documents` for command-palette lookup, and the 2026-05-21 search pass added distinct `/api/search/content` for full-content document search. `/docs` now uses the content-search endpoint.
 
-At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. Current OpenAPI no longer advertises `/search/documents`; real document full-text search remains unimplemented.
+At audit time, `api/src/openapi/schemas/search.ts` registered `GET /search/documents` with the description "Full-text search across all document types." `api/openapi.json` and `api/openapi.yaml` included that path. But `api/src/routes/search.ts` only implemented `/mentions` and `/learnings`, and `api/src/app.ts` mounted that router at `/api/search`. There was no `searchRouter.get('/documents')`. The current command-palette route exists as title-only metadata search, while full-content search is deliberately separate at `/api/search/content`.
 
 Why it matters: generated API clients, Swagger users, and MCP/API automation can trust an endpoint that will 404 at runtime. This is a capability mirage, not just stale prose.
 
 Why it is easy to miss: the OpenAPI artifact is generated and looks authoritative. The contradiction only appears when comparing schema registration to the mounted router.
 
-Possible mediation: implement `/api/search/documents`, or remove it from OpenAPI and update docs to say current search is limited to mention search, learning search, and client-side document-title filtering.
+Mediation chosen: full document content search was added explicitly as `/api/search/content`, with derived Postgres indexing, visibility filtering, ranking, snippets, and separate performance/evidence rails. Do not broaden the current title-only command-palette endpoint by implication.
 
 ### API coverage pre-commit gate is a changed-file heuristic, not a repo integrity check
 
 Severity: Low-Medium
 
-Status: Confirmed
+Status: Resolved for restore masking; SSM process cleanup risk remains separate.
 
 `scripts/check-api-coverage.sh` says it verifies API coverage for UI routes. In pre-commit it runs with `--staged`, only scans staged JavaScript/TypeScript files, skips non-`web/` files, extracts simple `fetch('/api/...')` and `axios.*('/api/...')` patterns, then exits 0 when no staged UI files are found. Running it with no matching changed files produced "No UI files changed" and exited 0 even though the OpenAPI/router search drift above exists.
 
@@ -258,22 +260,6 @@ Why it matters: first-user bootstrap is a tiny path with huge authority. In a re
 Why it is easy to miss: the code comment calls the user count check "the critical security check," and for normal single-user setup it works.
 
 Possible mediation: wrap setup initialization in a transaction with a database advisory lock, or use a single-row setup lock table / unique sentinel insert that only one request can win.
-
-### Migration runner misclassifies real migration failures as success
-
-Severity: High
-
-Status: Confirmed
-
-`api/src/db/migrate.ts` wraps schema setup and all numbered migration execution in one broad `try`. If any thrown error message includes `already exists`, it logs "Database schema already exists, continuing..." and exits without rethrowing. The comment says "`already exists` errors from schema.sql are fine," but the catch scope includes pending numbered migrations too.
-
-Verification note: the disposable database was only a microscope, not the finding. The preexisting repo issue is the migration runner's broad success-on-`already exists` catch. Verified with a throwaway database: `DATABASE_URL=... pnpm --filter @ship/api db:migrate` printed successful application through `009_audit_logs_nullable_actor`, then hit `010_oauth_state.sql`, printed `Database schema already exists, continuing...`, and exited 0. The database had only 10 rows in `schema_migrations`, ending at `009_audit_logs_nullable_actor`, while the repo has 42 migration files. A later local verification saw the same `010_oauth_state.sql` duplicate-table edge on a fresh disposable database after schema bootstrap; API unit tests still passed against local PostgreSQL, so this remains a migration-runner truthfulness issue rather than an API unit blocker.
-
-Why it matters: migration scripts are deployment-critical. This is a fake-green migration path: a fresh database can look successfully migrated while 32 migrations are unapplied.
-
-Why it is easy to miss: schema setup is mostly idempotent, and the broad catch looks like a friendly bootstrap compatibility path.
-
-Possible mediation: narrow the `already exists` catch to schema bootstrap only, or better, make `schema.sql` fully idempotent and let numbered migration failures always fail closed.
 
 ### Dash-prefixed root progress file is a tiny shell footgun
 
@@ -617,22 +603,6 @@ Why it is easy to miss: the dangerous branch only runs when an output lookup fai
 
 Possible mediation: remove automatic `terraform apply -auto-approve` from application deploy, or require an explicit flag such as `--bootstrap-infra` plus an environment-specific confirmation. Keep deploy scripts read-only with respect to Terraform state unless the command name and docs clearly say they provision infrastructure.
 
-### Document parent links can cross workspaces and cascade-delete across tenants
-
-Severity: High
-
-Status: Confirmed
-
-`api/src/db/schema.sql` defines `documents.parent_id UUID REFERENCES documents(id) ON DELETE CASCADE` without a same-workspace constraint. `api/src/routes/documents.ts` accepts `parent_id` on document create and update. On create, it only tries to inherit visibility when the parent exists in `req.workspaceId`; if the parent id belongs to another workspace, that lookup misses, but the route still inserts the foreign `parent_id`. On update, it similarly reads parent visibility only inside the current workspace, then writes `parent_id` directly.
-
-Runtime proof: verified against a disposable local database that was dropped after the run. A bearer token scoped to Workspace A called `POST /api/documents` with `parent_id` set to a Workspace B document id. The route returned `201`; a DB join showed `child_workspace_id = Workspace A` and `parent_workspace_id = Workspace B`. Deleting the Workspace B parent then reduced the Workspace A child row count to `0` because the database-level `ON DELETE CASCADE` followed the cross-workspace parent pointer.
-
-Why it matters: this is a cross-tenant integrity break, not just a metadata leak. If a cross-workspace parent edge exists, a legitimate delete in one workspace can delete documents in another workspace. It also creates impossible hierarchy states for navigation, breadcrumbs, document trees, and visibility inheritance.
-
-Why it is easy to miss: the route appears workspace-scoped because it creates the child with `workspace_id = req.workspaceId` and does a parent visibility lookup scoped to the workspace. The actual bug is that a failed parent lookup is treated as "no inherited visibility" instead of "invalid parent."
-
-Possible mediation: reject any `parent_id` that does not belong to `req.workspaceId` and is visible/usable by the caller. Add a database-level invariant for hierarchy, such as a composite foreign key or trigger requiring `child.workspace_id = parent.workspace_id`. Add regression tests for create and update with foreign-workspace parents and for cascade behavior.
-
 ### Production Terraform has two competing sources of truth
 
 Severity: Medium-High
@@ -660,22 +630,6 @@ Why it matters: revoking a user's workspace membership stops their REST access, 
 Why it is easy to miss: the collaboration code has serious-looking security comments: "CRITICAL: Validate session before allowing WebSocket connection," visibility checks, rate limits, max payloads, and timeout enforcement. The bug is that it forked the REST auth logic and missed one authorization clause.
 
 Possible mediation: share the REST session validation logic with the WebSocket upgrade path, including workspace membership revocation and super-admin handling. Add a regression test that creates a valid session, deletes the user's `workspace_memberships` row, then verifies REST and WebSocket access both fail. Consider closing existing realtime sockets when membership is removed, just as visibility changes close document sockets.
-
-### Collaboration room names can fork one database document into multiple live Yjs states
-
-Severity: High
-
-Status: Confirmed
-
-`api/src/collaboration/index.ts` stores live collaboration documents and awareness state by full room name: `docs = new Map<string, Y.Doc>()` and `awareness = new Map<string, Awareness>()`. But `parseDocId()` strips the room prefix and returns only the UUID after `:`. The WebSocket upgrade path accepts any `/collaboration/*` room, computes `docId = parseDocId(docName)`, and authorizes with `canAccessDocumentForCollab(docId, ...)`, which checks only document id, workspace, and visibility. It does not verify that the room prefix matches the row's `document_type`. `getOrCreateDoc(docName)` then caches a separate Yjs document under the full `docName`, while `persistDocument(docName, doc)` writes back to `documents WHERE id = parseDocId(docName)`. The frontend and docs both make the room prefix meaningful: `web/src/components/Editor.tsx` uses `new IndexeddbPersistence(\`ship-${roomPrefix}-${documentId}\`, ydoc)` and `new WebsocketProvider(wsUrl, \`${roomPrefix}:${documentId}\`, ydoc)`, and `docs/claude-reference/modules/collaboration.md` documents `/collaboration/:docType::docId` examples.
-
-Why it matters: the same database row can be opened as `issue:<uuid>`, `wiki:<uuid>`, `doc:<uuid>`, or any other prefix that passes the UUID access check. Each prefix gets a separate in-memory Yjs state and separate browser IndexedDB cache, but they all persist to the same `documents.id`. That can split collaborators for one document into independent rooms and make the last room to persist overwrite content from another room. It also makes document-type conversion and cache invalidation harder to reason about, because the document id is canonical for persistence while the full prefixed room name is canonical for live sync.
-
-Runtime proof: verified against a disposable local database that was dropped after the run. A test issue document was opened through both `/collaboration/issue:<uuid>` and `/collaboration/wiki:<uuid>` using the same valid session cookie. The collaboration server logged separate JSON-to-Yjs conversion and cache-clear handling for both room names against the same UUID. Both rooms opened; after writing `issue-room-edit` through the `issue:` room, the row's `content` became `issue-room-edit`. After writing `wiki-room-edit` through the `wiki:` room, the same row's `content` became `wiki-room-edit` plus the original `initial` paragraph, and the stored `yjs_state` changed again. Proof database `ship_proof_yjs_1779250602600` was dropped after capture.
-
-Why it is easy to miss: the unified document model makes the prefix look cosmetic, and comments explicitly say all document types map to the unified table. The trap is that the cache key and the database key are not the same thing.
-
-Possible mediation: canonicalize collaboration room identity to the document UUID only, or reject WebSocket upgrades when the supplied prefix does not match the current `documents.document_type` or a documented alias such as `doc`. Use the same canonical key for Yjs docs, awareness, pending saves, and IndexedDB cache naming. Add a regression test that tries to open the same document through two prefixes and proves the server either rejects the wrong prefix or routes both clients to the same Yjs state.
 
 ### Team allocation writes are available to any workspace member
 
@@ -752,3 +706,55 @@ Why it is easy to miss: the stale claim appears in the docs and at the top of th
 What would make it harmless: the product intentionally changed from durable issue escalation to purely inferred reminders, and the docs/UI/reporting expectations should now describe that softer model.
 
 Possible mediation: choose one model. If severe overdue items should create durable issues, restore the create/complete path and test for `source = 'action_items'` persistence after the threshold. If inference is now intended, update the philosophy/manager docs, remove the stale service header claim, and make reporting pages avoid treating missing `action_items` rows as "no accountability problems."
+
+### Full E2E safe-run baseline exposes stale document-tree selector debt
+
+Severity: Low-Medium
+
+Status: Resolved by focused E2E rerun on 2026-05-20
+
+The first full E2E run through the safe runner after adding fast-feedback lanes used `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` and completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors." The failure occurred while looking for `expandableItem.locator('ul a[href*="/documents/"]')`, before the test reached the actual deep-link auto-expand assertion. The failure screenshot and accessibility snapshot showed the seeded nested documents visible in the sidebar under "Welcome to Ship," but the current accessible tree exposes children through ARIA `group` structure rather than a literal nested `ul` under the expanded item.
+
+Why it matters: this is an example of a test that can look like a product regression while actually tracking stale DOM-shape assumptions after the document-tree accessibility remediation. It weakens trust in the E2E signal unless future triage distinguishes product behavior from selector structure.
+
+Why it is easy to miss: the test name describes a real user-facing behavior, but the failing selector asserts an implementation detail before checking that behavior. The screenshot looks healthy enough that the failure only makes sense after comparing the selector with the accessibility snapshot.
+
+What proved it resolved: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"` passed with 1 test passed / 0 failed.
+
+Possible mediation: update the test to locate nested tree items through roles and ARIA relationships instead of nested `ul` structure, then keep the final assertion focused on the user-visible deep-link behavior. Keep the full-run result as the current E2E baseline rather than treating this runner work as introducing an app regression.
+
+Resolution note: the selector now scopes to the sidebar ARIA tree, locates the expandable row as `li[data-tree-item]`, finds nested links through the row's `role="group"`, and scopes the expanded-parent assertion to the refreshed sidebar tree. The change is test-trust cleanup and is not counted toward Category 5.
+
+### Submission-gated structural pass status
+
+Severity: Ledger
+
+Status: Updated 2026-05-20
+
+Rails safety findings moved from provisional risk to implemented foundation work. Raw `pnpm test:e2e` now fails closed with guidance to `pnpm test:e2e:run`, the controlled runner uses `pnpm test:e2e:raw` internally, and DB-copy restore paths no longer print success after failed restore/schema steps. The API benchmark harness now exists, but before/after timing evidence is still required before Category 3 claims.
+
+Boundary-contract drift moved from architectural concern to active regression coverage. Runtime boundary values now feed more OpenAPI schemas, and `api/src/schemas/document-boundary.test.ts` compares document type values across `@ship/shared`, database enum declarations, runtime Zod values, and OpenAPI.
+
+High-utility search status: `/api/search/documents` exists only as title-only command-palette metadata search. `/api/search/content` now exists for full-content document search, and `/docs` uses it. Runtime DB-backed artifacts now exist: `test-results/perf/query-count-api-2026-05-21T15-33-21-438Z.json`, `test-results/perf/explain-performance-2026-05-21T15-33-25-144Z.json`, and `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json`.
+
+Bootstrap status changed: `/api/bootstrap` now exists as read-only app-shell hydration and seeds existing TanStack Query keys. It has flow-level Category 4 query-count proof for the protected docs startup app-shell flow, but it is not a Category 3 endpoint P95 win. The route needs to stay projection-aligned with the underlying list endpoints, especially project status inference and visibility semantics. Post-reset verification added focused route coverage for auth, response shape, and project status inference; the combined bootstrap/search/visibility/boundary rerun passed 43 tests against a temporary disposable Postgres container.
+
+### Evidence-runner and trust pass status
+
+Severity: Ledger
+
+Status: Updated 2026-05-20
+
+Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. The important behavior is that missing proof stays explicit as `not_measured`.
+
+Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Closeout artifacts were written under `test-results/perf/` on 2026-05-20. Category 3 still needs before/after endpoint P95 runs under identical conditions before a completion claim is defensible; later bootstrap evidence covers the Category 4 query-count branch for one app-shell flow.
+
+Closeout axe verification was updated after the remaining contrast fixes. The repeatable `pnpm a11y:closeout -- --fail-on-serious` runner writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, a real `/documents/:id`, and `/my-week`; current output is 0 violations on all three scanned pages. Lighthouse was not rerun, and manual keyboard/a11y polish gaps remain outside the axe gate.
+
+Manual closeout filled in the runtime parts that axe cannot judge. Backlinks passed the degraded-state scenario after creating a real mention: the target document retained its saved backlink while offline, showed the stale/offline status, cleared it on reconnect, and the backlink navigated correctly. Remaining manual findings worth automating or fixing next are the Action Items modal tab order/focus visibility, docs tree arrow-key navigation, and the confusing `POST /api/weekly-retros` 403 that appears while retro edits still save through the document path.
+
+The Radix `DialogContent requires a DialogTitle` console warning observed while the Action Items modal was open traced to `SessionTimeoutModal`, whose custom `aria-labelledby` and `aria-describedby` ids bypassed Radix's generated title/description wiring. Removing the custom ids preserved the accessible name/description and stopped the warning in the focused regression test.
+
+Category 5 moved from incomplete to source-requirement complete via three meaningful regressions: exact inline comment mark removal, project issue filtering through `document_associations`, and private document comment visibility returning `404` to a non-creator workspace member. The focused API rerun passed 51 tests against `ship_test_audit` after the sandboxed attempt failed to reach local PostgreSQL.
+
+Backlinks runtime behavior changed from console-only failure to degraded state. The panel preserves last successful backlinks, exposes offline/stale state through `role="status"` and `aria-live="polite"`, pauses polling offline, and retries on reconnect. This is a real Category 6 improvement, but runtime screenshot/recording evidence is still required before claiming the category complete.

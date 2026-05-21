@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useDashboardActionItems, ActionItem } from '@/hooks/useDashboardActionItems';
-import { useDashboardFocus, ProjectFocus, PlanItem } from '@/hooks/useDashboardFocus';
+import { useDashboardFocus, ProjectFocus } from '@/hooks/useDashboardFocus';
 import { cn } from '@/lib/cn';
 
 export function DashboardVariantC() {
@@ -166,7 +166,7 @@ function findNextRitual(weekNumber: number): string | null {
   return `Plan W${weekNumber + 1} due Monday`;
 }
 
-function WeekTimeline({ items, allComplete }: { items: TimelineDay[]; allComplete: boolean }) {
+function WeekTimeline({ items, allComplete: _allComplete }: { items: TimelineDay[]; allComplete: boolean }) {
   const today = new Date();
   const jsDay = today.getDay(); // 0=Sun, 1=Mon ... 6=Sat
   // Convert to Mon=0 ... Sun=6 to match our items array
@@ -284,7 +284,6 @@ function FocusCard({
   weekNumber: number;
 }) {
   const plan = project.plan || project.previous_plan;
-  const isCurrentPlan = plan === project.plan;
 
   return (
     <div className="rounded-lg border border-border bg-background p-4">

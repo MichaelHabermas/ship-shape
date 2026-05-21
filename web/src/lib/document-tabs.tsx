@@ -68,7 +68,7 @@ const WeekStandupsTab = React.lazy(() => import('@/components/document-tabs/Week
 /**
  * Tab configurations for each document type.
  *
- * Document types without tabs (wiki, issue, sprint) will render directly
+ * Document types without tabs (wiki, issue) will render directly
  * in the editor without a tab bar.
  */
 export const documentTabConfigs: Record<string, DocumentTabConfig[]> = {

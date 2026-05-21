@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -32,8 +32,8 @@ interface Issue {
   title: string;
   state: string;
   priority: string;
-  ticket_number: number;
-  assignee_name: string | null;
+  ticket_number?: number;
+  assignee_name?: string | null;
   assignee_archived?: boolean;
 }
 
@@ -285,7 +285,7 @@ function SortableIssueCard({
       tabIndex={0}
       role="button"
       aria-roledescription="draggable issue"
-      aria-label={`Issue #${issue.ticket_number}: ${issue.title}. Press Space to pick up and move.`}
+      aria-label={`${issue.ticket_number ? `Issue #${issue.ticket_number}` : 'Issue'}: ${issue.title}. Press Space to pick up and move.`}
       className={cn(isDragging && 'opacity-50', 'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background rounded-md')}
     >
       <IssueCard issue={issue} isSelected={isSelected} onCheckboxClick={onCheckboxClick} onMenuClick={handleMenuClick} />
@@ -329,7 +329,7 @@ function IssueCard({
               type="button"
               onClick={onMenuClick}
               className="p-0.5 rounded hover:bg-border/50 text-muted hover:text-foreground"
-              aria-label={`More actions for issue #${issue.ticket_number}`}
+              aria-label={`More actions for ${issue.ticket_number ? `issue #${issue.ticket_number}` : 'issue'}`}
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="2" />
@@ -349,12 +349,12 @@ function IssueCard({
               e.stopPropagation();
               onCheckboxClick(e);
             }}
-            aria-label={`Select issue #${issue.ticket_number}`}
+            aria-label={`Select ${issue.ticket_number ? `issue #${issue.ticket_number}` : 'issue'}`}
             className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
           />
         )}
       </div>
-      <div className="mb-1 text-xs text-muted">#{issue.ticket_number}</div>
+      {issue.ticket_number && <div className="mb-1 text-xs text-muted">#{issue.ticket_number}</div>}
       <div className="text-sm text-foreground">{issue.title}</div>
       {issue.assignee_name && (
         <div className={cn("mt-2 flex items-center gap-1", issue.assignee_archived && "opacity-50")}>

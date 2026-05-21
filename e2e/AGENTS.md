@@ -6,6 +6,21 @@ This guide captures lessons learned from diagnosing and fixing flaky E2E tests. 
 
 Tests run in parallel across multiple workers, each with its own PostgreSQL container, API server, and browser. Under load, **everything takes longer** — API responses, DOM updates, React re-renders, WebSocket sync, and keyboard event processing. Tests must never assume operations complete within a fixed time.
 
+## Fast Feedback Workflow
+
+Start with the narrowest signal that can prove or disprove the change:
+
+```bash
+pnpm test:e2e:inventory          # Static suite shape; does not run tests
+pnpm test:e2e:run -- --last-failed
+pnpm test:e2e:run e2e/issues.spec.ts
+pnpm test:e2e:smoke
+```
+
+Run a lane before the full suite when the change maps cleanly to one area. Lanes are triage signals, not landing proof. Docker must be running for real E2E execution because Testcontainers starts PostgreSQL per worker; `--list` is the only runner path that bypasses Docker. Use `E2E_RESULTS_DIR=...` for concurrent lanes or shards. Treat `summary.json` as progress only; final status comes from Playwright's exit code and `${E2E_RESULTS_DIR:-test-results}/playwright/.last-run.json`.
+
+Do not make tests faster by weakening assertions, adding blind waits, or hiding failures behind conditional skips. If tests share mutable state, prefer unique seeded records; otherwise use `test.describe.configure({ mode: 'serial' })` deliberately and explain why in the test file.
+
 ## Reusable Helpers
 
 Import helpers from `e2e/fixtures/test-helpers.ts` instead of writing inline retry logic:

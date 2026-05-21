@@ -19,7 +19,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function migrate() {
-  await loadProductionSecrets();
+  if (!process.env.DATABASE_URL) {
+    await loadProductionSecrets();
+  }
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {

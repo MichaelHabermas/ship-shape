@@ -108,6 +108,44 @@ Extend session timeout (called by "Stay Logged In" button).
 
 ---
 
+## Search
+
+### GET /api/search/learnings
+
+Search learning wiki documents by title, tag, or category. This endpoint returns only wiki documents titled `Learning:*` or tagged `learning`.
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `q` - Optional search query
+- `program_id` - Optional program document ID filter
+- `limit` - Optional result limit, max 50
+
+**Response:**
+```json
+{
+  "learnings": [
+    {
+      "id": "uuid",
+      "title": "Learning: API Token Authentication",
+      "program_id": "uuid",
+      "category": "authentication",
+      "tags": ["learning", "security"],
+      "source_prd": "test-prd",
+      "source_sprint_id": "uuid",
+      "created_at": "ISO8601",
+      "updated_at": "ISO8601",
+      "content_preview": "{\"type\":\"doc\"..."
+    }
+  ],
+  "total": 1
+}
+```
+
+`/api/search/documents` exists only for title-only command-palette metadata search. The `/docs` UI searches documents by filtering loaded titles on the client. Ship does not provide full-text content search for documents.
+
+---
+
 ## Documents
 
 Documents are the core data model. All content types (wiki, issue, program, project, sprint, person) are stored as documents with a `document_type` field.

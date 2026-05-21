@@ -2,7 +2,6 @@ import { Extension } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { createRoot, Root } from 'react-dom/client';
 import { Comment } from '@/hooks/useCommentsQuery';
 import { formatRelativeTime } from '@/lib/date-utils';
 
@@ -63,8 +62,8 @@ interface CommentDisplayStorage {
 function InlineCommentThread({
   thread,
   quotedText,
-  onReply,
-  onResolve,
+  onReply: _onReply,
+  onResolve: _onResolve,
 }: {
   thread: Comment[];
   quotedText: string;

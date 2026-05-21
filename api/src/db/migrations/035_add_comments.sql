@@ -13,6 +13,6 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 -- Indexes for common query patterns
-CREATE INDEX idx_comments_document_id ON comments(document_id);
-CREATE INDEX idx_comments_comment_id ON comments(comment_id);
-CREATE INDEX idx_comments_parent_id ON comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_comments_document_id ON comments(document_id);
+CREATE INDEX IF NOT EXISTS idx_comments_comment_id ON comments(comment_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);

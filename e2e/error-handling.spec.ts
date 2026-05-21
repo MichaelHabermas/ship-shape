@@ -1,4 +1,7 @@
+import type { TestInfo } from '@playwright/test'
 import { test, expect, Page } from './fixtures/isolated-env'
+
+const CATEGORY_6_ARTIFACT_PREFIX = 'category-6-runtime-evidence'
 
 // Get API URL from environment
 const API_URL = process.env.VITE_API_URL || 'http://localhost:3147'
@@ -10,6 +13,39 @@ async function login(page: Page) {
   await page.locator('#password').fill('admin123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).not.toHaveURL('/login', { timeout: 5000 })
+}
+
+function collectPageErrors(page: Page) {
+  const errors: string[] = []
+
+  page.on('pageerror', (error) => {
+    errors.push(`pageerror: ${error.message}`)
+  })
+
+  return errors
+}
+
+async function expectNoPageErrors(errors: string[]) {
+  expect(errors, errors.join('\n')).toEqual([])
+}
+
+async function captureCategory6Evidence(page: Page, testInfo: TestInfo, name: string) {
+  const body = page.locator('body')
+  await expect(body).toBeVisible()
+
+  const bodyText = (await body.textContent())?.trim() ?? ''
+  expect(bodyText, 'Category 6 runtime evidence must capture a nonblank UI').not.toHaveLength(0)
+  expect(bodyText).not.toContain('Something went wrong')
+
+  await page.screenshot({
+    path: testInfo.outputPath(`${CATEGORY_6_ARTIFACT_PREFIX}-${name}-viewport.png`),
+    animations: 'disabled',
+  })
+  await page.screenshot({
+    path: testInfo.outputPath(`${CATEGORY_6_ARTIFACT_PREFIX}-${name}-fullpage.png`),
+    fullPage: true,
+    animations: 'disabled',
+  })
 }
 
 // Helper to create a new document
@@ -44,9 +80,13 @@ test.describe('Error Handling', () => {
     await login(page)
   })
 
-  test('handles API 500 error gracefully', async ({ page }) => {
-    // Intercept API request and return 500 error
-    await page.route('**/api/documents', (route) => {
+  test('handles API 500 error gracefully', async ({ page }, testInfo) => {
+    const pageErrors = collectPageErrors(page)
+    let documentsRequestFailed = false
+
+    // Intercept initial app-shell data and return a 500 error.
+    await page.route('**/api/bootstrap**', (route) => {
+      documentsRequestFailed = true
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -56,8 +96,7 @@ test.describe('Error Handling', () => {
 
     await page.goto('/docs')
 
-    // Should show error message or fallback UI, not crash
-    await page.waitForTimeout(1000)
+    await expect.poll(() => documentsRequestFailed).toBe(true)
 
     // Page should still be responsive
     const body = page.locator('body')
@@ -66,9 +105,15 @@ test.describe('Error Handling', () => {
     // Should not show React error boundary
     const errorText = await body.textContent()
     expect(errorText).not.toContain('Something went wrong')
+    expect(errorText?.trim().length).toBeGreaterThan(0)
+
+    await captureCategory6Evidence(page, testInfo, 'api-500-documents-list')
+    await expectNoPageErrors(pageErrors)
   })
 
-  test('handles network disconnect gracefully', async ({ page, context }) => {
+  test('handles network disconnect gracefully', async ({ page, context }, testInfo) => {
+    const pageErrors = collectPageErrors(page)
+
     await createNewDocument(page)
 
     const editor = page.locator('.ProseMirror')
@@ -93,6 +138,9 @@ test.describe('Error Handling', () => {
 
     // Go back online
     await context.setOffline(false)
+
+    await captureCategory6Evidence(page, testInfo, 'offline-editor-preserves-draft')
+    await expectNoPageErrors(pageErrors)
   })
 
   test('handles mention search failure gracefully', async ({ page }) => {
@@ -154,7 +202,7 @@ test.describe('Error Handling', () => {
   test('editor remains usable after error', async ({ page }) => {
     // Intercept documents API and fail it initially
     let requestCount = 0
-    await page.route('**/api/documents', (route) => {
+    await page.route('**/api/documents**', (route) => {
       requestCount++
       if (requestCount === 1) {
         // Fail first request
@@ -184,12 +232,20 @@ test.describe('Error Handling', () => {
     await expect(body).toBeVisible()
   })
 
-  test('handles CSRF token expiration', async ({ page }) => {
+  test('handles CSRF token expiration', async ({ page }, testInfo) => {
+    const pageErrors = collectPageErrors(page)
+
     await createNewDocument(page)
 
     // Intercept API requests and return CSRF error
+    const csrfResponses: Array<{ status: number; contentType: string; body: string }> = []
     await page.route('**/api/**', (route) => {
-      if (route.request().method() === 'POST' || route.request().method() === 'PUT') {
+      if (['PATCH', 'POST', 'PUT'].includes(route.request().method())) {
+        csrfResponses.push({
+          status: 403,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Invalid CSRF token' }),
+        })
         route.fulfill({
           status: 403,
           contentType: 'application/json',
@@ -211,11 +267,36 @@ test.describe('Error Handling', () => {
     await page.keyboard.press('Enter')
     await page.keyboard.type('Still working')
     await expect(editor).toContainText('Still working')
+
+    const documentId = page.url().match(/\/documents\/([a-f0-9-]+)/)?.[1]
+    expect(documentId).toBeTruthy()
+    await page.evaluate(async (id) => {
+      await fetch(`/api/documents/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: 'CSRF failure probe' }),
+      })
+    }, documentId)
+
+    await expect.poll(() => csrfResponses.length).toBeGreaterThan(0)
+    expect(csrfResponses).not.toHaveLength(0)
+    for (const response of csrfResponses) {
+      expect(response.status).toBe(403)
+      expect(response.contentType).toBe('application/json')
+      expect(JSON.parse(response.body)).toEqual({ error: 'Invalid CSRF token' })
+    }
+
+    await captureCategory6Evidence(page, testInfo, 'csrf-json-editor-usable')
+    await expectNoPageErrors(pageErrors)
   })
 
-  test('handles concurrent API errors', async ({ page }) => {
+  test('handles concurrent API errors', async ({ page }, testInfo) => {
+    const pageErrors = collectPageErrors(page)
+
     // Intercept multiple API endpoints and make them all fail
+    let failedApiRequests = 0
     await page.route('**/api/**', (route) => {
+      failedApiRequests++
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -225,7 +306,7 @@ test.describe('Error Handling', () => {
 
     // Try to load the app
     await page.goto('/docs')
-    await page.waitForTimeout(1500)
+    await expect.poll(() => failedApiRequests).toBeGreaterThan(0)
 
     // App should not crash, should show some UI
     const body = page.locator('body')
@@ -235,6 +316,9 @@ test.describe('Error Handling', () => {
     const bodyText = await body.textContent()
     expect(bodyText).toBeTruthy()
     expect(bodyText!.length).toBeGreaterThan(0)
+
+    await captureCategory6Evidence(page, testInfo, 'concurrent-api-errors-nonblank')
+    await expectNoPageErrors(pageErrors)
   })
 
   test('recovers from temporary network failure', async ({ page, context }) => {

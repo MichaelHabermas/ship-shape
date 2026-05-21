@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 type RouterType = ReturnType<typeof Router>;
 
@@ -16,15 +17,31 @@ const createFeedbackSchema = z.object({
   title: z.string().min(1).max(500),
   program_id: z.string().uuid(),
   submitter_email: z.string().email().optional(),
-  content: z.any().optional(),
+  content: z.unknown().optional(),
 });
 
-const rejectFeedbackSchema = z.object({
-  reason: z.string().min(1).max(1000),
-});
+type FeedbackRow = {
+  id: string;
+  title: string;
+  properties: Record<string, unknown> | null;
+  ticket_number: number | null;
+  program_id?: string | null;
+  content: unknown;
+  created_at: Date | string;
+  updated_at: Date | string;
+  created_by: string | null;
+  program_name?: string | null;
+  program_prefix?: string | null;
+  program_color?: string | null;
+  created_by_name?: string | null;
+};
+
+function getRouteParam(value: string | string[] | undefined): string {
+  return typeof value === 'string' ? value : '';
+}
 
 // Helper to extract feedback from row
-function extractFeedbackFromRow(row: any, programPrefix?: string | null) {
+function extractFeedbackFromRow(row: FeedbackRow, programPrefix?: string | null) {
   const props = row.properties || {};
   return {
     id: row.id,
@@ -120,7 +137,7 @@ publicFeedbackRouter.post('/', async (req: Request, res: Response) => {
 // Get program info for public feedback form (no auth required)
 publicFeedbackRouter.get('/program/:programId', async (req: Request, res: Response) => {
   try {
-    const programId = req.params.programId as string;
+    const programId = getRouteParam(req.params.programId);
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -150,7 +167,8 @@ publicFeedbackRouter.get('/program/:programId', async (req: Request, res: Respon
 // Get single feedback item
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = req.params.id as string;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
+    const id = getRouteParam(req.params.id);
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -172,7 +190,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
        LEFT JOIN documents p ON prog_da.related_id = p.id AND p.document_type = 'program'
        LEFT JOIN users creator ON d.created_by = creator.id
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'issue' AND d.properties->>'source' = 'external'`,
-      [id, req.workspaceId]
+      [id, workspaceId]
     );
 
     if (result.rows.length === 0) {

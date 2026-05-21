@@ -6,6 +6,7 @@
  */
 
 import { pool } from '../db/client.js';
+import type { BelongsToType } from '@ship/shared';
 
 // =============================================================================
 // Types
@@ -16,10 +17,12 @@ import { pool } from '../db/client.js';
  */
 export interface BelongsToEntry {
   id: string;
-  type: 'program' | 'project' | 'sprint' | 'parent';
+  type: BelongsToType;
   title?: string;
   color?: string;
 }
+
+type QueryRunner = { query: typeof pool.query };
 
 /**
  * Fields that are tracked in document_history for audit trail
@@ -51,7 +54,7 @@ export async function logDocumentChange(
   newValue: string | null,
   changedBy: string,
   automatedBy?: string,
-  queryRunner?: { query: typeof pool.query }
+  queryRunner?: QueryRunner
 ): Promise<void> {
   const db = queryRunner || pool;
   await db.query(
@@ -194,19 +197,22 @@ export async function getBelongsToAssociationsBatch(
  */
 export async function syncBelongsToAssociations(
   documentId: string,
-  associations: Array<{ id: string; type: string }>
+  associations: Array<{ id: string; type: BelongsToType }>,
+  queryRunner?: QueryRunner
 ): Promise<void> {
+  const db = queryRunner || pool;
   // Delete existing associations
-  await pool.query(
+  await db.query(
     'DELETE FROM document_associations WHERE document_id = $1',
     [documentId]
   );
 
   // Insert new associations
   for (const assoc of associations) {
-    await pool.query(
+    await db.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
-       VALUES ($1, $2, $3)`,
+       VALUES ($1, $2, $3)
+       ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
       [documentId, assoc.id, assoc.type]
     );
   }
@@ -221,9 +227,11 @@ export async function syncBelongsToAssociations(
 export async function addBelongsToAssociation(
   documentId: string,
   relatedId: string,
-  relationshipType: string
+  relationshipType: BelongsToType,
+  queryRunner?: QueryRunner
 ): Promise<void> {
-  await pool.query(
+  const db = queryRunner || pool;
+  await db.query(
     `INSERT INTO document_associations (document_id, related_id, relationship_type)
      VALUES ($1, $2, $3)
      ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
@@ -240,9 +248,11 @@ export async function addBelongsToAssociation(
 export async function removeBelongsToAssociation(
   documentId: string,
   relatedId: string,
-  relationshipType: string
+  relationshipType: BelongsToType,
+  queryRunner?: QueryRunner
 ): Promise<void> {
-  await pool.query(
+  const db = queryRunner || pool;
+  await db.query(
     `DELETE FROM document_associations
      WHERE document_id = $1 AND related_id = $2 AND relationship_type = $3`,
     [documentId, relatedId, relationshipType]
@@ -257,9 +267,11 @@ export async function removeBelongsToAssociation(
  */
 export async function removeAssociationsByType(
   documentId: string,
-  relationshipType: string
+  relationshipType: BelongsToType,
+  queryRunner?: QueryRunner
 ): Promise<void> {
-  await pool.query(
+  const db = queryRunner || pool;
+  await db.query(
     `DELETE FROM document_associations
      WHERE document_id = $1 AND relationship_type = $2`,
     [documentId, relationshipType]
@@ -366,14 +378,15 @@ export async function getSprintAssociation(
  */
 export async function updateProgramAssociation(
   documentId: string,
-  programId: string | null
+  programId: string | null,
+  queryRunner?: QueryRunner
 ): Promise<void> {
   // Remove existing program association
-  await removeAssociationsByType(documentId, 'program');
+  await removeAssociationsByType(documentId, 'program', queryRunner);
 
   // Add new one if provided
   if (programId) {
-    await addBelongsToAssociation(documentId, programId, 'program');
+    await addBelongsToAssociation(documentId, programId, 'program', queryRunner);
   }
 }
 
@@ -387,11 +400,12 @@ export async function updateProgramAssociation(
  */
 export async function updateProjectAssociation(
   documentId: string,
-  projectId: string | null
+  projectId: string | null,
+  queryRunner?: QueryRunner
 ): Promise<void> {
-  await removeAssociationsByType(documentId, 'project');
+  await removeAssociationsByType(documentId, 'project', queryRunner);
   if (projectId) {
-    await addBelongsToAssociation(documentId, projectId, 'project');
+    await addBelongsToAssociation(documentId, projectId, 'project', queryRunner);
   }
 }
 
@@ -405,11 +419,12 @@ export async function updateProjectAssociation(
  */
 export async function updateSprintAssociation(
   documentId: string,
-  sprintId: string | null
+  sprintId: string | null,
+  queryRunner?: QueryRunner
 ): Promise<void> {
-  await removeAssociationsByType(documentId, 'sprint');
+  await removeAssociationsByType(documentId, 'sprint', queryRunner);
   if (sprintId) {
-    await addBelongsToAssociation(documentId, sprintId, 'sprint');
+    await addBelongsToAssociation(documentId, sprintId, 'sprint', queryRunner);
   }
 }
 

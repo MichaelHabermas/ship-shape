@@ -1,4 +1,4 @@
-import { Node, mergeAttributes, RawCommands } from '@tiptap/core';
+import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { DetailsComponent } from './DetailsComponent';
 

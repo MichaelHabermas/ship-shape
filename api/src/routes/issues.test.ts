@@ -105,10 +105,15 @@ describe('Issues API', () => {
     beforeAll(async () => {
       // Create a test issue via direct SQL
       const issueResult = await pool.query(
-        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
-         VALUES ($1, 'issue', 'Test Issue for List', 'workspace', $2, $3)
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, content)
+         VALUES ($1, 'issue', 'Test Issue for List', 'workspace', $2, $3, $4)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+        [
+          testWorkspaceId,
+          testUserId,
+          JSON.stringify({ state: 'backlog', priority: 'medium' }),
+          JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'List content should stay out of issue lists' }] }] }),
+        ]
       )
       testIssueId = issueResult.rows[0].id
 
@@ -133,6 +138,7 @@ describe('Issues API', () => {
       const testIssue = res.body.find((i: { id: string }) => i.id === testIssueId)
       expect(testIssue).toBeDefined()
       expect(testIssue.title).toBe('Test Issue for List')
+      expect(testIssue).not.toHaveProperty('content')
     })
 
     it('should filter issues by sprint_id', async () => {
@@ -162,6 +168,27 @@ describe('Issues API', () => {
       expect(hasSprintIssue).toBe(true)
     })
 
+    it('should filter issues by project_id', async () => {
+      // Risk: project filtering must narrow through document_associations, or project views can show unrelated work.
+      const unrelatedIssueResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', 'Unrelated Project Issue', 'workspace', $2, $3)
+         RETURNING id`,
+        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+      )
+      const unrelatedIssueId = unrelatedIssueResult.rows[0].id
+
+      const res = await request(app)
+        .get(`/api/issues?project_id=${testProjectId}`)
+        .set('Cookie', sessionCookie)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toBeInstanceOf(Array)
+      const issueIds = res.body.map((i: { id: string }) => i.id)
+      expect(issueIds).toContain(testIssueId)
+      expect(issueIds).not.toContain(unrelatedIssueId)
+    })
+
     it('should reject unauthenticated request', async () => {
       const res = await request(app)
         .get('/api/issues')
@@ -175,10 +202,15 @@ describe('Issues API', () => {
 
     beforeAll(async () => {
       const issueResult = await pool.query(
-        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
-         VALUES ($1, 'issue', 'Test Issue for Get', 'workspace', $2, $3)
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, content)
+         VALUES ($1, 'issue', 'Test Issue for Get', 'workspace', $2, $3, $4)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+        [
+          testWorkspaceId,
+          testUserId,
+          JSON.stringify({ state: 'backlog', priority: 'medium' }),
+          JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Detail content should still be returned' }] }] }),
+        ]
       )
       testIssueId = issueResult.rows[0].id
     })
@@ -192,6 +224,7 @@ describe('Issues API', () => {
       expect(res.body.id).toBe(testIssueId)
       expect(res.body.title).toBe('Test Issue for Get')
       expect(res.body.state).toBe('backlog')
+      expect(res.body.content).toMatchObject({ type: 'doc' })
       expect(res.body.belongs_to).toBeInstanceOf(Array)
     })
 

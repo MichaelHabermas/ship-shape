@@ -3,6 +3,7 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import type { ProjectProperties, WeekProperties } from '@ship/shared';
 import { DEFAULT_PROJECT_PROPERTIES, computeICEScore } from '@ship/shared';
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, getLatestDocumentFieldHistory } from '../utils/document-crud.js';
@@ -14,37 +15,19 @@ const router: RouterType = Router();
 // Inferred project status type
 type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
 
-type ProjectProperties = {
-  impact?: number | null;
-  confidence?: number | null;
-  ease?: number | null;
-  color?: string;
-  emoji?: string | null;
+type ProjectRouteProperties = Partial<ProjectProperties> & {
   is_complete?: boolean | null;
   missing_fields?: string[];
-  owner_id?: string | null;
-  accountable_id?: string | null;
-  consulted_ids?: string[];
-  informed_ids?: string[];
   plan?: string | null;
-  plan_validated?: boolean | null;
-  monetary_impact_expected?: string | null;
-  monetary_impact_actual?: string | null;
-  success_criteria?: string[];
-  next_steps?: string | null;
-  plan_approval?: unknown;
-  retro_approval?: unknown;
   has_retro?: boolean;
   target_date?: string | null;
-  has_design_review?: boolean | null;
-  design_review_notes?: string | null;
 };
 
 type ProjectRow = {
   id: string;
   title: string;
   content?: unknown;
-  properties: ProjectProperties | null;
+  properties: ProjectRouteProperties | null;
   program_id?: string | null;
   archived_at: Date | null;
   created_at: Date;
@@ -59,8 +42,7 @@ type ProjectRow = {
   converted_from_id?: string | null;
 };
 
-type CanonicalWeekProperties = {
-  sprint_number?: number;
+type CanonicalWeekProperties = Partial<Pick<WeekProperties, 'sprint_number' | 'owner_id'>> & {
   owner_id?: string | null;
 };
 
@@ -811,13 +793,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       propsChanged = true;
     }
 
-    // Track if plan was written for the first time
-    let planWasWritten = false;
     if (data.plan !== undefined) {
-      // Check if this is the first time writing a non-empty plan
-      if (data.plan && !currentProps.plan) {
-        planWasWritten = true;
-      }
       newProps.plan = data.plan;
       propsChanged = true;
 

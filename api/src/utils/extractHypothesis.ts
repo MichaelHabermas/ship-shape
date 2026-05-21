@@ -56,6 +56,16 @@ function isH2Heading(node: TipTapNode): boolean {
   return node.type === 'heading' && node.attrs?.level === 2;
 }
 
+function findSectionEndIndex(nodes: TipTapNode[], startIndex: number): number {
+  for (const [offset, node] of nodes.slice(startIndex + 1).entries()) {
+    if (isH2Heading(node)) {
+      return startIndex + 1 + offset;
+    }
+  }
+
+  return nodes.length;
+}
+
 /**
  * Extract hypothesis content from TipTap document JSON.
  *
@@ -86,8 +96,8 @@ export function extractHypothesisFromContent(content: unknown): string | null {
   let hypothesisStartIndex = -1;
 
   // Find the Hypothesis H2 heading
-  for (let i = 0; i < nodes.length; i++) {
-    if (isHypothesisHeading(nodes[i]!)) {
+  for (const [i, node] of nodes.entries()) {
+    if (isHypothesisHeading(node)) {
       hypothesisStartIndex = i;
       break;
     }
@@ -96,13 +106,7 @@ export function extractHypothesisFromContent(content: unknown): string | null {
   if (hypothesisStartIndex === -1) return null;
 
   // Find the end (next H2 or end of document)
-  let hypothesisEndIndex = nodes.length;
-  for (let i = hypothesisStartIndex + 1; i < nodes.length; i++) {
-    if (isH2Heading(nodes[i]!)) {
-      hypothesisEndIndex = i;
-      break;
-    }
-  }
+  const hypothesisEndIndex = findSectionEndIndex(nodes, hypothesisStartIndex);
 
   // Extract content between heading and end
   const contentNodes = nodes.slice(hypothesisStartIndex + 1, hypothesisEndIndex);
@@ -131,8 +135,7 @@ export function extractSuccessCriteriaFromContent(content: unknown): string | nu
   let startIndex = -1;
 
   // Find the Success Criteria H2 heading (case-insensitive)
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]!;
+  for (const [i, node] of nodes.entries()) {
     if (node.type === 'heading' && node.attrs?.level === 2) {
       const text = extractText(node.content || []).trim().toLowerCase();
       if (text === 'success criteria') {
@@ -145,13 +148,7 @@ export function extractSuccessCriteriaFromContent(content: unknown): string | nu
   if (startIndex === -1) return null;
 
   // Find the end (next H2 or end of document)
-  let endIndex = nodes.length;
-  for (let i = startIndex + 1; i < nodes.length; i++) {
-    if (isH2Heading(nodes[i]!)) {
-      endIndex = i;
-      break;
-    }
-  }
+  const endIndex = findSectionEndIndex(nodes, startIndex);
 
   // Extract content between heading and end
   const contentNodes = nodes.slice(startIndex + 1, endIndex);
@@ -181,8 +178,7 @@ export function extractVisionFromContent(content: unknown): string | null {
   let startIndex = -1;
 
   // Find the Vision H2 heading (case-insensitive)
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]!;
+  for (const [i, node] of nodes.entries()) {
     if (node.type === 'heading' && node.attrs?.level === 2) {
       const text = extractText(node.content || []).trim().toLowerCase();
       if (text === 'vision') {
@@ -195,13 +191,7 @@ export function extractVisionFromContent(content: unknown): string | null {
   if (startIndex === -1) return null;
 
   // Find the end (next H2 or end of document)
-  let endIndex = nodes.length;
-  for (let i = startIndex + 1; i < nodes.length; i++) {
-    if (isH2Heading(nodes[i]!)) {
-      endIndex = i;
-      break;
-    }
-  }
+  const endIndex = findSectionEndIndex(nodes, startIndex);
 
   // Extract content between heading and end
   const contentNodes = nodes.slice(startIndex + 1, endIndex);
@@ -231,8 +221,7 @@ export function extractGoalsFromContent(content: unknown): string | null {
   let startIndex = -1;
 
   // Find the Goals H2 heading (case-insensitive)
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]!;
+  for (const [i, node] of nodes.entries()) {
     if (node.type === 'heading' && node.attrs?.level === 2) {
       const text = extractText(node.content || []).trim().toLowerCase();
       if (text === 'goals') {
@@ -245,13 +234,7 @@ export function extractGoalsFromContent(content: unknown): string | null {
   if (startIndex === -1) return null;
 
   // Find the end (next H2 or end of document)
-  let endIndex = nodes.length;
-  for (let i = startIndex + 1; i < nodes.length; i++) {
-    if (isH2Heading(nodes[i]!)) {
-      endIndex = i;
-      break;
-    }
-  }
+  const endIndex = findSectionEndIndex(nodes, startIndex);
 
   // Extract content between heading and end
   const contentNodes = nodes.slice(startIndex + 1, endIndex);

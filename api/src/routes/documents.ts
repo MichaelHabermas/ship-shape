@@ -2,10 +2,18 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+  addBelongsToAssociation,
+  syncBelongsToAssociations,
+  updateProgramAssociation,
+  updateSprintAssociation,
+} from '../utils/document-crud.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
-import { handleVisibilityChange, handleDocumentConversion, invalidateDocumentCache, broadcastToUser } from '../collaboration/index.js';
+import { handleVisibilityChange, invalidateDocumentCache, broadcastToUser } from '../collaboration/index.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
+import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../schemas/document-boundary.js';
+import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -91,17 +99,14 @@ async function canAccessDocument(
 // Validation schemas
 const createDocumentSchema = z.object({
   title: z.string().min(1).max(255).optional().default('Untitled'),
-  document_type: z.enum(['wiki', 'issue', 'program', 'project', 'sprint', 'person', 'weekly_plan', 'weekly_retro']).optional().default('wiki'),
+  document_type: documentTypeSchema.optional().default('wiki'),
   parent_id: z.string().uuid().optional().nullable(),
   program_id: z.string().uuid().optional().nullable(),
   sprint_id: z.string().uuid().optional().nullable(),
   properties: z.record(z.unknown()).optional(),
-  visibility: z.enum(['private', 'workspace']).optional(),
+  visibility: documentVisibilitySchema.optional(),
   content: z.unknown().optional(),
-  belongs_to: z.array(z.object({
-    id: z.string().uuid(),
-    type: z.enum(['program', 'project', 'sprint', 'parent']),
-  })).optional(),
+  belongs_to: z.array(belongsToSchema).optional(),
 });
 
 const updateDocumentSchema = z.object({
@@ -110,19 +115,16 @@ const updateDocumentSchema = z.object({
   parent_id: z.string().uuid().optional().nullable(),
   position: z.number().int().min(0).optional(),
   properties: z.record(z.unknown()).optional(),
-  visibility: z.enum(['private', 'workspace']).optional(),
-  document_type: z.enum(['wiki', 'issue', 'program', 'project', 'sprint', 'person']).optional(),
+  visibility: documentVisibilitySchema.optional(),
+  document_type: documentTypeSchema.optional(),
   // Issue-specific fields (stored in properties but accepted at top level for convenience)
   state: z.string().optional(),
   priority: z.string().optional(),
   estimate: z.number().nullable().optional(),
   assignee_id: z.string().uuid().nullable().optional(),
-  source: z.enum(['internal', 'external']).optional(),
+  source: issueSourceSchema.optional(),
   rejection_reason: z.string().nullable().optional(),
-  belongs_to: z.array(z.object({
-    id: z.string().uuid(),
-    type: z.enum(['program', 'project', 'sprint', 'parent']),
-  })).optional(),
+  belongs_to: z.array(belongsToSchema).optional(),
   confirm_orphan_children: z.boolean().optional(),
   // Project-specific fields (stored in properties but accepted at top level)
   impact: z.number().min(1).max(10).nullable().optional(),
@@ -545,6 +547,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
 
     // Invalidate collaboration cache so connected clients get fresh content
     invalidateDocumentCache(id);
+    await upsertDocumentSearchIndex(id);
 
     res.json({
       id: result.rows[0].id,
@@ -597,37 +600,21 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Handle belongs_to associations (creates document_associations records)
     if (belongs_to && belongs_to.length > 0) {
-      for (const assoc of belongs_to) {
-        await client.query(
-          `INSERT INTO document_associations (document_id, related_id, relationship_type)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-          [newDoc.id, assoc.id, assoc.type]
-        );
-      }
+      await syncBelongsToAssociations(newDoc.id, belongs_to, client);
     }
 
     // Handle sprint_id via document_associations (backward compatibility)
     if (sprint_id) {
-      await client.query(
-        `INSERT INTO document_associations (document_id, related_id, relationship_type)
-         VALUES ($1, $2, 'sprint')
-         ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-        [newDoc.id, sprint_id]
-      );
+      await addBelongsToAssociation(newDoc.id, sprint_id, 'sprint', client);
     }
 
     // Handle program_id via document_associations (mirrors column for junction table queries)
     if (program_id) {
-      await client.query(
-        `INSERT INTO document_associations (document_id, related_id, relationship_type)
-         VALUES ($1, $2, 'program')
-         ON CONFLICT (document_id, related_id, relationship_type) DO NOTHING`,
-        [newDoc.id, program_id]
-      );
+      await addBelongsToAssociation(newDoc.id, program_id, 'program', client);
     }
 
     await client.query('COMMIT');
+    await upsertDocumentSearchIndex(newDoc.id);
 
     // Broadcast accountability update for document types that affect action items
     // Sprint plans clear the "write sprint plan" action item
@@ -898,45 +885,12 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Handle belongs_to association updates
     if (hasBelongsToUpdate) {
       const newBelongsTo = data.belongs_to || [];
-
-      // Get current associations
-      const currentAssocs = await client.query(
-        'SELECT related_id, relationship_type FROM document_associations WHERE document_id = $1',
-        [id]
-      );
-      const currentSet = new Set(currentAssocs.rows.map(r => `${r.relationship_type}:${r.related_id}`));
-      const newSet = new Set(newBelongsTo.map(bt => `${bt.type}:${bt.id}`));
-
-      // Remove associations that are no longer present
-      for (const row of currentAssocs.rows) {
-        const key = `${row.relationship_type}:${row.related_id}`;
-        if (!newSet.has(key)) {
-          await client.query(
-            'DELETE FROM document_associations WHERE document_id = $1 AND related_id = $2 AND relationship_type = $3',
-            [id, row.related_id, row.relationship_type]
-          );
-        }
-      }
-
-      // Add new associations
-      for (const bt of newBelongsTo) {
-        const key = `${bt.type}:${bt.id}`;
-        if (!currentSet.has(key)) {
-          await client.query(
-            'INSERT INTO document_associations (document_id, related_id, relationship_type) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-            [id, bt.id, bt.type]
-          );
-        }
-      }
+      await syncBelongsToAssociations(id, newBelongsTo, client);
     }
 
     // Handle sprint_id via document_associations (when passed directly, not via belongs_to)
     if (data.sprint_id !== undefined && !hasBelongsToUpdate) {
-      // Remove existing sprint association
-      await client.query(
-        `DELETE FROM document_associations WHERE document_id = $1 AND relationship_type = 'sprint'`,
-        [id]
-      );
+      await updateSprintAssociation(id, null, client);
 
       // Add new sprint association if sprint_id is not null
       if (data.sprint_id !== null) {
@@ -947,21 +901,14 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
         );
 
         if (sprintCheck.rows.length > 0) {
-          await client.query(
-            `INSERT INTO document_associations (document_id, related_id, relationship_type) VALUES ($1, $2, 'sprint') ON CONFLICT DO NOTHING`,
-            [id, data.sprint_id]
-          );
+          await addBelongsToAssociation(id, data.sprint_id, 'sprint', client);
         }
       }
     }
 
     // Handle program_id via document_associations (when passed directly, not via belongs_to)
     if (data.program_id !== undefined && !hasBelongsToUpdate) {
-      // Remove existing program association
-      await client.query(
-        `DELETE FROM document_associations WHERE document_id = $1 AND relationship_type = 'program'`,
-        [id]
-      );
+      await updateProgramAssociation(id, null, client);
 
       // Add new program association if program_id is not null
       if (data.program_id !== null) {
@@ -972,10 +919,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
         );
 
         if (programCheck.rows.length > 0) {
-          await client.query(
-            `INSERT INTO document_associations (document_id, related_id, relationship_type) VALUES ($1, $2, 'program') ON CONFLICT DO NOTHING`,
-            [id, data.program_id]
-          );
+          await addBelongsToAssociation(id, data.program_id, 'program', client);
         }
       }
     }
@@ -1072,6 +1016,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
+    await upsertDocumentSearchIndex(id);
 
     // Post-commit operations (non-transactional)
 

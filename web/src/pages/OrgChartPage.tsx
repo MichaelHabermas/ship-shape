@@ -13,7 +13,7 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from '@dnd-kit/core';
-import { apiGet, apiPatch } from '@/lib/api';
+import { apiGet, apiPatch, readJson } from '@/lib/api';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const INDENT_PX = 24;
@@ -66,7 +66,8 @@ function buildTree(people: PersonData[]): OrgTreeNode[] {
   const roots: OrgTreeNode[] = [];
 
   for (const p of people) {
-    const node = nodeMap.get(p.id)!;
+    const node = nodeMap.get(p.id);
+    if (!node) continue;
     if (p.reportsTo) {
       const parent = byUserId.get(p.reportsTo);
       if (parent) {
@@ -196,7 +197,7 @@ export function OrgChartPage() {
     try {
       const res = await apiGet('/api/team/people');
       if (res.ok) {
-        const data = await res.json();
+        const data = await readJson<PersonData[]>(res);
         setPeople(data.filter((p: PersonData) => !p.isPending && !p.isArchived));
       }
     } catch (err) {

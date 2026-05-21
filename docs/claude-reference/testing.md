@@ -39,6 +39,52 @@ The skill handles:
 - Progress polling via `test-results/summary.json`
 - `--last-failed` for iterative fixing
 
+If the skill is unavailable, use the repo-local safe runner:
+
+```bash
+pnpm test:e2e:run
+pnpm test:e2e:run -- --last-failed
+pnpm test:e2e:run e2e/issues.spec.ts
+```
+
+For the Week 4 audit deliverable, record that this repo's root `pnpm test` script runs API unit tests only. Measure E2E with `/e2e-test-runner` or `pnpm test:e2e:run`, and measure web tests or coverage separately when the category requires it.
+
+Do not run the full suite when a smaller signal will answer the question.
+
+### E2E Fast Feedback Lanes
+
+The lane scripts are wrappers around `scripts/run-e2e.sh`; they keep the same Playwright config, worker isolation, reporter, and raw argument pass-through.
+
+```bash
+pnpm test:e2e:smoke      # auth, docs mode, issues happy paths
+pnpm test:e2e:docs       # docs/document/wiki workflows
+pnpm test:e2e:issues     # issue list, bulk selection, estimates, program/week issue flows
+pnpm test:e2e:editor     # TipTap/editor features
+pnpm test:e2e:a11y       # accessibility and ARIA checks
+pnpm test:e2e:api-flows  # temporary lane for API-shaped Playwright specs
+pnpm test:e2e:foundation # workspace, modes, context menus, icons, errors
+pnpm test:e2e:slow       # performance, race, visual, session, security-heavy flows
+```
+
+Lanes are fast triage signals, not landing proof. Use the smallest lane that matches the change first, then run the appropriate full command or skill before treating the suite as proven.
+
+Use Playwright flags after `--`:
+
+```bash
+pnpm test:e2e:smoke -- --list
+pnpm test:e2e:run -- --shard=1/4
+PLAYWRIGHT_WORKERS=2 pnpm test:e2e:issues
+```
+
+Set `E2E_RESULTS_DIR` when running multiple lanes or shards at the same time so progress files, error logs, Playwright artifacts, `.last-run.json`, and the background run log do not clobber each other. The runner stores Playwright artifacts under `${E2E_RESULTS_DIR:-test-results}/playwright`.
+
+```bash
+E2E_RESULTS_DIR=test-results/smoke pnpm test:e2e:smoke
+E2E_RESULTS_DIR=test-results/shard-1 pnpm test:e2e:run -- --shard=1/4
+```
+
+Use `pnpm test:e2e:inventory` to inspect suite shape without executing tests. It reports approximate test declarations, fixed waits, login/setup signals, API request signals, large files, and duplicate umbrella coverage candidates.
+
 ## Database Isolation
 
 ### E2E Tests (Testcontainers)
@@ -47,12 +93,14 @@ Each Playwright worker gets isolated infrastructure:
 
 ```
 Worker 0:
-  - PostgreSQL container (port 50000-50099)
+  - PostgreSQL container
+  - API/web ports from range 10000-10099
   - API server (built dist)
   - Vite preview server
 
 Worker 1:
-  - PostgreSQL container (port 50100-50199)
+  - PostgreSQL container
+  - API/web ports from range 10100-10199
   - API server (built dist)
   - Vite preview server
 ```
@@ -237,7 +285,7 @@ use: {
 }
 ```
 
-- Screenshots saved on failure to `test-results/`
+- Screenshots saved on failure to `${E2E_RESULTS_DIR:-test-results}/playwright`
 - Traces saved on first retry for debugging
 
 ## Known Issues
@@ -269,7 +317,7 @@ Running `pnpm test:e2e` directly outputs 600+ test results, crashing Claude Code
 2. Polls `test-results/summary.json` for progress
 3. Shows concise pass/fail summary
 
-Local note from the May 20, 2026 run: this checkout referenced `/e2e-test-runner`, but the skill was not present under `.agents/skills` or `.claude/skills`. For environments where the skill is unavailable, use the repo-local fallback `pnpm test:e2e:run`. It preserves the same background/polling behavior, captures output in `test-runs/e2e-run.log`, archives prior progress files, and accepts Playwright flags such as `-- --last-failed`. Docker must be running because the E2E fixture uses Testcontainers to start PostgreSQL per worker. On fresh machines or after a Playwright version bump, run `pnpm test:e2e:setup` first.
+Local note from the May 20, 2026 run: this checkout referenced `/e2e-test-runner`, but the skill was not present under `.agents/skills` or `.claude/skills`. For environments where the skill is unavailable, use the repo-local fallback `pnpm test:e2e:run`. It preserves the same background/polling behavior, captures output in `${E2E_RESULTS_DIR:-test-results}/e2e-run.log`, archives prior progress files, stores Playwright output under `${E2E_RESULTS_DIR:-test-results}/playwright`, and accepts Playwright flags such as `-- --last-failed`. Docker must be running because the E2E fixture uses Testcontainers to start PostgreSQL per worker. On fresh machines or after a Playwright version bump, run `pnpm test:e2e:setup` first.
 
 ### Memory Issues with Parallel Workers
 
@@ -277,13 +325,13 @@ Each worker needs ~500MB. System calculates safe worker count based on:
 - Available memory (keep 2GB free)
 - CPU cores (no more workers than cores)
 
-Override with: `PLAYWRIGHT_WORKERS=2 pnpm test:e2e`
+Override with: `PLAYWRIGHT_WORKERS=2 pnpm test:e2e:run`
 
-## Latest Known E2E Findings
+## Snapshot: May 20, 2026 Local E2E Findings
 
 Last full local run: May 20, 2026 via `pnpm test:e2e:run`.
 
-Final Playwright status: failed. `test-results/.last-run.json` reported one final failed test:
+Final Playwright status: failed. `test-results/playwright/.last-run.json` reported one final failed test:
 
 ```text
 e2e/inline-comments.spec.ts:118
@@ -301,17 +349,18 @@ Failed attempts that passed on retry should be treated as flake signals:
 | `e2e/project-weeks.spec.ts:205` | Timed out waiting for `Navigation Test Project` link |
 | `e2e/weekly-accountability.spec.ts:469` | Expected assigned person/document id but received `null` |
 
-Important runner note: `test-results/summary.json` is a progress file, not the source of truth for final pass/fail when retries are involved. Use Playwright's final exit code and `test-results/.last-run.json` for final failure status, and use `test-results/errors/*.log` for details.
+Important runner note: `summary.json` is a progress file, not the source of truth for final pass/fail when retries are involved. Use Playwright's final exit code and `${E2E_RESULTS_DIR:-test-results}/playwright/.last-run.json` for final failure status, and use `${E2E_RESULTS_DIR:-test-results}/errors/*.log` for reporter details.
 
 ## Progress Monitoring
 
-E2E tests write progress to `test-results/`:
+E2E tests write progress to `${E2E_RESULTS_DIR:-test-results}/`:
 
 | File | Purpose |
 |------|---------|
 | `progress.jsonl` | Per-test status updates |
-| `summary.json` | Total/passed/failed counts |
+| `summary.json` | Progress-only total/passed/failed counts |
 | `errors/*.log` | Detailed error output |
+| `playwright/.last-run.json` | Playwright final failure metadata |
 
 See `e2e/progress-reporter.ts` for implementation.
 

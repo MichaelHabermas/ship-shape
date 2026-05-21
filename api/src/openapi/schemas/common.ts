@@ -3,6 +3,11 @@
  */
 
 import { z, registry } from '../registry.js';
+import {
+  belongsToTypeSchema,
+  documentVisibilitySchema,
+  issueSourceSchema,
+} from '../../schemas/document-boundary.js';
 
 // ============== Base Types ==============
 
@@ -56,7 +61,7 @@ export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =
 
 // ============== Belongs To (Document Associations) ==============
 
-export const BelongsToTypeSchema = z.enum(['program', 'project', 'sprint', 'parent']).openapi({
+export const BelongsToTypeSchema = belongsToTypeSchema.openapi({
   description: 'Type of document association',
 });
 
@@ -78,9 +83,17 @@ registry.register('BelongsToResponse', BelongsToResponseSchema);
 
 // ============== Document Visibility ==============
 
-export const DocumentVisibilitySchema = z.enum(['private', 'workspace']).openapi({
+export const DocumentVisibilitySchema = documentVisibilitySchema.openapi({
   description: 'Document visibility scope',
 });
+
+registry.register('DocumentVisibility', DocumentVisibilitySchema);
+
+export const IssueSourceSchema = issueSourceSchema.openapi({
+  description: 'Issue source/provenance (never changes after creation)',
+});
+
+registry.register('IssueSource', IssueSourceSchema);
 
 // ============== User Reference ==============
 

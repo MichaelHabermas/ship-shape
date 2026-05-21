@@ -125,23 +125,35 @@ restore_to_shadow() {
 
     # Drop and recreate schema to ensure clean slate
     log_info "Dropping existing schema..."
-    PGPASSWORD="$SHADOW_DB_PASS" psql -h "$SHADOW_DB_HOST" -U "$SHADOW_DB_USER" -d "$SHADOW_DB_NAME" -c "
+    local SCHEMA_LOG
+    SCHEMA_LOG="$(mktemp /tmp/ship_shadow_schema.XXXXXX.log)"
+    if ! PGPASSWORD="$SHADOW_DB_PASS" psql -h "$SHADOW_DB_HOST" -U "$SHADOW_DB_USER" -d "$SHADOW_DB_NAME" -v ON_ERROR_STOP=1 -c "
         DROP SCHEMA IF EXISTS public CASCADE;
         CREATE SCHEMA public;
         GRANT ALL ON SCHEMA public TO postgres;
         GRANT ALL ON SCHEMA public TO public;
-    " 2>/dev/null || true
+    " > "$SCHEMA_LOG" 2>&1; then
+        log_error "Failed to reset shadow schema. Details:"
+        sed '/NOTICE:/d' "$SCHEMA_LOG" >&2
+        exit 1
+    fi
 
     log_info "Restoring data..."
-    PGPASSWORD="$SHADOW_DB_PASS" psql \
+    local RESTORE_LOG
+    RESTORE_LOG="$(mktemp /tmp/ship_shadow_restore.XXXXXX.log)"
+    if ! PGPASSWORD="$SHADOW_DB_PASS" psql \
         -h "$SHADOW_DB_HOST" \
         -U "$SHADOW_DB_USER" \
         -d "$SHADOW_DB_NAME" \
+        -v ON_ERROR_STOP=1 \
         -f "$DUMP_FILE" \
-        --quiet \
-        2>&1 | grep -v "NOTICE:" || true
+        --quiet > "$RESTORE_LOG" 2>&1; then
+        log_error "Restore failed. Details:"
+        sed '/NOTICE:/d' "$RESTORE_LOG" >&2
+        exit 1
+    fi
 
-    log_success "Restore complete"
+    log_info "Restore command completed; verifying copied data next"
 }
 
 # =============================================================================
@@ -151,11 +163,16 @@ verify_copy() {
     log_info "Verifying data copy..."
 
     # Get row counts from both databases
-    local DEV_USERS=$(PGPASSWORD="$DEV_DB_PASS" psql -h "$DEV_DB_HOST" -U "$DEV_DB_USER" -d "$DEV_DB_NAME" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ')
-    local SHADOW_USERS=$(PGPASSWORD="$SHADOW_DB_PASS" psql -h "$SHADOW_DB_HOST" -U "$SHADOW_DB_USER" -d "$SHADOW_DB_NAME" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ')
+    local DEV_USERS
+    local SHADOW_USERS
+    local DEV_DOCS
+    local SHADOW_DOCS
 
-    local DEV_DOCS=$(PGPASSWORD="$DEV_DB_PASS" psql -h "$DEV_DB_HOST" -U "$DEV_DB_USER" -d "$DEV_DB_NAME" -t -c "SELECT COUNT(*) FROM documents;" 2>/dev/null | tr -d ' ')
-    local SHADOW_DOCS=$(PGPASSWORD="$SHADOW_DB_PASS" psql -h "$SHADOW_DB_HOST" -U "$SHADOW_DB_USER" -d "$SHADOW_DB_NAME" -t -c "SELECT COUNT(*) FROM documents;" 2>/dev/null | tr -d ' ')
+    DEV_USERS=$(PGPASSWORD="$DEV_DB_PASS" psql -h "$DEV_DB_HOST" -U "$DEV_DB_USER" -d "$DEV_DB_NAME" -v ON_ERROR_STOP=1 -t -c "SELECT COUNT(*) FROM users;" | tr -d ' ')
+    SHADOW_USERS=$(PGPASSWORD="$SHADOW_DB_PASS" psql -h "$SHADOW_DB_HOST" -U "$SHADOW_DB_USER" -d "$SHADOW_DB_NAME" -v ON_ERROR_STOP=1 -t -c "SELECT COUNT(*) FROM users;" | tr -d ' ')
+
+    DEV_DOCS=$(PGPASSWORD="$DEV_DB_PASS" psql -h "$DEV_DB_HOST" -U "$DEV_DB_USER" -d "$DEV_DB_NAME" -v ON_ERROR_STOP=1 -t -c "SELECT COUNT(*) FROM documents;" | tr -d ' ')
+    SHADOW_DOCS=$(PGPASSWORD="$SHADOW_DB_PASS" psql -h "$SHADOW_DB_HOST" -U "$SHADOW_DB_USER" -d "$SHADOW_DB_NAME" -v ON_ERROR_STOP=1 -t -c "SELECT COUNT(*) FROM documents;" | tr -d ' ')
 
     echo ""
     echo "=== Data Verification ==="
@@ -166,7 +183,8 @@ verify_copy() {
     if [[ "$DEV_USERS" == "$SHADOW_USERS" ]] && [[ "$DEV_DOCS" == "$SHADOW_DOCS" ]]; then
         log_success "Data verification passed - counts match"
     else
-        log_warn "Data counts differ - this may be expected if migrations changed data"
+        log_error "Data verification failed - copied counts do not match"
+        exit 1
     fi
 }
 

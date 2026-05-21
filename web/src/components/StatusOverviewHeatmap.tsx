@@ -161,7 +161,7 @@ export function StatusOverviewHeatmap({ showArchived = false }: StatusOverviewHe
 
         // Auto-expand all programs by default
         setExpandedPrograms(new Set(json.programs.map(p => p.id)));
-      } catch (err) {
+      } catch {
         setError('Failed to load accountability data');
       } finally {
         setLoading(false);
