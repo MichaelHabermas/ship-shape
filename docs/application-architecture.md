@@ -141,7 +141,7 @@ Simple RESTful endpoints:
 | DELETE | `/api/documents/:id` | Delete document               |
 | GET    | `/api/programs`      | List programs                 |
 
-The `/docs` UI filters loaded documents by title on the client. Ship does not expose `/api/search/documents`; server search endpoints are reserved for narrower workflows such as mentions and learning lookup.
+The `/api/search/documents` endpoint exists only for title-only command-palette metadata search. The `/docs` UI filters loaded documents by title on the client. Ship does not provide full-text content search for documents.
 
 ### WebSocket Protocol
 

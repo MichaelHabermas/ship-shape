@@ -105,10 +105,15 @@ describe('Issues API', () => {
     beforeAll(async () => {
       // Create a test issue via direct SQL
       const issueResult = await pool.query(
-        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
-         VALUES ($1, 'issue', 'Test Issue for List', 'workspace', $2, $3)
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, content)
+         VALUES ($1, 'issue', 'Test Issue for List', 'workspace', $2, $3, $4)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+        [
+          testWorkspaceId,
+          testUserId,
+          JSON.stringify({ state: 'backlog', priority: 'medium' }),
+          JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'List content should stay out of issue lists' }] }] }),
+        ]
       )
       testIssueId = issueResult.rows[0].id
 
@@ -133,6 +138,7 @@ describe('Issues API', () => {
       const testIssue = res.body.find((i: { id: string }) => i.id === testIssueId)
       expect(testIssue).toBeDefined()
       expect(testIssue.title).toBe('Test Issue for List')
+      expect(testIssue).not.toHaveProperty('content')
     })
 
     it('should filter issues by sprint_id', async () => {
@@ -196,10 +202,15 @@ describe('Issues API', () => {
 
     beforeAll(async () => {
       const issueResult = await pool.query(
-        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
-         VALUES ($1, 'issue', 'Test Issue for Get', 'workspace', $2, $3)
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, content)
+         VALUES ($1, 'issue', 'Test Issue for Get', 'workspace', $2, $3, $4)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+        [
+          testWorkspaceId,
+          testUserId,
+          JSON.stringify({ state: 'backlog', priority: 'medium' }),
+          JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Detail content should still be returned' }] }] }),
+        ]
       )
       testIssueId = issueResult.rows[0].id
     })
@@ -213,6 +224,7 @@ describe('Issues API', () => {
       expect(res.body.id).toBe(testIssueId)
       expect(res.body.title).toBe('Test Issue for Get')
       expect(res.body.state).toBe('backlog')
+      expect(res.body.content).toMatchObject({ type: 'doc' })
       expect(res.body.belongs_to).toBeInstanceOf(Array)
     })
 

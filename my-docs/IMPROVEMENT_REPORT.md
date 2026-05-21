@@ -24,7 +24,15 @@ Durable choices from this pass are tracked in `my-docs/DECISION_LOG.md` so the r
 
 ## Evidence-Runner And Trust Pass Summary
 
-This pass added a repo-local evidence runner foundation, repeatable performance/query measurement scripts, a repeatable closeout axe runner, the third meaningful Category 5 regression, a stale E2E tree-selector fix, Backlinks offline/degraded behavior, and a narrow issue-boundary schema slice shared by runtime validation and OpenAPI. It intentionally does not claim Category 3 or 4 completion: the new scripts create the measurement rails, but before/after endpoint/query improvements still need to be captured under identical conditions. Category 6 is improved and manually observed, but still needs a saved screenshot/recording artifact before it should be claimed complete. Category 7 remains incomplete: the repeatable closeout axe scan clears `/docs`, but still finds serious color-contrast nodes on the selected document page and `/my-week`.
+This pass added a repo-local evidence runner foundation, repeatable performance/query measurement scripts, a repeatable closeout axe runner, the third meaningful Category 5 regression, a stale E2E tree-selector fix, Backlinks offline/degraded behavior, and a narrow issue-boundary schema slice shared by runtime validation and OpenAPI. It intentionally does not claim Category 3 or 4 completion: the new scripts create the measurement rails, but before/after endpoint/query improvements still need to be captured under identical conditions. Category 6 is improved and manually observed, but still needs a saved screenshot/recording artifact before it should be claimed complete. Category 7 closeout now clears the repeatable axe gate for `/docs`, the selected document page, and `/my-week`.
+
+## Category 6 Runtime Evidence Pass Summary
+
+This pass tightened `e2e/error-handling.spec.ts` so the runtime-error scenarios can now produce named Playwright screenshots and assert more than page visibility: API interception happened, CSRF failures stayed JSON-shaped, edited text remained present after failure/offline paths, nonblank fallback UI rendered, and no uncaught browser `pageerror` occurred. The focused runtime run was not executed because Docker was not running, and this repo's isolated E2E fixture requires Testcontainers PostgreSQL. The focused list/compile check passed and enumerated all 8 tests in the file.
+
+## Category 3/4 Performance Evidence Pass Summary
+
+This pass extended `pnpm perf:query-count-api` from endpoint-only capture to flow-level evidence for old protected docs startup fanout versus current `/api/bootstrap`. The 2026-05-21 run against `ship_dev` measured old startup fanout at 7 requests, 33 SQL queries, 984,044 response bytes, and 32 ms total elapsed; current bootstrap measured 1 request, 24 SQL queries, 984,123 response bytes, and 17 ms elapsed. That is a 27.3% query-count reduction and 85.7% request-count reduction for the app-shell flow. A later Category 3 projection pass reduced issue-list/bootstrap payload bytes, but bootstrap P95 still needs more proof before Category 3 is closed.
 
 | Area | Target | Latest Result | Evidence |
 | ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -144,27 +152,34 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 
 ### Measurement Method
 
+`pnpm benchmark:api` remains the P95 endpoint benchmark rail. The 2026-05-21 Category 3 run used the same `ship_dev` audit-load data, local dev API on `http://localhost:3001`, `BENCHMARK_DURATION_MS=15000`, `BENCHMARK_CONNECTIONS=10,25,50`, and `BENCHMARK_RATE_PER_SECOND=100` before and after the issue-list/bootstrap projection change.
+
 ### Scorecard
 
 | Endpoint                       | Baseline P50                     | Baseline P95                       | Baseline P99                       | Latest P50 | Latest P95 | Latest P99 | Last Measured | Change | Required Change                           | Stretch Goal |
 | ------------------------------ | -------------------------------- | ---------------------------------- | ---------------------------------- | ---------- | ---------- | ---------- | ------------- | ------ | ----------------------------------------- | ------------ |
-| `GET /api/documents?type=wiki` | 10c: 8 ms; 25c: 8 ms; 50c: 9 ms  | 10c: 11 ms; 25c: 10 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 15 ms |            |            |            |               |        | 20% P95 reduction on at least 2 endpoints |              |
-| `GET /api/issues`              | 10c: 10 ms; 25c: 9 ms; 50c: 9 ms | 10c: 13 ms; 25c: 11 ms; 50c: 11 ms | 10c: 19 ms; 25c: 15 ms; 50c: 19 ms |            |            |            |               |        | 20% P95 reduction on at least 2 endpoints |              |
-| `GET /api/dashboard/my-week`   | 10c: 9 ms; 25c: 9 ms; 50c: 11 ms | 10c: 12 ms; 25c: 11 ms; 50c: 13 ms | 10c: 13 ms; 25c: 15 ms; 50c: 14 ms |            |            |            |               |        | Identical benchmark conditions            |              |
-| `GET /api/projects`            | 10c: 7 ms; 25c: 8 ms; 50c: 8 ms  | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms    | 10c: 11 ms; 25c: 11 ms; 50c: 11 ms |            |            |            |               |        | Identical benchmark conditions            |              |
-| `GET /api/programs/:id/issues` | 10c: 7 ms; 25c: 7 ms; 50c: 8 ms  | 10c: 9 ms; 25c: 9 ms; 50c: 9 ms    | 10c: 10 ms; 25c: 10 ms; 50c: 11 ms |            |            |            |               |        | Identical benchmark conditions            |              |
+| `GET /api/documents?type=wiki` | 10c: 8.04 ms; 25c: 8.76 ms; 50c: 10.53 ms  | 10c: 14.34 ms; 25c: 17.68 ms; 50c: 21.55 ms | 10c: 37.07 ms; 25c: 29.32 ms; 50c: 42.98 ms | 10c: 8.56 ms; 25c: 8.97 ms; 50c: 10.21 ms | 10c: 13.50 ms; 25c: 17.87 ms; 50c: 18.03 ms | 10c: 16.87 ms; 25c: 30.18 ms; 50c: 51.49 ms | 2026-05-21 | Mixed; 50c P95 -16.3% | 20% P95 reduction on at least 2 endpoints |              |
+| `GET /api/issues`              | 10c: 10.77 ms; 25c: 14.94 ms; 50c: 35.41 ms | 10c: 19.01 ms; 25c: 37.35 ms; 50c: 99.13 ms | 10c: 57.45 ms; 25c: 105.93 ms; 50c: 208.30 ms | 10c: 9.21 ms; 25c: 13.05 ms; 50c: 43.88 ms | 10c: 13.31 ms; 25c: 27.37 ms; 50c: 115.71 ms | 10c: 35.17 ms; 25c: 90.82 ms; 50c: 207.11 ms | 2026-05-21 | 10c -30.0%; 25c -26.7%; 50c +16.7% | 20% P95 reduction on at least 2 endpoints |              |
+| `GET /api/dashboard/my-week`   | 10c: 11.10 ms; 25c: 11.99 ms; 50c: 21.12 ms | 10c: 17.72 ms; 25c: 24.68 ms; 50c: 34.82 ms | 10c: 27.44 ms; 25c: 55.51 ms; 50c: 50.41 ms | 10c: 11.22 ms; 25c: 12.29 ms; 50c: 19.97 ms | 10c: 18.26 ms; 25c: 24.54 ms; 50c: 30.53 ms | 10c: 29.41 ms; 25c: 26.13 ms; 50c: 42.76 ms | 2026-05-21 | Mixed | Identical benchmark conditions            |              |
+| `GET /api/projects`            | 10c: 8.72 ms; 25c: 8.94 ms; 50c: 10.56 ms  | 10c: 12.99 ms; 25c: 11.07 ms; 50c: 19.34 ms    | 10c: 17.12 ms; 25c: 18.43 ms; 50c: 28.13 ms | 10c: 8.81 ms; 25c: 9.89 ms; 50c: 10.24 ms | 10c: 12.55 ms; 25c: 15.48 ms; 50c: 18.64 ms | 10c: 13.74 ms; 25c: 17.44 ms; 50c: 24.16 ms | 2026-05-21 | Mixed | Identical benchmark conditions            |              |
+| `GET /api/bootstrap`           | 10c: 17.27 ms; 25c: 25.10 ms; 50c: 119.84 ms | 10c: 24.74 ms; 25c: 50.24 ms; 50c: 220.81 ms | 10c: 73.82 ms; 25c: 132.58 ms; 50c: 318.57 ms | 10c: 16.84 ms; 25c: 24.78 ms; 50c: 103.32 ms | 10c: 21.38 ms; 25c: 75.11 ms; 50c: 196.84 ms | 10c: 56.75 ms; 25c: 142.01 ms; 50c: 314.64 ms | 2026-05-21 | Payload improved; P95 mixed | Identical benchmark conditions            |              |
 
 ### What Changed
 
 - Added `scripts/benchmark-api.mjs` and `pnpm benchmark:api` to make repeated API timing evidence reproducible across fixed auth, endpoint set, concurrency matrix, duration, rate cap, and JSON output.
 - Added `/api/bootstrap` to combine app-shell data already fetched by current providers. This is a fanout reduction candidate, not yet a claimed P95 win.
 - Added `pnpm evidence:run` / `pnpm evidence:compare` so API benchmark output can be captured with repo metadata, environment, claims, and artifact paths.
+- Split issue list/bootstrap projections from issue detail projections. `GET /api/issues` and bootstrap issue data no longer select or return TipTap `content`, and they omit null/default-heavy list fields such as absent ticket numbers, assignees, estimates, and rejection/accountability fields. Issue detail endpoints still return editor content.
+- Updated the generated OpenAPI issue-list/bootstrap contract and frontend list/kanban rendering so optional list metadata is handled explicitly.
 
 ### Evidence
 
 - `node --check scripts/benchmark-api.mjs`: pass.
 - `pnpm evidence:run -- --phase closeout --run-id closeout-check`: completed and writes `my-docs/evidence-runs/closeout-check/`; the manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`.
-- Before/after benchmark output for the new bootstrap path is still `TBD`; do not claim Category 3 completion from this pass.
+- Before benchmark: `test-results/benchmarks/api-2026-05-21T02-40-19-503Z.json`.
+- Final after benchmark: `test-results/benchmarks/api-2026-05-21T03-11-53-590Z.json`.
+- Payload spot check after projection compaction: `/api/issues` 307,043 bytes and `/api/bootstrap` 429,806 bytes against the same audit-load dev data. The valid pre-change benchmark had both `/api/issues` and `/api/bootstrap` near 984 KB, so the payload bottleneck is materially reduced.
+- P95 result: `GET /api/issues` meets the 20% reduction bar at 10c and 25c, but not 50c. `GET /api/bootstrap` payload is materially smaller but P95 remains mixed and regressed at 25c in the final run. Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.
 
 ---
 
@@ -176,10 +191,13 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 
 ### Measurement Method
 
+`pnpm perf:query-count-api` captures SQL statement counts by monkey-patching `pg.Pool.prototype.query` inside an in-process Express app. As of this lane it records both individual endpoint rows and named flow rows. The docs startup flow compares the pre-bootstrap request fanout (`/api/auth/me`, wiki documents, programs, projects, issues, standup status, action items) against current `/api/bootstrap` under the same database, user, process, and hardware.
+
 ### Scorecard
 
 | User Flow         | Baseline Total Queries | Baseline Slowest Query | Baseline N+1 Detected?                                             | Latest Total Queries | Latest Slowest Query | Latest N+1 Detected? | Last Measured | Change | Required Change                                             | Stretch Goal |
 | ----------------- | ---------------------- | ---------------------- | ------------------------------------------------------------------ | -------------------- | -------------------- | -------------------- | ------------- | ------ | ----------------------------------------------------------- | ------------ |
+| Protected docs startup app-shell | 33 queries across 7 requests | N/A | No row-level N+1; fanout from repeated authenticated list/status endpoints | 24 queries across 1 request | N/A | No | 2026-05-21 | -9 queries / -27.3%; requests 7 -> 1 / -85.7%; bytes 984,044 -> 984,123 / +79 bytes | 20% fewer queries on at least one flow | |
 | Load main page    | 41                     | 4.00 ms                | No row-level N+1; repeated session/auth checks across 10 API calls |                      |                      |                      |               |        | 20% fewer queries on at least one flow                      |              |
 | View a document   | 5                      | 0.56 ms                | No                                                                 |                      |                      |                      |               |        | 50% improvement on slowest query if using query-time target |              |
 | List issues       | 5                      | 1.00 ms                | No                                                                 |                      |                      |                      |               |        | Before/after EXPLAIN ANALYZE output                         |              |
@@ -191,7 +209,8 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Added `/api/bootstrap` and React Query cache seeding for current app-shell providers: auth/session payload, wiki documents, programs, projects, issues, standup status, and action items.
 - The command palette now queries title-only `/api/search/documents` on demand instead of fetching the full documents list for palette search.
 - Added `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain` to make audit-scale data setup, query-count capture, and EXPLAIN capture repeatable. The seed rail tops up the source-required scale shape: 500+ documents, 100+ issues, 20+ users, and 10+ sprints.
-- Query-count and slow-query scorecard values remain `TBD` until the before/after harness is rerun against the same data volume and browser flow.
+- Extended `pnpm perf:query-count-api` with flow-level evidence for old docs startup fanout versus current bootstrap, including per-request status/query/byte rows and aggregate request count, elapsed time, total bytes, and total query count.
+- Payload byte reduction was made later in the Category 3 lane by projecting issue lists/bootstrap issue data as metadata-only. This does not change the Category 4 query-count proof, which remains a flow-level SQL/request-count win.
 
 ### Evidence
 
@@ -200,7 +219,11 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Focused route/contract rerun against a temporary disposable Postgres container: 4 files passed, 43 tests passed.
 - Measurement script syntax checks passed: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs`.
 - Closeout rail outputs were produced: `test-results/perf/query-count-api-2026-05-20T23-37-27-346Z.json` and `test-results/perf/explain-performance-2026-05-20T23-37-37-930Z.json`.
-- Before/after query-count output and `EXPLAIN ANALYZE` evidence are still `TBD`; do not claim Category 4 completion from this pass.
+- Flow-level query-count output: `test-results/perf/query-count-api-2026-05-21T02-15-44-061Z.json`.
+- Old docs startup fanout flow in that artifact: 7 requests, 33 total SQL queries, 984,044 response bytes, 32 ms total elapsed.
+- Current bootstrap flow in that artifact: 1 request, 24 total SQL queries, 984,123 response bytes, 17 ms total elapsed.
+- Query-count result: -9 queries / -27.3% on the protected docs startup app-shell flow, satisfying the query-count branch of Category 4 for one flow. Slow-query improvement is not claimed.
+- EXPLAIN output: `test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json`; current execution times were `documents_list_wiki` 0.313 ms, `issues_list` 0.978 ms, `projects_list_counts` 0.774 ms, `audit_logs_tagged_recent` 2.750 ms, and `document_association_issue_project` 0.643 ms.
 
 ---
 
@@ -283,13 +306,16 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Migration bootstrap still tolerates `schema.sql` "already exists" during initial setup, but numbered migration failures no longer get broadly swallowed. This is tracked as operational safety, not as proof toward the Category 6 user-facing error-handling target.
 - Session activity writes are now throttled server-side: authenticated requests still validate inactivity against stored `last_activity`, but only update `last_activity` and refresh the cookie after the 60-second activity threshold.
 - Backlinks now preserve the last successful result during fetch failures, show a visible offline/stale status with `role="status"` and `aria-live="polite"`, pause polling while offline, retry immediately when the browser returns online, and avoid repeated console-error spam.
+- `e2e/error-handling.spec.ts` now captures named Category 6 runtime screenshots for API 500 fallback UI, offline editor draft preservation, CSRF JSON/editor usability, and concurrent API failure fallback UI. These tests also assert the intercepted failure path occurred, the editor remained usable where relevant, and no uncaught browser `pageerror` was emitted.
 
 ### Evidence
 
 - API unit suite: 28 files passed, 452 tests passed in the current post-correctness run.
 - Missing-CSRF probe against local API returned `403`, `content-type: application/json; charset=utf-8`, body `{"error":"Invalid or missing CSRF token"}`.
 - `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
-- Category 6 still needs the required before/after screenshot or recording evidence before completion should be claimed.
+- Focused E2E runtime attempt: `E2E_RESULTS_DIR=test-results/category-6-runtime-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts` was blocked before Playwright started because Docker was not running: `Docker is required for Playwright E2E tests because Testcontainers starts PostgreSQL per worker.`
+- Focused E2E list/compile check: `E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-list pnpm test:e2e:run e2e/error-handling.spec.ts -- --list` passed and listed 8 tests in `e2e/error-handling.spec.ts`.
+- Category 6 now has screenshot-producing E2E hooks, but the actual runtime screenshot artifacts still need to be captured by rerunning the focused file once Docker is available.
 
 ---
 
@@ -314,22 +340,23 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 | Lighthouse accessibility score: `/documents/:programId/issues` | 100                                                                                                                      |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
 | Lighthouse accessibility score: `/my-week`                     | 96                                                                                                                       |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
 | Lighthouse accessibility score: `/projects`                    | 100                                                                                                                      |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
-| Total Critical/Serious violations                              | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | `pnpm a11y:closeout`: `/docs` 0, selected `/documents/:id` 1 serious `color-contrast` node, `/my-week` 1 serious `color-contrast` violation across 10 nodes | 2026-05-20    | Improved but still fails | Fix all Critical/Serious violations on explicitly chosen top 3 pages if using violation target |              |
+| Total Critical/Serious violations                              | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | `pnpm a11y:closeout -- --fail-on-serious`: `/docs` 0, selected `/documents/:id` 0, `/my-week` 0 | 2026-05-21    | Fixed on scanned pages | Fix all Critical/Serious violations on explicitly chosen top 3 pages if using violation target |              |
 | Keyboard navigation completeness                               | Partial pass                                                                                                             |                                                                                                               |               |                         | Existing keyboard behavior preserved or improved                                               |              |
 | Screen reader usability                                        | VoiceOver partial pass                                                                                                   |                                                                                                               |               |                         | Existing screen reader behavior preserved or improved                                          |              |
-| Color contrast failures                                        | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes                                                           | `pnpm a11y:closeout`: selected document page has 1 serious badge contrast node; `/my-week` still has 10 serious color-contrast nodes | 2026-05-20    | Improved but not fixed  | Critical/Serious violations fixed on selected pages                                            |              |
+| Color contrast failures                                        | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes                                                           | `pnpm a11y:closeout -- --fail-on-serious`: 0 contrast violations on `/docs`, selected `/documents/:id`, and `/my-week` | 2026-05-21    | Fixed on scanned pages | Critical/Serious violations fixed on selected pages                                            |              |
 | Missing ARIA labels or roles                                   | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark                     | 0 on closeout axe scan of `/docs` and `/documents/:id`                                                        | 2026-05-20    | Fixed targeted pages    | Critical/Serious violations fixed on selected pages                                            |              |
 
 ### What Changed
 
 - Added a `main` landmark to `/login`.
 - Fixed contrast on `/my-week`, `/projects`, and shared filter-tab count badges.
+- Fixed the remaining Category 7 contrast at source: BacklinksPanel document-type badges use an explicit accessible foreground, My Week current-day labels use an accessible blue, and future My Week rows no longer inherit dimming through parent opacity.
 - Fixed document tree semantics so `tree` containers expose direct `treeitem` children through presentational list wrappers.
 - Fixed the stale E2E selector for nested document auto-expand to use the sidebar ARIA tree and nested `role="group"` structure instead of assuming the group is inside the `treeitem` element.
 
 ### Evidence
 
-- Repeatable closeout axe output: `pnpm a11y:closeout` writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, a real `/documents/:id`, and `/my-week`. Current output shows `/docs` at 0 violations, the selected document page with 1 serious badge contrast node, and `/my-week` with 1 serious `color-contrast` violation across 10 nodes. The script supports `-- --fail-on-serious` once these pages are expected to block on violations.
+- Repeatable closeout axe output: `pnpm a11y:closeout -- --fail-on-serious` writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, a real `/documents/:id`, and `/my-week`. Current output: `/docs` 0 violations, selected document page 0 violations, `/my-week` 0 violations.
 - Focused E2E verification for the updated selector passed: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"`: 1 passed / 0 failed.
 - Lighthouse was not rerun because `lighthouse` is not installed in the repo-local toolchain (`pnpm exec lighthouse --version` returns command not found).
 - Manual closeout found Backlinks behavior working as intended after creating a real mention: the target document showed the source document as a backlink, offline mode retained that saved backlink with an explicit stale status, reconnect cleared the stale state, and clicking the backlink navigated back to the source.

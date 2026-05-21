@@ -557,15 +557,16 @@ components:
         - created_at
         - updated_at
         - belongs_to
-    CreateIssue:
+    IssueListItem:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
         title:
           type: string
-          minLength: 1
-          maxLength: 500
-          description: Issue title
-          example: Fix login button not responding
         state:
           type: string
           enum:
@@ -576,7 +577,6 @@ components:
             - in_review
             - done
             - cancelled
-          default: backlog
           description: Issue workflow state
         priority:
           type: string
@@ -586,27 +586,16 @@ components:
             - medium
             - low
             - none
-          default: medium
           description: Issue priority level
-        assignee_id:
-          type: string
-          nullable: true
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        belongs_to:
-          type: array
-          items:
-            $ref: "#/components/schemas/BelongsToEntry"
-          default: []
-          description: Associate with programs, projects, sprints, or parent issues
+        assignee_archived:
+          type: boolean
+          description: Whether the assigned user has been archived
         source:
           type: string
           enum:
             - internal
             - external
             - action_items
-          default: internal
           description: Issue source/provenance (never changes after creation)
         due_date:
           type: string
@@ -616,7 +605,7 @@ components:
           example: 2025-01-30
         is_system_generated:
           type: boolean
-          default: false
+          description: Whether this issue was auto-generated for accountability
         accountability_target_id:
           type: string
           nullable: true
@@ -638,6 +627,168 @@ components:
             - changes_requested_plan
             - changes_requested_retro
           description: Type of accountability task for auto-generated issues
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Reason if issue was rejected from triage
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        created_by:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        created_by_name:
+          type: string
+        started_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        completed_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        cancelled_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        reopened_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        converted_from_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: ID of document this issue was converted from
+          example: 550e8400-e29b-41d4-a716-446655440000
+        belongs_to:
+          type: array
+          items:
+            $ref: "#/components/schemas/BelongsToResponse"
+          description: Associated documents (programs, projects, sprints, parent issues)
+        ticket_number:
+          type: integer
+        display_id:
+          type: string
+        assignee_id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        assignee_name:
+          type: string
+        estimate:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+      required:
+        - id
+        - title
+        - state
+        - priority
+        - source
+        - created_at
+        - updated_at
+        - belongs_to
+    CreateIssue:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        state:
+          type: string
+          enum:
+            - triage
+            - backlog
+            - todo
+            - in_progress
+            - in_review
+            - done
+            - cancelled
+          default: backlog
+        priority:
+          type: string
+          enum:
+            - urgent
+            - high
+            - medium
+            - low
+            - none
+          default: medium
+        assignee_id:
+          type: string
+          nullable: true
+          format: uuid
+        belongs_to:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              type:
+                type: string
+                enum:
+                  - program
+                  - project
+                  - sprint
+                  - parent
+            required:
+              - id
+              - type
+          default: []
+        source:
+          type: string
+          enum:
+            - internal
+            - external
+            - action_items
+          default: internal
+        due_date:
+          type: string
+          nullable: true
+          pattern: ^\d{4}-\d{2}-\d{2}$
+        is_system_generated:
+          type: boolean
+          default: false
+        accountability_target_id:
+          type: string
+          nullable: true
+          format: uuid
+        accountability_type:
+          type: string
+          nullable: true
+          enum:
+            - standup
+            - weekly_plan
+            - weekly_retro
+            - weekly_review
+            - week_start
+            - week_issues
+            - project_plan
+            - project_retro
+            - changes_requested_plan
+            - changes_requested_retro
       required:
         - title
     UpdateIssue:
@@ -657,7 +808,6 @@ components:
             - in_review
             - done
             - cancelled
-          description: Issue workflow state
         priority:
           type: string
           enum:
@@ -666,17 +816,28 @@ components:
             - medium
             - low
             - none
-          description: Issue priority level
         assignee_id:
           type: string
           nullable: true
           format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
         belongs_to:
           type: array
           items:
-            $ref: "#/components/schemas/BelongsToEntry"
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              type:
+                type: string
+                enum:
+                  - program
+                  - project
+                  - sprint
+                  - parent
+            required:
+              - id
+              - type
         estimate:
           type: number
           nullable: true
@@ -684,7 +845,6 @@ components:
           exclusiveMinimum: true
         confirm_orphan_children:
           type: boolean
-          description: Confirm closing parent issue with incomplete children
         claude_metadata:
           type: object
           properties:
@@ -729,7 +889,6 @@ components:
                     type: string
           required:
             - updated_by
-          description: Metadata for Claude Code integration
     BulkUpdateIssues:
       type: object
       properties:
@@ -3062,7 +3221,7 @@ components:
             issues:
               type: array
               items:
-                $ref: "#/components/schemas/Issue"
+                $ref: "#/components/schemas/IssueListItem"
             standupStatus:
               type: object
               properties:
@@ -4692,7 +4851,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Issue"
+                  $ref: "#/components/schemas/IssueListItem"
     post:
       tags:
         - Issues

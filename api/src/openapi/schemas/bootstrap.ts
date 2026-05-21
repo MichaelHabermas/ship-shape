@@ -5,7 +5,7 @@
 import { z, registry } from '../registry.js';
 import { UuidSchema, DateTimeSchema, DocumentVisibilitySchema } from './common.js';
 import { DocumentTypeSchema } from './documents.js';
-import { IssueResponseSchema } from './issues.js';
+import { IssueListResponseSchema } from './issues.js';
 import { ProgramResponseSchema } from './programs.js';
 import { ProjectResponseSchema } from './projects.js';
 import { AccountabilityActionItemsResponseSchema } from './accountability.js';
@@ -53,7 +53,7 @@ export const BootstrapResponseSchema = z.object({
     documents: z.array(BootstrapDocumentSchema),
     programs: z.array(ProgramResponseSchema),
     projects: z.array(ProjectResponseSchema),
-    issues: z.array(IssueResponseSchema),
+    issues: z.array(IssueListResponseSchema),
     standupStatus: BootstrapStandupStatusSchema,
     actionItems: AccountabilityActionItemsResponseSchema,
   }),

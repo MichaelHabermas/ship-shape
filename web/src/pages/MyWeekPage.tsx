@@ -335,14 +335,14 @@ export function MyWeekPage() {
 
               const rowClass = cn(
                 'flex items-center gap-3 rounded-lg border px-4 py-2.5',
-                isToday ? 'border-accent/30 bg-accent/5' : 'border-border bg-surface',
-                isFuture && 'opacity-40',
+                isToday ? 'border-accent-hover/50 bg-accent/10' : 'border-border bg-surface',
+                isFuture && 'border-border/60 bg-border/30',
                 !isFuture && 'hover:border-accent/50 transition-colors'
               );
 
               const dateLabel = (
                 <div className="w-20 flex-shrink-0">
-                  <span className={cn('text-xs font-medium', isToday ? 'text-accent' : 'text-muted')}>
+                  <span className={cn('text-xs font-medium', isToday ? 'text-[#8fcfff]' : 'text-muted')}>
                     {slot.day.slice(0, 3)}
                   </span>
                   <span className="text-xs text-muted ml-1">

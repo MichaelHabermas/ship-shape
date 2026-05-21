@@ -142,7 +142,7 @@ Search learning wiki documents by title, tag, or category. This endpoint returns
 }
 ```
 
-There is no `/api/search/documents` endpoint. The `/docs` UI searches documents by filtering loaded titles on the client.
+`/api/search/documents` exists only for title-only command-palette metadata search. The `/docs` UI searches documents by filtering loaded titles on the client. Ship does not provide full-text content search for documents.
 
 ---
 

@@ -733,7 +733,7 @@ Rails safety findings moved from provisional risk to implemented foundation work
 
 Boundary-contract drift moved from architectural concern to active regression coverage. Runtime boundary values now feed more OpenAPI schemas, and `api/src/schemas/document-boundary.test.ts` compares document type values across `@ship/shared`, database enum declarations, runtime Zod values, and OpenAPI.
 
-Search status changed: `/api/search/documents` now exists, but only as title-only metadata search for command-palette lookup. This does not resolve the broader full-text search/product-search question, and `/docs` remains client-side title filtering by design.
+High-utility search status: `/api/search/documents` exists only as title-only command-palette metadata search. This does not resolve the full-text content search question, and `/docs` remains client-side title filtering by design.
 
 Bootstrap status changed: `/api/bootstrap` now exists as read-only app-shell hydration and seeds existing TanStack Query keys. It is a fanout-reduction foundation, not yet measured Category 4 proof. The route needs to stay projection-aligned with the underlying list endpoints, especially project status inference and visibility semantics. Post-reset verification added focused route coverage for auth, response shape, and project status inference; the combined bootstrap/search/visibility/boundary rerun passed 43 tests against a temporary disposable Postgres container.
 

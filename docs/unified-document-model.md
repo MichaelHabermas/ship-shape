@@ -365,7 +365,7 @@ Client (IndexedDB)          Server (PostgreSQL)
 
 ### Search
 
-`/docs` search is client-side title filtering over the loaded document list. There is no `/api/search/documents` endpoint; server-side search is limited to specific workflows such as mention autocomplete and learning lookup.
+`/api/search/documents` exists only for title-only command-palette metadata search. `/docs` search is client-side title filtering over the loaded document list. Ship does not provide full-text content search for documents.
 
 ## Configuration
 

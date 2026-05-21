@@ -867,7 +867,7 @@ Use `side="right"` for icons in the left rail, `side="bottom"` for icons in head
 1. **Permissions**: Workspace-level only (you're in or you're out)
 2. **States/Labels**: Values in properties JSONB, not separate tables
 3. **Initial sync**: Recent + accessed documents (last 30 days + previously touched)
-4. **Search**: `/docs` uses client-side title filtering over loaded documents; no `/api/search/documents` endpoint
+4. **Search**: `/api/search/documents` exists only for title-only command-palette metadata search; `/docs` uses client-side title filtering over loaded documents; no full-text content search
 5. **File attachments**: References only, files stored in S3/blob storage
 6. **Real-time**: Full collaboration (presence, cursors, live updates via WebSocket + Yjs)
 7. **Offboarding**: Wipe IndexedDB immediately when user removed

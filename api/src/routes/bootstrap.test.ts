@@ -103,6 +103,7 @@ describe('Bootstrap API', () => {
     expect(data.currentWorkspace.id).toBe(testWorkspaceId);
     expect(data.documents.some((doc: any) => doc.title === 'Bootstrap Wiki')).toBe(true);
     expect(data.issues.some((issue: any) => issue.title === 'Bootstrap Issue')).toBe(true);
+    expect(data.issues.find((issue: any) => issue.title === 'Bootstrap Issue')).not.toHaveProperty('content');
     expect(data.actionItems).toMatchObject({ items: expect.any(Array), total: expect.any(Number) });
 
     // Risk: bootstrap seeds the project list cache, so it must match /api/projects status inference.

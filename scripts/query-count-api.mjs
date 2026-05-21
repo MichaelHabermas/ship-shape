@@ -28,6 +28,28 @@ const endpoints = (process.env.QUERY_COUNT_ENDPOINTS || [
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
+const flowDefinitions = [
+  {
+    name: 'old_docs_startup_fanout',
+    description: 'Pre-bootstrap protected docs startup fanout: auth plus app-shell list/status requests.',
+    requests: [
+      '/api/auth/me',
+      '/api/documents?type=wiki',
+      '/api/programs',
+      '/api/projects',
+      '/api/issues',
+      '/api/standups/status',
+      '/api/accountability/action-items',
+    ],
+  },
+  {
+    name: 'current_bootstrap',
+    description: 'Current protected startup hydration through the single bootstrap endpoint.',
+    requests: [
+      '/api/bootstrap',
+    ],
+  },
+];
 const email = process.env.QUERY_COUNT_EMAIL || process.env.BENCHMARK_EMAIL || 'dev@ship.local';
 const outputPath = resolve(
   rootDir,
@@ -53,6 +75,17 @@ function normalizeSql(sql) {
   return sql.replace(/\s+/g, ' ').trim();
 }
 
+function summarizeStatements(queries) {
+  const byStatement = new Map();
+  for (const query of queries) {
+    byStatement.set(query.sql, (byStatement.get(query.sql) || 0) + 1);
+  }
+
+  return [...byStatement.entries()]
+    .map(([sql, count]) => ({ count, sql }))
+    .sort((a, b) => b.count - a.count || a.sql.localeCompare(b.sql));
+}
+
 async function request(baseUrl, path, options = {}, cookie = '') {
   return fetch(`${baseUrl}${path}`, {
     ...options,
@@ -61,6 +94,46 @@ async function request(baseUrl, path, options = {}, cookie = '') {
       ...(options.headers || {}),
     },
   });
+}
+
+async function measureRequest(baseUrl, endpoint, cookie) {
+  capture = { startedAt: performance.now(), queries: [] };
+  const startedAt = performance.now();
+  const response = await request(baseUrl, endpoint, {}, cookie);
+  const body = await response.text();
+  const elapsedMs = performance.now() - startedAt;
+  const queries = capture.queries;
+  capture = null;
+
+  return {
+    endpoint,
+    status: response.status,
+    ok: response.ok,
+    elapsed_ms: Math.round(elapsedMs),
+    response_bytes: Buffer.byteLength(body),
+    query_count: queries.length,
+    statements: summarizeStatements(queries),
+  };
+}
+
+async function measureFlow(baseUrl, flow, cookie) {
+  const startedAt = performance.now();
+  const requests = [];
+
+  for (const endpoint of flow.requests) {
+    requests.push(await measureRequest(baseUrl, endpoint, cookie));
+  }
+
+  return {
+    name: flow.name,
+    description: flow.description,
+    request_count: requests.length,
+    total_elapsed_ms: Math.round(performance.now() - startedAt),
+    total_response_bytes: requests.reduce((sum, result) => sum + result.response_bytes, 0),
+    total_query_count: requests.reduce((sum, result) => sum + result.query_count, 0),
+    ok: requests.every((result) => result.ok),
+    requests,
+  };
 }
 
 async function listen(server) {
@@ -119,30 +192,12 @@ try {
   const results = [];
 
   for (const endpoint of endpoints) {
-    capture = { startedAt: performance.now(), queries: [] };
-    const startedAt = performance.now();
-    const response = await request(baseUrl, endpoint, {}, cookie);
-    const body = await response.text();
-    const elapsedMs = performance.now() - startedAt;
-    const queries = capture.queries;
-    capture = null;
+    results.push(await measureRequest(baseUrl, endpoint, cookie));
+  }
 
-    const byStatement = new Map();
-    for (const query of queries) {
-      byStatement.set(query.sql, (byStatement.get(query.sql) || 0) + 1);
-    }
-
-    results.push({
-      endpoint,
-      status: response.status,
-      ok: response.ok,
-      elapsed_ms: Math.round(elapsedMs),
-      response_bytes: Buffer.byteLength(body),
-      query_count: queries.length,
-      statements: [...byStatement.entries()]
-        .map(([sql, count]) => ({ count, sql }))
-        .sort((a, b) => b.count - a.count || a.sql.localeCompare(b.sql)),
-    });
+  const flows = [];
+  for (const flow of flowDefinitions) {
+    flows.push(await measureFlow(baseUrl, flow, cookie));
   }
 
   const report = {
@@ -151,13 +206,17 @@ try {
     base_url: baseUrl,
     endpoints,
     results,
+    flows,
   };
 
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
   console.log(`API query-count report written to ${outputPath}`);
 
-  const failures = results.filter((result) => !result.ok);
+  const failures = [
+    ...results.filter((result) => !result.ok),
+    ...flows.flatMap((flow) => flow.requests.filter((result) => !result.ok)),
+  ];
   if (failures.length > 0) {
     console.error(JSON.stringify(failures, null, 2));
     process.exitCode = 1;

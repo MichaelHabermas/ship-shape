@@ -82,7 +82,19 @@ export const IssueResponseSchema = z.object({
   }),
 }).openapi('Issue');
 
+export const IssueListResponseSchema = IssueResponseSchema
+  .omit({ content: true, ticket_number: true, display_id: true, assignee_id: true, assignee_name: true, estimate: true })
+  .extend({
+    ticket_number: z.number().int().optional(),
+    display_id: z.string().optional(),
+    assignee_id: UuidSchema.optional(),
+    assignee_name: z.string().optional(),
+    estimate: z.number().positive().optional(),
+  })
+  .openapi('IssueListItem');
+
 registry.register('Issue', IssueResponseSchema);
+registry.register('IssueListItem', IssueListResponseSchema);
 
 // ============== Create Issue ==============
 
@@ -190,7 +202,7 @@ registry.registerPath({
       description: 'List of issues',
       content: {
         'application/json': {
-          schema: z.array(IssueResponseSchema),
+          schema: z.array(IssueListResponseSchema),
         },
       },
     },

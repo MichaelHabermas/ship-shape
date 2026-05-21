@@ -90,7 +90,7 @@ export function BacklogPickerModal({ isOpen, onClose, context, onIssuesAdded }: 
     const filtered = searchQuery
       ? available.filter(issue =>
           issue.title.toLowerCase().includes(searchLower) ||
-          issue.ticket_number.toString().includes(searchLower)
+          issue.ticket_number?.toString().includes(searchLower)
         )
       : available;
 

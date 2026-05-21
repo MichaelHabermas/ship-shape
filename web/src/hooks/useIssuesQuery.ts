@@ -27,16 +27,16 @@ export interface Issue {
   title: string;
   state: string;
   priority: string;
-  ticket_number: number;
-  display_id: string;
-  assignee_id: string | null;
-  assignee_name: string | null;
+  ticket_number?: number;
+  display_id?: string;
+  assignee_id?: string | null;
+  assignee_name?: string | null;
   assignee_archived?: boolean;
-  estimate: number | null;
+  estimate?: number | null;
   // belongs_to array contains all associations (program, sprint, project, parent)
   belongs_to: BelongsTo[];
   source: 'internal' | 'external';
-  rejection_reason: string | null;
+  rejection_reason?: string | null;
   created_at?: string;
   updated_at?: string;
   created_by?: string;

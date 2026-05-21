@@ -209,3 +209,35 @@ Consequences: Category 7 can be remeasured quickly, and the report can become a 
 Evidence: `pnpm a11y:closeout` writes `test-results/a11y-closeout/axe-summary.json` and screenshots.
 
 **Decision Gist**: Automate the repeatable accessibility scan now; turn it into a blocker only after the known violations are gone.
+
+### D014: Flow Query Counts Are The Bootstrap Proof Unit
+
+Status: Accepted
+
+Decision: Extend `pnpm perf:query-count-api` so it measures named user flows in addition to individual endpoints. Use the protected docs startup app-shell flow as the Category 4 proof unit for bootstrap: old fanout is `/api/auth/me`, wiki documents, programs, projects, issues, standup status, and action items; current behavior is `/api/bootstrap`.
+
+Why: `/api/bootstrap` is designed to reduce request fanout and repeated authenticated list/status work. Endpoint-only measurements can show that `/api/bootstrap` is heavier than any one old endpoint, but that is the wrong comparison. The unit that matters is the startup flow it replaces.
+
+Alternatives considered: Keep endpoint-only query counts; use browser network traces only; optimize bootstrap payload bytes first. Endpoint-only counts understate the benefit. Browser traces are useful but less repeatable for SQL counts. Payload bytes were not the bottleneck in the measured run: current bootstrap was only 79 bytes larger than old fanout against the same data.
+
+Consequences: Future bootstrap changes must preserve flow-level evidence, not just endpoint rows. Category 3 P95 claims still require `pnpm benchmark:api` or stronger before/after latency evidence. Category 4 query-count claims can use the named flow aggregate when run under the same database, user, process, and hardware.
+
+Evidence: `test-results/perf/query-count-api-2026-05-21T02-15-44-061Z.json` measured old protected docs startup fanout at 7 requests, 33 SQL queries, 984,044 response bytes, and 32 ms total elapsed. Current `/api/bootstrap` measured 1 request, 24 SQL queries, 984,123 response bytes, and 17 ms total elapsed. That is -9 queries / -27.3% and requests 7 -> 1 / -85.7% for the flow. `test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json` records current EXPLAIN output; no slow-query improvement is claimed.
+
+**Decision Gist**: Bootstrap performance proof is flow-level query-count evidence, not a one-endpoint comparison.
+
+### D015: Issue Lists Are Metadata Projections
+
+Status: Accepted
+
+Decision: Keep `GET /api/issues` and `/api/bootstrap` issue data as metadata-only list projections. They do not select or return TipTap `content`, and they omit absent optional fields such as missing ticket numbers, assignees, estimates, rejection reasons, and accountability fields. Issue detail routes continue to return editor content.
+
+Why: Audit-scale data made issue payloads dominate both `/api/issues` and `/api/bootstrap`. List and app-shell views render titles, state, priority, associations, and small metadata; shipping full editor JSON and null-heavy fields through those paths adds bytes without adding user-visible value.
+
+Alternatives considered: Keep full issue objects everywhere; optimize SQL/indexes first; make bootstrap define a separate bespoke issue shape. Full objects kept the payload bottleneck. SQL/index work was not the measured bottleneck for this lane. A bespoke bootstrap shape would create drift from the issue list contract, so the safer contract is one shared list projection.
+
+Consequences: Frontend list, kanban, and picker surfaces must treat some issue metadata as optional. OpenAPI exposes `IssueListItem` separately from full `Issue`. Future issue-detail work must not infer that list responses contain editor content.
+
+Evidence: Valid before benchmark `test-results/benchmarks/api-2026-05-21T02-40-19-503Z.json`; final after benchmark `test-results/benchmarks/api-2026-05-21T03-11-53-590Z.json`; payload spot check after compaction measured `/api/issues` at 307,043 bytes and `/api/bootstrap` at 429,806 bytes on the audit-load dev database. `GET /api/issues` P95 improved by 30.0% at 10c and 26.7% at 25c in the final run, while `/api/bootstrap` P95 remains mixed.
+
+**Decision Gist**: List/app-shell issue data is a compact metadata contract; full editor content belongs on issue detail routes.

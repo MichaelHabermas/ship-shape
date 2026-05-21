@@ -72,7 +72,6 @@ type IssueRow = {
   title: string;
   properties: IssueProperties | null;
   ticket_number: number | null;
-  content: unknown;
   created_at: Date;
   updated_at: Date;
   created_by: string;
@@ -160,27 +159,24 @@ function mapIssue(row: IssueRow) {
     title: row.title,
     state: props.state || 'backlog',
     priority: props.priority || 'medium',
-    assignee_id: props.assignee_id || null,
-    estimate: props.estimate ?? null,
     source: props.source || 'internal',
-    rejection_reason: props.rejection_reason || null,
-    due_date: props.due_date || null,
-    is_system_generated: props.is_system_generated || false,
-    accountability_target_id: props.accountability_target_id || null,
-    accountability_type: props.accountability_type || null,
-    ticket_number: row.ticket_number,
-    display_id: `#${row.ticket_number}`,
-    content: row.content,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    created_by: row.created_by,
-    started_at: row.started_at || null,
-    completed_at: row.completed_at || null,
-    cancelled_at: row.cancelled_at || null,
-    reopened_at: row.reopened_at || null,
-    converted_from_id: row.converted_from_id || null,
-    assignee_name: row.assignee_name,
-    assignee_archived: row.assignee_archived || false,
+    ...(props.estimate !== undefined && props.estimate !== null ? { estimate: props.estimate } : {}),
+    ...(row.assignee_name ? { assignee_name: row.assignee_name } : {}),
+    ...(props.assignee_id ? { assignee_id: props.assignee_id } : {}),
+    ...(row.ticket_number !== null ? { ticket_number: row.ticket_number, display_id: `#${row.ticket_number}` } : {}),
+    ...(row.assignee_archived ? { assignee_archived: true } : {}),
+    ...(props.rejection_reason ? { rejection_reason: props.rejection_reason } : {}),
+    ...(props.due_date ? { due_date: props.due_date } : {}),
+    ...(props.is_system_generated ? { is_system_generated: true } : {}),
+    ...(props.accountability_target_id ? { accountability_target_id: props.accountability_target_id } : {}),
+    ...(props.accountability_type ? { accountability_type: props.accountability_type } : {}),
+    ...(row.started_at ? { started_at: row.started_at } : {}),
+    ...(row.completed_at ? { completed_at: row.completed_at } : {}),
+    ...(row.cancelled_at ? { cancelled_at: row.cancelled_at } : {}),
+    ...(row.reopened_at ? { reopened_at: row.reopened_at } : {}),
+    ...(row.converted_from_id ? { converted_from_id: row.converted_from_id } : {}),
   };
 }
 
@@ -352,7 +348,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         [workspaceId, userId, isAdmin]
       ),
       pool.query<IssueRow>(
-        `SELECT d.id, d.title, d.properties, d.ticket_number, d.content,
+        `SELECT d.id, d.title, d.properties, d.ticket_number,
                 d.created_at, d.updated_at, d.created_by,
                 d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
                 d.converted_from_id,
