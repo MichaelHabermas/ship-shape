@@ -474,6 +474,22 @@ Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, a
 
 **Decision Gist**: Runtime validation is valuable, but only after the OpenAPI source is honest enough to validate against.
 
+### D021: Full OpenAPI Route Coverage With Strict Pre-Commit Gate
+
+Status: Accepted
+
+Decision: Register all 195 runtime API routes in OpenAPI (including admin and public families), remove stale operations, enforce `pnpm openapi:check:strict` in Husky pre-commit, expand test-time `expectOpenApiResponse` coverage, and pilot `defineRoute` on setup routes. Keep production response middleware deferred.
+
+Why: D018–D019 left 82 missing and 8 stale operations, so generated types and MCP tools could not trust the contract. Full registration with a strict gate prevents regression without adding per-request production overhead.
+
+Alternatives considered: Document admin routes as intentional exclusions; add production middleware first; big-bang `defineRoute` migration. Exclusions were rejected in favor of full registration. Production middleware before honest schemas would fail noisily. Incremental `defineRoute` rollout limits blast radius.
+
+Consequences: `pnpm openapi:generate` must run when OpenAPI schemas change. New routes require schema registration (via `registerPath` or `defineRoute`). Frontend migrations can proceed route-family by route-family. Next 10x: migrate files/auth to `defineRoute`, then optional `OPENAPI_VALIDATE_RESPONSES` in staging.
+
+Evidence: `pnpm openapi:check:strict` reports 195 runtime / 195 OpenAPI, 0 missing, 0 stale. New modules: `admin.ts`, `admin-credentials.ts`, `caia-auth.ts`, `feedback.ts`, `invites.ts`, `setup.ts`, `route-helpers.ts`. Contract tests pass on `ship_test_audit` for openapi-contract, files, feedback, workspaces, bootstrap, and `define-route.test.ts`.
+
+**Decision Gist**: The OpenAPI contract is now complete and enforced locally; runtime production validation remains a later opt-in.
+
 ### D020: Document Authorization Is A Service Boundary
 
 Status: Accepted
