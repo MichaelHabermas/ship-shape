@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: corepack enable && CI=true pnpm install --frozen-lockfile && pnpm build:api
-    startCommand: pnpm --filter @ship/api start
+    startCommand: pnpm --filter @ship/api exec node dist/db/migrate.js && pnpm --filter @ship/api start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -29,7 +29,6 @@ services:
   - type: web
     name: ship-shape-web
     runtime: static
-    plan: free
     buildCommand: corepack enable && CI=true pnpm install --frozen-lockfile && pnpm build:shared && pnpm --filter @ship/web exec tsc && VITE_API_URL=https://ship-shape-api.onrender.com VITE_WS_URL=https://ship-shape-api.onrender.com VITE_APP_ENV=production pnpm --filter @ship/web exec vite build
     staticPublishPath: ./web/dist
     routes:
