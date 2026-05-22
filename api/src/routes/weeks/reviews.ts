@@ -7,6 +7,7 @@ import { sendInternalError, sendValidationError } from '../../utils/route-http.j
 import { logDocumentChange } from '../../utils/document-crud.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import { extractText } from '../../utils/document-content.js';
+import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import type {
   SprintRouteProperties,
   SprintReviewSprintData,
@@ -161,8 +162,7 @@ async function generatePrefilledReviewContent(sprintData: SprintReviewSprintData
 router.get('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -280,8 +280,7 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
 router.post('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = sprintReviewSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -392,8 +391,7 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
 router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = sprintReviewSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -558,8 +556,7 @@ const carryoverSchema = z.object({
 router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id: sourceSprintId } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = carryoverSchema.safeParse(req.body);
     if (!parsed.success) {

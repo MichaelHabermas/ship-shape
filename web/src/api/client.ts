@@ -1,4 +1,5 @@
 import createClient, { type Middleware } from 'openapi-fetch';
+import { createApiStatusError } from '@/lib/api-error';
 import type { paths } from './generated/ship-openapi';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
@@ -129,19 +130,12 @@ export const apiClient = createClient<paths>({
 
 apiClient.use(authMiddleware);
 
-function createApiError(result: { error?: unknown; response: Response }, message: string): Error & { status: number; details?: unknown } {
-  const error = new Error(message) as Error & { status: number; details?: unknown };
-  error.status = result.response.status;
-  error.details = result.error;
-  return error;
-}
-
 export function assertApiData<T>(result: { data?: T; error?: unknown; response: Response }, message: string): T {
   if (result.data !== undefined) {
     return result.data;
   }
 
-  throw createApiError(result, message);
+  throw createApiStatusError(message, result.response.status, result.error);
 }
 
 export function assertApiSuccess(result: { error?: unknown; response: Response }, message: string): void {
@@ -149,7 +143,7 @@ export function assertApiSuccess(result: { error?: unknown; response: Response }
     return;
   }
 
-  throw createApiError(result, message);
+  throw createApiStatusError(message, result.response.status, result.error);
 }
 
 export type ApiPaths = paths;

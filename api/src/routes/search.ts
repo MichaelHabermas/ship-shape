@@ -1,6 +1,12 @@
 import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+  getClampedIntegerQuery,
+  getOptionalQueryString,
+  getQueryString,
+  getTrimmedQueryString,
+} from '../openapi/schemas/query-helpers.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
 import { documentTypeSchema } from '../schemas/document-boundary.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
@@ -36,7 +42,7 @@ function hasContentSearchDocument(row: ContentSearchRow): row is ContentSearchDo
 // GET /api/search/mentions?q=:query
 searchRouter.get('/mentions', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const searchQuery = (req.query.q as string) || '';
+    const searchQuery = getQueryString(req.query.q);
     const { workspaceId, userId } = getAuthenticatedRouteContext(req);
 
     // SECURITY: Escape wildcard characters to prevent SQL wildcard injection
@@ -100,10 +106,10 @@ searchRouter.get('/mentions', authMiddleware, async (req: Request, res: Response
 // GET /api/search/documents?q=:query&type=:document_type&limit=:limit
 searchRouter.get('/documents', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const searchQuery = ((req.query.q as string) || '').trim();
-    const documentType = req.query.type as string | undefined;
+    const searchQuery = getTrimmedQueryString(req.query.q);
+    const documentType = getOptionalQueryString(req.query.type);
     const { workspaceId, userId } = getAuthenticatedRouteContext(req);
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 50);
+    const limit = getClampedIntegerQuery(req.query.limit, { defaultValue: 20, min: 1, max: 50 });
 
     const sanitizedQuery = escapeLikePattern(searchQuery);
     const isAdmin = await isWorkspaceAdmin(userId, workspaceId);
@@ -166,11 +172,11 @@ searchRouter.get('/documents', authMiddleware, async (req: Request, res: Respons
 // GET /api/search/content?q=:query&type=:document_type&limit=:limit&offset=:offset
 searchRouter.get('/content', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const searchQuery = ((req.query.q as string) || '').trim();
-    const documentType = req.query.type as string | undefined;
+    const searchQuery = getTrimmedQueryString(req.query.q);
+    const documentType = getOptionalQueryString(req.query.type);
     const { workspaceId, userId } = getAuthenticatedRouteContext(req);
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 50);
-    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+    const limit = getClampedIntegerQuery(req.query.limit, { defaultValue: 20, min: 1, max: 50 });
+    const offset = getClampedIntegerQuery(req.query.offset, { defaultValue: 0, min: 0 });
 
     if (!searchQuery) {
       sendLegacyError(res, 400, 'Search query is required');
@@ -272,10 +278,10 @@ searchRouter.get('/content', authMiddleware, async (req: Request, res: Response)
 // GET /api/search/learnings?q=:query&program_id=:program_id
 searchRouter.get('/learnings', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const searchQuery = (req.query.q as string) || '';
-    const programId = req.query.program_id as string | undefined;
+    const searchQuery = getQueryString(req.query.q);
+    const programId = getOptionalQueryString(req.query.program_id);
     const { workspaceId, userId } = getAuthenticatedRouteContext(req);
-    const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+    const limit = getClampedIntegerQuery(req.query.limit, { defaultValue: 10, max: 50 });
 
     // SECURITY: Escape wildcard characters to prevent SQL wildcard injection
     const sanitizedQuery = escapeLikePattern(searchQuery);

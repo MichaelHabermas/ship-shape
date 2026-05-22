@@ -4,6 +4,7 @@ import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendInternalError } from '../utils/route-http.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { defineRoute } from '../openapi/define-route.js';
 import {
   CreateStandupSchema,
@@ -39,9 +40,8 @@ router.post(
     },
     handler: async (req, res, { body }) => {
       try {
-        const { date } = body!;
-        const userId = req.userId!;
-        const workspaceId = req.workspaceId!;
+        const { date } = body;
+        const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
         const existingResult = await pool.query(
           `SELECT id, title, content, properties, created_at, updated_at
@@ -139,9 +139,8 @@ router.get(
     },
     handler: async (req, res, { query }) => {
       try {
-        const userId = req.userId!;
-        const workspaceId = req.workspaceId!;
-        const { date_from, date_to } = query!;
+        const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+        const { date_from, date_to } = query;
 
         const result = await pool.query(
           `SELECT id, title, content, properties, created_at, updated_at
@@ -189,8 +188,7 @@ router.get(
     },
     handler: async (req, res) => {
       try {
-        const userId = req.userId!;
-        const workspaceId = req.workspaceId!;
+        const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
         const workspaceResult = await pool.query(
           `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
@@ -289,10 +287,9 @@ router.patch(
     },
     handler: async (req, res, { params, body }) => {
       try {
-        const { id } = params!;
-        const userId = req.userId!;
-        const workspaceId = req.workspaceId!;
-        const { content, title } = body!;
+        const { id } = params;
+        const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+        const { content, title } = body;
 
         const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
@@ -389,9 +386,8 @@ router.delete(
     },
     handler: async (req, res, { params }) => {
       try {
-        const { id } = params!;
-        const userId = req.userId!;
-        const workspaceId = req.workspaceId!;
+        const { id } = params;
+        const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
         const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 

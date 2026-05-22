@@ -3,6 +3,7 @@ import { pool } from '../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
+import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import type {
   SprintActionItemRow,
   MyWeekIssueRow,
@@ -13,8 +14,7 @@ const router = Router();
 
 router.get('/my-action-items', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get workspace sprint configuration
     const workspaceResult = await pool.query(
@@ -181,8 +181,7 @@ router.get('/my-action-items', authMiddleware, async (req: Request, res: Respons
 // Supports historical week viewing via sprint_number query param
 router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { state, assignee, show_mine, sprint_number: requestedSprintNumber } = req.query;
 
     // Get visibility context for filtering

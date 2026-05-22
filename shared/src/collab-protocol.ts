@@ -19,7 +19,8 @@ export function parseCollaborationRoomName(
 ): { prefix: string; documentId: string } | null {
   const parts = roomName.split(':');
   if (parts.length < 2) return null;
-  const documentId = parts[parts.length - 1]!;
+  const documentId = parts.at(-1);
+  if (!documentId) return null;
   if (!UUID_RE.test(documentId)) return null;
   const prefix = parts.slice(0, -1).join(':');
   return { prefix, documentId };
@@ -33,7 +34,7 @@ export function parseDocumentIdFromRoomName(roomName: string): string {
   const parsed = parseCollaborationRoomName(roomName);
   if (parsed) return parsed.documentId;
   const parts = roomName.split(':');
-  return parts.length > 1 ? parts[parts.length - 1]! : parts[0]!;
+  return parts.at(-1) ?? roomName;
 }
 
 /** Legacy Editor default prefix "doc" maps to wiki documents only. */

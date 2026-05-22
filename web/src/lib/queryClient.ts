@@ -1,6 +1,7 @@
 import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
 import { get, set, del, createStore } from 'idb-keyval';
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client';
+import { getApiErrorStatus } from '@/lib/api-error';
 
 // ===========================================
 // Cache Schema Versioning
@@ -140,8 +141,8 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 60 * 24, // 24 hours
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors (client errors)
-        if (error instanceof Error && 'status' in error) {
-          const status = (error as { status: number }).status;
+        const status = getApiErrorStatus(error);
+        if (status !== undefined) {
           if (status >= 400 && status < 500) return false;
         }
         return failureCount < 3;
@@ -150,8 +151,8 @@ export const queryClient = new QueryClient({
     mutations: {
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors
-        if (error instanceof Error && 'status' in error) {
-          const status = (error as { status: number }).status;
+        const status = getApiErrorStatus(error);
+        if (status !== undefined) {
           if (status >= 400 && status < 500) return false;
         }
         return failureCount < 3;
