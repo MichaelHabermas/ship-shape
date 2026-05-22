@@ -299,9 +299,6 @@ registry.registerPath({
     params: z.object({
       id: UuidSchema,
     }),
-    query: z.object({
-      status: z.enum(['planning', 'active', 'completed']).optional(),
-    }),
   },
   responses: {
     200: {

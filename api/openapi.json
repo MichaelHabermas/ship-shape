@@ -1255,12 +1255,10 @@
             "example": "2025-01-30T14:30:00.000Z"
           },
           "changed_by": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserReference"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1539,12 +1537,10 @@
             "description": "I - Informed (kept in loop)"
           },
           "owner": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserReference"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1554,22 +1550,18 @@
             "description": "Project hypothesis/plan statement"
           },
           "plan_approval": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/ApprovalTracking"
-              },
-              {
-                "nullable": true
               }
             ]
           },
           "retro_approval": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/ApprovalTracking"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -1804,12 +1796,10 @@
             ]
           },
           "owner": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserReference"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2185,12 +2175,10 @@
             "type": "integer"
           },
           "owner": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserReference"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2270,12 +2258,10 @@
             ]
           },
           "owner": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserReference"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2606,12 +2592,10 @@
             "description": "Sprint workflow status"
           },
           "owner": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserReference"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -2747,22 +2731,18 @@
             "example": "2025-01-30T14:30:00.000Z"
           },
           "plan_approval": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/ApprovalTracking"
-              },
-              {
-                "nullable": true
               }
             ]
           },
           "review_approval": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/ApprovalTracking"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -4347,12 +4327,10 @@
             "$ref": "#/components/schemas/AuthUser"
           },
           "currentWorkspace": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/AuthWorkspace"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -5155,12 +5133,10 @@
                       "nullable": true
                     },
                     "properties": {
+                      "nullable": true,
                       "allOf": [
                         {
                           "$ref": "#/components/schemas/BootstrapDocumentProperties"
-                        },
-                        {
-                          "nullable": true
                         }
                       ]
                     },
@@ -6400,32 +6376,26 @@
             "$ref": "#/components/schemas/WeekMetadata"
           },
           "plan": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/MyWeekPlan"
-              },
-              {
-                "nullable": true
               }
             ]
           },
           "retro": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/MyWeekRetro"
-              },
-              {
-                "nullable": true
               }
             ]
           },
           "previous_retro": {
+            "nullable": true,
             "allOf": [
               {
                 "$ref": "#/components/schemas/PreviousRetro"
-              },
-              {
-                "nullable": true
               }
             ]
           },
@@ -10300,19 +10270,6 @@
             "required": true,
             "name": "id",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "planning",
-                "active",
-                "completed"
-              ]
-            },
-            "required": false,
-            "name": "status",
-            "in": "query"
           }
         ],
         "responses": {

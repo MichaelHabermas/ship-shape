@@ -15,12 +15,13 @@ import prettier from 'prettier';
 
 // Import the OpenAPI module to register all schemas
 import { generateOpenAPIDocument } from './openapi/index.js';
+import { normalizeNullableRefs } from './openapi/normalize-nullable-refs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Generate the OpenAPI spec from registered schemas
-export const swaggerSpec: OpenAPIObject = generateOpenAPIDocument();
+export const swaggerSpec: OpenAPIObject = normalizeNullableRefs(generateOpenAPIDocument());
 
 export function setupSwagger(app: Express): void {
   // Serve swagger UI at /api/docs

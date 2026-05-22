@@ -995,9 +995,9 @@ components:
           description: ISO 8601 datetime string
           example: "2025-01-30T14:30:00.000Z"
         changed_by:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/UserReference"
-            - nullable: true
         automated_by:
           type: string
           description: Automation source (e.g., "claude")
@@ -1216,21 +1216,21 @@ components:
             example: 550e8400-e29b-41d4-a716-446655440000
           description: I - Informed (kept in loop)
         owner:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/UserReference"
-            - nullable: true
         plan:
           type: string
           nullable: true
           description: Project hypothesis/plan statement
         plan_approval:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/ApprovalTracking"
-            - nullable: true
         retro_approval:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/ApprovalTracking"
-            - nullable: true
         has_retro:
           type: boolean
           description: Whether project has a retrospective document
@@ -1422,9 +1422,9 @@ components:
             - active
             - completed
         owner:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/UserReference"
-            - nullable: true
         project_id:
           type: string
           nullable: true
@@ -1726,9 +1726,9 @@ components:
         sprint_count:
           type: integer
         owner:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/UserReference"
-            - nullable: true
         owner_id:
           type: string
           nullable: true
@@ -1791,9 +1791,9 @@ components:
             - active
             - completed
         owner:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/UserReference"
-            - nullable: true
         issue_count:
           type: integer
         completed_count:
@@ -2044,9 +2044,9 @@ components:
             - completed
           description: Sprint workflow status
         owner:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/UserReference"
-            - nullable: true
         program_id:
           type: string
           nullable: true
@@ -2149,13 +2149,13 @@ components:
           description: ISO 8601 datetime string
           example: "2025-01-30T14:30:00.000Z"
         plan_approval:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/ApprovalTracking"
-            - nullable: true
         review_approval:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/ApprovalTracking"
-            - nullable: true
         accountable_id:
           type: string
           nullable: true
@@ -3340,9 +3340,9 @@ components:
         user:
           $ref: "#/components/schemas/AuthUser"
         currentWorkspace:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/AuthWorkspace"
-            - nullable: true
         workspaces:
           type: array
           items:
@@ -3956,9 +3956,9 @@ components:
                     type: integer
                     nullable: true
                   properties:
+                    nullable: true
                     allOf:
                       - $ref: "#/components/schemas/BootstrapDocumentProperties"
-                      - nullable: true
                   created_at:
                     type: string
                     format: date-time
@@ -4884,17 +4884,17 @@ components:
         week:
           $ref: "#/components/schemas/WeekMetadata"
         plan:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/MyWeekPlan"
-            - nullable: true
         retro:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/MyWeekRetro"
-            - nullable: true
         previous_retro:
+          nullable: true
           allOf:
             - $ref: "#/components/schemas/PreviousRetro"
-            - nullable: true
         standups:
           type: array
           items:
@@ -7560,15 +7560,6 @@ paths:
           required: true
           name: id
           in: path
-        - schema:
-            type: string
-            enum:
-              - planning
-              - active
-              - completed
-          required: false
-          name: status
-          in: query
       responses:
         200:
           description: List of program sprints

@@ -7,6 +7,7 @@ import { getActor } from '../../services/document-access.js';
 import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
+import { formatWireDate } from '../../utils/format-wire-date.js';
 import { logDocumentChange } from '../../utils/document-crud.js';
 import {
   asApprovalRecord,
@@ -147,7 +148,7 @@ function extractSprintFromRow(row: SprintRow) {
     program_prefix: row.program_prefix,
     program_accountable_id: row.program_accountable_id || null,
     owner_reports_to: row.owner_reports_to || null,
-    workspace_sprint_start_date: row.workspace_sprint_start_date,
+    workspace_sprint_start_date: formatWireDate(row.workspace_sprint_start_date),
     issue_count: parseInt(String(row.issue_count || 0), 10) || 0,
     completed_count: parseInt(String(row.completed_count || 0), 10) || 0,
     started_count: parseInt(String(row.started_count || 0), 10) || 0,
@@ -581,6 +582,12 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       );
     }
 
+    const wireStartDate = formatWireDate(sprintStartDate);
+    if (!wireStartDate) {
+      res.status(500).json({ error: 'Workspace sprint start date is not configured' });
+      return;
+    }
+
     res.status(201).json({
       id: newSprint.id,
       name: newSprint.title,
@@ -591,7 +598,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         email: ownerData.email,
       } : null,
       program_id: program_id || null,
-      workspace_sprint_start_date: sprintStartDate,
+      workspace_sprint_start_date: wireStartDate,
       issue_count: 0,
       completed_count: 0,
       started_count: 0,
