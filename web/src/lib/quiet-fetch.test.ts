@@ -15,7 +15,7 @@ describe('quiet-fetch', () => {
   });
 
   it('attaches CSRF token on POST after preflight', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.endsWith('/api/csrf-token')) {
         return new Response(JSON.stringify({ token: 'csrf-test' }), {

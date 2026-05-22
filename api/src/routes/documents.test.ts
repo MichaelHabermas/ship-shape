@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
+import { IdRow, PropertiesRow, CountRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js'
 
 describe('Documents API - PATCH with Issue Fields', () => {
@@ -19,20 +20,20 @@ describe('Documents API - PATCH with Issue Fields', () => {
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     // Create workspace membership
     await pool.query(
@@ -42,13 +43,13 @@ describe('Documents API - PATCH with Issue Fields', () => {
     )
 
     // Create a sprint for testing belongs_to
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'sprint', 'Test Sprint', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testSprintId = sprintResult.rows[0].id
+    testSprintId = requireFirstRow(sprintResult.rows).id
 
     // Create session
     const sessionId = crypto.randomBytes(32).toString('hex')
@@ -84,13 +85,13 @@ describe('Documents API - PATCH with Issue Fields', () => {
     await pool.query(`DELETE FROM documents WHERE workspace_id = $1 AND document_type = 'issue'`, [testWorkspaceId])
 
     // Create a fresh issue for each test
-    const issueResult = await pool.query(
+    const issueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by, properties)
        VALUES ($1, 'issue', 'Test Issue', 9999, $2, '{"state": "backlog", "priority": "none"}')
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testIssueId = issueResult.rows[0].id
+    testIssueId = requireFirstRow(issueResult.rows).id
   })
 
   describe('PATCH /api/documents/:id with top-level issue fields', () => {
@@ -211,19 +212,19 @@ describe('Documents API - Weekly Doc Resubmission', () => {
   let testProjectId: string
 
   beforeAll(async () => {
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Weekly Resubmit User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
@@ -231,21 +232,21 @@ describe('Documents API - Weekly Doc Resubmission', () => {
       [testWorkspaceId, testUserId]
     )
 
-    const personResult = await pool.query(
+    const personResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, properties)
        VALUES ($1, 'person', 'Weekly Resubmit Person', $2, $3)
        RETURNING id`,
       [testWorkspaceId, testUserId, JSON.stringify({ user_id: testUserId })]
     )
-    testPersonId = personResult.rows[0].id
+    testPersonId = requireFirstRow(personResult.rows).id
 
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'project', 'Weekly Resubmit Project', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProjectId = projectResult.rows[0].id
+    testProjectId = requireFirstRow(projectResult.rows).id
 
     const sessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
@@ -292,7 +293,7 @@ describe('Documents API - Weekly Doc Resubmission', () => {
 
   it('moves plan_approval back to changed_since_approved after weekly plan edit', async () => {
     const weekNumber = 17
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, properties)
        VALUES ($1, 'sprint', 'Week 17', $2, $3)
        RETURNING id`,
@@ -313,9 +314,9 @@ describe('Documents API - Weekly Doc Resubmission', () => {
         }),
       ]
     )
-    const sprintId = sprintResult.rows[0].id
+    const sprintId = requireFirstRow(sprintResult.rows).id
 
-    const planResult = await pool.query(
+    const planResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, content, properties)
        VALUES ($1, 'weekly_plan', 'Week 17 Plan', $2, $3, $4)
        RETURNING id`,
@@ -326,7 +327,7 @@ describe('Documents API - Weekly Doc Resubmission', () => {
         JSON.stringify({ person_id: testPersonId, project_id: testProjectId, week_number: weekNumber }),
       ]
     )
-    const planId = planResult.rows[0].id
+    const planId = requireFirstRow(planResult.rows).id
 
     const response = await request(app)
       .patch(`/api/documents/${planId}`)
@@ -341,17 +342,17 @@ describe('Documents API - Weekly Doc Resubmission', () => {
 
     expect(response.status).toBe(200)
 
-    const sprintAfter = await pool.query(
+    const sprintAfter = await pool.query<PropertiesRow>(
       `SELECT properties FROM documents WHERE id = $1`,
       [sprintId]
     )
-    expect(sprintAfter.rows[0].properties.plan_approval.state).toBe('changed_since_approved')
-    expect(sprintAfter.rows[0].properties.plan_approval.feedback).toBe('Please make this plan more measurable.')
+    expect(requireFirstRow(sprintAfter.rows).properties.plan_approval.state).toBe('changed_since_approved')
+    expect(requireFirstRow(sprintAfter.rows).properties.plan_approval.feedback).toBe('Please make this plan more measurable.')
   })
 
   it('moves review_approval back to changed_since_approved after weekly retro edit', async () => {
     const weekNumber = 18
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, properties)
        VALUES ($1, 'sprint', 'Week 18', $2, $3)
        RETURNING id`,
@@ -372,9 +373,9 @@ describe('Documents API - Weekly Doc Resubmission', () => {
         }),
       ]
     )
-    const sprintId = sprintResult.rows[0].id
+    const sprintId = requireFirstRow(sprintResult.rows).id
 
-    const retroResult = await pool.query(
+    const retroResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, content, properties)
        VALUES ($1, 'weekly_retro', 'Week 18 Retro', $2, $3, $4)
        RETURNING id`,
@@ -385,7 +386,7 @@ describe('Documents API - Weekly Doc Resubmission', () => {
         JSON.stringify({ person_id: testPersonId, project_id: testProjectId, week_number: weekNumber }),
       ]
     )
-    const retroId = retroResult.rows[0].id
+    const retroId = requireFirstRow(retroResult.rows).id
 
     const response = await request(app)
       .patch(`/api/documents/${retroId}`)
@@ -400,12 +401,12 @@ describe('Documents API - Weekly Doc Resubmission', () => {
 
     expect(response.status).toBe(200)
 
-    const sprintAfter = await pool.query(
+    const sprintAfter = await pool.query<PropertiesRow>(
       `SELECT properties FROM documents WHERE id = $1`,
       [sprintId]
     )
-    expect(sprintAfter.rows[0].properties.review_approval.state).toBe('changed_since_approved')
-    expect(sprintAfter.rows[0].properties.review_approval.feedback).toBe('Add evidence for delivered outcomes.')
+    expect(requireFirstRow(sprintAfter.rows).properties.review_approval.state).toBe('changed_since_approved')
+    expect(requireFirstRow(sprintAfter.rows).properties.review_approval.feedback).toBe('Add evidence for delivered outcomes.')
   })
 })
 
@@ -425,21 +426,21 @@ describe('Documents API - Delete', () => {
   // Setup: Create a test user and session
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     // Create workspace membership
     await pool.query(
@@ -483,13 +484,13 @@ describe('Documents API - Delete', () => {
     // Clean up any documents from previous tests
     await pool.query('DELETE FROM documents WHERE workspace_id = $1', [testWorkspaceId])
 
-    const docResult = await pool.query(
+    const docResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'wiki', 'Test Document', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testDocumentId = docResult.rows[0].id
+    testDocumentId = requireFirstRow(docResult.rows).id
   })
 
   describe('DELETE /api/documents/:id', () => {
@@ -531,19 +532,19 @@ describe('Documents API - Delete', () => {
 
     it('should return 404 when trying to delete document from another workspace', async () => {
       // Create document in a different workspace
-      const otherWorkspaceResult = await pool.query(
+      const otherWorkspaceResult = await pool.query<IdRow>(
         `INSERT INTO workspaces (name) VALUES ('Other Workspace Delete')
          RETURNING id`
       )
-      const otherWorkspaceId = otherWorkspaceResult.rows[0].id
+      const otherWorkspaceId = requireFirstRow(otherWorkspaceResult.rows).id
 
-      const otherDocResult = await pool.query(
+      const otherDocResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by)
          VALUES ($1, 'wiki', 'Other Document', $2)
          RETURNING id`,
         [otherWorkspaceId, testUserId]
       )
-      const otherDocumentId = otherDocResult.rows[0].id
+      const otherDocumentId = requireFirstRow(otherDocResult.rows).id
 
       // Try to delete document from another workspace
       const response = await request(app)
@@ -622,21 +623,21 @@ describe('Documents API - Conversion', () => {
   // Setup: Create a test user, session, and program
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     // Create workspace membership
     await pool.query(
@@ -646,13 +647,13 @@ describe('Documents API - Conversion', () => {
     )
 
     // Create a test program for association testing
-    const programResult = await pool.query(
+    const programResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'program', 'Test Program', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProgramId = programResult.rows[0].id
+    testProgramId = requireFirstRow(programResult.rows).id
 
     // Create session
     const sessionId = crypto.randomBytes(32).toString('hex')
@@ -687,13 +688,13 @@ describe('Documents API - Conversion', () => {
   describe('POST /api/documents/:id/convert', () => {
     it('should convert issue to project and copy program associations', async () => {
       // Create an issue
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by)
          VALUES ($1, 'issue', 'Issue to Convert', 1001, $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      const issueId = issueResult.rows[0].id
+      const issueId = requireFirstRow(issueResult.rows).id
 
       // Add program association to the issue
       await pool.query(
@@ -728,13 +729,13 @@ describe('Documents API - Conversion', () => {
 
     it('should convert project to issue and copy program associations', async () => {
       // Create a project
-      const projectResult = await pool.query(
+      const projectResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by)
          VALUES ($1, 'project', 'Project to Convert', $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      const projectId = projectResult.rows[0].id
+      const projectId = requireFirstRow(projectResult.rows).id
 
       // Add program association to the project
       await pool.query(
@@ -771,13 +772,13 @@ describe('Documents API - Conversion', () => {
   describe('POST /api/documents/:id/undo-conversion', () => {
     it('should undo conversion and restore original associations', async () => {
       // Create an issue
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by)
          VALUES ($1, 'issue', 'Issue for Undo Test', 1002, $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      const originalIssueId = issueResult.rows[0].id
+      const originalIssueId = requireFirstRow(issueResult.rows).id
 
       // Add program association to the issue
       await pool.query(
@@ -817,23 +818,23 @@ describe('Documents API - Conversion', () => {
       expect(assocResult.rows.length).toBe(1)
 
       // Verify snapshot was created and used
-      const snapshotResult = await pool.query(
+      const snapshotResult = await pool.query<CountRow>(
         `SELECT COUNT(*) FROM document_snapshots WHERE document_id = $1`,
         [originalIssueId]
       )
       // After undo, the used snapshot is deleted, but a new one is created for the undo itself
-      expect(parseInt(snapshotResult.rows[0].count)).toBeGreaterThanOrEqual(0)
+      expect(parseInt(requireFirstRow(snapshotResult.rows).count)).toBeGreaterThanOrEqual(0)
     })
 
     it('should have no orphaned associations after conversion/undo cycle', async () => {
       // Create an issue
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by)
          VALUES ($1, 'issue', 'Issue for Orphan Test', 1003, $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      const issueId = issueResult.rows[0].id
+      const issueId = requireFirstRow(issueResult.rows).id
 
       // Add program association
       await pool.query(
@@ -843,7 +844,7 @@ describe('Documents API - Conversion', () => {
       )
 
       // Count associations before
-      const beforeCount = await pool.query(
+      const beforeCount = await pool.query<CountRow>(
         `SELECT COUNT(*) FROM document_associations
          WHERE document_id = $1 OR related_id = $1`,
         [issueId]
@@ -865,13 +866,13 @@ describe('Documents API - Conversion', () => {
         .set('x-csrf-token', csrfToken)
 
       // Count associations after - should be same as before (1 program association)
-      const afterCount = await pool.query(
+      const afterCount = await pool.query<CountRow>(
         `SELECT COUNT(*) FROM document_associations
          WHERE document_id = $1 OR related_id = $1`,
         [issueId]
       )
 
-      expect(parseInt(afterCount.rows[0].count)).toBe(parseInt(beforeCount.rows[0].count))
+      expect(parseInt(requireFirstRow(afterCount.rows).count)).toBe(parseInt(requireFirstRow(beforeCount.rows).count))
     })
   })
 })

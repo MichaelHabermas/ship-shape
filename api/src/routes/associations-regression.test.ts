@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
+import { CountRow, IdRow, RelatedIdRow, RelationshipTypeRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js'
 
 /**
@@ -27,21 +28,21 @@ describe('Associations Regression Tests', () => {
   // Setup: Create test user, workspace, program, projects, and sprints
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Regression Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     // Create workspace membership
     await pool.query(
@@ -51,49 +52,49 @@ describe('Associations Regression Tests', () => {
     )
 
     // Create test program
-    const programResult = await pool.query(
+    const programResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'program', 'Test Program', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProgramId = programResult.rows[0].id
+    testProgramId = requireFirstRow(programResult.rows).id
 
     // Create test project 1
-    const project1Result = await pool.query(
+    const project1Result = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'project', 'Test Project 1', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProject1Id = project1Result.rows[0].id
+    testProject1Id = requireFirstRow(project1Result.rows).id
 
     // Create test project 2
-    const project2Result = await pool.query(
+    const project2Result = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'project', 'Test Project 2', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProject2Id = project2Result.rows[0].id
+    testProject2Id = requireFirstRow(project2Result.rows).id
 
     // Create test sprint 1 (with dates in future for "active" status)
-    const sprint1Result = await pool.query(
+    const sprint1Result = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, properties)
        VALUES ($1, 'sprint', 'Sprint 1', $2, '{"sprint_number": 1}')
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testSprint1Id = sprint1Result.rows[0].id
+    testSprint1Id = requireFirstRow(sprint1Result.rows).id
 
     // Create test sprint 2
-    const sprint2Result = await pool.query(
+    const sprint2Result = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, properties)
        VALUES ($1, 'sprint', 'Sprint 2', $2, '{"sprint_number": 2}')
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testSprint2Id = sprint2Result.rows[0].id
+    testSprint2Id = requireFirstRow(sprint2Result.rows).id
 
     // Associate projects with program
     await pool.query(
@@ -167,7 +168,7 @@ describe('Associations Regression Tests', () => {
       expect(response.body.belongs_to.length).toBe(3)
 
       // Verify associations in database
-      const assocResult = await pool.query(
+      const assocResult = await pool.query<RelationshipTypeRow>(
         `SELECT relationship_type FROM document_associations WHERE document_id = $1`,
         [testIssueId]
       )
@@ -177,13 +178,13 @@ describe('Associations Regression Tests', () => {
 
     it('reads issue with belongs_to array correctly', async () => {
       // Create issue with associations
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by)
          VALUES ($1, 'issue', 'Read Test Issue', 9001, $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      testIssueId = issueResult.rows[0].id
+      testIssueId = requireFirstRow(issueResult.rows).id
 
       // Add associations
       await pool.query(
@@ -216,13 +217,13 @@ describe('Associations Regression Tests', () => {
 
     beforeEach(async () => {
       // Create issue in sprint 1 with estimate (required for sprint assignment)
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by, properties)
          VALUES ($1, 'issue', 'Sprint Move Test', 9002, $2, '{"state": "backlog", "priority": "medium", "estimate": 3}')
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      testIssueId = issueResult.rows[0].id
+      testIssueId = requireFirstRow(issueResult.rows).id
 
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
@@ -238,11 +239,11 @@ describe('Associations Regression Tests', () => {
 
     it('moves issue from sprint 1 to sprint 2 via PATCH belongs_to', async () => {
       // Verify initial state
-      const beforeResult = await pool.query(
+      const beforeResult = await pool.query<RelatedIdRow>(
         `SELECT related_id FROM document_associations WHERE document_id = $1 AND relationship_type = 'sprint'`,
         [testIssueId]
       )
-      expect(beforeResult.rows[0].related_id).toBe(testSprint1Id)
+      expect(requireFirstRow(beforeResult.rows).related_id).toBe(testSprint1Id)
 
       // Move to sprint 2 via PATCH
       const response = await request(app)
@@ -258,11 +259,11 @@ describe('Associations Regression Tests', () => {
       expect(response.status).toBe(200)
 
       // Verify new state
-      const afterResult = await pool.query(
+      const afterResult = await pool.query<RelatedIdRow>(
         `SELECT related_id FROM document_associations WHERE document_id = $1 AND relationship_type = 'sprint'`,
         [testIssueId]
       )
-      expect(afterResult.rows[0].related_id).toBe(testSprint2Id)
+      expect(requireFirstRow(afterResult.rows).related_id).toBe(testSprint2Id)
     })
 
     it('removes issue from sprint by omitting sprint in belongs_to', async () => {
@@ -291,13 +292,13 @@ describe('Associations Regression Tests', () => {
 
     beforeEach(async () => {
       // Create issue
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by)
          VALUES ($1, 'issue', 'Multi-parent Test', 9003, $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      testIssueId = issueResult.rows[0].id
+      testIssueId = requireFirstRow(issueResult.rows).id
     })
 
     afterEach(async () => {
@@ -351,13 +352,13 @@ describe('Associations Regression Tests', () => {
   describe('Cascade delete behavior', () => {
     it('deleting document removes its associations from junction table', async () => {
       // Create issue with associations
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by)
          VALUES ($1, 'issue', 'Cascade Delete Test', 9004, $2)
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      const issueId = issueResult.rows[0].id
+      const issueId = requireFirstRow(issueResult.rows).id
 
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
@@ -366,11 +367,11 @@ describe('Associations Regression Tests', () => {
       )
 
       // Verify associations exist
-      const beforeResult = await pool.query(
+      const beforeResult = await pool.query<CountRow>(
         `SELECT COUNT(*) FROM document_associations WHERE document_id = $1`,
         [issueId]
       )
-      expect(parseInt(beforeResult.rows[0].count)).toBe(2)
+      expect(parseInt(requireFirstRow(beforeResult.rows).count)).toBe(2)
 
       // Delete the issue via API
       const response = await request(app)
@@ -381,11 +382,11 @@ describe('Associations Regression Tests', () => {
       expect(response.status).toBe(204)
 
       // Verify associations are cascade deleted
-      const afterResult = await pool.query(
+      const afterResult = await pool.query<CountRow>(
         `SELECT COUNT(*) FROM document_associations WHERE document_id = $1`,
         [issueId]
       )
-      expect(parseInt(afterResult.rows[0].count)).toBe(0)
+      expect(parseInt(requireFirstRow(afterResult.rows).count)).toBe(0)
     })
   })
 
@@ -394,13 +395,13 @@ describe('Associations Regression Tests', () => {
 
     beforeEach(async () => {
       // Create issue in sprint with project association
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by, properties)
          VALUES ($1, 'issue', 'Context API Test Issue', 9005, $2, '{"state": "in_progress"}')
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      testIssueId = issueResult.rows[0].id
+      testIssueId = requireFirstRow(issueResult.rows).id
 
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
@@ -452,22 +453,22 @@ describe('Associations Regression Tests', () => {
 
     beforeEach(async () => {
       // Create parent issue
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by, properties)
          VALUES ($1, 'issue', 'Parent Issue', 9010, $2, '{"state": "in_progress", "priority": "medium"}')
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      parentIssueId = parentResult.rows[0].id
+      parentIssueId = requireFirstRow(parentResult.rows).id
 
       // Create child issue
-      const childResult = await pool.query(
+      const childResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by, properties)
          VALUES ($1, 'issue', 'Child Issue', 9011, $2, '{"state": "todo", "priority": "medium"}')
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      childIssueId = childResult.rows[0].id
+      childIssueId = requireFirstRow(childResult.rows).id
 
       // Create parent-child association
       await pool.query(
