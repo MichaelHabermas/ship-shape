@@ -21,6 +21,8 @@ import {
   type DocumentResponse,
   type TabCounts,
 } from '@/lib/document-tabs';
+import { mapApiDocumentToUnifiedDocumentView } from '@/lib/document-view-mapper';
+import { getNullableString, getString, isCurrentDocumentType } from '@/lib/document-view-guards';
 
 /**
  * UnifiedDocumentPage - Renders any document type via /documents/:id route
@@ -63,12 +65,12 @@ export function UnifiedDocumentPage() {
   // Sync current document context for rail highlighting
   useEffect(() => {
     if (document && id) {
-      const docType = document.document_type as 'wiki' | 'issue' | 'project' | 'program' | 'sprint' | 'person' | 'weekly_plan' | 'weekly_retro' | 'standup';
+      if (!isCurrentDocumentType(document.document_type)) return;
       // Extract projectId for weekly documents
       const projectId = (document.document_type === 'weekly_plan' || document.document_type === 'weekly_retro')
-        ? (document.properties?.project_id as string | undefined) ?? null
+        ? getNullableString(document.properties?.project_id)
         : null;
-      setCurrentDocument(id, docType, projectId);
+      setCurrentDocument(id, document.document_type, projectId);
     }
     return () => {
       clearCurrentDocument();
@@ -308,7 +310,7 @@ export function UnifiedDocumentPage() {
   // Resolve standup author name for title suffix
   const standupAuthorName = useMemo(() => {
     if (!isStandup) return undefined;
-    const authorId = document?.properties?.author_id as string | undefined;
+    const authorId = getString(document?.properties?.author_id);
     if (!authorId) return undefined;
     return teamMembersData.find(m => m.user_id === authorId)?.name;
   }, [isStandup, document?.properties?.author_id, teamMembersData]);
@@ -380,66 +382,7 @@ export function UnifiedDocumentPage() {
   // Transform API response to UnifiedDocument format
   const unifiedDocument: UnifiedDocument | null = useMemo(() => {
     if (!document) return null;
-
-    // Extract program_id from belongs_to array (via document_associations)
-    const belongsTo = document.belongs_to as Array<{ id: string; type: string }> | undefined;
-    const programIdFromBelongsTo = belongsTo?.find(b => b.type === 'program')?.id;
-    const sprintIdFromBelongsTo = belongsTo?.find(b => b.type === 'sprint')?.id;
-
-    return {
-      id: document.id,
-      title: document.title,
-      document_type: document.document_type as UnifiedDocument['document_type'],
-      created_at: document.created_at,
-      updated_at: document.updated_at,
-      created_by: document.created_by as string | undefined,
-      properties: document.properties,
-      // Spread flattened properties based on type
-      ...(document.document_type === 'issue' && {
-        state: (document.state as string) || 'backlog',
-        priority: (document.priority as string) || 'medium',
-        estimate: document.estimate as number | undefined,
-        assignee_id: document.assignee_id as string | undefined,
-        assignee_name: document.assignee_name as string | undefined,
-        program_id: programIdFromBelongsTo,
-        sprint_id: sprintIdFromBelongsTo,
-        source: document.source as 'internal' | 'external' | undefined,
-        converted_from_id: document.converted_from_id as string | undefined,
-        display_id: (document.ticket_number as number) ? `#${document.ticket_number}` : undefined,
-        belongs_to: document.belongs_to as Array<{
-          id: string;
-          type: 'program' | 'project' | 'sprint' | 'parent';
-          title?: string;
-          color?: string;
-        }> | undefined,
-      }),
-      ...(document.document_type === 'project' && {
-        impact: (document.impact as number | null) ?? null,
-        confidence: (document.confidence as number | null) ?? null,
-        ease: (document.ease as number | null) ?? null,
-        color: (document.color) || '#3b82f6',
-        emoji: null,
-        program_id: programIdFromBelongsTo,
-        owner: document.owner as { id: string; name: string; email: string } | null,
-        owner_id: document.owner_id as string | undefined,
-        // RACI fields
-        accountable_id: document.accountable_id as string | undefined,
-        consulted_ids: document.consulted_ids as string[] | undefined,
-        informed_ids: document.informed_ids as string[] | undefined,
-        converted_from_id: document.converted_from_id as string | undefined,
-      }),
-      ...(document.document_type === 'sprint' && {
-        start_date: (document.start_date as string) || '',
-        end_date: (document.end_date as string) || '',
-        status: ((document.status as string) || 'planning') as 'planning' | 'active' | 'completed',
-        program_id: programIdFromBelongsTo,
-        plan: (document.plan as string) || '',
-      }),
-      ...(document.document_type === 'wiki' && {
-        parent_id: document.parent_id as string | undefined,
-        visibility: document.visibility as 'private' | 'workspace' | undefined,
-      }),
-    };
+    return mapApiDocumentToUnifiedDocumentView(document);
   }, [document]);
 
   // Loading state
@@ -468,7 +411,23 @@ export function UnifiedDocumentPage() {
     );
   }
 
-  if (!user || !unifiedDocument) {
+  if (!unifiedDocument) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4">
+        <div className="text-muted">
+          This document type cannot be opened in the editor.
+        </div>
+        <button
+          onClick={() => navigate('/docs')}
+          className="text-sm text-accent hover:underline"
+        >
+          Go to Documents
+        </button>
+      </div>
+    );
+  }
+
+  if (!user || !id) {
     return null;
   }
 
@@ -506,7 +465,7 @@ export function UnifiedDocumentPage() {
             }
           >
             {TabComponent && (
-              <TabComponent documentId={id!} document={document} nestedPath={nestedPath} />
+              <TabComponent documentId={id} document={document} nestedPath={nestedPath} />
             )}
           </Suspense>
         </div>

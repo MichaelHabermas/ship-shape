@@ -22,6 +22,10 @@ type RouteResponseSchema = {
   description?: string;
 };
 
+type InferParsedPart<TPart> = NonNullable<TPart> extends z.ZodTypeAny
+  ? z.infer<NonNullable<TPart>>
+  : undefined;
+
 export type DefineRouteConfig<TParsed extends RouteRequestSchemas> = {
   method: HttpMethod;
   path: string;
@@ -37,9 +41,9 @@ export type DefineRouteConfig<TParsed extends RouteRequestSchemas> = {
     req: Request,
     res: Response,
     parsed: {
-      params: TParsed['params'] extends z.ZodTypeAny ? z.infer<TParsed['params']> : undefined;
-      query: TParsed['query'] extends z.ZodTypeAny ? z.infer<TParsed['query']> : undefined;
-      body: TParsed['body'] extends z.ZodTypeAny ? z.infer<TParsed['body']> : undefined;
+      params: InferParsedPart<TParsed['params']>;
+      query: InferParsedPart<TParsed['query']>;
+      body: InferParsedPart<TParsed['body']>;
     }
   ) => void | Promise<void>;
 };

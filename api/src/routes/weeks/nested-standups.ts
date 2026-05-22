@@ -10,6 +10,7 @@ import {
   batchLookupIssues,
 } from '../../utils/transformIssueLinks.js';
 import { broadcastToUser } from '../../collaboration/index.js';
+import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import type { StandupRow } from './types.js';
 
 const router = Router();
@@ -64,8 +65,7 @@ function formatStandupResponse(row: StandupRow) {
 router.get('/:id/standups', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -156,8 +156,7 @@ router.get('/:id/standups', authMiddleware, async (req: Request, res: Response) 
 router.post('/:id/standups', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = createStandupSchema.safeParse(req.body);
     if (!parsed.success) {

@@ -2,8 +2,9 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
+import { sendInternalError } from '../../utils/route-http.js';
 import { logDocumentChange } from '../../utils/document-crud.js';
+import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import {
   asApprovalRecord,
   buildApprovedApprovalRecord,
@@ -26,12 +27,23 @@ import {
 
 const router = Router();
 
+function parseWeekId(req: Request, res: Response): string | null {
+  const { id } = req.params;
+  if (typeof id !== 'string' || id.length === 0) {
+    res.status(400).json({ error: 'Week id is required' });
+    return null;
+  }
+  return id;
+}
+
 // POST /api/weeks/:id/approve-plan - Approve sprint plan
 router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const id = parseWeekId(req, res);
+    if (!id) {
+      return;
+    }
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const parsedComment = parseApprovalComment(req.body);
     if (parsedComment.error) {
       res.status(400).json({ error: parsedComment.error });
@@ -59,7 +71,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     }
 
     const sprint = sprintResult.rows[0];
-    const ownerReportsTo = await getSprintOwnerReportsTo(id as string, workspaceId);
+    const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
       ownerReportsTo,
@@ -72,7 +84,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const versionId = await resolveApprovedVersionId(id as string, 'plan');
+    const versionId = await resolveApprovedVersionId(id, 'plan');
     const currentProps = sprint.properties || {};
     const previousApproval = asApprovalRecord(currentProps.plan_approval);
     const previousComment = getApprovalComment(previousApproval);
@@ -90,7 +102,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     );
 
     await logApprovalPropertyChangeIfCommentChanged(
-      id as string,
+      id,
       'plan_approval',
       previousApproval,
       previousComment,
@@ -100,7 +112,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 
     await broadcastAccountabilityUpdateToSprintOwner(
       sprint.sprint_owner_id,
-      id as string,
+      id,
       'plan_approved'
     );
 
@@ -116,9 +128,11 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 // POST /api/weeks/:id/unapprove-plan - Revoke plan approval (logged to history)
 router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const id = parseWeekId(req, res);
+    if (!id) {
+      return;
+    }
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
@@ -138,7 +152,7 @@ router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Res
     }
 
     const sprint = sprintResult.rows[0];
-    const ownerReportsTo = await getSprintOwnerReportsTo(id as string, workspaceId);
+    const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
       ownerReportsTo,
@@ -154,7 +168,7 @@ router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Res
     const currentProps = sprint.properties || {};
     const previousApproval = asApprovalRecord(currentProps.plan_approval);
 
-    await logApprovalRevoked(id as string, 'plan_approval', previousApproval, userId);
+    await logApprovalRevoked(id, 'plan_approval', previousApproval, userId);
 
     // Remove the approval from properties
     const { plan_approval: _, ...restProps } = currentProps;
@@ -174,10 +188,12 @@ router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Res
 // POST /api/weeks/:id/approve-review - Approve sprint review (rating required)
 router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = parseWeekId(req, res);
+    if (!id) {
+      return;
+    }
     const { rating } = req.body || {};
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const parsedComment = parseApprovalComment(req.body);
     if (parsedComment.error) {
       res.status(400).json({ error: parsedComment.error });
@@ -212,7 +228,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
     }
 
     const sprint = sprintResult.rows[0];
-    const ownerReportsTo = await getSprintOwnerReportsTo(id as string, workspaceId);
+    const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
       ownerReportsTo,
@@ -257,7 +273,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
     );
 
     await logApprovalPropertyChangeIfCommentChanged(
-      id as string,
+      id,
       'review_approval',
       previousApproval,
       previousComment,
@@ -267,7 +283,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
 
     await broadcastAccountabilityUpdateToSprintOwner(
       sprint.sprint_owner_id,
-      id as string,
+      id,
       'review_approved'
     );
 
@@ -284,10 +300,12 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
 // POST /api/weeks/:id/request-plan-changes - Request changes on sprint plan
 router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = parseWeekId(req, res);
+    if (!id) {
+      return;
+    }
     const { feedback } = req.body || {};
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
     if (!feedback || typeof feedback !== 'string' || feedback.trim().length === 0) {
@@ -319,7 +337,7 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
     }
 
     const sprint = sprintResult.rows[0];
-    const ownerReportsTo = await getSprintOwnerReportsTo(id as string, workspaceId);
+    const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
       ownerReportsTo,
@@ -345,10 +363,9 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
     );
 
     // Notify the sprint owner that changes were requested
-    const sprintOwnerId = sprint.sprint_owner_id;
     await broadcastAccountabilityUpdateToSprintOwner(
       sprint.sprint_owner_id,
-      id as string,
+      id,
       'changes_requested_plan',
     );
 
@@ -364,10 +381,12 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
 // POST /api/weeks/:id/request-retro-changes - Request changes on sprint retro
 router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = parseWeekId(req, res);
+    if (!id) {
+      return;
+    }
     const { feedback } = req.body || {};
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
     if (!feedback || typeof feedback !== 'string' || feedback.trim().length === 0) {
@@ -399,7 +418,7 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
     }
 
     const sprint = sprintResult.rows[0];
-    const ownerReportsTo = await getSprintOwnerReportsTo(id as string, workspaceId);
+    const ownerReportsTo = await getSprintOwnerReportsTo(id, workspaceId);
     const auth = checkSprintSupervisorAuth(
       sprint.program_accountable_id,
       ownerReportsTo,
@@ -426,7 +445,7 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
 
     await broadcastAccountabilityUpdateToSprintOwner(
       sprint.sprint_owner_id,
-      id as string,
+      id,
       'changes_requested_retro',
     );
 

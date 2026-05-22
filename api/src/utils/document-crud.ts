@@ -172,7 +172,9 @@ export async function getBelongsToAssociationsBatch(
     if (!associationsMap.has(docId)) {
       associationsMap.set(docId, []);
     }
-    associationsMap.get(docId)!.push({
+    const entries = associationsMap.get(docId);
+    if (!entries) continue;
+    entries.push({
       id: row.id,
       type: row.type,
       title: row.title || undefined,

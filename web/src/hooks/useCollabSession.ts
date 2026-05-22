@@ -126,21 +126,22 @@ export function useCollabSession({
         }
       };
 
-      wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc, { connect: false });
+	      wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc, { connect: false });
+	      const provider = wsProvider;
 
-      const attachRawMessageListener = () => {
-        if (wsProvider?.ws && rawMessageHandler) {
-          wsProvider.ws.addEventListener('message', rawMessageHandler);
-        }
-      };
+	      const attachRawMessageListener = () => {
+	        if (provider.ws && rawMessageHandler) {
+	          provider.ws.addEventListener('message', rawMessageHandler);
+	        }
+	      };
 
-      const originalConnect = wsProvider.connect.bind(wsProvider);
-      wsProvider.connect = () => {
-        originalConnect();
-        attachRawMessageListener();
-      };
+	      const originalConnect = provider.connect.bind(provider);
+	      provider.connect = () => {
+	        originalConnect();
+	        attachRawMessageListener();
+	      };
 
-      wsProvider.on('status', (event: { status: string }) => {
+	      provider.on('status', (event: { status: string }) => {
         if (cancelled) return;
         if (event.status === 'connected') {
           attachRawMessageListener();
@@ -150,18 +151,18 @@ export function useCollabSession({
         }
       });
 
-      wsProvider.connect();
+	      provider.connect();
 
-      wsProvider.on('connection-close', (event: CloseEvent | null) => {
-        if (cancelled) return;
-        if (event?.code === COLLAB_CLOSE_CODE_ACCESS_REVOKED) {
-          wsProvider!.shouldConnect = false;
-          alert('Access to this document has been revoked. The document is now private.');
-          onBackRef.current?.();
-        } else if (event?.code === COLLAB_CLOSE_CODE_CONVERSION) {
-          wsProvider!.shouldConnect = false;
-          try {
-            const conversionInfo = JSON.parse(event.reason || '{}');
+	      provider.on('connection-close', (event: CloseEvent | null) => {
+	        if (cancelled) return;
+	        if (event?.code === COLLAB_CLOSE_CODE_ACCESS_REVOKED) {
+	          provider.shouldConnect = false;
+	          alert('Access to this document has been revoked. The document is now private.');
+	          onBackRef.current?.();
+	        } else if (event?.code === COLLAB_CLOSE_CODE_CONVERSION) {
+	          provider.shouldConnect = false;
+	          try {
+	            const conversionInfo = JSON.parse(event.reason || '{}');
             if (conversionInfo.newDocId && conversionInfo.newDocType && onDocumentConvertedRef.current) {
               onDocumentConvertedRef.current(conversionInfo.newDocId, conversionInfo.newDocType);
             } else {
@@ -179,24 +180,24 @@ export function useCollabSession({
         }
       });
 
-      wsProvider.on('sync', (isSynced: boolean) => {
+	      provider.on('sync', (isSynced: boolean) => {
         if (cancelled) return;
         if (isSynced) {
           setSyncStatus('synced');
         }
       });
 
-      wsProvider.awareness.setLocalStateField('user', {
+	      provider.awareness.setLocalStateField('user', {
         name: userName,
         color: userColor,
       });
 
       updateUsersCallback = () => {
-        if (cancelled) return;
-        const users: CollabUser[] = [];
-        const seenNames = new Set<string>();
-        wsProvider!.awareness.getStates().forEach((state) => {
-          if (state.user && !seenNames.has(state.user.name)) {
+	        if (cancelled) return;
+	        const users: CollabUser[] = [];
+	        const seenNames = new Set<string>();
+	        provider.awareness.getStates().forEach((state) => {
+	          if (state.user && !seenNames.has(state.user.name)) {
             seenNames.add(state.user.name);
             users.push(state.user);
           }
@@ -204,12 +205,12 @@ export function useCollabSession({
         setConnectedUsers(users);
       };
 
-      wsProvider.awareness.on('change', updateUsersCallback);
-      updateUsersCallback();
+	      provider.awareness.on('change', updateUsersCallback);
+	      updateUsersCallback();
 
-      if (!cancelled) {
-        setProvider(wsProvider);
-      }
+	      if (!cancelled) {
+	        setProvider(provider);
+	      }
     });
 
     return () => {

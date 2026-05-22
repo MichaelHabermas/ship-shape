@@ -23,7 +23,9 @@ import {
   requireReferenceableDocument,
   visibilityPredicate,
 } from '../services/document-access.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { asApprovalRecord } from '../utils/approval-workflow.js';
 
 const router = Router();
 
@@ -82,6 +84,13 @@ type ConvertedDocumentRow = {
   converted_by_name: string | null;
 };
 
+function asDocumentProperties(value: unknown): DocumentProperties {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as DocumentProperties;
+}
+
 async function validateDocumentReferences(
   client: { query: typeof pool.query },
   actor: ReturnType<typeof getActor>,
@@ -122,7 +131,10 @@ async function canAccessDocument(
     return { canAccess: false, doc: null };
   }
 
-  const doc = result.rows[0]!;
+  const doc = result.rows[0];
+  if (!doc) {
+    return { canAccess: false, doc: null };
+  }
   return { canAccess: doc.can_access, doc };
 }
 
@@ -182,8 +194,7 @@ const updateDocumentSchema = z.object({
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { type, parent_id } = req.query;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Check if user is admin (admins can see all documents)
     const isAdmin = await isWorkspaceAdmin(userId, workspaceId);
@@ -606,6 +617,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { title, document_type, parent_id, program_id, sprint_id, properties, content, belongs_to } = parsed.data;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     let { visibility } = parsed.data;
 
@@ -644,7 +656,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       `INSERT INTO documents (workspace_id, document_type, title, parent_id, properties, created_by, visibility, content)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [req.workspaceId, document_type, title, parent_id || null, JSON.stringify(properties || {}), req.userId, visibility, content ? JSON.stringify(content) : null]
+      [workspaceId, document_type, title, parent_id || null, JSON.stringify(properties || {}), userId, visibility, content ? JSON.stringify(content) : null]
     );
 
     const newDoc = result.rows[0];
@@ -671,7 +683,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Sprint plans clear the "write sprint plan" action item
     // Documents with outcome property linked to sprints clear the "write retro" action item
     if (document_type === 'weekly_plan' || (properties && 'outcome' in properties)) {
-      broadcastToUser(req.userId!, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });
+      broadcastToUser(userId, 'accountability:updated', { documentId: newDoc.id, documentType: document_type });
     }
 
     res.status(201).json(newDoc);
@@ -986,7 +998,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // When a weekly plan/retro is edited after changes were requested, move it back to re-review.
     if (contentUpdated && (existing.document_type === 'weekly_plan' || existing.document_type === 'weekly_retro')) {
-      const docProps = (existing.properties || {}) as Record<string, unknown>;
+      const docProps = existing.properties || {};
       const personId = typeof docProps.person_id === 'string' ? docProps.person_id : null;
       const projectId = typeof docProps.project_id === 'string' ? docProps.project_id : null;
       const rawWeekNumber = docProps.week_number;
@@ -1020,9 +1032,9 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
         if (sprintResult.rows.length > 0) {
           const sprint = sprintResult.rows[0];
-          const sprintProps = (sprint.properties || {}) as Record<string, unknown>;
+          const sprintProps = asDocumentProperties(sprint.properties);
           const approvalKey = existing.document_type === 'weekly_plan' ? 'plan_approval' : 'review_approval';
-          const approval = sprintProps[approvalKey] as { state?: string; approved_by?: string | null } | undefined;
+          const approval = asApprovalRecord(sprintProps[approvalKey]);
 
           if (approval?.state === 'changes_requested') {
             const nextProps = {

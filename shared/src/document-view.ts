@@ -14,7 +14,9 @@ export type EditorDocumentType =
   | 'program'
   | 'person'
   | 'weekly_plan'
-  | 'weekly_retro';
+  | 'weekly_retro'
+  | 'standup'
+  | 'weekly_review';
 
 export interface BaseDocumentView {
   id: string;

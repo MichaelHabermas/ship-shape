@@ -68,7 +68,7 @@ router.post(
       500: { schema: ApiErrorResponseSchema, description: 'Internal server error' },
     },
     handler: async (_req, res, { body }) => {
-      const { email, password, name } = body!;
+      const { email, password, name } = body;
 
       if (password.length < 8) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({

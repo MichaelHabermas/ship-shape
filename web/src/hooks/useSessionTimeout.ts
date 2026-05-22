@@ -141,14 +141,16 @@ export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
         setWarningType('inactivity');
 
         // Start countdown
-        countdownIntervalRef.current = setInterval(() => {
-          setTimeRemaining((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(countdownIntervalRef.current!);
-              countdownIntervalRef.current = null;
-              onTimeoutRef.current();
-              return 0;
-            }
+	        countdownIntervalRef.current = setInterval(() => {
+	          setTimeRemaining((prev) => {
+	            if (prev === null || prev <= 1) {
+	              if (countdownIntervalRef.current) {
+	                clearInterval(countdownIntervalRef.current);
+	              }
+	              countdownIntervalRef.current = null;
+	              onTimeoutRef.current();
+	              return 0;
+	            }
             return prev - 1;
           });
         }, 1000);
@@ -185,14 +187,16 @@ export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
         if (countdownIntervalRef.current) {
           clearInterval(countdownIntervalRef.current);
         }
-        countdownIntervalRef.current = setInterval(() => {
-          setTimeRemaining((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(countdownIntervalRef.current!);
-              countdownIntervalRef.current = null;
-              onTimeoutRef.current();
-              return 0;
-            }
+	        countdownIntervalRef.current = setInterval(() => {
+	          setTimeRemaining((prev) => {
+	            if (prev === null || prev <= 1) {
+	              if (countdownIntervalRef.current) {
+	                clearInterval(countdownIntervalRef.current);
+	              }
+	              countdownIntervalRef.current = null;
+	              onTimeoutRef.current();
+	              return 0;
+	            }
             return prev - 1;
           });
         }, 1000);
@@ -209,14 +213,16 @@ export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
         setWarningType('absolute');
 
         // Start countdown
-        countdownIntervalRef.current = setInterval(() => {
-          setTimeRemaining((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(countdownIntervalRef.current!);
-              countdownIntervalRef.current = null;
-              onTimeoutRef.current();
-              return 0;
-            }
+	        countdownIntervalRef.current = setInterval(() => {
+	          setTimeRemaining((prev) => {
+	            if (prev === null || prev <= 1) {
+	              if (countdownIntervalRef.current) {
+	                clearInterval(countdownIntervalRef.current);
+	              }
+	              countdownIntervalRef.current = null;
+	              onTimeoutRef.current();
+	              return 0;
+	            }
             return prev - 1;
           });
         }, 1000);

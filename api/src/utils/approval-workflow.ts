@@ -41,6 +41,54 @@ type ReviewRatingValidationResult =
   | { ok: true; value: number }
   | { ok: false; error: string };
 
+const APPROVAL_STATES = new Set<ApprovalState>([
+  'approved',
+  'changed_since_approved',
+  'changes_requested',
+]);
+
+function isJsonRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasApprovalShape(value: Record<string, unknown>): boolean {
+  return [
+    'state',
+    'approved_by',
+    'approved_at',
+    'approved_version_id',
+    'feedback',
+    'comment',
+  ].some((key) => Object.prototype.hasOwnProperty.call(value, key));
+}
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function parseNullableString(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || typeof value === 'string') {
+    return value;
+  }
+  return undefined;
+}
+
+function parseNullableVersionId(value: unknown): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return value;
+  }
+  return undefined;
+}
+
 // =============================================================================
 // Authorization
 // =============================================================================
@@ -271,8 +319,58 @@ export async function logApprovalRevoked(
 }
 
 export function asApprovalRecord(value: unknown): ApprovalRecord | null {
-  if (!value || typeof value !== 'object') {
+  if (!isJsonRecord(value) || !hasApprovalShape(value)) {
     return null;
   }
-  return value as ApprovalRecord;
+
+  const rawState = value.state ?? null;
+  if (rawState !== null && (typeof rawState !== 'string' || !APPROVAL_STATES.has(rawState as ApprovalState))) {
+    return null;
+  }
+  const state = rawState as ApprovalState | null;
+
+  const approvedBy = hasOwn(value, 'approved_by')
+    ? parseNullableString(value.approved_by)
+    : null;
+  const approvedAt = hasOwn(value, 'approved_at')
+    ? parseNullableString(value.approved_at)
+    : null;
+  const approvedVersionId = hasOwn(value, 'approved_version_id')
+    ? parseNullableVersionId(value.approved_version_id)
+    : null;
+  if (approvedBy === undefined || approvedAt === undefined || approvedVersionId === undefined) {
+    return null;
+  }
+
+  let feedback: string | null | undefined;
+  if (hasOwn(value, 'feedback')) {
+    feedback = parseNullableString(value.feedback);
+    if (feedback === undefined) {
+      return null;
+    }
+  }
+
+  let comment: string | null | undefined;
+  if (hasOwn(value, 'comment')) {
+    comment = parseNullableString(value.comment);
+    if (comment === undefined) {
+      return null;
+    }
+  }
+
+  const record: ApprovalRecord = {
+    state,
+    approved_by: approvedBy ?? null,
+    approved_at: approvedAt ?? null,
+    approved_version_id: approvedVersionId ?? null,
+  };
+
+  if (hasOwn(value, 'feedback')) {
+    record.feedback = feedback;
+  }
+  if (hasOwn(value, 'comment')) {
+    record.comment = comment;
+  }
+
+  return record;
 }

@@ -3,6 +3,7 @@ import { pool } from '../../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
 import { logDocumentChange } from '../../utils/document-crud.js';
 import {
@@ -21,7 +22,7 @@ const router = Router();
 
 router.get('/lookup-person', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const userId = req.query.user_id as string;
 
     if (!userId) {
@@ -52,7 +53,7 @@ router.get('/lookup-person', authMiddleware, async (req: Request, res: Response)
 // Returns the sprint document with its approval properties
 router.get('/lookup', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const projectId = req.query.project_id as string;
     const sprintNumber = parseInt(req.query.sprint_number as string, 10);
 
@@ -206,8 +207,7 @@ async function takeSprintSnapshot(sprintId: string): Promise<string[]> {
 // Get all active sprints across the workspace
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -309,8 +309,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -356,7 +355,12 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const row = result.rows[0]!;
+    const row = result.rows[0];
+    if (!row) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+
     const props = row.properties || {};
     const sprintNumber = props.sprint_number || 1;
     const workspaceStartDate = row.workspace_sprint_start_date;
@@ -396,8 +400,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 // program_id is optional - allows creating projectless sprints for ad-hoc work
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = createSprintSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -544,7 +547,11 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       [workspaceId, title, JSON.stringify(properties), userId, JSON.stringify(defaultContent)]
     );
 
-    const newSprint = result.rows[0]!;
+    const newSprint = result.rows[0];
+    if (!newSprint) {
+      throw new Error('Create sprint did not return a row');
+    }
+
     const sprintId = newSprint.id;
 
     // Create document_association to link sprint to program (required for queries that join via associations)
@@ -586,8 +593,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = updateSprintSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -640,7 +646,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
           `SELECT u.id FROM users u
            JOIN workspace_memberships wm ON wm.user_id = u.id
            WHERE u.id = $1 AND wm.workspace_id = $2`,
-          [data.owner_id, req.workspaceId]
+          [data.owner_id, workspaceId]
         );
 
         if (ownerCheck.rows.length === 0) {
@@ -717,7 +723,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     await pool.query(
       `UPDATE documents SET ${updates.join(', ')}
        WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1} AND document_type = 'sprint'`,
-      [...values, id, req.workspaceId]
+      [...values, id, workspaceId]
     );
 
     // Re-query to get full sprint with owner info
@@ -767,8 +773,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 router.post('/:id/start', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -819,7 +824,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
     );
 
     // Broadcast celebration when sprint is started
-    broadcastToUser(req.userId!, 'accountability:updated', { type: 'week_start', targetId: id as string });
+    broadcastToUser(userId, 'accountability:updated', { type: 'week_start', targetId: id as string });
 
     // Re-query to get full sprint with owner info
     const result = await pool.query(
@@ -872,8 +877,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -913,8 +917,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = updatePlanSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1018,7 +1021,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
 
     // Broadcast celebration when plan is added
     if (data.plan && data.plan.trim() !== '') {
-      broadcastToUser(req.userId!, 'accountability:updated', { type: 'weekly_plan', targetId: id as string });
+      broadcastToUser(userId, 'accountability:updated', { type: 'weekly_plan', targetId: id as string });
     }
 
     // Re-query to get full sprint with owner info
@@ -1067,8 +1070,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
 router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -1165,8 +1167,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);

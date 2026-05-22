@@ -1,5 +1,6 @@
 import { IssuesList, DEFAULT_FILTER_TABS } from '@/components/IssuesList';
 import type { DocumentTabProps } from '@/lib/document-tabs';
+import { getDocumentProgramId } from '@/lib/document-view-mapper';
 
 /**
  * SprintIssuesTab - Issues view for active/completed sprints
@@ -11,9 +12,7 @@ import type { DocumentTabProps } from '@/lib/document-tabs';
  * Used when sprint status is 'active' or 'completed'.
  */
 export default function SprintIssuesTab({ documentId, document }: DocumentTabProps) {
-  // Get program_id from belongs_to array (sprint's parent program via document_associations)
-  const belongsTo = (document as { belongs_to?: Array<{ id: string; type: string }> }).belongs_to;
-  const programId = belongsTo?.find(b => b.type === 'program')?.id;
+  const programId = getDocumentProgramId(document) ?? undefined;
 
   return (
     <div className="flex h-full flex-col">

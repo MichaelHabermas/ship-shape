@@ -6,6 +6,11 @@ export type AuthenticatedRouteContext = {
   isSuperAdmin: boolean;
 };
 
+export type AuthenticatedUserContext = {
+  userId: string;
+  isSuperAdmin: boolean;
+};
+
 export function getAuthenticatedRouteContext(req: Request): AuthenticatedRouteContext {
   if (!req.userId || !req.workspaceId) {
     throw new Error('Authenticated route is missing user or workspace context');
@@ -14,6 +19,17 @@ export function getAuthenticatedRouteContext(req: Request): AuthenticatedRouteCo
   return {
     userId: req.userId,
     workspaceId: req.workspaceId,
+    isSuperAdmin: req.isSuperAdmin === true,
+  };
+}
+
+export function getAuthenticatedUserContext(req: Request): AuthenticatedUserContext {
+  if (!req.userId) {
+    throw new Error('Authenticated route is missing user context');
+  }
+
+  return {
+    userId: req.userId,
     isSuperAdmin: req.isSuperAdmin === true,
   };
 }

@@ -5,6 +5,11 @@
 import { z, registry } from '../registry.js';
 import { UuidSchema, DocumentVisibilitySchema } from './common.js';
 import { DocumentTypeSchema } from './documents.js';
+import {
+  OptionalQueryStringSchema,
+  SearchLimitQuerySchema,
+  SearchOffsetQuerySchema,
+} from './query-helpers.js';
 
 // ============== Search Results ==============
 
@@ -120,13 +125,13 @@ registry.registerPath({
   description: 'Title-only metadata search for command palette document navigation.',
   request: {
     query: z.object({
-      q: z.string().optional().openapi({
+      q: OptionalQueryStringSchema.openapi({
         description: 'Title search query',
       }),
       type: DocumentTypeSchema.optional().openapi({
         description: 'Optional document type filter',
       }),
-      limit: z.coerce.number().int().min(1).max(50).optional(),
+      limit: SearchLimitQuerySchema,
     }),
   },
   responses: {
@@ -155,8 +160,8 @@ registry.registerPath({
       type: DocumentTypeSchema.optional().openapi({
         description: 'Optional document type filter',
       }),
-      limit: z.coerce.number().int().min(1).max(50).optional(),
-      offset: z.coerce.number().int().min(0).optional(),
+      limit: SearchLimitQuerySchema,
+      offset: SearchOffsetQuerySchema,
     }),
   },
   responses: {
@@ -182,11 +187,11 @@ registry.registerPath({
   description: 'Search wiki documents for learnings. Filters by program optionally.',
   request: {
     query: z.object({
-      q: z.string().optional().openapi({
+      q: OptionalQueryStringSchema.openapi({
         description: 'Search query',
       }),
       program_id: UuidSchema.optional(),
-      limit: z.coerce.number().int().min(1).max(50).optional(),
+      limit: SearchLimitQuerySchema,
     }),
   },
   responses: {

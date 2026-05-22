@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { apiPatch, apiDelete } from '@/lib/api';
 import type { DocumentTabProps } from '@/lib/document-tabs';
+import { getProgramView } from '@/lib/document-view-mapper';
 
 /**
  * ProgramOverviewTab - Renders the program document in the UnifiedEditor
@@ -100,22 +101,7 @@ export default function ProgramOverviewTab({ documentId, document }: DocumentTab
   }), [teamMembers]);
 
   // Transform to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument = useMemo(() => ({
-    id: document.id,
-    title: document.title,
-    document_type: 'program',
-    created_at: document.created_at,
-    updated_at: document.updated_at,
-    created_by: document.created_by as string | undefined,
-    properties: document.properties,
-    color: (document.color as string) || '#6366f1',
-    emoji: (document.emoji as string) || null,
-    owner_id: document.owner_id as string | undefined,
-    // RACI fields
-    accountable_id: document.accountable_id as string | undefined,
-    consulted_ids: (document.consulted_ids as string[]) || [],
-    informed_ids: (document.informed_ids as string[]) || [],
-  }), [document]);
+  const unifiedDocument: UnifiedDocument = useMemo(() => getProgramView(document), [document]);
 
   if (!user) return null;
 

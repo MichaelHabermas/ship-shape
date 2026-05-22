@@ -190,17 +190,17 @@ Evidence: Implementation added migration `038_document_search_index.sql`, fresh-
 
 Status: Accepted
 
-Decision: Add `getAuthenticatedRouteContext(req)` and use it in newly touched authenticated routes instead of adding more `req.userId!` / `req.workspaceId!` assertions.
+Decision: Add `getAuthenticatedRouteContext(req)` for workspace-authenticated routes and `getAuthenticatedUserContext(req)` for user-only authenticated routes, then use those helpers in touched routes instead of adding more `req.userId!` / `req.workspaceId!` assertions.
 
 Why: Auth middleware does attach those fields, but repeated non-null assertions smear the boundary across route code. A small helper keeps the invariant explicit without a broad route rewrite.
 
 Alternatives considered: Leave assertions in place; globally type `authMiddleware` to refine `Request`; rewrite all authenticated routes. Leaving assertions continues drift. A global Express type refinement is not reliable through middleware composition. A repo-wide rewrite is churnier than the current need.
 
-Consequences: New or touched authenticated routes should prefer the helper. Existing assertions can be retired opportunistically when a route is already being changed.
+Consequences: New or touched authenticated routes should prefer the matching helper. Workspace-bound routes should use the route context helper; super-admin/audit routes that only need a user id should use the user-only helper. Existing assertions can be retired opportunistically when a route is already being changed.
 
-Evidence: `api/src/routes/search.ts` now uses the helper, and `pnpm --filter @ship/api type-check` passes.
+Evidence: `api/src/routes/search.ts` uses the workspace helper. The 2026-05-22 non-null assertion sweep converted authenticated routes across standups, feedback, documents, issues, projects, weeks, team, dashboard, admin, credentials, and API-token families; `pnpm type-safety:counts` reports production non-null assertions at 35, all in `api/src/db/seed.ts`, and `pnpm type-check` passes.
 
-**Decision Gist**: Newly touched authenticated routes should acquire user/workspace ids through a route-context helper, not scattered non-null assertions.
+**Decision Gist**: Newly touched authenticated routes should acquire user/workspace ids through context helpers, not scattered non-null assertions.
 
 ## 2026-05-20: Submission-Gated Foundation Pass
 
@@ -735,3 +735,19 @@ Consequences: Evidence-changing work should update only the affected ledger cate
 Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render`, and `submission:validate:strict`; `pnpm submission:validate` currently reports Cats 1 and 5 passing, Cat 5 with warning `cat5-e2e-baseline-not-green`, and Cats 2, 3, 4, 6, 7, and 8 carrying honest open gates.
 
 **Decision Gist**: Reviewer claims are ledger-first; prose reports are context, not the claim authority.
+
+### D043: Meaningful Cast Cleanup Uses Boundary Modules
+
+Status: Accepted
+
+Decision: Reduce high-risk `as` casts by adding narrow boundary modules instead of scattering new assertions: query coercion helpers for API routes, `asApprovalRecord` as a persisted JSONB guard, frontend API status errors, and a web-local document response-to-editor-view mapper.
+
+Why: Raw `as` counts were still high after the `any` and non-null sweeps, but many remaining casts were not equally risky. The useful work is where untyped external data enters the app: request queries, JSONB properties, API responses, and status-bearing errors.
+
+Consequences: Future route cleanup should prefer schemas/helpers over `req.query.foo as string`; future editor/page cleanup should map API responses once before passing typed document views into UI components. Keep `as const` and ordinary DOM/library casts out of the main success claim unless they hide real boundary risk.
+
+Evidence: `pnpm type-safety:counts` after the pass reports `as` assertions at 460 total / 346 production, down from the previous 575 total / 461 production. `pnpm type-check` passed; focused web mapper/tab tests passed 25/25; focused API route tests passed 108/108 on `ship_test_audit`; full web suite passed 168/168; full API suite passed 509/509.
+
+Correctness follow-up: Review found that persisted document types must not be silently remapped to `wiki`, and runtime query parsing should not live under the OpenAPI schema module. The mapper now preserves `standup` and `weekly_review` as base editor views, returning `null` only for truly unknown document type strings. Runtime query helpers live in `api/src/utils/query-params.ts`; `api/src/openapi/schemas/query-helpers.ts` only exports schema constants. Focused verification passed: `pnpm type-check`; web mapper test 5/5; API search/OpenAPI tests 30/30 on `ship_test_audit`; query-param and approval-workflow utility tests 7/7 on `ship_test_audit`.
+
+**Decision Gist**: Remove casts at ingress boundaries, not by moving assertions around.

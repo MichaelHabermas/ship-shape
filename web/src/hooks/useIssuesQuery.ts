@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiPost, apiPatch } from '@/lib/api';
+import { createApiStatusError } from '@/lib/api-error';
 import { apiClient, assertApiData } from '@/api/client';
 import type { CascadeWarning, IncompleteChild, BelongsTo, BelongsToType } from '@ship/shared';
 
@@ -145,9 +146,7 @@ async function createIssueApi(data: CreateIssueData): Promise<Issue> {
 
   const res = await apiPost('/api/issues', apiData);
   if (!res.ok) {
-    const error = new Error('Failed to create issue') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to create issue', res.status);
   }
   const apiIssue = await res.json();
   return transformIssue(apiIssue);
@@ -165,9 +164,7 @@ async function updateIssueApi(id: string, updates: Partial<Issue>): Promise<Issu
         throw new CascadeWarningError(body as CascadeWarning);
       }
     }
-    const error = new Error('Failed to update issue') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to update issue', res.status);
   }
   const apiIssue = await res.json();
   return transformIssue(apiIssue);
@@ -307,9 +304,7 @@ interface BulkUpdateResponse {
 async function bulkUpdateIssuesApi(data: BulkUpdateRequest): Promise<BulkUpdateResponse> {
   const res = await apiPost('/api/issues/bulk', data);
   if (!res.ok) {
-    const error = new Error('Failed to bulk update issues') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to bulk update issues', res.status);
   }
   return res.json();
 }

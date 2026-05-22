@@ -49,7 +49,7 @@ function getLazyIcon(name: string) {
     iconCache.set(name, LazyIcon);
   }
 
-  return iconCache.get(name)!;
+  return iconCache.get(name) ?? null;
 }
 
 /**

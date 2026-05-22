@@ -13,6 +13,7 @@ import {
   visibilityPredicate,
 } from '../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 const router = Router();
 
@@ -156,8 +157,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { person_id, project_id, week_number } = parsed.data;
-    const workspaceId = req.workspaceId!;
-    const userId = req.userId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor, client);
 
@@ -291,7 +291,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
  */
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
     const { person_id, project_id, week_number } = req.query;
@@ -455,7 +455,7 @@ router.get('/project-allocation-grid/:projectId', authMiddleware, getProjectAllo
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
 
@@ -566,8 +566,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
     }
 
     const { person_id, project_id, week_number } = parsed.data;
-    const workspaceId = req.workspaceId!;
-    const userId = req.userId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor, client);
 
@@ -721,7 +720,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
  */
 weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
     const { person_id, project_id, week_number } = req.query;
@@ -883,7 +882,7 @@ weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res:
 weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
 
@@ -960,7 +959,7 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
 async function getProjectAllocationGrid(req: Request, res: Response) {
   try {
     const { projectId } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
 
@@ -1020,7 +1019,10 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
           allocatedWeeks: new Set(),
         });
       }
-      peopleMap.get(row.person_id)!.allocatedWeeks.add(row.week_number);
+      const personAllocation = peopleMap.get(row.person_id);
+      if (personAllocation) {
+        personAllocation.allocatedWeeks.add(row.week_number);
+      }
     }
 
     // Get all weekly plans for this project (include content to check if "done")
