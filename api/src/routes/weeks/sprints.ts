@@ -9,7 +9,6 @@ import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
 import { logDocumentChange } from '../../utils/document-crud.js';
 import {
-  applyChangedSinceApprovedOnEdit,
   asApprovalRecord,
 } from '../../utils/approval-workflow.js';
 import { broadcastToUser } from '../../collaboration/index.js';

@@ -59,6 +59,16 @@ export const WeekResponseSchema = z.object({
 
 registry.register('Week', WeekResponseSchema);
 
+export const ActiveWeekItemSchema = WeekResponseSchema.extend({
+  days_remaining: z.number().int().openapi({
+    description: 'Days remaining in the current sprint window',
+  }),
+  owner_reports_to: z.string().nullable().optional(),
+  review_rating: z.number().nullable().optional(),
+}).openapi('ActiveWeekItem');
+
+registry.register('ActiveWeekItem', ActiveWeekItemSchema);
+
 // ============== Create/Update Week ==============
 
 export const CreateWeekSchema = z.object({
@@ -107,11 +117,13 @@ registry.register('WeekReview', WeekReviewSchema);
 // ============== Active Weeks Response ==============
 
 export const ActiveWeeksResponseSchema = z.object({
-  sprints: z.array(WeekResponseSchema),
-  currentSprintNumber: z.number().int(),
-  daysRemaining: z.number().int().openapi({
+  weeks: z.array(ActiveWeekItemSchema),
+  current_sprint_number: z.number().int(),
+  days_remaining: z.number().int().openapi({
     description: 'Days remaining in current sprint',
   }),
+  sprint_start_date: DateSchema,
+  sprint_end_date: DateSchema,
 }).openapi('ActiveWeeksResponse');
 
 registry.register('ActiveWeeksResponse', ActiveWeeksResponseSchema);

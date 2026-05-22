@@ -3,6 +3,8 @@
  */
 
 import { z, registry } from '../registry.js';
+import { inferredProjectStatusSchema } from '../../schemas/document-boundary.js';
+import { IssuePrioritySchema, IssueStateSchema } from './issues.js';
 import { UuidSchema, DateTimeSchema, UserReferenceSchema } from './common.js';
 
 // ============== ICE Score ==============
@@ -82,7 +84,7 @@ export const ProjectResponseSchema = z.object({
   }),
   target_date: DateTimeSchema.nullable(),
   // Inferred status
-  inferred_status: z.enum(['active', 'planned', 'completed', 'backlog', 'archived']).openapi({
+  inferred_status: inferredProjectStatusSchema.openapi({
     description: 'Status computed from sprint relationships',
   }),
   // Counts
@@ -99,6 +101,45 @@ export const ProjectResponseSchema = z.object({
 }).openapi('Project');
 
 registry.register('Project', ProjectResponseSchema);
+
+export const ProjectIssueListItemSchema = z.object({
+  id: UuidSchema,
+  title: z.string(),
+  ticket_number: z.number().int(),
+  state: IssueStateSchema,
+  priority: IssuePrioritySchema,
+  assignee_id: UuidSchema.nullable(),
+  assignee_name: z.string().nullable(),
+  created_at: DateTimeSchema,
+  updated_at: DateTimeSchema,
+  started_at: DateTimeSchema.nullable(),
+  completed_at: DateTimeSchema.nullable(),
+  cancelled_at: DateTimeSchema.nullable(),
+}).openapi('ProjectIssueListItem');
+
+registry.register('ProjectIssueListItem', ProjectIssueListItemSchema);
+
+export const ProjectWeekListItemSchema = z.object({
+  id: UuidSchema,
+  name: z.string(),
+  sprint_number: z.number().int(),
+  status: z.enum(['planning', 'active', 'completed']),
+  owner: UserReferenceSchema.nullable(),
+  project_id: UuidSchema.nullable(),
+  project_name: z.string().nullable(),
+  program_id: UuidSchema.nullable(),
+  program_name: z.string().nullable(),
+  program_prefix: z.string().nullable(),
+  workspace_sprint_start_date: DateTimeSchema.nullable(),
+  issue_count: z.number().int(),
+  completed_count: z.number().int(),
+  started_count: z.number().int(),
+  plan: z.string().nullable(),
+  success_criteria: z.array(z.string()).nullable(),
+  confidence: z.number().int().min(0).max(100).nullable(),
+}).openapi('ProjectWeekListItem');
+
+registry.register('ProjectWeekListItem', ProjectWeekListItemSchema);
 
 // ============== Create/Update Project ==============
 
@@ -375,7 +416,7 @@ registry.registerPath({
   summary: 'List project issues',
   request: { params: z.object({ id: UuidSchema }) },
   responses: {
-    200: { description: 'Project issues', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+    200: { description: 'Project issues', content: { 'application/json': { schema: z.array(ProjectIssueListItemSchema) } } },
     404: { description: 'Project not found' },
   },
 });
@@ -387,7 +428,7 @@ registry.registerPath({
   summary: 'List project weeks',
   request: { params: z.object({ id: UuidSchema }) },
   responses: {
-    200: { description: 'Project weeks', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+    200: { description: 'Project weeks', content: { 'application/json': { schema: z.array(ProjectWeekListItemSchema) } } },
     404: { description: 'Project not found' },
   },
 });
@@ -399,7 +440,7 @@ registry.registerPath({
   summary: 'List project sprints',
   request: { params: z.object({ id: UuidSchema }) },
   responses: {
-    200: { description: 'Project sprints', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } },
+    200: { description: 'Project sprints', content: { 'application/json': { schema: z.array(ProjectWeekListItemSchema) } } },
     404: { description: 'Project not found' },
   },
 });

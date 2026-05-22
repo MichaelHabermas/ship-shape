@@ -6,7 +6,7 @@ import { getActor } from '../services/document-access.js';
 import { requireTeamAllocationAuthority } from '../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { hasContent } from '../utils/document-content.js';
-import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { sendInternalError } from '../utils/route-http.js';
 
 function parseMetricEstimate(estimate: string | number): number {
   if (typeof estimate === 'number') {

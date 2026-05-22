@@ -8,7 +8,6 @@ import {
   jsonResponse,
   JsonObjectSchema,
   successEnvelope,
-  IdParamSchema,
   SuccessOnlyResponseSchema,
 } from './route-helpers.js';
 

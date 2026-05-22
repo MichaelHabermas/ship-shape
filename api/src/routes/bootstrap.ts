@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
-import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type InferredProjectStatus, type IssueProperties, type ProjectProperties } from '@ship/shared';
+import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type InferredProjectStatus, type ProjectProperties } from '@ship/shared';
 import { getBelongsToAssociationsBatch } from '../utils/document-crud.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
@@ -178,7 +178,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       programsResult,
       projectsResult,
       issuesResult,
-      workspaceResult,
     ] = await Promise.all([
       pool.query('SELECT id, email, name, is_super_admin FROM users WHERE id = $1', [userId]),
       pool.query(
@@ -248,7 +247,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         [workspaceId, userId, isAdmin]
       ),
       listIssuesMetadata(workspaceId, userId, isAdmin),
-      pool.query('SELECT sprint_start_date FROM workspaces WHERE id = $1', [workspaceId]),
     ]);
 
     const user = userResult.rows[0];

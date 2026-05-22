@@ -1321,6 +1321,174 @@ components:
         - updated_at
         - archived_at
         - converted_from_id
+    ProjectIssueListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+        ticket_number:
+          type: integer
+        state:
+          type: string
+          enum:
+            - triage
+            - backlog
+            - todo
+            - in_progress
+            - in_review
+            - done
+            - cancelled
+          description: Issue workflow state
+        priority:
+          type: string
+          enum:
+            - urgent
+            - high
+            - medium
+            - low
+            - none
+          description: Issue priority level
+        assignee_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        assignee_name:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        started_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        completed_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        cancelled_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+      required:
+        - id
+        - title
+        - ticket_number
+        - state
+        - priority
+        - assignee_id
+        - assignee_name
+        - created_at
+        - updated_at
+        - started_at
+        - completed_at
+        - cancelled_at
+    ProjectWeekListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+        sprint_number:
+          type: integer
+        status:
+          type: string
+          enum:
+            - planning
+            - active
+            - completed
+        owner:
+          allOf:
+            - $ref: "#/components/schemas/UserReference"
+            - nullable: true
+        project_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        project_name:
+          type: string
+          nullable: true
+        program_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        program_name:
+          type: string
+          nullable: true
+        program_prefix:
+          type: string
+          nullable: true
+        workspace_sprint_start_date:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        issue_count:
+          type: integer
+        completed_count:
+          type: integer
+        started_count:
+          type: integer
+        plan:
+          type: string
+          nullable: true
+        success_criteria:
+          type: array
+          nullable: true
+          items:
+            type: string
+        confidence:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
+      required:
+        - id
+        - name
+        - sprint_number
+        - status
+        - owner
+        - project_id
+        - project_name
+        - program_id
+        - program_name
+        - program_prefix
+        - workspace_sprint_start_date
+        - issue_count
+        - completed_count
+        - started_count
+        - plan
+        - success_criteria
+        - confidence
     CreateProject:
       type: object
       properties:
@@ -1604,6 +1772,85 @@ components:
         - accountable_id
         - consulted_ids
         - informed_ids
+    ProgramSprintListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+        sprint_number:
+          type: integer
+        status:
+          type: string
+          enum:
+            - planning
+            - active
+            - completed
+        owner:
+          allOf:
+            - $ref: "#/components/schemas/UserReference"
+            - nullable: true
+        issue_count:
+          type: integer
+        completed_count:
+          type: integer
+        started_count:
+          type: integer
+        total_estimate_hours:
+          type: number
+        has_plan:
+          type: boolean
+        has_retro:
+          type: boolean
+        plan_created_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        retro_created_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        plan:
+          type: string
+          nullable: true
+      required:
+        - id
+        - name
+        - sprint_number
+        - status
+        - owner
+        - issue_count
+        - completed_count
+        - started_count
+        - total_estimate_hours
+        - has_plan
+        - has_retro
+        - plan_created_at
+        - retro_created_at
+        - plan
+    ProgramSprintsResponse:
+      type: object
+      properties:
+        workspace_sprint_start_date:
+          type: string
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: ISO 8601 date string (YYYY-MM-DD)
+          example: 2025-01-30
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramSprintListItem"
+      required:
+        - workspace_sprint_start_date
+        - weeks
     CreateProgram:
       type: object
       properties:
@@ -1944,6 +2191,23 @@ components:
         - plan_approval
         - review_approval
         - accountable_id
+    ActiveWeekItem:
+      allOf:
+        - $ref: "#/components/schemas/Week"
+        - type: object
+          default:
+          properties:
+            days_remaining:
+              type: integer
+              description: Days remaining in the current sprint window
+            owner_reports_to:
+              type: string
+              nullable: true
+            review_rating:
+              type: number
+              nullable: true
+          required:
+            - days_remaining
     CreateWeek:
       type: object
       properties:
@@ -2068,19 +2332,31 @@ components:
     ActiveWeeksResponse:
       type: object
       properties:
-        sprints:
+        weeks:
           type: array
           items:
-            $ref: "#/components/schemas/Week"
-        currentSprintNumber:
+            $ref: "#/components/schemas/ActiveWeekItem"
+        current_sprint_number:
           type: integer
-        daysRemaining:
+        days_remaining:
           type: integer
           description: Days remaining in current sprint
+        sprint_start_date:
+          type: string
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: ISO 8601 date string (YYYY-MM-DD)
+          example: 2025-01-30
+        sprint_end_date:
+          type: string
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: ISO 8601 date string (YYYY-MM-DD)
+          example: 2025-01-30
       required:
-        - sprints
-        - currentSprintNumber
-        - daysRemaining
+        - weeks
+        - current_sprint_number
+        - days_remaining
+        - sprint_start_date
+        - sprint_end_date
     Standup:
       type: object
       properties:
@@ -4298,6 +4574,12 @@ components:
           nullable: true
         inferred_status:
           type: string
+          enum:
+            - active
+            - planned
+            - completed
+            - backlog
+            - archived
         sprint_number:
           type: integer
         days_remaining:
@@ -6902,9 +7184,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  additionalProperties:
-                    nullable: true
+                  $ref: "#/components/schemas/ProjectIssueListItem"
         404:
           description: Project not found
   /projects/{id}/weeks:
@@ -6929,9 +7209,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  additionalProperties:
-                    nullable: true
+                  $ref: "#/components/schemas/ProjectWeekListItem"
         404:
           description: Project not found
   /projects/{id}/sprints:
@@ -6956,9 +7234,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  additionalProperties:
-                    nullable: true
+                  $ref: "#/components/schemas/ProjectWeekListItem"
         404:
           description: Project not found
     post:
@@ -7246,6 +7522,12 @@ paths:
                       nullable: true
                     inferred_status:
                       type: string
+                      enum:
+                        - active
+                        - planned
+                        - completed
+                        - backlog
+                        - archived
                     color:
                       type: string
                     emoji:
@@ -7293,32 +7575,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      format: uuid
-                      description: UUID identifier
-                      example: 550e8400-e29b-41d4-a716-446655440000
-                    name:
-                      type: string
-                    sprint_number:
-                      type: integer
-                    status:
-                      type: string
-                    issue_count:
-                      type: integer
-                    completed_count:
-                      type: integer
-                  required:
-                    - id
-                    - name
-                    - sprint_number
-                    - status
-                    - issue_count
-                    - completed_count
+                $ref: "#/components/schemas/ProgramSprintsResponse"
         404:
           description: Program not found
   /programs/{id}/merge-preview:

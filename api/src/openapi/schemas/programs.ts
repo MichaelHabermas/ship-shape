@@ -3,7 +3,8 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateTimeSchema, UserReferenceSchema } from './common.js';
+import { inferredProjectStatusSchema } from '../../schemas/document-boundary.js';
+import { UuidSchema, DateTimeSchema, UserReferenceSchema, DateSchema } from './common.js';
 
 // ============== Program Response ==============
 
@@ -26,6 +27,32 @@ export const ProgramResponseSchema = z.object({
 }).openapi('Program');
 
 registry.register('Program', ProgramResponseSchema);
+
+export const ProgramSprintListItemSchema = z.object({
+  id: UuidSchema,
+  name: z.string(),
+  sprint_number: z.number().int(),
+  status: z.enum(['planning', 'active', 'completed']),
+  owner: UserReferenceSchema.nullable(),
+  issue_count: z.number().int(),
+  completed_count: z.number().int(),
+  started_count: z.number().int(),
+  total_estimate_hours: z.number(),
+  has_plan: z.boolean(),
+  has_retro: z.boolean(),
+  plan_created_at: DateTimeSchema.nullable(),
+  retro_created_at: DateTimeSchema.nullable(),
+  plan: z.string().nullable(),
+}).openapi('ProgramSprintListItem');
+
+registry.register('ProgramSprintListItem', ProgramSprintListItemSchema);
+
+export const ProgramSprintsResponseSchema = z.object({
+  workspace_sprint_start_date: DateSchema,
+  weeks: z.array(ProgramSprintListItemSchema),
+}).openapi('ProgramSprintsResponse');
+
+registry.register('ProgramSprintsResponse', ProgramSprintsResponseSchema);
 
 // ============== Create/Update Program ==============
 
@@ -248,7 +275,7 @@ registry.registerPath({
             id: UuidSchema,
             title: z.string(),
             ice_score: z.number().nullable(),
-            inferred_status: z.string(),
+            inferred_status: inferredProjectStatusSchema,
             color: z.string(),
             emoji: z.string().nullable(),
             issue_count: z.number().int(),
@@ -281,14 +308,7 @@ registry.registerPath({
       description: 'List of program sprints',
       content: {
         'application/json': {
-          schema: z.array(z.object({
-            id: UuidSchema,
-            name: z.string(),
-            sprint_number: z.number().int(),
-            status: z.string(),
-            issue_count: z.number().int(),
-            completed_count: z.number().int(),
-          })),
+          schema: ProgramSprintsResponseSchema,
         },
       },
     },

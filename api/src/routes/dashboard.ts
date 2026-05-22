@@ -3,7 +3,7 @@ import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { computeICEScore, extractPlanItemsFromContent } from '@ship/shared';
-import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { sendInternalError } from '../utils/route-http.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 const router = Router();

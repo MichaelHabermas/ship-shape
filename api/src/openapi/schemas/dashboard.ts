@@ -3,6 +3,7 @@
  */
 
 import { z, registry } from '../registry.js';
+import { inferredProjectStatusSchema } from '../../schemas/document-boundary.js';
 import { UuidSchema, DateSchema, DateTimeSchema } from './common.js';
 
 // ============== Work Item ==============
@@ -24,7 +25,7 @@ export const WorkItemSchema = z.object({
   sprint_name: z.string().nullable().optional(),
   // Project-specific
   ice_score: z.number().nullable().optional(),
-  inferred_status: z.string().optional(),
+  inferred_status: inferredProjectStatusSchema.optional(),
   // Sprint-specific
   sprint_number: z.number().int().optional(),
   days_remaining: z.number().int().optional(),

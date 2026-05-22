@@ -3,7 +3,6 @@ import { pool } from '../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { sendInternalError } from '../../utils/route-http.js';
-import { logDocumentChange } from '../../utils/document-crud.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import {
   asApprovalRecord,
@@ -19,7 +18,6 @@ import {
   resolveApprovedVersionId,
   validateReviewRating,
 } from '../../utils/approval-workflow.js';
-import { broadcastToUser } from '../../collaboration/index.js';
 import {
   broadcastAccountabilityUpdateToSprintOwner,
   getSprintOwnerReportsTo,
