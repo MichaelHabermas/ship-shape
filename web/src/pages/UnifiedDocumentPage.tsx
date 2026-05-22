@@ -411,7 +411,23 @@ export function UnifiedDocumentPage() {
     );
   }
 
-  if (!user || !unifiedDocument || !id) {
+  if (!unifiedDocument) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4">
+        <div className="text-muted">
+          This document type cannot be opened in the editor.
+        </div>
+        <button
+          onClick={() => navigate('/docs')}
+          className="text-sm text-accent hover:underline"
+        >
+          Go to Documents
+        </button>
+      </div>
+    );
+  }
+
+  if (!user || !id) {
     return null;
   }
 

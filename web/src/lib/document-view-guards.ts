@@ -1,7 +1,14 @@
 import type { BelongsTo, BelongsToType, EditorDocumentType } from '@ship/shared';
 
 export type CurrentDocumentType =
-  | EditorDocumentType
+  | 'wiki'
+  | 'issue'
+  | 'project'
+  | 'sprint'
+  | 'program'
+  | 'person'
+  | 'weekly_plan'
+  | 'weekly_retro'
   | 'standup'
   | null;
 
@@ -15,9 +22,18 @@ const editorDocumentTypes = new Set<EditorDocumentType>([
   'person',
   'weekly_plan',
   'weekly_retro',
+  'standup',
+  'weekly_review',
 ]);
 const currentDocumentTypes = new Set<NonNullable<CurrentDocumentType>>([
-  ...editorDocumentTypes,
+  'wiki',
+  'issue',
+  'project',
+  'sprint',
+  'program',
+  'person',
+  'weekly_plan',
+  'weekly_retro',
   'standup',
 ]);
 

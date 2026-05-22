@@ -131,10 +131,11 @@ export function getProgramView(document: DocumentResponse): ProgramDocumentView 
   });
 }
 
-export function mapApiDocumentToUnifiedDocumentView(document: DocumentResponse): UnifiedDocumentView {
-  const documentType: EditorDocumentType = isEditorDocumentType(document.document_type)
-    ? document.document_type
-    : 'wiki';
+export function mapApiDocumentToUnifiedDocumentView(document: DocumentResponse): UnifiedDocumentView | null {
+  if (!isEditorDocumentType(document.document_type)) {
+    return null;
+  }
+  const documentType: EditorDocumentType = document.document_type;
 
   const base = {
     id: document.id,

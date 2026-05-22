@@ -6,7 +6,7 @@ import {
   getOptionalQueryString,
   getQueryString,
   getTrimmedQueryString,
-} from '../openapi/schemas/query-helpers.js';
+} from '../utils/query-params.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
 import { documentTypeSchema } from '../schemas/document-boundary.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';

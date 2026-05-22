@@ -25,6 +25,10 @@ describe('document view mapper', () => {
 
     const view = mapApiDocumentToUnifiedDocumentView(document);
 
+    expect(view).not.toBeNull();
+    if (!view) {
+      throw new Error('expected mapped view');
+    }
     expect(view.document_type).toBe('issue');
     if (!('program_id' in view) || !('sprint_id' in view) || !('belongs_to' in view)) {
       throw new Error('expected issue view');
@@ -50,6 +54,10 @@ describe('document view mapper', () => {
 
     const view = mapApiDocumentToUnifiedDocumentView(document);
 
+    expect(view).not.toBeNull();
+    if (!view) {
+      throw new Error('expected mapped view');
+    }
     expect(view.document_type).toBe('project');
     if (!('program_id' in view) || !('consulted_ids' in view)) {
       throw new Error('expected project view');
@@ -61,5 +69,26 @@ describe('document view mapper', () => {
   it('returns null for missing association ids', () => {
     expect(getDocumentProgramId({ belongs_to: undefined })).toBeNull();
     expect(getDocumentProgramId({ belongs_to: [{ id: 'project-1', type: 'project' }] })).toBeNull();
+  });
+
+  it('preserves standup document type instead of remapping it to wiki', () => {
+    const view = mapApiDocumentToUnifiedDocumentView({
+      id: 'standup-1',
+      title: 'Standup',
+      document_type: 'standup',
+    });
+
+    expect(view).not.toBeNull();
+    expect(view?.document_type).toBe('standup');
+  });
+
+  it('returns null for truly unknown document types', () => {
+    const view = mapApiDocumentToUnifiedDocumentView({
+      id: 'unknown-1',
+      title: 'Unknown',
+      document_type: 'not-a-document-type',
+    });
+
+    expect(view).toBeNull();
   });
 });
