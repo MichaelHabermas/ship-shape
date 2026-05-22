@@ -24,6 +24,7 @@
     "type-check": "pnpm --recursive run type-check",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "type-safety:counts": "node ./scripts/type-safety-counts.mjs",
     "openapi:generate": "pnpm --filter @ship/api openapi:generate && pnpm exec openapi-typescript api/openapi.json -o web/src/api/generated/ship-openapi.d.ts",
     "openapi:check": "node ./scripts/check-openapi-routes.mjs",
     "openapi:check:strict": "node ./scripts/check-openapi-routes.mjs --strict",

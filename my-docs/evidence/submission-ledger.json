@@ -188,7 +188,7 @@
           "id": "cat1-latest-ast-counts",
           "kind": "typescript_ast_syntax_counts",
           "label": "Latest AST counts",
-          "recorded_at": "2026-05-21",
+          "recorded_at": "2026-05-22",
           "scope": {
             "roots": [
               "api/src",
@@ -199,18 +199,18 @@
             "production_excludes_tests": true
           },
           "values": {
-            "any_total": 102,
-            "any_production": 12,
-            "type_assertions_total": 552,
-            "type_assertions_production": 454,
-            "non_null_assertions_total": 286,
-            "non_null_assertions_production": 254,
+            "any_total": 91,
+            "any_production": 1,
+            "type_assertions_total": 460,
+            "type_assertions_production": 346,
+            "non_null_assertions_total": 71,
+            "non_null_assertions_production": 35,
             "ts_suppressions_total": 1,
             "ts_suppressions_production": 0
           },
-          "origin": "report_extracted",
-          "confidence": "report_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "pnpm type-safety:counts"
         }
       ],
       "derived_metrics": [
@@ -221,12 +221,12 @@
           "baseline_measurement_id": "cat1-baseline-ast-counts",
           "latest_measurement_id": "cat1-latest-ast-counts",
           "baseline_value": 1340,
-          "latest_value": 941,
-          "change_absolute": -399,
-          "change_percent": -29.8,
+          "latest_value": 623,
+          "change_absolute": -717,
+          "change_percent": -53.5,
           "threshold_percent": -25,
           "origin": "computed",
-          "confidence": "report_backed"
+          "confidence": "artifact_backed"
         },
         {
           "id": "cat1-production-counted-syntax-reduction",
@@ -235,13 +235,11 @@
           "baseline_measurement_id": "cat1-baseline-ast-counts",
           "latest_measurement_id": "cat1-latest-ast-counts",
           "baseline_value": 923,
-          "latest_value": 717,
-          "change_absolute": -206,
-          "change_percent": -33.46,
+          "latest_value": 382,
+          "change_absolute": -541,
+          "change_percent": -58.6,
           "origin": "computed",
-          "confidence": "report_backed",
-          "latest": 704,
-          "delta": -354
+          "confidence": "artifact_backed"
         },
         {
           "id": "cat1-production-any-reduction",
@@ -250,11 +248,11 @@
           "baseline_measurement_id": "cat1-baseline-ast-counts",
           "latest_measurement_id": "cat1-latest-ast-counts",
           "baseline_value": 94,
-          "latest_value": 12,
-          "change_absolute": -82,
-          "change_percent": -87.2,
+          "latest_value": 1,
+          "change_absolute": -93,
+          "change_percent": -98.9,
           "origin": "computed",
-          "confidence": "report_backed"
+          "confidence": "artifact_backed"
         }
       ],
       "acceptance_tests": [
@@ -263,7 +261,7 @@
           "type": "percent_decrease_at_least",
           "metric": "cat1-total-counted-syntax-reduction",
           "threshold_percent": 25,
-          "actual_percent_decrease": 29.8,
+          "actual_percent_decrease": 53.5,
           "result": "pass",
           "target_id": "cat1-target-total-counted-syntax-25-percent"
         },
@@ -305,14 +303,14 @@
         {
           "id": "cat1-clears-total-25-percent-counted-syntax-reduction",
           "status": "proven",
-          "statement": "Total counted type-safety syntax decreased from 1340 to 941, a 29.8% reduction, clearing the 25% source requirement.",
+          "statement": "Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement.",
           "basis": [
             "cat1-total-counted-syntax-reduction"
           ],
           "limits": [
             "This is a syntax-count denominator, not a semantic type-risk score.",
-            "Production counted syntax decreased 33.46%, which is useful context but separate from the total-count source gate.",
-            "Production any usage decreased from 94 to 12, which is the clearest high-risk boundary improvement."
+            "Production counted syntax decreased 58.6%, which is useful context but separate from the total-count source gate.",
+            "Production any usage decreased from 94 to 1; production non-null assertions decreased from 325 to 35 after the authenticated-route context sweep."
           ]
         }
       ],
@@ -328,27 +326,27 @@
           "type": "command",
           "command": "pnpm type-check",
           "result": "pass",
-          "description": "Improvement report records type-check passing after structural boundary changes."
+          "description": "Improvement report records type-check passing after structural boundary changes and the meaningful `as` cast reduction pass."
         },
         {
           "id": "cat1-api-tests",
           "type": "test_run",
-          "command": "DATABASE_URL=postgresql://localhost:5432/ship_test_audit pnpm --filter @ship/api test",
-          "result": "35 files passed / 501 tests passed",
-          "description": "API test suite result recorded after Category 1 boundary/type-safety work."
+          "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm test",
+          "result": "36 files passed / 509 tests passed",
+          "description": "Full API test suite passed after the meaningful `as` cast reduction pass."
         },
         {
           "id": "cat1-web-tests",
           "type": "test_run",
           "command": "pnpm --filter @ship/web test",
-          "result": "20 files passed / 165 tests passed",
-          "description": "Web test suite result recorded after Category 1 boundary/type-safety work."
+          "result": "21 files passed / 168 tests passed",
+          "description": "Full web test suite passed after the meaningful `as` cast reduction pass."
         },
         {
           "id": "cat1-meaningful-boundary-narrowing",
           "type": "methodology",
           "path": "my-docs/IMPROVEMENT_REPORT.md",
-          "description": "Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, and typed client/server contracts rather than replacing any with unknown."
+          "description": "Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, typed client/server contracts, API query coercion, approval JSONB guards, API status errors, and API-response-to-editor mappers rather than replacing any with unknown."
         }
       ],
       "caveats": [
@@ -389,15 +387,15 @@
           "items": [
             {
               "label": "Latest counted syntax",
-              "value": "941 total counted syntax nodes; 717 production counted syntax nodes."
+              "value": "623 total counted syntax nodes; 382 production counted syntax nodes."
             },
             {
               "label": "Primary reduction",
-              "value": "1340 -> 941, -399 / -29.8%."
+              "value": "1340 -> 623, -717 / -53.5%."
             },
             {
               "label": "Tests",
-              "value": "API 501 passing tests; web 165 passing tests; pnpm type-check passed."
+              "value": "API 509 passing tests; web 168 passing tests; pnpm type-check passed."
             }
           ]
         }
@@ -409,7 +407,7 @@
           "metric_id": "cat1-total-counted-syntax-reduction",
           "operator": "percent_decrease_at_least",
           "threshold": 25,
-          "actual": 29.8,
+          "actual": 53.5,
           "result": "pass"
         },
         {

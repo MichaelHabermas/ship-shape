@@ -98,7 +98,7 @@
         <article class="score-card">
           <header><span class="cat-id">Cat 1</span><span class="badge proven">proven</span></header>
           <h3>Type Safety</h3>
-          <p>Total counted type-safety syntax decreased from 1340 to 941, a 29.8% reduction, clearing the 25% source requirement.</p>
+          <p>Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement.</p>
         </article>
         <article class="score-card">
           <header><span class="cat-id">Cat 2</span><span class="badge partial">partial</span></header>
@@ -263,15 +263,15 @@
 
                   <li>
                     <strong>Latest counted syntax</strong>
-                    <span>941 total counted syntax nodes; 717 production counted syntax nodes.</span>
+                    <span>623 total counted syntax nodes; 382 production counted syntax nodes.</span>
                   </li>
                   <li>
                     <strong>Primary reduction</strong>
-                    <span>1340 -&gt; 941, -399 / -29.8%.</span>
+                    <span>1340 -&gt; 623, -717 / -53.5%.</span>
                   </li>
                   <li>
                     <strong>Tests</strong>
-                    <span>API 501 passing tests; web 165 passing tests; pnpm type-check passed.</span>
+                    <span>API 509 passing tests; web 168 passing tests; pnpm type-check passed.</span>
                   </li>
           </ul>
         </div>
@@ -280,7 +280,7 @@
 
                   <li>
                     <strong>cat1-target-total-counted-syntax-25-percent <span class="badge proven">proven</span></strong>
-                    <span>Eliminate at least 25% of counted type-safety syntax violations. Threshold: 25; actual: 29.8. </span>
+                    <span>Eliminate at least 25% of counted type-safety syntax violations. Threshold: 25; actual: 53.5. </span>
                   </li>
                   <li>
                     <strong>cat1-target-tests-still-pass <span class="badge proven">proven</span></strong>
@@ -296,7 +296,7 @@
 
                   <li>
                     <strong>cat1-clears-total-25-percent-counted-syntax-reduction <span class="badge proven">proven</span></strong>
-                    <span>Total counted type-safety syntax decreased from 1340 to 941, a 29.8% reduction, clearing the 25% source requirement. This is a syntax-count denominator, not a semantic type-risk score. Production counted syntax decreased 33.46%, which is useful context but separate from the total-count source gate. Production any usage decreased from 94 to 12, which is the clearest high-risk boundary improvement.</span>
+                    <span>Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement. This is a syntax-count denominator, not a semantic type-risk score. Production counted syntax decreased 58.6%, which is useful context but separate from the total-count source gate. Production any usage decreased from 94 to 1; production non-null assertions decreased from 325 to 35 after the authenticated-route context sweep.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -307,19 +307,19 @@
         </li>
         <li>
           <strong>cat1-type-check <span class="subtle">command</span></strong>
-          <span>Improvement report records type-check passing after structural boundary changes. Command: pnpm type-check | Result: pass</span>
+          <span>Improvement report records type-check passing after structural boundary changes and the meaningful `as` cast reduction pass. Command: pnpm type-check | Result: pass</span>
         </li>
         <li>
           <strong>cat1-api-tests <span class="subtle">test_run</span></strong>
-          <span>API test suite result recorded after Category 1 boundary/type-safety work. Command: DATABASE_URL=postgresql://localhost:5432/ship_test_audit pnpm --filter @ship/api test | Result: 35 files passed / 501 tests passed</span>
+          <span>Full API test suite passed after the meaningful `as` cast reduction pass. Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm test | Result: 36 files passed / 509 tests passed</span>
         </li>
         <li>
           <strong>cat1-web-tests <span class="subtle">test_run</span></strong>
-          <span>Web test suite result recorded after Category 1 boundary/type-safety work. Command: pnpm --filter @ship/web test | Result: 20 files passed / 165 tests passed</span>
+          <span>Full web test suite passed after the meaningful `as` cast reduction pass. Command: pnpm --filter @ship/web test | Result: 21 files passed / 168 tests passed</span>
         </li>
         <li>
           <strong>cat1-meaningful-boundary-narrowing <span class="subtle">methodology</span></strong>
-          <span>Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, and typed client/server contracts rather than replacing any with unknown. Path: my-docs/IMPROVEMENT_REPORT.md</span>
+          <span>Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, typed client/server contracts, API query coercion, approval JSONB guards, API status errors, and API-response-to-editor mappers rather than replacing any with unknown. Path: my-docs/IMPROVEMENT_REPORT.md</span>
         </li></ul>
         </article>
         <article class="panel span-12">
@@ -949,7 +949,7 @@
         <tr>
           <td>Cat 1. Type Safety</td>
           <td><span class="badge proven">proven</span></td>
-          <td>Total counted type-safety syntax decreased from 1340 to 941, a 29.8% reduction, clearing the 25% source requirement.</td>
+          <td>Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement.</td>
           <td>PASS cat1-total-counted-syntax-reduction-at-least-25-percent; PASS cat1-audit-required-fields-present; PASS cat1-tests-still-pass-documented; PASS cat1-meaningful-types-documented</td>
           <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/MEMORY.md</code></td>
         </tr>
@@ -1012,7 +1012,7 @@
             <td>Eliminate at least 25% of counted type-safety syntax violations.</td>
             <td>percent_decrease_at_least</td>
             <td>25</td>
-            <td>29.8</td>
+            <td>53.5</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
           <tr>
