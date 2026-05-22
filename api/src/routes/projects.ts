@@ -17,8 +17,7 @@ import {
 import { broadcastToUser } from '../collaboration/index.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Inferred project status type
 type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';

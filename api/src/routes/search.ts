@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
@@ -6,8 +6,7 @@ import { documentTypeSchema } from '../schemas/document-boundary.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-export const searchRouter: RouterType = Router();
+export const searchRouter: ExpressRouter = Router();
 
 type ContentSearchRow = {
   id: string | null;

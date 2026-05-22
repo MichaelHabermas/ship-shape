@@ -7,8 +7,7 @@ import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 type ProgramProperties = {
   color?: string;

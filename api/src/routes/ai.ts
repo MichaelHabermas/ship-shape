@@ -11,8 +11,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { analyzePlan, analyzeRetro, isAiAvailable, checkRateLimit } from '../services/ai-analysis.js';
 import { sendLegacyError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // GET /api/ai/status - Check if AI analysis is available
 router.get('/status', authMiddleware, (_req: Request, res: Response) => {

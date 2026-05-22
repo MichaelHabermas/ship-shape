@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
@@ -6,11 +6,9 @@ import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visib
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-
 // ============== Document-scoped routes (/api/documents/:id/comments) ==============
 
-export const documentCommentsRouter: RouterType = Router();
+export const documentCommentsRouter: ExpressRouter = Router();
 
 const createCommentSchema = z.object({
   comment_id: z.string().uuid(),
@@ -151,7 +149,7 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
 
 // ============== Comment-scoped routes (/api/comments/:id) ==============
 
-export const commentsRouter: RouterType = Router();
+export const commentsRouter: ExpressRouter = Router();
 
 const updateCommentSchema = z.object({
   content: z.string().min(1).max(10000).optional(),

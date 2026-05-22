@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import type { Router as RouterType } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
@@ -18,7 +17,7 @@ import {
   StandupLegacyErrorSchema,
 } from '../openapi/schemas/standups.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 router.post(
   '/',

@@ -9,7 +9,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { checkMissingAccountability } from '../services/accountability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
-import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { sendInternalError } from '../utils/route-http.js';
 
 const router = Router();
 

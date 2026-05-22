@@ -11,7 +11,6 @@
  */
 
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import { pool } from '../db/client.js';
 import {
   isCAIAConfigured,
@@ -29,7 +28,7 @@ import { SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 /**
  * Basic email format validation

@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
@@ -12,7 +11,7 @@ import {
   SetupStatusResponseSchema,
 } from '../openapi/schemas/setup.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 router.get(
   '/status',

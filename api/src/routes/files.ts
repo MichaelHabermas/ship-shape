@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import express from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
@@ -45,8 +45,7 @@ function isValidUUID(id: string | string[] | undefined): boolean {
   return UUID_REGEX.test(id);
 }
 
-type RouterType = ReturnType<typeof Router>;
-export const filesRouter: RouterType = Router();
+export const filesRouter: ExpressRouter = Router();
 
 // Validation schemas
 const uploadRequestSchema = z.object({

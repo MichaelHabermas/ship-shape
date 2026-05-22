@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
@@ -11,13 +11,11 @@ import {
 } from '../openapi/schemas/feedback.js';
 import { getActor, getDocumentAccessContext, visibilityPredicate } from '../services/document-access.js';
 
-type RouterType = ReturnType<typeof Router>;
-
 // Public routes - no auth/CSRF required
-export const publicFeedbackRouter: RouterType = Router();
+export const publicFeedbackRouter: ExpressRouter = Router();
 
 // Protected routes - auth/CSRF required
-const router: RouterType = Router();
+const router = Router();
 
 // Validation schemas
 const createFeedbackSchema = z.object({

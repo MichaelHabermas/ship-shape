@@ -5,8 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { hasContent } from '../utils/document-content.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // GET /api/team/grid - Get team grid data
 // Query params:

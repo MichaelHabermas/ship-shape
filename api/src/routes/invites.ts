@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/client.js';
@@ -8,7 +7,7 @@ import { logAuditEvent } from '../services/audit.js';
 import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // GET /api/invites/:token - Validate invite token
 router.get('/:token', async (req: Request, res: Response): Promise<void> => {

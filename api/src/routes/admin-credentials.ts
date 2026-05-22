@@ -6,7 +6,6 @@
  */
 
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { logAuditEvent } from '../services/audit.js';
 import {
@@ -23,7 +22,7 @@ import {
 } from '../services/secrets-manager.js';
 import { sendInternalError } from '../utils/route-http.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // Get base URL from environment
 function getBaseUrl(): string {

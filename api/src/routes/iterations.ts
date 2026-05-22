@@ -5,8 +5,7 @@ import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visib
 import { authMiddleware } from '../middleware/auth.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Validation schemas
 const createIterationSchema = z.object({

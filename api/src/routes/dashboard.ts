@@ -5,8 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { computeICEScore, extractPlanItemsFromContent } from '@ship/shared';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Urgency levels for work items
 type Urgency = 'overdue' | 'this_sprint' | 'later';

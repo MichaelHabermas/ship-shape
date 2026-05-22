@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
@@ -14,8 +14,7 @@ import {
 } from '../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Templates for weekly plan and retro documents
 // These provide structure for users to fill in, and "done" status is based on adding content beyond the template
@@ -555,7 +554,7 @@ const weeklyRetroSchema = z.object({
  *       201:
  *         description: New weekly retro document created
  */
-export const weeklyRetrosRouter: RouterType = Router();
+export const weeklyRetrosRouter: ExpressRouter = Router();
 
 weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
   const client = await pool.connect();

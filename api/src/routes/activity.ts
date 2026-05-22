@@ -10,8 +10,7 @@ import {
 } from '../services/document-access.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Valid entity types for activity queries
 const entityTypeSchema = z.enum(['program', 'project', 'sprint']);

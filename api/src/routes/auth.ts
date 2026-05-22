@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
@@ -8,7 +7,7 @@ import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_
 import { logAuditEvent } from '../services/audit.js';
 import { sessionClearCookieOptions, sessionCookieOptions } from '../config/session-cookies.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
