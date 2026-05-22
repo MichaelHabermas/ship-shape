@@ -1,4 +1,4 @@
-import { apiPost } from '@/lib/api';
+import { apiPost, readJson } from '@/lib/api';
 
 export type WeeklyDocumentKind = 'plan' | 'retro';
 
@@ -65,7 +65,7 @@ export async function createOrGetWeeklyDocumentId({
 
   if (!response.ok) return null;
 
-  const data = await response.json().catch(() => null);
+  const data = await readJson<{ id?: string }>(response).catch(() => null);
   if (!data || typeof data.id !== 'string') return null;
   return data.id;
 }

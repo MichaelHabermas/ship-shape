@@ -1,14 +1,12 @@
 import createClient, { type Middleware } from 'openapi-fetch';
+import { readJson } from '@/api/read-json';
+import type { CsrfTokenResponse } from '@/api/schemas';
 import { createApiStatusError } from '@/lib/api-error';
 import type { paths } from './generated/ship-openapi';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 const API_BASE = `${API_URL}/api`;
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
-interface CsrfTokenResponse {
-  token: string;
-}
 
 let csrfToken: string | null = null;
 
@@ -31,10 +29,6 @@ function handleSessionExpired(): never {
     window.location.href = `/login?expired=true&returnTo=${returnTo}`;
   }
   throw new Error('Session expired - redirecting to login');
-}
-
-async function readJson<T>(response: Response): Promise<T> {
-  return await response.json() as T;
 }
 
 async function ensureCsrfToken(): Promise<string> {

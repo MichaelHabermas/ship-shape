@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiGetJson } from '@/lib/api';
 
 export interface TeamMember {
   id: string;
@@ -8,6 +7,7 @@ export interface TeamMember {
   name: string;
   email?: string;
   isPending?: boolean;
+  isArchived?: boolean;
 }
 
 // Query keys
@@ -18,11 +18,7 @@ export const teamMemberKeys = {
 
 // Fetch team members (includes pending users with isPending flag)
 async function fetchTeamMembers(): Promise<TeamMember[]> {
-  const res = await apiGet('/api/team/people');
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch team members', res.status);
-  }
-  return res.json();
+  return apiGetJson<TeamMember[]>('/api/team/people', 'Failed to fetch team members');
 }
 
 // Hook to get team members with TanStack Query (supports offline via cache)

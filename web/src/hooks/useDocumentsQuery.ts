@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiGetJson, apiPostJson, apiPatchJson, apiDelete } from '@/lib/api';
 
 export interface WikiDocument {
   id: string;
@@ -27,36 +26,21 @@ export const documentKeys = {
 
 // Fetch documents
 async function fetchDocuments(type: string = 'wiki'): Promise<WikiDocument[]> {
-  const res = await apiGet(`/api/documents?type=${type}`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch documents', res.status);
-  }
-  return res.json();
+  return apiGetJson<WikiDocument[]>(`/api/documents?type=${type}`, 'Failed to fetch documents');
 }
 
-// Create document
 async function createDocumentApi(data: { title: string; document_type: string; parent_id?: string | null }): Promise<WikiDocument> {
-  const res = await apiPost('/api/documents', data);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to create document', res.status);
-  }
-  return res.json();
+  return apiPostJson<WikiDocument>('/api/documents', data, 'Failed to create document');
 }
 
-// Update document
 async function updateDocumentApi(id: string, updates: Partial<WikiDocument>): Promise<WikiDocument> {
-  const res = await apiPatch(`/api/documents/${id}`, updates);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to update document', res.status);
-  }
-  return res.json();
+  return apiPatchJson<WikiDocument>(`/api/documents/${id}`, updates, 'Failed to update document');
 }
 
-// Delete document
 async function deleteDocumentApi(id: string): Promise<void> {
   const res = await apiDelete(`/api/documents/${id}`);
   if (!res.ok) {
-    throw createApiStatusError('Failed to delete document', res.status);
+    throw new Error('Failed to delete document');
   }
 }
 

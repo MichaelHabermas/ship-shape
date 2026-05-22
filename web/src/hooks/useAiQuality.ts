@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { quietGet, quietPatch, quietPost } from '@/lib/quiet-fetch';
+import { quietGetJson, quietPatch, quietPostJson } from '@/lib/quiet-fetch';
+import type { AiStatusResponse, Document } from '@/api/schemas';
 import { computeContentHash, isAiUnavailable } from '@/components/ai/types';
 
 interface BaseAnalysis {
@@ -16,11 +17,25 @@ export interface UseAiQualityOptions<TAnalysis extends BaseAnalysis> {
   deps: AnalysisDeps;
   depsKey: string;
   canAnalyze: (deps: AnalysisDeps) => boolean;
-  onDocumentSwitch?: (doc: Record<string, unknown>) => Promise<AnalysisDeps | void> | AnalysisDeps | void;
+  onDocumentSwitch?: (doc: Document) => Promise<AnalysisDeps | void> | AnalysisDeps | void;
   onAnalysisChange?: (analysis: TAnalysis | null) => void;
 }
 
 export type AnalysisDeps = Record<string, unknown>;
+
+function getPersistedAnalysis<TAnalysis extends BaseAnalysis>(
+  doc: Document
+): TAnalysis | null {
+  const props = doc.properties;
+  if (!props || typeof props !== 'object' || !('ai_analysis' in props)) {
+    return null;
+  }
+  const aiAnalysis = props.ai_analysis;
+  if (!aiAnalysis || typeof aiAnalysis !== 'object') {
+    return null;
+  }
+  return aiAnalysis as TAnalysis;
+}
 
 export function useAiQuality<TAnalysis extends BaseAnalysis>({
   documentId,
@@ -61,8 +76,7 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
     setAiAvailable(null);
     setAnalysis(null);
 
-    quietGet('/api/ai/status')
-      .then(r => r.ok ? r.json() : null)
+    void quietGetJson<AiStatusResponse>('/api/ai/status')
       .then(data => {
         if (cancelled) return;
         setAiAvailable(data?.available === true);
@@ -72,13 +86,13 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
         setAiAvailable(false);
       });
 
-    quietGet(`/api/documents/${documentId}`)
-      .then(r => r.ok ? r.json() : null)
+    void quietGetJson<Document>(`/api/documents/${documentId}`)
       .then(async (doc) => {
         if (cancelled || !doc) return;
-        if (doc.properties?.ai_analysis) {
-          setAnalysis(doc.properties.ai_analysis as TAnalysis);
-          persistedHashRef.current = doc.properties.ai_analysis.content_hash || null;
+        const persisted = getPersistedAnalysis<TAnalysis>(doc);
+        if (persisted) {
+          setAnalysis(persisted);
+          persistedHashRef.current = persisted.content_hash ?? null;
         }
         if (onDocumentSwitch) {
           await onDocumentSwitch(doc);
@@ -118,13 +132,15 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
     const thisRequestId = ++requestIdRef.current;
     setLoading(true);
 
-    quietPost(analyzeEndpoint, buildRequestBody(content, currentDeps))
-      .then(r => r.ok ? r.json() : null)
+    void quietPostJson<TAnalysis | { error: string }>(
+      analyzeEndpoint,
+      buildRequestBody(content, currentDeps)
+    )
       .then(data => {
         if (thisRequestId !== requestIdRef.current) return;
         if (data && !isAiUnavailable(data)) {
-          setAnalysis(data as TAnalysis);
-          persistAnalysis(data as TAnalysis);
+          setAnalysis(data);
+          persistAnalysis(data);
         } else if (isAiUnavailable(data)) {
           setAiAvailable(false);
         }
@@ -138,17 +154,16 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
 
   useEffect(() => {
     if (!aiAvailable || !editorContent || !canAnalyze(deps)) return;
-    runAnalysis(editorContent);
+    void runAnalysis(editorContent);
   }, [editorContent, aiAvailable, depsKey, runAnalysis]);
 
   useEffect(() => {
     if (!aiAvailable || analysis || !canAnalyze(depsRef.current)) return;
     let cancelled = false;
-    quietGet(`/api/documents/${documentId}`)
-      .then(r => r.ok ? r.json() : null)
+    void quietGetJson<Document>(`/api/documents/${documentId}`)
       .then(doc => {
-        if (cancelled) return;
-        if (doc?.content) runAnalysis(doc.content);
+        if (cancelled || !doc?.content || typeof doc.content !== 'object') return;
+        void runAnalysis(doc.content as Record<string, unknown>);
       })
       .catch(() => {});
     return () => {

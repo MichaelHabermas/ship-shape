@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiGetJson, apiPostJson, apiPatchJson, apiDelete } from '@/lib/api';
 
 export interface ProgramOwner {
   id: string;
@@ -32,36 +31,21 @@ export const programKeys = {
 
 // Fetch programs
 async function fetchPrograms(): Promise<Program[]> {
-  const res = await apiGet('/api/programs');
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch programs', res.status);
-  }
-  return res.json();
+  return apiGetJson<Program[]>('/api/programs', 'Failed to fetch programs');
 }
 
-// Create program
 async function createProgramApi(data: { title: string }): Promise<Program> {
-  const res = await apiPost('/api/programs', data);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to create program', res.status);
-  }
-  return res.json();
+  return apiPostJson<Program>('/api/programs', data, 'Failed to create program');
 }
 
-// Update program
 async function updateProgramApi(id: string, updates: Record<string, unknown>): Promise<Program> {
-  const res = await apiPatch(`/api/programs/${id}`, updates);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to update program', res.status);
-  }
-  return res.json();
+  return apiPatchJson<Program>(`/api/programs/${id}`, updates, 'Failed to update program');
 }
 
-// Delete program
 async function deleteProgramApi(id: string): Promise<void> {
   const res = await apiDelete(`/api/programs/${id}`);
   if (!res.ok) {
-    throw createApiStatusError('Failed to delete program', res.status);
+    throw new Error('Failed to delete program');
   }
 }
 

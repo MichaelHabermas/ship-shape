@@ -4,64 +4,23 @@ import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { MentionList, MentionItem } from './MentionList';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { MentionNodeView } from './MentionNodeView';
-
-// API URL for fetching mention suggestions
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { fetchMentionSuggestions } from '@/lib/mention-search';
 
 interface MentionListRef {
   onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
+
+interface MentionAttributes {
+  id?: string | null;
+  label?: string | null;
+  mentionType?: string | null;
+  documentType?: string | null;
 }
 
 interface CreateMentionExtensionOptions {
   /** Callback to navigate to a document or person */
   onNavigate?: (type: 'person' | 'document', id: string) => void;
 }
-
-// Fetch mention suggestions from the API
-async function fetchMentionSuggestions(query: string): Promise<MentionItem[]> {
-  try {
-    const response = await fetch(`${API_URL}/api/search/mentions?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch mention suggestions:', response.status);
-      return [];
-    }
-
-    const data = await response.json();
-    const items: MentionItem[] = [];
-
-    // Add people first
-    if (data.people) {
-      for (const person of data.people) {
-        items.push({
-          id: person.id,
-          label: person.name || person.title,
-          type: 'person',
-        });
-      }
-    }
-
-    // Add documents grouped by type
-    if (data.documents) {
-      for (const doc of data.documents) {
-        items.push({
-          id: doc.id,
-          label: doc.title,
-          type: 'document',
-          documentType: doc.document_type,
-        });
-      }
-    }
-
-    return items;
-  } catch (error) {
-    console.error('Error fetching mention suggestions:', error);
-    return [];
-  }
-}
-
 export function createMentionExtension(options: CreateMentionExtensionOptions = {}) {
   return Mention.extend({
     // Add custom attributes for mention type
@@ -70,28 +29,28 @@ export function createMentionExtension(options: CreateMentionExtensionOptions = 
         id: {
           default: null,
           parseHTML: (element) => element.getAttribute('data-id'),
-          renderHTML: (attributes) => ({
+          renderHTML: (attributes: MentionAttributes) => ({
             'data-id': attributes.id,
           }),
         },
         label: {
           default: null,
           parseHTML: (element) => element.getAttribute('data-label'),
-          renderHTML: (attributes) => ({
+          renderHTML: (attributes: MentionAttributes) => ({
             'data-label': attributes.label,
           }),
         },
         mentionType: {
           default: 'person',
           parseHTML: (element) => element.getAttribute('data-mention-type') || 'person',
-          renderHTML: (attributes) => ({
+          renderHTML: (attributes: MentionAttributes) => ({
             'data-mention-type': attributes.mentionType,
           }),
         },
         documentType: {
           default: null,
           parseHTML: (element) => element.getAttribute('data-document-type'),
-          renderHTML: (attributes) => {
+          renderHTML: (attributes: MentionAttributes) => {
             if (!attributes.documentType) return {};
             return {
               'data-document-type': attributes.documentType,
@@ -111,9 +70,10 @@ export function createMentionExtension(options: CreateMentionExtensionOptions = 
 
     // Fallback rendering for SSR or non-React contexts
     renderHTML({ node, HTMLAttributes }) {
-      const mentionType = node.attrs.mentionType || 'person';
-      const documentType = node.attrs.documentType;
-      const id = node.attrs.id;
+      const attrs = node.attrs as MentionAttributes;
+      const mentionType = attrs.mentionType || 'person';
+      const documentType = attrs.documentType;
+      const id = attrs.id;
 
       return [
         'a',
@@ -124,7 +84,7 @@ export function createMentionExtension(options: CreateMentionExtensionOptions = 
             ? `/team/${id}`
             : `/${documentType || 'documents'}/${id}`,
         },
-        `@${node.attrs.label}`,
+        `@${attrs.label}`,
       ];
     },
 

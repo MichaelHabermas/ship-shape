@@ -1,3 +1,6 @@
+import { readJson } from '@/api/read-json';
+import type { CsrfTokenResponse } from '@/api/schemas';
+
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 let quietCsrfToken: string | null = null;
@@ -7,7 +10,7 @@ export async function getQuietCsrfToken(): Promise<string | null> {
   try {
     const res = await fetch(`${API_URL}/api/csrf-token`, { credentials: 'include' });
     if (!res.ok) return null;
-    const data = await res.json();
+    const data = await readJson<CsrfTokenResponse>(res);
     quietCsrfToken = data.token;
     return quietCsrfToken;
   } catch {
@@ -51,4 +54,22 @@ export async function quietPatch(endpoint: string, body: object): Promise<Respon
     credentials: 'include',
     body: JSON.stringify(body),
   });
+}
+
+export async function quietGetJson<T>(endpoint: string): Promise<T | null> {
+  const res = await quietGet(endpoint);
+  if (!res.ok) return null;
+  return readJson<T>(res);
+}
+
+export async function quietPostJson<T>(endpoint: string, body: object): Promise<T | null> {
+  const res = await quietPost(endpoint, body);
+  if (!res.ok) return null;
+  return readJson<T>(res);
+}
+
+export async function quietPatchJson<T>(endpoint: string, body: object): Promise<T | null> {
+  const res = await quietPatch(endpoint, body);
+  if (!res.ok) return null;
+  return readJson<T>(res);
 }

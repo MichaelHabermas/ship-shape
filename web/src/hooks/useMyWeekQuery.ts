@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiGetJson } from '@/lib/api';
 
 export interface StandupSlot {
   date: string;
@@ -53,11 +52,7 @@ export interface MyWeekResponse {
 
 async function fetchMyWeek(weekNumber?: number): Promise<MyWeekResponse> {
   const params = weekNumber ? `?week_number=${weekNumber}` : '';
-  const res = await apiGet(`/api/dashboard/my-week${params}`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch my week data', res.status);
-  }
-  return res.json();
+  return apiGetJson<MyWeekResponse>(`/api/dashboard/my-week${params}`, 'Failed to fetch my week data');
 }
 
 export function useMyWeekQuery(weekNumber?: number) {

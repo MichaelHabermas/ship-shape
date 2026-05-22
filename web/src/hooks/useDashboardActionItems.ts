@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiGetJson } from '@/lib/api';
 
 export interface ActionItem {
   id: string;
@@ -20,11 +19,7 @@ export interface ActionItemsResponse {
 }
 
 async function fetchActionItems(): Promise<ActionItemsResponse> {
-  const res = await apiGet('/api/weeks/my-action-items');
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch action items', res.status);
-  }
-  return res.json();
+  return apiGetJson<ActionItemsResponse>('/api/weeks/my-action-items', 'Failed to fetch action items');
 }
 
 export function useDashboardActionItems() {
