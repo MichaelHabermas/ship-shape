@@ -1,35 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGetJson, apiPostJson, apiPatchJson, apiDelete } from '@/lib/api';
+import type {
+  ActiveWeekItem,
+  ActiveWeeksResponse,
+  ProgramSprintListItem,
+  ProgramSprintsResponse,
+  Week,
+} from '@/api/schemas';
 
-export interface SprintOwner {
-  id: string;
-  name: string;
-  email: string;
-}
+export type {
+  ActiveWeekItem,
+  ActiveWeeksResponse,
+  ProgramSprintListItem,
+  ProgramSprintsResponse,
+  Week,
+};
 
-export interface Sprint {
-  id: string;
-  name: string;
-  sprint_number: number;
-  status: 'planning' | 'active' | 'completed';
-  owner: SprintOwner | null;
-  issue_count: number;
-  completed_count: number;
-  started_count: number;
-  total_estimate_hours?: number;
-  has_plan?: boolean;
-  has_retro?: boolean;
-  plan_created_at?: string | null;
-  retro_created_at?: string | null;
-  // Completeness flags
+/** @deprecated Use ProgramSprintListItem from @/api/schemas */
+export type Sprint = ProgramSprintListItem & {
   is_complete?: boolean | null;
   missing_fields?: string[];
-}
-
-export interface SprintsResponse {
-  workspace_sprint_start_date: string;
-  weeks: Sprint[];
-}
+};
+/** @deprecated Use ActiveWeekItem from @/api/schemas */
+export type ActiveWeek = ActiveWeekItem;
+/** @deprecated Use ProgramSprintsResponse from @/api/schemas */
+export type SprintsResponse = ProgramSprintsResponse;
 
 // Query keys
 export const sprintKeys = {
@@ -42,23 +37,6 @@ export const sprintKeys = {
   details: () => [...sprintKeys.all, 'detail'] as const,
   detail: (id: string) => [...sprintKeys.details(), id] as const,
 };
-
-// Extended Sprint type for active sprints endpoint
-export interface ActiveWeek extends Sprint {
-  program_id: string;
-  program_name: string;
-  program_prefix?: string;
-  days_remaining: number;
-  status: 'active';
-}
-
-export interface ActiveWeeksResponse {
-  weeks: ActiveWeek[];
-  current_sprint_number: number;
-  days_remaining: number;
-  sprint_start_date: string;
-  sprint_end_date: string;
-}
 
 // Fetch all active sprints across workspace
 async function fetchActiveWeeks(): Promise<ActiveWeeksResponse> {
@@ -87,13 +65,13 @@ interface CreateSprintData {
   owner_id: string;
 }
 
-async function createSprintApi(data: CreateSprintData): Promise<Sprint> {
-  return apiPostJson<Sprint>('/api/weeks', data, 'Failed to create sprint');
+async function createSprintApi(data: CreateSprintData): Promise<Week> {
+  return apiPostJson<Week>('/api/weeks', data, 'Failed to create sprint');
 }
 
 // Update sprint
-async function updateSprintApi(id: string, updates: Partial<Sprint> & { owner_id?: string }): Promise<Sprint> {
-  return apiPatchJson<Sprint>(`/api/weeks/${id}`, updates, 'Failed to update sprint');
+async function updateSprintApi(id: string, updates: Partial<Week> & { owner_id?: string }): Promise<Week> {
+  return apiPatchJson<Week>(`/api/weeks/${id}`, updates, 'Failed to update sprint');
 }
 
 // Delete sprint
@@ -130,17 +108,22 @@ export function useCreateSprint() {
       await queryClient.cancelQueries({ queryKey: sprintKeys.list(programId) });
       const previousData = queryClient.getQueryData<SprintsResponse>(sprintKeys.list(programId));
 
-      const optimisticSprint: Sprint = {
+      const optimisticSprint = {
         id: `temp-${crypto.randomUUID()}`,
         name: newSprint.title,
         sprint_number: newSprint.sprint_number,
-        status: 'planning',
+        status: 'planning' as const,
         owner: null,
         issue_count: 0,
         completed_count: 0,
         started_count: 0,
         total_estimate_hours: 0,
-      };
+        has_plan: false,
+        has_retro: false,
+        plan_created_at: null,
+        retro_created_at: null,
+        plan: null,
+      } as unknown as ProgramSprintListItem;
 
       queryClient.setQueryData<SprintsResponse>(
         sprintKeys.list(programId),
@@ -160,15 +143,9 @@ export function useCreateSprint() {
         queryClient.setQueryData(sprintKeys.list(newSprint.program_id), context.previousData);
       }
     },
-    onSuccess: (data, _variables, context) => {
-      if (context?.optimisticId && context?.programId) {
-        queryClient.setQueryData<SprintsResponse>(
-          sprintKeys.list(context.programId),
-          (old) => old ? {
-            ...old,
-            weeks: old.weeks.map(s => s.id === context.optimisticId ? data : s),
-          } : { workspace_sprint_start_date: new Date().toISOString(), weeks: [data] }
-        );
+    onSuccess: (_data, _variables, context) => {
+      if (context?.programId) {
+        queryClient.invalidateQueries({ queryKey: sprintKeys.list(context.programId) });
       }
     },
     onSettled: (_data, _error, variables) => {
@@ -182,7 +159,7 @@ export function useUpdateSprint() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Sprint> & { owner_id?: string } }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<ProgramSprintListItem> & { owner_id?: string } }) =>
       updateSprintApi(id, updates),
     onMutate: async ({ id, updates }) => {
       // Find which program's cache this sprint is in
@@ -222,15 +199,9 @@ export function useUpdateSprint() {
         queryClient.setQueryData(sprintKeys.list(context.programId), context.previousData);
       }
     },
-    onSuccess: (data, { id }, context) => {
+    onSuccess: (_data, { id: _id }, context) => {
       if (context?.programId) {
-        queryClient.setQueryData<SprintsResponse>(
-          sprintKeys.list(context.programId),
-          (old) => old ? {
-            ...old,
-            weeks: old.weeks.map(s => s.id === id ? data : s),
-          } : old
-        );
+        queryClient.invalidateQueries({ queryKey: sprintKeys.list(context.programId) });
       }
     },
     onSettled: (_data, _error, _variables, context) => {
@@ -309,7 +280,7 @@ export function useSprints(programId: string | undefined) {
     sprintNumber: number,
     ownerId: string,
     title?: string
-  ): Promise<Sprint | null> => {
+  ): Promise<Week | null> => {
     if (!programId) return null;
 
     try {
@@ -327,7 +298,7 @@ export function useSprints(programId: string | undefined) {
   const updateSprint = async (
     id: string,
     updates: Partial<Sprint> & { owner_id?: string }
-  ): Promise<Sprint | null> => {
+  ): Promise<Week | null> => {
     try {
       return await updateMutation.mutateAsync({ id, updates });
     } catch {

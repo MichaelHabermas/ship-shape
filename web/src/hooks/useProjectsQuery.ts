@@ -1,82 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete, readJson } from '@/lib/api';
 import { createApiStatusError } from '@/lib/api-error';
-import { computeICEScore, type InferredProjectStatus } from '@ship/shared';
+import { computeICEScore } from '@ship/shared';
+import type {
+  Project,
+  ProjectIssueListItem,
+  ProjectWeekListItem,
+} from '@/api/schemas';
 
-// Inferred project status based on sprint relationships
 export type { InferredProjectStatus } from '@ship/shared';
-
-export interface Project {
-  id: string;
-  title: string;
-  // ICE properties (null = not yet set)
-  impact: number | null;
-  confidence: number | null;
-  ease: number | null;
-  ice_score: number | null;
-  // Visual properties
-  color: string;
-  emoji: string | null;
-  // Associations
-  program_id: string | null;
-  // Owner info (R - Responsible)
-  owner: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  owner_id?: string | null;
-  // RACI fields
-  accountable_id?: string | null;  // A - Accountable (approver)
-  consulted_ids?: string[];        // C - Consulted
-  informed_ids?: string[];         // I - Informed
-  // Counts
-  sprint_count: number;
-  issue_count: number;
-  // Inferred status from sprint relationships
-  inferred_status: InferredProjectStatus;
-  // Timestamps
-  archived_at: string | null;
-  created_at: string;
-  updated_at: string;
-  // Completeness flags
-  is_complete: boolean | null;
-  missing_fields: string[];
-  // Design review tracking
-  has_design_review?: boolean | null;
-  design_review_notes?: string | null;
-  // Conversion tracking
-  converted_from_id?: string | null;
-}
-
-// Project issue type (subset of Issue for the list)
-export interface ProjectIssue {
-  id: string;
-  title: string;
-  ticket_number: number;
-  state: string;
-  priority: string;
-  assignee_id: string | null;
-  assignee_name: string | null;
-  created_at: string;
-  updated_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  cancelled_at: string | null;
-}
-
-// Project week type (subset of Week for the list)
-export interface ProjectWeek {
-  id: string;
-  name: string;
-  sprint_number: number;
-  start_date: string | null;
-  end_date: string | null;
-  status: 'planning' | 'active' | 'completed';
-  issue_count: number;
-  completed_count: number;
-  days_remaining: number | null;
-}
+export type { Project, ProjectIssueListItem, ProjectWeekListItem };
+export type ProjectIssue = ProjectIssueListItem;
+export type ProjectWeek = ProjectWeekListItem;
 
 // Query keys
 export const projectKeys = {
@@ -163,7 +98,7 @@ export function useCreateProject() {
       const confidence = newProject.confidence ?? null;
       const ease = newProject.ease ?? null;
 
-      const optimisticProject: Project = {
+      const optimisticProject = {
         id: `temp-${crypto.randomUUID()}`,
         title: newProject.title ?? 'Untitled',
         impact,
@@ -174,15 +109,27 @@ export function useCreateProject() {
         emoji: null,
         program_id: newProject.program_id ?? null,
         owner: null,
+        owner_id: newProject.owner_id ?? null,
+        accountable_id: newProject.accountable_id ?? null,
+        consulted_ids: newProject.consulted_ids ?? [],
+        informed_ids: newProject.informed_ids ?? [],
+        plan: newProject.plan ?? null,
+        plan_approval: null,
+        retro_approval: null,
+        has_retro: false,
+        has_design_review: null,
+        design_review_notes: null,
+        target_date: newProject.target_date ?? null,
         sprint_count: 0,
         issue_count: 0,
-        inferred_status: 'backlog',
+        inferred_status: 'backlog' as const,
         archived_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_complete: null,
         missing_fields: [],
-      };
+        converted_from_id: null,
+      } as unknown as Project;
 
       queryClient.setQueryData<Project[]>(
         projectKeys.lists(),

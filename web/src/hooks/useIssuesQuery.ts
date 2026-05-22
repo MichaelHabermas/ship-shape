@@ -2,7 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiPost, apiPatch, readJson } from '@/lib/api';
 import { createApiStatusError } from '@/lib/api-error';
 import { apiClient, assertApiData } from '@/api/client';
-import type { CascadeWarning, IncompleteChild, BelongsTo, BelongsToType } from '@ship/shared';
+import type { Issue, IssueListItem } from '@/api/schemas';
+import type {
+  CascadeWarning,
+  IncompleteChild,
+  BelongsTo,
+  BelongsToType,
+  IssueState,
+} from '@ship/shared';
+
+export type { Issue, IssueListItem };
 
 // Custom error type for cascade warning (409 response)
 export class CascadeWarningError extends Error {
@@ -24,70 +33,53 @@ export function isCascadeWarningError(error: unknown): error is CascadeWarningEr
 // Re-export for convenience
 export type { CascadeWarning, IncompleteChild, BelongsTo, BelongsToType };
 
-export interface Issue {
-  id: string;
-  title: string;
-  state: string;
-  priority: string;
-  ticket_number?: number;
-  display_id?: string;
-  assignee_id?: string | null;
-  assignee_name?: string | null;
-  assignee_archived?: boolean;
-  estimate?: number | null;
-  // belongs_to array contains all associations (program, sprint, project, parent)
-  belongs_to: BelongsTo[];
-  source: 'internal' | 'external';
-  rejection_reason?: string | null;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string;
-  started_at?: string | null;
-  completed_at?: string | null;
-  cancelled_at?: string | null;
-  reopened_at?: string | null;
-  converted_from_id?: string | null;
-}
+type IssueWithAssociations = {
+  belongs_to?: BelongsTo[];
+};
 
+function issueToListItem(issue: Issue): IssueListItem {
+  const { content: _content, ...listItem } = issue;
+  return listItem as IssueListItem;
+}
 // Helper to extract association ID by type
-export function getAssociationId(issue: Issue, type: BelongsToType): string | null {
+export function getAssociationId(issue: IssueWithAssociations, type: BelongsToType): string | null {
   const association = issue.belongs_to?.find(a => a.type === type);
   return association?.id ?? null;
 }
 
 // Helper to get program ID from belongs_to
-export function getProgramId(issue: Issue): string | null {
+export function getProgramId(issue: IssueWithAssociations): string | null {
   return getAssociationId(issue, 'program');
 }
 
 // Helper to get sprint ID from belongs_to
-export function getSprintId(issue: Issue): string | null {
+export function getSprintId(issue: IssueWithAssociations): string | null {
   return getAssociationId(issue, 'sprint');
 }
 
 // Helper to get project ID from belongs_to
-export function getProjectId(issue: Issue): string | null {
+export function getProjectId(issue: IssueWithAssociations): string | null {
   return getAssociationId(issue, 'project');
 }
 
 // Helper to get association title by type (e.g., program name)
-export function getAssociationTitle(issue: Issue, type: BelongsToType): string | null {
+export function getAssociationTitle(issue: IssueWithAssociations, type: BelongsToType): string | null {
   const association = issue.belongs_to?.find(a => a.type === type);
   return association?.title ?? null;
 }
 
 // Helper to get program title from belongs_to
-export function getProgramTitle(issue: Issue): string | null {
+export function getProgramTitle(issue: IssueWithAssociations): string | null {
   return getAssociationTitle(issue, 'program');
 }
 
 // Helper to get project title from belongs_to
-export function getProjectTitle(issue: Issue): string | null {
+export function getProjectTitle(issue: IssueWithAssociations): string | null {
   return getAssociationTitle(issue, 'project');
 }
 
 // Helper to get sprint title from belongs_to
-export function getSprintTitle(issue: Issue): string | null {
+export function getSprintTitle(issue: IssueWithAssociations): string | null {
   return getAssociationTitle(issue, 'sprint');
 }
 
@@ -107,18 +99,8 @@ export const issueKeys = {
   detail: (id: string) => [...issueKeys.details(), id] as const,
 };
 
-// Transform API issue response to Issue type
-function transformIssue(apiIssue: Record<string, unknown>): Issue {
-  const belongs_to = (apiIssue.belongs_to as BelongsTo[]) || [];
-
-  return {
-    ...apiIssue,
-    belongs_to,
-  } as Issue;
-}
-
 // Fetch issues with optional filters
-async function fetchIssues(filters?: IssueFilters): Promise<Issue[]> {
+async function fetchIssues(filters?: IssueFilters): Promise<IssueListItem[]> {
   const result = await apiClient.GET('/issues', {
     params: {
       query: {
@@ -128,8 +110,7 @@ async function fetchIssues(filters?: IssueFilters): Promise<Issue[]> {
       },
     },
   });
-  const data = assertApiData(result, 'Failed to fetch issues');
-  return (data as Record<string, unknown>[]).map(transformIssue);
+  return assertApiData(result, 'Failed to fetch issues');
 }
 
 // Create issue
@@ -148,8 +129,8 @@ async function createIssueApi(data: CreateIssueData): Promise<Issue> {
   if (!res.ok) {
     throw createApiStatusError('Failed to create issue', res.status);
   }
-  const apiIssue = await readJson<Record<string, unknown>>(res);
-  return transformIssue(apiIssue);
+  const apiIssue = await readJson<Issue>(res);
+  return apiIssue;
 }
 
 // Update issue
@@ -166,8 +147,8 @@ async function updateIssueApi(id: string, updates: Partial<Issue>): Promise<Issu
     }
     throw createApiStatusError('Failed to update issue', res.status);
   }
-  const apiIssue = await readJson<Record<string, unknown>>(res);
-  return transformIssue(apiIssue);
+  const apiIssue = await readJson<Issue>(res);
+  return apiIssue;
 }
 
 // Hook to get issues with optional filters
@@ -194,21 +175,18 @@ export function useCreateIssue() {
     mutationFn: (data?: CreateIssueData) => createIssueApi(data || {}),
     onMutate: async (newIssue) => {
       await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-      const previousIssues = queryClient.getQueryData<Issue[]>(issueKeys.lists());
+      const previousIssues = queryClient.getQueryData<IssueListItem[]>(issueKeys.lists());
 
       // Use belongs_to directly from input
       const belongs_to: BelongsTo[] = newIssue?.belongs_to || [];
 
-      const optimisticIssue: Issue = {
+      const optimisticIssue: IssueListItem = {
         id: `temp-${crypto.randomUUID()}`,
         title: newIssue?.title ?? 'Untitled',
         state: 'backlog',
         priority: 'none',
         ticket_number: -1,
         display_id: 'PENDING',
-        assignee_id: null,
-        assignee_name: null,
-        estimate: null,
         belongs_to,
         source: 'internal',
         rejection_reason: null,
@@ -216,7 +194,7 @@ export function useCreateIssue() {
         updated_at: new Date().toISOString(),
       };
 
-      queryClient.setQueryData<Issue[]>(
+      queryClient.setQueryData<IssueListItem[]>(
         issueKeys.lists(),
         (old) => [optimisticIssue, ...(old || [])]
       );
@@ -230,9 +208,9 @@ export function useCreateIssue() {
     },
     onSuccess: (data, _variables, context) => {
       if (context?.optimisticId) {
-        queryClient.setQueryData<Issue[]>(
+        queryClient.setQueryData<IssueListItem[]>(
           issueKeys.lists(),
-          (old) => old?.map(i => i.id === context.optimisticId ? data : i) || [data]
+          (old) => old?.map(i => i.id === context.optimisticId ? issueToListItem(data) : i) || [issueToListItem(data)]
         );
       }
     },
@@ -251,17 +229,16 @@ export function useUpdateIssue() {
       updateIssueApi(id, updates),
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-      const previousIssues = queryClient.getQueryData<Issue[]>(issueKeys.lists());
+      const previousIssues = queryClient.getQueryData<IssueListItem[]>(issueKeys.lists());
 
-      queryClient.setQueryData<Issue[]>(
+      queryClient.setQueryData<IssueListItem[]>(
         issueKeys.lists(),
         (old) => old?.map(i => {
           if (i.id !== id) return i;
 
-          // Merge belongs_to: if updates contains belongs_to, use it; otherwise keep existing
           const newBelongsTo = updates.belongs_to ?? i.belongs_to ?? [];
 
-          return { ...i, ...updates, belongs_to: newBelongsTo };
+          return { ...i, ...updates, belongs_to: newBelongsTo } as IssueListItem;
         }) || []
       );
 
@@ -273,9 +250,9 @@ export function useUpdateIssue() {
       }
     },
     onSuccess: (data, { id }) => {
-      queryClient.setQueryData<Issue[]>(
+      queryClient.setQueryData<IssueListItem[]>(
         issueKeys.lists(),
-        (old) => old?.map(i => i.id === id ? data : i) || []
+        (old) => old?.map(i => i.id === id ? issueToListItem(data) : i) || []
       );
     },
     onSettled: () => {
@@ -289,7 +266,7 @@ interface BulkUpdateRequest {
   ids: string[];
   action: 'archive' | 'delete' | 'restore' | 'update';
   updates?: {
-    state?: string;
+    state?: IssueState;
     assignee_id?: string | null;
     sprint_id?: string | null;
     project_id?: string | null;
@@ -317,9 +294,9 @@ export function useBulkUpdateIssues() {
     mutationFn: (data: BulkUpdateRequest) => bulkUpdateIssuesApi(data),
     onMutate: async ({ ids, action, updates }) => {
       await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-      const previousIssues = queryClient.getQueryData<Issue[]>(issueKeys.lists());
+      const previousIssues = queryClient.getQueryData<IssueListItem[]>(issueKeys.lists());
 
-      queryClient.setQueryData<Issue[]>(issueKeys.lists(), (old) => {
+      queryClient.setQueryData<IssueListItem[]>(issueKeys.lists(), (old) => {
         if (!old) return old;
 
         if (action === 'archive' || action === 'delete') {
@@ -351,7 +328,7 @@ export function useBulkUpdateIssues() {
 
             // Apply state and assignee_id updates directly
             const { project_id: _p, sprint_id: _s, ...directUpdates } = updates;
-            return { ...i, ...directUpdates, belongs_to: newBelongsTo };
+            return { ...i, ...directUpdates, belongs_to: newBelongsTo } as IssueListItem;
           });
         }
 

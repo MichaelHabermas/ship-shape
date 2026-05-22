@@ -11,7 +11,7 @@
  *   actions.forEach(action => renderMenuItem(action));
  */
 
-import { DocumentType, IssueState, IssuePriority, DocumentVisibility, ISSUE_STATE_OPTIONS } from '@ship/shared';
+import { DocumentType, IssueState, IssuePriority, DocumentVisibility, ISSUE_STATE_OPTIONS, ISSUE_PRIORITY_OPTIONS } from '@ship/shared';
 import { ReactNode } from 'react';
 
 // Action handler context passed to action handlers
@@ -79,13 +79,7 @@ export interface ContextSeparator {
 
 export type ContextMenuItem = ContextSimpleAction | ContextSubmenuAction | ContextSeparator;
 
-// Issue priority options for submenu
-export const ISSUE_PRIORITY_OPTIONS: { value: IssuePriority; label: string }[] = [
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
-];
+export { ISSUE_PRIORITY_OPTIONS };
 
 // Visibility options for submenu
 export const VISIBILITY_OPTIONS: { value: DocumentVisibility; label: string }[] = [

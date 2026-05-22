@@ -1,24 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGetJson, apiPostJson, apiPatchJson, apiDelete } from '@/lib/api';
+import type { Program, UserReference } from '@/api/schemas';
 
-export interface ProgramOwner {
-  id: string;
-  name: string;
-  email: string;
-}
-
-export interface Program {
-  id: string;
-  name: string;
-  color: string;
-  emoji?: string | null;
-  archived_at: string | null;
-  created_at?: string;
-  updated_at?: string;
-  issue_count?: number;
-  sprint_count?: number;
-  owner: ProgramOwner | null;
-}
+export type { Program };
+export type ProgramOwner = UserReference;
 
 // Query keys
 export const programKeys = {
@@ -69,16 +54,22 @@ export function useCreateProgram() {
       await queryClient.cancelQueries({ queryKey: programKeys.lists() });
       const previousPrograms = queryClient.getQueryData<Program[]>(programKeys.lists());
 
-      const optimisticProgram: Program = {
+      const optimisticProgram = {
         id: `temp-${crypto.randomUUID()}`,
         name: newProgram?.title ?? 'Untitled',
         color: '#6B7280',
         emoji: null,
         archived_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         issue_count: 0,
         sprint_count: 0,
         owner: null,
-      };
+        owner_id: null,
+        accountable_id: null,
+        consulted_ids: [],
+        informed_ids: [],
+      } as unknown as Program;
 
       queryClient.setQueryData<Program[]>(
         programKeys.lists(),
@@ -183,15 +174,15 @@ export function usePrograms() {
   const updateMutation = useUpdateProgram();
   const deleteMutation = useDeleteProgram();
 
-  const createProgram = async (): Promise<Program | null> => {
+  const createProgram = async (options?: { title?: string }): Promise<Program | null> => {
     try {
-      return await createMutation.mutateAsync({});
+      return await createMutation.mutateAsync(options);
     } catch {
       return null;
     }
   };
 
-  const updateProgram = async (id: string, updates: Partial<Program> & { owner_id?: string | null }): Promise<Program | null> => {
+  const updateProgram = async (id: string, updates: Partial<Program>): Promise<Program | null> => {
     try {
       return await updateMutation.mutateAsync({ id, updates });
     } catch {
