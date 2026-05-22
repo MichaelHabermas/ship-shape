@@ -4,6 +4,8 @@ import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { IdRow, RelatedIdRow, PropertiesRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js'
+import { ActiveWeeksResponseSchema } from '../openapi/schemas/weeks.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
 
 describe('Sprints API', () => {
   const app = createApp()
@@ -131,6 +133,32 @@ describe('Sprints API', () => {
       expect(testSprint.name).toBe('Test Sprint for List')
     })
 
+    it('matches OpenAPI ActiveWeeksResponse wire format', async () => {
+      await pool.query(
+        `UPDATE workspaces SET sprint_start_date = CURRENT_DATE WHERE id = $1`,
+        [testWorkspaceId]
+      )
+
+      const res = await request(app)
+        .get('/api/weeks')
+        .set('Cookie', sessionCookie)
+
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ActiveWeeksResponse',
+        schema: ActiveWeeksResponseSchema,
+      })
+
+      expect(body.sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(body.sprint_end_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      for (const week of body.weeks) {
+        expect(week.workspace_sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      }
+    })
+
     it('should filter sprints by program_id', async () => {
       const res = await request(app)
         .get(`/api/weeks?program_id=${testProgramId}`)
@@ -221,7 +249,7 @@ describe('Sprints API', () => {
       // Dates are computed on frontend from sprint_number + workspace.sprint_start_date
       expect(res.status).toBe(201)
       expect(res.body.sprint_number).toBe(2)
-      expect(res.body.workspace_sprint_start_date).toBeDefined()
+      expect(res.body.workspace_sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
 
     it('should create sprint with plan', async () => {
