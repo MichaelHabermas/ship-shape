@@ -296,17 +296,17 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 
 ### Measurement Method
 
-`pnpm benchmark:api` remains the P95 endpoint benchmark rail. The 2026-05-21 Category 3 run used the same `ship_dev` audit-load data, local dev API on `http://localhost:3001`, `BENCHMARK_DURATION_MS=15000`, `BENCHMARK_CONNECTIONS=10,25,50`, and `BENCHMARK_RATE_PER_SECOND=100` before and after the issue-list/bootstrap projection change. Because the benchmark script defaults to `http://localhost:3000`, this run required `API_BASE_URL=http://localhost:3001`.
+`pnpm benchmark:api` remains the P95 endpoint benchmark rail. The 2026-05-21 Category 3 run used the same `ship_dev` audit-load data, local dev API on `http://localhost:3001`, `BENCHMARK_DURATION_MS=15000`, `BENCHMARK_CONNECTIONS=10,25,50`, and `BENCHMARK_RATE_PER_SECOND=100` before and after the first issue-list/bootstrap projection change. Because the benchmark script defaults to `http://localhost:3000`, that run required `API_BASE_URL=http://localhost:3001`. The 2026-05-22 follow-up used local dev API on `http://localhost:3000` with the same seeded audit-load data and benchmark duration/concurrency/rate.
 
 ### Scorecard
 
 | Endpoint                       | Baseline P50                     | Baseline P95                       | Baseline P99                       | Latest P50 | Latest P95 | Latest P99 | Last Measured | Change | Required Change                           | Stretch Goal |
 | ------------------------------ | -------------------------------- | ---------------------------------- | ---------------------------------- | ---------- | ---------- | ---------- | ------------- | ------ | ----------------------------------------- | ------------ |
 | `GET /api/documents?type=wiki` | 10c: 8.04 ms; 25c: 8.76 ms; 50c: 10.53 ms  | 10c: 14.34 ms; 25c: 17.68 ms; 50c: 21.55 ms | 10c: 37.07 ms; 25c: 29.32 ms; 50c: 42.98 ms | 10c: 8.56 ms; 25c: 8.97 ms; 50c: 10.21 ms | 10c: 13.50 ms; 25c: 17.87 ms; 50c: 18.03 ms | 10c: 16.87 ms; 25c: 30.18 ms; 50c: 51.49 ms | 2026-05-21 | Mixed; 50c P95 -16.3% | 20% P95 reduction on at least 2 endpoints |              |
-| `GET /api/issues`              | 10c: 10.77 ms; 25c: 14.94 ms; 50c: 35.41 ms | 10c: 19.01 ms; 25c: 37.35 ms; 50c: 99.13 ms | 10c: 57.45 ms; 25c: 105.93 ms; 50c: 208.30 ms | 10c: 9.21 ms; 25c: 13.05 ms; 50c: 43.88 ms | 10c: 13.31 ms; 25c: 27.37 ms; 50c: 115.71 ms | 10c: 35.17 ms; 25c: 90.82 ms; 50c: 207.11 ms | 2026-05-21 | 10c -30.0%; 25c -26.7%; 50c +16.7% | 20% P95 reduction on at least 2 endpoints |              |
+| `GET /api/issues`              | 10c: 10.77 ms; 25c: 14.94 ms; 50c: 35.41 ms | 10c: 19.01 ms; 25c: 37.35 ms; 50c: 99.13 ms | 10c: 57.45 ms; 25c: 105.93 ms; 50c: 208.30 ms | 10c: 8.34 ms; 25c: 12.96 ms; 50c: 36.65 ms | 10c: 12.92 ms; 25c: 24.50 ms; 50c: 85.47 ms | 10c: 24.29 ms; 25c: 49.76 ms; 50c: 170.21 ms | 2026-05-22 | 10c -32.0%; 25c -34.4%; 50c -13.8% | 20% P95 reduction on at least 2 endpoints |              |
 | `GET /api/dashboard/my-week`   | 10c: 11.10 ms; 25c: 11.99 ms; 50c: 21.12 ms | 10c: 17.72 ms; 25c: 24.68 ms; 50c: 34.82 ms | 10c: 27.44 ms; 25c: 55.51 ms; 50c: 50.41 ms | 10c: 11.22 ms; 25c: 12.29 ms; 50c: 19.97 ms | 10c: 18.26 ms; 25c: 24.54 ms; 50c: 30.53 ms | 10c: 29.41 ms; 25c: 26.13 ms; 50c: 42.76 ms | 2026-05-21 | Mixed | Identical benchmark conditions            |              |
 | `GET /api/projects`            | 10c: 8.72 ms; 25c: 8.94 ms; 50c: 10.56 ms  | 10c: 12.99 ms; 25c: 11.07 ms; 50c: 19.34 ms    | 10c: 17.12 ms; 25c: 18.43 ms; 50c: 28.13 ms | 10c: 8.81 ms; 25c: 9.89 ms; 50c: 10.24 ms | 10c: 12.55 ms; 25c: 15.48 ms; 50c: 18.64 ms | 10c: 13.74 ms; 25c: 17.44 ms; 50c: 24.16 ms | 2026-05-21 | Mixed | Identical benchmark conditions            |              |
-| `GET /api/bootstrap`           | 10c: 17.27 ms; 25c: 25.10 ms; 50c: 119.84 ms | 10c: 24.74 ms; 25c: 50.24 ms; 50c: 220.81 ms | 10c: 73.82 ms; 25c: 132.58 ms; 50c: 318.57 ms | 10c: 16.84 ms; 25c: 24.78 ms; 50c: 103.32 ms | 10c: 21.38 ms; 25c: 75.11 ms; 50c: 196.84 ms | 10c: 56.75 ms; 25c: 142.01 ms; 50c: 314.64 ms | 2026-05-21 | Payload improved; P95 mixed | Identical benchmark conditions            |              |
+| `GET /api/bootstrap`           | 10c: 17.27 ms; 25c: 25.10 ms; 50c: 119.84 ms | 10c: 24.74 ms; 25c: 50.24 ms; 50c: 220.81 ms | 10c: 73.82 ms; 25c: 132.58 ms; 50c: 318.57 ms | 10c: 15.50 ms; 25c: 22.72 ms; 50c: 101.55 ms | 10c: 22.05 ms; 25c: 84.12 ms; 50c: 200.35 ms | 10c: 47.33 ms; 25c: 128.36 ms; 50c: 277.53 ms | 2026-05-22 | Payload improved; P95 mixed | Identical benchmark conditions            |              |
 
 ### What Changed
 
@@ -314,6 +314,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Added `/api/bootstrap` to combine app-shell data already fetched by current providers. This is a fanout reduction candidate, not yet a claimed P95 win.
 - Added `pnpm evidence:run` / `pnpm evidence:compare` so API benchmark output can be captured with repo metadata, environment, claims, and artifact paths.
 - Split issue list/bootstrap projections from issue detail projections. `GET /api/issues` and bootstrap issue data no longer select or return TipTap `content`, and they omit null/default-heavy list fields such as absent ticket numbers, assignees, estimates, and rejection/accountability fields. Issue detail endpoints still return editor content.
+- Shared issue-list response shaping in `api/src/utils/issue-response.ts`; list/bootstrap issue rows now omit list-only `created_at` and omit `belongs_to` when empty. Detail endpoints still return full timestamps and association arrays.
 - Updated the generated OpenAPI issue-list/bootstrap contract and frontend list/kanban rendering so optional list metadata is handled explicitly.
 
 ### Evidence
@@ -322,8 +323,10 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - `pnpm evidence:run -- --phase closeout --run-id closeout-check`: completed and writes `my-docs/evidence-runs/closeout-check/`; the manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`.
 - Before benchmark: `test-results/benchmarks/api-2026-05-21T02-40-19-503Z.json`.
 - Final after benchmark: `test-results/benchmarks/api-2026-05-21T03-11-53-590Z.json`.
-- Payload spot check after projection compaction: `/api/issues` 307,043 bytes and `/api/bootstrap` 429,806 bytes against the same audit-load dev data. The valid pre-change benchmark had both `/api/issues` and `/api/bootstrap` near 984 KB, so the payload bottleneck is materially reduced.
-- P95 result: `GET /api/issues` meets the 20% reduction bar at 10c and 25c, but not 50c. `GET /api/bootstrap` payload is materially smaller but P95 remains mixed and regressed at 25c in the final run. Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.
+- 2026-05-22 payload spot check after shared compaction: `/api/issues` 246,883 bytes versus 307,043 bytes before the follow-up; `/api/bootstrap` 369,646 bytes versus 429,806 bytes.
+- 2026-05-22 focused after benchmark: `test-results/benchmarks/api-2026-05-22T15-04-55-978Z.json`.
+- 2026-05-22 full standard benchmark: `test-results/benchmarks/api-2026-05-22T15-11-00-537Z.json`; all rows had `non_2xx: 0`. Full-matrix `/api/issues` P95 remained 13.91/28.37/119.26ms, and `/api/bootstrap` remained mixed at 26.31/81.22/213.77ms, so the claim boundary does not change.
+- P95 result: `GET /api/issues` improved across 10c/25c/50c versus the original baseline, but only 10c and 25c exceed the 20% bar. `GET /api/bootstrap` payload is materially smaller but P95 remains mixed and regressed at 25c. Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.
 
 ---
 
@@ -335,7 +338,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 
 ### Measurement Method
 
-`pnpm perf:query-count-api` captures SQL statement counts by monkey-patching `pg.Pool.prototype.query` inside an in-process Express app. As of this lane it records both individual endpoint rows and named flow rows. The docs startup flow compares the pre-bootstrap request fanout (`/api/auth/me`, wiki documents, programs, projects, issues, standup status, action items) against current `/api/bootstrap` under the same database, user, process, and hardware.
+`pnpm perf:query-count-api` captures SQL statement counts by wrapping the imported `pool.query` instance inside an in-process Express app. It records both individual endpoint rows and named flow rows. The docs startup flow compares the pre-bootstrap request fanout (`/api/auth/me`, wiki documents, programs, projects, issues, standup status, action items) against current `/api/bootstrap` under the same database, user, process, and hardware.
 
 ### Scorecard
 
@@ -364,10 +367,32 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Measurement script syntax checks passed: `node --check scripts/seed-audit-load.mjs`, `node --check scripts/query-count-api.mjs`, and `node --check scripts/explain-performance.mjs`.
 - Closeout rail outputs were produced: `test-results/perf/query-count-api-2026-05-20T23-37-27-346Z.json` and `test-results/perf/explain-performance-2026-05-20T23-37-37-930Z.json`.
 - Flow-level query-count output: `test-results/perf/query-count-api-2026-05-21T02-15-44-061Z.json`.
+- Repaired Node 24 query-count output: `test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json`; `/api/issues` 4 queries, `/api/bootstrap` 24 queries, old startup fanout 33 queries.
 - Old docs startup fanout flow in that artifact: 7 requests, 33 total SQL queries, 984,044 response bytes, 32 ms total elapsed.
 - Current bootstrap flow in that artifact: 1 request, 24 total SQL queries, 984,123 response bytes, 17 ms total elapsed.
-- Query-count result: -9 queries / -27.3% on the protected docs startup app-shell flow, satisfying the query-count branch of Category 4 for one flow. Slow-query improvement is not claimed.
-- EXPLAIN output: `test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json`; current execution times were `documents_list_wiki` 0.313 ms, `issues_list` 0.978 ms, `projects_list_counts` 0.774 ms, `audit_logs_tagged_recent` 2.750 ms, and `document_association_issue_project` 0.643 ms.
+- Query-count result: -9 queries / -27.3% on the protected docs startup app-shell flow. This proves the SQL/request-count branch for that flow, but it is not a full Category 4 source claim by itself because the source also asks for before/after `EXPLAIN ANALYZE`.
+- EXPLAIN output: `test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json`; current execution times were `documents_list_wiki` 0.313 ms, `issues_list` 0.978 ms, `projects_list_counts` 0.774 ms, `audit_logs_tagged_recent` 2.750 ms, and `document_association_issue_project` 0.643 ms. Before/after EXPLAIN proof is still missing.
+
+---
+
+## Security Foundation Follow-up: First-run Setup Race
+
+### What Changed
+
+- Wrapped `POST /api/setup/initialize` in a single database transaction.
+- Added a transaction-scoped PostgreSQL advisory lock before checking whether users already exist.
+- Kept first-run success and already-completed response shapes unchanged.
+- Added a concurrent initialization regression test that proves exactly one request succeeds and one is rejected.
+
+### Evidence
+
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api db:migrate`: pass.
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/setup.test.ts src/routes/openapi-contract.test.ts`: 2 files / 5 tests passed.
+- `pnpm type-check`: pass.
+
+### Claim Boundary
+
+This is security/trust foundation work. It closes the known first-run race risk, but it does not count as a Week 4 Category 3/4 performance win.
 
 ---
 
@@ -604,3 +629,66 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 ### Claim Boundary
 
 This hardening is security and correctness work. It does not complete a Week 4 GFA category by itself, and it does not change the Category 3 status. Do not claim all seven categories complete unless the missing second endpoint P95 proof exists.
+
+---
+
+## My Week, Feedback Contracts, And Authz E2E Proof (2026-05-22)
+
+### What Changed
+
+- Optimized `GET /api/dashboard/my-week` without changing response shape: one workspace/person query, one weekly-plan/retro query, and parallel standup/allocation reads.
+- Moved public feedback routes under `defineRoute` while preserving legacy flat public responses:
+  - `POST /api/feedback` keeps flat `FeedbackItem` on 201.
+  - `GET /api/feedback/program/:programId` keeps flat `{ id, name, prefix, color? }` on 200.
+  - Public program 404 stays `{ error: 'Program not found' }`.
+  - Legacy validation shape stays `{ error: 'Invalid input', details }` where relied on.
+- Added a narrow optional `validationError` hook to `defineRoute`; default validation still uses the standard envelope.
+- Fixed OpenAPI cookie auth scheme naming to `session_id`.
+- Strengthened `e2e/authorization.spec.ts` to seed real owned/foreign workspace records through the isolated DB fixture and prove real foreign-ID rejection plus mixed bulk-update containment.
+- Removed fixed 3s sleeps from `e2e/my-week-stale-data.spec.ts`; the test now waits for server-visible `/api/dashboard/my-week` content and a fresh dashboard response after navigation.
+
+### Evidence
+
+- `pnpm type-check`: pass.
+- `pnpm openapi:generate`: pass after sandbox escalation for `tsx` IPC.
+- `pnpm openapi:check:strict`: pass; 193 runtime routes / 193 OpenAPI routes / 0 missing / 0 stale.
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/feedback.test.ts src/routes/setup.test.ts`: pass; 3 files / 11 tests.
+- `pnpm build`: pass.
+- `pnpm perf:query-count-api`: pass; wrote `test-results/perf/query-count-api-2026-05-22T15-50-29-330Z.json`. `/api/dashboard/my-week`: 5 queries, 13ms elapsed in the query-count harness, 1345 response bytes.
+- `pnpm perf:explain`: pass; wrote `test-results/perf/explain-performance-2026-05-22T15-50-50-539Z.json`.
+- `pnpm benchmark:api`: initial run `api-2026-05-22T15-51-17-805Z.json` is invalid for claims because rate limiting returned 429s. Valid rerun under `NODE_ENV=test` wrote `test-results/benchmarks/api-2026-05-22T15-54-22-482Z.json`; `/api/dashboard/my-week` had 0 non-2xx and P95 13.99ms / 21.41ms / 32.63ms at 10 / 25 / 50 concurrency.
+- `pnpm exec playwright test --list e2e/authorization.spec.ts e2e/my-week-stale-data.spec.ts`: pass; 20 tests listed.
+
+### Blocked Verification
+
+- `E2E_RESULTS_DIR=test-results/authz-isolation PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/authorization.spec.ts`: blocked before execution because Docker/Testcontainers was unavailable.
+- `E2E_RESULTS_DIR=test-results/my-week-stale-data PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/my-week-stale-data.spec.ts`: blocked for the same Docker/Testcontainers reason.
+
+### Claim Boundary
+
+Category 3 remains **partial**. `/api/dashboard/my-week` has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ. The current benchmark does not honestly establish the missing second endpoint clearing the 20% P95 bar under standard conditions. The next Category 3 target should still be `/api/bootstrap`, but only by preserving the frontend cache-seeding contract.
+
+---
+
+## Submission Evidence Ledger And Dashboard (2026-05-22)
+
+### What Changed
+
+- Expanded `my-docs/evidence/submission-ledger.json` to schema v2 with canonical Categories 1-8, category-local IDs, summary cards, targets, acceptance tests, evidence, caveats, and source references.
+- Updated `my-docs/evidence/schema.json` as the shape reference plus `pnpm submission:validate` as the executable enforcement rail for ledger shape, artifact paths, status consistency, target/claim references, canonical category coverage, and Security 8 required fields.
+- Updated `pnpm submission:render-dashboard` and `pnpm submission:render`; the latter validates first, then regenerates `my-docs/reviewer-dashboard.html` from the ledger without category-number rendering branches.
+
+### Current Ledger Truth
+
+- Category 1 Type Safety: `proven`.
+- Category 2 Bundle Size: `partial`; initial-entry/code-splitting reduction passes, but the latest treemap or equivalent after bundle-analysis artifact is missing. This does not claim total bundle reduction.
+- Category 3 API Response Time: `partial`; acceptance test `cat3-two-endpoints-clear-20-percent-p95` fails.
+- Category 4 Database Query Efficiency: `partial`; query-count evidence passes, but acceptance test `cat4-before-after-explain-analyze-present` fails.
+- Category 5 Test Coverage and Quality: `proven` with warning `cat5-e2e-baseline-not-green`.
+- Category 6 Runtime Error and Edge Case Handling: `partial`; acceptance tests `cat6-three-error-handling-fixes-documented` and `cat6-each-fix-has-before-after-and-screenshot` fail.
+- Category 7 Accessibility Compliance: `partial`; selected closeout pages have 0 axe violations, but acceptance test `cat7-top3-page-selection-source-backed` fails until the ledger proves those are the 3 most important pages or adds closeout evidence for the source-relevant set.
+- Category 8 Security Audit: `open`; required probe, four-surface review, manual review, and two verified fix gates remain unproven.
+
+### Operating Rule
+
+Evidence-changing work updates the ledger before narrative docs or dashboard output. Only mark a category `proven` when required rubric items and acceptance gates clear the source requirement; otherwise keep it `partial`, `open`, `needs_fill_in`, or `not_measured`. After ledger edits, run `pnpm submission:validate` and `pnpm submission:render`, then report changed categories and any failing/warning acceptance tests.

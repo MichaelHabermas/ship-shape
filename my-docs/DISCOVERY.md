@@ -31,40 +31,40 @@ In a unified document model, the prefix feels cosmetic but the realtime layer tr
 
 Treat realtime namespace and persistence primary keys as one design decision. If the URL or client prefix can vary, either validate against authoritative metadata on connect or canonicalize server-side before loading CRDT state.
 
-## Discovery 2: [Name the thing learned]
+## Discovery 2: OpenAPI ownership can preserve legacy public contracts
 
 ### Where I found it
 
-- `[file path]` lines `[start-end]`
-- `[file path]` lines `[start-end]`
+- `api/src/openapi/define-route.ts` lines 25-45 and 121-150
+- `api/src/routes/feedback.ts` lines 67-190
 
 ### What it does
 
-[Explain the pattern, library, TypeScript feature, design decision, or engineering practice in concrete terms. Describe how it works in this codebase.]
+`defineRoute` registers the OpenAPI operation and parses request inputs once before the handler runs. Public feedback now uses it for `POST /api/feedback` and `GET /api/feedback/program/:programId`, but with a small `validationError` hook so the public endpoints keep their older flat `{ error }` response shapes instead of switching to the newer standard error envelope.
 
 ### Why it matters
 
-[Explain why this changed your understanding of the system. Tie it to Ship Shape's architecture, such as the unified document model, server-authoritative sync, TypeScript boundaries, testing infrastructure, or deployment workflow.]
+I expected route/spec consolidation to force contract churn. This showed the better pattern: make the default path stricter, then encode legacy exceptions explicitly and test them. The API contract improves without breaking public feedback forms.
 
 ### How I would apply it in a future project
 
-[Explain the reusable lesson. This should be broader than this repo: what would you design, verify, avoid, or document differently next time?]
+When migrating old routes into a typed route wrapper, separate "who owns the schema" from "what exact response shape exists today." Give legacy behavior a named escape hatch, keep the default modern, and require tests for each exception.
 
-## Discovery 3: [Name the thing learned]
+## Discovery 3: Real isolation tests need real foreign records
 
 ### Where I found it
 
-- `[file path]` lines `[start-end]`
-- `[file path]` lines `[start-end]`
+- `e2e/fixtures/isolated-env.ts` lines 70-84 and 95-137
+- `e2e/authorization.spec.ts` lines 35-114 and 214-279
 
 ### What it does
 
-[Explain the pattern, library, TypeScript feature, design decision, or engineering practice in concrete terms. Describe how it works in this codebase.]
+The isolated E2E fixture starts a fresh PostgreSQL container per worker. Exposing a `dbPool` fixture lets a spec seed owned and foreign workspace records directly, then verify UI/API behavior against real inaccessible IDs. The authorization spec now uses that to prove real foreign document/issue reads are blocked and mixed bulk issue updates mutate only the owned record.
 
 ### Why it matters
 
-[Explain why this changed your understanding of the system. Tie it to Ship Shape's architecture, such as the unified document model, server-authoritative sync, TypeScript boundaries, testing infrastructure, or deployment workflow.]
+Fake UUIDs only prove "missing row returns not found." They do not prove workspace isolation. Ship Shape's unified document model makes this especially important because wiki docs, issues, projects, and people all share the same `documents` table; isolation has to be tested with existing rows that differ only by authorization boundary.
 
 ### How I would apply it in a future project
 
-[Explain the reusable lesson. This should be broader than this repo: what would you design, verify, avoid, or document differently next time?]
+For authorization tests, create both sides of the boundary in the test fixture. The useful assertion is not "unknown ID fails"; it is "known foreign ID exists, is valid, and still cannot be read or mutated by this actor."

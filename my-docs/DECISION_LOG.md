@@ -352,7 +352,7 @@ Evidence: `scripts/copy-db-to-shadow.sh` and `scripts/copy-db-via-ssm.sh` now fa
 
 Status: Accepted
 
-Decision: Add `pnpm evidence:run` and `pnpm evidence:compare` as repo-local submission evidence rails. Collectors write raw measurements and artifacts under `my-docs/evidence-runs/<run-id>/`, while claim status is recorded separately as `met`, `failed`, or `not_measured`.
+Decision: Add `pnpm evidence:run` and `pnpm evidence:compare` as repo-local submission evidence rails. Collectors write raw measurements and artifacts under `my-docs/evidence-runs/<run-id>/`, while claim status is recorded separately as `met`, `failed`, or `not_measured`. This is the evidence-runner status vocabulary, not the schema v2 reviewer ledger category vocabulary.
 
 Why: The source-of-truth requires proof: before/after benchmarks, query counts, EXPLAIN output, tests, accessibility reports, and runtime evidence. Prior reports sometimes had useful work recorded beside `TBD` proof gaps. A runner that separates collection from claim evaluation makes overclaiming harder and keeps evidence repeatable.
 
@@ -665,3 +665,73 @@ Findings catalogued in `my-docs/code-simplification-orchestration-plan.md` Verif
 Evidence: `pnpm type-check`; `openapi:check:strict` 193/193; `vitest run src/routes/` 313/313; standups+feedback 21/21 on `ship_test_audit` (2026-05-21).
 
 **Decision Gist**: Ship the structural pass; track HIGH follow-ups before claiming full GFA/test maturity.
+
+### D038: Compact Issue List Projection
+
+Status: Accepted
+
+Decision: Use one shared issue list mapper for `/api/issues` and `/api/bootstrap`, keep full timestamps/associations on issue detail responses, and omit list-only `created_at` plus empty `belongs_to` from list/bootstrap issue rows.
+
+Why: The benchmark bottleneck was payload/serialization, not SQL. The UI already treats missing `belongs_to` as `[]`, and `created_at` is optional for issue list consumers, so this removes repeat data without weakening the unified document model.
+
+Consequences: Future list/bootstrap issue fields belong in `api/src/utils/issue-response.ts`; OpenAPI `IssueListItem` must stay honest about optional `created_at` and `belongs_to`.
+
+Evidence: payload check 307,043 -> 246,883 bytes for `/api/issues`; duration-matched focused benchmark `test-results/benchmarks/api-2026-05-22T15-04-55-978Z.json`; `pnpm type-check`; `pnpm openapi:generate`; `pnpm openapi:check`.
+
+**Decision Gist**: Issue detail is complete; issue list is compact.
+
+### D039: First-run Setup Uses Transaction Lock
+
+Status: Accepted
+
+Decision: Guard `POST /api/setup/initialize` with a transaction-scoped PostgreSQL advisory lock and perform the "no users exist" check plus all first-user/workspace inserts in that transaction.
+
+Why: The old route checked `COUNT(*)` before inserts with no lock, so two concurrent first-run requests could both pass the empty-user check. First-run setup is a security boundary, not a normal create form.
+
+Consequences: Keep setup initialization narrow and database-backed; do not split first-user, workspace, membership, person, and welcome-doc creation across separate autocommit calls.
+
+Evidence: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/setup.test.ts src/routes/openapi-contract.test.ts` — 2 files / 5 tests passed.
+
+**Decision Gist**: First-run setup is one locked transaction.
+
+### D040: My Week Optimizes Round Trips Before Indexes
+
+Status: Accepted
+
+Decision: Optimize `GET /api/dashboard/my-week` by collapsing serialized route queries and parallelizing independent reads, while preserving the existing response shape. Do not start with indexes or bootstrap trimming for this slice.
+
+Why: The measured endpoint was small in payload and low in SQL execution time; the higher-leverage issue was sequential app-layer round trips.
+
+Consequences: Keep the route's weekly document lookup as one `document_type IN ('weekly_plan', 'weekly_retro')` query and split rows in memory. Fetch standups and allocations together with `Promise.all` after date-derived inputs are known.
+
+Evidence: `pnpm type-check`; `pnpm perf:query-count-api` wrote `test-results/perf/query-count-api-2026-05-22T15-50-29-330Z.json` with `/api/dashboard/my-week` at 5 queries; valid benchmark `test-results/benchmarks/api-2026-05-22T15-54-22-482Z.json` shows 0 non-2xx for the endpoint and P95 13.99/21.41/32.63ms at 10/25/50c. This is useful but not enough to mark Category 3 complete.
+
+**Decision Gist**: Remove serialized round trips first; keep Category 3 claims evidence-bound.
+
+### D041: Legacy Public Feedback Routes Can Use defineRoute
+
+Status: Accepted
+
+Decision: Public feedback routes should use `defineRoute` and exported schemas, but preserve legacy flat unauthenticated response bodies. `defineRoute` now has an optional validation-error hook for routes whose public contract predates the standard envelope.
+
+Why: Route/OpenAPI ownership should not force a breaking response-shape change on public feedback forms.
+
+Consequences: Use the hook sparingly. New routes should use the default standard envelope unless they are explicitly preserving a legacy public contract.
+
+Evidence: `pnpm openapi:generate`; `pnpm openapi:check:strict` 193 runtime / 193 OpenAPI / 0 missing / 0 stale; focused feedback/defineRoute/setup tests passed 11/11 on `ship_test_audit`.
+
+**Decision Gist**: Contract ownership and legacy compatibility are compatible when the exception is explicit and tested.
+
+### D042: Submission Ledger Is The Reviewer Claim Source
+
+Status: Accepted
+
+Decision: Treat `my-docs/evidence/submission-ledger.json` as the structured source for reviewer-facing submission claims, with `my-docs/reviewer-dashboard.html` generated from it. Schema v2 must cover canonical Categories 1-8 and keep category-owned summary cards, targets, acceptance tests, claims, evidence, caveats, and sources together. Narrative docs can explain context, but category status and acceptance-test truth belong in the ledger first.
+
+Why: `IMPROVEMENT_REPORT.md` is useful history, but prose ledgers drift and can hide partial evidence. The structured ledger makes pass/fail/warn acceptance tests explicit, keeps source requirements beside measurements, and lets the dashboard be regenerated without hand-editing reviewer output.
+
+Consequences: Evidence-changing work should update only the affected ledger categories, keep unproven claims as `partial`, `open`, `needs_fill_in`, or `not_measured`, then run `pnpm submission:validate` and `pnpm submission:render`. `pnpm submission:render` validates first and then regenerates `my-docs/reviewer-dashboard.html`. The validator blocks `proven` categories with failing required acceptance tests or incomplete required rubric items.
+
+Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render`, and `submission:validate:strict`; `pnpm submission:validate` currently reports Cats 1 and 5 passing, Cat 5 with warning `cat5-e2e-baseline-not-green`, and Cats 2, 3, 4, 6, 7, and 8 carrying honest open gates.
+
+**Decision Gist**: Reviewer claims are ledger-first; prose reports are context, not the claim authority.
