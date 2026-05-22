@@ -138,15 +138,15 @@ Evidence: `issues.ts` calls `listIssuesMetadata`; `documents.ts` calls `updateDo
 
 Status: Accepted
 
-Decision: Migrate `useIssuesQuery` `fetchIssues` to typed `apiClient.GET('/issues')` because `/issues` is registered and not stale. Defer other hooks until their route families are covered.
+Decision: Migrate `useIssuesQuery` `fetchIssues` to typed `apiClient.GET('/issues')` because `/issues` is registered and not stale. At the time, defer other hooks until their route families are covered.
 
 Why: D018 requires family-by-family migration; `GET /issues` is the safest covered read.
 
 Alternatives considered: Broad hook migration (false confidence with 82 missing routes); stay on `apiGet` forever. Pilot proves the pattern.
 
-Consequences: Next OpenAPI migrations should follow the same gate: `pnpm openapi:check` per family, then `apiClient`, then optional `expectOpenApiResponse`.
+Consequences: Next OpenAPI migrations should follow the same gate: `pnpm openapi:check` per family, then `apiClient`, then optional `expectOpenApiResponse`. Later D021 completed full route parity.
 
-Evidence: `web/src/hooks/useIssuesQuery.ts`; `pnpm openapi:check` 2026-05-21 (82 missing, 8 stale, report-only).
+Evidence: `web/src/hooks/useIssuesQuery.ts`; `pnpm openapi:check` 2026-05-21 initially reported 82 missing and 8 stale operations before the later D021 contract-completion pass.
 
 **Decision Gist**: One covered list endpoint uses the generated client; the rest wait for contract honesty.
 
@@ -164,7 +164,7 @@ Alternatives considered: Jump to Vite 8/React 19/Tailwind 4/TipTap 3/Zod 4 toget
 
 Consequences: `pnpm.overrides` now pins patched transitive versions for `flatted`, `markdown-it`, `qs`, and `yaml`, plus scoped `picomatch` overrides. The `picomatch` override must stay scoped: legacy chokidar consumers still need the 2.x line, while Vite/Vitest/tinyglobby paths can use 4.x. Root `@types/node` is pinned to the Node 22 type line to avoid accidental Node 25 type drift. `jsdom` intentionally stays on 27.4.0 because 29.x would silently raise the effective Node floor. These overrides should be reviewed during future parent-package upgrades and removed when no longer needed. `@modelcontextprotocol/sdk` still brings Express 5 transitively, but the app's direct API runtime remains Express 4.22.2.
 
-Evidence: `pnpm audit --prod --audit-level low` and `pnpm audit --audit-level low` both reported 0 advisories after the corrected pass. Static/build/unit/OpenAPI checks passed. E2E smoke, icons, and isolated Testcontainers checks passed. Full E2E remained non-green, but a clean-master comparison of the same failing spec files in `/Users/michaelhabermas/repos/GAI/ship-shape-baseline-e2e/test-results/baseline-failing-specs/` also failed, so the broad-suite failures are tracked as existing/overlapping E2E debt rather than a proven dependency-branch regression.
+Evidence: `pnpm audit --prod --audit-level low` and `pnpm audit --audit-level low` both reported 0 advisories after the corrected pass. Static/build/unit/OpenAPI checks passed. E2E smoke, icons, and isolated Testcontainers checks passed. Full E2E remained non-green, but a clean-master comparison of the same failing spec files also failed, so the broad-suite failures are tracked as existing/overlapping E2E debt rather than a proven dependency-branch regression. The old baseline worktree path is no longer present on this machine.
 
 **Decision Gist**: Use same-current-line dependency upgrades plus explicit patched transitive overrides; defer framework-major migrations to dedicated branches.
 
@@ -452,9 +452,9 @@ Why: Hand-maintained frontend response casts and `readJson<T>` calls made the AP
 
 Alternatives considered: Continue local frontend interfaces and casts; add runtime validation first; migrate all frontend calls immediately. Local casts recreate the current drift. Runtime validation is a valuable future 10x option, but it is larger and does not replace compile-time contract generation. Immediate broad migration is unsafe because the route/spec checker currently shows incomplete and stale OpenAPI coverage.
 
-Consequences: Route-family work that touches frontend API shape should update OpenAPI first, regenerate types, then migrate callers. `pnpm openapi:check` is report-first for now because the existing contract is incomplete; treating it as a hard gate would block on pre-existing drift. Use `pnpm openapi:check -- --strict` when a route-family pass is ready to make coverage blocking. The next 10x step is route/spec coverage enforcement, then optional runtime response validation for trust-boundary hardening.
+Consequences: Route-family work that touches frontend API shape should update OpenAPI first, regenerate types, then migrate callers. At this decision point, `pnpm openapi:check` was report-first because the existing contract was incomplete; later D021 made strict route parity a pre-commit gate. The next 10x step after route/spec coverage is optional runtime response validation for trust-boundary hardening.
 
-Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. `pnpm openapi:check` reports 195 runtime routes, 121 OpenAPI operations, 82 missing, and 8 stale after fixing duplicate route mounts, path-param normalization, and the files/auth route families on 2026-05-21. `pnpm type-check` passes after the first typed-client migrations.
+Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. At this point, `pnpm openapi:check` reported 195 runtime routes, 121 OpenAPI operations, 82 missing, and 8 stale after fixing duplicate route mounts, path-param normalization, and the files/auth route families on 2026-05-21. Later D021 completed parity at 195 runtime / 195 OpenAPI operations, 0 missing, 0 stale. `pnpm type-check` passes after the first typed-client migrations.
 
 **Decision Gist**: OpenAPI is now the frontend API type source, but coverage debt must be closed before broad generated-client migration.
 
@@ -462,15 +462,15 @@ Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`,
 
 Status: Accepted
 
-Decision: Do not add production runtime response validation as the next blanket move. Use test-time response validation first: selected integration tests should assert that runtime JSON responses match the same Zod schemas that generate OpenAPI. Close OpenAPI coverage for each migrated route family before making that family strict.
+Decision: Do not add production runtime response validation as the next blanket move. Use test-time response validation first: selected integration tests should assert that runtime JSON responses match the same Zod schemas that generate OpenAPI. At this decision point, close OpenAPI coverage for each migrated route family before making that family strict.
 
-Why: Runtime validation only improves trust if the schema being enforced is true. The current checker still reports 195 runtime routes, 121 OpenAPI operations, 82 runtime routes missing from OpenAPI, and 8 stale OpenAPI operations. Test-time validation catches drift without adding request-path production risk while the contract is still being cleaned up.
+Why: Runtime validation only improves trust if the schema being enforced is true. At this point, the checker still reported 195 runtime routes, 121 OpenAPI operations, 82 runtime routes missing from OpenAPI, and 8 stale OpenAPI operations. Test-time validation catches drift without adding request-path production risk while the contract is still being cleaned up.
 
 Alternatives considered: Add production middleware immediately; skip runtime validation entirely; migrate all frontend calls to generated types first. Immediate middleware is premature while stale/missing route coverage is known. Skipping validation leaves the trust boundary compile-time only. Broad migration first would spread generated false confidence through more UI code.
 
 Consequences: The next API-contract 10x path is ordered: route/spec coverage, strict coverage gate, targeted test-time response validation, optional staging-only production validation, then broader generated-client migration. Runtime validators should focus on endpoints where malformed server data can silently corrupt UI state, not every low-risk read on day one.
 
-Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, and `api/src/routes/openapi-contract.test.ts` validates `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login` against their registered OpenAPI component schemas. The focused DB-backed test run passed. `pnpm openapi:check` is report-only today and currently reports 82 missing routes and 8 stale operations. `web/src/api/client.ts` uses `openapi-fetch` with legacy-compatible CSRF/session/JSON behavior, but it does not perform production response validation.
+Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, and `api/src/routes/openapi-contract.test.ts` validates `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login` against their registered OpenAPI component schemas. The focused DB-backed test run passed. At the time, `pnpm openapi:check` was report-only and reported 82 missing routes and 8 stale operations; later D021 made strict route parity pass at 195/195. `web/src/api/client.ts` uses `openapi-fetch` with legacy-compatible CSRF/session/JSON behavior, but it does not perform production response validation.
 
 **Decision Gist**: Runtime validation is valuable, but only after the OpenAPI source is honest enough to validate against.
 

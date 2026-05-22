@@ -57,7 +57,7 @@ The important distinction is evidentiary: the dependency branch cannot honestly 
 
 ### Future Application
 
-For dependency-only branches, keep running full E2E when Playwright or Testcontainers changes, but compare failures against clean master before calling them regressions. Use smoke plus targeted dependency-sensitive specs as the immediate safety gate, and track full-suite failures separately unless a failure appears only on the dependency branch. The 2026-05-21 baseline comparison artifact lives under `/Users/michaelhabermas/repos/GAI/ship-shape-baseline-e2e/test-results/baseline-failing-specs/`.
+For dependency-only branches, keep running full E2E when Playwright or Testcontainers changes, but compare failures against clean master before calling them regressions. Use smoke plus targeted dependency-sensitive specs as the immediate safety gate, and track full-suite failures separately unless a failure appears only on the dependency branch. The 2026-05-21 baseline comparison artifact was produced in a separate baseline worktree; that old worktree path is no longer present on this machine.
 
 ---
 
@@ -70,6 +70,10 @@ Migration runner can report success while leaving most migrations unapplied
 ### Severity
 
 High
+
+### Current Status
+
+Resolved by later migration-runner hardening. `api/src/db/migrate.ts` now scopes `already exists` handling to `schema.sql`; numbered migrations run per file in transactions and throw on failure.
 
 ### Where Found
 
@@ -101,6 +105,10 @@ Collaboration room names can fork one database document into multiple live Yjs s
 
 High
 
+### Current Status
+
+Resolved by later collaboration canonicalization. `api/src/collaboration/index.ts` now resolves `document_type` from the database and uses `buildCollaborationRoomName(document_type, documentId)` as the server room key.
+
 ### Where Found
 
 - `api/src/collaboration/index.ts`: live Yjs documents and awareness are keyed by full room name, but persistence strips the prefix and writes by UUID.
@@ -131,6 +139,10 @@ Document parent links can cross workspaces and cascade-delete across tenants
 ### Severity
 
 High
+
+### Current Status
+
+Resolved by later document access and relationship guard work. `documents.ts` validates parent readability, and migrations `039_fail_closed_document_access_guards.sql` and `040_relationship_mutation_guards.sql` enforce same-workspace/non-deleted relationship constraints.
 
 ### Where Found
 
@@ -548,9 +560,9 @@ Severity: Medium
 
 Status: Confirmed
 
-Status update: Current generated OpenAPI has 90 paths and 121 operations. The comments double-prefix, false document-search route, and auth session/login/current-user/CSRF coverage gaps were fixed, but the broader route-family coverage drift remains.
+Status update: Resolved by the OpenAPI contract completion pass. Current generated OpenAPI has 152 paths and 195 operations; `pnpm openapi:check` reports 195 runtime routes / 195 OpenAPI routes, 0 missing, 0 stale.
 
-`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation, and the generated OpenAPI document has enough paths to look authoritative. But `api/src/app.ts` mounts live route families that are not represented in the generated contract, including setup, admin/debug, invites, several document subroutes, Claude context, and other operational surfaces. Current `api/openapi.json` has 90 paths and no `/api/`-prefixed paths after the OpenAPI typed-client pass.
+`api/src/openapi/registry.ts` says all route schemas should be registered for full API documentation. Earlier generated OpenAPI output looked authoritative while missing live route families. Current `api/openapi.json` has 152 paths and no `/api/`-prefixed paths after the OpenAPI contract completion pass.
 
 Why it matters: generated API clients, Swagger readers, MCP tooling, and security reviewers can treat OpenAPI as a source of truth while missing whole executable route families. Conversely, routes that are present in OpenAPI can still be wrong, as shown by the comment double-prefix and missing search implementation.
 
@@ -728,13 +740,13 @@ Severity: Medium-High
 
 Status: Confirmed
 
-`api/src/routes/documents.ts` imports `handleDocumentConversion` from the collaboration server, and `api/src/collaboration/index.ts` implements `handleDocumentConversion(oldDocId, newDocId, oldDocType, newDocType)` to close active document sockets with code `4100` and a JSON payload. `docs/claude-reference/modules/collaboration.md` says this function is called when a document is converted and that clients should redirect on close code `4100`. `web/src/pages/UnifiedDocumentPage.tsx` has a `handleDocumentConverted` callback for that WebSocket notification. But the actual `POST /api/documents/:id/convert` route performs the in-place type update, commits, and returns the updated document without calling `handleDocumentConversion`. A repo search finds no call site for `handleDocumentConversion(` outside its own definition.
+`api/src/collaboration/index.ts` implements `handleDocumentConversion(oldDocId, newDocId, oldDocType, newDocType)` to close active document sockets with code `4100` and a JSON payload. `docs/claude-reference/modules/collaboration.md` says this function is called when a document is converted and that clients should redirect on close code `4100`. `web/src/pages/UnifiedDocumentPage.tsx` has a `handleDocumentConverted` callback for that WebSocket notification. But the actual `POST /api/documents/:id/convert` route performs the in-place type update, commits, and returns the updated document without calling `handleDocumentConversion`. A repo search finds no call site for `handleDocumentConversion(` outside its own definition.
 
-Why it matters: active collaborators can keep editing a document through the old room prefix and stale document-type assumptions after another user converts it. Combined with the separate finding that collaboration room names are keyed by prefix while persistence is keyed by UUID, conversion can leave users in exactly the split-brain state the realtime conversion machinery appears designed to prevent.
+Why it matters: active collaborators can keep editing a document with stale document-type assumptions after another user converts it. Earlier this compounded the prefix-keyed room split-brain issue; that prefix issue has since been mitigated by server-side canonical room names, but the conversion notification path is still not wired.
 
 Why it is easy to miss: all three layers look present: backend collaboration helper, frontend close-code handler, and documentation. The missing piece is only visible by following the call graph from the conversion route.
 
-Possible mediation: after committing conversion, call `handleDocumentConversion(id, id, sourceType, target_type)` or replace it with an in-place conversion notifier that closes all prefix variants for the same UUID and forces clients to reconnect using the current `document_type`. Add an integration test that opens a collaboration socket, converts the document, and verifies the socket receives the expected close code or is otherwise forced to resync.
+Possible mediation: after committing conversion, call `handleDocumentConversion(id, id, sourceType, target_type)` or replace it with an in-place conversion notifier that forces clients to reconnect using the current `document_type`. Prefix-variant cleanup is less relevant now that the server canonicalizes room names. Add an integration test that opens a collaboration socket, converts the document, and verifies the socket receives the expected close code or is otherwise forced to resync.
 
 ### Converted-documents list only works for legacy conversions, not the current conversion model
 
@@ -826,7 +838,7 @@ Status: Resolved
 
 Completed the OpenAPI contract workstream from `runtime-openapi-validation-plan.md`: removed 8 stale operations, registered all 195 runtime routes (admin, setup, feedback, invites, CAIA/PIV, documents, team, weeks, workspaces, projects, issues), enabled `pnpm openapi:check:strict` in Husky pre-commit, expanded `expectOpenApiResponse` to auth/setup/workspaces/files/feedback/bootstrap families, and piloted `defineRoute` on setup routes.
 
-Evidence: `pnpm openapi:check:strict` → 195 runtime / 195 OpenAPI, 0 missing, 0 stale. `docs/openapi-contract.md`. D021 in `DECISION_LOG.md`. Contract-focused vitest batch passes on `ship_test_audit`.
+Evidence: `pnpm openapi:check:strict` → 195 runtime / 195 OpenAPI, 0 missing, 0 stale. `docs/openapi-contract.md`. D021 in the OpenAPI section of `DECISION_LOG.md`. Contract-focused vitest batch passes on `ship_test_audit`.
 
 Deferred 10x: production `OPENAPI_VALIDATE_RESPONSES`, broad `defineRoute` migration for files/auth.
 
@@ -848,7 +860,7 @@ Remaining debt: admin list routes and team accountability grids still use loose 
 |---|---------|-----------|-------------------|
 | 1 | Collab protocol | `Editor.tsx` (~1107), `collaboration/index.ts` (~835) | Collab integration only |
 | 2 | Plan extraction | `extractHypothesis.ts` (API), inline `Editor.tsx` | `extractHypothesis.test.ts` API-only |
-| 3 | Document types | `UnifiedEditor`, `PropertiesPanel`, `shared/document.ts` | `document-boundary.test.ts` |
+| 3 | Document types | `UnifiedEditor`, `PropertiesPanel`, `shared/src/types/document.ts`, `shared/src/document-view.ts` | `document-boundary.test.ts` |
 | 4 | Mentions → backlinks | `MentionExtension`, `Editor` link sync, `backlinks.ts` | Shallow extension smoke; SQL in backlinks tests |
 | 5 | Yjs ↔ JSON | `yjsConverter.ts`, `collaboration/getOrCreateDoc` | Embedded in collab tests (~1500 lines) |
 | 6 | Association writes | `document-crud.ts`, `issues.ts`, `projects.ts` | `associations-regression.test.ts` |
@@ -869,8 +881,8 @@ Deferred items from the deepening pass and their completion status:
 | F2 | No `useCollabSession`; Editor protocol literals | **Done** — hook + shared `COLLAB_*`; Editor slimmed |
 | F3 | Codec unused in `getOrCreateDoc` | **Done** — `resolveInitialContent` wired |
 | F4 | Repository not wired to routes | **Done** — `listIssuesMetadata`, `updateDocumentContent` |
-| F5 | OpenAPI hook pilot | **Done** — `GET /issues` via `apiClient`; 82 missing routes remain |
-| F6 | Cat 3/4 benchmarks | **TBD** — API not on `:3000` during follow-up; use prior `api-2026-05-21T03-11-53-590Z.json` |
+| F5 | OpenAPI hook pilot | **Done** — `GET /issues` via `apiClient`; later OpenAPI contract completion reached 195/195 route parity |
+| F6 | Cat 3/4 benchmarks | **TBD** — API not reachable at the benchmark default `http://localhost:3000` during follow-up; use prior `api-2026-05-21T03-11-53-590Z.json` or set `API_BASE_URL` for another dev API port |
 | F7 | E2E fixtures incomplete | **Done** — `app.ts` extended; collab specs use shared `login` |
 
 Discovery 2 (collab room fork): mitigated in first pass (D020); **E2E evidence** now exists via isolation + caching specs.
