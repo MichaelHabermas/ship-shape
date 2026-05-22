@@ -1960,7 +1960,7 @@
             },
             {
               "label": "Current unit suites",
-              "value": "API 35 files / 501 tests passing; web 20 files / 165 tests passing."
+              "value": "API 36 files / 509 tests passing; web 21 files / 168 tests passing."
             },
             {
               "label": "Known caveat",
@@ -2044,15 +2044,15 @@
           "id": "cat5-latest-unit-suites",
           "kind": "test_suite_summary",
           "label": "Latest API and web unit suites",
-          "recorded_at": "2026-05-21",
+          "recorded_at": "2026-05-22",
           "values": {
-            "api_files_passed": 35,
-            "api_tests_passed": 501,
-            "web_files_passed": 20,
-            "web_tests_passed": 165
+            "api_files_passed": 36,
+            "api_tests_passed": 509,
+            "web_files_passed": 21,
+            "web_tests_passed": 168
           },
-          "origin": "report_extracted",
-          "confidence": "report_backed",
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
           "source": "my-docs/IMPROVEMENT_REPORT.md"
         },
         {
@@ -2172,15 +2172,15 @@
           "id": "cat5-api-suite-pass",
           "type": "test_run",
           "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test",
-          "result": "35 files passed / 501 tests passed",
-          "description": "Latest full API suite pass recorded in the improvement report."
+          "result": "36 files passed / 509 tests passed",
+          "description": "Latest full API suite pass recorded in the improvement report after the meaningful `as` cast reduction pass."
         },
         {
           "id": "cat5-web-suite-pass",
           "type": "test_run",
           "command": "pnpm --filter @ship/web test",
-          "result": "20 files passed / 165 tests passed",
-          "description": "Latest full web suite pass recorded in the improvement report."
+          "result": "21 files passed / 168 tests passed",
+          "description": "Latest full web suite pass recorded in the improvement report after the meaningful `as` cast reduction pass."
         },
         {
           "id": "cat5-focused-e2e-pass",

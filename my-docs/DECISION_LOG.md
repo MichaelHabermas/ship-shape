@@ -748,4 +748,6 @@ Consequences: Future route cleanup should prefer schemas/helpers over `req.query
 
 Evidence: `pnpm type-safety:counts` after the pass reports `as` assertions at 460 total / 346 production, down from the previous 575 total / 461 production. `pnpm type-check` passed; focused web mapper/tab tests passed 25/25; focused API route tests passed 108/108 on `ship_test_audit`; full web suite passed 168/168; full API suite passed 509/509.
 
+Correctness follow-up: Review found that persisted document types must not be silently remapped to `wiki`, and runtime query parsing should not live under the OpenAPI schema module. The mapper now preserves `standup` and `weekly_review` as base editor views, returning `null` only for truly unknown document type strings. Runtime query helpers live in `api/src/utils/query-params.ts`; `api/src/openapi/schemas/query-helpers.ts` only exports schema constants. Focused verification passed: `pnpm type-check`; web mapper test 5/5; API search/OpenAPI tests 30/30 on `ship_test_audit`; query-param and approval-workflow utility tests 7/7 on `ship_test_audit`.
+
 **Decision Gist**: Remove casts at ingress boundaries, not by moving assertions around.

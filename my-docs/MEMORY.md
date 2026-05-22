@@ -111,6 +111,8 @@ Places where a small, focused change creates outsized value.
 - E2E authz fixture now exposes `dbPool` from the isolated Testcontainers database. Use it to seed real owned/foreign workspace documents/issues instead of fake UUIDs when proving isolation.
 - Authz E2E mutating-route checks must include CSRF tokens or they can pass on CSRF failure instead of authorization failure. Boundary seeds should use isolated test-owned workspaces/users, not Bob's seeded workspace, because the Testcontainers DB is worker-scoped.
 - My Week stale-data E2E should wait on server proof, not fixed sleeps. Poll `/api/dashboard/my-week` until edited text appears, then require a fresh `/api/dashboard/my-week` network response during Dashboard navigation.
+- Document view mappers must not coerce persisted document types into a different editor type. Preserve valid types such as `standup` and `weekly_review` as base views; return an explicit unsupported state only for truly unknown strings. Forging `wiki` breaks collaboration room semantics and weakens the unified document model.
+- Keep runtime route parsing helpers under `api/src/utils` or route/schema boundary modules. OpenAPI schema modules should describe contracts, not own reusable route behavior.
 
 ## Sharp Edges
 

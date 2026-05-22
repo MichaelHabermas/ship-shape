@@ -704,3 +704,15 @@ Category 3 remains **partial**. `/api/dashboard/my-week` has follow-up measureme
 ### Operating Rule
 
 Evidence-changing work updates the ledger before narrative docs or dashboard output. Only mark a category `proven` when required rubric items and acceptance gates clear the source requirement; otherwise keep it `partial`, `open`, `needs_fill_in`, or `not_measured`. After ledger edits, run `pnpm submission:validate` and `pnpm submission:render`, then report changed categories and any failing/warning acceptance tests.
+
+---
+
+## Type Safety Correctness Review Follow-up (2026-05-22)
+
+Parallel review found two correctness issues in the Category 1 cast-reduction branch and both are fixed.
+
+- Persisted document types no longer fall back to `wiki` in `web/src/lib/document-view-mapper.ts`. The mapper preserves `standup` and `weekly_review` as base editor views and returns `null` only for truly unknown document type strings, avoiding wrong collaboration room prefixes without blocking valid standup deep links.
+- Runtime query parsing helpers moved from `api/src/openapi/schemas/query-helpers.ts` to `api/src/utils/query-params.ts`. OpenAPI schema modules now keep only schema constants, so route runtime behavior no longer depends on the OpenAPI layer.
+- Added focused tests for unsupported document-type mapping, query param coercion/clamping, and approval-record JSONB parsing.
+
+Evidence: `pnpm type-check`; `pnpm --filter @ship/web exec vitest run src/lib/document-view-mapper.test.ts` (5/5); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/search.test.ts` (30/30); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/utils/__tests__/query-params.test.ts src/utils/__tests__/approval-workflow.test.ts` (7/7).
