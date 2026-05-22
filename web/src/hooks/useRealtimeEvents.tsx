@@ -56,7 +56,9 @@ export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
     if (!subscribersRef.current.has(eventType)) {
       subscribersRef.current.set(eventType, new Set());
     }
-    subscribersRef.current.get(eventType)!.add(callback);
+    const subscribers = subscribersRef.current.get(eventType);
+    if (!subscribers) return () => {};
+    subscribers.add(callback);
 
     // Return unsubscribe function
     return () => {

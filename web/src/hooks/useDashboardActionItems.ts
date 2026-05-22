@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api';
+import { createApiStatusError } from '@/lib/api-error';
 
 export interface ActionItem {
   id: string;
@@ -21,9 +22,7 @@ export interface ActionItemsResponse {
 async function fetchActionItems(): Promise<ActionItemsResponse> {
   const res = await apiGet('/api/weeks/my-action-items');
   if (!res.ok) {
-    const error = new Error('Failed to fetch action items') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to fetch action items', res.status);
   }
   return res.json();
 }

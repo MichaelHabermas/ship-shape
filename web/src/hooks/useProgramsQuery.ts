@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
+import { createApiStatusError } from '@/lib/api-error';
 
 export interface ProgramOwner {
   id: string;
@@ -33,9 +34,7 @@ export const programKeys = {
 async function fetchPrograms(): Promise<Program[]> {
   const res = await apiGet('/api/programs');
   if (!res.ok) {
-    const error = new Error('Failed to fetch programs') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to fetch programs', res.status);
   }
   return res.json();
 }
@@ -44,9 +43,7 @@ async function fetchPrograms(): Promise<Program[]> {
 async function createProgramApi(data: { title: string }): Promise<Program> {
   const res = await apiPost('/api/programs', data);
   if (!res.ok) {
-    const error = new Error('Failed to create program') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to create program', res.status);
   }
   return res.json();
 }
@@ -55,9 +52,7 @@ async function createProgramApi(data: { title: string }): Promise<Program> {
 async function updateProgramApi(id: string, updates: Record<string, unknown>): Promise<Program> {
   const res = await apiPatch(`/api/programs/${id}`, updates);
   if (!res.ok) {
-    const error = new Error('Failed to update program') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to update program', res.status);
   }
   return res.json();
 }
@@ -66,9 +61,7 @@ async function updateProgramApi(id: string, updates: Record<string, unknown>): P
 async function deleteProgramApi(id: string): Promise<void> {
   const res = await apiDelete(`/api/programs/${id}`);
   if (!res.ok) {
-    const error = new Error('Failed to delete program') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to delete program', res.status);
   }
 }
 

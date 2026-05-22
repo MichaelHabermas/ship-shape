@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
+import { createApiStatusError } from '@/lib/api-error';
 
 export interface SprintOwner {
   id: string;
@@ -64,9 +65,7 @@ export interface ActiveWeeksResponse {
 async function fetchActiveWeeks(): Promise<ActiveWeeksResponse> {
   const res = await apiGet('/api/weeks');
   if (!res.ok) {
-    const error = new Error('Failed to fetch active sprints') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to fetch active sprints', res.status);
   }
   return res.json();
 }
@@ -84,9 +83,7 @@ export function useActiveWeeksQuery() {
 async function fetchSprints(programId: string): Promise<SprintsResponse> {
   const res = await apiGet(`/api/programs/${programId}/sprints`);
   if (!res.ok) {
-    const error = new Error('Failed to fetch sprints') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to fetch sprints', res.status);
   }
   return res.json();
 }
@@ -102,9 +99,7 @@ interface CreateSprintData {
 async function createSprintApi(data: CreateSprintData): Promise<Sprint> {
   const res = await apiPost('/api/weeks', data);
   if (!res.ok) {
-    const error = new Error('Failed to create sprint') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to create sprint', res.status);
   }
   return res.json();
 }
@@ -113,9 +108,7 @@ async function createSprintApi(data: CreateSprintData): Promise<Sprint> {
 async function updateSprintApi(id: string, updates: Partial<Sprint> & { owner_id?: string }): Promise<Sprint> {
   const res = await apiPatch(`/api/weeks/${id}`, updates);
   if (!res.ok) {
-    const error = new Error('Failed to update sprint') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to update sprint', res.status);
   }
   return res.json();
 }
@@ -124,9 +117,7 @@ async function updateSprintApi(id: string, updates: Partial<Sprint> & { owner_id
 async function deleteSprintApi(id: string): Promise<void> {
   const res = await apiDelete(`/api/weeks/${id}`);
   if (!res.ok) {
-    const error = new Error('Failed to delete sprint') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to delete sprint', res.status);
   }
 }
 
@@ -399,9 +390,7 @@ export interface ProjectSprint extends Sprint {
 async function fetchProjectSprints(projectId: string): Promise<ProjectSprint[]> {
   const res = await apiGet(`/api/projects/${projectId}/sprints`);
   if (!res.ok) {
-    const error = new Error('Failed to fetch project sprints') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to fetch project sprints', res.status);
   }
   return res.json();
 }

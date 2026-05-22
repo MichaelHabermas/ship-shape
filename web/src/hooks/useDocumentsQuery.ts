@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
+import { createApiStatusError } from '@/lib/api-error';
 
 export interface WikiDocument {
   id: string;
@@ -28,9 +29,7 @@ export const documentKeys = {
 async function fetchDocuments(type: string = 'wiki'): Promise<WikiDocument[]> {
   const res = await apiGet(`/api/documents?type=${type}`);
   if (!res.ok) {
-    const error = new Error('Failed to fetch documents') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to fetch documents', res.status);
   }
   return res.json();
 }
@@ -39,9 +38,7 @@ async function fetchDocuments(type: string = 'wiki'): Promise<WikiDocument[]> {
 async function createDocumentApi(data: { title: string; document_type: string; parent_id?: string | null }): Promise<WikiDocument> {
   const res = await apiPost('/api/documents', data);
   if (!res.ok) {
-    const error = new Error('Failed to create document') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to create document', res.status);
   }
   return res.json();
 }
@@ -50,9 +47,7 @@ async function createDocumentApi(data: { title: string; document_type: string; p
 async function updateDocumentApi(id: string, updates: Partial<WikiDocument>): Promise<WikiDocument> {
   const res = await apiPatch(`/api/documents/${id}`, updates);
   if (!res.ok) {
-    const error = new Error('Failed to update document') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to update document', res.status);
   }
   return res.json();
 }
@@ -61,9 +56,7 @@ async function updateDocumentApi(id: string, updates: Partial<WikiDocument>): Pr
 async function deleteDocumentApi(id: string): Promise<void> {
   const res = await apiDelete(`/api/documents/${id}`);
   if (!res.ok) {
-    const error = new Error('Failed to delete document') as Error & { status: number };
-    error.status = res.status;
-    throw error;
+    throw createApiStatusError('Failed to delete document', res.status);
   }
 }
 
