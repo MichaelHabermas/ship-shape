@@ -12,7 +12,6 @@ import { ProjectSidebar } from '@/components/sidebars/ProjectSidebar';
 import { WeekSidebar } from '@/components/sidebars/WeekSidebar';
 import { ProgramSidebar } from '@/components/sidebars/ProgramSidebar';
 import { ContentHistoryPanel } from '@/components/ContentHistoryPanel';
-import { RetroQualityAssistant } from '@/components/sidebars/QualityAssistant';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/hooks/useAuth';
 import { apiGet } from '@/lib/api';
@@ -369,42 +368,6 @@ function WeeklyDocumentSidebar({
         documentType={document.document_type}
       />
     </div>
-  );
-}
-
-/** Wrapper that fetches plan content for the retro quality assistant */
-function _RetroQualityAssistantWrapper({
-  documentId,
-  content,
-  personId,
-  weekNumber,
-}: {
-  documentId: string;
-  content: Record<string, unknown>;
-  personId?: string;
-  weekNumber?: number;
-}) {
-  // Fetch the corresponding weekly plan for comparison
-  const { data: planContent } = useQuery<Record<string, unknown> | null>({
-    queryKey: ['weekly-plan-for-retro', personId, weekNumber],
-    queryFn: async () => {
-      if (!personId || !weekNumber) return null;
-      const res = await apiGet(`/api/weekly-plans?person_id=${personId}&week_number=${weekNumber}`);
-      if (!res.ok) return null;
-      const plans = await res.json();
-      if (plans.length > 0 && plans[0].content) return plans[0].content;
-      return null;
-    },
-    enabled: !!personId && !!weekNumber,
-    staleTime: 60 * 1000,
-  });
-
-  return (
-    <RetroQualityAssistant
-      documentId={documentId}
-      content={content}
-      planContent={planContent ?? null}
-    />
   );
 }
 
