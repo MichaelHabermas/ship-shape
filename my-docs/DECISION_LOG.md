@@ -635,3 +635,33 @@ Decision: Import `standups.js` in `api/src/openapi/index.ts` so `defineRoute` re
 Why: After S8/S9 split, strict check reported 5 missing standups routes and 24 stale weeks routes despite runtime and OpenAPI being aligned.
 
 Evidence: `pnpm openapi:check:strict` — Runtime 193, OpenAPI 193, 0 missing/stale (2026-05-21).
+
+### D036: Express Router Declaration Standard (Phase 4d)
+
+Status: Accepted
+
+Decision: Default route modules use `const router = Router()` (inferred type). Named exported routers (`searchRouter`, `filesRouter`, etc.) annotate with `import { type Router as ExpressRouter }` only where export typing is required. Remove per-file `type RouterType = ReturnType<typeof Router>()` and duplicate `import type { Router as RouterType }` lines.
+
+Why: ~25 files repeated three equivalent patterns with no behavioral value.
+
+Alternatives considered: `createRouter()` factory (extra indirection); shared `AppRouter` type alias file (unnecessary).
+
+Consequences: New route files follow inference-first; use `ExpressRouter` only on named exports.
+
+Evidence: `pnpm type-check` green across api/web/shared (2026-05-21).
+
+**Decision Gist**: One router idiom — infer by default, annotate exports only.
+
+### D037: simplify-1 Multi-Agent Verification Pass (Phase 5)
+
+Status: Accepted (conditional ship)
+
+Decision: Treat `simplify-1` refactor as **correctness-verified for merge** on automated gates and read-only audits, with documented follow-ups for test coverage and prod SSL policy — not as a full GFA category closure.
+
+Why: Foundational refactors (route-http, weeks split, document-access pilots, defineRoute pilots) need evidence beyond green status-code tests. Parallel agents (security, OpenAPI, weeks structure, web shell, thermo review, test-contract) found **no CRITICAL** regressions; visibility/approval/session behavior preserved vs `master`.
+
+Findings catalogued in `my-docs/code-simplification-orchestration-plan.md` Verification report. Intentional: defineRoute validation envelope; grid route removal (193 paths). Follow-up: prod `databaseSslOptions`, approval-workflow tests, feedback/standups contract tests, `asApprovalRecord` guard.
+
+Evidence: `pnpm type-check`; `openapi:check:strict` 193/193; `vitest run src/routes/` 313/313; standups+feedback 21/21 on `ship_test_audit` (2026-05-21).
+
+**Decision Gist**: Ship the structural pass; track HIGH follow-ups before claiming full GFA/test maturity.

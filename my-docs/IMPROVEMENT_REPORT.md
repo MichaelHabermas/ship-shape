@@ -21,10 +21,18 @@ Multi-agent SOLID/DRY pass per `my-docs/code-simplification-orchestration-plan.m
 | S10 | Split `App.tsx` | 3 | Done — 220 lines; AppHeader, AppSidebar, useAppMode |
 | S4 finish | runtime in app/migrate/seed | 4 | Done |
 | Sweep | route-http on routes + weeks/ | 4 | Done — programs, issues, team, projects, documents, dashboard, weekly-plans, comments, iterations, backlinks, accountability, weeks/* |
+| Router types | inference-first + `ExpressRouter` on named exports | 4d | Done — ~25 route files |
+| Verification | multi-agent + gate re-run | 5 | Done — see orchestration plan **Verification report** |
 
-GFA tie-in: structural maintainability supports Cat 5 (tests) and Cat 4 (query clarity via repository); **category metric rows remain TBD** until before/after benchmarks run. Targeted API tests: **98 passed** (issues, weeks, standups, feedback, projects) on `ship_test_audit`. `pnpm type-check` green.
+GFA tie-in: structural maintainability supports Cat 5 (tests) and Cat 4 (query clarity via repository); **category metric rows remain TBD** until before/after benchmarks run. API routes on `ship_test_audit`: **313/313** pass; OpenAPI strict **193/193**; `pnpm type-check` green.
 
-D029–D033 in `DECISION_LOG.md`.
+D029–D037 in `DECISION_LOG.md`.
+
+### Phase 5 verification summary (2026-05-21)
+
+Seven parallel read-only agents + orchestrator gate re-run. **No CRITICAL regressions.** Security/access, weeks mount order, App shell, and route-http envelopes match `master` intent. **Intentional deltas:** `defineRoute` validation envelope on standups/feedback; OpenAPI route count 193 (grid v1/v2 removed).
+
+**Ship-with-follow-ups (HIGH):** confirm prod `databaseSslOptions()` TLS policy; add contract tests for `defineRoute` 400 envelope and `GET /api/feedback/:id`; strengthen issue visibility tests. **MEDIUM:** `asApprovalRecord` runtime guard; complete issue-detail repository slice. **LOW:** weeks dead imports; optional E2E heatmap re-run.
 
 ---
 

@@ -96,3 +96,52 @@ Agents report to orchestrator; orchestrator updates `MEMORY.md`, `DECISION_LOG.m
 | 4 Sweep | Done | route-http across 18 route files + weeks/ submodules; OpenAPI strict 193/193; 313+ route tests pass |
 | 4b OpenAPI parity | Done | `standups.js` in openapi index; `check-openapi-routes.mjs` follows `weeks/` re-export |
 | 4c Remaining sweep | Done | associations, files, search, activity, claude, ai, caia-auth, admin-credentials |
+| 4d Router types | Done | `const router = Router()` default; `ExpressRouter` only on named exports |
+| 5 Verification | Done | Multi-agent audit 2026-05-21 — see **Verification report** below |
+
+## Verification report (Phase 5 — 2026-05-21)
+
+**Branch:** `simplify-1` (3 commits vs `master`). **Agents:** security/access, OpenAPI contract, weeks split, web App refactor, thermo-nuclear foundation review, test-contract audit, shell gates.
+
+### Automated gates (orchestrator re-run)
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | PASS |
+| `pnpm openapi:check:strict` | PASS — 193 runtime / 193 OpenAPI |
+| `vitest run src/routes/` (`ship_test_audit`) | PASS — 313/313 |
+| `standups.test.ts` + `feedback.test.ts` | PASS — 21/21 |
+
+### Verdict by area
+
+| Area | Verdict | Notes |
+|------|---------|-------|
+| document-access / issues GET | **PASS** | `document-access.ts` unchanged vs master; visibility SQL preserved |
+| approval-workflow + weeks approvals | **PASS** | Auth/state transitions bit-equivalent to master |
+| accountability-grid v1/v2 removal | **PASS** | v3 only; web `StatusOverviewHeatmap` unchanged consumer |
+| session-cookies / runtime | **PASS** | Prod/dev cookie semantics preserved |
+| route-http sweep | **PASS** | Legacy `{ error }` / `{ error, details }` shapes preserved on swept routes |
+| weeks/ split | **PASS** | Mount order correct; no dropped routes; dead imports only |
+| App.tsx split | **PASS** | Navigation, standup status path, providers intact |
+| OpenAPI parity | **PASS** | Scanner + index imports fixed |
+| Router type cleanup | **PASS** | Mechanical; type-check green |
+
+### Accepted intentional deltas (not regressions)
+
+- **`defineRoute` validation envelope** on standups + feedback protected routes: `{ success: false, error: { code, message } }` — documented in MEMORY; OpenAPI 400 schemas for standups still document legacy `{ error }` for handler errors (doc drift, not runtime mismatch on happy paths).
+- **Route count 195 → 193** after grid v1/v2 removal.
+
+### Follow-ups (pre-existing or incomplete slice — not blockers for merge)
+
+| Priority | Item | Owner hint |
+|----------|------|------------|
+| HIGH | `databaseSslOptions()` forces `{ rejectUnauthorized: false }` in prod (master pool had no `ssl` key) — confirm Render/Postgres TLS policy | `runtime.ts` |
+| HIGH | Test gaps: no standalone `/api/standups` tests; no `GET /api/feedback/:id` tests; weak private-issue visibility on issues GET | Cat 5 |
+| MEDIUM | `asApprovalRecord` unchecked cast — add runtime guard or Zod | `approval-workflow.ts` |
+| MEDIUM | Issue detail repository incomplete (`/:id/children` still inline SQL; conversion redirect without visibility re-check) | pre-existing |
+| MEDIUM | OpenAPI `StandupLegacyErrorSchema` vs `defineRoute` param validation envelope mismatch | contract tests |
+| LOW | Dead imports in `weeks/sprints.ts`, `weeks/approvals.ts`, `my-week.ts` | hygiene |
+| LOW | `AppSidebar` `sprints` / `project-context` modes never activated | pre-existing |
+| LOW | E2E `e2e/status-overview-heatmap.spec.ts` not re-run this pass | optional gate |
+
+**GFA alignment:** No forbidden functionality removal; fail-closed access not weakened; tests not weakened (but coverage gaps documented). Category metric rows still require before/after benchmarks for claimed credit.
