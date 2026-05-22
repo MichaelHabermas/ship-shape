@@ -163,3 +163,23 @@ Agents report to orchestrator; orchestrator updates `MEMORY.md`, `DECISION_LOG.m
 | W7 | Micro cleanups (useAuth meta, test helpers) | Done |
 
 **Deferred:** Wave 2b repo-wide sprint-time migration (`weeks/*`, `team.ts`, `standups.ts`); runtime OpenAPI response validation middleware.
+
+---
+
+## Lint unsafe-* cleanup (L1–L8, 2026-05-22)
+
+**Plan reference:** `.cursor/plans/lint_unsafe_cleanup_f0b26a72.plan.md` (do not edit plan file during execution).
+
+**Baseline:** ESLint `no-unsafe-*` — web **324**, api **4121**; `pnpm type-safety:counts` — any 92/1 prod, as 473/358 prod.
+
+| ID | Work | Status |
+|----|------|--------|
+| L0 | Baseline + orchestration doc | Done |
+| L1 | Web JSON foundation (read-json, schemas, *Json helpers) | Done |
+| L2 | Web consumer sweep (hooks, pages, Login/Setup) | Done |
+| L3 | Web collab/editor stragglers | Done |
+| L4 | API issues + workspaces + weekly-plans | Done |
+| L5 | API admin + team typed queries | Done |
+| L6 | API documents, dashboard, projects, claude, weeks/* | Done |
+| L7 | Typed test fixtures (pg-result) | Done |
+| L8 | Closeout + docs + conditional Cat 1 ledger | Done |

@@ -810,6 +810,20 @@ Evidence: Vitest guard test passes; `isAiAvailable()` and analyze paths share cr
 
 **Decision Gist**: One guard at invoke boundary; D044 preserved.
 
+### D048: JSON And SQL Row Type Boundaries
+
+Status: Accepted
+
+Decision: Web fetches parse JSON only through `web/src/api/read-json.ts` (`readJson`, `apiGetJson`, `quietGetJson`). OpenAPI schema aliases live in `web/src/api/schemas.ts`. API routes type PostgreSQL reads with co-located `*Row` types and `pool.query<Row>()`, using `api/src/utils/query-rows.ts` `requireFirstRow()` where a row must exist.
+
+Why: ~4,400 ESLint `no-unsafe-*` warnings traced to untyped `response.json()` and untyped `pool.query` rows. Central boundaries contain casts; consumers get meaningful types per GFA Cat 1.
+
+Consequences: ESLint unsafe warnings web 324→38, api 4121→1894 (2026-05-22). Production AST `any` remains 1; further API route typing deferred to follow-up passes.
+
+Evidence: `pnpm type-check`; API 521/521; web vitest 174/174.
+
+**Decision Gist**: One JSON parse module; per-route SQL row types.
+
 ### D048: Cat 3 Benchmarks Bypass Rate Limits Only In Non-Production
 
 Status: Accepted

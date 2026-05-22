@@ -44,6 +44,20 @@ Second focused pass per `my-docs/code-simplification-orchestration-plan.md` **Wa
 
 Gates: `pnpm type-check` green; OpenAPI strict 193/193; bootstrap + sprint-time + accountability + ai-analysis guard API tests 20/20; web PlanQualityBanner + quiet-fetch 5/5; `pnpm perf:explain` smoke pass; `pnpm submission:validate` + `pnpm submission:render` + `pnpm submission:check` (Cat 8 still open by instruction). Post-audit fix (2026-05-22): restored `hasUsableBedrockClient()` guard in `callBedrock` (Wave 1 regression vs D044); added `api/src/services/__tests__/ai-analysis.test.ts`; `clearQuietCsrfToken()` wired into `clearCsrfToken()`. Thermo-nuclear follow-ups remain: bootstrap SQL catalog mirrors route (single builder deferred); visibility filter third copy; `useAiQuality` duplicate GET on mount. D046 documents DocumentTreeItem variant + sidebar adapter.
 
+### Lint unsafe-* cleanup (L1–L8, 2026-05-22)
+
+Per `code-simplification-orchestration-plan.md` L1–L8. **No git commits** unless user requests.
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Web ESLint `no-unsafe-*` | 324 | **38** |
+| API ESLint `no-unsafe-*` | 4121 | **1894** |
+| AST `any` (total / prod) | 92 / 1 | 76 / 1 |
+
+Foundation: `web/src/api/read-json.ts`, `web/src/api/schemas.ts`, `apiGetJson`/`quietGetJson`, `api/src/utils/query-rows.ts`, typed `pool.query<Row>()` on issues/workspaces/weekly-plans/admin/team/documents/dashboard/projects/claude/weeks/*, typed test fixtures via `pg-result.ts`.
+
+Gates: `pnpm type-check` green; API **521/521**; web **174/174** vitest pass. D048 codifies JSON + SQL row boundary policy. Cat 1 ledger unchanged (production `any` still 1).
+
 ---
 
 ### Phase 5 verification summary (2026-05-21)

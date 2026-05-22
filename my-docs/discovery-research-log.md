@@ -1114,7 +1114,19 @@ Parallel sub-agents (API, web, shell gates, GFA alignment, E2E):
 
 Follow-ups (non-blocking): single bootstrap SQL builder; unify visibility filter import; dedupe `useAiQuality` mount GET; post-W6 axe re-run when dev server up.
 
-## Category 3 Closeout: Rate-Limit-Proof Benchmark Pair (2026-05-22)
+---
+
+## Lint unsafe-* cleanup L1–L8 (2026-05-22)
+
+Orchestrated ESLint remediation (GFA Cat 1 adjacent; AST counter unchanged at 1 production `any`):
+
+- **Web:** `read-json.ts`, `schemas.ts`, `apiGetJson`/`quietGetJson`, `public-fetch.ts`, `mention-search.ts`; consumers migrated off bare `res.json()`. ESLint unsafe **324→38**.
+- **API:** `pool.query<Row>()` on top routes (issues, workspaces, weekly-plans, admin, team, documents, dashboard, projects, claude, weeks/*); `utils/query-rows.ts`; test `pg-result.ts` + typed integration tests. ESLint unsafe **4121→1894**.
+- Gates: type-check green; API 521/521; web vitest 174/174. D048. No Cat 1 ledger change (production `any` still 1).
+
+Deferred: remaining ~1894 API warnings (middleware, claude client.query, smaller routes); full openapi-fetch migration.
+
+---: Rate-Limit-Proof Benchmark Pair (2026-05-22)
 
 The missing Cat 3 proof was measurement legitimacy plus bootstrap critical-path work, not another SQL index. The final admissible method uses an explicit non-production benchmark rate-limit bypass rather than `NODE_ENV=test`, and reruns the historical before state from isolated ref `7d31add` with the same bypass patch applied. Both before and after use built API server mode (`node dist/index.js`) against the same `ship_dev` audit-load database and benchmark matrix.
 
