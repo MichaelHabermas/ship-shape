@@ -1113,3 +1113,13 @@ Parallel sub-agents (API, web, shell gates, GFA alignment, E2E):
 | a11y closeout | FAIL (env) | Dev server not running on :5173 |
 
 Follow-ups (non-blocking): single bootstrap SQL builder; unify visibility filter import; dedupe `useAiQuality` mount GET; post-W6 axe re-run when dev server up.
+
+## Category 3 Closeout: Rate-Limit-Proof Benchmark Pair (2026-05-22)
+
+The missing Cat 3 proof was measurement legitimacy plus bootstrap critical-path work, not another SQL index. The final admissible method uses an explicit non-production benchmark rate-limit bypass rather than `NODE_ENV=test`, and reruns the historical before state from isolated ref `7d31add` with the same bypass patch applied. Both before and after use built API server mode (`node dist/index.js`) against the same `ship_dev` audit-load database and benchmark matrix.
+
+Final artifacts:
+- Before: `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json`
+- After: `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json`
+
+Result: `/api/bootstrap` clears the 20% P95 target at 10/25/50 concurrency after removing inferred accountability and standup-status work from the bootstrap critical path. `/api/dashboard/my-week` also clears the 20% P95 target across the same matrix in the clean repeat after-run. Category 3 is now proven in the ledger. Rate-limited or watcher-restarted benchmark runs remain excluded.

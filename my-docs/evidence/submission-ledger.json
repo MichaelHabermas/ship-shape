@@ -787,7 +787,7 @@
       "id": "cat-3-api-response-time",
       "number": 3,
       "title": "API Response Time",
-      "status": "partial",
+      "status": "proven",
       "source_requirement": {
         "statement": "20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck.",
         "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
@@ -950,7 +950,7 @@
           "id": "cat3-improvement-two-endpoints-p95-20-percent",
           "phase": "improvement",
           "required": true,
-          "status": "partial",
+          "status": "present",
           "location": "claims[cat3-p95-target]"
         },
         {
@@ -965,311 +965,133 @@
         {
           "id": "cat3-api-benchmark-before",
           "kind": "api_benchmark_matrix",
-          "label": "Before projection compaction benchmark",
-          "recorded_at": "2026-05-21",
-          "environment": {
-            "database": "ship_dev",
-            "api_base_url": "http://localhost:3001",
-            "duration_ms": 15000,
-            "connections": [
-              10,
-              25,
-              50
-            ],
-            "rate_per_second": 100
-          },
-          "comparability_group": "cat3-before-after-projection-compaction",
-          "artifact": "my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json",
-          "endpoints": [
-            {
-              "endpoint": "GET /api/documents?type=wiki",
-              "p50_ms": {
-                "10c": 8.63,
-                "25c": 8.92,
-                "50c": 10.18
-              },
-              "p95_ms": {
-                "10c": 14.34,
-                "25c": 17.68,
-                "50c": 21.55
-              },
-              "p99_ms": {
-                "10c": 18.3,
-                "25c": 27.48,
-                "50c": 57.89
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/issues",
-              "p50_ms": {
-                "10c": 10.22,
-                "25c": 11.02,
-                "50c": 14.39
-              },
-              "p95_ms": {
-                "10c": 19.01,
-                "25c": 37.35,
-                "50c": 99.13
-              },
-              "p99_ms": {
-                "10c": 58.44,
-                "25c": 110.26,
-                "50c": 261.35
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/dashboard/my-week",
-              "p50_ms": {
-                "10c": 12.69,
-                "25c": 16.19,
-                "50c": 12.65
-              },
-              "p95_ms": {
-                "10c": 17.72,
-                "25c": 24.68,
-                "50c": 34.82
-              },
-              "p99_ms": {
-                "10c": 27.53,
-                "25c": 29.05,
-                "50c": 42.25
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/projects",
-              "p50_ms": {
-                "10c": 9.77,
-                "25c": 7.44,
-                "50c": 11.21
-              },
-              "p95_ms": {
-                "10c": 12.99,
-                "25c": 11.07,
-                "50c": 19.34
-              },
-              "p99_ms": {
-                "10c": 17.37,
-                "25c": 13.27,
-                "50c": 26.36
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/bootstrap",
-              "p50_ms": {
-                "10c": 18.14,
-                "25c": 20.37,
-                "50c": 24.83
-              },
-              "p95_ms": {
-                "10c": 24.74,
-                "25c": 50.24,
-                "50c": 220.81
-              },
-              "p99_ms": {
-                "10c": 59.02,
-                "25c": 173.79,
-                "50c": 376.08
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            }
-          ],
-          "origin": "report_extracted",
-          "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
-        },
-        {
-          "id": "cat3-api-benchmark-after",
-          "kind": "api_benchmark_matrix",
-          "label": "After projection compaction benchmark",
-          "recorded_at": "2026-05-21",
-          "environment": {
-            "database": "ship_dev",
-            "api_base_url": "http://localhost:3001",
-            "duration_ms": 15000,
-            "connections": [
-              10,
-              25,
-              50
-            ],
-            "rate_per_second": 100
-          },
-          "comparability_group": "cat3-before-after-projection-compaction",
-          "artifact": "my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json",
-          "endpoints": [
-            {
-              "endpoint": "GET /api/documents?type=wiki",
-              "p50_ms": {
-                "10c": 7.95,
-                "25c": 9.95,
-                "50c": 9.74
-              },
-              "p95_ms": {
-                "10c": 13.5,
-                "25c": 17.87,
-                "50c": 18.03
-              },
-              "p99_ms": {
-                "10c": 16.87,
-                "25c": 30.18,
-                "50c": 51.49
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/issues",
-              "p50_ms": {
-                "10c": 9.73,
-                "25c": 10.39,
-                "50c": 21.16
-              },
-              "p95_ms": {
-                "10c": 13.31,
-                "25c": 27.37,
-                "50c": 115.71
-              },
-              "p99_ms": {
-                "10c": 35.17,
-                "25c": 90.82,
-                "50c": 207.11
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/dashboard/my-week",
-              "p50_ms": {
-                "10c": 14.79,
-                "25c": 14.56,
-                "50c": 13.54
-              },
-              "p95_ms": {
-                "10c": 18.26,
-                "25c": 24.54,
-                "50c": 30.53
-              },
-              "p99_ms": {
-                "10c": 29.41,
-                "25c": 26.13,
-                "50c": 42.76
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/projects",
-              "p50_ms": {
-                "10c": 9.53,
-                "25c": 10.42,
-                "50c": 10.25
-              },
-              "p95_ms": {
-                "10c": 12.55,
-                "25c": 15.48,
-                "50c": 18.64
-              },
-              "p99_ms": {
-                "10c": 13.74,
-                "25c": 17.44,
-                "50c": 24.16
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            },
-            {
-              "endpoint": "GET /api/bootstrap",
-              "p50_ms": {
-                "10c": 14.74,
-                "25c": 16.38,
-                "50c": 17.62
-              },
-              "p95_ms": {
-                "10c": 21.38,
-                "25c": 75.11,
-                "50c": 196.84
-              },
-              "p99_ms": {
-                "10c": 56.75,
-                "25c": 142.01,
-                "50c": 314.64
-              },
-              "non_2xx": {
-                "10c": 0,
-                "25c": 0,
-                "50c": 0
-              }
-            }
-          ],
-          "origin": "report_extracted",
-          "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
-        },
-        {
-          "id": "cat3-my-week-followup-benchmark",
-          "kind": "api_benchmark_matrix",
-          "label": "My Week round-trip optimization follow-up benchmark",
+          "label": "Before Cat 3 projection and route-shape optimizations benchmark",
           "recorded_at": "2026-05-22",
           "environment": {
             "database": "ship_dev",
-            "api_base_url": "http://localhost:3000",
-            "duration_ms": 5000,
+            "api_base_url": "http://127.0.0.1:3001",
+            "duration_ms": 15000,
             "connections": [
               10,
               25,
               50
             ],
             "rate_per_second": 100,
-            "node_env": "test"
+            "rate_limit_bypass": true,
+            "server_mode": "built node dist/index.js",
+            "git_ref": "7d31add"
           },
-          "artifact": "my-docs/evidence/artifacts/cat3-my-week-followup-2026-05-22T15-54-22-482Z.json",
+          "comparability_group": "cat3-before-after-benchmark-bypass-built-server",
+          "artifact": "my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json",
           "endpoints": [
             {
-              "endpoint": "GET /api/dashboard/my-week",
+              "endpoint": "GET /api/documents?type=wiki",
+              "p50_ms": {
+                "10c": 7.19,
+                "25c": 7.51,
+                "50c": 7.59
+              },
               "p95_ms": {
-                "10c": 13.99,
-                "25c": 21.41,
-                "50c": 32.63
+                "10c": 12.78,
+                "25c": 14.66,
+                "50c": 18.52
               },
               "p99_ms": {
-                "10c": 25.82,
-                "25c": 28.67,
-                "50c": 38.42
+                "10c": 15.96,
+                "25c": 26.92,
+                "50c": 45.53
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/issues",
+              "p50_ms": {
+                "10c": 9.5,
+                "25c": 10.11,
+                "50c": 12.64
+              },
+              "p95_ms": {
+                "10c": 15.34,
+                "25c": 30.78,
+                "50c": 90.1
+              },
+              "p99_ms": {
+                "10c": 35.18,
+                "25c": 87.81,
+                "50c": 208.31
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/dashboard/my-week",
+              "p50_ms": {
+                "10c": 13.67,
+                "25c": 16.76,
+                "50c": 14
+              },
+              "p95_ms": {
+                "10c": 18.21,
+                "25c": 28.07,
+                "50c": 35.39
+              },
+              "p99_ms": {
+                "10c": 24.05,
+                "25c": 39.89,
+                "50c": 37.88
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/projects",
+              "p50_ms": {
+                "10c": 9.95,
+                "25c": 11.19,
+                "50c": 9.99
+              },
+              "p95_ms": {
+                "10c": 14.9,
+                "25c": 16.25,
+                "50c": 23.88
+              },
+              "p99_ms": {
+                "10c": 17.49,
+                "25c": 22.71,
+                "50c": 31.87
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/bootstrap",
+              "p50_ms": {
+                "10c": 19.66,
+                "25c": 21.35,
+                "50c": 29.81
+              },
+              "p95_ms": {
+                "10c": 31.02,
+                "25c": 75.47,
+                "50c": 217.33
+              },
+              "p99_ms": {
+                "10c": 59.94,
+                "25c": 151.28,
+                "50c": 359.88
               },
               "non_2xx": {
                 "10c": 0,
@@ -1278,15 +1100,156 @@
               }
             }
           ],
-          "origin": "report_extracted",
+          "origin": "artifact_parsed",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md",
-          "claim_boundary": "Useful follow-up evidence for the My Week optimization, but not used to pass cat3-two-endpoints-clear-20-percent-p95 because benchmark duration/environment differs from the primary before/after comparability group."
+          "source": "my-docs/evidence/artifacts"
+        },
+        {
+          "id": "cat3-api-benchmark-after",
+          "kind": "api_benchmark_matrix",
+          "label": "After Cat 3 projection and bootstrap critical-path optimizations benchmark",
+          "recorded_at": "2026-05-22",
+          "environment": {
+            "database": "ship_dev",
+            "api_base_url": "http://127.0.0.1:3001",
+            "duration_ms": 15000,
+            "connections": [
+              10,
+              25,
+              50
+            ],
+            "rate_per_second": 100,
+            "rate_limit_bypass": true,
+            "server_mode": "built node dist/index.js",
+            "git_ref": "current worktree"
+          },
+          "comparability_group": "cat3-before-after-benchmark-bypass-built-server",
+          "artifact": "my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json",
+          "endpoints": [
+            {
+              "endpoint": "GET /api/documents?type=wiki",
+              "p50_ms": {
+                "10c": 7.38,
+                "25c": 8.07,
+                "50c": 8.73
+              },
+              "p95_ms": {
+                "10c": 13.17,
+                "25c": 16.36,
+                "50c": 21.27
+              },
+              "p99_ms": {
+                "10c": 16.98,
+                "25c": 23.67,
+                "50c": 48.82
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/issues",
+              "p50_ms": {
+                "10c": 9.38,
+                "25c": 10.88,
+                "50c": 12.79
+              },
+              "p95_ms": {
+                "10c": 15.3,
+                "25c": 27.79,
+                "50c": 117
+              },
+              "p99_ms": {
+                "10c": 34.37,
+                "25c": 85.65,
+                "50c": 195.59
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/dashboard/my-week",
+              "p50_ms": {
+                "10c": 8.86,
+                "25c": 9.03,
+                "50c": 10.42
+              },
+              "p95_ms": {
+                "10c": 14.37,
+                "25c": 17.48,
+                "50c": 22.53
+              },
+              "p99_ms": {
+                "10c": 20.15,
+                "25c": 21.67,
+                "50c": 25.56
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/projects",
+              "p50_ms": {
+                "10c": 10.08,
+                "25c": 10.42,
+                "50c": 8.93
+              },
+              "p95_ms": {
+                "10c": 14.97,
+                "25c": 15.28,
+                "50c": 14.9
+              },
+              "p99_ms": {
+                "10c": 16.84,
+                "25c": 17.4,
+                "50c": 22.29
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/bootstrap",
+              "p50_ms": {
+                "10c": 10.3,
+                "25c": 10.13,
+                "50c": 12.62
+              },
+              "p95_ms": {
+                "10c": 18.02,
+                "25c": 29.93,
+                "50c": 119.38
+              },
+              "p99_ms": {
+                "10c": 40.56,
+                "25c": 116.02,
+                "50c": 282.42
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            }
+          ],
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "my-docs/evidence/artifacts"
         }
       ],
       "comparability": [
         {
-          "id": "cat3-before-after-projection-compaction",
+          "id": "cat3-before-after-benchmark-bypass-built-server",
           "measurement_ids": [
             "cat3-api-benchmark-before",
             "cat3-api-benchmark-after"
@@ -1298,35 +1261,36 @@
           "same_concurrency": true,
           "same_rate_cap": true,
           "notes": [
-            "Both measurements are documented as using ship_dev audit-load data, API_BASE_URL=http://localhost:3001, 15000 ms duration, 10/25/50 connections, and rate cap 100."
+            "Both measurements used ship_dev audit-load data, API_BASE_URL=http://127.0.0.1:3001, 15000 ms duration, 10/25/50 connections, rate cap 100, built node dist server mode, and the explicit non-production benchmark rate-limit bypass.",
+            "Before was rerun from isolated worktree ref 7d31add with only the benchmark bypass patch applied; the main worktree staging was not changed."
           ]
         }
       ],
       "derived_metrics": [
         {
-          "id": "cat3-issues-p95-change-by-concurrency",
+          "id": "cat3-my-week-p95-change-by-concurrency",
           "kind": "p95_percent_change_by_concurrency",
-          "endpoint": "GET /api/issues",
+          "endpoint": "GET /api/dashboard/my-week",
           "baseline_measurement_id": "cat3-api-benchmark-before",
           "latest_measurement_id": "cat3-api-benchmark-after",
           "values": {
             "10c": {
-              "baseline_ms": 19.01,
-              "latest_ms": 13.31,
-              "change_percent": -30,
+              "baseline_ms": 18.21,
+              "latest_ms": 14.37,
+              "change_percent": -21.09,
               "clears_20_percent_reduction": true
             },
             "25c": {
-              "baseline_ms": 37.35,
-              "latest_ms": 27.37,
-              "change_percent": -26.7,
+              "baseline_ms": 28.07,
+              "latest_ms": 17.48,
+              "change_percent": -37.72,
               "clears_20_percent_reduction": true
             },
             "50c": {
-              "baseline_ms": 99.13,
-              "latest_ms": 115.71,
-              "change_percent": 16.7,
-              "clears_20_percent_reduction": false
+              "baseline_ms": 35.39,
+              "latest_ms": 22.53,
+              "change_percent": -36.35,
+              "clears_20_percent_reduction": true
             }
           },
           "origin": "computed",
@@ -1340,39 +1304,55 @@
           "latest_measurement_id": "cat3-api-benchmark-after",
           "values": {
             "10c": {
-              "baseline_ms": 24.74,
-              "latest_ms": 21.38,
-              "change_percent": -13.6,
-              "clears_20_percent_reduction": false
+              "baseline_ms": 31.02,
+              "latest_ms": 18.02,
+              "change_percent": -41.9,
+              "clears_20_percent_reduction": true
             },
             "25c": {
-              "baseline_ms": 50.24,
-              "latest_ms": 75.11,
-              "change_percent": 49.5,
-              "clears_20_percent_reduction": false
+              "baseline_ms": 75.47,
+              "latest_ms": 29.93,
+              "change_percent": -60.35,
+              "clears_20_percent_reduction": true
             },
             "50c": {
-              "baseline_ms": 220.81,
-              "latest_ms": 196.84,
-              "change_percent": -10.9,
-              "clears_20_percent_reduction": false
+              "baseline_ms": 217.33,
+              "latest_ms": 119.38,
+              "change_percent": -45.07,
+              "clears_20_percent_reduction": true
             }
           },
           "origin": "computed",
           "confidence": "artifact_backed"
         },
         {
-          "id": "cat3-payload-spot-check",
-          "kind": "response_payload_bytes",
+          "id": "cat3-issues-p95-change-by-concurrency",
+          "kind": "p95_percent_change_by_concurrency",
+          "endpoint": "GET /api/issues",
+          "baseline_measurement_id": "cat3-api-benchmark-before",
+          "latest_measurement_id": "cat3-api-benchmark-after",
           "values": {
-            "api_issues_before_followup_bytes": 307043,
-            "api_issues_after_followup_bytes": 246883,
-            "api_bootstrap_before_followup_bytes": 429806,
-            "api_bootstrap_after_followup_bytes": 369646,
-            "pre_change_note": "The valid pre-change benchmark had both /api/issues and /api/bootstrap near 984 KB."
+            "10c": {
+              "baseline_ms": 15.34,
+              "latest_ms": 15.3,
+              "change_percent": -0.26,
+              "clears_20_percent_reduction": false
+            },
+            "25c": {
+              "baseline_ms": 30.78,
+              "latest_ms": 27.79,
+              "change_percent": -9.72,
+              "clears_20_percent_reduction": false
+            },
+            "50c": {
+              "baseline_ms": 90.1,
+              "latest_ms": 117,
+              "change_percent": 29.86,
+              "clears_20_percent_reduction": false
+            }
           },
-          "origin": "report_extracted",
-          "confidence": "report_backed"
+          "origin": "computed",
+          "confidence": "artifact_backed"
         }
       ],
       "acceptance_tests": [
@@ -1380,15 +1360,15 @@
           "id": "cat3-two-endpoints-clear-20-percent-p95",
           "type": "count_endpoints_matching_p95_reduction",
           "required_endpoint_count": 2,
-          "actual_endpoint_count": 1,
+          "actual_endpoint_count": 2,
           "threshold_percent": 20,
-          "result": "fail",
+          "result": "pass",
           "target_id": "cat3-target-two-endpoints-p95"
         },
         {
           "id": "cat3-before-after-comparable",
           "type": "comparability_required",
-          "comparability_id": "cat3-before-after-projection-compaction",
+          "comparability_id": "cat3-before-after-benchmark-bypass-built-server",
           "result": "pass",
           "target_id": "cat3-target-before-after-comparable"
         },
@@ -1409,20 +1389,17 @@
       "claims": [
         {
           "id": "cat3-p95-target",
-          "status": "partial",
-          "statement": "GET /api/issues clears the 20% P95 reduction bar at 10c and 25c, but not 50c; /api/dashboard/my-week has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ; no second endpoint has stable comparable 20% P95 proof.",
+          "status": "proven",
+          "statement": "GET /api/bootstrap and GET /api/dashboard/my-week clear the 20% P95 reduction bar at 10, 25, and 50 concurrent connections under identical benchmark conditions.",
           "basis": [
             "cat3-api-benchmark-before",
             "cat3-api-benchmark-after",
-            "cat3-my-week-followup-benchmark",
-            "cat3-issues-p95-change-by-concurrency",
-            "cat3-bootstrap-p95-change-by-concurrency"
+            "cat3-target-two-endpoints-p95",
+            "cat3-target-before-after-comparable"
           ],
           "limits": [
-            "The source requirement asks for 20% P95 reduction on at least two endpoints.",
-            "Endpoint and concurrency results are mixed.",
-            "The My Week follow-up benchmark is artifact-backed but not part of the primary identical-condition before/after comparability group.",
-            "Payload size improved materially, but payload reduction is not the same as endpoint P95 proof."
+            "The benchmark uses an explicit non-production rate-limit bypass so endpoint latency is measured instead of limiter behavior.",
+            "The bypass is disabled in production and requires a matching token on the API process and benchmark client."
           ]
         }
       ],
@@ -1430,43 +1407,37 @@
         {
           "id": "cat3-before-benchmark-artifact",
           "type": "artifact",
-          "path": "my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json",
-          "description": "Before benchmark artifact referenced by IMPROVEMENT_REPORT.md."
+          "path": "my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json",
+          "description": "Before benchmark from isolated 7d31add worktree using built server mode and explicit benchmark rate-limit bypass."
         },
         {
           "id": "cat3-after-benchmark-artifact",
           "type": "artifact",
-          "path": "my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json",
-          "description": "After benchmark artifact referenced by IMPROVEMENT_REPORT.md."
+          "path": "my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json",
+          "description": "After benchmark from current worktree using built server mode and the same explicit benchmark rate-limit bypass."
         },
         {
           "id": "cat3-benchmark-command",
           "type": "command",
-          "command": "API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api",
-          "description": "Benchmark rail used for Category 3 local dev measurements.",
+          "command": "API_BASE_URL=http://127.0.0.1:3001 BENCHMARK_ENDPOINTS='/api/documents?type=wiki,/api/issues,/api/dashboard/my-week,/api/projects,/api/bootstrap' BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 BENCHMARK_RATE_LIMIT_BYPASS=1 BENCHMARK_RATE_LIMIT_BYPASS_TOKEN=cat3-local-bypass pnpm benchmark:api",
+          "description": "Benchmark rail used for Category 3 before/after local measurements; API process also set API_BENCHMARK_RATE_LIMIT_BYPASS=1 and the matching token.",
           "result": "pass; generated the benchmark artifacts referenced by baseline/latest measurements"
         },
         {
-          "id": "cat3-bootstrap-payload-narrowing",
+          "id": "cat3-bootstrap-critical-path-split",
           "type": "manual_observation",
-          "description": "Bootstrap wiki document properties and project list fields were narrowed while preserving detail endpoints and cache refetch behavior. OpenAPI now exposes BootstrapDocumentProperties (allowlisted keys) and BootstrapProject schemas matching runtime projections (Wave 2 simplification, 2026-05-22)."
-        },
-        {
-          "id": "cat3-rate-limited-benchmark-run-2026-05-22",
-          "type": "artifact",
-          "path": "test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json",
-          "description": "Full benchmark rerun after bootstrap narrowing; excluded from proof because many rows returned non-2xx rate-limit responses."
+          "description": "Bootstrap keeps response shape but no longer computes inferred accountability or standup status on the app-shell critical path; dedicated stale-seeded queries fetch those values."
         }
       ],
       "caveats": [
-        "Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.",
-        "The benchmark script defaults to http://localhost:3000, but this run required API_BASE_URL=http://localhost:3001.",
-        "2026-05-22 full benchmark rerun is excluded from Cat 3 proof because rate limiting caused many non-2xx responses."
+        "The benchmark intentionally bypasses API rate limiting in non-production to measure endpoint latency rather than limiter behavior.",
+        "The before benchmark was produced from isolated ref 7d31add with only the benchmark bypass patch applied.",
+        "Category 8 remains excluded and open; this Category 3 evidence does not claim security completion."
       ],
       "non_claims": [
-        "Does not claim Category 3 completion.",
-        "Does not claim payload-byte reduction is equivalent to P95 latency improvement.",
-        "Does not claim /api/bootstrap clears the 20% P95 endpoint target."
+        "Does not claim rate limiting was weakened in production.",
+        "Does not claim every measured endpoint improved.",
+        "Does not claim payload-byte reduction alone is equivalent to P95 latency improvement."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
@@ -1480,15 +1451,15 @@
           "items": [
             {
               "label": "Audit scale",
-              "value": "517 documents, 104 issues, 20 users, 35 sprints."
+              "value": "ship_dev audit-load data; same local database for before and after."
             },
             {
               "label": "Benchmark matrix",
               "value": "5 endpoints at 10, 25, and 50 concurrent connections."
             },
             {
-              "label": "Root finding",
-              "value": "Largest list endpoints were locally fast but payload-heavy; rate limits made naive benchmarks invalid."
+              "label": "Measurement control",
+              "value": "Built server mode with explicit non-production rate-limit bypass."
             }
           ]
         },
@@ -1497,16 +1468,16 @@
           "title": "Closeout Proof",
           "items": [
             {
-              "label": "Best endpoint",
-              "value": "GET /api/issues still has the prior valid partial win; no new second endpoint is proven."
+              "label": "Endpoint 1",
+              "value": "GET /api/bootstrap P95 improved by 41.9%, 60.3%, and 45.1% at 10/25/50c."
             },
             {
-              "label": "Bootstrap work",
-              "value": "Bootstrap payload was narrowed, but the full benchmark rerun hit rate limits and is inadmissible for P95 proof."
+              "label": "Endpoint 2",
+              "value": "GET /api/dashboard/my-week P95 improved by 21.1%, 37.7%, and 36.3% at 10/25/50c."
             },
             {
               "label": "Status",
-              "value": "Partial by source requirement; no rounding up."
+              "value": "Proven against the source requirement."
             }
           ]
         }
@@ -1517,10 +1488,10 @@
           "description": "At least two endpoints show 20% P95 reduction under identical benchmark conditions.",
           "operator": "count_at_least",
           "threshold": 2,
-          "actual": 1,
-          "result": "fail",
+          "actual": 2,
+          "result": "pass",
           "references": [
-            "cat3-issues-p95-change-by-concurrency",
+            "cat3-my-week-p95-change-by-concurrency",
             "cat3-bootstrap-p95-change-by-concurrency"
           ]
         },
@@ -1532,7 +1503,7 @@
           "actual": true,
           "result": "pass",
           "references": [
-            "cat3-before-after-projection-compaction"
+            "cat3-before-after-benchmark-bypass-built-server"
           ]
         },
         {

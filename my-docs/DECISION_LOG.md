@@ -809,3 +809,17 @@ Consequences: Unit test `api/src/services/__tests__/ai-analysis.test.ts` locks g
 Evidence: Vitest guard test passes; `isAiAvailable()` and analyze paths share credential cache.
 
 **Decision Gist**: One guard at invoke boundary; D044 preserved.
+
+### D048: Cat 3 Benchmarks Bypass Rate Limits Only In Non-Production
+
+Status: Accepted
+
+Decision: Add an explicit benchmark-only rate-limit bypass that is disabled in production and requires a matching token on both the API process and benchmark client. Use it for Cat 3 benchmark evidence instead of `NODE_ENV=test` or accepting 429-contaminated rows.
+
+Why: Category 3 needs endpoint latency proof, not rate-limiter behavior. The standard 100 rps matrix can trigger 429s and make latency look artificially fast. `NODE_ENV=test` also changes environment conditions, so the cleaner measurement is a documented non-production bypass with identical before/after settings.
+
+Consequences: Benchmark artifacts must record bypass state, base URL, duration, rate, connections, and endpoint set. Any artifact with non-2xx or request failures remains inadmissible for Cat 3 proof. Production rate limiting remains unchanged.
+
+Evidence: Before artifact `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json` was produced from isolated ref `7d31add` with only the bypass patch applied; after artifact `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json` was produced from the current built server. Both used `ship_dev`, built `node dist/index.js`, `http://127.0.0.1:3001`, 15s duration, 10/25/50 concurrency, 100 rps, and the same bypass token. Ledger now marks Category 3 proven.
+
+**Decision Gist**: Measure API latency, not limiter latency.

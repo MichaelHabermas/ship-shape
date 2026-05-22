@@ -34,6 +34,8 @@ test('validator catches target actual drift from referenced metric', async () =>
 test('validator rejects proven claims that depend on failing targets', async () => {
   const ledger = await fixtureLedger();
   const category = ledger.categories.find((item) => item.id === 'cat-3-api-response-time');
+  const target = category.targets.find((item) => item.id === 'cat3-target-two-endpoints-p95');
+  target.result = 'fail';
   const claim = category.claims[0];
   claim.status = 'proven';
   claim.basis = ['cat3-target-two-endpoints-p95'];

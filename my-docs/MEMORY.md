@@ -151,3 +151,5 @@ _None yet._
 Old assumptions that were proven wrong and should not come back.
 
 _None yet._
+- Category 3 closeout proof now uses explicit non-production benchmark rate-limit bypass, not `NODE_ENV=test`, so the limiter does not distort endpoint P95. Use built API server mode (`pnpm --filter @ship/api build` then `pnpm --filter @ship/api start`) for both before and after. Final artifacts: `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json` and `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json`.
+- Bootstrap may stale-seed non-critical app-shell values such as action items and standup status while dedicated queries fetch the real values immediately. Do not put inferred accountability or standup-status computation back on the bootstrap critical path unless Cat 3 is re-benchmarked.

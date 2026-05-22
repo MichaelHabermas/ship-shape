@@ -118,14 +118,14 @@
                 <strong>Claim-ready</strong>
                 <span>Safe to lead with.</span>
               </div>
-              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 5</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span></div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 3</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 5</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span></div>
             </div>
             <div class="verdict-row">
               <div>
                 <strong>Evidence-backed, blocked</strong>
                 <span>Good result, missing required artifact.</span>
               </div>
-              <div class="cat-chip-row"><span class="cat-chip">Cat 3</span></div>
+              <div class="cat-chip-row"><span class="verdict-empty">None</span></div>
             </div>
             <div class="verdict-row">
               <div>
@@ -146,18 +146,12 @@
         <aside class="hero-side" aria-label="Current review status">
           <p class="eyebrow">Reviewer Gate Snapshot</p>
           <div class="mini-grid">
-            <div class="mini"><strong>6</strong><span>proven</span></div>
-            <div class="mini"><strong>1</strong><span>partial</span></div>
+            <div class="mini"><strong>7</strong><span>proven</span></div>
+            <div class="mini"><strong>0</strong><span>partial</span></div>
             <div class="mini"><strong>1</strong><span>open/fill</span></div>
           </div>
-          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
+          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
           <ul class="gate-list">
-        <li data-ledger-id="cat3-two-endpoints-clear-20-percent-p95">
-          <span class="gate-cat">Cat 3</span>
-          <strong title="cat3-two-endpoints-clear-20-percent-p95">At least two endpoints show 20% P95 reduction under identical benchmark conditions.</strong>
-          <span class="badge open">open</span>
-          <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions</span>
-        </li>
         <li data-ledger-id="cat8-probe-tool-runnable">
           <span class="gate-cat">Cat 8</span>
           <strong title="cat8-probe-tool-runnable, cat8-four-attack-surfaces-covered, cat8-manual-review-complete, cat8-two-verified-vulnerability-fixes">Security Audit proof gaps (4)</strong>
@@ -203,12 +197,12 @@
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-3-api-response-time">
-          <header><span class="cat-id">Cat 3</span><span class="badge partial">partial</span></header>
+          <header><span class="cat-id">Cat 3</span><span class="badge proven">proven</span></header>
           <h3>API Response Time</h3>
-          <p>At least two endpoints show 20% P95 reduction under identical benchmark conditions.</p>
+          <p>GET /api/bootstrap and GET /api/dashboard/my-week clear the 20% P95 reduction bar at 10, 25, and 50 concurrent connections under identical benchmark conditions</p>
           <div class="score-foot">
-            <span>2/3 acceptance pass; 1 open/warn gate</span>
-            <a class="blocker-link" href="#target-cat3-target-two-endpoints-p95">Missing: two endpoints show 20% P95 reduction under identical benchmark conditions</a>
+            <span>3/3 acceptance pass; all gates clear</span>
+
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-4-database-query-efficiency">
@@ -479,7 +473,7 @@
               <p class="eyebrow">Category 3</p>
               <h2>API Response Time</h2>
             </div>
-            <span class="badge partial">partial</span>
+            <span class="badge proven">proven</span>
           </div>
           <p>20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
@@ -489,15 +483,15 @@
 
                   <li>
                     <strong>Audit scale</strong>
-                    <span>517 documents, 104 issues, 20 users, 35 sprints.</span>
+                    <span>ship_dev audit-load data; same local database for before and after.</span>
                   </li>
                   <li>
                     <strong>Benchmark matrix</strong>
                     <span>5 endpoints at 10, 25, and 50 concurrent connections.</span>
                   </li>
                   <li>
-                    <strong>Root finding</strong>
-                    <span>Largest list endpoints were locally fast but payload-heavy; rate limits made naive benchmarks invalid.</span>
+                    <strong>Measurement control</strong>
+                    <span>Built server mode with explicit non-production rate-limit bypass.</span>
                   </li>
           </ul>
         </div>
@@ -506,16 +500,16 @@
           <ul class="check-list">
 
                   <li>
-                    <strong>Best endpoint</strong>
-                    <span>GET /api/issues still has the prior valid partial win; no new second endpoint is proven.</span>
+                    <strong>Endpoint 1</strong>
+                    <span>GET /api/bootstrap P95 improved by 41.9%, 60.3%, and 45.1% at 10/25/50c.</span>
                   </li>
                   <li>
-                    <strong>Bootstrap work</strong>
-                    <span>Bootstrap payload was narrowed, but the full benchmark rerun hit rate limits and is inadmissible for P95 proof.</span>
+                    <strong>Endpoint 2</strong>
+                    <span>GET /api/dashboard/my-week P95 improved by 21.1%, 37.7%, and 36.3% at 10/25/50c.</span>
                   </li>
                   <li>
                     <strong>Status</strong>
-                    <span>Partial by source requirement; no rounding up.</span>
+                    <span>Proven against the source requirement.</span>
                   </li>
           </ul>
         </div>
@@ -523,8 +517,8 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat3-target-two-endpoints-p95">
-                    <strong>Target Two Endpoints P95 <span class="badge open">open</span></strong>
-                    <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions. threshold 2; actual 1</span>
+                    <strong>Target Two Endpoints P95 <span class="badge proven">proven</span></strong>
+                    <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions. threshold 2; actual 2</span>
                   </li>
                   <li data-ledger-id="cat3-target-before-after-comparable">
                     <strong>Target Before After Comparable <span class="badge proven">proven</span></strong>
@@ -539,41 +533,35 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat3-p95-target">
-                    <strong>P95 Target <span class="badge partial">partial</span></strong>
-                    <span>GET /api/issues clears the 20% P95 reduction bar at 10c and 25c, but not 50c; /api/dashboard/my-week has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ; no second endpoint has stable comparable 20% P95 proof. The source requirement asks for 20% P95 reduction on at least two endpoints. Endpoint and concurrency results are mixed. The My Week follow-up benchmark is artifact-backed but not part of the primary identical-condition before/after comparability group. Payload size improved materially, but payload reduction is not the same as endpoint P95 proof.</span>
+                    <strong>P95 Target <span class="badge proven">proven</span></strong>
+                    <span>GET /api/bootstrap and GET /api/dashboard/my-week clear the 20% P95 reduction bar at 10, 25, and 50 concurrent connections under identical benchmark conditions. The benchmark uses an explicit non-production rate-limit bypass so endpoint latency is measured instead of limiter behavior. The bypass is disabled in production and requires a matching token on the API process and benchmark client.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
         <li data-ledger-id="cat3-before-benchmark-artifact">
           <strong>Before Benchmark Artifact <span class="subtle">artifact</span></strong>
-          <span>Before benchmark artifact referenced by IMPROVEMENT_REPORT.md.</span>
-          <small>Path: my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json</small>
-          <div class="artifact-link"><a class="path" href="evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json" title="my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json">Open artifact</a></div>
+          <span>Before benchmark from isolated 7d31add worktree using built server mode and explicit benchmark rate-limit bypass.</span>
+          <small>Path: my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/artifacts/cat3-before-7d31add-bypass.json" title="my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat3-after-benchmark-artifact">
           <strong>After Benchmark Artifact <span class="subtle">artifact</span></strong>
-          <span>After benchmark artifact referenced by IMPROVEMENT_REPORT.md.</span>
-          <small>Path: my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json</small>
-          <div class="artifact-link"><a class="path" href="evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json" title="my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json">Open artifact</a></div>
+          <span>After benchmark from current worktree using built server mode and the same explicit benchmark rate-limit bypass.</span>
+          <small>Path: my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/artifacts/cat3-after-current-bypass-repeat.json" title="my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat3-benchmark-command">
           <strong>Benchmark Command <span class="subtle">command</span></strong>
-          <span>Benchmark rail used for Category 3 local dev measurements.</span>
-          <small>Command: API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api | Result: pass; generated the benchmark artifacts referenced by baseline/latest measurements</small>
+          <span>Benchmark rail used for Category 3 before/after local measurements; API process also set API_BENCHMARK_RATE_LIMIT_BYPASS=1 and the matching token.</span>
+          <small>Command: API_BASE_URL=http://127.0.0.1:3001 BENCHMARK_ENDPOINTS=&#39;/api/documents?type=wiki,/api/issues,/api/dashboard/my-week,/api/projects,/api/bootstrap&#39; BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 BENCHMARK_RATE_LIMIT_BYPASS=1 BENCHMARK_RATE_LIMIT_BYPASS_TOKEN=cat3-local-bypass pnpm benchmark:api | Result: pass; generated the benchmark artifacts referenced by baseline/latest measurements</small>
 
         </li>
-        <li data-ledger-id="cat3-bootstrap-payload-narrowing">
-          <strong>Bootstrap Payload Narrowing <span class="subtle">manual_observation</span></strong>
-          <span>Bootstrap wiki document properties and project list fields were narrowed while preserving detail endpoints and cache refetch behavior. OpenAPI now exposes BootstrapDocumentProperties (allowlisted keys) and BootstrapProject schemas matching runtime projections (Wave 2 simplification, 2026-05-22).</span>
+        <li data-ledger-id="cat3-bootstrap-critical-path-split">
+          <strong>Bootstrap Critical Path Split <span class="subtle">manual_observation</span></strong>
+          <span>Bootstrap keeps response shape but no longer computes inferred accountability or standup status on the app-shell critical path; dedicated stale-seeded queries fetch those values.</span>
 
 
-        </li>
-        <li data-ledger-id="cat3-rate-limited-benchmark-run-2026-05-22">
-          <strong>Rate Limited Benchmark Run 2026 05 22 <span class="subtle">artifact</span></strong>
-          <span>Full benchmark rerun after bootstrap narrowing; excluded from proof because many rows returned non-2xx rate-limit responses.</span>
-          <small>Path: test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json</small>
-          <div class="artifact-link"><a class="path" href="../test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json" title="test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-4-database-query-efficiency" class="panel span-12" data-ledger-id="cat-4-database-query-efficiency">
@@ -1112,9 +1100,9 @@
         </tr>
         <tr data-ledger-id="cat-3-api-response-time">
           <td>Cat 3. API Response Time</td>
-          <td><span class="badge partial">partial</span></td>
-          <td>Before/after benchmarks use identical data, concurrency, hardware, and command shape. passes. threshold true; actual true.</td>
-          <td><div class="chip-list"><span class="test-chip fail" title="cat3-two-endpoints-clear-20-percent-p95">FAIL Two Endpoints Clear 20 Percent P95</span> <span class="test-chip pass" title="cat3-before-after-comparable">PASS Before After Comparable</span> <span class="test-chip pass" title="cat3-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
+          <td><span class="badge proven">proven</span></td>
+          <td>At least two endpoints show 20% P95 reduction under identical benchmark conditions. passes. threshold 2; actual 2.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat3-two-endpoints-clear-20-percent-p95">PASS Two Endpoints Clear 20 Percent P95</span> <span class="test-chip pass" title="cat3-before-after-comparable">PASS Before After Comparable</span> <span class="test-chip pass" title="cat3-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
           <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
         <tr data-ledger-id="cat-4-database-query-efficiency">
@@ -1216,8 +1204,8 @@
             <td>At least two endpoints show 20% P95 reduction under identical benchmark conditions.</td>
             <td>count_at_least</td>
             <td>2</td>
-            <td>1</td>
-            <td><span class="badge open">open</span></td>
+            <td>2</td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat3-target-before-after-comparable" data-ledger-id="cat3-target-before-after-comparable">
             <td>Cat 3</td>
@@ -1550,7 +1538,7 @@
             <td>Cat 3</td>
             <td><span title="cat3-improvement-two-endpoints-p95-20-percent">Improvement Two Endpoints P95 20 Percent</span></td>
             <td>improvement</td>
-            <td>partial</td>
+            <td>present</td>
             <td><span class="path" title="claims[cat3-p95-target]">claims[cat3-p95-target]</span></td>
           </tr>
           <tr data-ledger-id="cat3-improvement-root-cause-documented">
@@ -1826,7 +1814,7 @@
         <article class="non-claim-card" data-ledger-id="cat-3-api-response-time">
           <h3>Cat 3: API Response Time</h3>
           <ul>
-            <li>Does not claim Category 3 completion.</li><li>Does not claim payload-byte reduction is equivalent to P95 latency improvement.</li><li>Does not claim /api/bootstrap clears the 20% P95 endpoint target.</li>
+            <li>Does not claim rate limiting was weakened in production.</li><li>Does not claim every measured endpoint improved.</li><li>Does not claim payload-byte reduction alone is equivalent to P95 latency improvement.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-4-database-query-efficiency">
