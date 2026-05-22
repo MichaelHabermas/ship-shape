@@ -8,7 +8,7 @@ import { apiPost, apiDelete } from '@/lib/api';
 import { readJson } from '@/api/read-json';
 import type { SprintsResponse } from '@/hooks/useWeeksQuery';
 import { formatDateRange } from '@/lib/date-utils';
-import type { BelongsTo, BelongsToType } from '@ship/shared';
+import { ISSUE_STATE_OPTIONS, type BelongsTo, type BelongsToType } from '@ship/shared';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -70,16 +70,6 @@ interface IssueSidebarProps {
   /** Fields to highlight as missing (e.g., after type conversion) */
   highlightedFields?: string[];
 }
-
-const STATES = [
-  { value: 'triage', label: 'Needs Triage' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'todo', label: 'Todo' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'done', label: 'Done' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
 
 const PRIORITIES = [
   { value: 'urgent', label: 'Urgent' },
@@ -351,7 +341,7 @@ export function IssueSidebar({
             isHighlighted('state') ? 'bg-amber-500/20 border border-amber-500' : 'bg-border'
           }`}
         >
-          {STATES.map((s) => (
+          {ISSUE_STATE_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
             </option>

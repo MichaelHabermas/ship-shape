@@ -11,6 +11,7 @@ import { useDocumentConversion } from '@/hooks/useDocumentConversion';
 import { apiGetJson, apiPatchJson, apiDelete, apiPostJson } from '@/lib/api';
 import { getApiErrorStatus } from '@/lib/api-error';
 import type { Document } from '@/api/schemas';
+import type { ConversionDocumentType } from '@ship/shared';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
@@ -165,7 +166,7 @@ export function UnifiedDocumentPage() {
   // Conversion callbacks that use the current document
   const handleConvert = useCallback(() => {
     if (!document || !id) return;
-    const sourceType = document.document_type as 'issue' | 'project';
+    const sourceType = document.document_type as ConversionDocumentType;
     convert(id, sourceType, document.title);
   }, [convert, document, id]);
 

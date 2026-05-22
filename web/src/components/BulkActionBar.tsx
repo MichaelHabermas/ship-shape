@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/cn';
 import { ArchiveIcon } from '@/components/icons/ArchiveIcon';
+import { ISSUE_STATE_OPTIONS } from '@ship/shared';
 
 interface Sprint {
   id: string;
@@ -43,16 +44,6 @@ export interface BulkActionBarProps {
   /** Whether actions are loading */
   loading?: boolean;
 }
-
-const STATUS_OPTIONS = [
-  { value: 'triage', label: 'Needs Triage' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'todo', label: 'Todo' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'done', label: 'Done' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
 
 /**
  * BulkActionBar - Appears when items are selected to provide bulk operations
@@ -181,7 +172,7 @@ export function BulkActionBar({
         />
         {statusOpen && (
           <DropdownMenu>
-            {STATUS_OPTIONS.map((option) => (
+            {ISSUE_STATE_OPTIONS.map((option) => (
               <DropdownItem
                 key={option.value}
                 onClick={() => handleStatusSelect(option.value)}

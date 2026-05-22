@@ -1,18 +1,19 @@
 import { cn } from '@/lib/cn';
+import type { SelectableDocumentType } from '@ship/shared';
 
-export type DocumentType = 'wiki' | 'issue' | 'project' | 'sprint';
+export type { SelectableDocumentType };
 
 interface DocumentTypeSelectorProps {
-  value: DocumentType;
-  onChange: (type: DocumentType) => void;
+  value: SelectableDocumentType;
+  onChange: (type: SelectableDocumentType) => void;
   disabled?: boolean;
   /**
    * Document types that should be disabled (e.g., when conversion is restricted)
    */
-  disabledTypes?: DocumentType[];
+  disabledTypes?: SelectableDocumentType[];
 }
 
-const TYPE_OPTIONS: { value: DocumentType; label: string; icon: React.ReactNode }[] = [
+const TYPE_OPTIONS: { value: SelectableDocumentType; label: string; icon: React.ReactNode }[] = [
   { value: 'wiki', label: 'Wiki', icon: <WikiIcon /> },
   { value: 'issue', label: 'Issue', icon: <IssueIcon /> },
   { value: 'project', label: 'Project', icon: <ProjectIcon /> },
@@ -30,7 +31,7 @@ export function DocumentTypeSelector({
       <label className="block text-xs font-medium text-muted">Type</label>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value as DocumentType)}
+        onChange={(e) => onChange(e.target.value as SelectableDocumentType)}
         disabled={disabled}
         aria-label="Document type"
         className={cn(
@@ -56,7 +57,7 @@ export function DocumentTypeSelector({
 /**
  * Get fields that are required for a specific document type
  */
-export function getRequiredFieldsForType(type: DocumentType): string[] {
+export function getRequiredFieldsForType(type: SelectableDocumentType): string[] {
   switch (type) {
     case 'issue':
       return ['state', 'priority'];
@@ -74,7 +75,7 @@ export function getRequiredFieldsForType(type: DocumentType): string[] {
  * Check which required fields are missing for a document type
  */
 export function getMissingRequiredFields(
-  type: DocumentType,
+  type: SelectableDocumentType,
   properties: Record<string, unknown>
 ): string[] {
   const required = getRequiredFieldsForType(type);

@@ -8,7 +8,7 @@ import { BulkActionBar } from '@/components/BulkActionBar';
 import { DocumentListToolbar } from '@/components/DocumentListToolbar';
 import { Issue } from '@/contexts/IssuesContext';
 import { useBulkUpdateIssues, useIssuesQuery, useCreateIssue, useUpdateIssue, issueKeys, getProgramId, getProgramTitle, getProjectId, getProjectTitle, getSprintId, getSprintTitle } from '@/hooks/useIssuesQuery';
-import type { BelongsTo } from '@ship/shared';
+import { ISSUE_STATE_LABELS, type BelongsTo } from '@ship/shared';
 import { projectKeys, useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
@@ -52,15 +52,7 @@ export const SORT_OPTIONS = [
   { value: 'title', label: 'Title' },
 ];
 
-export const STATE_LABELS: Record<string, string> = {
-  triage: 'Needs Triage',
-  backlog: 'Backlog',
-  todo: 'Todo',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  done: 'Done',
-  cancelled: 'Cancelled',
-};
+export const STATE_LABELS: Record<string, string> = ISSUE_STATE_LABELS;
 
 const SOURCE_STYLES: Record<string, string> = {
   internal: 'bg-blue-500/20 text-blue-300',

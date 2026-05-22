@@ -39,6 +39,7 @@ import { AIScoringDisplayExtension } from './editor/AIScoringDisplay';
 import type { AIScoringStorage } from './editor/AIScoringDisplay';
 import { PlanReferenceBlockExtension } from './editor/PlanReferenceBlock';
 import { useCommentsQuery, useCreateComment, useUpdateComment } from '@/hooks/useCommentsQuery';
+import type { ConversionDocumentType } from '@ship/shared';
 import { BubbleMenu } from '@tiptap/react';
 import 'tippy.js/dist/tippy.css';
 
@@ -77,7 +78,7 @@ interface EditorProps {
   /** Document type for filtering document-specific slash commands (e.g., 'program', 'project') */
   documentType?: string;
   /** Callback when the document is converted to a different type by another user */
-  onDocumentConverted?: (newDocId: string, newDocType: 'issue' | 'project') => void;
+  onDocumentConverted?: (newDocId: string, newDocType: ConversionDocumentType) => void;
   /** Callback when plan block content changes (for sprint documents) */
   onPlanChange?: (plan: string) => void;
   /** Banner content rendered between the title and editor content (e.g., AI quality check) */

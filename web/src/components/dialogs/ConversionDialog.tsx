@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 
+import type { ConversionDocumentType } from '@ship/shared';
+
 export interface ConversionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConvert: () => void;
-  sourceType: 'issue' | 'project';
+  sourceType: ConversionDocumentType;
   title: string;
   isConverting?: boolean;
 }
