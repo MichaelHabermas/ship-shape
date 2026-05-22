@@ -43,11 +43,33 @@ export type DocumentType =
   | 'standup'
   | 'weekly_review';
 
+/** Document types selectable in the type picker UI. */
+export type SelectableDocumentType = Extract<DocumentType, 'wiki' | 'issue' | 'project' | 'sprint'>;
+
+/** Document types that support issue ↔ project conversion. */
+export type ConversionDocumentType = Extract<DocumentType, 'issue' | 'project'>;
+
 // Issue states
 export type IssueState = 'triage' | 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 
 // Issue priorities
 export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent' | 'none';
+
+/** Issue state labels for UI selectors and context menus. */
+export const ISSUE_STATE_OPTIONS: { value: IssueState; label: string }[] = [
+  { value: 'triage', label: 'Needs Triage' },
+  { value: 'backlog', label: 'Backlog' },
+  { value: 'todo', label: 'Todo' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'in_review', label: 'In Review' },
+  { value: 'done', label: 'Done' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+/** Map of issue state values to display labels (derived from ISSUE_STATE_OPTIONS). */
+export const ISSUE_STATE_LABELS: Record<IssueState, string> = Object.fromEntries(
+  ISSUE_STATE_OPTIONS.map((option) => [option.value, option.label])
+) as Record<IssueState, string>;
 
 // Issue source - provenance, never changes after creation
 export type IssueSource = 'internal' | 'external' | 'action_items';
@@ -94,13 +116,16 @@ export interface ProgramProperties {
   // RACI accountability fields
   owner_id?: string | null;        // R - Responsible (does the work)
   accountable_id?: string | null;  // A - Accountable (approver for hypotheses/reviews)
-  consulted_ids?: string[];        // C - Consulted (provide input, stubbed for now)
-  informed_ids?: string[];         // I - Informed (kept in loop, stubbed for now)
+  consulted_ids?: string[];        // C - Consulted (passive metadata for display)
+  informed_ids?: string[];         // I - Informed (passive metadata for display)
   [key: string]: unknown;
 }
 
 // ICE score type (1-5 scale for prioritization)
 export type ICEScore = 1 | 2 | 3 | 4 | 5;
+
+/** Project status inferred from sprint relationships (list/dashboard views). */
+export type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
 
 export interface ProjectProperties {
   // ICE prioritization scores (1-5 scale, null = not yet set)
@@ -110,8 +135,8 @@ export interface ProjectProperties {
   // RACI accountability fields
   owner_id?: string | null;        // R - Responsible (does the work)
   accountable_id?: string | null;  // A - Accountable (approver for hypotheses/reviews)
-  consulted_ids?: string[];        // C - Consulted (provide input, stubbed for now)
-  informed_ids?: string[];         // I - Informed (kept in loop, stubbed for now)
+  consulted_ids?: string[];        // C - Consulted (passive metadata for display)
+  informed_ids?: string[];         // I - Informed (passive metadata for display)
   // Visual identification
   color: string;
   emoji?: string | null;
