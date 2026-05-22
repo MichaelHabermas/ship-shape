@@ -4,7 +4,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { cn } from '@/lib/cn';
 import { useToast } from '@/components/ui/Toast';
-import { apiPost, apiPatch, apiGet } from '@/lib/api';
+import { apiPost, apiPatch, apiGet, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 
 interface WeekReviewProps {
   sprintId: string;
@@ -42,7 +43,7 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
     try {
       const res = await apiGet(`/api/weeks/${sprintId}/review`);
       if (res.ok) {
-        const data: ReviewData = await res.json();
+        const data = await readJson<ReviewData>(res);
         setReviewData(data);
         setPlanValidated(data.plan_validated ?? null);
         if (editor && data.content) {
@@ -79,7 +80,7 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
           plan_validated: planValidated,
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await readJson<ReviewData>(res);
           setReviewData({ ...data, is_draft: false });
           setIsDirty(false);
           showToast('Week review saved', 'success');
@@ -88,7 +89,7 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
           showToast('A review already exists for this week. Refreshing...', 'error');
           fetchReview();
         } else {
-          const data = await res.json().catch(() => ({}));
+          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({} as LegacyErrorResponse));
           showToast(data.error || 'Failed to save week review', 'error');
         }
       } else {
@@ -103,7 +104,7 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
         } else if (res.status === 403) {
           showToast('You can only edit reviews you created', 'error');
         } else {
-          const data = await res.json().catch(() => ({}));
+          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({} as LegacyErrorResponse));
           showToast(data.error || 'Failed to update week review', 'error');
         }
       }

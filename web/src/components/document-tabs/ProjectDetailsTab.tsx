@@ -6,7 +6,8 @@ import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useProgramsQuery } from '@/hooks/useProgramsQuery';
-import { apiPatch, apiDelete, apiPost } from '@/lib/api';
+import { apiPatch, apiDelete, apiPost, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys } from '@/hooks/useProjectsQuery';
@@ -54,7 +55,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
       if (!response.ok) {
         throw new Error('Failed to update document');
       }
-      return response.json();
+      return readJson<Record<string, unknown>>(response);
     },
     onMutate: async (updates) => {
       // Cancel any outgoing refetches
@@ -120,7 +121,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
     try {
       const res = await apiPost(`/api/documents/${documentId}/convert`, { target_type: newType });
       if (res.ok) {
-        const data = await res.json();
+        const data = await readJson<{ id: string }>(res);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
           queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
@@ -128,7 +129,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
         ]);
         navigate(`/documents/${data.id}`, { replace: true });
       } else {
-        const error = await res.json();
+        const error = await readJson<LegacyErrorResponse>(res);
         showToast(error.error || 'Failed to convert document', 'error');
       }
     } catch {
@@ -158,7 +159,7 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
         ]);
         showToast('Conversion undone successfully', 'success');
       } else {
-        const error = await res.json();
+        const error = await readJson<LegacyErrorResponse>(res);
         showToast(error.error || 'Failed to undo conversion', 'error');
       }
     } catch {

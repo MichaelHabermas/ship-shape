@@ -42,7 +42,7 @@ interface RetroAnalysisData {
   suggestions: string[];
 }
 
-interface AIScoringStorage {
+export interface AIScoringStorage {
   planAnalysis: PlanAnalysisData | null;
   retroAnalysis: RetroAnalysisData | null;
 }

@@ -8,7 +8,8 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { PersonCombobox, type Person } from '@/components/PersonCombobox';
 import { PropertyRow } from '@/components/ui/PropertyRow';
-import { apiGet, apiPatch, apiDelete } from '@/lib/api';
+import { apiGetJson, apiPatch, apiDelete } from '@/lib/api';
+import { getApiErrorStatus } from '@/lib/api-error';
 
 interface PersonDocument {
   id: string;
@@ -73,15 +74,9 @@ export function PersonEditorPage() {
     async function fetchPerson() {
       if (!id) return;
       try {
-        const response = await apiGet(`/api/documents/${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.document_type === 'person') {
-            setPerson(data);
-          } else {
-            // Not a person document, redirect to directory
-            navigate('/team/directory');
-          }
+        const data = await apiGetJson<PersonDocument>(`/api/documents/${id}`, 'Failed to fetch person');
+        if (data.document_type === 'person') {
+          setPerson(data);
         } else {
           navigate('/team/directory');
         }
@@ -100,17 +95,18 @@ export function PersonEditorPage() {
     async function fetchSprintMetrics() {
       if (!id) return;
       try {
-        const response = await apiGet(`/api/team/people/${id}/sprint-metrics`);
-        if (response.ok) {
-          const data = await response.json();
-          setSprintMetrics(data);
-          setMetricsVisible(true);
-        } else if (response.status === 403) {
-          // User not authorized to see metrics - that's fine
-          setMetricsVisible(false);
-        }
+        const data = await apiGetJson<SprintMetricsResponse>(
+          `/api/team/people/${id}/sprint-metrics`,
+          'Failed to fetch sprint metrics'
+        );
+        setSprintMetrics(data);
+        setMetricsVisible(true);
       } catch (error) {
-        console.error('Failed to fetch sprint metrics:', error);
+        if (getApiErrorStatus(error) === 403) {
+          setMetricsVisible(false);
+        } else {
+          console.error('Failed to fetch sprint metrics:', error);
+        }
       }
     }
     fetchSprintMetrics();

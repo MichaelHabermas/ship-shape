@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { quietGet } from '@/lib/quiet-fetch';
+import { quietGetJson } from '@/lib/quiet-fetch';
+import type { Document } from '@/api/schemas';
 import { useAiQuality } from '@/hooks/useAiQuality';
 import { QualityBannerShell } from '@/components/ai/QualityBannerShell';
 import type { PlanAnalysisResult, RetroAnalysisResult } from '@/components/ai/types';
@@ -70,27 +71,33 @@ export function RetroQualityBanner({
     setPlanContent(externalPlanContentRef.current);
   }, [documentId]);
 
-  const resolvePlanFromDoc = useCallback(async (doc: Record<string, unknown>) => {
+  const resolvePlanFromDoc = useCallback(async (doc: Document) => {
     const currentExternalPlan = externalPlanContentRef.current;
     if (currentExternalPlan) {
       setPlanContent(currentExternalPlan);
       return;
     }
-    const personId = (doc.properties as Record<string, unknown> | undefined)?.person_id;
-    const weekNumber = (doc.properties as Record<string, unknown> | undefined)?.week_number;
-    if (personId && weekNumber) {
-      const params = new URLSearchParams({ person_id: String(personId), week_number: String(weekNumber) });
-      const planRes = await quietGet(`/api/weekly-plans?${params}`);
-      const plans = planRes.ok ? await planRes.json() : [];
-      if (plans && plans.length > 0 && plans[0].content) {
-        setPlanContent(plans[0].content);
+    const props = doc.properties && typeof doc.properties === 'object' ? doc.properties : {};
+    const personId = 'person_id' in props ? props.person_id : undefined;
+    const weekNumber = 'week_number' in props ? props.week_number : undefined;
+    if (personId != null && weekNumber != null) {
+      const params = new URLSearchParams({
+        person_id: String(personId),
+        week_number: String(weekNumber),
+      });
+      const plans = await quietGetJson<Array<{ content?: Record<string, unknown> }>>(
+        `/api/weekly-plans?${params}`
+      );
+      const firstPlan = plans?.[0];
+      if (firstPlan?.content && typeof firstPlan.content === 'object') {
+        setPlanContent(firstPlan.content);
         return;
       }
     }
     setPlanContent({ type: 'doc', content: [] });
   }, []);
 
-  const onDocumentSwitch = useCallback(async (doc: Record<string, unknown>) => {
+  const onDocumentSwitch = useCallback(async (doc: Document) => {
     setPlanContent(externalPlanContentRef.current);
     await resolvePlanFromDoc(doc);
   }, [resolvePlanFromDoc]);

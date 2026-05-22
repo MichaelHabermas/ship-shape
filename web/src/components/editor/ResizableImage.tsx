@@ -13,6 +13,12 @@ declare module '@tiptap/core' {
 
 // Resizable Image Component
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
+  const attrs = node.attrs as {
+    width?: number | string;
+    src: string;
+    alt?: string | null;
+    title?: string | null;
+  };
   const [isResizing, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const startX = useRef(0);
@@ -48,7 +54,7 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  const width = node.attrs.width || 'auto';
+  const width = attrs.width || 'auto';
 
   return (
     <NodeViewWrapper className="relative inline-block my-4">
@@ -58,9 +64,9 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
       >
         <img
           ref={imageRef}
-          src={node.attrs.src}
-          alt={node.attrs.alt || ''}
-          title={node.attrs.title}
+          src={attrs.src}
+          alt={attrs.alt || ''}
+          title={attrs.title || undefined}
           className="max-w-full rounded-lg block"
           style={{ width: '100%', height: 'auto' }}
           draggable={false}

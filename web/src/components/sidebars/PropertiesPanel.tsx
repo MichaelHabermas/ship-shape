@@ -5,7 +5,6 @@
  * It adapts based on document_type while maintaining the same rendering patterns.
  */
 import { useMemo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { WikiSidebar } from '@/components/sidebars/WikiSidebar';
 import { IssueSidebar } from '@/components/sidebars/IssueSidebar';
 import { ProjectSidebar } from '@/components/sidebars/ProjectSidebar';
@@ -14,11 +13,10 @@ import { ProgramSidebar } from '@/components/sidebars/ProgramSidebar';
 import { ContentHistoryPanel } from '@/components/ContentHistoryPanel';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/hooks/useAuth';
-import { apiGet } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import type { WeeklyReviewActionsState } from '@/hooks/useWeeklyReviewActions';
 import type { Person } from '@/components/PersonCombobox';
-import type { BelongsTo, ApprovalTracking, WikiDocumentView, IssueDocumentView } from '@ship/shared';
+import type { ApprovalTracking, WikiDocumentView, IssueDocumentView } from '@ship/shared';
 
 // Document types that have properties panels
 export type PanelDocumentType = 'wiki' | 'issue' | 'project' | 'sprint' | 'program' | 'weekly_plan' | 'weekly_retro';

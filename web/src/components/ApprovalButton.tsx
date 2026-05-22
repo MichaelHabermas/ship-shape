@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { ApprovalTracking } from '@ship/shared';
 import { DiffViewer, tipTapToPlainText } from '@/components/DiffViewer';
-import { apiPost } from '@/lib/api';
+import { apiPost, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 
 // Inline SVG icons
 function CheckCircleIcon({ className }: { className?: string }) {
@@ -67,6 +68,15 @@ interface ApprovalButtonProps {
   onApproved?: (approval: ApprovalTracking) => void;
 }
 
+interface ApprovalSuccessResponse {
+  success: boolean;
+  approval: ApprovalTracking;
+}
+
+interface ApprovalErrorBody extends LegacyErrorResponse {
+  message?: string;
+}
+
 export function ApprovalButton({
   type,
   approval,
@@ -92,11 +102,11 @@ export function ApprovalButton({
       const response = await apiPost(approveEndpoint);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to approve');
+        const error = await readJson<ApprovalErrorBody>(response);
+        throw new Error(error.message || error.error || 'Failed to approve');
       }
 
-      const data = await response.json();
+      const data = await readJson<ApprovalSuccessResponse>(response);
       onApproved?.(data.approval);
     } catch (err) {
       console.error('Approval failed:', err);

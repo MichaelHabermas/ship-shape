@@ -11,42 +11,9 @@ import {
   useCallback,
 } from 'react';
 import { cn } from '@/lib/cn';
+import { fetchWikiDocumentsForEmbed } from '@/lib/mention-search';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
-
-// Fetch documents for embedding
-async function fetchDocumentsForEmbed(query: string): Promise<{ id: string; title: string }[]> {
-  try {
-    const response = await fetch(`${API_URL}/api/search/mentions?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    const docs: { id: string; title: string }[] = [];
-
-    if (data.documents) {
-      for (const doc of data.documents) {
-        // Only include wiki documents for embedding
-        if (doc.document_type === 'wiki') {
-          docs.push({
-            id: doc.id,
-            title: doc.title || 'Untitled',
-          });
-        }
-      }
-    }
-
-    return docs;
-  } catch (error) {
-    console.error('Error fetching documents for embed:', error);
-    return [];
-  }
-}
-
 export interface SlashCommandItem {
   title: string;
   description: string;
@@ -627,7 +594,7 @@ export function createSlashCommands({ onCreateSubDocument, onNavigateToDocument,
             const isDocQuery = docAliases.some((alias) => alias.includes(search) || search.includes(alias));
 
             if (isDocQuery && search.length > 0) {
-              const documents = await fetchDocumentsForEmbed(search);
+              const documents = await fetchWikiDocumentsForEmbed(search);
               const documentItems: SlashCommandItem[] = documents.map((doc) => ({
                 title: doc.title,
                 description: 'Embed this document',

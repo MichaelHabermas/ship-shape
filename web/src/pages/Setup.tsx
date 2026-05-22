@@ -1,8 +1,8 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { publicFetchJson } from '@/lib/public-fetch';
+import type { ApiEnvelope, CsrfTokenResponse, SetupStatusData } from '@/api/schemas';
 
 export function SetupPage() {
   const [name, setName] = useState('');
@@ -21,23 +21,14 @@ export function SetupPage() {
   useEffect(() => {
     async function checkSetup() {
       try {
-        // Get CSRF token first
-        const tokenRes = await fetch(`${API_URL}/api/csrf-token`, {
-          credentials: 'include',
-        });
-        const tokenData = await tokenRes.json();
+        const tokenData = await publicFetchJson<CsrfTokenResponse>('/api/csrf-token');
         setCsrfToken(tokenData.token);
 
-        // Check setup status
-        const res = await fetch(`${API_URL}/api/setup/status`, {
-          credentials: 'include',
-        });
-        const data = await res.json();
+        const data = await publicFetchJson<ApiEnvelope<SetupStatusData>>('/api/setup/status');
 
-        if (data.success && data.data.needsSetup) {
+        if (data.success && data.data?.needsSetup) {
           setNeedsSetup(true);
         } else {
-          // Setup already done, redirect to login
           navigate('/login', { replace: true });
         }
       } catch (err) {
@@ -67,20 +58,16 @@ export function SetupPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/setup/initialize`, {
+      const data = await publicFetchJson<ApiEnvelope<{ message?: string }>>('/api/setup/initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
         },
-        credentials: 'include',
         body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await res.json();
-
       if (data.success) {
-        // Setup complete, redirect to login
         navigate('/login', { replace: true });
       } else {
         setError(data.error?.message || 'Setup failed');
