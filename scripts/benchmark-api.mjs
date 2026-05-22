@@ -13,6 +13,9 @@ const connections = (process.env.BENCHMARK_CONNECTIONS || '10,25,50')
   .map((value) => Number(value.trim()))
   .filter((value) => Number.isInteger(value) && value > 0);
 const ratePerSecond = Number(process.env.BENCHMARK_RATE_PER_SECOND || 100);
+const rateLimitBypassRequested = process.env.BENCHMARK_RATE_LIMIT_BYPASS === '1';
+const rateLimitBypassToken = process.env.BENCHMARK_RATE_LIMIT_BYPASS_TOKEN || '';
+const rateLimitBypass = rateLimitBypassRequested && !!rateLimitBypassToken;
 const outputPath = resolve(
   rootDir,
   process.env.BENCHMARK_OUTPUT || `test-results/benchmarks/api-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
@@ -35,6 +38,11 @@ const endpoints = (process.env.BENCHMARK_ENDPOINTS || defaultEndpoints.join(',')
   .map((value) => value.trim())
   .filter(Boolean);
 
+function benchmarkHeaders() {
+  if (!rateLimitBypass || !rateLimitBypassToken) return {};
+  return { 'x-benchmark-rate-limit-bypass': rateLimitBypassToken };
+}
+
 function cookieHeaderFrom(headers) {
   const rawCookies = typeof headers.getSetCookie === 'function'
     ? headers.getSetCookie()
@@ -46,11 +54,45 @@ async function jsonRequest(path, options = {}, cookie = '') {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers: {
+      ...benchmarkHeaders(),
       ...(cookie ? { cookie } : {}),
       ...(options.headers || {}),
     },
   });
   return response;
+}
+
+function discoverNodeEnv(headers) {
+  return headers.get('x-node-env')
+    || headers.get('x-node-environment')
+    || headers.get('x-env')
+    || null;
+}
+
+async function discoverBenchmarkConditions() {
+  try {
+    const response = await jsonRequest('/health');
+    await response.arrayBuffer();
+    return {
+      node_env: discoverNodeEnv(response.headers),
+      benchmark_env_flags: discoverNodeEnv(response.headers) ? null : {
+        BENCHMARK_RATE_LIMIT_BYPASS: process.env.BENCHMARK_RATE_LIMIT_BYPASS || null,
+        BENCHMARK_RATE_LIMIT_BYPASS_TOKEN: rateLimitBypassToken ? '[set]' : null,
+        API_BENCHMARK_RATE_LIMIT_BYPASS: process.env.API_BENCHMARK_RATE_LIMIT_BYPASS || null,
+        API_BENCHMARK_RATE_LIMIT_BYPASS_TOKEN: process.env.API_BENCHMARK_RATE_LIMIT_BYPASS_TOKEN ? '[set]' : null,
+      },
+    };
+  } catch {
+    return {
+      node_env: null,
+      benchmark_env_flags: {
+        BENCHMARK_RATE_LIMIT_BYPASS: process.env.BENCHMARK_RATE_LIMIT_BYPASS || null,
+        BENCHMARK_RATE_LIMIT_BYPASS_TOKEN: rateLimitBypassToken ? '[set]' : null,
+        API_BENCHMARK_RATE_LIMIT_BYPASS: process.env.API_BENCHMARK_RATE_LIMIT_BYPASS || null,
+        API_BENCHMARK_RATE_LIMIT_BYPASS_TOKEN: process.env.API_BENCHMARK_RATE_LIMIT_BYPASS_TOKEN ? '[set]' : null,
+      },
+    };
+  }
 }
 
 async function login() {
@@ -132,6 +174,7 @@ async function runEndpoint(endpoint, concurrency, cookie) {
   };
 }
 
+const conditions = await discoverBenchmarkConditions();
 const cookie = await login();
 const results = [];
 
@@ -144,9 +187,11 @@ for (const endpoint of endpoints) {
 const report = {
   generated_at: new Date().toISOString(),
   base_url: baseUrl,
+  ...conditions,
   duration_ms: durationMs,
   rate_per_second: ratePerSecond,
   connections,
+  rate_limit_bypass: rateLimitBypass,
   endpoints,
   results,
 };
