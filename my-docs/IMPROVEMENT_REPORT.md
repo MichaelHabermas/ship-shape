@@ -688,22 +688,29 @@ Category 3 remains **partial**. `/api/dashboard/my-week` has follow-up measureme
 
 - Expanded `my-docs/evidence/submission-ledger.json` to schema v2 with canonical Categories 1-8, category-local IDs, summary cards, targets, acceptance tests, evidence, caveats, and source references.
 - Updated `my-docs/evidence/schema.json` as the shape reference plus `pnpm submission:validate` as the executable enforcement rail for ledger shape, artifact paths, status consistency, target/claim references, canonical category coverage, and Security 8 required fields.
-- Updated `pnpm submission:render-dashboard` and `pnpm submission:render`; the latter validates first, then regenerates `my-docs/reviewer-dashboard.html` from the ledger without category-number rendering branches.
+- Added shared ledger projections for dashboard/report views, updated `pnpm submission:render-dashboard`, added `pnpm submission:render-markdown`, and made `pnpm submission:render` validate first before regenerating `my-docs/reviewer-dashboard.html` plus this report's generated Current Ledger Truth block.
+- Added `pnpm submission:check` as the drift gate so stale generated dashboard/report output fails instead of silently diverging from the ledger.
 
 ### Current Ledger Truth
 
-- Category 1 Type Safety: `proven`.
-- Category 2 Bundle Size: `partial`; initial-entry/code-splitting reduction passes, but the latest treemap or equivalent after bundle-analysis artifact is missing. This does not claim total bundle reduction.
-- Category 3 API Response Time: `partial`; acceptance test `cat3-two-endpoints-clear-20-percent-p95` fails.
-- Category 4 Database Query Efficiency: `partial`; query-count evidence passes, but acceptance test `cat4-before-after-explain-analyze-present` fails.
-- Category 5 Test Coverage and Quality: `proven` with warning `cat5-e2e-baseline-not-green`.
-- Category 6 Runtime Error and Edge Case Handling: `partial`; acceptance tests `cat6-three-error-handling-fixes-documented` and `cat6-each-fix-has-before-after-and-screenshot` fail.
-- Category 7 Accessibility Compliance: `partial`; selected closeout pages have 0 axe violations, but acceptance test `cat7-top3-page-selection-source-backed` fails until the ledger proves those are the 3 most important pages or adds closeout evidence for the source-relevant set.
-- Category 8 Security Audit: `open`; required probe, four-surface review, manual review, and two verified fix gates remain unproven.
+<!-- ledger:generated start id="submission-current-truth" source="my-docs/evidence/submission-ledger.json" renderer="pnpm submission:render" -->
+| Category | Status | Ledger truth |
+| --- | --- | --- |
+| Category 1 Type Safety | `proven` | proven; required acceptance gates pass. |
+| Category 2 Bundle Size | `partial` | partial; failing acceptance cat2-before-after-bundle-analysis-output-present. |
+| Category 3 API Response Time | `partial` | partial; failing acceptance cat3-two-endpoints-clear-20-percent-p95. |
+| Category 4 Database Query Efficiency | `partial` | partial; failing acceptance cat4-before-after-explain-analyze-present. |
+| Category 5 Test Coverage and Quality | `proven` | proven with warning cat5-e2e-baseline-not-green. |
+| Category 6 Runtime Error and Edge Case Handling | `partial` | partial; failing acceptance cat6-three-error-handling-fixes-documented, cat6-each-fix-has-before-after-and-screenshot. |
+| Category 7 Accessibility Compliance | `partial` | partial; failing acceptance cat7-top3-page-selection-source-backed. |
+| Category 8 Security Audit | `open` | open; failing acceptance cat8-probe-tool-runnable, cat8-four-attack-surfaces-covered, cat8-manual-review-complete, cat8-two-verified-vulnerability-fixes. |
+
+Gate snapshot: 2 proven, 5 partial, 1 open/fill.
+<!-- ledger:generated end id="submission-current-truth" -->
 
 ### Operating Rule
 
-Evidence-changing work updates the ledger before narrative docs or dashboard output. Only mark a category `proven` when required rubric items and acceptance gates clear the source requirement; otherwise keep it `partial`, `open`, `needs_fill_in`, or `not_measured`. After ledger edits, run `pnpm submission:validate` and `pnpm submission:render`, then report changed categories and any failing/warning acceptance tests.
+Evidence-changing work updates the ledger before narrative docs or dashboard output. Only mark a category `proven` when required rubric items and acceptance gates clear the source requirement; otherwise keep it `partial`, `open`, `needs_fill_in`, or `not_measured`. After ledger edits, run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`, then report changed categories and any failing/warning acceptance tests.
 
 ---
 

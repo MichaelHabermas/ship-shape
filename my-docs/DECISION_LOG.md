@@ -726,13 +726,13 @@ Evidence: `pnpm openapi:generate`; `pnpm openapi:check:strict` 193 runtime / 193
 
 Status: Accepted
 
-Decision: Treat `my-docs/evidence/submission-ledger.json` as the structured source for reviewer-facing submission claims, with `my-docs/reviewer-dashboard.html` generated from it. Schema v2 must cover canonical Categories 1-8 and keep category-owned summary cards, targets, acceptance tests, claims, evidence, caveats, and sources together. Narrative docs can explain context, but category status and acceptance-test truth belong in the ledger first.
+Decision: Treat `my-docs/evidence/submission-ledger.json` as the structured source for reviewer-facing submission claims, with `my-docs/reviewer-dashboard.html` and the `IMPROVEMENT_REPORT.md` Current Ledger Truth block generated from it. Schema v2 must cover canonical Categories 1-8 and keep category-owned summary cards, targets, acceptance tests, claims, evidence, caveats, and sources together. Narrative docs can explain context, but category status and acceptance-test truth belong in the ledger first.
 
 Why: `IMPROVEMENT_REPORT.md` is useful history, but prose ledgers drift and can hide partial evidence. The structured ledger makes pass/fail/warn acceptance tests explicit, keeps source requirements beside measurements, and lets the dashboard be regenerated without hand-editing reviewer output.
 
-Consequences: Evidence-changing work should update only the affected ledger categories, keep unproven claims as `partial`, `open`, `needs_fill_in`, or `not_measured`, then run `pnpm submission:validate` and `pnpm submission:render`. `pnpm submission:render` validates first and then regenerates `my-docs/reviewer-dashboard.html`. The validator blocks `proven` categories with failing required acceptance tests or incomplete required rubric items.
+Consequences: Evidence-changing work should update only the affected ledger categories, keep unproven claims as `partial`, `open`, `needs_fill_in`, or `not_measured`, then run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`. `pnpm submission:render` validates first and then regenerates `my-docs/reviewer-dashboard.html` plus the generated ledger block in `IMPROVEMENT_REPORT.md`. The validator blocks `proven` categories with failing required acceptance tests or incomplete required rubric items; `pnpm submission:check` blocks stale generated outputs.
 
-Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render`, and `submission:validate:strict`; `pnpm submission:validate` currently reports Cats 1 and 5 passing, Cat 5 with warning `cat5-e2e-baseline-not-green`, and Cats 2, 3, 4, 6, 7, and 8 carrying honest open gates.
+Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render-markdown`, `submission:render`, `submission:check`, `submission:test`, and `submission:validate:strict`; `pnpm submission:validate` currently reports Cats 1 and 5 passing, Cat 5 with warning `cat5-e2e-baseline-not-green`, and Cats 2, 3, 4, 6, 7, and 8 carrying honest open gates.
 
 **Decision Gist**: Reviewer claims are ledger-first; prose reports are context, not the claim authority.
 
