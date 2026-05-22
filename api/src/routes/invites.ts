@@ -8,6 +8,9 @@ import { logAuditEvent } from '../services/audit.js';
 import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
 
 const router: RouterType = Router();
+const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
+  ? 'none'
+  : 'lax';
 
 // GET /api/invites/:token - Validate invite token
 router.get('/:token', async (req: Request, res: Response): Promise<void> => {
@@ -246,7 +249,7 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
     res.cookie('session_id', sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: sameSiteCookiePolicy,
       maxAge: SESSION_TIMEOUT_MS,
     });
 

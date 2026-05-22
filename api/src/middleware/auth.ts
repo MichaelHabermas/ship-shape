@@ -21,6 +21,10 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
+  ? 'none'
+  : 'strict';
+
 // Validate API token and return user info if valid
 async function validateApiToken(token: string): Promise<{
   userId: string;
@@ -219,7 +223,7 @@ export async function authMiddleware(
       res.cookie('session_id', sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: sameSiteCookiePolicy,
         maxAge: SESSION_TIMEOUT_MS,
         path: '/',
       });

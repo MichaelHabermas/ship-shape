@@ -368,7 +368,7 @@ router.post('/extend-session', authMiddleware, async (req: Request, res: Respons
     res.cookie('session_id', req.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: sameSiteCookiePolicy,
       maxAge: SESSION_TIMEOUT_MS,
       path: '/',
     });
