@@ -586,7 +586,8 @@ export function renderDashboard(ledger) {
     <script>
       const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
       const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
-      function activateTab(tab, shouldFocus = true) {
+      const activeTabStorageKey = 'ship-submission-dashboard-active-tab';
+      function activateTab(tab, shouldFocus = true, shouldStore = true) {
         const target = tab.dataset.tab;
         for (const current of tabs) {
           current.setAttribute('aria-selected', String(current === tab));
@@ -596,6 +597,11 @@ export function renderDashboard(ledger) {
           const isActive = panel.id === \`panel-\${target}\`;
           panel.classList.toggle('active', isActive);
           panel.hidden = !isActive;
+        }
+        if (shouldStore) {
+          try {
+            localStorage.setItem(activeTabStorageKey, target);
+          } catch {}
         }
         if (shouldFocus) tab.focus();
       }
@@ -614,6 +620,17 @@ export function renderDashboard(ledger) {
           }
         });
       }
+      function activateStoredTab() {
+        if (location.hash) return;
+        let storedTab = '';
+        try {
+          storedTab = localStorage.getItem(activeTabStorageKey) || '';
+        } catch {}
+        if (!storedTab) return;
+        const tab = tabs.find((item) => item.dataset.tab === storedTab);
+        if (!tab) return;
+        activateTab(tab, false, false);
+      }
       function activateHashTarget() {
         if (!location.hash) return;
         const target = document.getElementById(location.hash.slice(1));
@@ -626,6 +643,7 @@ export function renderDashboard(ledger) {
         requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
       }
       window.addEventListener('hashchange', activateHashTarget);
+      activateStoredTab();
       activateHashTarget();
     </script>
   </body>

@@ -4,7 +4,11 @@ set -euo pipefail
 # Ship API Deployment Script
 # Deploys the API to Elastic Beanstalk for the specified environment
 #
-# Usage: ./scripts/deploy.sh <dev|prod>
+# Usage: ./scripts/deploy.sh [--bootstrap-infra] <dev|shadow|prod>
+#
+# Infrastructure bootstrap (terraform apply) is opt-in only:
+#   ./scripts/deploy.sh --bootstrap-infra prod
+#   DEPLOY_BOOTSTRAP_INFRA=1 ./scripts/deploy.sh prod
 #
 # Prerequisites:
 #   - AWS CLI configured with appropriate credentials
@@ -39,15 +43,45 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Parse environment argument
-ENV="${1:-}"
+# Parse arguments
+BOOTSTRAP_INFRA=false
+ENV=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --bootstrap-infra)
+      BOOTSTRAP_INFRA=true
+      ;;
+    dev|shadow|prod)
+      if [ -n "$ENV" ]; then
+        echo "ERROR: Multiple environments specified: $ENV and $arg"
+        exit 1
+      fi
+      ENV="$arg"
+      ;;
+    *)
+      echo "ERROR: Unknown argument: $arg"
+      echo "Usage: $0 [--bootstrap-infra] <dev|shadow|prod>"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "${DEPLOY_BOOTSTRAP_INFRA:-}" == "1" ]]; then
+  BOOTSTRAP_INFRA=true
+fi
+
 if [[ ! "$ENV" =~ ^(dev|shadow|prod)$ ]]; then
-  echo "Usage: $0 <dev|shadow|prod>"
+  echo "Usage: $0 [--bootstrap-infra] <dev|shadow|prod>"
   echo ""
   echo "Examples:"
   echo "  $0 dev     # Deploy to dev environment"
   echo "  $0 shadow  # Deploy to shadow environment (UAT)"
   echo "  $0 prod    # Deploy to prod environment"
+  echo ""
+  echo "Bootstrap missing infrastructure (terraform apply):"
+  echo "  $0 --bootstrap-infra prod"
+  echo "  DEPLOY_BOOTSTRAP_INFRA=1 $0 prod"
   exit 1
 fi
 
@@ -77,7 +111,20 @@ fi
 S3_BUCKET="${S3_BUCKET:-${DEPLOY_S3_BUCKET:-}}"
 
 if [ -z "$S3_BUCKET" ]; then
-  echo "S3 bucket not found in Terraform outputs. Running terraform apply..."
+  if [ "$BOOTSTRAP_INFRA" != true ]; then
+    echo "ERROR: S3 deployment bucket not found in Terraform outputs for '$ENV'."
+    echo ""
+    echo "Application deploy does not modify infrastructure automatically."
+    echo ""
+    echo "Fix options:"
+    echo "  1. Provision infrastructure first (see terraform/README.md), then re-run deploy"
+    echo "  2. Set DEPLOY_S3_BUCKET to an existing Elastic Beanstalk deployment bucket"
+    echo "  3. Opt in to bootstrap: $0 --bootstrap-infra $ENV"
+    echo "     (or DEPLOY_BOOTSTRAP_INFRA=1 $0 $ENV)"
+    exit 1
+  fi
+
+  echo "S3 bucket not found in Terraform outputs. Bootstrapping infrastructure..."
   cd "$TF_DIR"
 
   # Get state bucket from SSM for backend config

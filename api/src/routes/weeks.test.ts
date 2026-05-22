@@ -16,6 +16,7 @@ describe('Sprints API', () => {
   let testWorkspaceId: string
   let testUserId: string
   let testProgramId: string
+  let testPersonId: string
 
   beforeAll(async () => {
     // Create test workspace
@@ -68,6 +69,14 @@ describe('Sprints API', () => {
       [testWorkspaceId]
     )
     testProgramId = requireFirstRow(programResult.rows).id
+
+    const personResult = await pool.query<IdRow>(
+      `INSERT INTO documents (workspace_id, document_type, title, visibility, properties)
+       VALUES ($1, 'person', 'Sprints Test Person', 'workspace', $2)
+       RETURNING id`,
+      [testWorkspaceId, JSON.stringify({ user_id: testUserId })]
+    )
+    testPersonId = requireFirstRow(personResult.rows).id
 
     // Create a project
     await pool.query<IdRow>(
@@ -496,7 +505,7 @@ describe('Sprints API', () => {
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'sprint', 'Sprint to Start', 'workspace', $2, $3)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 50, status: 'planning' })]
+        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 50, status: 'planning', owner_id: testPersonId })]
       )
       const sprintId = requireFirstRow(sprintResult.rows).id
       // Create program association
@@ -538,7 +547,7 @@ describe('Sprints API', () => {
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'sprint', 'Already Active Sprint', 'workspace', $2, $3)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 51, status: 'active' })]
+        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 51, status: 'active', owner_id: testPersonId })]
       )
       const sprintId = requireFirstRow(sprintResult.rows).id
       // Create program association
@@ -580,7 +589,7 @@ describe('Sprints API', () => {
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'sprint', 'Source Sprint for Carryover', 'workspace', $2, $3)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 100, status: 'completed' })]
+        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 100, status: 'completed', owner_id: testPersonId })]
       )
       sourceSprintId = requireFirstRow(sourceResult.rows).id
       // Create program association for source sprint
