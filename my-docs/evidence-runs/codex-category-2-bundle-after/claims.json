@@ -1,0 +1,79 @@
+[
+  {
+    "id": "repo.package-manager",
+    "status": "met",
+    "statement": "Root package manager is pnpm@10.27.0.",
+    "collector": "repo-metadata",
+    "evidence": "collectors/repo-metadata.json"
+  },
+  {
+    "id": "repo.workspace-packages",
+    "status": "met",
+    "statement": "Workspace package metadata captured for 3 packages.",
+    "collector": "repo-metadata",
+    "evidence": "collectors/repo-metadata.json"
+  },
+  {
+    "id": "openapi.artifact-present",
+    "status": "met",
+    "statement": "Found 2 OpenAPI artifact(s).",
+    "collector": "openapi-validation",
+    "evidence": "collectors/openapi-validation.json"
+  },
+  {
+    "id": "openapi.parseable",
+    "status": "met",
+    "statement": "Parsed OpenAPI metadata from api/openapi.json.",
+    "collector": "openapi-validation",
+    "evidence": "collectors/openapi-validation.json"
+  },
+  {
+    "id": "openapi.prettier.json",
+    "status": "failed",
+    "statement": "api/openapi.json prettier check is not clean.",
+    "collector": "openapi-validation",
+    "evidence": "collectors/openapi-validation.json"
+  },
+  {
+    "id": "openapi.prettier.yaml",
+    "status": "met",
+    "statement": "api/openapi.yaml prettier check is clean.",
+    "collector": "openapi-validation",
+    "evidence": "collectors/openapi-validation.json"
+  },
+  {
+    "id": "bundle.dist-present",
+    "status": "met",
+    "statement": "web/dist exists and was measured.",
+    "collector": "bundle-stats",
+    "evidence": "collectors/bundle-stats.json"
+  },
+  {
+    "id": "bundle.index-html",
+    "status": "met",
+    "statement": "web/dist/index.html is present.",
+    "collector": "bundle-stats",
+    "evidence": "collectors/bundle-stats.json"
+  },
+  {
+    "id": "bundle.entry-js",
+    "status": "met",
+    "statement": "Current entry JS was found at web/dist/assets/index-B0QJ0hBl.js.",
+    "collector": "bundle-stats",
+    "evidence": "collectors/bundle-stats.json"
+  },
+  {
+    "id": "optional.e2e-summary",
+    "status": "met",
+    "statement": "test-results/summary.json was captured.",
+    "collector": "optional-artifacts",
+    "evidence": "collectors/optional-artifacts.json"
+  },
+  {
+    "id": "optional.api-benchmark",
+    "status": "met",
+    "statement": "test-results/benchmarks/latest.json was captured.",
+    "collector": "optional-artifacts",
+    "evidence": "collectors/optional-artifacts.json"
+  }
+]

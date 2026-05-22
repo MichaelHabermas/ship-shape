@@ -1,0 +1,359 @@
+{
+  "name": "optional-artifacts",
+  "status": "passed",
+  "summary": "Captured 2 optional artifact(s); 0 prerequisite(s) missing.",
+  "data": {
+    "measured": [
+      {
+        "id": "e2e-summary",
+        "path": "test-results/summary.json",
+        "parsed": {
+          "total": 20,
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 20,
+          "ts": 1779466361007
+        }
+      },
+      {
+        "id": "api-benchmark",
+        "path": "test-results/benchmarks/latest.json",
+        "parsed": {
+          "generated_at": "2026-05-22T19:55:17.793Z",
+          "base_url": "http://localhost:3000",
+          "duration_ms": 15000,
+          "rate_per_second": 100,
+          "connections": [
+            10,
+            25,
+            50
+          ],
+          "endpoints": [
+            "/api/documents?type=wiki",
+            "/api/issues",
+            "/api/dashboard/my-week",
+            "/api/projects",
+            "/api/bootstrap",
+            "/api/search/content?q=auditloadrareterm&limit=10",
+            "/api/search/content?q=auditloadmediumterm&limit=10",
+            "/api/search/content?q=auditloadcommonterm&limit=10",
+            "/api/search/content?q=auditloadnomatchterm&limit=10"
+          ],
+          "results": [
+            {
+              "endpoint": "/api/documents?type=wiki",
+              "concurrency": 10,
+              "duration_ms": 15067,
+              "requests": 1400,
+              "failures": 0,
+              "non_2xx": 328,
+              "p50_ms": 6.855041000000028,
+              "p95_ms": 12.807750000000851,
+              "p99_ms": 15.561749999999847
+            },
+            {
+              "endpoint": "/api/documents?type=wiki",
+              "concurrency": 25,
+              "duration_ms": 15141,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.654500000000553,
+              "p95_ms": 4.02691699999923,
+              "p99_ms": 5.210291999999754
+            },
+            {
+              "endpoint": "/api/documents?type=wiki",
+              "concurrency": 50,
+              "duration_ms": 15058,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 0.9947079999983544,
+              "p95_ms": 3.8867499999978463,
+              "p99_ms": 5.22612499999741
+            },
+            {
+              "endpoint": "/api/issues",
+              "concurrency": 10,
+              "duration_ms": 15015,
+              "requests": 1470,
+              "failures": 0,
+              "non_2xx": 1470,
+              "p50_ms": 1.1812910000007832,
+              "p95_ms": 2.881915999998455,
+              "p99_ms": 4.48954099999537
+            },
+            {
+              "endpoint": "/api/issues",
+              "concurrency": 25,
+              "duration_ms": 15236,
+              "requests": 1443,
+              "failures": 0,
+              "non_2xx": 443,
+              "p50_ms": 9.870208000007551,
+              "p95_ms": 25.48124999999709,
+              "p99_ms": 106.14437500000349
+            },
+            {
+              "endpoint": "/api/issues",
+              "concurrency": 50,
+              "duration_ms": 15070,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.044207999992068,
+              "p95_ms": 3.130749999996624,
+              "p99_ms": 5.396000000007916
+            },
+            {
+              "endpoint": "/api/dashboard/my-week",
+              "concurrency": 10,
+              "duration_ms": 15100,
+              "requests": 1480,
+              "failures": 0,
+              "non_2xx": 1480,
+              "p50_ms": 1.0267500000045402,
+              "p95_ms": 2.2698750000126893,
+              "p99_ms": 3.3747910000092816
+            },
+            {
+              "endpoint": "/api/dashboard/my-week",
+              "concurrency": 25,
+              "duration_ms": 15130,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.2504169999883743,
+              "p95_ms": 3.5501669999939622,
+              "p99_ms": 4.861541000005673
+            },
+            {
+              "endpoint": "/api/dashboard/my-week",
+              "concurrency": 50,
+              "duration_ms": 15251,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 519,
+              "p50_ms": 5.198082999995677,
+              "p95_ms": 24.080792000007932,
+              "p99_ms": 50.98179200000595
+            },
+            {
+              "endpoint": "/api/projects",
+              "concurrency": 10,
+              "duration_ms": 15008,
+              "requests": 1470,
+              "failures": 0,
+              "non_2xx": 1470,
+              "p50_ms": 1.0872080000117421,
+              "p95_ms": 2.4301670000131708,
+              "p99_ms": 3.2655000000086147
+            },
+            {
+              "endpoint": "/api/projects",
+              "concurrency": 25,
+              "duration_ms": 15105,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.1416250000183936,
+              "p95_ms": 2.7264159999904223,
+              "p99_ms": 3.4059999999881256
+            },
+            {
+              "endpoint": "/api/projects",
+              "concurrency": 50,
+              "duration_ms": 15053,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.2586670000164304,
+              "p95_ms": 3.9332909999939147,
+              "p99_ms": 4.781416000012541
+            },
+            {
+              "endpoint": "/api/bootstrap",
+              "concurrency": 10,
+              "duration_ms": 15093,
+              "requests": 1296,
+              "failures": 0,
+              "non_2xx": 296,
+              "p50_ms": 16.301625000021886,
+              "p95_ms": 29.171583000017563,
+              "p99_ms": 60.19991699999082
+            },
+            {
+              "endpoint": "/api/bootstrap",
+              "concurrency": 25,
+              "duration_ms": 15129,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.3554170000134036,
+              "p95_ms": 3.376957999978913,
+              "p99_ms": 3.738000000012107
+            },
+            {
+              "endpoint": "/api/bootstrap",
+              "concurrency": 50,
+              "duration_ms": 15048,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.0310829999798443,
+              "p95_ms": 3.477459000016097,
+              "p99_ms": 4.640417000016896
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadrareterm&limit=10",
+              "concurrency": 10,
+              "duration_ms": 15006,
+              "requests": 1470,
+              "failures": 0,
+              "non_2xx": 1450,
+              "p50_ms": 0.9593330000061542,
+              "p95_ms": 2.8380420000175945,
+              "p99_ms": 5.647958000015933
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadrareterm&limit=10",
+              "concurrency": 25,
+              "duration_ms": 15075,
+              "requests": 1475,
+              "failures": 0,
+              "non_2xx": 497,
+              "p50_ms": 5.177332999999635,
+              "p95_ms": 12.274666000012076,
+              "p99_ms": 15.971749999996973
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadrareterm&limit=10",
+              "concurrency": 50,
+              "duration_ms": 15062,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.12824999995064,
+              "p95_ms": 5.39658299999428,
+              "p99_ms": 7.017999999981839
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadmediumterm&limit=10",
+              "concurrency": 10,
+              "duration_ms": 15004,
+              "requests": 1470,
+              "failures": 0,
+              "non_2xx": 1470,
+              "p50_ms": 1.0647500000195578,
+              "p95_ms": 2.4570829999865964,
+              "p99_ms": 3.988540999998804
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadmediumterm&limit=10",
+              "concurrency": 25,
+              "duration_ms": 15136,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1475,
+              "p50_ms": 1.2980830000014976,
+              "p95_ms": 3.2342500000377186,
+              "p99_ms": 24.343416999967303
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadmediumterm&limit=10",
+              "concurrency": 50,
+              "duration_ms": 15177,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 525,
+              "p50_ms": 4.223166999989189,
+              "p95_ms": 13.77070900000399,
+              "p99_ms": 19.51699999999255
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadcommonterm&limit=10",
+              "concurrency": 10,
+              "duration_ms": 15069,
+              "requests": 1480,
+              "failures": 0,
+              "non_2xx": 1480,
+              "p50_ms": 0.8805419999989681,
+              "p95_ms": 2.1302909999503754,
+              "p99_ms": 2.6785829999716952
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadcommonterm&limit=10",
+              "concurrency": 25,
+              "duration_ms": 15125,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.2804579999647103,
+              "p95_ms": 2.95454200002132,
+              "p99_ms": 6.200542000005953
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadcommonterm&limit=10",
+              "concurrency": 50,
+              "duration_ms": 15077,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1450,
+              "p50_ms": 1.354542000044603,
+              "p95_ms": 6.4141250000102445,
+              "p99_ms": 28.86104200000409
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadnomatchterm&limit=10",
+              "concurrency": 10,
+              "duration_ms": 15038,
+              "requests": 1420,
+              "failures": 0,
+              "non_2xx": 470,
+              "p50_ms": 6.132374999986496,
+              "p95_ms": 9.193625000014435,
+              "p99_ms": 10.333333000016864
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadnomatchterm&limit=10",
+              "concurrency": 25,
+              "duration_ms": 15115,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.3503749999799766,
+              "p95_ms": 3.164374999993015,
+              "p99_ms": 8.361583999998402
+            },
+            {
+              "endpoint": "/api/search/content?q=auditloadnomatchterm&limit=10",
+              "concurrency": 50,
+              "duration_ms": 15075,
+              "requests": 1500,
+              "failures": 0,
+              "non_2xx": 1500,
+              "p50_ms": 1.596291999972891,
+              "p95_ms": 4.044082999986131,
+              "p99_ms": 8.438458999968134
+            }
+          ]
+        }
+      }
+    ],
+    "skipped": []
+  },
+  "claims": [
+    {
+      "id": "optional.e2e-summary",
+      "status": "met",
+      "statement": "test-results/summary.json was captured."
+    },
+    {
+      "id": "optional.api-benchmark",
+      "status": "met",
+      "statement": "test-results/benchmarks/latest.json was captured."
+    }
+  ]
+}

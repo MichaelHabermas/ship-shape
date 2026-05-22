@@ -1,0 +1,233 @@
+{
+  "name": "bundle-stats",
+  "status": "passed",
+  "summary": "Measured 334 built files totaling 3509200 bytes, including 293 JS chunks and 2 CSS chunks.",
+  "data": {
+    "distDir": "web/dist",
+    "fileCount": 334,
+    "totalBytes": 3509200,
+    "totalGzipBytes": 751573,
+    "totalJsBytes": 2326574,
+    "totalCssBytes": 67619,
+    "jsChunkCount": 293,
+    "cssChunkCount": 2,
+    "byExtension": {
+      ".js": {
+        "files": 293,
+        "bytes": 2326574
+      },
+      ".css": {
+        "files": 2,
+        "bytes": 67619
+      },
+      ".xml": {
+        "files": 1,
+        "bytes": 367
+      },
+      ".png": {
+        "files": 31,
+        "bytes": 1065895
+      },
+      ".ico": {
+        "files": 2,
+        "bytes": 28972
+      },
+      ".svg": {
+        "files": 2,
+        "bytes": 13362
+      },
+      ".html": {
+        "files": 1,
+        "bytes": 4548
+      },
+      ".json": {
+        "files": 1,
+        "bytes": 1663
+      },
+      ".txt": {
+        "files": 1,
+        "bytes": 200
+      }
+    },
+    "largestAssets": [
+      {
+        "path": "web/dist/assets/PropertyRow-lv0fZi69.js",
+        "name": "PropertyRow-lv0fZi69.js",
+        "bytes": 837241,
+        "gzipBytes": 261552,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-B0QJ0hBl.js",
+        "name": "index-B0QJ0hBl.js",
+        "bytes": 530916,
+        "gzipBytes": 154899,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/emoji-picker-react.esm-D8e8uAM1.js",
+        "name": "emoji-picker-react.esm-D8e8uAM1.js",
+        "bytes": 309510,
+        "gzipBytes": 74968,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-1024.png",
+        "name": "logo-1024.png",
+        "bytes": 275505,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/icons/blue/android-chrome-512x512.png",
+        "name": "android-chrome-512x512.png",
+        "bytes": 135090,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-512.png",
+        "name": "logo-512.png",
+        "bytes": 135090,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/assets/UnifiedDocumentPage-BL2MVWsC.js",
+        "name": "UnifiedDocumentPage-BL2MVWsC.js",
+        "bytes": 134561,
+        "gzipBytes": 35675,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/og-image.png",
+        "name": "og-image.png",
+        "bytes": 70180,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/assets/index-DWJSHNcp.css",
+        "name": "index-DWJSHNcp.css",
+        "bytes": 66209,
+        "gzipBytes": 12697,
+        "extension": ".css"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-256.png",
+        "name": "logo-256.png",
+        "bytes": 65673,
+        "gzipBytes": null,
+        "extension": ".png"
+      }
+    ],
+    "topBuiltChunks": [
+      {
+        "path": "web/dist/assets/PropertyRow-lv0fZi69.js",
+        "name": "PropertyRow-lv0fZi69.js",
+        "bytes": 837241,
+        "gzipBytes": 261552,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-B0QJ0hBl.js",
+        "name": "index-B0QJ0hBl.js",
+        "bytes": 530916,
+        "gzipBytes": 154899,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/emoji-picker-react.esm-D8e8uAM1.js",
+        "name": "emoji-picker-react.esm-D8e8uAM1.js",
+        "bytes": 309510,
+        "gzipBytes": 74968,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/UnifiedDocumentPage-BL2MVWsC.js",
+        "name": "UnifiedDocumentPage-BL2MVWsC.js",
+        "bytes": 134561,
+        "gzipBytes": 35675,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-DWJSHNcp.css",
+        "name": "index-DWJSHNcp.css",
+        "bytes": 66209,
+        "gzipBytes": 12697,
+        "extension": ".css"
+      },
+      {
+        "path": "web/dist/assets/IssuesList-CKqHfdSf.js",
+        "name": "IssuesList-CKqHfdSf.js",
+        "bytes": 54118,
+        "gzipBytes": 15775,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/core.esm-B-5aAx-G.js",
+        "name": "core.esm-B-5aAx-G.js",
+        "bytes": 43698,
+        "gzipBytes": 14510,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/ReviewsPage-CKUhNkxD.js",
+        "name": "ReviewsPage-CKUhNkxD.js",
+        "bytes": 28410,
+        "gzipBytes": 7204,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/TeamMode-DTYbzZYJ.js",
+        "name": "TeamMode-DTYbzZYJ.js",
+        "bytes": 21739,
+        "gzipBytes": 6489,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/WorkspaceSettings-Dj_MUavp.js",
+        "name": "WorkspaceSettings-Dj_MUavp.js",
+        "bytes": 17518,
+        "gzipBytes": 4394,
+        "extension": ".js"
+      }
+    ],
+    "currentEntry": "assets/index-B0QJ0hBl.js",
+    "currentEntryAsset": {
+      "path": "web/dist/assets/index-B0QJ0hBl.js",
+      "name": "index-B0QJ0hBl.js",
+      "bytes": 530916,
+      "gzipBytes": 154899,
+      "extension": ".js"
+    },
+    "indexHtml": {
+      "path": "web/dist/index.html",
+      "name": "index.html",
+      "bytes": 4548,
+      "gzipBytes": 1165,
+      "extension": ".html"
+    },
+    "report": {
+      "path": "my-docs/evidence-runs/codex-category-2-bundle-after/collectors/bundle-analysis.html",
+      "title": "Bundle Analysis"
+    }
+  },
+  "claims": [
+    {
+      "id": "bundle.dist-present",
+      "status": "met",
+      "statement": "web/dist exists and was measured."
+    },
+    {
+      "id": "bundle.index-html",
+      "status": "met",
+      "statement": "web/dist/index.html is present."
+    },
+    {
+      "id": "bundle.entry-js",
+      "status": "met",
+      "statement": "Current entry JS was found at web/dist/assets/index-B0QJ0hBl.js."
+    }
+  ]
+}

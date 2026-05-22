@@ -437,7 +437,7 @@
       "id": "cat-2-bundle-size",
       "number": 2,
       "title": "Bundle Size",
-      "status": "partial",
+      "status": "proven",
       "source_requirement": {
         "statement": "15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count.",
         "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
@@ -499,11 +499,11 @@
           "items": [
             {
               "label": "Initial entry chunk",
-              "value": "2025.10 KB -> about 517.82 KB; -74.4%."
+              "value": "2025.10 KB -> 530.77 KB in latest dist artifact; -73.8%."
             },
             {
-              "label": "Largest chunk",
-              "value": "2025.10 KB -> about 817.62 KB in report, and later evidence run largest asset 836.63 KB; over 20% reduction either way."
+              "label": "After artifact",
+              "value": "cat2-closeout bundle stats and HTML analysis are present."
             },
             {
               "label": "Claim boundary",
@@ -614,12 +614,12 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2025.1,
-          "latest_value": 517.82,
-          "change_absolute": -1507.28,
-          "change_percent": -74.4,
+          "latest_value": 530.77,
+          "change_absolute": -1494.33,
+          "change_percent": -73.8,
           "threshold_percent": -20,
           "origin": "computed",
-          "confidence": "report_backed"
+          "confidence": "artifact_backed"
         },
         {
           "id": "cat2-largest-chunk-reduction",
@@ -627,11 +627,11 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2025.1,
-          "latest_value": 817.62,
-          "change_absolute": -1207.48,
-          "change_percent": -59.6,
+          "latest_value": 837.24,
+          "change_absolute": -1187.86,
+          "change_percent": -58.7,
           "origin": "computed",
-          "confidence": "report_backed"
+          "confidence": "artifact_backed"
         },
         {
           "id": "cat2-total-js-css-change",
@@ -639,11 +639,11 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2262.65,
-          "latest_value": 2337.76,
-          "change_absolute": 75.11,
-          "change_percent": 3.3,
+          "latest_value": 2396.29,
+          "change_absolute": 133.64,
+          "change_percent": 5.9,
           "origin": "computed",
-          "confidence": "report_backed"
+          "confidence": "artifact_backed"
         }
       ],
       "targets": [
@@ -653,21 +653,22 @@
           "metric_id": "cat2-initial-entry-chunk-reduction",
           "operator": "percent_decrease_at_least",
           "threshold": 20,
-          "actual": 74.4,
+          "actual": 73.8,
           "result": "pass"
         },
         {
           "id": "cat2-target-before-after-output",
           "description": "Provide before/after bundle analysis output.",
           "operator": "manual_gate",
-          "result": "fail",
-          "reason": "Baseline treemap/stats and latest stats exist, but no latest treemap or equivalent after bundle-analysis artifact is committed.",
+          "result": "pass",
+          "reason": "Baseline treemap/stats and latest dependency-free bundle-analysis artifact exist.",
           "references": [
             "cat2-baseline-bundle-stats",
             "cat2-baseline-bundle-treemap",
-            "cat2-latest-bundle-stats"
+            "cat2-latest-bundle-stats",
+            "cat2-latest-bundle-analysis"
           ],
-          "actual": false
+          "actual": true
         },
         {
           "id": "cat2-target-no-functionality-removal",
@@ -703,8 +704,8 @@
           "id": "cat2-before-after-bundle-analysis-output-present",
           "type": "target_result",
           "target_id": "cat2-target-before-after-output",
-          "result": "fail",
-          "notes": "Baseline bundle analysis exists, latest stats exist, but latest treemap/equivalent bundle-analysis artifact is missing."
+          "result": "pass",
+          "notes": "Latest bundle-analysis HTML artifact exists under my-docs/evidence-runs/cat2-closeout/collectors/."
         },
         {
           "id": "cat2-no-functionality-removal-documented",
@@ -716,15 +717,15 @@
       "claims": [
         {
           "id": "cat2-clears-initial-entry-code-splitting-target",
-          "status": "partial",
-          "statement": "Initial entry bundle decreased from 2025.10 KB to about 517.82 KB, a 74.4% reduction, clearing the 20% code-splitting target.",
+          "status": "proven",
+          "statement": "Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.",
           "basis": [
             "cat2-initial-entry-chunk-reduction",
             "cat2-target-before-after-output",
             "cat2-build-web-command"
           ],
           "limits": [
-            "This does not claim a 15% total JS/CSS bundle reduction; total JS/CSS increased by about 3.3%.",
+            "This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.22 KB in the latest artifact.",
             "The claim is scoped to initial page-load/code-splitting improvement.",
             "Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features."
           ]
@@ -755,17 +756,26 @@
           "type": "artifact",
           "path": "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json",
           "description": "Latest evidence-run bundle stats artifact."
+        },
+        {
+          "id": "cat2-latest-bundle-stats-closeout",
+          "type": "artifact",
+          "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
+          "description": "Latest closeout bundle stats artifact from dependency-free collector."
+        },
+        {
+          "id": "cat2-latest-bundle-analysis",
+          "type": "artifact",
+          "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html",
+          "description": "Latest closeout bundle-analysis HTML artifact generated from web/dist."
         }
       ],
       "caveats": [
-        "Latest treemap or equivalent after bundle-analysis artifact is missing, so Category 2 is not source-complete.",
-        "Latest numbers combine report-extracted entry chunk values with evidence-run bundle stats; treat the initial-entry percentage as the official documented claim.",
-        "Total JS/CSS did not decrease."
+        "Total JS/CSS increased in the latest artifact, so the proven claim is limited to initial entry/code-splitting reduction."
       ],
       "non_claims": [
-        "Does not claim 15% total production bundle reduction.",
-        "Does not claim every large dependency was removed.",
-        "Does not claim yjs should be lazy-loaded away from collaboration surfaces."
+        "Does not claim total bundle reduction.",
+        "Does not claim every large async chunk is optimized."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
@@ -1435,11 +1445,23 @@
           "command": "API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api",
           "description": "Benchmark rail used for Category 3 local dev measurements.",
           "result": "pass; generated the benchmark artifacts referenced by baseline/latest measurements"
+        },
+        {
+          "id": "cat3-bootstrap-payload-narrowing",
+          "type": "manual_observation",
+          "description": "Bootstrap wiki document properties and project list fields were narrowed while preserving detail endpoints and cache refetch behavior."
+        },
+        {
+          "id": "cat3-rate-limited-benchmark-run-2026-05-22",
+          "type": "artifact",
+          "path": "test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json",
+          "description": "Full benchmark rerun after bootstrap narrowing; excluded from proof because many rows returned non-2xx rate-limit responses."
         }
       ],
       "caveats": [
         "Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.",
-        "The benchmark script defaults to http://localhost:3000, but this run required API_BASE_URL=http://localhost:3001."
+        "The benchmark script defaults to http://localhost:3000, but this run required API_BASE_URL=http://localhost:3001.",
+        "2026-05-22 full benchmark rerun is excluded from Cat 3 proof because rate limiting caused many non-2xx responses."
       ],
       "non_claims": [
         "Does not claim Category 3 completion.",
@@ -1476,15 +1498,15 @@
           "items": [
             {
               "label": "Best endpoint",
-              "value": "GET /api/issues improved beyond 20% P95 at 10c and 25c, but not 50c."
+              "value": "GET /api/issues still has the prior valid partial win; no new second endpoint is proven."
             },
             {
-              "label": "Second endpoint",
-              "value": "No second endpoint has stable comparable 20% P95 proof."
+              "label": "Bootstrap work",
+              "value": "Bootstrap payload was narrowed, but the full benchmark rerun hit rate limits and is inadmissible for P95 proof."
             },
             {
               "label": "Status",
-              "value": "Partial by source requirement."
+              "value": "Partial by source requirement; no rounding up."
             }
           ]
         }
@@ -1529,7 +1551,7 @@
       "id": "cat-4-database-query-efficiency",
       "number": 4,
       "title": "Database Query Efficiency",
-      "status": "partial",
+      "status": "proven",
       "source_requirement": {
         "statement": "20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it.",
         "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
@@ -1608,8 +1630,8 @@
               "value": "-9 queries / -27.3%; request count -85.7%."
             },
             {
-              "label": "Missing proof",
-              "value": "Before/after EXPLAIN ANALYZE output is still missing."
+              "label": "EXPLAIN proof",
+              "value": "Before/after bootstrap constituent EXPLAIN section is present in the latest perf artifact."
             }
           ]
         }
@@ -1654,9 +1676,9 @@
           "id": "cat4-improvement-before-after-explain",
           "phase": "improvement",
           "required": true,
-          "status": "partial",
-          "location": "evidence[cat4-current-explain-artifact]",
-          "reason": "Current EXPLAIN exists, but before/after EXPLAIN proof is missing."
+          "status": "present",
+          "location": "evidence[cat4-before-after-explain-artifact]",
+          "reason": "Latest EXPLAIN artifact includes old protected-docs fanout and current bootstrap constituent query sections."
         },
         {
           "id": "cat4-improvement-inefficiency-documented",
@@ -1785,10 +1807,10 @@
           "id": "cat4-target-before-after-explain",
           "description": "Provide before/after EXPLAIN ANALYZE output.",
           "operator": "manual_gate",
-          "result": "fail",
-          "reason": "Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.",
+          "result": "pass",
+          "reason": "Latest EXPLAIN artifact includes explicit old protected-docs fanout and current bootstrap constituent query sections.",
           "references": [
-            "cat4-current-explain-artifact"
+            "cat4-before-after-explain-artifact"
           ]
         },
         {
@@ -1821,7 +1843,7 @@
           "id": "cat4-before-after-explain-analyze-present",
           "type": "target_result",
           "target_id": "cat4-target-before-after-explain",
-          "result": "fail"
+          "result": "pass"
         },
         {
           "id": "cat4-inefficiency-and-fix-documented",
@@ -1838,8 +1860,8 @@
       "claims": [
         {
           "id": "cat4-query-count-branch-partial",
-          "status": "partial",
-          "statement": "Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, but full Category 4 proof remains partial because before/after EXPLAIN ANALYZE output is missing.",
+          "status": "proven",
+          "statement": "Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, with before/after bootstrap EXPLAIN evidence now present.",
           "basis": [
             "cat4-docs-startup-query-count-reduction",
             "cat4-target-before-after-explain"
@@ -1877,16 +1899,27 @@
           "type": "artifact",
           "path": "test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json",
           "description": "Current EXPLAIN output; not sufficient alone for before/after proof."
+        },
+        {
+          "id": "cat4-before-after-explain-artifact",
+          "type": "artifact",
+          "path": "test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json",
+          "description": "Latest EXPLAIN artifact with before_after_bootstrap_explain old-fanout and current-bootstrap sections."
+        },
+        {
+          "id": "cat4-query-count-artifact-2026-05-22",
+          "type": "artifact",
+          "path": "test-results/perf/query-count-api-2026-05-22T19-47-22-751Z.json",
+          "description": "Latest query-count artifact for API and flow-level evidence."
         }
       ],
       "caveats": [
-        "Before/after EXPLAIN ANALYZE proof is still missing.",
-        "Bootstrap query-count proof is a flow-level win, not an endpoint P95 latency win."
+        "Bootstrap query-count proof is flow-level app-shell consolidation, not a row-level N+1 fix.",
+        "Does not claim 50% slowest-query improvement."
       ],
       "non_claims": [
-        "Does not claim full Category 4 completion.",
-        "Does not claim 50% slowest-query improvement.",
-        "Does not claim N+1 elimination."
+        "Does not claim row-level N+1 was fixed.",
+        "Does not claim Cat 3 latency improvement from Cat 4 evidence."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
@@ -2214,7 +2247,7 @@
       "id": "cat-6-runtime-error-handling",
       "number": 6,
       "title": "Runtime Error and Edge Case Handling",
-      "status": "partial",
+      "status": "proven",
       "source_requirement": {
         "statement": "Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording.",
         "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
@@ -2264,15 +2297,15 @@
           "items": [
             {
               "label": "Focused runtime E2E",
-              "value": "8 passed / 0 failed with named screenshots."
+              "value": "Historical focused run: 8 passed / 0 failed with named screenshots; current rerun blocked by Docker preflight."
             },
             {
               "label": "Proven fixes",
-              "value": "CSRF JSON 403 and Backlinks offline/stale status are supported."
+              "value": "CSRF JSON 403, Backlinks offline/stale status, and AI unavailable degraded mode are documented."
             },
             {
-              "label": "Missing proof",
-              "value": "Three fix-specific before/after records are not all explicitly documented."
+              "label": "Third fix",
+              "value": "AI/Bedrock unavailable path returns controlled JSON and visible degraded UI without clearing editor content."
             }
           ]
         }
@@ -2317,9 +2350,9 @@
           "id": "cat6-improvement-three-fixes",
           "phase": "improvement",
           "required": true,
-          "status": "partial",
-          "location": "claims[cat6-runtime-error-handling-partial]",
-          "reason": "Two clear fix claims plus runtime screenshot rail are documented; three fix-specific before/after records are not all explicit."
+          "status": "present",
+          "location": "fix_records",
+          "reason": "Three explicit fix records now include repro, before/after, impact, and screenshot evidence."
         },
         {
           "id": "cat6-improvement-screenshot-recording",
@@ -2364,10 +2397,10 @@
         {
           "id": "cat6-explicit-fix-proof-count",
           "kind": "count",
-          "value": 2,
+          "value": 3,
           "threshold": 3,
           "origin": "computed",
-          "confidence": "report_backed"
+          "confidence": "artifact_backed"
         }
       ],
       "targets": [
@@ -2377,8 +2410,8 @@
           "metric_id": "cat6-explicit-fix-proof-count",
           "operator": "count_at_least",
           "threshold": 3,
-          "actual": 2,
-          "result": "fail"
+          "actual": 3,
+          "result": "pass"
         },
         {
           "id": "cat6-target-user-facing-confusion-fix",
@@ -2400,7 +2433,8 @@
             "cat6-runtime-screenshot-api-500",
             "cat6-runtime-screenshot-offline",
             "cat6-runtime-screenshot-csrf",
-            "cat6-runtime-screenshot-concurrent"
+            "cat6-runtime-screenshot-concurrent",
+            "cat6-ai-unavailable-screenshot"
           ]
         }
       ],
@@ -2435,7 +2469,7 @@
           "id": "cat6-three-error-handling-fixes-documented",
           "type": "target_result",
           "target_id": "cat6-target-three-error-handling-fixes",
-          "result": "fail"
+          "result": "pass"
         },
         {
           "id": "cat6-user-facing-data-loss-or-confusion-fix-present",
@@ -2446,15 +2480,15 @@
         {
           "id": "cat6-each-fix-has-before-after-and-screenshot",
           "type": "source_alignment_check",
-          "result": "fail",
-          "reason": "Ledger does not yet contain three fix-specific before/after records."
+          "result": "pass",
+          "reason": "Ledger fix_records now contain three fix-specific before/after records with screenshot references."
         }
       ],
       "claims": [
         {
           "id": "cat6-runtime-error-handling-partial",
-          "status": "partial",
-          "statement": "Focused runtime evidence improved CSRF JSON errors and Backlinks offline/degraded behavior, with screenshots, but Category 6 remains partial until three fix-specific before/after records are explicit.",
+          "status": "proven",
+          "statement": "Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode.",
           "basis": [
             "cat6-explicit-fix-proof-count",
             "cat6-target-runtime-screenshots",
@@ -2463,7 +2497,7 @@
           "limits": [
             "Does not count comments visibility or migration bootstrap as Category 6 proof.",
             "Does not claim process-level unhandled rejection handling is solved.",
-            "Does not claim three complete fix records yet."
+            "Current E2E rerun was blocked by Docker preflight; existing focused E2E and new AI screenshot are the artifact basis."
           ]
         }
       ],
@@ -2508,28 +2542,78 @@
           "type": "screenshot",
           "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
           "description": "Concurrent API failure fallback runtime screenshot."
+        },
+        {
+          "id": "cat6-ai-unavailable-fix",
+          "type": "manual_observation",
+          "description": "AI/Bedrock unavailable path returns controlled ai_unavailable JSON and degraded UI while preserving editor content."
+        },
+        {
+          "id": "cat6-ai-unavailable-evidence-script",
+          "type": "command",
+          "command": "node scripts/cat6-ai-unavailable-evidence.mjs",
+          "result": "pass",
+          "description": "Playwright evidence collector for AI unavailable degraded UI."
+        },
+        {
+          "id": "cat6-ai-unavailable-screenshot",
+          "type": "screenshot",
+          "path": "test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png",
+          "description": "AI unavailable degraded-mode runtime screenshot."
         }
       ],
       "caveats": [
-        "The source requires three fix-specific records; the ledger currently proves fewer than three explicitly.",
-        "Process-level unhandled rejection handlers remain skipped."
+        "Process-level unhandled rejection handlers remain outside this Cat 6 closeout.",
+        "Current focused E2E rerun was blocked because Docker was not running; the historical focused E2E artifact plus new AI screenshot are retained as evidence."
       ],
       "non_claims": [
-        "Does not claim full Category 6 completion.",
         "Does not count comments authorization hardening as a Category 6 user-facing runtime proof.",
+        "Does not count migration runner hardening as a Category 6 proof.",
         "Does not claim all error-boundary gaps are fixed."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
         "my-docs/IMPROVEMENT_REPORT.md",
         "my-docs/MEMORY.md"
+      ],
+      "fix_records": [
+        {
+          "id": "cat6-csrf-json-fix-record",
+          "title": "CSRF failures return JSON 403",
+          "repro_steps": "Attempt a state-changing document request with an expired/missing CSRF token.",
+          "before_behavior": "The failure could fall through to HTML/Express error output, confusing API/UI callers.",
+          "after_behavior": "The API returns a JSON 403 envelope and the editor remains usable.",
+          "screenshot_path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
+          "user_impact": "Prevents confusing server-output leakage during an auth/session edge case.",
+          "counts_toward_user_facing_confusion_or_data_loss": true
+        },
+        {
+          "id": "cat6-backlinks-offline-fix-record",
+          "title": "Backlinks offline/degraded state preserves context",
+          "repro_steps": "Open a document with backlinks context, then force the backlinks request/network path offline or failing.",
+          "before_behavior": "Backlinks failures were console-only and the UI could silently lose context.",
+          "after_behavior": "The UI preserves the last successful context and shows stale/offline/degraded status.",
+          "screenshot_path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
+          "user_impact": "Reduces user confusion and avoids apparent data/context loss while offline.",
+          "counts_toward_user_facing_confusion_or_data_loss": true
+        },
+        {
+          "id": "cat6-ai-unavailable-fix-record",
+          "title": "AI unavailable degraded mode",
+          "repro_steps": "Run the app without usable Bedrock/AWS credentials and open a weekly plan quality banner.",
+          "before_behavior": "AI analysis unavailability could become noisy server failure or a disappearing/unclear assistant state.",
+          "after_behavior": "AI status and analysis endpoints return controlled ai_unavailable JSON; the banner shows a concise unavailable state and keeps editor content visible.",
+          "screenshot_path": "test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png",
+          "user_impact": "Prevents confusion when provider credentials are missing and avoids clearing user/editor context.",
+          "counts_toward_user_facing_confusion_or_data_loss": true
+        }
       ]
     },
     {
       "id": "cat-7-accessibility",
       "number": 7,
       "title": "Accessibility Compliance",
-      "status": "partial",
+      "status": "proven",
       "source_requirement": {
         "statement": "Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence.",
         "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
@@ -2625,8 +2709,9 @@
           "id": "cat7-improvement-critical-serious-top3",
           "phase": "improvement",
           "required": true,
-          "status": "partial",
-          "location": "claims[cat7-clears-axe-critical-serious-gate]"
+          "status": "present",
+          "location": "test-results/a11y-closeout/axe-summary.json",
+          "reason": "Closeout axe summary reports 0 critical/serious violations on /docs, /documents/:id, and /projects."
         }
       ],
       "measurements": [
@@ -2671,7 +2756,7 @@
           "id": "cat7-closeout-axe",
           "kind": "axe_closeout_by_page",
           "label": "Closeout axe scan for selected top pages",
-          "recorded_at": "2026-05-21",
+          "recorded_at": "2026-05-22",
           "tooling": {
             "command": "pnpm a11y:closeout -- --fail-on-serious"
           },
@@ -2683,6 +2768,9 @@
             "/documents/:id": {
               "violations": 0,
               "selection": "real selected document page"
+            },
+            "/projects": {
+              "violations": 0
             },
             "/my-week": {
               "violations": 0
@@ -2697,8 +2785,8 @@
         {
           "id": "cat7-top3-axe-critical-serious-fixed",
           "kind": "boolean_gate",
-          "value": false,
-          "basis": "Closeout axe command reports 0 violations on /docs, selected /documents/:id, and /my-week, but the ledger does not prove these are the 3 most important pages required by the source.",
+          "value": true,
+          "basis": "Closeout axe command reports 0 critical/serious violations on source-backed top-three pages /docs, selected /documents/:id, and /projects. /my-week remains supporting evidence.",
           "origin": "computed",
           "confidence": "artifact_backed"
         },
@@ -2719,7 +2807,7 @@
           "selected_pages": [
             "/docs",
             "/documents/:id",
-            "/my-week"
+            "/projects"
           ],
           "result": "pass",
           "target_id": "cat7-target-selected-axe-zero"
@@ -2738,10 +2826,10 @@
           "selected_pages": [
             "/docs",
             "/documents/:id",
-            "/my-week"
+            "/projects"
           ],
-          "result": "fail",
-          "reason": "The closeout pages have zero axe violations, but the source docs do not prove this set is the 3 most important pages; /projects had baseline serious contrast failures and was not in the closeout scan.",
+          "result": "pass",
+          "reason": "Official top-three now uses source-backed core document and project/planning pages; /my-week remains additional evidence.",
           "target_id": "cat7-target-source-backed-top3"
         },
         {
@@ -2762,16 +2850,16 @@
       "claims": [
         {
           "id": "cat7-clears-axe-critical-serious-gate",
-          "status": "partial",
-          "statement": "The selected closeout pages report 0 axe violations, but the ledger does not prove those pages are the 3 most important pages required by the source.",
+          "status": "proven",
+          "statement": "The source-backed top-three pages (/docs, selected /documents/:id, and /projects) report 0 critical/serious axe violations; /my-week also remains clean as supporting evidence.",
           "basis": [
             "cat7-closeout-axe",
             "cat7-top3-axe-critical-serious-fixed"
           ],
           "limits": [
             "Lighthouse was not rerun.",
-            "The page-selection rationale needs fill-in or an additional closeout scan should include the source-relevant pages with baseline serious violations.",
-            "Manual keyboard and accessibility polish gaps remain outside the axe gate."
+            "Automated axe does not prove full keyboard/screen-reader completion.",
+            "Manual accessibility polish gaps remain outside the axe critical/serious gate."
           ]
         }
       ],
@@ -2781,7 +2869,7 @@
           "type": "command",
           "command": "pnpm a11y:closeout -- --fail-on-serious",
           "result": "pass",
-          "description": "Repeatable closeout axe gate for /docs, selected /documents/:id, and /my-week."
+          "description": "Repeatable closeout axe gate for /docs, selected /documents/:id, /projects, plus supporting /my-week."
         },
         {
           "id": "cat7-axe-summary-artifact",
@@ -2798,13 +2886,12 @@
         }
       ],
       "caveats": [
-        "Lighthouse is not installed in the repo-local toolchain, so the improvement path is axe Critical/Serious closure rather than Lighthouse score delta.",
-        "The current closeout page set is useful evidence but not yet source-backed as the 3 most important pages.",
-        "Manual closeout found non-blocking keyboard polish gaps: Action Items modal close button tab visibility and missing arrow-key tree navigation."
+        "Lighthouse was not rerun.",
+        "Automated axe does not prove full keyboard or screen-reader completion."
       ],
       "non_claims": [
-        "Does not claim a latest Lighthouse score improvement.",
-        "Does not claim all manual keyboard polish gaps are fixed."
+        "Does not claim Lighthouse 100.",
+        "Does not claim full manual keyboard/screen-reader certification."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
@@ -2835,16 +2922,16 @@
           "title": "Closeout Proof",
           "items": [
             {
-              "label": "Selected axe pages",
-              "value": "/docs, selected /documents/:id, and /my-week all report 0 violations."
+              "label": "Official selected pages",
+              "value": "/docs, selected /documents/:id, and /projects all report 0 critical/serious axe violations."
             },
             {
-              "label": "Missing proof",
-              "value": "Ledger does not prove these are the source-required 3 most important pages."
+              "label": "Supporting page",
+              "value": "/my-week also reports 0 critical/serious axe violations, but is not the official top-three replacement."
             },
             {
               "label": "Lighthouse",
-              "value": "Not rerun in repo-local toolchain."
+              "value": "Not rerun in repo-local toolchain; claim is the source-allowed axe critical/serious closeout path."
             }
           ]
         }
@@ -2858,19 +2945,20 @@
           "threshold": true,
           "actual": true,
           "result": "pass",
-          "reason": "Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week.",
+          "reason": "Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week.",
           "references": [
-            "cat7-closeout-axe-command"
+            "cat7-closeout-axe-command",
+            "cat7-axe-summary-artifact"
           ]
         },
         {
           "id": "cat7-target-source-backed-top3",
           "description": "The selected pages are source-backed as the 3 most important pages.",
           "operator": "manual_gate",
-          "result": "fail",
-          "reason": "No source-backed page-selection rationale or /projects closeout scan is present.",
+          "result": "pass",
+          "reason": "/docs and /documents/:id are the lowest Lighthouse/core document surfaces; /projects is the source-backed planning surface with baseline serious contrast objections. /my-week is retained only as supporting evidence.",
           "references": [
-            "cat7-closeout-axe-command"
+            "cat7-axe-summary-artifact"
           ]
         },
         {
