@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ship-shape.local/my-docs/evidence/schema.json",
+  "title": "ShipShape Submission Evidence Ledger",
+  "description": "Documentation shape reference. scripts/submission/validate-ledger.mjs is the executable enforcement source for canonical categories, semantic references, artifacts, and acceptance-gate consistency.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "purpose",
+    "status_values",
+    "evidence_types",
+    "measurement_origins",
+    "confidence_values",
+    "categories"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "purpose": { "type": "string", "minLength": 1 },
+    "status_values": {
+      "type": "array",
+      "items": { "enum": ["proven", "partial", "open", "needs_fill_in", "not_measured"] },
+      "uniqueItems": true
+    },
+    "evidence_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "source_doc",
+          "methodology",
+          "command",
+          "artifact",
+          "screenshot",
+          "test_run",
+          "manual_observation"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "measurement_origins": {
+      "type": "array",
+      "items": { "enum": ["manual_entry", "report_extracted", "artifact_parsed", "computed"] },
+      "uniqueItems": true
+    },
+    "confidence_values": {
+      "type": "array",
+      "items": { "enum": ["artifact_backed", "report_backed", "manual", "inferred"] },
+      "uniqueItems": true
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/category" }
+    }
+  },
+  "$defs": {
+    "category": {
+      "type": "object",
+      "required": [
+        "id",
+        "number",
+        "title",
+        "status",
+        "source_requirement",
+        "audit_deliverable",
+        "rubric_items",
+        "measurements",
+        "derived_metrics",
+        "targets",
+        "acceptance_tests",
+        "claims",
+        "evidence",
+        "summary_cards",
+        "caveats",
+        "non_claims",
+        "sources"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^cat-[0-9]+-[a-z0-9-]+$" },
+        "number": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "title": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["proven", "partial", "open", "needs_fill_in", "not_measured"] },
+        "source_requirement": {
+          "type": "object",
+          "required": ["statement", "source"],
+          "properties": {
+            "statement": { "type": "string", "minLength": 1 },
+              "source": { "type": "string", "minLength": 1 }
+          }
+        },
+        "audit_deliverable": { "type": "object" },
+        "summary_cards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "items"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["label", "value"],
+                  "properties": {
+                    "label": { "type": "string", "minLength": 1 },
+                    "value": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "rubric_items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "phase", "required", "status", "location"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "phase": { "enum": ["audit", "improvement"] },
+              "required": { "type": "boolean" },
+              "status": { "enum": ["present", "partial", "missing", "not_applicable"] },
+              "location": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string" },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "measurements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "label", "recorded_at", "origin", "confidence", "source"],
+            "anyOf": [{ "required": ["values"] }, { "required": ["endpoints"] }],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "kind": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "recorded_at": { "type": "string", "minLength": 1 },
+              "values": { "type": "object" },
+              "endpoints": { "type": "array", "items": { "type": "object" } },
+              "artifact": { "type": "string" },
+              "origin": { "enum": ["manual_entry", "report_extracted", "artifact_parsed", "computed"] },
+              "confidence": { "enum": ["artifact_backed", "report_backed", "manual", "inferred"] },
+              "source": { "type": "string", "minLength": 1 },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "derived_metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "origin", "confidence"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "kind": { "type": "string", "minLength": 1 },
+              "origin": { "enum": ["manual_entry", "report_extracted", "artifact_parsed", "computed"] },
+              "confidence": { "enum": ["artifact_backed", "report_backed", "manual", "inferred"] },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "description", "operator", "result"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "description": { "type": "string", "minLength": 1 },
+              "metric_id": { "type": "string" },
+              "operator": { "type": "string", "minLength": 1 },
+              "threshold": {},
+              "actual": {},
+              "result": { "enum": ["pass", "fail", "warn", "not_applicable"] },
+              "reason": { "type": "string" },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "acceptance_tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "result"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "minLength": 1 },
+              "target_id": { "type": "string" },
+              "result": { "enum": ["pass", "fail", "warn", "not_applicable"] },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "status", "statement", "basis", "limits"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "status": { "enum": ["proven", "partial", "open", "needs_fill_in", "not_measured"] },
+              "statement": { "type": "string", "minLength": 1 },
+              "basis": { "type": "array", "items": { "type": "string" } },
+              "limits": { "type": "array", "items": { "type": "string" } },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "description"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "type": {
+                "enum": [
+                  "source_doc",
+                  "methodology",
+                  "command",
+                  "artifact",
+                  "screenshot",
+                  "test_run",
+                  "manual_observation"
+                ]
+              },
+              "path": { "type": "string" },
+              "command": { "type": "string" },
+              "result": { "type": "string" },
+              "description": { "type": "string", "minLength": 1 },
+              "references": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "caveats": { "type": "array", "items": { "type": "string" } },
+        "non_claims": { "type": "array", "items": { "type": "string" } },
+        "sources": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

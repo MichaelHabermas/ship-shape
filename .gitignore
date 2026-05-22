@@ -49,6 +49,8 @@ Thumbs.db
 evidence/
 !scripts/evidence/
 !scripts/evidence/**
+!my-docs/evidence/
+!my-docs/evidence/**
 *.png
 
 # Playwright test artifacts
@@ -117,3 +119,5 @@ vendor/
 
 # Vite PWA dev artifacts
 web/dev-dist/
+
+.superpowers/
