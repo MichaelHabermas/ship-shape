@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/isolated-env'
+import type { Page } from '@playwright/test'
 
 /**
  * Tests that /my-week reflects plan/retro edits after navigating back.
@@ -7,14 +8,28 @@ import { test, expect } from './fixtures/isolated-env'
  * Yjs WebSocket (no client-side mutation), so navigating back showed stale data.
  * Fix: staleTime set to 0 so every mount refetches fresh data from the API.
  *
- * KNOWN FLAKY: The retro test fails on first attempt but passes on retry.
- * The retro document IS created (shows as a link), but its Yjs content isn't
- * persisted to the `content` column by the time the /my-week API reads it —
- * even with a 10s wait. The plan test (same pattern, runs first) always passes.
- * Root cause is likely in how the Yjs collaboration server handles JSON-to-Yjs
- * conversion for newly created documents (no yjs_state yet, only template JSON
- * in the content column). Needs investigation on a separate branch.
  */
+
+async function waitForMyWeekApiText(page: Page, text: string) {
+  await expect.poll(async () => {
+    const response = await page.request.get('/api/dashboard/my-week')
+    if (!response.ok()) return false
+
+    const body = await response.json()
+    return JSON.stringify(body).includes(text)
+  }, {
+    timeout: 15000,
+    intervals: [500, 1000, 1500],
+  }).toBe(true)
+}
+
+async function navigateToDashboardAndWaitForMyWeek(page: Page) {
+  const myWeekResponse = page.waitForResponse(response =>
+    response.url().includes('/api/dashboard/my-week') && response.status() === 200
+  )
+  await page.getByRole('button', { name: 'Dashboard' }).click()
+  await myWeekResponse
+}
 
 test.describe('My Week - stale data after editing plan/retro', () => {
   test.beforeEach(async ({ page }) => {
@@ -45,13 +60,12 @@ test.describe('My Week - stale data after editing plan/retro', () => {
     await editor.click()
     await page.keyboard.type('1. Ship the new dashboard feature')
 
-    // 6. Wait for the collaboration server to persist the content
-    // "Saved" means WebSocket synced; add extra time for DB write completion
+    // 6. Wait for the collaboration server to persist content visible to /my-week
     await expect(page.getByText('Saved')).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(3000)
+    await waitForMyWeekApiText(page, 'Ship the new dashboard feature')
 
     // 7. Navigate back to /my-week using client-side navigation (Dashboard icon in rail)
-    await page.getByRole('button', { name: 'Dashboard' }).click()
+    await navigateToDashboardAndWaitForMyWeek(page)
     await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
 
     // 8. Verify the plan content is visible on the my-week page
@@ -81,10 +95,10 @@ test.describe('My Week - stale data after editing plan/retro', () => {
 
     // 6. Wait for the collaboration server to persist the content
     await expect(page.getByText('Saved')).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(3000)
+    await waitForMyWeekApiText(page, 'Completed the API refactoring')
 
     // 7. Navigate back to /my-week using client-side navigation
-    await page.getByRole('button', { name: 'Dashboard' }).click()
+    await navigateToDashboardAndWaitForMyWeek(page)
     await expect(page.getByRole('heading', { name: /^Week \d+$/ })).toBeVisible({ timeout: 10000 })
 
     // 8. Verify the retro content is visible on the my-week page
