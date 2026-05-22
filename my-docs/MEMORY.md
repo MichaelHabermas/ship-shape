@@ -10,6 +10,7 @@ Things that should stay true across features, refactors, and fixes.
 
 - Durable choices from audit/improvement work belong in `my-docs/DECISION_LOG.md`; keep `MEMORY.md` to short rules and traps, and use the decision log when a choice needs rationale, alternatives, consequences, and evidence.
 - Type-safety work should prioritize runtime boundary typing: API route request/query parsing, PostgreSQL row-to-domain mappers, and document `properties` narrowing.
+- Meaningful `as` cast cleanup should preserve a named boundary: API query coercion via schemas, persisted JSONB through guards, frontend response shaping through mappers, and status-bearing errors through `ApiStatusError`; do not scatter one-off assertions back into routes/pages.
 - Week document properties are canonically only `sprint_number` and `owner_id`; route code may still read/write legacy plan/review fields, but type aliases should not present those fields as the source-of-truth week model.
 
 ## Counterfeit Progress
@@ -33,7 +34,7 @@ Repo-specific facts that prevent wrong assumptions.
 - Local PostgreSQL does not have `pg_stat_statements` enabled, so query-efficiency baselines use the temporary in-process query-count harness plus targeted `EXPLAIN (ANALYZE, BUFFERS)` through the locally installed `psql` binary.
 - Document search has two deliberate contracts: `/api/search/documents` remains title-only metadata search for command-palette lookup, while `/api/search/content` is server-backed full-content search for `/docs`. Do not broaden the command-palette endpoint into content search by implication.
 - The document content search index is derived/rebuildable state in `document_search_index`; `documents.content`, selected `documents.properties`, and collaboration Yjs state remain source of truth. Keep visibility filtering in SQL before `LIMIT`, keep archived/deleted documents excluded, and use `pnpm --filter @ship/api search:reindex` for backfill/repair instead of rebuilding inside search requests.
-- Use `getAuthenticatedRouteContext(req)` in newly touched authenticated API routes instead of adding more `req.userId!` / `req.workspaceId!` assertions.
+- Use `getAuthenticatedRouteContext(req)` in newly touched workspace-authenticated API routes instead of adding more `req.userId!` / `req.workspaceId!` assertions. Use `getAuthenticatedUserContext(req)` for authenticated user-only routes such as super-admin/audit paths that do not require a workspace.
 - OpenAPI registration paths are mounted under `/api` by the app; schema files should register paths without an extra `/api` prefix.
 - OpenAPI is now the chosen generated frontend API type source: run `pnpm openapi:generate` to refresh `web/src/api/generated/ship-openapi.d.ts`, use `web/src/api/client.ts` for covered authenticated endpoints, and keep legacy `apiGet`/`apiPost` only for uncovered/raw paths.
 - `pnpm openapi:check:strict` is enforced in Husky pre-commit; `pnpm openapi:check` remains the report-only alias. After grid v1/v2 removal + scanner fix (2026-05-21), coverage is **193** runtime routes / **193** OpenAPI operations (0 missing, 0 stale). See `docs/openapi-contract.md`.

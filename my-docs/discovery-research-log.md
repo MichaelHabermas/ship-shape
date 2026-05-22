@@ -1050,3 +1050,16 @@ Docs/evidence corrections from the same verification:
 
 - Category 4 wording now says query-count improvement is proven for the app-shell flow, but full source compliance still needs before/after `EXPLAIN ANALYZE` proof.
 - Cat 3 ledger payload bytes now match the newer narrative evidence, and My Week follow-up wording explicitly excludes that benchmark from endpoint-clearance proof.
+
+---
+
+## Meaningful `as` cast reduction pass (2026-05-22)
+
+The useful cast-reduction pattern was not "delete every `as`." `as const`, DOM/library casts, and test-only mocks are noisy. The production-risk wins came from turning repeated assertions into named ingress boundaries:
+
+- API query parsing now uses schema/coercion helpers in search routes instead of direct `req.query.* as string` / `parseInt(req.query.* as string)` reads.
+- Approval JSONB now flows through `asApprovalRecord` as a real guard/parser instead of trusting persisted objects as `ApprovalRecord`.
+- Frontend API errors now use `ApiStatusError` rather than repeated `new Error(...) as Error & { status }`.
+- Document pages/tabs now map API responses into editor views through a web-local mapper; `belongs_to` remains the relationship source of truth and wins over legacy flattened relationship fields.
+
+Evidence: `pnpm type-safety:counts` moved `as` from 575 total / 461 production to 460 total / 346 production, while `any` and non-null counts held at 91/1 and 71/35. `pnpm type-check` passed, focused web mapper/tab tests passed 25/25, focused API route tests passed 108/108 on `ship_test_audit`, full web passed 168/168, and full API passed 509/509.
