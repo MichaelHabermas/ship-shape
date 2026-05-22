@@ -10,10 +10,8 @@ import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { useTeamMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { cn, getContrastTextColor } from '@/lib/cn';
 import { buildDocumentTree } from '@/lib/documentTree';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { SidebarDocumentTreeItem } from '@/components/app/SidebarDocumentTreeItem';
 import { ContextTreeNav } from '@/components/ContextTreeNav';
-import { ProjectContextSidebar } from '@/components/sidebars/ProjectContextSidebar';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubmenu } from '@/components/ui/ContextMenu';
 import { useToast } from '@/components/ui/Toast';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -59,7 +57,6 @@ export function AppSidebar({
             {/* Sidebar header */}
             <div className="flex h-10 items-center justify-between border-b border-border px-3">
               <h2 className="text-sm font-medium text-foreground m-0">
-                {activeMode === 'dashboard' && 'Dashboard'}
                 {activeMode === 'docs' && 'Docs'}
                 {activeMode === 'issues' && 'Issues'}
                 {activeMode === 'projects' && 'Projects'}
@@ -67,7 +64,6 @@ export function AppSidebar({
                 {activeMode === 'sprints' && 'Weeks'}
                 {activeMode === 'team' && 'Teams'}
                 {activeMode === 'settings' && 'Settings'}
-                {activeMode === 'project-context' && 'Project'}
               </h2>
               <div className="flex items-center gap-1">
                 {activeMode === 'docs' && (
@@ -151,15 +147,6 @@ export function AppSidebar({
               )}
               {activeMode === 'settings' && (
                 <div className="px-3 py-2 text-sm text-muted">Settings</div>
-              )}
-              {activeMode === 'dashboard' && (
-                <DashboardSidebar />
-              )}
-              {activeMode === 'project-context' && currentDocumentProjectId && (
-                <ProjectContextSidebar
-                  projectId={currentDocumentProjectId}
-                  activeDocumentId={activeDocumentId}
-                />
               )}
             </div>
 

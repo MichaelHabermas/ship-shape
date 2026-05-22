@@ -43,7 +43,6 @@ export default [
       '**/playwright-report/**',
       '**/test-results/**',
       '**/my-docs/audit-evidence/**',
-      '**/docs/pr-evidence/**',
       '**/*.d.ts',
     ],
   },
