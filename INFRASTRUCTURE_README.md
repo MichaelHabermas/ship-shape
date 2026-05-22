@@ -1,6 +1,8 @@
-# Ship - AWS Infrastructure
+# Ship - Optional AWS Infrastructure
 
-**Complete government-compliant infrastructure for production deployment**
+**Optional government-style infrastructure path for production deployment**
+
+The current public/demo deployment path is Render via `render.yaml`. Keep this AWS path for future government-style infrastructure work.
 
 ## Quick Start
 
@@ -160,7 +162,7 @@ Note: Dev environment can disable NAT Gateway if using VPC endpoints for ECR/S3/
 2. **EB Environment** (10-15 min): `eb init` then `eb create`
    - Creates ALB, EC2 instances, deploys Docker container
 3. **Database** (2-3 min): `./scripts/init-database.sh`
-   - Applies schema, optionally seeds data
+   - Runs migrations, optionally seeds data
 
 **Total setup time:** 30-45 minutes
 
@@ -297,8 +299,9 @@ aws ssm put-parameter \
 2. Redeploy: `./scripts/deploy-api.sh`
 
 ### Update Database Schema
-1. Update `api/src/db/schema.sql`
-2. Apply: `./scripts/init-database.sh` or run SQL manually
+1. Add a numbered migration under `api/src/db/migrations/`
+2. Keep `api/src/db/schema.sql` aligned only when fresh bootstrap needs it
+3. Apply with `./scripts/init-database.sh` or `pnpm --filter @ship/api db:migrate`
 
 ### Update Terraform Providers
 ```bash

@@ -1,10 +1,10 @@
-# Ship - Infrastructure Summary
+# Ship - Optional AWS Infrastructure Summary
 
-**Complete government-compliant AWS infrastructure for production deployment**
+**Optional government-style AWS infrastructure path for production deployment**
 
 ## What Was Created
 
-This infrastructure setup provides everything needed to deploy Ship (Express API + React frontend) to AWS following government compliance patterns.
+This infrastructure setup provides a future AWS path for Ship (Express API + React frontend) following government compliance patterns. The current public/demo deployment path is Render via `render.yaml`.
 
 ### Files Created
 
@@ -171,7 +171,7 @@ Creates ALB, EC2 instances, deploys Docker container.
 ```bash
 ./scripts/init-database.sh
 ```
-Applies schema, optionally seeds test data.
+Runs the migration runner, optionally seeds test data.
 
 ### 4. API (Frequent: 3-5 min)
 ```bash
@@ -271,8 +271,9 @@ Note: Costs vary by region and actual usage.
 2. Deploy: `./scripts/deploy-api.sh`
 
 ### Update Database Schema
-1. Update `api/src/db/schema.sql`
-2. Run: `./scripts/init-database.sh`
+1. Add a numbered migration under `api/src/db/migrations/`
+2. Keep `api/src/db/schema.sql` aligned only when fresh bootstrap needs it
+3. Run: `./scripts/init-database.sh` or `pnpm --filter @ship/api db:migrate`
 
 ### Update Terraform Providers
 1. Run: `cd terraform && terraform init -upgrade`

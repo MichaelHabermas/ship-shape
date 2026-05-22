@@ -25,18 +25,12 @@ echo ""
 # Export for use by psql
 export DATABASE_URL
 
-# Apply schema
-echo "Applying database schema..."
-DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\(.*\):.*/\1/p')
-DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\(.*\)$/\1/p')
-DB_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\(.*\):.*/\1/p')
-DB_PASSWORD=$(echo $DATABASE_URL | sed -n 's/.*:\/\/.*:\(.*\)@.*/\1/p')
-DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\/\/.*@.*:\(.*\)\/.*/\1/p')
-
-PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f api/src/db/schema.sql
+# Run migrations
+echo "Running database migrations..."
+pnpm --filter @ship/api db:migrate
 
 echo ""
-echo "Schema applied successfully!"
+echo "Migrations applied successfully!"
 echo ""
 
 # Optionally seed database

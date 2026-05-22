@@ -172,7 +172,7 @@ Initializes a git worktree for parallel development.
 
 ### `./scripts/init-database.sh`
 Initializes remote database (fetches credentials from SSM).
-- Applies schema to AWS Aurora database
+- Runs the migration runner against AWS Aurora
 - Optionally seeds with test data
 
 ### `./scripts/copy-db-to-shadow.sh`
