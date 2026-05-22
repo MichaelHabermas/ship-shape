@@ -2722,6 +2722,12 @@
           "updated_at"
         ]
       },
+      "StandupsList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Standup"
+        }
+      },
       "StandupStatus": {
         "type": "object",
         "properties": {
@@ -2770,6 +2776,100 @@
             }
           }
         }
+      },
+      "ListStandupsQuery": {
+        "type": "object",
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Start date (YYYY-MM-DD)",
+            "example": "2025-01-30"
+          },
+          "date_to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "End date (YYYY-MM-DD)",
+            "example": "2025-01-30"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to"
+        ]
+      },
+      "UpdatedStandup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sprint_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "author_id": {
+            "type": "string"
+          },
+          "author_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "author_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "sprint_id",
+          "title",
+          "content",
+          "author_id",
+          "author_name",
+          "author_email",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "StandupLegacyError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
       },
       "Person": {
         "type": "object",
@@ -6734,6 +6834,17 @@
           "id",
           "name",
           "prefix"
+        ]
+      },
+      "FeedbackLegacyError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
         ]
       },
       "AuthProviderStatusData": {
@@ -11138,199 +11249,6 @@
         }
       }
     },
-    "/standups/status": {
-      "get": {
-        "tags": [
-          "Standups"
-        ],
-        "summary": "Get standup due status",
-        "description": "Check if current user needs to post a standup today.",
-        "responses": {
-          "200": {
-            "description": "Standup status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StandupStatus"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/standups": {
-      "get": {
-        "tags": [
-          "Standups"
-        ],
-        "summary": "List standups for current user",
-        "description": "Get standups for the current user within a date range.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "description": "Start date (YYYY-MM-DD)",
-              "example": "2025-01-30"
-            },
-            "required": true,
-            "name": "date_from",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "description": "End date (YYYY-MM-DD)",
-              "example": "2025-01-30"
-            },
-            "required": true,
-            "name": "date_to",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of standups in the date range",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Standup"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing required date_from or date_to params"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Standups"
-        ],
-        "summary": "Create standup (idempotent)",
-        "description": "Create a standalone standup for the current user on a given date. Returns existing standup if one already exists for that date.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateStandup"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Existing standup returned (idempotent)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Standup"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "New standup created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Standup"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error"
-          }
-        }
-      }
-    },
-    "/standups/{id}": {
-      "patch": {
-        "tags": [
-          "Standups"
-        ],
-        "summary": "Update standup",
-        "description": "Only the author or an admin can update a standup.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "UUID identifier",
-              "example": "550e8400-e29b-41d4-a716-446655440000"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateStandup"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated standup",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Standup"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - only author or admin can update"
-          },
-          "404": {
-            "description": "Standup not found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Standups"
-        ],
-        "summary": "Delete standup",
-        "description": "Only the author or an admin can delete a standup.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "UUID identifier",
-              "example": "550e8400-e29b-41d4-a716-446655440000"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Standup deleted"
-          },
-          "403": {
-            "description": "Forbidden - only author or admin can delete"
-          },
-          "404": {
-            "description": "Standup not found"
-          }
-        }
-      }
-    },
     "/team/reviews": {
       "get": {
         "tags": [
@@ -11604,52 +11522,6 @@
         "responses": {
           "200": {
             "description": "Accountability data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "nullable": true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/team/accountability-grid": {
-      "get": {
-        "tags": [
-          "Team"
-        ],
-        "summary": "Get accountability grid (v1)",
-        "responses": {
-          "200": {
-            "description": "Accountability grid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "nullable": true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/team/accountability-grid-v2": {
-      "get": {
-        "tags": [
-          "Team"
-        ],
-        "summary": "Get accountability grid (v2)",
-        "responses": {
-          "200": {
-            "description": "Accountability grid v2",
             "content": {
               "application/json": {
                 "schema": {
@@ -13166,19 +13038,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "added": {
-                      "type": "integer"
-                    },
-                    "removed": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "added",
-                    "removed"
-                  ]
+                  "$ref": "#/components/schemas/SuccessResponse"
                 }
               }
             }
@@ -14409,45 +14269,6 @@
           },
           "404": {
             "description": "Program not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/feedback/{id}": {
-      "get": {
-        "tags": [
-          "Feedback"
-        ],
-        "summary": "Get feedback by ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "UUID identifier",
-              "example": "550e8400-e29b-41d4-a716-446655440000"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Feedback details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeedbackItem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Feedback not found"
           },
           "500": {
             "description": "Internal server error"
@@ -15763,6 +15584,308 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/standups": {
+      "post": {
+        "tags": [
+          "Standups"
+        ],
+        "summary": "Create standup (idempotent)",
+        "description": "Create a standalone standup for the current user on a given date. Returns existing standup if one already exists for that date.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStandup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing standup returned (idempotent)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Standup"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "New standup created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Standup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Standups"
+        ],
+        "summary": "List standups for current user",
+        "description": "Get standups for the current user within a date range.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Start date (YYYY-MM-DD)",
+              "example": "2025-01-30"
+            },
+            "required": true,
+            "name": "date_from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "End date (YYYY-MM-DD)",
+              "example": "2025-01-30"
+            },
+            "required": true,
+            "name": "date_to",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of standups in the date range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupsList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required date_from or date_to params",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/standups/status": {
+      "get": {
+        "tags": [
+          "Standups"
+        ],
+        "summary": "Get standup due status",
+        "description": "Check if current user needs to post a standup today.",
+        "responses": {
+          "200": {
+            "description": "Standup status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workspace not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/standups/{id}": {
+      "patch": {
+        "tags": [
+          "Standups"
+        ],
+        "summary": "Update standup",
+        "description": "Only the author or an admin can update a standup.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStandup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated standup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedStandup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or no fields to update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - only author or admin can update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Standup not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Standups"
+        ],
+        "summary": "Delete standup",
+        "description": "Only the author or an admin can delete a standup.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Standup deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - only author or admin can delete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Standup not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback/{id}": {
+      "get": {
+        "tags": [
+          "Feedback"
+        ],
+        "summary": "Get feedback by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feedback details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feedback not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackLegacyError"
                 }
               }
             }

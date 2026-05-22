@@ -2,6 +2,33 @@
 
 ---
 
+## Code Simplification Discovery: God Routes And Dead Grid Endpoints
+
+### Name
+
+Route-layer duplication and unused API versions are the highest line-count simplification leverage
+
+### Severity
+
+High (maintainability); Medium (GFA category attribution unless paired with benchmarks)
+
+### Where Found
+
+- `api/src/routes/weeks.ts` (~3300 lines), `team.ts` (~2200), `projects.ts`, `issues.ts`
+- Duplicate `extractPlanItems` in `weekly-plans.ts`, `dashboard.ts`, `ai-analysis.ts`
+- `GET /api/team/accountability-grid` and `-v2` in `team.ts`; web uses only `-v3` via `StatusOverviewHeatmap.tsx`; `AccountabilityGrid.tsx` (v1) has no importers
+- `defineRoute` only used in `setup.ts` despite OpenAPI split-brain comment in `define-route.ts`
+
+### What It Does And Why It Matters
+
+The codebase already has good shared modules (`document-crud.ts`, `document-access.ts`, `session-cookies.ts`) but large routes still inline SQL, approval transitions, and HTTP error envelopes. Deleting v1/v2 grid endpoints and unifying TipTap plan extraction are behavior-preserving deletes/unifications. Splitting `weeks.ts` before extracting approval/access helpers risks counterfeit progress (large diff, weak measurable category win).
+
+### Future Application
+
+Follow `my-docs/code-simplification-orchestration-plan.md` phase order: delete → unify helpers → domain modules → file splits last. Bind phases to IMPROVEMENT_REPORT category rows when claiming GFA credit.
+
+---
+
 ## Dependency Cleanup Discovery: Safe Patch Overrides Beat Framework-Major Migrations
 
 ### Name

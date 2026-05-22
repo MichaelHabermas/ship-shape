@@ -46,6 +46,16 @@ Repo-specific facts that prevent wrong assumptions.
 - Always surface 10x options explicitly in any planning or tradeoff context, not only API/frontend boundaries. For this codebase, current 10x follow-ups include route/spec coverage enforcement and runtime response validation after generated OpenAPI typing.
 - Hook tests that exercise state-changing requests through `apiPost` must mock the CSRF preflight JSON response before the actual request response.
 - Regular authenticated HTTP requests persist `last_activity` at 60-second granularity to avoid page-load write amplification; `/api/auth/extend-session` still writes immediately.
+- Code simplification orchestration (2026-05-21): master plan in `my-docs/code-simplification-orchestration-plan.md`. Phase 1 targets `route-http.ts`, `config/runtime.ts`, dead accountability-grid v1/v2 removal, and unified `extractPlanItems`. Defer `weeks.ts` and `App.tsx` file splits until approval/access/repository modules land — large splits without category metrics are counterfeit GFA progress.
+- Session cookie SameSite for Render lives in `api/src/config/session-cookies.ts` (`sessionCookieOptions`, `sessionSameSitePolicy`); do not re-inline `ENVIRONMENT === 'render'` in routes.
+- Plan bullet extraction: use `extractPlanItemsFromContent` from `@ship/shared` (rebuild shared after edits). Dashboard uses `{ includeParagraphs: false, withChecked: true }`. Accountability grid: only `/api/team/accountability-grid-v3` remains; v1/v2 removed 2026-05-21.
+- Route HTTP helpers live in `api/src/utils/route-http.ts` (`sendValidationError`, `sendInternalError`); bootstrap may pass structured 500 body as 4th arg.
+- Sprint/week routes live under `api/src/routes/weeks/` (`index.ts` mounts sprints, my-week, standups, reviews, approvals). Shared sprint helpers: `weeks/shared.ts`. Top-level import stays `./routes/weeks.js`.
+- Issue detail reads: `getIssueDetailById` / `getIssueDetailByTicketNumber` in `documents-repository.ts`; use `getActor(req)` for access context on new issue handlers.
+- `defineRoute` pilots: `setup.ts`, `standups.ts`, `feedback.ts` (protected routes). Regenerate OpenAPI after path/schema changes.
+- App shell split: `useAppMode.ts`, `components/app/AppHeader.tsx`, `components/app/AppSidebar.tsx`; `App.tsx` composes only.
+- Deployment helpers: `api/src/config/runtime.ts` (`isProduction`, `isTestEnv`, `isDevEnv`, `isRenderProduction`, `useS3Uploads`, `databaseSslOptions`).
+- Route HTTP helpers are the default for 500/validation envelopes in major API routes: use `sendValidationError`, `sendInternalError(res, err, 'context')`, and `sendLegacyError` for `{ error: string }` 4xx/404 when touching handlers. Transaction rollbacks before `sendInternalError` stay in the route (`ROLLBACK` then `sendInternalError`).
 
 ## Leverage Points
 

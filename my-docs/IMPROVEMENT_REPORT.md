@@ -2,6 +2,32 @@
 
 ---
 
+## Code Simplification Orchestration (2026-05-21)
+
+Multi-agent SOLID/DRY pass per `my-docs/code-simplification-orchestration-plan.md`. **No git commits** unless user requests.
+
+| ID | Target | Phase | Status |
+|----|--------|-------|--------|
+| S0 | `session-cookies.ts` (prior) | — | Done |
+| S1 | `route-http.ts` + pilot routes | 1 | Done — feedback, standups, bootstrap |
+| S2 | Retire accountability-grid v1/v2 | 1 | Done — ~476 lines team.ts, deleted AccountabilityGrid.tsx |
+| S3 | Unify `extractPlanItems` | 1 | Done — `shared/content-extract.ts`; boundary tests pass |
+| S4 | `config/runtime.ts` | 1 | Done — wired cookies, caia, files, db client |
+| S5 | `approval-workflow.ts` | 2 | Done — projects + all sprint approval routes |
+| S6 | `document-access` on issues | 2 | Done — GET detail + children parent check |
+| S7 | `getIssueDetailById` repository | 2 | Done |
+| S8 | Split `weeks.ts` → `weeks/` | 3 | Done |
+| S9 | `defineRoute` standups + feedback | 3 | Done |
+| S10 | Split `App.tsx` | 3 | Done — 220 lines; AppHeader, AppSidebar, useAppMode |
+| S4 finish | runtime in app/migrate/seed | 4 | Done |
+| Sweep | route-http on routes + weeks/ | 4 | Done — programs, issues, team, projects, documents, dashboard, weekly-plans, comments, iterations, backlinks, accountability, weeks/* |
+
+GFA tie-in: structural maintainability supports Cat 5 (tests) and Cat 4 (query clarity via repository); **category metric rows remain TBD** until before/after benchmarks run. Targeted API tests: **98 passed** (issues, weeks, standups, feedback, projects) on `ship_test_audit`. `pnpm type-check` green.
+
+D029–D033 in `DECISION_LOG.md`.
+
+---
+
 ## Architecture Deepening Pass Summary (2026-05-21)
 
 Structural pass implementing all eight architecture-deepening clusters (seven product seams + E2E fixture harness). No git commits in this pass; verification below.

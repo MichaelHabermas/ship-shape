@@ -95,12 +95,8 @@ function runtimeRoutes() {
     }
   }
 
-  for (const file of readdirSync(routesDir).filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts'))) {
-    const routePath = join(routesDir, file);
-    const source = read(routePath);
-    const fileBase = basename(file, '.ts');
+  function collectRoutesFromSource(source, fileBase, importedDefaultName) {
     const routerNames = exportNamesForRouteFile(source, fileBase);
-    const importedDefaultName = importedRouteNames.get(fileBase);
     if (importedDefaultName) routerNames.add(importedDefaultName);
 
     for (const routerName of routerNames) {
@@ -113,6 +109,24 @@ function runtimeRoutes() {
         }
       }
     }
+  }
+
+  for (const file of readdirSync(routesDir).filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts'))) {
+    const routePath = join(routesDir, file);
+    const source = read(routePath);
+    const fileBase = basename(file, '.ts');
+    const importedDefaultName = importedRouteNames.get(fileBase);
+
+    const reexportMatch = source.match(/export\s+\{\s*default\s*\}\s+from\s+['"`]\.\/([^'"`]+)\/index\.js['"`]/);
+    if (reexportMatch) {
+      const subDir = join(routesDir, reexportMatch[1]);
+      for (const subFile of readdirSync(subDir).filter((name) => name.endsWith('.ts') && name !== 'index.ts' && name !== 'types.ts')) {
+        collectRoutesFromSource(read(join(subDir, subFile)), fileBase, importedDefaultName);
+      }
+      continue;
+    }
+
+    collectRoutesFromSource(source, fileBase, importedDefaultName);
   }
 
   for (const route of ignoredRuntimeRoutes) routes.delete(route);
