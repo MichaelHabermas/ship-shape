@@ -182,10 +182,10 @@ export function DocumentTreeItem({
         {/* Main navigation link - uses <a> for accessibility and proper href detection */}
         <Link
           to={`/documents/${document.id}`}
-          className="flex-1 truncate text-left cursor-pointer"
+          className="flex min-h-6 min-w-0 flex-1 items-center truncate text-left cursor-pointer"
           aria-current={isActive ? 'page' : undefined}
         >
-          {document.title || 'Untitled'}
+          <span className="truncate">{document.title || 'Untitled'}</span>
         </Link>
 
         {/* Delete button - visible on hover */}

@@ -500,7 +500,7 @@ function DocumentTreeItem({
         {/* Main navigation link */}
         <Link
           to={`/documents/${document.id}`}
-          className="flex-1 truncate text-left cursor-pointer flex items-center gap-1"
+          className="flex min-h-6 min-w-0 flex-1 items-center gap-1 truncate text-left cursor-pointer"
           aria-current={isActive ? 'page' : undefined}
         >
           <span className="truncate">{document.title || 'Untitled'}</span>

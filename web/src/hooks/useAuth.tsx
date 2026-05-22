@@ -79,9 +79,11 @@ const AuthContext = createContext<AuthContextType | null>(null);
 function seedBootstrapQueries(data: Awaited<ReturnType<typeof api.auth.bootstrap>>['data']): void {
   if (!data) return;
 
-  queryClient.setQueryData<WikiDocument[]>(documentKeys.wikiList(), data.documents as WikiDocument[]);
+  const staleBootstrapSeed = { updatedAt: 0 };
+
+  queryClient.setQueryData<WikiDocument[]>(documentKeys.wikiList(), data.documents as WikiDocument[], staleBootstrapSeed);
   queryClient.setQueryData<Program[]>(programKeys.lists(), data.programs as Program[]);
-  queryClient.setQueryData<Project[]>(projectKeys.lists(), data.projects as Project[]);
+  queryClient.setQueryData<Project[]>(projectKeys.lists(), data.projects as Project[], staleBootstrapSeed);
   queryClient.setQueryData<Issue[]>(issueKeys.list(undefined), data.issues as Issue[]);
   queryClient.setQueryData<StandupStatus>(standupStatusKeys.status(), data.standupStatus as StandupStatus);
   queryClient.setQueryData(actionItemsKeys.list(), data.actionItems);

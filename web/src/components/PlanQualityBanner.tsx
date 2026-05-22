@@ -96,6 +96,14 @@ const WORKLOAD_COLORS = {
   excessive: 'text-red-400 bg-red-500/10 border-red-500/30',
 };
 
+function UnavailableNote({ hasAnalysis }: { hasAnalysis: boolean }) {
+  return (
+    <span className="text-xs text-muted/70">
+      {hasAnalysis ? 'AI unavailable; showing last saved analysis' : 'AI unavailable'}
+    </span>
+  );
+}
+
 export function PlanQualityBanner({
   documentId,
   editorContent,
@@ -135,7 +143,7 @@ export function PlanQualityBanner({
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (cancelled) return;
-        setAiAvailable(data?.available ?? false);
+        setAiAvailable(data?.available === true);
       })
       .catch(() => {
         if (cancelled) return;
@@ -193,6 +201,8 @@ export function PlanQualityBanner({
         if (data && !data.error) {
           setAnalysis(data);
           persistAnalysis(data);
+        } else if (data?.error === 'ai_unavailable') {
+          setAiAvailable(false);
         }
       })
       .catch(() => {})
@@ -224,7 +234,15 @@ export function PlanQualityBanner({
     };
   }, [aiAvailable, documentId, analysis, runAnalysis]);
 
-  if (aiAvailable === false) return null;
+  if (aiAvailable === false && !analysis) {
+    return (
+      <div className="mb-4 pl-8">
+        <div className="w-full rounded-lg border border-border/50 bg-border/10 px-4 py-2.5">
+          <UnavailableNote hasAnalysis={false} />
+        </div>
+      </div>
+    );
+  }
 
   // Skeleton / waiting state — show before first analysis
   if (!analysis && !loading) {
@@ -289,6 +307,7 @@ export function PlanQualityBanner({
               )}>
                 {analysis.workload_assessment.charAt(0).toUpperCase() + analysis.workload_assessment.slice(1)}
               </span>
+              {aiAvailable === false && <UnavailableNote hasAnalysis />}
             </>
           ) : null}
         </div>
@@ -356,7 +375,7 @@ export function RetroQualityBanner({
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (cancelled) return;
-        setAiAvailable(data?.available ?? false);
+        setAiAvailable(data?.available === true);
       })
       .catch(() => {
         if (cancelled) return;
@@ -437,6 +456,8 @@ export function RetroQualityBanner({
         if (data && !data.error) {
           setAnalysis(data);
           persistAnalysis(data);
+        } else if (data?.error === 'ai_unavailable') {
+          setAiAvailable(false);
         }
       })
       .catch(() => {})
@@ -468,7 +489,15 @@ export function RetroQualityBanner({
     };
   }, [aiAvailable, documentId, analysis, planContent, runAnalysis]);
 
-  if (aiAvailable === false) return null;
+  if (aiAvailable === false && !analysis) {
+    return (
+      <div className="mb-4 pl-8">
+        <div className="w-full rounded-lg border border-border/50 bg-border/10 px-4 py-2.5">
+          <UnavailableNote hasAnalysis={false} />
+        </div>
+      </div>
+    );
+  }
 
   if (!analysis && !loading) {
     return (
@@ -526,6 +555,7 @@ export function RetroQualityBanner({
                 />
               </div>
               <span className="text-xs text-muted">Retro Completeness</span>
+              {aiAvailable === false && <UnavailableNote hasAnalysis />}
             </>
           ) : null}
         </div>
