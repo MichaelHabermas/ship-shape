@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys } from '@/hooks/useProjectsQuery';
 import type { DocumentTabProps } from '@/lib/document-tabs';
+import { getProjectView } from '@/lib/document-view-mapper';
 import { computeICEScore } from '@ship/shared';
 
 /**
@@ -198,36 +199,8 @@ export default function ProjectDetailsTab({ documentId, document }: DocumentTabP
     isUndoing,
   }), [programs, teamMembers, handleConvert, handleUndoConversion, isConverting, isUndoing]);
 
-  // Get program_id from belongs_to array (project's parent program via document_associations)
-  const belongsTo = (document as { belongs_to?: Array<{ id: string; type: string }> }).belongs_to;
-  const programId = belongsTo?.find(b => b.type === 'program')?.id;
-
   // Transform to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument = useMemo(() => ({
-    id: document.id,
-    title: document.title,
-    document_type: 'project',
-    created_at: document.created_at,
-    updated_at: document.updated_at,
-    created_by: document.created_by as string | undefined,
-    properties: document.properties,
-    impact: (document.impact as number | null) ?? null,
-    confidence: (document.confidence as number | null) ?? null,
-    ease: (document.ease as number | null) ?? null,
-    color: (document.color as string) || '#3b82f6',
-    emoji: null,
-    program_id: programId,
-    owner: document.owner as { id: string; name: string; email: string } | null,
-    owner_id: document.owner_id as string | undefined,
-    // RACI fields
-    accountable_id: document.accountable_id as string | undefined,
-    consulted_ids: (document.consulted_ids as string[]) || [],
-    informed_ids: (document.informed_ids as string[]) || [],
-    converted_from_id: document.converted_from_id as string | undefined,
-    // Design review
-    has_design_review: document.has_design_review as boolean | null | undefined,
-    design_review_notes: document.design_review_notes as string | null | undefined,
-  }), [document, programId]);
+  const unifiedDocument: UnifiedDocument = useMemo(() => getProjectView(document), [document]);
 
   if (!user) return null;
 

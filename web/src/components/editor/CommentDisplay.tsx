@@ -72,7 +72,8 @@ function InlineCommentThread({
 }) {
   const root = thread[0];
   const replies = thread.slice(1);
-  const isResolved = root.resolved_at !== null;
+  const resolvedAt = root.resolved_at;
+  const isResolved = resolvedAt !== null;
 
   const container = document.createElement('div');
 
@@ -85,7 +86,7 @@ function InlineCommentThread({
     container.innerHTML = `
       <div class="comment-thread-resolved" data-comment-id="${escapeHtml(root.comment_id)}">
         <span class="comment-resolved-icon">✓</span>
-        <span class="comment-resolved-text">Resolved by ${escapeHtml(root.author.name)} · ${formatRelativeTime(root.resolved_at!)}</span>
+        <span class="comment-resolved-text">Resolved by ${escapeHtml(root.author.name)} · ${formatRelativeTime(resolvedAt)}</span>
         <span class="comment-resolved-toggle">Show thread</span>
       </div>
     `;

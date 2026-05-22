@@ -22,6 +22,7 @@ export interface DocumentResponse extends Record<string, unknown> {
   created_at?: string;
   updated_at?: string;
   created_by?: string | null;
+  belongs_to?: unknown[];
   // Common optional fields
   program_id?: string | null;
   owner_id?: string | null;

@@ -5,6 +5,8 @@ import { apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
 import type { DocumentTabProps } from '@/lib/document-tabs';
+import { getDocumentProgramId } from '@/lib/document-view-mapper';
+import { getRecord } from '@/lib/document-view-guards';
 
 /**
  * SprintPlanningTab - Sprint planning view
@@ -24,13 +26,11 @@ export default function SprintPlanningTab({ documentId, document }: DocumentTabP
   const queryClient = useQueryClient();
   const [isStarting, setIsStarting] = useState(false);
 
-  // Get program_id from belongs_to array (sprint's parent program via document_associations)
-  const belongsTo = (document as { belongs_to?: Array<{ id: string; type: string }> }).belongs_to;
-  const programId = belongsTo?.find(b => b.type === 'program')?.id;
+  const programId = getDocumentProgramId(document) ?? undefined;
   // Sprint status is stored in properties.status
-  const properties = document.properties as { status?: string; issue_count?: number } | undefined;
+  const properties = getRecord(document.properties);
   const status = properties?.status || 'planning';
-  const issueCount = properties?.issue_count ?? 0;
+  const issueCount = typeof properties?.issue_count === 'number' ? properties.issue_count : 0;
 
   // Start sprint mutation
   const startSprintMutation = useMutation({

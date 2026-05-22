@@ -8,6 +8,7 @@ import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useActiveWeeksQuery } from '@/hooks/useWeeksQuery';
 import { apiPatch, apiDelete } from '@/lib/api';
 import type { DocumentTabProps } from '@/lib/document-tabs';
+import { getSprintView } from '@/lib/document-view-mapper';
 
 /**
  * SprintOverviewTab - Renders the sprint document in the UnifiedEditor
@@ -108,26 +109,8 @@ export default function SprintOverviewTab({ documentId, document }: DocumentTabP
     existingSprints,
   }), [people, existingSprints]);
 
-  // Get program_id from belongs_to array (sprint's parent program via document_associations)
-  const belongsTo = (document as { belongs_to?: Array<{ id: string; type: string }> }).belongs_to;
-  const programId = belongsTo?.find(b => b.type === 'program')?.id;
-
   // Transform to UnifiedDocument format
-  const unifiedDocument: UnifiedDocument = useMemo(() => ({
-    id: document.id,
-    title: document.title,
-    document_type: 'sprint',
-    created_at: document.created_at,
-    updated_at: document.updated_at,
-    created_by: document.created_by as string | undefined,
-    properties: document.properties,
-    start_date: (document.start_date as string) || '',
-    end_date: (document.end_date as string) || '',
-    status: ((document.status as string) || 'planning') as 'planning' | 'active' | 'completed',
-    program_id: programId,
-    plan: (document.plan as string) || '',
-    owner_id: document.owner_id,
-  }), [document, programId]);
+  const unifiedDocument: UnifiedDocument = useMemo(() => getSprintView(document), [document]);
 
   if (!user) return null;
 
