@@ -70,23 +70,24 @@ const outputPath = resolve(
   process.env.QUERY_COUNT_OUTPUT || `test-results/perf/query-count-api-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
 );
 
-const pg = requireFromApi('pg');
-const originalQuery = pg.Pool.prototype.query;
 let capture = null;
-
-pg.Pool.prototype.query = function measuredQuery(...args) {
-  if (capture) {
-    const sql = typeof args[0] === 'string' ? args[0] : args[0]?.text || '';
-    capture.queries.push({
-      sql: normalizeSql(sql),
-      started_at_ms: Math.round(performance.now() - capture.startedAt),
-    });
-  }
-  return originalQuery.apply(this, args);
-};
 
 function normalizeSql(sql) {
   return sql.replace(/\s+/g, ' ').trim();
+}
+
+function installPoolMeasurement(pool) {
+  const originalQuery = pool.query.bind(pool);
+  pool.query = function measuredQuery(...args) {
+    if (capture) {
+      const sql = typeof args[0] === 'string' ? args[0] : args[0]?.text || '';
+      capture.queries.push({
+        sql: normalizeSql(sql),
+        started_at_ms: Math.round(performance.now() - capture.startedAt),
+      });
+    }
+    return originalQuery(...args);
+  };
 }
 
 function summarizeStatements(queries) {
@@ -192,9 +193,10 @@ async function createMeasurementSession(pool) {
   };
 }
 
-const { tsImport } = requireFromApi('tsx/esm/api');
-const { pool } = await tsImport(resolve(apiDir, 'src/db/client.ts'), import.meta.url);
-const { createApp } = await tsImport(resolve(apiDir, 'src/app.ts'), import.meta.url);
+const tsx = requireFromApi('tsx/cjs/api');
+const { pool } = tsx.require(resolve(apiDir, 'src/db/client.ts'), import.meta.url);
+const { createApp } = tsx.require(resolve(apiDir, 'src/app.ts'), import.meta.url);
+installPoolMeasurement(pool);
 const app = createApp('http://localhost:5173');
 const server = createServer(app);
 const baseUrl = await listen(server);

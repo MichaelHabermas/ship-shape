@@ -32,7 +32,7 @@
       "cookieAuth": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "session",
+        "name": "session_id",
         "description": "Session cookie authentication. Automatically set after login."
       }
     },
@@ -885,7 +885,7 @@
             "items": {
               "$ref": "#/components/schemas/BelongsToResponse"
             },
-            "description": "Associated documents (programs, projects, sprints, parent issues)"
+            "description": "Associated documents when present; omitted for issues with no associations."
           },
           "ticket_number": {
             "type": "integer"
@@ -914,9 +914,7 @@
           "state",
           "priority",
           "source",
-          "created_at",
-          "updated_at",
-          "belongs_to"
+          "updated_at"
         ]
       },
       "CreateIssue": {
@@ -6841,6 +6839,12 @@
         "properties": {
           "error": {
             "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "nullable": true
+            }
           }
         },
         "required": [
@@ -14200,82 +14204,6 @@
         }
       }
     },
-    "/feedback": {
-      "post": {
-        "tags": [
-          "Feedback"
-        ],
-        "summary": "Submit public feedback",
-        "security": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateFeedbackRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Feedback created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeedbackItem"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
-    "/feedback/program/{programId}": {
-      "get": {
-        "tags": [
-          "Feedback"
-        ],
-        "summary": "Get public program info for feedback form",
-        "security": [],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "UUID identifier",
-              "example": "550e8400-e29b-41d4-a716-446655440000"
-            },
-            "required": true,
-            "name": "programId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Program metadata",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeedbackProgramPublic"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Program not found"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        }
-      }
-    },
     "/auth/caia/status": {
       "get": {
         "tags": [
@@ -15843,6 +15771,120 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StandupLegacyError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback": {
+      "post": {
+        "tags": [
+          "Feedback"
+        ],
+        "summary": "Submit public feedback",
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeedbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Feedback created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackLegacyError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Program not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackLegacyError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackLegacyError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback/program/{programId}": {
+      "get": {
+        "tags": [
+          "Feedback"
+        ],
+        "summary": "Get public program info for feedback form",
+        "security": [],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "programId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Program metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackProgramPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Program not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackLegacyError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackLegacyError"
                 }
               }
             }

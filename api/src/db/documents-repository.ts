@@ -90,7 +90,7 @@ export type ListIssuesMetadataFilters = {
   parent_filter?: 'top_level' | 'has_children' | 'is_sub_issue';
 };
 
-type QueryParam = string | boolean | null | string[];
+export type QueryParam = string | boolean | null | string[];
 
 /**
  * Issues list projection (D015) — same SQL as GET /api/issues list handler.

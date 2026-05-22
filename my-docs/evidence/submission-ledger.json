@@ -1,0 +1,3186 @@
+{
+  "schema_version": 2,
+  "purpose": "Full evidence ledger for GauntletAI ShipShape reviewer claims. Categories 1-8 are represented with source requirements, measurements, derived metrics, bounded claims, evidence pointers, caveats, and acceptance tests. The dashboard is generated from this file; do not make reviewer claims outside this ledger.",
+  "status_values": [
+    "proven",
+    "partial",
+    "open",
+    "needs_fill_in",
+    "not_measured"
+  ],
+  "evidence_types": [
+    "source_doc",
+    "methodology",
+    "command",
+    "artifact",
+    "screenshot",
+    "test_run",
+    "manual_observation"
+  ],
+  "measurement_origins": [
+    "manual_entry",
+    "report_extracted",
+    "artifact_parsed",
+    "computed"
+  ],
+  "confidence_values": [
+    "artifact_backed",
+    "report_backed",
+    "manual",
+    "inferred"
+  ],
+  "categories": [
+    {
+      "id": "cat-1-type-safety",
+      "number": 1,
+      "title": "Type Safety",
+      "status": "proven",
+      "source_requirement": {
+        "statement": "Eliminate 25% of type safety violations. Every fix must preserve existing functionality; all tests still pass. Superficial fixes do not count. Replacing any with unknown without proper type narrowing is not an improvement; fixes must include correct, meaningful types that reflect the actual data.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "fields": {
+          "total_any_types": 278,
+          "total_type_assertions": 713,
+          "total_non_null_assertions": 348,
+          "total_ts_ignore_or_ts_expect_error": 1,
+          "strict_mode_enabled": true,
+          "strict_mode_error_count_if_disabled": null,
+          "strict_mode_error_count_note": "N/A because strict mode is enabled."
+        },
+        "top_violation_dense_files": [
+          {
+            "rank": 1,
+            "path": "api/src/routes/weeks.ts",
+            "count": 85
+          },
+          {
+            "rank": 2,
+            "path": "api/src/routes/projects.ts",
+            "count": 51
+          },
+          {
+            "rank": 3,
+            "path": "api/src/routes/issues.ts",
+            "count": 49
+          },
+          {
+            "rank": 4,
+            "path": "web/src/pages/UnifiedDocumentPage.tsx",
+            "count": 37
+          },
+          {
+            "rank": 5,
+            "path": "api/src/db/seed.ts",
+            "count": 35
+          }
+        ],
+        "notes": [
+          "The audit deliverable asks for total counts; production counts are included in measurements because they are useful for judging source-risk reduction.",
+          "Strict mode is a configuration finding, not a syntax-count measurement."
+        ]
+      },
+      "rubric_items": [
+        {
+          "id": "cat1-audit-total-any-types",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "measurements[cat1-baseline-ast-counts].values.any_total"
+        },
+        {
+          "id": "cat1-audit-total-type-assertions",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "measurements[cat1-baseline-ast-counts].values.type_assertions_total"
+        },
+        {
+          "id": "cat1-audit-total-non-null-assertions",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "measurements[cat1-baseline-ast-counts].values.non_null_assertions_total"
+        },
+        {
+          "id": "cat1-audit-total-ts-suppressions",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "measurements[cat1-baseline-ast-counts].values.ts_suppressions_total"
+        },
+        {
+          "id": "cat1-audit-strict-mode-enabled",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.strict_mode_enabled"
+        },
+        {
+          "id": "cat1-audit-strict-mode-error-count-if-disabled",
+          "phase": "audit",
+          "required": true,
+          "status": "not_applicable",
+          "location": "audit_deliverable.fields.strict_mode_error_count_if_disabled",
+          "reason": "Strict mode is enabled."
+        },
+        {
+          "id": "cat1-audit-top-5-dense-files",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.top_violation_dense_files"
+        },
+        {
+          "id": "cat1-improvement-25-percent-reduction",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "claims[cat1-clears-total-25-percent-counted-syntax-reduction]"
+        },
+        {
+          "id": "cat1-improvement-tests-still-pass",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "evidence[cat1-api-tests], evidence[cat1-web-tests]"
+        },
+        {
+          "id": "cat1-improvement-meaningful-types",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "evidence[cat1-meaningful-boundary-narrowing]"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat1-baseline-ast-counts",
+          "kind": "typescript_ast_syntax_counts",
+          "label": "Baseline AST counts",
+          "recorded_at": "2026-05-19",
+          "scope": {
+            "roots": [
+              "api/src",
+              "web/src",
+              "shared/src",
+              "e2e"
+            ],
+            "production_excludes_tests": true
+          },
+          "values": {
+            "any_total": 278,
+            "any_production": 94,
+            "type_assertions_total": 713,
+            "type_assertions_production": 504,
+            "non_null_assertions_total": 348,
+            "non_null_assertions_production": 325,
+            "ts_suppressions_total": 1,
+            "ts_suppressions_production": 0
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat1-latest-ast-counts",
+          "kind": "typescript_ast_syntax_counts",
+          "label": "Latest AST counts",
+          "recorded_at": "2026-05-21",
+          "scope": {
+            "roots": [
+              "api/src",
+              "web/src",
+              "shared/src",
+              "e2e"
+            ],
+            "production_excludes_tests": true
+          },
+          "values": {
+            "any_total": 102,
+            "any_production": 12,
+            "type_assertions_total": 552,
+            "type_assertions_production": 454,
+            "non_null_assertions_total": 286,
+            "non_null_assertions_production": 254,
+            "ts_suppressions_total": 1,
+            "ts_suppressions_production": 0
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat1-total-counted-syntax-reduction",
+          "kind": "percent_change",
+          "formula": "(latest_total_counted_syntax - baseline_total_counted_syntax) / baseline_total_counted_syntax * 100",
+          "baseline_measurement_id": "cat1-baseline-ast-counts",
+          "latest_measurement_id": "cat1-latest-ast-counts",
+          "baseline_value": 1340,
+          "latest_value": 941,
+          "change_absolute": -399,
+          "change_percent": -29.8,
+          "threshold_percent": -25,
+          "origin": "computed",
+          "confidence": "report_backed"
+        },
+        {
+          "id": "cat1-production-counted-syntax-reduction",
+          "kind": "percent_change",
+          "formula": "(latest_production_counted_syntax - baseline_production_counted_syntax) / baseline_production_counted_syntax * 100",
+          "baseline_measurement_id": "cat1-baseline-ast-counts",
+          "latest_measurement_id": "cat1-latest-ast-counts",
+          "baseline_value": 923,
+          "latest_value": 717,
+          "change_absolute": -206,
+          "change_percent": -33.46,
+          "origin": "computed",
+          "confidence": "report_backed",
+          "latest": 704,
+          "delta": -354
+        },
+        {
+          "id": "cat1-production-any-reduction",
+          "kind": "percent_change",
+          "formula": "(latest_any_production - baseline_any_production) / baseline_any_production * 100",
+          "baseline_measurement_id": "cat1-baseline-ast-counts",
+          "latest_measurement_id": "cat1-latest-ast-counts",
+          "baseline_value": 94,
+          "latest_value": 12,
+          "change_absolute": -82,
+          "change_percent": -87.2,
+          "origin": "computed",
+          "confidence": "report_backed"
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat1-total-counted-syntax-reduction-at-least-25-percent",
+          "type": "percent_decrease_at_least",
+          "metric": "cat1-total-counted-syntax-reduction",
+          "threshold_percent": 25,
+          "actual_percent_decrease": 29.8,
+          "result": "pass",
+          "target_id": "cat1-target-total-counted-syntax-25-percent"
+        },
+        {
+          "id": "cat1-audit-required-fields-present",
+          "type": "rubric_items_present",
+          "rubric_item_ids": [
+            "cat1-audit-total-any-types",
+            "cat1-audit-total-type-assertions",
+            "cat1-audit-total-non-null-assertions",
+            "cat1-audit-total-ts-suppressions",
+            "cat1-audit-strict-mode-enabled",
+            "cat1-audit-strict-mode-error-count-if-disabled",
+            "cat1-audit-top-5-dense-files"
+          ],
+          "result": "pass"
+        },
+        {
+          "id": "cat1-tests-still-pass-documented",
+          "type": "evidence_required",
+          "evidence_ids": [
+            "cat1-api-tests",
+            "cat1-web-tests"
+          ],
+          "result": "pass",
+          "target_id": "cat1-target-tests-still-pass"
+        },
+        {
+          "id": "cat1-meaningful-types-documented",
+          "type": "evidence_required",
+          "evidence_ids": [
+            "cat1-meaningful-boundary-narrowing"
+          ],
+          "result": "pass",
+          "target_id": "cat1-target-meaningful-types"
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat1-clears-total-25-percent-counted-syntax-reduction",
+          "status": "proven",
+          "statement": "Total counted type-safety syntax decreased from 1340 to 941, a 29.8% reduction, clearing the 25% source requirement.",
+          "basis": [
+            "cat1-total-counted-syntax-reduction"
+          ],
+          "limits": [
+            "This is a syntax-count denominator, not a semantic type-risk score.",
+            "Production counted syntax decreased 33.46%, which is useful context but separate from the total-count source gate.",
+            "Production any usage decreased from 94 to 12, which is the clearest high-risk boundary improvement."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat1-audit-methodology",
+          "type": "methodology",
+          "path": "my-docs/AUDIT_REPORT.md",
+          "description": "Category 1 methodology defines the TypeScript AST counter used as the official denominator."
+        },
+        {
+          "id": "cat1-type-check",
+          "type": "command",
+          "command": "pnpm type-check",
+          "result": "pass",
+          "description": "Improvement report records type-check passing after structural boundary changes."
+        },
+        {
+          "id": "cat1-api-tests",
+          "type": "test_run",
+          "command": "DATABASE_URL=postgresql://localhost:5432/ship_test_audit pnpm --filter @ship/api test",
+          "result": "35 files passed / 501 tests passed",
+          "description": "API test suite result recorded after Category 1 boundary/type-safety work."
+        },
+        {
+          "id": "cat1-web-tests",
+          "type": "test_run",
+          "command": "pnpm --filter @ship/web test",
+          "result": "20 files passed / 165 tests passed",
+          "description": "Web test suite result recorded after Category 1 boundary/type-safety work."
+        },
+        {
+          "id": "cat1-meaningful-boundary-narrowing",
+          "type": "methodology",
+          "path": "my-docs/IMPROVEMENT_REPORT.md",
+          "description": "Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, and typed client/server contracts rather than replacing any with unknown."
+        }
+      ],
+      "caveats": [
+        "ESLint warning counts are useful as a worklist but are not the official before/after denominator.",
+        "Replacing any with unknown without meaningful narrowing is not counted as a real improvement."
+      ],
+      "non_claims": [
+        "Does not claim production counted syntax alone clears the 25% threshold.",
+        "Does not claim all syntax categories carry equal semantic risk."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/MEMORY.md"
+      ],
+      "summary_cards": [
+        {
+          "id": "cat1-type-safety-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Strict mode",
+              "value": "Enabled; strict-mode error count not applicable."
+            },
+            {
+              "label": "Baseline counted syntax",
+              "value": "1340 total counted syntax nodes; 923 production counted syntax nodes."
+            },
+            {
+              "label": "Dense files",
+              "value": "api/src/routes/weeks.ts (85), projects.ts (51), issues.ts (49), UnifiedDocumentPage.tsx (37), api/src/db/seed.ts (35)."
+            }
+          ]
+        },
+        {
+          "id": "cat1-type-safety-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Latest counted syntax",
+              "value": "941 total counted syntax nodes; 717 production counted syntax nodes."
+            },
+            {
+              "label": "Primary reduction",
+              "value": "1340 -> 941, -399 / -29.8%."
+            },
+            {
+              "label": "Tests",
+              "value": "API 501 passing tests; web 165 passing tests; pnpm type-check passed."
+            }
+          ]
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat1-target-total-counted-syntax-25-percent",
+          "description": "Eliminate at least 25% of counted type-safety syntax violations.",
+          "metric_id": "cat1-total-counted-syntax-reduction",
+          "operator": "percent_decrease_at_least",
+          "threshold": 25,
+          "actual": 29.8,
+          "result": "pass"
+        },
+        {
+          "id": "cat1-target-tests-still-pass",
+          "description": "Existing API and web tests still pass after the type-safety work.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Recorded API and web suite pass evidence exists.",
+          "references": [
+            "cat1-api-tests",
+            "cat1-web-tests"
+          ]
+        },
+        {
+          "id": "cat1-target-meaningful-types",
+          "description": "Type cleanup uses meaningful boundary/schema typing rather than superficial unknown replacements.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Improvement report documents shared boundary schemas and typed route/client contracts.",
+          "references": [
+            "cat1-meaningful-boundary-narrowing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-2-bundle-size",
+      "number": 2,
+      "title": "Bundle Size",
+      "status": "partial",
+      "source_requirement": {
+        "statement": "15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "fields": {
+          "total_production_bundle_kb": 2262.65,
+          "full_dist_kb": 3351.53,
+          "largest_chunk_name": "assets/index-C2vAyoQ1.js",
+          "largest_chunk_kb": 2025.1,
+          "number_of_chunks": 262,
+          "top_3_largest_dependencies": [
+            {
+              "name": "emoji-picker-react",
+              "kb": 399.59
+            },
+            {
+              "name": "highlight.js",
+              "kb": 377.92
+            },
+            {
+              "name": "yjs",
+              "kb": 264.92
+            }
+          ],
+          "unused_dependencies_identified": [
+            "@tanstack/query-sync-storage-persister"
+          ]
+        },
+        "findings": [
+          "The main JavaScript chunk dominated the bundle at about 89% of raw JS/CSS output.",
+          "Code splitting existed but did not materially reduce the initial bundle.",
+          "Feature-specific dependencies were shipped eagerly despite being needed only in narrow flows."
+        ]
+      },
+      "summary_cards": [
+        {
+          "id": "cat2-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Total JS/CSS",
+              "value": "2262.65 KB; full web/dist 3351.53 KB."
+            },
+            {
+              "label": "Largest chunk",
+              "value": "assets/index-C2vAyoQ1.js at 2025.10 KB."
+            },
+            {
+              "label": "Top dependencies",
+              "value": "emoji-picker-react 399.59 KB; highlight.js 377.92 KB; yjs 264.92 KB."
+            }
+          ]
+        },
+        {
+          "id": "cat2-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Initial entry chunk",
+              "value": "2025.10 KB -> about 517.82 KB; -74.4%."
+            },
+            {
+              "label": "Largest chunk",
+              "value": "2025.10 KB -> about 817.62 KB in report, and later evidence run largest asset 836.63 KB; over 20% reduction either way."
+            },
+            {
+              "label": "Claim boundary",
+              "value": "Total JS/CSS increased, so the completion claim is code splitting / initial page load, not total bundle reduction."
+            }
+          ]
+        }
+      ],
+      "rubric_items": [
+        {
+          "id": "cat2-audit-total-bundle-size",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.total_production_bundle_kb"
+        },
+        {
+          "id": "cat2-audit-largest-chunk",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.largest_chunk_name"
+        },
+        {
+          "id": "cat2-audit-number-of-chunks",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.number_of_chunks"
+        },
+        {
+          "id": "cat2-audit-top-3-dependencies",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.top_3_largest_dependencies"
+        },
+        {
+          "id": "cat2-audit-unused-dependencies",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.unused_dependencies_identified"
+        },
+        {
+          "id": "cat2-improvement-initial-entry-20-percent",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "claims[cat2-clears-initial-entry-code-splitting-target]"
+        },
+        {
+          "id": "cat2-improvement-before-after-analysis-output",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "evidence[cat2-baseline-bundle-stats], evidence[cat2-latest-bundle-stats]"
+        },
+        {
+          "id": "cat2-improvement-no-functionality-removal",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "claims[cat2-clears-initial-entry-code-splitting-target].limits"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat2-baseline-bundle",
+          "kind": "bundle_size_summary",
+          "label": "Baseline production bundle",
+          "recorded_at": "2026-05-19",
+          "artifact": "my-docs/audit-evidence/category-2-bundle/bundle-stats.json",
+          "values": {
+            "total_js_css_kb": 2262.65,
+            "full_dist_kb": 3351.53,
+            "largest_chunk_name": "assets/index-C2vAyoQ1.js",
+            "largest_chunk_kb": 2025.1,
+            "chunk_count": 262
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat2-latest-bundle",
+          "kind": "bundle_size_summary",
+          "label": "Latest production bundle",
+          "recorded_at": "2026-05-21",
+          "artifact": "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json",
+          "values": {
+            "total_js_css_kb": 2337.76,
+            "latest_js_bytes_from_artifact": 2259735,
+            "latest_css_bytes_from_artifact": 66564,
+            "initial_entry_chunk_kb": 517.82,
+            "largest_reported_chunk_kb": 817.62,
+            "chunk_count_reported": 295
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat2-initial-entry-chunk-reduction",
+          "kind": "percent_change",
+          "baseline_measurement_id": "cat2-baseline-bundle",
+          "latest_measurement_id": "cat2-latest-bundle",
+          "baseline_value": 2025.1,
+          "latest_value": 517.82,
+          "change_absolute": -1507.28,
+          "change_percent": -74.4,
+          "threshold_percent": -20,
+          "origin": "computed",
+          "confidence": "report_backed"
+        },
+        {
+          "id": "cat2-largest-chunk-reduction",
+          "kind": "percent_change",
+          "baseline_measurement_id": "cat2-baseline-bundle",
+          "latest_measurement_id": "cat2-latest-bundle",
+          "baseline_value": 2025.1,
+          "latest_value": 817.62,
+          "change_absolute": -1207.48,
+          "change_percent": -59.6,
+          "origin": "computed",
+          "confidence": "report_backed"
+        },
+        {
+          "id": "cat2-total-js-css-change",
+          "kind": "percent_change",
+          "baseline_measurement_id": "cat2-baseline-bundle",
+          "latest_measurement_id": "cat2-latest-bundle",
+          "baseline_value": 2262.65,
+          "latest_value": 2337.76,
+          "change_absolute": 75.11,
+          "change_percent": 3.3,
+          "origin": "computed",
+          "confidence": "report_backed"
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat2-target-initial-entry-20-percent",
+          "description": "Reduce initial page-load bundle by at least 20% through code splitting.",
+          "metric_id": "cat2-initial-entry-chunk-reduction",
+          "operator": "percent_decrease_at_least",
+          "threshold": 20,
+          "actual": 74.4,
+          "result": "pass"
+        },
+        {
+          "id": "cat2-target-before-after-output",
+          "description": "Provide before/after bundle analysis output.",
+          "operator": "manual_gate",
+          "result": "fail",
+          "reason": "Baseline treemap/stats and latest stats exist, but no latest treemap or equivalent after bundle-analysis artifact is committed.",
+          "references": [
+            "cat2-baseline-bundle-stats",
+            "cat2-baseline-bundle-treemap",
+            "cat2-latest-bundle-stats"
+          ],
+          "actual": false
+        },
+        {
+          "id": "cat2-target-no-functionality-removal",
+          "description": "Do not remove user-facing functionality to shrink the bundle.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Changes lazy-load features/routes and remove confirmed unused dependency instead of deleting product capability.",
+          "references": [
+            "cat2-build-web-command"
+          ]
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat2-audit-required-fields-present",
+          "type": "rubric_items_present",
+          "result": "pass",
+          "references": [
+            "cat2-audit-total-bundle-size",
+            "cat2-audit-largest-chunk",
+            "cat2-audit-number-of-chunks",
+            "cat2-audit-top-3-dependencies",
+            "cat2-audit-unused-dependencies"
+          ]
+        },
+        {
+          "id": "cat2-initial-entry-bundle-reduced-at-least-20-percent",
+          "type": "target_result",
+          "target_id": "cat2-target-initial-entry-20-percent",
+          "result": "pass"
+        },
+        {
+          "id": "cat2-before-after-bundle-analysis-output-present",
+          "type": "target_result",
+          "target_id": "cat2-target-before-after-output",
+          "result": "fail",
+          "notes": "Baseline bundle analysis exists, latest stats exist, but latest treemap/equivalent bundle-analysis artifact is missing."
+        },
+        {
+          "id": "cat2-no-functionality-removal-documented",
+          "type": "target_result",
+          "target_id": "cat2-target-no-functionality-removal",
+          "result": "pass"
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat2-clears-initial-entry-code-splitting-target",
+          "status": "partial",
+          "statement": "Initial entry bundle decreased from 2025.10 KB to about 517.82 KB, a 74.4% reduction, clearing the 20% code-splitting target.",
+          "basis": [
+            "cat2-initial-entry-chunk-reduction",
+            "cat2-target-before-after-output",
+            "cat2-build-web-command"
+          ],
+          "limits": [
+            "This does not claim a 15% total JS/CSS bundle reduction; total JS/CSS increased by about 3.3%.",
+            "The claim is scoped to initial page-load/code-splitting improvement.",
+            "Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat2-build-web-command",
+          "type": "command",
+          "command": "pnpm build:web",
+          "result": "pass",
+          "description": "Production frontend build command used for bundle measurements."
+        },
+        {
+          "id": "cat2-baseline-bundle-stats",
+          "type": "artifact",
+          "path": "my-docs/audit-evidence/category-2-bundle/bundle-stats.json",
+          "description": "Baseline production bundle stats artifact."
+        },
+        {
+          "id": "cat2-baseline-bundle-treemap",
+          "type": "artifact",
+          "path": "my-docs/audit-evidence/category-2-bundle/bundle-treemap.html",
+          "description": "Baseline bundle treemap artifact."
+        },
+        {
+          "id": "cat2-latest-bundle-stats",
+          "type": "artifact",
+          "path": "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json",
+          "description": "Latest evidence-run bundle stats artifact."
+        }
+      ],
+      "caveats": [
+        "Latest treemap or equivalent after bundle-analysis artifact is missing, so Category 2 is not source-complete.",
+        "Latest numbers combine report-extracted entry chunk values with evidence-run bundle stats; treat the initial-entry percentage as the official documented claim.",
+        "Total JS/CSS did not decrease."
+      ],
+      "non_claims": [
+        "Does not claim 15% total production bundle reduction.",
+        "Does not claim every large dependency was removed.",
+        "Does not claim yjs should be lazy-loaded away from collaboration surfaces."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json"
+      ]
+    },
+    {
+      "id": "cat-3-api-response-time",
+      "number": 3,
+      "title": "API Response Time",
+      "status": "partial",
+      "source_requirement": {
+        "statement": "20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "seed_data_scale": {
+          "documents_total": 517,
+          "issues": 104,
+          "users": 20,
+          "sprints": 35,
+          "note": "Audit-scale data was topped up beyond normal seed volume."
+        },
+        "methodology": {
+          "tooling": "Custom Node HTTP harness with authenticated session cookies.",
+          "duration_seconds": 15,
+          "connections": [
+            10,
+            25,
+            50
+          ],
+          "selected_endpoint_count": 5,
+          "search_note": "Search was investigated but excluded from Category 3 benchmark rows because visible Docs search was client-side title filtering at audit time and the documented /api/search/documents route was not mounted."
+        },
+        "baseline_endpoint_rows": [
+          {
+            "endpoint": "GET /api/documents?type=wiki",
+            "p50_ms": {
+              "10c": 8,
+              "25c": 8,
+              "50c": 9
+            },
+            "p95_ms": {
+              "10c": 11,
+              "25c": 10,
+              "50c": 11
+            },
+            "p99_ms": {
+              "10c": 12,
+              "25c": 11,
+              "50c": 15
+            }
+          },
+          {
+            "endpoint": "GET /api/issues",
+            "p50_ms": {
+              "10c": 10,
+              "25c": 9,
+              "50c": 9
+            },
+            "p95_ms": {
+              "10c": 13,
+              "25c": 11,
+              "50c": 11
+            },
+            "p99_ms": {
+              "10c": 19,
+              "25c": 15,
+              "50c": 19
+            }
+          },
+          {
+            "endpoint": "GET /api/dashboard/my-week",
+            "p50_ms": {
+              "10c": 9,
+              "25c": 9,
+              "50c": 11
+            },
+            "p95_ms": {
+              "10c": 12,
+              "25c": 11,
+              "50c": 13
+            },
+            "p99_ms": {
+              "10c": 13,
+              "25c": 15,
+              "50c": 14
+            }
+          },
+          {
+            "endpoint": "GET /api/projects",
+            "p50_ms": {
+              "10c": 7,
+              "25c": 8,
+              "50c": 8
+            },
+            "p95_ms": {
+              "10c": 9,
+              "25c": 9,
+              "50c": 9
+            },
+            "p99_ms": {
+              "10c": 11,
+              "25c": 11,
+              "50c": 11
+            }
+          },
+          {
+            "endpoint": "GET /api/programs/:id/issues",
+            "p50_ms": {
+              "10c": 7,
+              "25c": 7,
+              "50c": 8
+            },
+            "p95_ms": {
+              "10c": 9,
+              "25c": 9,
+              "50c": 9
+            },
+            "p99_ms": {
+              "10c": 10,
+              "25c": 10,
+              "50c": 11
+            }
+          }
+        ],
+        "findings": [
+          "Rate limiting made naive concurrent benchmarks invalid until benchmark conditions were controlled.",
+          "Search ownership was split and drifted between docs, OpenAPI, and implementation.",
+          "Largest list endpoints were fast locally but payload-heavy."
+        ]
+      },
+      "rubric_items": [
+        {
+          "id": "cat3-audit-seeded-realistic-data",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.seed_data_scale"
+        },
+        {
+          "id": "cat3-audit-five-important-endpoints",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.baseline_endpoint_rows"
+        },
+        {
+          "id": "cat3-audit-p50-p95-p99",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.baseline_endpoint_rows"
+        },
+        {
+          "id": "cat3-audit-concurrent-load-10-25-50",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.methodology.connections"
+        },
+        {
+          "id": "cat3-audit-findings",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.findings"
+        },
+        {
+          "id": "cat3-improvement-two-endpoints-p95-20-percent",
+          "phase": "improvement",
+          "required": true,
+          "status": "partial",
+          "location": "claims[cat3-p95-target]"
+        },
+        {
+          "id": "cat3-improvement-root-cause-documented",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.findings, claims[cat3-p95-target].limits"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat3-api-benchmark-before",
+          "kind": "api_benchmark_matrix",
+          "label": "Before projection compaction benchmark",
+          "recorded_at": "2026-05-21",
+          "environment": {
+            "database": "ship_dev",
+            "api_base_url": "http://localhost:3001",
+            "duration_ms": 15000,
+            "connections": [
+              10,
+              25,
+              50
+            ],
+            "rate_per_second": 100
+          },
+          "comparability_group": "cat3-before-after-projection-compaction",
+          "artifact": "my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json",
+          "endpoints": [
+            {
+              "endpoint": "GET /api/documents?type=wiki",
+              "p50_ms": {
+                "10c": 8.63,
+                "25c": 8.92,
+                "50c": 10.18
+              },
+              "p95_ms": {
+                "10c": 14.34,
+                "25c": 17.68,
+                "50c": 21.55
+              },
+              "p99_ms": {
+                "10c": 18.3,
+                "25c": 27.48,
+                "50c": 57.89
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/issues",
+              "p50_ms": {
+                "10c": 10.22,
+                "25c": 11.02,
+                "50c": 14.39
+              },
+              "p95_ms": {
+                "10c": 19.01,
+                "25c": 37.35,
+                "50c": 99.13
+              },
+              "p99_ms": {
+                "10c": 58.44,
+                "25c": 110.26,
+                "50c": 261.35
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/dashboard/my-week",
+              "p50_ms": {
+                "10c": 12.69,
+                "25c": 16.19,
+                "50c": 12.65
+              },
+              "p95_ms": {
+                "10c": 17.72,
+                "25c": 24.68,
+                "50c": 34.82
+              },
+              "p99_ms": {
+                "10c": 27.53,
+                "25c": 29.05,
+                "50c": 42.25
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/projects",
+              "p50_ms": {
+                "10c": 9.77,
+                "25c": 7.44,
+                "50c": 11.21
+              },
+              "p95_ms": {
+                "10c": 12.99,
+                "25c": 11.07,
+                "50c": 19.34
+              },
+              "p99_ms": {
+                "10c": 17.37,
+                "25c": 13.27,
+                "50c": 26.36
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/bootstrap",
+              "p50_ms": {
+                "10c": 18.14,
+                "25c": 20.37,
+                "50c": 24.83
+              },
+              "p95_ms": {
+                "10c": 24.74,
+                "25c": 50.24,
+                "50c": 220.81
+              },
+              "p99_ms": {
+                "10c": 59.02,
+                "25c": 173.79,
+                "50c": 376.08
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            }
+          ],
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat3-api-benchmark-after",
+          "kind": "api_benchmark_matrix",
+          "label": "After projection compaction benchmark",
+          "recorded_at": "2026-05-21",
+          "environment": {
+            "database": "ship_dev",
+            "api_base_url": "http://localhost:3001",
+            "duration_ms": 15000,
+            "connections": [
+              10,
+              25,
+              50
+            ],
+            "rate_per_second": 100
+          },
+          "comparability_group": "cat3-before-after-projection-compaction",
+          "artifact": "my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json",
+          "endpoints": [
+            {
+              "endpoint": "GET /api/documents?type=wiki",
+              "p50_ms": {
+                "10c": 7.95,
+                "25c": 9.95,
+                "50c": 9.74
+              },
+              "p95_ms": {
+                "10c": 13.5,
+                "25c": 17.87,
+                "50c": 18.03
+              },
+              "p99_ms": {
+                "10c": 16.87,
+                "25c": 30.18,
+                "50c": 51.49
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/issues",
+              "p50_ms": {
+                "10c": 9.73,
+                "25c": 10.39,
+                "50c": 21.16
+              },
+              "p95_ms": {
+                "10c": 13.31,
+                "25c": 27.37,
+                "50c": 115.71
+              },
+              "p99_ms": {
+                "10c": 35.17,
+                "25c": 90.82,
+                "50c": 207.11
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/dashboard/my-week",
+              "p50_ms": {
+                "10c": 14.79,
+                "25c": 14.56,
+                "50c": 13.54
+              },
+              "p95_ms": {
+                "10c": 18.26,
+                "25c": 24.54,
+                "50c": 30.53
+              },
+              "p99_ms": {
+                "10c": 29.41,
+                "25c": 26.13,
+                "50c": 42.76
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/projects",
+              "p50_ms": {
+                "10c": 9.53,
+                "25c": 10.42,
+                "50c": 10.25
+              },
+              "p95_ms": {
+                "10c": 12.55,
+                "25c": 15.48,
+                "50c": 18.64
+              },
+              "p99_ms": {
+                "10c": 13.74,
+                "25c": 17.44,
+                "50c": 24.16
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            },
+            {
+              "endpoint": "GET /api/bootstrap",
+              "p50_ms": {
+                "10c": 14.74,
+                "25c": 16.38,
+                "50c": 17.62
+              },
+              "p95_ms": {
+                "10c": 21.38,
+                "25c": 75.11,
+                "50c": 196.84
+              },
+              "p99_ms": {
+                "10c": 56.75,
+                "25c": 142.01,
+                "50c": 314.64
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            }
+          ],
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat3-my-week-followup-benchmark",
+          "kind": "api_benchmark_matrix",
+          "label": "My Week round-trip optimization follow-up benchmark",
+          "recorded_at": "2026-05-22",
+          "environment": {
+            "database": "ship_dev",
+            "api_base_url": "http://localhost:3000",
+            "duration_ms": 5000,
+            "connections": [
+              10,
+              25,
+              50
+            ],
+            "rate_per_second": 100,
+            "node_env": "test"
+          },
+          "artifact": "my-docs/evidence/artifacts/cat3-my-week-followup-2026-05-22T15-54-22-482Z.json",
+          "endpoints": [
+            {
+              "endpoint": "GET /api/dashboard/my-week",
+              "p95_ms": {
+                "10c": 13.99,
+                "25c": 21.41,
+                "50c": 32.63
+              },
+              "p99_ms": {
+                "10c": 25.82,
+                "25c": 28.67,
+                "50c": 38.42
+              },
+              "non_2xx": {
+                "10c": 0,
+                "25c": 0,
+                "50c": 0
+              }
+            }
+          ],
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md",
+          "claim_boundary": "Useful follow-up evidence for the My Week optimization, but not used to pass cat3-two-endpoints-clear-20-percent-p95 because benchmark duration/environment differs from the primary before/after comparability group."
+        }
+      ],
+      "comparability": [
+        {
+          "id": "cat3-before-after-projection-compaction",
+          "measurement_ids": [
+            "cat3-api-benchmark-before",
+            "cat3-api-benchmark-after"
+          ],
+          "same_data_volume": true,
+          "same_hardware": true,
+          "same_command_shape": true,
+          "same_auth_context": true,
+          "same_concurrency": true,
+          "same_rate_cap": true,
+          "notes": [
+            "Both measurements are documented as using ship_dev audit-load data, API_BASE_URL=http://localhost:3001, 15000 ms duration, 10/25/50 connections, and rate cap 100."
+          ]
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat3-issues-p95-change-by-concurrency",
+          "kind": "p95_percent_change_by_concurrency",
+          "endpoint": "GET /api/issues",
+          "baseline_measurement_id": "cat3-api-benchmark-before",
+          "latest_measurement_id": "cat3-api-benchmark-after",
+          "values": {
+            "10c": {
+              "baseline_ms": 19.01,
+              "latest_ms": 13.31,
+              "change_percent": -30,
+              "clears_20_percent_reduction": true
+            },
+            "25c": {
+              "baseline_ms": 37.35,
+              "latest_ms": 27.37,
+              "change_percent": -26.7,
+              "clears_20_percent_reduction": true
+            },
+            "50c": {
+              "baseline_ms": 99.13,
+              "latest_ms": 115.71,
+              "change_percent": 16.7,
+              "clears_20_percent_reduction": false
+            }
+          },
+          "origin": "computed",
+          "confidence": "artifact_backed"
+        },
+        {
+          "id": "cat3-bootstrap-p95-change-by-concurrency",
+          "kind": "p95_percent_change_by_concurrency",
+          "endpoint": "GET /api/bootstrap",
+          "baseline_measurement_id": "cat3-api-benchmark-before",
+          "latest_measurement_id": "cat3-api-benchmark-after",
+          "values": {
+            "10c": {
+              "baseline_ms": 24.74,
+              "latest_ms": 21.38,
+              "change_percent": -13.6,
+              "clears_20_percent_reduction": false
+            },
+            "25c": {
+              "baseline_ms": 50.24,
+              "latest_ms": 75.11,
+              "change_percent": 49.5,
+              "clears_20_percent_reduction": false
+            },
+            "50c": {
+              "baseline_ms": 220.81,
+              "latest_ms": 196.84,
+              "change_percent": -10.9,
+              "clears_20_percent_reduction": false
+            }
+          },
+          "origin": "computed",
+          "confidence": "artifact_backed"
+        },
+        {
+          "id": "cat3-payload-spot-check",
+          "kind": "response_payload_bytes",
+          "values": {
+            "api_issues_before_followup_bytes": 307043,
+            "api_issues_after_followup_bytes": 246883,
+            "api_bootstrap_before_followup_bytes": 429806,
+            "api_bootstrap_after_followup_bytes": 369646,
+            "pre_change_note": "The valid pre-change benchmark had both /api/issues and /api/bootstrap near 984 KB."
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed"
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat3-two-endpoints-clear-20-percent-p95",
+          "type": "count_endpoints_matching_p95_reduction",
+          "required_endpoint_count": 2,
+          "actual_endpoint_count": 1,
+          "threshold_percent": 20,
+          "result": "fail",
+          "target_id": "cat3-target-two-endpoints-p95"
+        },
+        {
+          "id": "cat3-before-after-comparable",
+          "type": "comparability_required",
+          "comparability_id": "cat3-before-after-projection-compaction",
+          "result": "pass",
+          "target_id": "cat3-target-before-after-comparable"
+        },
+        {
+          "id": "cat3-audit-required-fields-present",
+          "type": "rubric_items_present",
+          "rubric_item_ids": [
+            "cat3-audit-seeded-realistic-data",
+            "cat3-audit-five-important-endpoints",
+            "cat3-audit-p50-p95-p99",
+            "cat3-audit-concurrent-load-10-25-50",
+            "cat3-audit-findings",
+            "cat3-improvement-root-cause-documented"
+          ],
+          "result": "pass"
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat3-p95-target",
+          "status": "partial",
+          "statement": "GET /api/issues clears the 20% P95 reduction bar at 10c and 25c, but not 50c; /api/dashboard/my-week has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ; no second endpoint has stable comparable 20% P95 proof.",
+          "basis": [
+            "cat3-api-benchmark-before",
+            "cat3-api-benchmark-after",
+            "cat3-my-week-followup-benchmark",
+            "cat3-issues-p95-change-by-concurrency",
+            "cat3-bootstrap-p95-change-by-concurrency"
+          ],
+          "limits": [
+            "The source requirement asks for 20% P95 reduction on at least two endpoints.",
+            "Endpoint and concurrency results are mixed.",
+            "The My Week follow-up benchmark is artifact-backed but not part of the primary identical-condition before/after comparability group.",
+            "Payload size improved materially, but payload reduction is not the same as endpoint P95 proof."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat3-before-benchmark-artifact",
+          "type": "artifact",
+          "path": "my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json",
+          "description": "Before benchmark artifact referenced by IMPROVEMENT_REPORT.md."
+        },
+        {
+          "id": "cat3-after-benchmark-artifact",
+          "type": "artifact",
+          "path": "my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json",
+          "description": "After benchmark artifact referenced by IMPROVEMENT_REPORT.md."
+        },
+        {
+          "id": "cat3-benchmark-command",
+          "type": "command",
+          "command": "API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api",
+          "description": "Benchmark rail used for Category 3 local dev measurements.",
+          "result": "pass; generated the benchmark artifacts referenced by baseline/latest measurements"
+        }
+      ],
+      "caveats": [
+        "Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.",
+        "The benchmark script defaults to http://localhost:3000, but this run required API_BASE_URL=http://localhost:3001."
+      ],
+      "non_claims": [
+        "Does not claim Category 3 completion.",
+        "Does not claim payload-byte reduction is equivalent to P95 latency improvement.",
+        "Does not claim /api/bootstrap clears the 20% P95 endpoint target."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/MEMORY.md"
+      ],
+      "summary_cards": [
+        {
+          "id": "cat3-api-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Audit scale",
+              "value": "517 documents, 104 issues, 20 users, 35 sprints."
+            },
+            {
+              "label": "Benchmark matrix",
+              "value": "5 endpoints at 10, 25, and 50 concurrent connections."
+            },
+            {
+              "label": "Root finding",
+              "value": "Largest list endpoints were locally fast but payload-heavy; rate limits made naive benchmarks invalid."
+            }
+          ]
+        },
+        {
+          "id": "cat3-api-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Best endpoint",
+              "value": "GET /api/issues improved beyond 20% P95 at 10c and 25c, but not 50c."
+            },
+            {
+              "label": "Second endpoint",
+              "value": "No second endpoint has stable comparable 20% P95 proof."
+            },
+            {
+              "label": "Status",
+              "value": "Partial by source requirement."
+            }
+          ]
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat3-target-two-endpoints-p95",
+          "description": "At least two endpoints show 20% P95 reduction under identical benchmark conditions.",
+          "operator": "count_at_least",
+          "threshold": 2,
+          "actual": 1,
+          "result": "fail",
+          "references": [
+            "cat3-issues-p95-change-by-concurrency",
+            "cat3-bootstrap-p95-change-by-concurrency"
+          ]
+        },
+        {
+          "id": "cat3-target-before-after-comparable",
+          "description": "Before/after benchmarks use identical data, concurrency, hardware, and command shape.",
+          "operator": "boolean_true",
+          "threshold": true,
+          "actual": true,
+          "result": "pass",
+          "references": [
+            "cat3-before-after-projection-compaction"
+          ]
+        },
+        {
+          "id": "cat3-target-root-cause-documented",
+          "description": "Root cause of each bottleneck is documented.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Report records payload/serialization and benchmark/rate-limit findings.",
+          "references": [
+            "cat3-benchmark-command"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-4-database-query-efficiency",
+      "number": 4,
+      "title": "Database Query Efficiency",
+      "status": "partial",
+      "source_requirement": {
+        "statement": "20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "fields": {
+          "user_flows": [
+            {
+              "flow": "Load main page",
+              "total_queries": 41,
+              "slowest_query_ms": 4,
+              "n_plus_one_detected": "No row-level N+1; repeated auth/session checks across 10 API calls"
+            },
+            {
+              "flow": "View a document",
+              "total_queries": 5,
+              "slowest_query_ms": 0.56,
+              "n_plus_one_detected": "No"
+            },
+            {
+              "flow": "List issues",
+              "total_queries": 5,
+              "slowest_query_ms": 1,
+              "n_plus_one_detected": "No"
+            },
+            {
+              "flow": "Load sprint board",
+              "total_queries": 9,
+              "slowest_query_ms": 0.57,
+              "n_plus_one_detected": "No"
+            },
+            {
+              "flow": "Search content",
+              "total_queries": 0,
+              "slowest_query_ms": null,
+              "n_plus_one_detected": "N/A; client-side filter only"
+            }
+          ]
+        },
+        "findings": [
+          "Main page load fanned out into too many backend requests.",
+          "Session/auth checks repeated per API call.",
+          "List endpoints were payload-heavy but did not show row-level N+1."
+        ]
+      },
+      "summary_cards": [
+        {
+          "id": "cat4-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Main page flow",
+              "value": "41 SQL queries across 10 API calls."
+            },
+            {
+              "label": "Five flows audited",
+              "value": "Load main page, view document, list issues, load sprint board, search content."
+            },
+            {
+              "label": "N+1 status",
+              "value": "No row-level N+1 confirmed; fanout was the key issue."
+            }
+          ]
+        },
+        {
+          "id": "cat4-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Protected docs startup",
+              "value": "33 queries across 7 requests -> 24 queries across 1 bootstrap request."
+            },
+            {
+              "label": "Query reduction",
+              "value": "-9 queries / -27.3%; request count -85.7%."
+            },
+            {
+              "label": "Missing proof",
+              "value": "Before/after EXPLAIN ANALYZE output is still missing."
+            }
+          ]
+        }
+      ],
+      "rubric_items": [
+        {
+          "id": "cat4-audit-five-common-flows",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.user_flows"
+        },
+        {
+          "id": "cat4-audit-total-query-counts",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.user_flows[].total_queries"
+        },
+        {
+          "id": "cat4-audit-slowest-query",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.user_flows[].slowest_query_ms"
+        },
+        {
+          "id": "cat4-audit-n-plus-one",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.user_flows[].n_plus_one_detected"
+        },
+        {
+          "id": "cat4-improvement-query-count-20-percent",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "claims[cat4-query-count-branch-partial]"
+        },
+        {
+          "id": "cat4-improvement-before-after-explain",
+          "phase": "improvement",
+          "required": true,
+          "status": "partial",
+          "location": "evidence[cat4-current-explain-artifact]",
+          "reason": "Current EXPLAIN exists, but before/after EXPLAIN proof is missing."
+        },
+        {
+          "id": "cat4-improvement-inefficiency-documented",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "claims[cat4-query-count-branch-partial].limits"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat4-audit-flow-baseline",
+          "kind": "query_count_flow_table",
+          "label": "Audit baseline flow query counts",
+          "recorded_at": "2026-05-19",
+          "values": {
+            "load_main_page_queries": 41,
+            "view_document_queries": 5,
+            "list_issues_queries": 5,
+            "sprint_board_queries": 9,
+            "search_content_queries": 0
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat4-docs-startup-before",
+          "kind": "query_count_flow",
+          "label": "Old protected docs startup fanout",
+          "recorded_at": "2026-05-22",
+          "artifact": "test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json",
+          "values": {
+            "request_count": 7,
+            "total_queries": 33,
+            "response_bytes": 984044,
+            "elapsed_ms": 32
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat4-docs-startup-after",
+          "kind": "query_count_flow",
+          "label": "Current protected docs startup bootstrap",
+          "recorded_at": "2026-05-22",
+          "artifact": "test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json",
+          "values": {
+            "request_count": 1,
+            "total_queries": 24,
+            "response_bytes": 984123,
+            "elapsed_ms": 17
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat4-current-explain",
+          "kind": "explain_analyze_summary",
+          "label": "Current EXPLAIN output",
+          "recorded_at": "2026-05-21",
+          "artifact": "test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json",
+          "values": {
+            "documents_list_wiki_ms": 0.313,
+            "issues_list_ms": 0.978,
+            "projects_list_counts_ms": 0.774,
+            "audit_logs_tagged_recent_ms": 2.75,
+            "document_association_issue_project_ms": 0.643
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat4-docs-startup-query-count-reduction",
+          "kind": "percent_change",
+          "baseline_measurement_id": "cat4-docs-startup-before",
+          "latest_measurement_id": "cat4-docs-startup-after",
+          "baseline_value": 33,
+          "latest_value": 24,
+          "change_absolute": -9,
+          "change_percent": -27.3,
+          "threshold_percent": -20,
+          "origin": "computed",
+          "confidence": "artifact_backed"
+        },
+        {
+          "id": "cat4-docs-startup-request-count-reduction",
+          "kind": "percent_change",
+          "baseline_measurement_id": "cat4-docs-startup-before",
+          "latest_measurement_id": "cat4-docs-startup-after",
+          "baseline_value": 7,
+          "latest_value": 1,
+          "change_absolute": -6,
+          "change_percent": -85.7,
+          "origin": "computed",
+          "confidence": "artifact_backed"
+        },
+        {
+          "id": "cat4-docs-startup-byte-change",
+          "kind": "absolute_change",
+          "baseline_measurement_id": "cat4-docs-startup-before",
+          "latest_measurement_id": "cat4-docs-startup-after",
+          "baseline_value": 984044,
+          "latest_value": 984123,
+          "change_absolute": 79,
+          "origin": "computed",
+          "confidence": "artifact_backed"
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat4-target-one-flow-query-count-20-percent",
+          "description": "Reduce total query count by at least 20% on at least one user flow.",
+          "metric_id": "cat4-docs-startup-query-count-reduction",
+          "operator": "percent_decrease_at_least",
+          "threshold": 20,
+          "actual": 27.3,
+          "result": "pass"
+        },
+        {
+          "id": "cat4-target-before-after-explain",
+          "description": "Provide before/after EXPLAIN ANALYZE output.",
+          "operator": "manual_gate",
+          "result": "fail",
+          "reason": "Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.",
+          "references": [
+            "cat4-current-explain-artifact"
+          ]
+        },
+        {
+          "id": "cat4-target-inefficiency-documented",
+          "description": "Document what was inefficient and why the change fixes it.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Docs identify fanout/repeated requests and bootstrap consolidation.",
+          "references": [
+            "cat4-query-count-command"
+          ]
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat4-audit-five-flows-present",
+          "type": "rubric_items_present",
+          "result": "pass",
+          "references": [
+            "cat4-audit-five-common-flows"
+          ]
+        },
+        {
+          "id": "cat4-one-flow-query-count-reduced-at-least-20-percent",
+          "type": "target_result",
+          "target_id": "cat4-target-one-flow-query-count-20-percent",
+          "result": "pass"
+        },
+        {
+          "id": "cat4-before-after-explain-analyze-present",
+          "type": "target_result",
+          "target_id": "cat4-target-before-after-explain",
+          "result": "fail"
+        },
+        {
+          "id": "cat4-inefficiency-and-fix-documented",
+          "type": "target_result",
+          "target_id": "cat4-target-inefficiency-documented",
+          "result": "pass"
+        },
+        {
+          "id": "cat4-no-n-plus-one-overclaim",
+          "type": "claim_boundary_check",
+          "result": "pass"
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat4-query-count-branch-partial",
+          "status": "partial",
+          "statement": "Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, but full Category 4 proof remains partial because before/after EXPLAIN ANALYZE output is missing.",
+          "basis": [
+            "cat4-docs-startup-query-count-reduction",
+            "cat4-target-before-after-explain"
+          ],
+          "limits": [
+            "Does not claim 50% slowest-query improvement.",
+            "Does not claim all five original audit flows improved.",
+            "Does not claim row-level N+1 was fixed; no row-level N+1 was confirmed."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat4-query-count-command",
+          "type": "command",
+          "command": "pnpm perf:query-count-api",
+          "result": "pass",
+          "description": "Repeatable query-count harness for endpoint and flow-level evidence."
+        },
+        {
+          "id": "cat4-explain-command",
+          "type": "command",
+          "command": "pnpm perf:explain",
+          "result": "pass",
+          "description": "Repeatable EXPLAIN capture rail."
+        },
+        {
+          "id": "cat4-query-count-artifact",
+          "type": "artifact",
+          "path": "test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json",
+          "description": "Flow-level query-count artifact with old fanout and current bootstrap rows."
+        },
+        {
+          "id": "cat4-current-explain-artifact",
+          "type": "artifact",
+          "path": "test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json",
+          "description": "Current EXPLAIN output; not sufficient alone for before/after proof."
+        }
+      ],
+      "caveats": [
+        "Before/after EXPLAIN ANALYZE proof is still missing.",
+        "Bootstrap query-count proof is a flow-level win, not an endpoint P95 latency win."
+      ],
+      "non_claims": [
+        "Does not claim full Category 4 completion.",
+        "Does not claim 50% slowest-query improvement.",
+        "Does not claim N+1 elimination."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/DECISION_LOG.md"
+      ]
+    },
+    {
+      "id": "cat-5-test-coverage-quality",
+      "number": 5,
+      "title": "Test Coverage and Quality",
+      "status": "proven",
+      "source_requirement": {
+        "statement": "Add meaningful tests for 3 previously untested critical paths, or fix 3 flaky tests with documented root cause analysis. Meaningful tests catch real regressions and each test must include a comment explaining the risk it mitigates.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "fields": {
+          "total_tests": 1471,
+          "pass_fail_flaky": {
+            "api_unit": "451 / 0 / 0",
+            "web_unit": "138 / 13 / 0",
+            "e2e_full_run": "851 / 1 / 5 retry-flake signals, 17 skipped"
+          },
+          "suite_runtime": {
+            "api_unit_seconds": 10.76,
+            "web_unit_seconds": 1.05
+          },
+          "critical_flows_with_zero_coverage": [],
+          "code_coverage": {
+            "api_statements_percent": 40.34,
+            "api_branches_percent": 33.44,
+            "api_functions_percent": 40.9,
+            "api_lines_percent": 40.52,
+            "web": "not configured"
+          }
+        },
+        "findings": [
+          "Web unit tests were failing.",
+          "Full E2E had one hard failure and retry flake signals.",
+          "API coverage was low on production endpoints."
+        ]
+      },
+      "summary_cards": [
+        {
+          "id": "cat5-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Total tests",
+              "value": "1471 executable tests across 115 files."
+            },
+            {
+              "label": "Baseline unit pass/fail",
+              "value": "API 451/0/0; web 138/13/0."
+            },
+            {
+              "label": "Coverage",
+              "value": "API around 40%; web coverage not configured."
+            }
+          ]
+        },
+        {
+          "id": "cat5-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Meaningful regressions",
+              "value": "Overlapping comment mark removal; project issue filtering; private document comment visibility."
+            },
+            {
+              "label": "Current unit suites",
+              "value": "API 35 files / 501 tests passing; web 20 files / 165 tests passing."
+            },
+            {
+              "label": "Known caveat",
+              "value": "Full E2E baseline was not green; focused E2E tree-selector rerun passed."
+            }
+          ]
+        }
+      ],
+      "rubric_items": [
+        {
+          "id": "cat5-audit-total-tests",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.total_tests"
+        },
+        {
+          "id": "cat5-audit-pass-fail-flaky",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.pass_fail_flaky"
+        },
+        {
+          "id": "cat5-audit-suite-runtime",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.suite_runtime"
+        },
+        {
+          "id": "cat5-audit-critical-flows-zero-coverage",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.critical_flows_with_zero_coverage"
+        },
+        {
+          "id": "cat5-audit-code-coverage",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.code_coverage"
+        },
+        {
+          "id": "cat5-improvement-three-meaningful-tests",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "claims[cat5-three-meaningful-regressions]"
+        },
+        {
+          "id": "cat5-improvement-risk-comments",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "evidence[cat5-risk-comment-locations]"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat5-baseline-test-inventory",
+          "kind": "test_inventory",
+          "label": "Baseline test inventory",
+          "recorded_at": "2026-05-19",
+          "values": {
+            "total_tests": 1471,
+            "files": 115,
+            "api_tests": 451,
+            "web_tests": 151,
+            "e2e_tests": 869,
+            "web_failures": 13,
+            "e2e_failures": 1,
+            "e2e_retry_flake_signals": 5
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat5-latest-unit-suites",
+          "kind": "test_suite_summary",
+          "label": "Latest API and web unit suites",
+          "recorded_at": "2026-05-21",
+          "values": {
+            "api_files_passed": 35,
+            "api_tests_passed": 501,
+            "web_files_passed": 20,
+            "web_tests_passed": 165
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat5-focused-e2e-tree-selector",
+          "kind": "test_suite_summary",
+          "label": "Focused E2E tree-selector rerun",
+          "recorded_at": "2026-05-21",
+          "values": {
+            "passed": 1,
+            "failed": 0,
+            "command": "E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g \"navigating to nested document auto-expands tree ancestors\""
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat5-meaningful-regression-count",
+          "kind": "count",
+          "value": 3,
+          "threshold": 3,
+          "origin": "computed",
+          "confidence": "report_backed"
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat5-target-three-meaningful-regressions",
+          "description": "Add at least three meaningful regression tests for previously weak critical paths.",
+          "metric_id": "cat5-meaningful-regression-count",
+          "operator": "count_at_least",
+          "threshold": 3,
+          "actual": 3,
+          "result": "pass"
+        },
+        {
+          "id": "cat5-target-risk-comments",
+          "description": "Each counted test includes a risk comment explaining the regression it guards.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Ledger references the three risk-comment locations.",
+          "references": [
+            "cat5-risk-comment-locations"
+          ]
+        },
+        {
+          "id": "cat5-target-current-unit-suites-pass",
+          "description": "Current API and web unit suites pass.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Improvement report records full API and web suite passes.",
+          "references": [
+            "cat5-api-suite-pass",
+            "cat5-web-suite-pass"
+          ]
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat5-audit-required-fields-present",
+          "type": "rubric_items_present",
+          "result": "pass",
+          "references": [
+            "cat5-audit-total-tests",
+            "cat5-audit-pass-fail-flaky",
+            "cat5-audit-suite-runtime",
+            "cat5-audit-critical-flows-zero-coverage",
+            "cat5-audit-code-coverage"
+          ]
+        },
+        {
+          "id": "cat5-three-meaningful-regression-tests-present",
+          "type": "target_result",
+          "target_id": "cat5-target-three-meaningful-regressions",
+          "result": "pass"
+        },
+        {
+          "id": "cat5-risk-comments-documented",
+          "type": "target_result",
+          "target_id": "cat5-target-risk-comments",
+          "result": "pass"
+        },
+        {
+          "id": "cat5-current-unit-suites-pass",
+          "type": "target_result",
+          "target_id": "cat5-target-current-unit-suites-pass",
+          "result": "pass"
+        },
+        {
+          "id": "cat5-e2e-baseline-not-green",
+          "type": "known_caveat",
+          "result": "warn",
+          "reason": "Full E2E baseline still had failing/flaky evidence; this does not invalidate the three meaningful regression-test target."
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat5-three-meaningful-regressions",
+          "status": "proven",
+          "statement": "Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility.",
+          "basis": [
+            "cat5-meaningful-regression-count",
+            "cat5-target-risk-comments",
+            "cat5-latest-unit-suites"
+          ],
+          "limits": [
+            "Does not claim the full E2E suite is green.",
+            "Does not claim web coverage tooling was added.",
+            "The claim is the source target of three meaningful regressions plus current unit-suite pass evidence."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat5-api-suite-pass",
+          "type": "test_run",
+          "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test",
+          "result": "35 files passed / 501 tests passed",
+          "description": "Latest full API suite pass recorded in the improvement report."
+        },
+        {
+          "id": "cat5-web-suite-pass",
+          "type": "test_run",
+          "command": "pnpm --filter @ship/web test",
+          "result": "20 files passed / 165 tests passed",
+          "description": "Latest full web suite pass recorded in the improvement report."
+        },
+        {
+          "id": "cat5-focused-e2e-pass",
+          "type": "test_run",
+          "command": "E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g \"navigating to nested document auto-expands tree ancestors\"",
+          "result": "1 passed / 0 failed",
+          "description": "Focused E2E rerun for stale tree selector proof."
+        },
+        {
+          "id": "cat5-risk-comment-locations",
+          "type": "methodology",
+          "path": "my-docs/IMPROVEMENT_REPORT.md",
+          "description": "Counted risk comments live in web/src/components/editor/CommentMark.test.ts:15, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:301."
+        }
+      ],
+      "caveats": [
+        "Full E2E baseline remained non-green and is recorded as warning context.",
+        "Web coverage tooling remains not configured."
+      ],
+      "non_claims": [
+        "Does not claim all flaky E2E behavior is fixed.",
+        "Does not claim code coverage percentage improved.",
+        "Does not count stale selector cleanup as one of the three meaningful regression tests."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md"
+      ]
+    },
+    {
+      "id": "cat-6-runtime-error-handling",
+      "number": 6,
+      "title": "Runtime Error and Edge Case Handling",
+      "status": "partial",
+      "source_requirement": {
+        "statement": "Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "fields": {
+          "console_errors_during_normal_usage": 0,
+          "unhandled_promise_rejections_server": "No process-level unhandledRejection / uncaughtException handlers found",
+          "network_disconnect_recovery": "Partial",
+          "missing_error_boundaries": "Partial boundary only",
+          "silent_failures_identified": [
+            "Backlinks fetch failures are console-only during disconnect"
+          ],
+          "malformed_input_handling": "Mixed",
+          "concurrent_same_document_editing": "Pass for checked editor-body case",
+          "throttled_3g_behavior": "Partial pass"
+        },
+        "findings": [
+          "Network disconnects created console-only Backlinks failures.",
+          "CSRF failures could leak HTML stack pages.",
+          "Process-level failure handling was missing."
+        ]
+      },
+      "summary_cards": [
+        {
+          "id": "cat6-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Console errors",
+              "value": "0 during normal checked usage after clearing Console."
+            },
+            {
+              "label": "Network disconnect",
+              "value": "Partial; Backlinks failed silently/console-only while offline."
+            },
+            {
+              "label": "Malformed input",
+              "value": "Mixed; missing CSRF returned HTML stack page."
+            }
+          ]
+        },
+        {
+          "id": "cat6-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Focused runtime E2E",
+              "value": "8 passed / 0 failed with named screenshots."
+            },
+            {
+              "label": "Proven fixes",
+              "value": "CSRF JSON 403 and Backlinks offline/stale status are supported."
+            },
+            {
+              "label": "Missing proof",
+              "value": "Three fix-specific before/after records are not all explicitly documented."
+            }
+          ]
+        }
+      ],
+      "rubric_items": [
+        {
+          "id": "cat6-audit-console-errors",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.console_errors_during_normal_usage"
+        },
+        {
+          "id": "cat6-audit-unhandled-rejections",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.unhandled_promise_rejections_server"
+        },
+        {
+          "id": "cat6-audit-network-disconnect",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.network_disconnect_recovery"
+        },
+        {
+          "id": "cat6-audit-missing-boundaries",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.missing_error_boundaries"
+        },
+        {
+          "id": "cat6-audit-silent-failures",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.silent_failures_identified"
+        },
+        {
+          "id": "cat6-improvement-three-fixes",
+          "phase": "improvement",
+          "required": true,
+          "status": "partial",
+          "location": "claims[cat6-runtime-error-handling-partial]",
+          "reason": "Two clear fix claims plus runtime screenshot rail are documented; three fix-specific before/after records are not all explicit."
+        },
+        {
+          "id": "cat6-improvement-screenshot-recording",
+          "phase": "improvement",
+          "required": true,
+          "status": "present",
+          "location": "evidence[cat6-runtime-screenshot-api-500], evidence[cat6-runtime-screenshot-offline], evidence[cat6-runtime-screenshot-csrf], evidence[cat6-runtime-screenshot-concurrent]"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat6-audit-runtime-baseline",
+          "kind": "runtime_error_audit_summary",
+          "label": "Runtime error audit baseline",
+          "recorded_at": "2026-05-19",
+          "values": {
+            "console_errors": 0,
+            "network_disconnect_recovery": "partial",
+            "silent_failures": 1,
+            "malformed_input_handling": "mixed"
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat6-runtime-e2e-closeout",
+          "kind": "e2e_runtime_evidence",
+          "label": "Focused runtime evidence E2E",
+          "recorded_at": "2026-05-21",
+          "values": {
+            "passed": 8,
+            "failed": 0,
+            "screenshots": 8
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat6-explicit-fix-proof-count",
+          "kind": "count",
+          "value": 2,
+          "threshold": 3,
+          "origin": "computed",
+          "confidence": "report_backed"
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat6-target-three-error-handling-fixes",
+          "description": "Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence.",
+          "metric_id": "cat6-explicit-fix-proof-count",
+          "operator": "count_at_least",
+          "threshold": 3,
+          "actual": 2,
+          "result": "fail"
+        },
+        {
+          "id": "cat6-target-user-facing-confusion-fix",
+          "description": "At least one fix involves real user-facing data loss or confusion.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Backlinks offline/degraded state preserves stale data visibly instead of failing silently.",
+          "references": [
+            "cat6-backlinks-offline-fix"
+          ]
+        },
+        {
+          "id": "cat6-target-runtime-screenshots",
+          "description": "Runtime evidence screenshots or recordings exist.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Focused runtime E2E wrote named screenshots.",
+          "references": [
+            "cat6-runtime-screenshot-api-500",
+            "cat6-runtime-screenshot-offline",
+            "cat6-runtime-screenshot-csrf",
+            "cat6-runtime-screenshot-concurrent"
+          ]
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat6-audit-required-fields-present",
+          "type": "rubric_items_present",
+          "result": "pass",
+          "references": [
+            "cat6-audit-console-errors",
+            "cat6-audit-unhandled-rejections",
+            "cat6-audit-network-disconnect",
+            "cat6-audit-missing-boundaries",
+            "cat6-audit-silent-failures"
+          ]
+        },
+        {
+          "id": "cat6-focused-runtime-e2e-passes",
+          "type": "measurement_check",
+          "result": "pass",
+          "references": [
+            "cat6-runtime-e2e-closeout"
+          ]
+        },
+        {
+          "id": "cat6-screenshots-present",
+          "type": "target_result",
+          "target_id": "cat6-target-runtime-screenshots",
+          "result": "pass"
+        },
+        {
+          "id": "cat6-three-error-handling-fixes-documented",
+          "type": "target_result",
+          "target_id": "cat6-target-three-error-handling-fixes",
+          "result": "fail"
+        },
+        {
+          "id": "cat6-user-facing-data-loss-or-confusion-fix-present",
+          "type": "target_result",
+          "target_id": "cat6-target-user-facing-confusion-fix",
+          "result": "pass"
+        },
+        {
+          "id": "cat6-each-fix-has-before-after-and-screenshot",
+          "type": "source_alignment_check",
+          "result": "fail",
+          "reason": "Ledger does not yet contain three fix-specific before/after records."
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat6-runtime-error-handling-partial",
+          "status": "partial",
+          "statement": "Focused runtime evidence improved CSRF JSON errors and Backlinks offline/degraded behavior, with screenshots, but Category 6 remains partial until three fix-specific before/after records are explicit.",
+          "basis": [
+            "cat6-explicit-fix-proof-count",
+            "cat6-target-runtime-screenshots",
+            "cat6-target-three-error-handling-fixes"
+          ],
+          "limits": [
+            "Does not count comments visibility or migration bootstrap as Category 6 proof.",
+            "Does not claim process-level unhandled rejection handling is solved.",
+            "Does not claim three complete fix records yet."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat6-csrf-json-fix",
+          "type": "manual_observation",
+          "description": "Missing-CSRF probe returned JSON 403 instead of Express HTML/error output."
+        },
+        {
+          "id": "cat6-backlinks-offline-fix",
+          "type": "manual_observation",
+          "description": "Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect."
+        },
+        {
+          "id": "cat6-runtime-e2e-run",
+          "type": "test_run",
+          "command": "E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts",
+          "result": "8 passed / 0 failed",
+          "description": "Focused runtime evidence E2E run."
+        },
+        {
+          "id": "cat6-runtime-screenshot-api-500",
+          "type": "screenshot",
+          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
+          "description": "API 500 fallback UI runtime screenshot."
+        },
+        {
+          "id": "cat6-runtime-screenshot-offline",
+          "type": "screenshot",
+          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
+          "description": "Offline editor draft preservation runtime screenshot."
+        },
+        {
+          "id": "cat6-runtime-screenshot-csrf",
+          "type": "screenshot",
+          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
+          "description": "CSRF JSON/editor usable runtime screenshot."
+        },
+        {
+          "id": "cat6-runtime-screenshot-concurrent",
+          "type": "screenshot",
+          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
+          "description": "Concurrent API failure fallback runtime screenshot."
+        }
+      ],
+      "caveats": [
+        "The source requires three fix-specific records; the ledger currently proves fewer than three explicitly.",
+        "Process-level unhandled rejection handlers remain skipped."
+      ],
+      "non_claims": [
+        "Does not claim full Category 6 completion.",
+        "Does not count comments authorization hardening as a Category 6 user-facing runtime proof.",
+        "Does not claim all error-boundary gaps are fixed."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/MEMORY.md"
+      ]
+    },
+    {
+      "id": "cat-7-accessibility",
+      "number": 7,
+      "title": "Accessibility Compliance",
+      "status": "partial",
+      "source_requirement": {
+        "statement": "Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence.",
+        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/AUDIT_REPORT.md",
+        "fields": {
+          "lighthouse_accessibility_score_per_page": {
+            "/login": 98,
+            "/docs": 91,
+            "/documents/:id": 91,
+            "/issues": 100,
+            "/documents/:programId/issues": 100,
+            "/my-week": 96,
+            "/projects": 100
+          },
+          "total_critical_or_serious_violations": {
+            "axe_critical_nodes": 2,
+            "axe_serious_nodes": 40,
+            "lighthouse_page_failures": 6,
+            "lighthouse_unique_issue_types": 4
+          },
+          "keyboard_navigation_completeness": "partial",
+          "screen_reader_usability": "partial",
+          "color_contrast_failures": {
+            "/my-week": 21,
+            "/projects": 16
+          },
+          "missing_aria_labels_or_roles": [
+            "ARIA required-child failures on /docs",
+            "ARIA required-child failures on /documents/:id",
+            "/login lacks a main landmark"
+          ]
+        },
+        "audited_pages": [
+          "/login",
+          "/docs",
+          "/documents/:id",
+          "/issues",
+          "/documents/:programId/issues",
+          "/my-week",
+          "/projects"
+        ],
+        "notes": [
+          "The audit deliverable includes manual keyboard and VoiceOver checks; the improvement claim uses the automated axe Critical/Serious closure path.",
+          "Lighthouse baseline and axe closeout are different measurement types and should not be collapsed into one before/after scalar."
+        ]
+      },
+      "rubric_items": [
+        {
+          "id": "cat7-audit-lighthouse-scores-per-page",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.lighthouse_accessibility_score_per_page"
+        },
+        {
+          "id": "cat7-audit-total-critical-serious",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.total_critical_or_serious_violations"
+        },
+        {
+          "id": "cat7-audit-keyboard-navigation",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.keyboard_navigation_completeness"
+        },
+        {
+          "id": "cat7-audit-screen-reader-usability",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.screen_reader_usability"
+        },
+        {
+          "id": "cat7-audit-color-contrast-failures",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.color_contrast_failures"
+        },
+        {
+          "id": "cat7-audit-missing-aria-labels-or-roles",
+          "phase": "audit",
+          "required": true,
+          "status": "present",
+          "location": "audit_deliverable.fields.missing_aria_labels_or_roles"
+        },
+        {
+          "id": "cat7-improvement-critical-serious-top3",
+          "phase": "improvement",
+          "required": true,
+          "status": "partial",
+          "location": "claims[cat7-clears-axe-critical-serious-gate]"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat7-baseline-lighthouse",
+          "kind": "lighthouse_accessibility_scores",
+          "label": "Baseline Lighthouse accessibility scores",
+          "recorded_at": "2026-05-19",
+          "tooling": {
+            "lighthouse": "13.0.2",
+            "chromium": "148.0.0.0"
+          },
+          "values": {
+            "/login": 98,
+            "/docs": 91,
+            "/documents/:id": 91,
+            "/issues": 100,
+            "/documents/:programId/issues": 100,
+            "/my-week": 96,
+            "/projects": 100
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat7-baseline-axe",
+          "kind": "axe_violation_summary",
+          "label": "Baseline axe critical and serious violations",
+          "recorded_at": "2026-05-19",
+          "values": {
+            "critical_nodes": 2,
+            "serious_nodes": 40,
+            "lighthouse_page_failures": 6,
+            "lighthouse_unique_issue_types": 4
+          },
+          "origin": "report_extracted",
+          "confidence": "report_backed",
+          "source": "my-docs/AUDIT_REPORT.md"
+        },
+        {
+          "id": "cat7-closeout-axe",
+          "kind": "axe_closeout_by_page",
+          "label": "Closeout axe scan for selected top pages",
+          "recorded_at": "2026-05-21",
+          "tooling": {
+            "command": "pnpm a11y:closeout -- --fail-on-serious"
+          },
+          "artifact": "test-results/a11y-closeout/axe-summary.json",
+          "values": {
+            "/docs": {
+              "violations": 0
+            },
+            "/documents/:id": {
+              "violations": 0,
+              "selection": "real selected document page"
+            },
+            "/my-week": {
+              "violations": 0
+            }
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat7-top3-axe-critical-serious-fixed",
+          "kind": "boolean_gate",
+          "value": false,
+          "basis": "Closeout axe command reports 0 violations on /docs, selected /documents/:id, and /my-week, but the ledger does not prove these are the 3 most important pages required by the source.",
+          "origin": "computed",
+          "confidence": "artifact_backed"
+        },
+        {
+          "id": "cat7-lighthouse-rerun-present",
+          "kind": "boolean_gate",
+          "value": false,
+          "basis": "IMPROVEMENT_REPORT.md states Lighthouse was not rerun because lighthouse is not installed in the repo-local toolchain.",
+          "origin": "report_extracted",
+          "confidence": "report_backed"
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat7-top3-axe-violations-zero",
+          "type": "all_selected_pages_have_zero_axe_violations",
+          "measurement_id": "cat7-closeout-axe",
+          "selected_pages": [
+            "/docs",
+            "/documents/:id",
+            "/my-week"
+          ],
+          "result": "pass",
+          "target_id": "cat7-target-selected-axe-zero"
+        },
+        {
+          "id": "cat7-lighthouse-rerun-not-required-for-claimed-path",
+          "type": "claim_path_check",
+          "claimed_path": "fix_all_critical_serious_on_top_3_pages",
+          "lighthouse_rerun_required": false,
+          "result": "pass"
+        },
+        {
+          "id": "cat7-top3-page-selection-source-backed",
+          "type": "source_alignment_check",
+          "requirement": "3 most important pages",
+          "selected_pages": [
+            "/docs",
+            "/documents/:id",
+            "/my-week"
+          ],
+          "result": "fail",
+          "reason": "The closeout pages have zero axe violations, but the source docs do not prove this set is the 3 most important pages; /projects had baseline serious contrast failures and was not in the closeout scan.",
+          "target_id": "cat7-target-source-backed-top3"
+        },
+        {
+          "id": "cat7-audit-required-fields-present",
+          "type": "rubric_items_present",
+          "rubric_item_ids": [
+            "cat7-audit-lighthouse-scores-per-page",
+            "cat7-audit-total-critical-serious",
+            "cat7-audit-keyboard-navigation",
+            "cat7-audit-screen-reader-usability",
+            "cat7-audit-color-contrast-failures",
+            "cat7-audit-missing-aria-labels-or-roles"
+          ],
+          "result": "pass",
+          "target_id": "cat7-target-audit-fields"
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat7-clears-axe-critical-serious-gate",
+          "status": "partial",
+          "statement": "The selected closeout pages report 0 axe violations, but the ledger does not prove those pages are the 3 most important pages required by the source.",
+          "basis": [
+            "cat7-closeout-axe",
+            "cat7-top3-axe-critical-serious-fixed"
+          ],
+          "limits": [
+            "Lighthouse was not rerun.",
+            "The page-selection rationale needs fill-in or an additional closeout scan should include the source-relevant pages with baseline serious violations.",
+            "Manual keyboard and accessibility polish gaps remain outside the axe gate."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat7-closeout-axe-command",
+          "type": "command",
+          "command": "pnpm a11y:closeout -- --fail-on-serious",
+          "result": "pass",
+          "description": "Repeatable closeout axe gate for /docs, selected /documents/:id, and /my-week."
+        },
+        {
+          "id": "cat7-axe-summary-artifact",
+          "type": "artifact",
+          "path": "test-results/a11y-closeout/axe-summary.json",
+          "description": "Closeout axe summary artifact referenced by IMPROVEMENT_REPORT.md."
+        },
+        {
+          "id": "cat7-tree-selector-e2e",
+          "type": "test_run",
+          "command": "E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g \"navigating to nested document auto-expands tree ancestors\"",
+          "result": "1 passed / 0 failed",
+          "description": "Focused E2E verification for updated document tree selector."
+        }
+      ],
+      "caveats": [
+        "Lighthouse is not installed in the repo-local toolchain, so the improvement path is axe Critical/Serious closure rather than Lighthouse score delta.",
+        "The current closeout page set is useful evidence but not yet source-backed as the 3 most important pages.",
+        "Manual closeout found non-blocking keyboard polish gaps: Action Items modal close button tab visibility and missing arrow-key tree navigation."
+      ],
+      "non_claims": [
+        "Does not claim a latest Lighthouse score improvement.",
+        "Does not claim all manual keyboard polish gaps are fixed."
+      ],
+      "sources": [
+        "my-docs/AUDIT_REPORT.md",
+        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/MEMORY.md"
+      ],
+      "summary_cards": [
+        {
+          "id": "cat7-a11y-baseline-card",
+          "title": "Audit Baseline",
+          "items": [
+            {
+              "label": "Lighthouse pages",
+              "value": "7 pages audited; lowest scores were /docs and /documents/:id at 91."
+            },
+            {
+              "label": "Critical/serious baseline",
+              "value": "2 critical nodes and 40 serious nodes."
+            },
+            {
+              "label": "Manual coverage",
+              "value": "Keyboard partial; screen reader partial."
+            }
+          ]
+        },
+        {
+          "id": "cat7-a11y-closeout-card",
+          "title": "Closeout Proof",
+          "items": [
+            {
+              "label": "Selected axe pages",
+              "value": "/docs, selected /documents/:id, and /my-week all report 0 violations."
+            },
+            {
+              "label": "Missing proof",
+              "value": "Ledger does not prove these are the source-required 3 most important pages."
+            },
+            {
+              "label": "Lighthouse",
+              "value": "Not rerun in repo-local toolchain."
+            }
+          ]
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat7-target-selected-axe-zero",
+          "description": "Selected closeout pages have zero axe violations.",
+          "metric_id": "cat7-closeout-axe",
+          "operator": "boolean_true",
+          "threshold": true,
+          "actual": true,
+          "result": "pass",
+          "reason": "Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week.",
+          "references": [
+            "cat7-closeout-axe-command"
+          ]
+        },
+        {
+          "id": "cat7-target-source-backed-top3",
+          "description": "The selected pages are source-backed as the 3 most important pages.",
+          "operator": "manual_gate",
+          "result": "fail",
+          "reason": "No source-backed page-selection rationale or /projects closeout scan is present.",
+          "references": [
+            "cat7-closeout-axe-command"
+          ]
+        },
+        {
+          "id": "cat7-target-audit-fields",
+          "description": "Accessibility audit includes Lighthouse, critical/serious, keyboard, screen reader, contrast, and ARIA fields.",
+          "operator": "manual_gate",
+          "result": "pass",
+          "reason": "Audit deliverable fields are present in the ledger.",
+          "references": [
+            "cat7-audit-lighthouse-scores-per-page",
+            "cat7-audit-screen-reader-usability"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-8-security-audit",
+      "number": 8,
+      "title": "Security Audit",
+      "status": "open",
+      "source_requirement": {
+        "statement": "Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof.",
+        "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt"
+      },
+      "audit_deliverable": {
+        "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+        "probe_tool": {
+          "command": "Needs fill-in: single-command security probe not yet present",
+          "fresh_instance_runbook": "Needs fill-in: grader-run runbook not yet present",
+          "structured_report": "Needs fill-in: structured security report path not yet present"
+        },
+        "fields": {
+          "auth_session_vulnerabilities": [],
+          "websocket_validation_failures": [],
+          "input_sanitization_failures": [],
+          "dependency_cves": {
+            "high_or_critical_count": null,
+            "list": []
+          },
+          "cors_csp_misconfiguration": {
+            "status": "needs_fill_in",
+            "details": ""
+          },
+          "secrets_exposure_risk": {
+            "status": "needs_fill_in",
+            "details": ""
+          },
+          "rate_limiting_absent_on": [],
+          "verbose_error_leakage": {
+            "status": "needs_fill_in",
+            "examples": []
+          }
+        },
+        "verified_vulnerability_fixes": [
+          {
+            "slot": 1,
+            "status": "needs_fill_in",
+            "vulnerability_class": "",
+            "reproduction_steps": "",
+            "fix_applied": "",
+            "proof": ""
+          },
+          {
+            "slot": 2,
+            "status": "needs_fill_in",
+            "vulnerability_class": "",
+            "reproduction_steps": "",
+            "fix_applied": "",
+            "proof": ""
+          }
+        ]
+      },
+      "summary_cards": [
+        {
+          "id": "cat8-security-required-card",
+          "title": "Required Security Probe",
+          "items": [
+            {
+              "label": "Probe tool",
+              "value": "Open: single-command runnable probe not yet evidenced."
+            },
+            {
+              "label": "Attack surfaces",
+              "value": "Auth/session, WebSocket validation, input sanitization, dependency CVEs."
+            },
+            {
+              "label": "Manual review",
+              "value": "CORS/CSP, secrets, rate limiting, verbose errors."
+            }
+          ]
+        },
+        {
+          "id": "cat8-security-current-card",
+          "title": "Current Claim Boundary",
+          "items": [
+            {
+              "label": "Dependency cleanup",
+              "value": "Useful security hygiene exists, but not a full Category 8 probe."
+            },
+            {
+              "label": "Known fixes",
+              "value": "Setup race and authz hardening are documented elsewhere, but not packaged as two verified probe-driven Cat 8 fixes."
+            },
+            {
+              "label": "Status",
+              "value": "Open until probe/report/fix proof exists."
+            }
+          ]
+        }
+      ],
+      "rubric_items": [
+        {
+          "id": "cat8-audit-probe-tool-runnable",
+          "phase": "audit",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.probe_tool.command"
+        },
+        {
+          "id": "cat8-audit-auth-session-surface",
+          "phase": "audit",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.fields.auth_session_vulnerabilities"
+        },
+        {
+          "id": "cat8-audit-websocket-validation-surface",
+          "phase": "audit",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.fields.websocket_validation_failures"
+        },
+        {
+          "id": "cat8-audit-input-sanitization-surface",
+          "phase": "audit",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.fields.input_sanitization_failures"
+        },
+        {
+          "id": "cat8-audit-dependency-cves",
+          "phase": "audit",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.fields.dependency_cves"
+        },
+        {
+          "id": "cat8-audit-manual-review-fields",
+          "phase": "audit",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage"
+        },
+        {
+          "id": "cat8-improvement-two-verified-fixes",
+          "phase": "improvement",
+          "required": true,
+          "status": "missing",
+          "location": "audit_deliverable.verified_vulnerability_fixes"
+        }
+      ],
+      "measurements": [
+        {
+          "id": "cat8-security-probe-status",
+          "kind": "security_probe_status",
+          "label": "Security probe deliverable status",
+          "recorded_at": "2026-05-22",
+          "values": {
+            "runnable_probe_tool": false,
+            "structured_report_present": false,
+            "attack_surfaces_measured": 0,
+            "required_attack_surfaces": 4,
+            "verified_vulnerability_fixes": 0,
+            "required_verified_vulnerability_fixes": 2
+          },
+          "origin": "manual_entry",
+          "confidence": "manual",
+          "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt"
+        }
+      ],
+      "derived_metrics": [
+        {
+          "id": "cat8-required-attack-surface-coverage",
+          "kind": "count",
+          "value": 0,
+          "threshold": 4,
+          "origin": "computed",
+          "confidence": "manual"
+        },
+        {
+          "id": "cat8-verified-vulnerability-fix-count",
+          "kind": "count",
+          "value": 0,
+          "threshold": 2,
+          "origin": "computed",
+          "confidence": "manual"
+        }
+      ],
+      "targets": [
+        {
+          "id": "cat8-target-runnable-probe",
+          "description": "Runnable single-command security probe exists and produces a structured report.",
+          "metric_id": "cat8-security-probe-status",
+          "operator": "boolean_true",
+          "threshold": true,
+          "actual": false,
+          "result": "fail"
+        },
+        {
+          "id": "cat8-target-four-attack-surfaces",
+          "description": "Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs.",
+          "metric_id": "cat8-required-attack-surface-coverage",
+          "operator": "count_at_least",
+          "threshold": 4,
+          "actual": 0,
+          "result": "fail"
+        },
+        {
+          "id": "cat8-target-manual-review",
+          "description": "Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete.",
+          "operator": "manual_gate",
+          "result": "fail",
+          "reason": "Manual review fields are placeholders only.",
+          "references": [
+            "cat8-security-brief"
+          ]
+        },
+        {
+          "id": "cat8-target-two-verified-fixes",
+          "description": "At least two verified vulnerabilities have before/after proof.",
+          "metric_id": "cat8-verified-vulnerability-fix-count",
+          "operator": "count_at_least",
+          "threshold": 2,
+          "actual": 0,
+          "result": "fail"
+        }
+      ],
+      "acceptance_tests": [
+        {
+          "id": "cat8-probe-tool-runnable",
+          "type": "target_result",
+          "target_id": "cat8-target-runnable-probe",
+          "result": "fail"
+        },
+        {
+          "id": "cat8-four-attack-surfaces-covered",
+          "type": "target_result",
+          "target_id": "cat8-target-four-attack-surfaces",
+          "result": "fail"
+        },
+        {
+          "id": "cat8-manual-review-complete",
+          "type": "target_result",
+          "target_id": "cat8-target-manual-review",
+          "result": "fail"
+        },
+        {
+          "id": "cat8-two-verified-vulnerability-fixes",
+          "type": "target_result",
+          "target_id": "cat8-target-two-verified-fixes",
+          "result": "fail"
+        }
+      ],
+      "claims": [
+        {
+          "id": "cat8-security-audit-open",
+          "status": "open",
+          "statement": "Security 8 is represented as a required lane, but no runnable probe/report and no two verified probe-driven vulnerability fixes are evidenced yet.",
+          "basis": [
+            "cat8-security-probe-status",
+            "cat8-target-runnable-probe",
+            "cat8-target-two-verified-fixes"
+          ],
+          "limits": [
+            "Dependency cleanup and authz hardening are useful context, but they do not substitute for the required security probe deliverable.",
+            "No high/critical CVE count is claimed from this ledger entry.",
+            "No CORS/CSP/secrets/rate-limit/error-review completion is claimed."
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "cat8-security-brief",
+          "type": "source_doc",
+          "path": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+          "description": "Category 8 source brief defining required probe/manual review/fix proof."
+        },
+        {
+          "id": "cat8-dependency-cleanup-context",
+          "type": "source_doc",
+          "path": "my-docs/DECISION_LOG.md",
+          "description": "Dependency cleanup decision records zero-advisory audit context, but it is not a full Security 8 probe."
+        }
+      ],
+      "caveats": [
+        "This pass does not build the security probe tool.",
+        "Security fixes elsewhere remain context until packaged with probe output and before/after vulnerability proof."
+      ],
+      "non_claims": [
+        "Does not claim Security 8 completion.",
+        "Does not claim dependency cleanup alone satisfies Security 8.",
+        "Does not claim manual CORS/CSP/secrets/rate-limit/error review is complete."
+      ],
+      "sources": [
+        "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+        "my-docs/MEMORY.md",
+        "my-docs/DECISION_LOG.md"
+      ]
+    }
+  ]
+}

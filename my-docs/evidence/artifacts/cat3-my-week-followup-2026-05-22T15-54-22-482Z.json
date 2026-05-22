@@ -1,0 +1,321 @@
+{
+  "generated_at": "2026-05-22T15:56:42.054Z",
+  "base_url": "http://localhost:3000",
+  "duration_ms": 5000,
+  "rate_per_second": 100,
+  "connections": [
+    10,
+    25,
+    50
+  ],
+  "endpoints": [
+    "/api/documents?type=wiki",
+    "/api/issues",
+    "/api/dashboard/my-week",
+    "/api/projects",
+    "/api/bootstrap",
+    "/api/search/content?q=auditloadrareterm&limit=10",
+    "/api/search/content?q=auditloadmediumterm&limit=10",
+    "/api/search/content?q=auditloadcommonterm&limit=10",
+    "/api/search/content?q=auditloadnomatchterm&limit=10"
+  ],
+  "results": [
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 10,
+      "duration_ms": 5046,
+      "requests": 470,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 5.969915999999955,
+      "p95_ms": 9.843166999999994,
+      "p99_ms": 21.815082999999987
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 25,
+      "duration_ms": 5245,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.744375000000218,
+      "p95_ms": 18.772499999999127,
+      "p99_ms": 36.63458300000002
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 50,
+      "duration_ms": 5183,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.513958999999886,
+      "p95_ms": 46.33320800000001,
+      "p99_ms": 64.99837499999921
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 10,
+      "duration_ms": 5110,
+      "requests": 448,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.976999999998952,
+      "p95_ms": 24.895959000001312,
+      "p99_ms": 53.855875000001106
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 25,
+      "duration_ms": 5206,
+      "requests": 475,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 12.165916999998444,
+      "p95_ms": 77.81808399999863,
+      "p99_ms": 92.36320899999919
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 50,
+      "duration_ms": 5505,
+      "requests": 490,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 19.56858299999658,
+      "p95_ms": 161.79004200000054,
+      "p99_ms": 192.0144169999985
+    },
+    {
+      "endpoint": "/api/dashboard/my-week",
+      "concurrency": 10,
+      "duration_ms": 5082,
+      "requests": 460,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.97095900000204,
+      "p95_ms": 13.99041600000055,
+      "p99_ms": 25.816750000001775
+    },
+    {
+      "endpoint": "/api/dashboard/my-week",
+      "concurrency": 25,
+      "duration_ms": 5257,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.80545799999527,
+      "p95_ms": 21.41212500000256,
+      "p99_ms": 28.668125000003783
+    },
+    {
+      "endpoint": "/api/dashboard/my-week",
+      "concurrency": 50,
+      "duration_ms": 5156,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.839957999996841,
+      "p95_ms": 32.634666999998444,
+      "p99_ms": 38.42270799999824
+    },
+    {
+      "endpoint": "/api/projects",
+      "concurrency": 10,
+      "duration_ms": 5035,
+      "requests": 450,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.548540999996476,
+      "p95_ms": 14.63654200000019,
+      "p99_ms": 17.30708400000003
+    },
+    {
+      "endpoint": "/api/projects",
+      "concurrency": 25,
+      "duration_ms": 5214,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.70362500000192,
+      "p95_ms": 14.862082999999984,
+      "p99_ms": 18.498583000000508
+    },
+    {
+      "endpoint": "/api/projects",
+      "concurrency": 50,
+      "duration_ms": 5138,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 12.153666999998677,
+      "p95_ms": 23.807709000000614,
+      "p99_ms": 28.266374999999243
+    },
+    {
+      "endpoint": "/api/bootstrap",
+      "concurrency": 10,
+      "duration_ms": 5109,
+      "requests": 423,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 16.35229199999594,
+      "p95_ms": 41.02349999999569,
+      "p99_ms": 78.78983399999561
+    },
+    {
+      "endpoint": "/api/bootstrap",
+      "concurrency": 25,
+      "duration_ms": 5268,
+      "requests": 441,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 20.17949999999837,
+      "p95_ms": 117.36591699998826,
+      "p99_ms": 147.48237499999232
+    },
+    {
+      "endpoint": "/api/bootstrap",
+      "concurrency": 50,
+      "duration_ms": 5488,
+      "requests": 438,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 43.52008299999579,
+      "p95_ms": 276.4614580000052,
+      "p99_ms": 313.328290999998
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadrareterm&limit=10",
+      "concurrency": 10,
+      "duration_ms": 5039,
+      "requests": 470,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 6.054040999995777,
+      "p95_ms": 9.542957999990904,
+      "p99_ms": 12.299457999994047
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadrareterm&limit=10",
+      "concurrency": 25,
+      "duration_ms": 5191,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.555375000010827,
+      "p95_ms": 11.432792000006884,
+      "p99_ms": 12.101166000007652
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadrareterm&limit=10",
+      "concurrency": 50,
+      "duration_ms": 5108,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.819791000001715,
+      "p95_ms": 19.32666700000118,
+      "p99_ms": 20.98016700000153
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadmediumterm&limit=10",
+      "concurrency": 10,
+      "duration_ms": 5068,
+      "requests": 470,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 6.835458000001381,
+      "p95_ms": 9.140625,
+      "p99_ms": 10.443958000003477
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadmediumterm&limit=10",
+      "concurrency": 25,
+      "duration_ms": 5189,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.849874999999884,
+      "p95_ms": 12.436374999990221,
+      "p99_ms": 14.122291000006953
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadmediumterm&limit=10",
+      "concurrency": 50,
+      "duration_ms": 5110,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.303208999990602,
+      "p95_ms": 18.312749999997322,
+      "p99_ms": 19.244790999990073
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadcommonterm&limit=10",
+      "concurrency": 10,
+      "duration_ms": 5062,
+      "requests": 470,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 6.73895800000173,
+      "p95_ms": 9.41904200000863,
+      "p99_ms": 12.106499999994412
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadcommonterm&limit=10",
+      "concurrency": 25,
+      "duration_ms": 5177,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 7.861499999999069,
+      "p95_ms": 12.092499999998836,
+      "p99_ms": 12.5435839999991
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadcommonterm&limit=10",
+      "concurrency": 50,
+      "duration_ms": 5126,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.475250000003143,
+      "p95_ms": 18.57699999999022,
+      "p99_ms": 19.318916999996873
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadnomatchterm&limit=10",
+      "concurrency": 10,
+      "duration_ms": 5034,
+      "requests": 470,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 6.164583999998285,
+      "p95_ms": 9.324416999996174,
+      "p99_ms": 10.8159169999999
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadnomatchterm&limit=10",
+      "concurrency": 25,
+      "duration_ms": 5188,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.62941699998919,
+      "p95_ms": 13.262708000009297,
+      "p99_ms": 15.048875000007683
+    },
+    {
+      "endpoint": "/api/search/content?q=auditloadnomatchterm&limit=10",
+      "concurrency": 50,
+      "duration_ms": 5101,
+      "requests": 500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.279833000007784,
+      "p95_ms": 16.676166999997804,
+      "p99_ms": 17.803541000001132
+    }
+  ]
+}

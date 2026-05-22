@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import type { Pool } from 'pg'
+import { randomUUID } from 'crypto'
 
 /**
  * "Lock the Door" Authorization Tests
@@ -31,6 +33,126 @@ async function loginAsMember(page: Page) {
   await login(page, 'bob.martinez@ship.local')
 }
 
+async function getCsrfToken(page: Page): Promise<string> {
+  const csrfResponse = await page.request.get('/api/csrf-token')
+  expect(csrfResponse.status()).toBe(200)
+  const csrf = await csrfResponse.json()
+  return csrf.token
+}
+
+async function seedWorkspaceBoundaryCase(dbPool: Pool) {
+  const uniqueId = randomUUID()
+  const users = await dbPool.query(
+    `SELECT id, email, password_hash
+     FROM users
+     WHERE email = 'dev@ship.local'`
+  )
+
+  const devUser = users.rows.find(user => user.email === 'dev@ship.local')
+  expect(devUser).toBeTruthy()
+
+  const ownedWorkspace = await dbPool.query(
+    `INSERT INTO workspaces (name, sprint_start_date)
+     VALUES ($1, CURRENT_DATE)
+     RETURNING id`,
+    [`Owned Boundary Workspace ${uniqueId}`]
+  )
+  const ownedWorkspaceId = ownedWorkspace.rows[0].id as string
+
+  const ownedEmail = `owned-${uniqueId}@ship.local`
+  const ownedUser = await dbPool.query(
+    `INSERT INTO users (email, password_hash, name, last_workspace_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id`,
+    [ownedEmail, devUser.password_hash, 'Owned Boundary User', ownedWorkspaceId]
+  )
+  const ownedUserId = ownedUser.rows[0].id as string
+
+  await dbPool.query(
+    `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+     VALUES ($1, $2, 'member')`,
+    [ownedWorkspaceId, ownedUserId]
+  )
+
+  await dbPool.query(
+    `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
+     VALUES ($1, 'person', $2, $3, $4)`,
+    [
+      ownedWorkspaceId,
+      'Owned Boundary User',
+      JSON.stringify({ user_id: ownedUserId, email: ownedEmail }),
+      ownedUserId,
+    ]
+  )
+
+  const foreignWorkspace = await dbPool.query(
+    `INSERT INTO workspaces (name, sprint_start_date)
+     VALUES ($1, CURRENT_DATE)
+     RETURNING id`,
+    [`Foreign Workspace ${uniqueId}`]
+  )
+  const foreignWorkspaceId = foreignWorkspace.rows[0].id as string
+
+  const foreignUser = await dbPool.query(
+    `INSERT INTO users (email, password_hash, name, last_workspace_id)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id`,
+    [`foreign-${uniqueId}@ship.local`, devUser.password_hash, 'Foreign User', foreignWorkspaceId]
+  )
+  const foreignUserId = foreignUser.rows[0].id as string
+
+  await dbPool.query(
+    `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+     VALUES ($1, $2, 'admin')`,
+    [foreignWorkspaceId, foreignUserId]
+  )
+
+  const ownedIssue = await dbPool.query(
+    `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
+     VALUES ($1, 'issue', $2, $3, 9701, $4)
+     RETURNING id`,
+    [
+      ownedWorkspaceId,
+      'Owned boundary issue',
+      JSON.stringify({ state: 'todo', priority: 'medium', source: 'manual' }),
+      ownedUserId,
+    ]
+  )
+
+  const foreignDoc = await dbPool.query(
+    `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
+     VALUES ($1, 'wiki', $2, $3, $4)
+     RETURNING id`,
+    [
+      foreignWorkspaceId,
+      'Foreign boundary document',
+      JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hidden' }] }] }),
+      foreignUserId,
+    ]
+  )
+
+  const foreignIssue = await dbPool.query(
+    `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
+     VALUES ($1, 'issue', $2, $3, 9702, $4)
+     RETURNING id`,
+    [
+      foreignWorkspaceId,
+      'Foreign boundary issue',
+      JSON.stringify({ state: 'todo', priority: 'high', source: 'manual' }),
+      foreignUserId,
+    ]
+  )
+
+  return {
+    ownedEmail,
+    ownedWorkspaceId,
+    ownedIssueId: ownedIssue.rows[0].id as string,
+    foreignWorkspaceId,
+    foreignDocId: foreignDoc.rows[0].id as string,
+    foreignIssueId: foreignIssue.rows[0].id as string,
+  }
+}
+
 test.describe('Authorization - Super Admin Access Control', () => {
   test('non-super-admin cannot access /admin when logged in', async ({ page }) => {
     // Login as regular member (bob.martinez is not super-admin)
@@ -55,17 +177,14 @@ test.describe('Authorization - Super Admin Access Control', () => {
     await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
   })
 
-  test('non-super-admin cannot toggle super-admin status via API', async ({ page, request }) => {
+  test('non-super-admin cannot toggle super-admin status via API', async ({ page }) => {
     // Login as regular member to get their session
     await loginAsMember(page)
-
-    // Get cookies from browser context
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const csrfToken = await getCsrfToken(page)
 
     // Try to make themselves super-admin via API
-    const response = await request.patch('/api/admin/users/some-id/super-admin', {
-      headers: { 'Cookie': cookieHeader, 'Content-Type': 'application/json' },
+    const response = await page.request.patch('/api/admin/users/some-id/super-admin', {
+      headers: { 'x-csrf-token': csrfToken },
       data: { isSuperAdmin: true }
     })
 
@@ -96,15 +215,13 @@ test.describe('Authorization - Workspace Admin Access Control', () => {
     await expect(page.getByText('Workspace Settings')).toBeVisible()
   })
 
-  test('workspace member cannot change another user role via API', async ({ page, request }) => {
+  test('workspace member cannot change another user role via API', async ({ page }) => {
     await loginAsMember(page)
-
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const csrfToken = await getCsrfToken(page)
 
     // Try to change someone's role
-    const response = await request.patch('/api/workspaces/any-id/members/any-user-id', {
-      headers: { 'Cookie': cookieHeader, 'Content-Type': 'application/json' },
+    const response = await page.request.patch('/api/workspaces/any-id/members/any-user-id', {
+      headers: { 'x-csrf-token': csrfToken },
       data: { role: 'admin' }
     })
 
@@ -112,15 +229,13 @@ test.describe('Authorization - Workspace Admin Access Control', () => {
     expect(response.status()).toBeGreaterThanOrEqual(403)
   })
 
-  test('workspace member cannot send invites via API', async ({ page, request }) => {
+  test('workspace member cannot send invites via API', async ({ page }) => {
     await loginAsMember(page)
-
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const csrfToken = await getCsrfToken(page)
 
     // Try to send an invite
-    const response = await request.post('/api/workspaces/any-id/invites', {
-      headers: { 'Cookie': cookieHeader, 'Content-Type': 'application/json' },
+    const response = await page.request.post('/api/workspaces/any-id/invites', {
+      headers: { 'x-csrf-token': csrfToken },
       data: { email: 'hacker@evil.com', role: 'admin' }
     })
 
@@ -130,54 +245,68 @@ test.describe('Authorization - Workspace Admin Access Control', () => {
 })
 
 test.describe('Authorization - Cross-Workspace Isolation', () => {
-  test('cannot access document from another workspace via direct URL', async ({ page }) => {
-    // This test requires having documents in different workspaces
-    // For now, test that accessing a non-existent doc returns 404/403
+  test('cannot access document from another workspace via direct URL', async ({ page, dbPool }) => {
+    const boundary = await seedWorkspaceBoundaryCase(dbPool)
+    await login(page, boundary.ownedEmail)
 
-    await loginAsMember(page)
+    await page.goto(`/documents/${boundary.foreignDocId}`)
 
-    // Try to access a document that doesn't exist (simulates cross-workspace access)
-    await page.goto('/documents/00000000-0000-0000-0000-000000000000')
-
-    // The app should show an error state for non-existent documents
-    // UnifiedDocumentPage shows "Document not found" message instead of redirecting
     await expect(page.getByText('Document not found')).toBeVisible({ timeout: 5000 })
-
-    // There should be a link to go back to documents
     await expect(page.getByText('Go to Documents')).toBeVisible({ timeout: 3000 })
   })
 
-  test('API rejects document access for wrong workspace', async ({ page, request }) => {
-    await loginAsMember(page)
+  test('API rejects real foreign document and issue access', async ({ page, dbPool }) => {
+    const boundary = await seedWorkspaceBoundaryCase(dbPool)
+    await login(page, boundary.ownedEmail)
 
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const documentResponse = await page.request.get(`/api/documents/${boundary.foreignDocId}`)
+    expect([403, 404]).toContain(documentResponse.status())
 
-    // Try to access a document via API with fake ID
-    const response = await request.get('/api/documents/00000000-0000-0000-0000-000000000000', {
-      headers: { 'Cookie': cookieHeader }
-    })
-
-    // Should return 404 or 403
-    expect([403, 404]).toContain(response.status())
+    const issueResponse = await page.request.get(`/api/issues/${boundary.foreignIssueId}`)
+    expect(issueResponse.status()).toBe(404)
   })
 
-  test('cannot list documents from another workspace', async ({ page, request }) => {
-    await loginAsMember(page)
+  test('bulk issue updates mutate owned IDs only and report foreign IDs as failed', async ({ page, dbPool }) => {
+    const boundary = await seedWorkspaceBoundaryCase(dbPool)
+    await login(page, boundary.ownedEmail)
 
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const csrfToken = await getCsrfToken(page)
 
-    // Documents endpoint should only return current workspace docs
-    const response = await request.get('/api/documents', {
-      headers: { 'Cookie': cookieHeader }
+    const response = await page.request.post('/api/issues/bulk', {
+      headers: { 'x-csrf-token': csrfToken },
+      data: {
+        ids: [boundary.ownedIssueId, boundary.foreignIssueId],
+        action: 'update',
+        updates: { state: 'in_progress' },
+      },
     })
 
     expect(response.status()).toBe(200)
+    const data = await response.json()
+    expect(data.updated.map((issue: { id: string }) => issue.id)).toEqual([boundary.ownedIssueId])
+    expect(data.failed).toContainEqual({ id: boundary.foreignIssueId, error: 'Not found or no access' })
+
+    const states = await dbPool.query(
+      `SELECT id, properties->>'state' AS state
+       FROM documents
+       WHERE id = ANY($1)`,
+      [[boundary.ownedIssueId, boundary.foreignIssueId]]
+    )
+    const stateById = Object.fromEntries(states.rows.map(row => [row.id, row.state]))
+    expect(stateById[boundary.ownedIssueId]).toBe('in_progress')
+    expect(stateById[boundary.foreignIssueId]).toBe('todo')
+  })
+
+  test('cannot list documents from another workspace', async ({ page, dbPool }) => {
+    const boundary = await seedWorkspaceBoundaryCase(dbPool)
+    await login(page, boundary.ownedEmail)
+
+    const response = await page.request.get('/api/documents')
+    expect(response.status()).toBe(200)
 
     const data = await response.json()
-    // API returns an array of documents - all should belong to user's workspace
     expect(Array.isArray(data)).toBe(true)
+    expect(data.some((doc: { id: string }) => doc.id === boundary.foreignDocId)).toBe(false)
   })
 })
 
@@ -197,28 +326,24 @@ test.describe('Authorization - API Route Protection', () => {
     }
   })
 
-  test('cannot create workspace without super-admin', async ({ page, request }) => {
+  test('cannot create workspace without super-admin', async ({ page }) => {
     await loginAsMember(page)
+    const csrfToken = await getCsrfToken(page)
 
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
-
-    const response = await request.post('/api/admin/workspaces', {
-      headers: { 'Cookie': cookieHeader, 'Content-Type': 'application/json' },
+    const response = await page.request.post('/api/admin/workspaces', {
+      headers: { 'x-csrf-token': csrfToken },
       data: { name: 'Hacker Workspace' }
     })
 
     expect(response.status()).toBe(403)
   })
 
-  test('cannot archive workspace without super-admin', async ({ page, request }) => {
+  test('cannot archive workspace without super-admin', async ({ page }) => {
     await loginAsMember(page)
+    const csrfToken = await getCsrfToken(page)
 
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
-
-    const response = await request.post('/api/admin/workspaces/any-id/archive', {
-      headers: { 'Cookie': cookieHeader }
+    const response = await page.request.post('/api/admin/workspaces/any-id/archive', {
+      headers: { 'x-csrf-token': csrfToken }
     })
 
     expect(response.status()).toBe(403)
@@ -226,15 +351,13 @@ test.describe('Authorization - API Route Protection', () => {
 })
 
 test.describe('Authorization - Impersonation Controls', () => {
-  test('non-super-admin cannot impersonate users', async ({ page, request }) => {
+  test('non-super-admin cannot impersonate users', async ({ page }) => {
     await loginAsMember(page)
-
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const csrfToken = await getCsrfToken(page)
 
     // Impersonate endpoint is POST /api/admin/impersonate/:userId
-    const response = await request.post('/api/admin/impersonate/some-user-id', {
-      headers: { 'Cookie': cookieHeader, 'Content-Type': 'application/json' }
+    const response = await page.request.post('/api/admin/impersonate/some-user-id', {
+      headers: { 'x-csrf-token': csrfToken }
     })
 
     expect(response.status()).toBe(403)
@@ -249,19 +372,15 @@ test.describe('Authorization - Impersonation Controls', () => {
     expect(usersResponse.status()).toBe(200)
     const usersData = await usersResponse.json()
     const targetUser = usersData.data?.users?.find((u: { email: string }) => u.email !== 'dev@ship.local')
-
-    // Skip test if no other users to impersonate (can't impersonate yourself)
-    if (!targetUser) {
-      console.log('Skipping impersonation test - no other users available')
-      return
-    }
+    expect(targetUser).toBeTruthy()
+    const csrfToken = await getCsrfToken(page)
 
     // Impersonate endpoint is POST /api/admin/impersonate/:userId
-    const response = await page.request.post(`/api/admin/impersonate/${targetUser.id}`)
+    const response = await page.request.post(`/api/admin/impersonate/${targetUser.id}`, {
+      headers: { 'x-csrf-token': csrfToken }
+    })
 
-    // Should succeed (200 = can impersonate, 403 = endpoint exists but blocked by policy)
-    // Accept either as valid since impersonation may be disabled in some configs
-    expect([200, 403]).toContain(response.status())
+    expect(response.status()).toBe(200)
   })
 })
 

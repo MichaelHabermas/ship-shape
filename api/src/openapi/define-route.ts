@@ -32,6 +32,7 @@ export type DefineRouteConfig<TParsed extends RouteRequestSchemas> = {
   security?: Array<Record<string, string[]>>;
   request?: TParsed;
   responses: Record<number, RouteResponseSchema>;
+  validationError?: (res: Response, error: RouteValidationError) => void;
   handler: (
     req: Request,
     res: Response,
@@ -70,13 +71,11 @@ function registerOpenApiResponses(
     };
   }
 
-  registry.registerPath({
+  const pathConfig: Parameters<typeof registry.registerPath>[0] = {
     method: config.method,
     path: config.path,
     tags: config.tags,
     summary: config.summary,
-    description: config.description,
-    operationId: config.operationId,
     security: config.security,
     request: config.request
       ? ({
@@ -88,7 +87,16 @@ function registerOpenApiResponses(
         } as Parameters<typeof registry.registerPath>[0]['request'])
       : undefined,
     responses: openApiResponses,
-  });
+  };
+
+  if (config.description !== undefined) {
+    pathConfig.description = config.description;
+  }
+  if (config.operationId !== undefined) {
+    pathConfig.operationId = config.operationId;
+  }
+
+  registry.registerPath(pathConfig);
 
   return metadata;
 }
@@ -104,13 +112,17 @@ function parsePart<T extends z.ZodTypeAny | undefined>(
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
     const message = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
-    throw new RouteValidationError(`${label} validation failed: ${message}`);
+    throw new RouteValidationError(`${label} validation failed: ${message}`, parsed.error);
   }
   return parsed.data;
 }
 
 export class RouteValidationError extends Error {
   readonly statusCode = 400;
+
+  constructor(message: string, readonly zodError: z.ZodError) {
+    super(message);
+  }
 }
 
 export function defineRoute<T extends RouteRequestSchemas>(
@@ -127,6 +139,10 @@ export function defineRoute<T extends RouteRequestSchemas>(
       });
     } catch (error) {
       if (error instanceof RouteValidationError) {
+        if (config.validationError) {
+          config.validationError(res, error);
+          return;
+        }
         res.status(error.statusCode).json({
           success: false,
           error: {

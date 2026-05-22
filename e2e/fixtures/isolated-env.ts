@@ -74,12 +74,14 @@ type WorkerFixtures = {
   webServer: { url: string; process: ChildProcess };
 };
 
+type TestFixtures = {
+  apiServer: { url: string; process: ChildProcess };
+  dbPool: Pool;
+};
+
 // Extend the base test with our isolated environment
 // Worker fixtures are accessible in tests but live at worker scope
-export const test = base.extend<
-  { apiServer: { url: string; process: ChildProcess } },
-  WorkerFixtures
->({
+export const test = base.extend<TestFixtures, WorkerFixtures>({
   // Override context to disable action items modal for ALL pages (including multi-page tests)
   context: async ({ context }, use) => {
     // Set localStorage flag to disable action items modal before any navigation
@@ -254,6 +256,15 @@ export const test = base.extend<
   // Override baseURL to use our isolated web server
   baseURL: async ({ webServer }, use) => {
     await use(webServer.url);
+  },
+
+  dbPool: async ({ dbContainer }, use) => {
+    const pool = new Pool({ connectionString: dbContainer.getConnectionUri() });
+    try {
+      await use(pool);
+    } finally {
+      await pool.end();
+    }
   },
 });
 

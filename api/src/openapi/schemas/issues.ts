@@ -90,6 +90,10 @@ export const IssueListResponseSchema = IssueResponseSchema
     assignee_id: UuidSchema.optional(),
     assignee_name: z.string().optional(),
     estimate: z.number().positive().optional(),
+    created_at: DateTimeSchema.optional(),
+    belongs_to: z.array(BelongsToResponseSchema).optional().openapi({
+      description: 'Associated documents when present; omitted for issues with no associations.',
+    }),
   })
   .openapi('IssueListItem');
 

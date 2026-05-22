@@ -985,3 +985,68 @@ Resolution evidence from this pass:
 - Focused authz-adjacent API batch passed against disposable `ship_test_audit`: 34 files / 498 tests.
 
 GFA honesty: this is security/authorization hardening. Do not count it as Week 4 category completion unless tied to a source-required measurement.
+
+---
+
+## Category 3 payload and query-count follow-up (2026-05-22)
+
+The API benchmark/explain rerun showed the remaining Category 3 bottleneck was not SQL. `pnpm perf:explain` kept list/search queries in low single-digit milliseconds, while authenticated payload probes showed `/api/issues` at 307,043 bytes and `/api/bootstrap` at 429,806 bytes, dominated by issue list rows.
+
+Implemented the safe slice: shared issue-list response shaping in `api/src/utils/issue-response.ts`, reused by `/api/issues` and `/api/bootstrap`, omitting list-only `created_at` and omitting `belongs_to` when empty. Detail responses still include full timestamps and associations. OpenAPI was regenerated and `IssueListItem` now marks those list fields optional.
+
+Evidence captured:
+
+- Payload check after change: `/api/issues` 246,883 bytes; `/api/bootstrap` 369,646 bytes.
+- Focused benchmark: `test-results/benchmarks/api-2026-05-22T15-04-55-978Z.json`. `/api/issues` P95 improved to 12.92/24.50/85.47ms at 10/25/50c versus original 19.01/37.35/99.13ms. `/api/bootstrap` remains mixed at 22.05/84.12/200.35ms versus original 24.74/50.24/220.81ms.
+- Query-count rail repaired: `test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json` now reports real counts (`/api/issues` 4 queries, `/api/bootstrap` 24 queries, old startup fanout 33 queries).
+- `pnpm type-check` passed; `pnpm openapi:check` passed at 193 runtime / 193 OpenAPI routes.
+
+Claim boundary: this improves `/api/issues` and bootstrap payload size, but Category 3 still needs a clean second endpoint P95 win. Bootstrap is still the likely target, but query count says the next move should be payload segmentation/compression or narrower bootstrap hydration, not index work.
+
+---
+
+## First-run setup race closeout (2026-05-22)
+
+Scout selected setup initialization as the next safest security foundation slice after the perf payload work. The defect was real: `POST /api/setup/initialize` did `SELECT COUNT(*) FROM users`, then inserted the workspace/user/membership/person/wiki with separate autocommit statements. Concurrent first-run requests could both pass the empty-user check.
+
+Fix: `api/src/routes/setup.ts` now hashes the password before taking a DB client, then uses `BEGIN`, `pg_advisory_xact_lock(hashtext('ship_setup_initialize'))`, repeats the user count inside the lock, and creates the workspace/user/membership/person/welcome document in the same transaction. Already-completed setup rolls back and returns the existing 403 envelope.
+
+Evidence: `api/src/routes/setup.test.ts` sends two concurrent CSRF-valid initialize requests against an empty disposable DB and asserts sorted statuses `[201, 403]` plus exactly one user, workspace, and membership. Rerun command passed: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/setup.test.ts src/routes/openapi-contract.test.ts` (2 files / 5 tests). `pnpm type-check` also passed.
+
+---
+
+## My Week + contract/authz execution slice (2026-05-22)
+
+Root cause on `/api/dashboard/my-week`: remaining latency was mostly serialized route work, not expensive SQL or payload weight. The route now does workspace/person lookup in one query, fetches weekly plan/current retro/previous retro with one `document_type IN (...)` query, and runs standup + allocation queries in parallel after dates are computed.
+
+Contract finding: public feedback was still route-local in practice even though feedback had other `defineRoute` pilots. Moving it under `defineRoute` needed a small legacy validation hook because breaking flat public `{ error }` shapes would be worse than envelope purity.
+
+Authz finding: fake-ID E2E tests were confidence theater. The isolated fixture now exposes `dbPool`, and the authorization spec seeds real owned/foreign workspace documents and issues. The tests prove document/issue reads reject real foreign IDs and mixed bulk updates mutate only owned IDs while reporting the foreign ID in `failed`.
+
+Reliability finding: `my-week-stale-data.spec.ts` used fixed 3s sleeps after the editor showed `Saved`. The stronger proof is server-observed: poll `/api/dashboard/my-week` until the edited text is returned, then require a fresh dashboard network response after navigation.
+
+Evidence captured:
+
+- `pnpm type-check`: pass.
+- `pnpm openapi:generate`: pass with sandbox escalation for `tsx` IPC.
+- `pnpm openapi:check:strict`: 193 runtime routes / 193 OpenAPI routes / 0 missing / 0 stale.
+- Focused API contract tests on `ship_test_audit`: 3 files / 11 tests passed.
+- `pnpm perf:query-count-api`: `test-results/perf/query-count-api-2026-05-22T15-50-29-330Z.json`; `/api/dashboard/my-week` reports 5 queries and 1345 response bytes.
+- `pnpm perf:explain`: `test-results/perf/explain-performance-2026-05-22T15-50-50-539Z.json`.
+- `pnpm benchmark:api`: first 2026-05-22T15-51 run was invalid because rate limiting returned 429s; rerun under `NODE_ENV=test` wrote `test-results/benchmarks/api-2026-05-22T15-54-22-482Z.json` with 0 non-2xx for `/api/dashboard/my-week`.
+- E2E authorization and My Week stale-data specs were not executed because Docker/Testcontainers was unavailable; `pnpm exec playwright test --list e2e/authorization.spec.ts e2e/my-week-stale-data.spec.ts` listed all 20 tests successfully.
+
+Claim boundary: this is a real route-shape improvement and better test shape, but Category 3 remains partial. `/api/dashboard/my-week` has follow-up P95 measurement after the change, but it is not part of the identical-condition before/after proof group and does not establish a second endpoint clearing the 20% P95 bar under the standard benchmark matrix.
+
+### Correctness verification follow-up
+
+Parallel review found and fixed three concrete issues:
+
+- Public feedback OpenAPI drift: `defineRoute` now omits undefined `description` / `operationId` fields, `FeedbackLegacyError` documents optional validation `details`, and public program lookup no longer advertises an unreachable 400 response.
+- Authorization E2E proof isolation: boundary tests now create their own owned workspace/user/person/issue instead of inserting records into Bob's seeded workspace.
+- Mutating authorization checks now fetch and send CSRF tokens through `page.request`, so 403 assertions prove authorization boundaries instead of missing-CSRF rejection.
+
+Docs/evidence corrections from the same verification:
+
+- Category 4 wording now says query-count improvement is proven for the app-shell flow, but full source compliance still needs before/after `EXPLAIN ANALYZE` proof.
+- Cat 3 ledger payload bytes now match the newer narrative evidence, and My Week follow-up wording explicitly excludes that benchmark from endpoint-clearance proof.

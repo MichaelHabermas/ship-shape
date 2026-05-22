@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
-import { FeedbackProgramPublicSchema } from '../openapi/schemas/feedback.js';
+import { FeedbackItemSchema, FeedbackProgramPublicSchema } from '../openapi/schemas/feedback.js';
 import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 describe('Public Feedback API', () => {
@@ -96,14 +96,22 @@ describe('Public Feedback API', () => {
       });
 
     expect(createRes.status).toBe(201);
-    expect(createRes.body.program_id).toBe(enabledProgramId);
-    expect(createRes.body.source).toBe('external');
-    expect(createRes.body.program_prefix).toBe('EN');
+    const feedback = expectOpenApiResponse({
+      method: 'post',
+      path: '/feedback',
+      status: 201,
+      response: createRes,
+      openApiSchemaName: 'FeedbackItem',
+      schema: FeedbackItemSchema,
+    });
+    expect(feedback.program_id).toBe(enabledProgramId);
+    expect(feedback.source).toBe('external');
+    expect(feedback.program_prefix).toBe('EN');
 
     const assocResult = await pool.query(
       `SELECT id FROM document_associations
        WHERE document_id = $1 AND related_id = $2 AND relationship_type = 'program'`,
-      [createRes.body.id, enabledProgramId]
+      [feedback.id, enabledProgramId]
     );
     expect(assocResult.rows).toHaveLength(1);
 
@@ -113,6 +121,23 @@ describe('Public Feedback API', () => {
 
     expect(disabledRes.status).toBe(404);
     expect(disabledRes.body.error).toBe('Program not found');
+  });
+
+  it('preserves legacy validation response shape for invalid public feedback', async () => {
+    const res = await request(app)
+      .post('/api/feedback')
+      .send({ title: '', program_id: enabledProgramId });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Invalid input');
+    expect(res.body.details).toEqual(expect.any(Array));
+  });
+
+  it('returns legacy not-found shape for invalid public program IDs', async () => {
+    const res = await request(app).get('/api/feedback/program/not-a-uuid');
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Program not found');
   });
 
   it('rejects feedback for private programs', async () => {
