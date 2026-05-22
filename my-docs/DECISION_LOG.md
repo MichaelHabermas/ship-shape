@@ -400,11 +400,11 @@ Evidence: `pnpm --filter @ship/web exec vitest run src/components/editor/Backlin
 
 Status: Accepted
 
-Decision: Use `pnpm a11y:closeout` as a repeatable Playwright/axe reporter for `/docs`, a real `/documents/:id`, and `/my-week`. Keep it non-blocking by default, with `-- --fail-on-serious` available when the known contrast debt is resolved and the team wants a hard gate.
+Decision: Use `pnpm a11y:closeout` as a repeatable Playwright/axe reporter for `/docs`, `/projects`, a real `/documents/:id`, and supporting `/my-week`. Keep it non-blocking by default, with `-- --fail-on-serious` available when the known contrast debt is resolved and the team wants a hard gate.
 
 Why: The manual closeout found real product/a11y signals, but some are currently known failures. A report-first runner saves manual effort without making the normal E2E lane fail on already-known debt.
 
-Consequences: Category 7 can be remeasured quickly, and the report can become a gate when serious violations are resolved. Later closeout evidence showed the `--fail-on-serious` gate passing on `/docs`, a selected document page, and `/my-week`; Lighthouse remains unrereun.
+Consequences: Category 7 can be remeasured quickly, and the report can become a gate when serious violations are resolved. Later closeout evidence showed the `--fail-on-serious` gate passing on `/docs`, `/projects`, a selected document page, and supporting `/my-week`; Lighthouse remains unrereun.
 
 Evidence: `pnpm a11y:closeout` writes `test-results/a11y-closeout/axe-summary.json` and screenshots.
 
@@ -751,3 +751,31 @@ Evidence: `pnpm type-safety:counts` after the pass reports `as` assertions at 46
 Correctness follow-up: Review found that persisted document types must not be silently remapped to `wiki`, and runtime query parsing should not live under the OpenAPI schema module. The mapper now preserves `standup` and `weekly_review` as base editor views, returning `null` only for truly unknown document type strings. Runtime query helpers live in `api/src/utils/query-params.ts`; `api/src/openapi/schemas/query-helpers.ts` only exports schema constants. Focused verification passed: `pnpm type-check`; web mapper test 5/5; API search/OpenAPI tests 30/30 on `ship_test_audit`; query-param and approval-workflow utility tests 7/7 on `ship_test_audit`.
 
 **Decision Gist**: Remove casts at ingress boundaries, not by moving assertions around.
+
+### D044: AI Provider Outage Uses Explicit Degraded Mode
+
+Status: Accepted
+
+Decision: Treat missing Bedrock/AWS credentials as an expected degraded runtime state, not as a generic server failure. AI status and analysis endpoints return controlled `ai_unavailable` JSON, and plan/retro quality banners show a concise unavailable message while keeping editor content and existing persisted analysis visible.
+
+Why: The AI assistant is helpful but non-critical. A provider credential outage should not look like data loss, a blank assistant, or noisy stack output to the user.
+
+Consequences: Future AI features should share the same provider-availability guard and degraded response shape. Do not count provider outage handling as Security Cat 8; it is Category 6 runtime-error UX evidence.
+
+Evidence: `pnpm --filter @ship/web exec vitest run src/components/PlanQualityBanner.test.tsx` passed; `node scripts/cat6-ai-unavailable-evidence.mjs` wrote `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The collector now requires an existing weekly plan or `CAT6_DOCUMENT_PATH`, so it does not manufacture evidence data.
+
+**Decision Gist**: AI unavailable is a supported degraded mode.
+
+### D045: Bootstrap Payload Can Be Narrower Than Detail Payloads
+
+Status: Accepted
+
+Decision: `/api/bootstrap` may return metadata/list projections for app-shell hydration while detail endpoints remain full-fidelity. Bootstrap-seeded React Query list caches should be marked stale when fields are intentionally narrowed so observed list/detail queries refetch their complete contracts.
+
+Why: Bootstrap is an app-shell accelerator, not a detail endpoint. Shipping editor/detail-heavy fields in the shell payload increases latency risk without improving initial navigation.
+
+Consequences: Any narrowed bootstrap field must be reflected in OpenAPI and frontend consumers. Do not remove user-facing capability; if a route needs full document/project detail, keep loading it from the existing detail endpoint.
+
+Evidence: `pnpm type-check`; OpenAPI regenerated; focused API route tests on `ship_test_audit` passed for bootstrap/issues/search/visibility. The full benchmark rerun was excluded from Cat 3 proof because rate limiting caused non-2xx responses.
+
+**Decision Gist**: Bootstrap is metadata-first; detail routes keep full data.

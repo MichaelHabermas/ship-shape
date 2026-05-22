@@ -1063,3 +1063,21 @@ The useful cast-reduction pattern was not "delete every `as`." `as const`, DOM/l
 - Document pages/tabs now map API responses into editor views through a web-local mapper; `belongs_to` remains the relationship source of truth and wins over legacy flattened relationship fields.
 
 Evidence: `pnpm type-safety:counts` moved `as` from 575 total / 461 production to 460 total / 346 production, while `any` and non-null counts held at 91/1 and 71/35. `pnpm type-check` passed, focused web mapper/tab tests passed 25/25, focused API route tests passed 108/108 on `ship_test_audit`, full web passed 168/168, and full API passed 509/509.
+
+---
+
+## Non-Cat-8 closeout pass (2026-05-22)
+
+Closed the non-Cat-8 admissibility gaps that had evidence but not proof packaging:
+
+- Category 2 now has an after bundle-analysis HTML artifact from `my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
+- Category 4 now has explicit before/after bootstrap EXPLAIN evidence in `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json`; claim remains flow-level query-count/request-count consolidation.
+- Category 7 closeout now scans `/projects` in addition to `/docs`, a real `/documents/:id`, and supporting `/my-week`; all four have 0 critical/serious axe violations in `test-results/a11y-closeout/axe-summary.json`.
+- Category 6 now has a third explicit fix record: AI/Bedrock unavailable degraded mode, with screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The evidence collector was corrected to use existing data or `CAT6_DOCUMENT_PATH` rather than creating a weekly plan.
+- Category 3 bootstrap was narrowed further, but the standard full benchmark rerun hit rate limits and is excluded from proof. Category 3 remains partial instead of being rounded up.
+
+Validation notes:
+
+- `pnpm submission:validate` passes schema/gates for Cats 2, 4, 6, and 7; Cat 3 remains partial; Cat 8 remains open by instruction.
+- `pnpm submission:render` regenerated `my-docs/reviewer-dashboard.html` and the generated ledger block in `my-docs/IMPROVEMENT_REPORT.md`.
+- Focused Cat 6 E2E rerun was blocked by Docker/Testcontainers preflight in this environment; do not describe it as a fresh pass.

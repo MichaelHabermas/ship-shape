@@ -270,15 +270,15 @@ Official before/after `any` counts use the TypeScript AST audit counter describe
 
 ### Measurement Method
 
-Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-complete bundle evidence still needs a committed treemap or equivalent before/after bundle analysis artifact.
+Production Vite build output plus `web/dist/assets` JS/CSS byte count. The closeout evidence uses the historical baseline treemap/stats plus a dependency-free after bundle-analysis artifact generated from current `web/dist`.
 
 ### Scorecard
 
 | Metric                         | Baseline                                                                        | Latest                                       | Last Measured | Change                                        | Required Change                                                          | Stretch Goal |
 | ------------------------------ | ------------------------------------------------------------------------------- | -------------------------------------------- | ------------- | --------------------------------------------- | ------------------------------------------------------------------------ | ------------ |
-| Total production bundle size   | 2,262.65 KB JS/CSS                                                              | 2,337.76 KB JS/CSS                           | 2026-05-21    | +75.11 KB                                     | 15% reduction in total production bundle size                            |              |
-| Largest chunk                  | `assets/index-C2vAyoQ1.js` (2,025.10 KB)                                        | largest built chunk about 817.62 KB          | 2026-05-21    | about -1,207.48 KB / -59.6% largest-chunk reduction | 20% reduction in initial page load bundle if using code splitting target |              |
-| Initial entry chunk            | `assets/index-C2vAyoQ1.js` (2,025.10 KB)                                        | entry chunk about 517.82 KB                  | 2026-05-21    | about -1,507.28 KB / -74.4%                   | 20% reduction in initial page load bundle                                |              |
+| Total production bundle size   | 2,262.65 KB JS/CSS                                                              | 2,396.22 KB JS/CSS                           | 2026-05-22    | +133.57 KB                                    | 15% reduction in total production bundle size                            |              |
+| Largest chunk                  | `assets/index-C2vAyoQ1.js` (2,025.10 KB)                                        | `assets/PropertyRow-Cr7SduwG.js` 837.24 KB   | 2026-05-22    | -1,187.86 KB / -58.7% largest-chunk reduction | 20% reduction in initial page load bundle if using code splitting target |              |
+| Initial entry chunk            | `assets/index-C2vAyoQ1.js` (2,025.10 KB)                                        | `assets/index-CeOsbhgF.js` 530.77 KB         | 2026-05-22    | -1,494.33 KB / -73.8%                         | 20% reduction in initial page load bundle                                |              |
 | Number of chunks               | 262 JS/CSS chunks                                                               | 295 JS/CSS chunks                            | 2026-05-20    | +33 chunks                                    | Before/after bundle analysis output                                      |              |
 | Top 3 largest dependencies     | `emoji-picker-react` (399.59 KB), `highlight.js` (377.92 KB), `yjs` (264.92 KB) |                                              |               |                                               | No functionality removal                                                 |              |
 | Unused dependencies identified | `@tanstack/query-sync-storage-persister`                                        |                                              |               |                                               | Remove only if still confirmed unused                                    |              |
@@ -293,7 +293,9 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 ### Evidence
 
 - `pnpm build:web`: pass.
-- Largest production entry chunk: 2,025.10 KB -> about 517.82 KB in the last checked build.
+- Latest closeout bundle stats: `my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json`.
+- Latest closeout bundle analysis HTML: `my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html`.
+- Largest production entry chunk: 2,025.10 KB -> 530.77 KB in the latest checked build.
 - New emoji picker async chunk: 271.11 KB.
 - Route-level lazy chunks now include `UnifiedDocumentPage-CSRnSbAM.js` (133.22 KB), `ReviewsPage-FqsUksAC.js` (28.39 KB), `TeamMode-lSiJNvGc.js` (21.76 KB), and other route-specific page chunks.
 - `rg "ReactQueryDevtools|Open Tanstack query devtools" web/dist/assets`: no production bundle matches.
@@ -338,6 +340,7 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - 2026-05-22 payload spot check after shared compaction: `/api/issues` 246,883 bytes versus 307,043 bytes before the follow-up; `/api/bootstrap` 369,646 bytes versus 429,806 bytes.
 - 2026-05-22 focused after benchmark: `test-results/benchmarks/api-2026-05-22T15-04-55-978Z.json`.
 - 2026-05-22 full standard benchmark: `test-results/benchmarks/api-2026-05-22T15-11-00-537Z.json`; all rows had `non_2xx: 0`. Full-matrix `/api/issues` P95 remained 13.91/28.37/119.26ms, and `/api/bootstrap` remained mixed at 26.31/81.22/213.77ms, so the claim boundary does not change.
+- 2026-05-22 bootstrap narrowing follow-up: wiki document bootstrap properties and project list fields were narrowed while preserving detail endpoints and cache-refetch behavior. The full benchmark rerun `test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json` is excluded from proof because rate limiting caused many non-2xx responses.
 - P95 result: `GET /api/issues` improved across 10c/25c/50c versus the original baseline, but only 10c and 25c exceed the 20% bar. `GET /api/bootstrap` payload is materially smaller but P95 remains mixed and regressed at 25c. Category 3 should be treated as improved, not fully closed, until a second endpoint has stable 20% P95 proof or the benchmark target is narrowed.
 
 ---
@@ -382,8 +385,10 @@ Production Vite build output plus `web/dist/assets` JS/CSS byte count. Source-co
 - Repaired Node 24 query-count output: `test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json`; `/api/issues` 4 queries, `/api/bootstrap` 24 queries, old startup fanout 33 queries.
 - Old docs startup fanout flow in that artifact: 7 requests, 33 total SQL queries, 984,044 response bytes, 32 ms total elapsed.
 - Current bootstrap flow in that artifact: 1 request, 24 total SQL queries, 984,123 response bytes, 17 ms total elapsed.
-- Query-count result: -9 queries / -27.3% on the protected docs startup app-shell flow. This proves the SQL/request-count branch for that flow, but it is not a full Category 4 source claim by itself because the source also asks for before/after `EXPLAIN ANALYZE`.
-- EXPLAIN output: `test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json`; current execution times were `documents_list_wiki` 0.313 ms, `issues_list` 0.978 ms, `projects_list_counts` 0.774 ms, `audit_logs_tagged_recent` 2.750 ms, and `document_association_issue_project` 0.643 ms. Before/after EXPLAIN proof is still missing.
+- Latest query-count output: `test-results/perf/query-count-api-2026-05-22T19-47-22-751Z.json`.
+- Query-count result: -9 queries / -27.3% on the protected docs startup app-shell flow.
+- Latest before/after EXPLAIN output: `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json`; it includes explicit old protected-docs fanout and current bootstrap constituent query sections.
+- Claim boundary: this proves the Category 4 SQL/request-count branch for the app-shell flow. It does not claim a row-level N+1 fix, a 50% slowest-query improvement, or a Category 3 latency win.
 
 ---
 
@@ -488,6 +493,7 @@ This is security/trust foundation work. It closes the known first-run race risk,
 - Session activity writes are now throttled server-side: authenticated requests still validate inactivity against stored `last_activity`, but only update `last_activity` and refresh the cookie after the 60-second activity threshold.
 - Backlinks now preserve the last successful result during fetch failures, show a visible offline/stale status with `role="status"` and `aria-live="polite"`, pause polling while offline, retry immediately when the browser returns online, and avoid repeated console-error spam.
 - `e2e/error-handling.spec.ts` now captures named Category 6 runtime screenshots for API 500 fallback UI, offline editor draft preservation, CSRF JSON/editor usability, and concurrent API failure fallback UI. These tests also assert the intercepted failure path occurred, the editor remained usable where relevant, and no uncaught browser `pageerror` was emitted.
+- AI/Bedrock unavailable handling now returns controlled `ai_unavailable` JSON from status/analysis endpoints when provider credentials cannot resolve, and the plan/retro quality banners show a concise degraded state without clearing existing editor content or persisted analysis.
 
 ### Evidence
 
@@ -496,6 +502,8 @@ This is security/trust foundation work. It closes the known first-run race risk,
 - `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
 - Focused E2E runtime run: `E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts`: 8 passed / 0 failed.
 - Category 6 screenshot artifacts were captured under `test-results/category-6-runtime-evidence-final2/playwright/`, including `category-6-runtime-evidence-api-500-documents-list-viewport.png`, `category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png`, `category-6-runtime-evidence-csrf-json-editor-usable-viewport.png`, and `category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png` plus matching full-page screenshots.
+- AI unavailable evidence collector: `node scripts/cat6-ai-unavailable-evidence.mjs`: pass; screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The collector now uses an existing weekly plan or `CAT6_DOCUMENT_PATH` instead of creating evidence data implicitly.
+- Current focused E2E rerun was blocked by Docker preflight, so the ledger uses the historical focused E2E screenshots plus the new AI unavailable screenshot rather than overclaiming a fresh E2E pass.
 
 ---
 
@@ -520,10 +528,10 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 | Lighthouse accessibility score: `/documents/:programId/issues` | 100                                                                                                                      |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
 | Lighthouse accessibility score: `/my-week`                     | 96                                                                                                                       |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
 | Lighthouse accessibility score: `/projects`                    | 100                                                                                                                      |                                                                                                               |               |                         | Before/after Lighthouse reports or axe scan output                                             |              |
-| Total Critical/Serious violations                              | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | `pnpm a11y:closeout -- --fail-on-serious`: `/docs` 0, selected `/documents/:id` 0, `/my-week` 0 | 2026-05-21    | Fixed on scanned pages | Fix all Critical/Serious violations on explicitly chosen top 3 pages if using violation target |              |
+| Total Critical/Serious violations                              | Axe: 2 critical nodes and 40 serious nodes across scanned pages; Lighthouse: 6 page-failures across 4 unique issue types | `pnpm a11y:closeout -- --fail-on-serious`: `/docs` 0, selected `/documents/:id` 0, `/projects` 0, supporting `/my-week` 0 | 2026-05-22    | Fixed on source-backed top three pages | Fix all Critical/Serious violations on explicitly chosen top 3 pages if using violation target |              |
 | Keyboard navigation completeness                               | Partial pass                                                                                                             |                                                                                                               |               |                         | Existing keyboard behavior preserved or improved                                               |              |
 | Screen reader usability                                        | VoiceOver partial pass                                                                                                   |                                                                                                               |               |                         | Existing screen reader behavior preserved or improved                                          |              |
-| Color contrast failures                                        | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes                                                           | `pnpm a11y:closeout -- --fail-on-serious`: 0 contrast violations on `/docs`, selected `/documents/:id`, and `/my-week` | 2026-05-21    | Fixed on scanned pages | Critical/Serious violations fixed on selected pages                                            |              |
+| Color contrast failures                                        | Axe: `/my-week` 21 serious nodes, `/projects` 16 serious nodes                                                           | `pnpm a11y:closeout -- --fail-on-serious`: 0 contrast violations on `/docs`, selected `/documents/:id`, `/projects`, and supporting `/my-week` | 2026-05-22    | Fixed on scanned pages | Critical/Serious violations fixed on selected pages                                            |              |
 | Missing ARIA labels or roles                                   | 2 pages with ARIA required-child failures: `/docs`, `/documents/:id`; `/login` lacks a main landmark                     | 0 on closeout axe scan of `/docs` and `/documents/:id`                                                        | 2026-05-20    | Fixed targeted pages    | Critical/Serious violations fixed on selected pages                                            |              |
 
 ### What Changed
@@ -532,11 +540,13 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - Fixed contrast on `/my-week`, `/projects`, and shared filter-tab count badges.
 - Fixed the remaining Category 7 contrast at source: BacklinksPanel document-type badges use an explicit accessible foreground, My Week current-day labels use an accessible blue, and future My Week rows no longer inherit dimming through parent opacity.
 - Fixed document tree semantics so `tree` containers expose direct `treeitem` children through presentational list wrappers.
+- Fixed the remaining document-tree touch-target violation by giving document links a 24px minimum hit target in the main documents tree and app sidebar.
 - Fixed the stale E2E selector for nested document auto-expand to use the sidebar ARIA tree and nested `role="group"` structure instead of assuming the group is inside the `treeitem` element.
+- Extended the closeout runner to include `/projects` as the source-backed planning surface; `/my-week` remains extra supporting evidence only.
 
 ### Evidence
 
-- Repeatable closeout axe output: `pnpm a11y:closeout -- --fail-on-serious` writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, a real `/documents/:id`, and `/my-week`. Current output: `/docs` 0 violations, selected document page 0 violations, `/my-week` 0 violations.
+- Repeatable closeout axe output: `pnpm a11y:closeout -- --fail-on-serious` writes `test-results/a11y-closeout/axe-summary.json` and screenshots for `/docs`, `/projects`, a real `/documents/:id`, and `/my-week`. Current output: `/docs` 0 violations, `/projects` 0 violations, selected document page 0 violations, `/my-week` 0 violations.
 - Focused E2E verification for the updated selector passed: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"`: 1 passed / 0 failed.
 - Lighthouse was not rerun because `lighthouse` is not installed in the repo-local toolchain (`pnpm exec lighthouse --version` returns command not found).
 - Manual closeout found Backlinks behavior working as intended after creating a real mention: the target document showed the source document as a backlink, offline mode retained that saved backlink with an explicit stale status, reconnect cleared the stale state, and clicking the backlink navigated back to the source.
@@ -612,7 +622,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - Full route row-mapper typing: partially started for high-risk routes; broader dashboard/comments/auth route typing deferred.
 - Process-level unhandled rejection handlers: still skipped; easy to add badly without coordinated HTTP/WebSocket/DB shutdown semantics.
 - Category 6 screenshot/recording evidence: completed for the focused runtime file; broader full-suite E2E remains outside this pass.
-- Category 7 Lighthouse rerun: still deferred because `lighthouse` is not installed in the repo-local toolchain. The axe closeout branch currently passes with 0 violations on `/docs`, the selected document page, and `/my-week`; manual keyboard/a11y polish gaps remain outside that axe gate.
+- Category 7 Lighthouse rerun: still deferred because `lighthouse` is not installed in the repo-local toolchain. The axe closeout branch currently passes with 0 critical/serious violations on `/docs`, `/projects`, the selected document page, and supporting `/my-week`; manual keyboard/a11y polish gaps remain outside that axe gate.
 
 ## Fail-Closed Authorization Hardening Pass
 
@@ -697,15 +707,15 @@ Category 3 remains **partial**. `/api/dashboard/my-week` has follow-up measureme
 | Category | Status | Ledger truth |
 | --- | --- | --- |
 | Category 1 Type Safety | `proven` | proven; required acceptance gates pass. |
-| Category 2 Bundle Size | `partial` | partial; failing acceptance cat2-before-after-bundle-analysis-output-present. |
+| Category 2 Bundle Size | `proven` | proven; required acceptance gates pass. |
 | Category 3 API Response Time | `partial` | partial; failing acceptance cat3-two-endpoints-clear-20-percent-p95. |
-| Category 4 Database Query Efficiency | `partial` | partial; failing acceptance cat4-before-after-explain-analyze-present. |
+| Category 4 Database Query Efficiency | `proven` | proven; required acceptance gates pass. |
 | Category 5 Test Coverage and Quality | `proven` | proven with warning cat5-e2e-baseline-not-green. |
-| Category 6 Runtime Error and Edge Case Handling | `partial` | partial; failing acceptance cat6-three-error-handling-fixes-documented, cat6-each-fix-has-before-after-and-screenshot. |
-| Category 7 Accessibility Compliance | `partial` | partial; failing acceptance cat7-top3-page-selection-source-backed. |
+| Category 6 Runtime Error and Edge Case Handling | `proven` | proven; required acceptance gates pass. |
+| Category 7 Accessibility Compliance | `proven` | proven; required acceptance gates pass. |
 | Category 8 Security Audit | `open` | open; failing acceptance cat8-probe-tool-runnable, cat8-four-attack-surfaces-covered, cat8-manual-review-complete, cat8-two-verified-vulnerability-fixes. |
 
-Gate snapshot: 2 proven, 5 partial, 1 open/fill.
+Gate snapshot: 6 proven, 1 partial, 1 open/fill.
 <!-- ledger:generated end id="submission-current-truth" -->
 
 ### Operating Rule
