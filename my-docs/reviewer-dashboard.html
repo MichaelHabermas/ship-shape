@@ -107,7 +107,7 @@
         <div class="hero-main">
           <div>
             <p class="eyebrow">Generated From Evidence Ledger</p>
-            <h1 id="page-title">ShipShape<br>Evidence Dashboard</h1>
+            <h1 id="page-title">ShipShape evidence dashboard</h1>
             <p class="lede">Week 4 reviewer console for source-backed category status, acceptance gates, evidence paths, and explicit non-claims.</p>
           </div>
 
@@ -118,14 +118,14 @@
                 <strong>Claim-ready</strong>
                 <span>Safe to lead with.</span>
               </div>
-              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 5</span></div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 5</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span></div>
             </div>
             <div class="verdict-row">
               <div>
                 <strong>Evidence-backed, blocked</strong>
                 <span>Good result, missing required artifact.</span>
               </div>
-              <div class="cat-chip-row"><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 3</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span></div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 3</span></div>
             </div>
             <div class="verdict-row">
               <div>
@@ -146,41 +146,17 @@
         <aside class="hero-side" aria-label="Current review status">
           <p class="eyebrow">Reviewer Gate Snapshot</p>
           <div class="mini-grid">
-            <div class="mini"><strong>2</strong><span>proven</span></div>
-            <div class="mini"><strong>5</strong><span>partial</span></div>
+            <div class="mini"><strong>6</strong><span>proven</span></div>
+            <div class="mini"><strong>1</strong><span>partial</span></div>
             <div class="mini"><strong>1</strong><span>open/fill</span></div>
           </div>
-          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
+          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
           <ul class="gate-list">
-        <li data-ledger-id="cat2-before-after-bundle-analysis-output-present">
-          <span class="gate-cat">Cat 2</span>
-          <strong title="cat2-before-after-bundle-analysis-output-present">Provide before/after bundle analysis output.</strong>
-          <span class="badge open">open</span>
-          <span>Baseline bundle analysis exists, latest stats exist, but latest treemap/equivalent bundle-analysis artifact is missing.</span>
-        </li>
         <li data-ledger-id="cat3-two-endpoints-clear-20-percent-p95">
           <span class="gate-cat">Cat 3</span>
           <strong title="cat3-two-endpoints-clear-20-percent-p95">At least two endpoints show 20% P95 reduction under identical benchmark conditions.</strong>
           <span class="badge open">open</span>
           <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions</span>
-        </li>
-        <li data-ledger-id="cat4-before-after-explain-analyze-present">
-          <span class="gate-cat">Cat 4</span>
-          <strong title="cat4-before-after-explain-analyze-present">Provide before/after EXPLAIN ANALYZE output.</strong>
-          <span class="badge open">open</span>
-          <span>Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.</span>
-        </li>
-        <li data-ledger-id="cat6-three-error-handling-fixes-documented">
-          <span class="gate-cat">Cat 6</span>
-          <strong title="cat6-three-error-handling-fixes-documented, cat6-each-fix-has-before-after-and-screenshot">Runtime Error and Edge Case Handling proof gaps (2)</strong>
-          <span class="badge open">open</span>
-          <span>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence Ledger does not yet contain three fix-specific before/after records.</span>
-        </li>
-        <li data-ledger-id="cat7-top3-page-selection-source-backed">
-          <span class="gate-cat">Cat 7</span>
-          <strong title="cat7-top3-page-selection-source-backed">The selected pages are source-backed as the 3 most important pages.</strong>
-          <span class="badge open">open</span>
-          <span>The closeout pages have zero axe violations, but the source docs do not prove this set is the 3 most important pages; /projects had baseline serious contrast failures and was not in the closeout scan.</span>
         </li>
         <li data-ledger-id="cat8-probe-tool-runnable">
           <span class="gate-cat">Cat 8</span>
@@ -218,12 +194,12 @@
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-2-bundle-size">
-          <header><span class="cat-id">Cat 2</span><span class="badge partial">partial</span></header>
+          <header><span class="cat-id">Cat 2</span><span class="badge proven">proven</span></header>
           <h3>Bundle Size</h3>
-          <p>Provide before/after bundle analysis output.</p>
+          <p>2025.1 -&gt; 530.77 (decreased 73.8%)</p>
           <div class="score-foot">
-            <span>3/4 acceptance pass; 1 open/warn gate</span>
-            <a class="blocker-link" href="#target-cat2-target-before-after-output">Missing: before/after bundle analysis output</a>
+            <span>4/4 acceptance pass; all gates clear</span>
+
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-3-api-response-time">
@@ -236,12 +212,12 @@
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-4-database-query-efficiency">
-          <header><span class="cat-id">Cat 4</span><span class="badge partial">partial</span></header>
+          <header><span class="cat-id">Cat 4</span><span class="badge proven">proven</span></header>
           <h3>Database Query Efficiency</h3>
-          <p>Provide before/after EXPLAIN ANALYZE output.</p>
+          <p>33 -&gt; 24 (decreased 27.3%)</p>
           <div class="score-foot">
-            <span>4/5 acceptance pass; 1 open/warn gate</span>
-            <a class="blocker-link" href="#target-cat4-target-before-after-explain">Missing: before/after EXPLAIN ANALYZE output</a>
+            <span>5/5 acceptance pass; all gates clear</span>
+
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-5-test-coverage-quality">
@@ -254,21 +230,21 @@
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-6-runtime-error-handling">
-          <header><span class="cat-id">Cat 6</span><span class="badge partial">partial</span></header>
+          <header><span class="cat-id">Cat 6</span><span class="badge proven">proven</span></header>
           <h3>Runtime Error and Edge Case Handling</h3>
-          <p>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence.</p>
+          <p>3 / 3 required</p>
           <div class="score-foot">
-            <span>4/6 acceptance pass; 2 open/warn gates</span>
-            <a class="blocker-link" href="#target-cat6-target-three-error-handling-fixes">Missing: Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence</a>
+            <span>6/6 acceptance pass; all gates clear</span>
+
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-7-accessibility">
-          <header><span class="cat-id">Cat 7</span><span class="badge partial">partial</span></header>
+          <header><span class="cat-id">Cat 7</span><span class="badge proven">proven</span></header>
           <h3>Accessibility Compliance</h3>
-          <p>The selected pages are source-backed as the 3 most important pages.</p>
+          <p>The source-backed top-three pages (/docs, selected /documents/:id, and /projects) report 0 critical/serious axe violations</p>
           <div class="score-foot">
-            <span>3/4 acceptance pass; 1 open/warn gate</span>
-            <a class="blocker-link" href="#target-cat7-target-source-backed-top3">Missing: The selected pages are source-backed as the 3 most important pages</a>
+            <span>4/4 acceptance pass; all gates clear</span>
+
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-8-security-audit">
@@ -394,7 +370,7 @@
               <p class="eyebrow">Category 2</p>
               <h2>Bundle Size</h2>
             </div>
-            <span class="badge partial">partial</span>
+            <span class="badge proven">proven</span>
           </div>
           <p>15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
@@ -422,11 +398,11 @@
 
                   <li>
                     <strong>Initial entry chunk</strong>
-                    <span>2025.10 KB -&gt; about 517.82 KB; -74.4%.</span>
+                    <span>2025.10 KB -&gt; 530.77 KB in latest dist artifact; -73.8%.</span>
                   </li>
                   <li>
-                    <strong>Largest chunk</strong>
-                    <span>2025.10 KB -&gt; about 817.62 KB in report, and later evidence run largest asset 836.63 KB; over 20% reduction either way.</span>
+                    <strong>After artifact</strong>
+                    <span>cat2-closeout bundle stats and HTML analysis are present.</span>
                   </li>
                   <li>
                     <strong>Claim boundary</strong>
@@ -439,11 +415,11 @@
 
                   <li data-ledger-id="cat2-target-initial-entry-20-percent">
                     <strong>Target Initial Entry 20 Percent <span class="badge proven">proven</span></strong>
-                    <span>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 517.82 (decreased 74.4%); threshold 20; actual 74.4</span>
+                    <span>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 530.77 (decreased 73.8%); threshold 20; actual 73.8</span>
                   </li>
                   <li data-ledger-id="cat2-target-before-after-output">
-                    <strong>Target Before After Output <span class="badge open">open</span></strong>
-                    <span>Provide before/after bundle analysis output. actual false; Baseline treemap/stats and latest stats exist, but no latest treemap or equivalent after bundle-analysis artifact is committed.</span>
+                    <strong>Target Before After Output <span class="badge proven">proven</span></strong>
+                    <span>Provide before/after bundle analysis output. actual true; Baseline treemap/stats and latest dependency-free bundle-analysis artifact exist.</span>
                   </li>
                   <li data-ledger-id="cat2-target-no-functionality-removal">
                     <strong>Target No Functionality Removal <span class="badge proven">proven</span></strong>
@@ -454,8 +430,8 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat2-clears-initial-entry-code-splitting-target">
-                    <strong>Clears Initial Entry Code Splitting Target <span class="badge partial">partial</span></strong>
-                    <span>Initial entry bundle decreased from 2025.10 KB to about 517.82 KB, a 74.4% reduction, clearing the 20% code-splitting target. This does not claim a 15% total JS/CSS bundle reduction; total JS/CSS increased by about 3.3%. The claim is scoped to initial page-load/code-splitting improvement. Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features.</span>
+                    <strong>Clears Initial Entry Code Splitting Target <span class="badge proven">proven</span></strong>
+                    <span>Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.22 KB in the latest artifact. The claim is scoped to initial page-load/code-splitting improvement. Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -483,6 +459,18 @@
           <span>Latest evidence-run bundle stats artifact.</span>
           <small>Path: my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json</small>
           <div class="artifact-link"><a class="path" href="evidence-runs/codex-final-review/collectors/bundle-stats.json" title="my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat2-latest-bundle-stats-closeout">
+          <strong>Latest Bundle Stats Closeout <span class="subtle">artifact</span></strong>
+          <span>Latest closeout bundle stats artifact from dependency-free collector.</span>
+          <small>Path: my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json</small>
+          <div class="artifact-link"><a class="path" href="evidence-runs/cat2-closeout/collectors/bundle-stats.json" title="my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat2-latest-bundle-analysis">
+          <strong>Latest Bundle Analysis <span class="subtle">artifact</span></strong>
+          <span>Latest closeout bundle-analysis HTML artifact generated from web/dist.</span>
+          <small>Path: my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html</small>
+          <div class="artifact-link"><a class="path" href="evidence-runs/cat2-closeout/collectors/bundle-analysis.html" title="my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-3-api-response-time" class="panel span-12" data-ledger-id="cat-3-api-response-time">
@@ -519,15 +507,15 @@
 
                   <li>
                     <strong>Best endpoint</strong>
-                    <span>GET /api/issues improved beyond 20% P95 at 10c and 25c, but not 50c.</span>
+                    <span>GET /api/issues still has the prior valid partial win; no new second endpoint is proven.</span>
                   </li>
                   <li>
-                    <strong>Second endpoint</strong>
-                    <span>No second endpoint has stable comparable 20% P95 proof.</span>
+                    <strong>Bootstrap work</strong>
+                    <span>Bootstrap payload was narrowed, but the full benchmark rerun hit rate limits and is inadmissible for P95 proof.</span>
                   </li>
                   <li>
                     <strong>Status</strong>
-                    <span>Partial by source requirement.</span>
+                    <span>Partial by source requirement; no rounding up.</span>
                   </li>
           </ul>
         </div>
@@ -574,6 +562,18 @@
           <span>Benchmark rail used for Category 3 local dev measurements.</span>
           <small>Command: API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api | Result: pass; generated the benchmark artifacts referenced by baseline/latest measurements</small>
 
+        </li>
+        <li data-ledger-id="cat3-bootstrap-payload-narrowing">
+          <strong>Bootstrap Payload Narrowing <span class="subtle">manual_observation</span></strong>
+          <span>Bootstrap wiki document properties and project list fields were narrowed while preserving detail endpoints and cache refetch behavior.</span>
+
+
+        </li>
+        <li data-ledger-id="cat3-rate-limited-benchmark-run-2026-05-22">
+          <strong>Rate Limited Benchmark Run 2026 05 22 <span class="subtle">artifact</span></strong>
+          <span>Full benchmark rerun after bootstrap narrowing; excluded from proof because many rows returned non-2xx rate-limit responses.</span>
+          <small>Path: test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json</small>
+          <div class="artifact-link"><a class="path" href="../test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json" title="test-results/benchmarks/api-2026-05-22T19-48-30-181Z.json">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-4-database-query-efficiency" class="panel span-12" data-ledger-id="cat-4-database-query-efficiency">
@@ -582,7 +582,7 @@
               <p class="eyebrow">Category 4</p>
               <h2>Database Query Efficiency</h2>
             </div>
-            <span class="badge partial">partial</span>
+            <span class="badge proven">proven</span>
           </div>
           <p>20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
@@ -617,8 +617,8 @@
                     <span>-9 queries / -27.3%; request count -85.7%.</span>
                   </li>
                   <li>
-                    <strong>Missing proof</strong>
-                    <span>Before/after EXPLAIN ANALYZE output is still missing.</span>
+                    <strong>EXPLAIN proof</strong>
+                    <span>Before/after bootstrap constituent EXPLAIN section is present in the latest perf artifact.</span>
                   </li>
           </ul>
         </div>
@@ -630,8 +630,8 @@
                     <span>Reduce total query count by at least 20% on at least one user flow. 33 -&gt; 24 (decreased 27.3%); threshold 20; actual 27.3</span>
                   </li>
                   <li data-ledger-id="cat4-target-before-after-explain">
-                    <strong>Target Before After Explain <span class="badge open">open</span></strong>
-                    <span>Provide before/after EXPLAIN ANALYZE output. Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.</span>
+                    <strong>Target Before After Explain <span class="badge proven">proven</span></strong>
+                    <span>Provide before/after EXPLAIN ANALYZE output. Latest EXPLAIN artifact includes explicit old protected-docs fanout and current bootstrap constituent query sections.</span>
                   </li>
                   <li data-ledger-id="cat4-target-inefficiency-documented">
                     <strong>Target Inefficiency Documented <span class="badge proven">proven</span></strong>
@@ -642,8 +642,8 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat4-query-count-branch-partial">
-                    <strong>Query Count Branch Partial <span class="badge partial">partial</span></strong>
-                    <span>Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, but full Category 4 proof remains partial because before/after EXPLAIN ANALYZE output is missing. Does not claim 50% slowest-query improvement. Does not claim all five original audit flows improved. Does not claim row-level N+1 was fixed; no row-level N+1 was confirmed.</span>
+                    <strong>Query Count Branch Partial <span class="badge proven">proven</span></strong>
+                    <span>Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, with before/after bootstrap EXPLAIN evidence now present. Does not claim 50% slowest-query improvement. Does not claim all five original audit flows improved. Does not claim row-level N+1 was fixed; no row-level N+1 was confirmed.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -671,6 +671,18 @@
           <span>Current EXPLAIN output; not sufficient alone for before/after proof.</span>
           <small>Path: test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json</small>
           <div class="artifact-link"><a class="path" href="../test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json" title="test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat4-before-after-explain-artifact">
+          <strong>Before After Explain Artifact <span class="subtle">artifact</span></strong>
+          <span>Latest EXPLAIN artifact with before_after_bootstrap_explain old-fanout and current-bootstrap sections.</span>
+          <small>Path: test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json</small>
+          <div class="artifact-link"><a class="path" href="../test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json" title="test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat4-query-count-artifact-2026-05-22">
+          <strong>Query Count Artifact 2026 05 22 <span class="subtle">artifact</span></strong>
+          <span>Latest query-count artifact for API and flow-level evidence.</span>
+          <small>Path: test-results/perf/query-count-api-2026-05-22T19-47-22-751Z.json</small>
+          <div class="artifact-link"><a class="path" href="../test-results/perf/query-count-api-2026-05-22T19-47-22-751Z.json" title="test-results/perf/query-count-api-2026-05-22T19-47-22-751Z.json">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-5-test-coverage-quality" class="panel span-12" data-ledger-id="cat-5-test-coverage-quality">
@@ -776,7 +788,7 @@
               <p class="eyebrow">Category 6</p>
               <h2>Runtime Error and Edge Case Handling</h2>
             </div>
-            <span class="badge partial">partial</span>
+            <span class="badge proven">proven</span>
           </div>
           <p>Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
@@ -804,15 +816,15 @@
 
                   <li>
                     <strong>Focused runtime E2E</strong>
-                    <span>8 passed / 0 failed with named screenshots.</span>
+                    <span>Historical focused run: 8 passed / 0 failed with named screenshots; current rerun blocked by Docker preflight.</span>
                   </li>
                   <li>
                     <strong>Proven fixes</strong>
-                    <span>CSRF JSON 403 and Backlinks offline/stale status are supported.</span>
+                    <span>CSRF JSON 403, Backlinks offline/stale status, and AI unavailable degraded mode are documented.</span>
                   </li>
                   <li>
-                    <strong>Missing proof</strong>
-                    <span>Three fix-specific before/after records are not all explicitly documented.</span>
+                    <strong>Third fix</strong>
+                    <span>AI/Bedrock unavailable path returns controlled JSON and visible degraded UI without clearing editor content.</span>
                   </li>
           </ul>
         </div>
@@ -820,8 +832,8 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat6-target-three-error-handling-fixes">
-                    <strong>Target Three Error Handling Fixes <span class="badge open">open</span></strong>
-                    <span>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence. 2 / 3 required; threshold 3; actual 2</span>
+                    <strong>Target Three Error Handling Fixes <span class="badge proven">proven</span></strong>
+                    <span>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence. 3 / 3 required; threshold 3; actual 3</span>
                   </li>
                   <li data-ledger-id="cat6-target-user-facing-confusion-fix">
                     <strong>Target User Facing Confusion Fix <span class="badge proven">proven</span></strong>
@@ -836,8 +848,8 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat6-runtime-error-handling-partial">
-                    <strong>Runtime Error Handling Partial <span class="badge partial">partial</span></strong>
-                    <span>Focused runtime evidence improved CSRF JSON errors and Backlinks offline/degraded behavior, with screenshots, but Category 6 remains partial until three fix-specific before/after records are explicit. Does not count comments visibility or migration bootstrap as Category 6 proof. Does not claim process-level unhandled rejection handling is solved. Does not claim three complete fix records yet.</span>
+                    <strong>Runtime Error Handling Partial <span class="badge proven">proven</span></strong>
+                    <span>Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode. Does not count comments visibility or migration bootstrap as Category 6 proof. Does not claim process-level unhandled rejection handling is solved. Current E2E rerun was blocked by Docker preflight; existing focused E2E and new AI screenshot are the artifact basis.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -883,6 +895,24 @@
           <span>Concurrent API failure fallback runtime screenshot.</span>
           <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png</small>
           <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat6-ai-unavailable-fix">
+          <strong>Ai Unavailable Fix <span class="subtle">manual_observation</span></strong>
+          <span>AI/Bedrock unavailable path returns controlled ai_unavailable JSON and degraded UI while preserving editor content.</span>
+
+
+        </li>
+        <li data-ledger-id="cat6-ai-unavailable-evidence-script">
+          <strong>Ai Unavailable Evidence Script <span class="subtle">command</span></strong>
+          <span>Playwright evidence collector for AI unavailable degraded UI.</span>
+          <small>Command: node scripts/cat6-ai-unavailable-evidence.mjs | Result: pass</small>
+
+        </li>
+        <li data-ledger-id="cat6-ai-unavailable-screenshot">
+          <strong>Ai Unavailable Screenshot <span class="subtle">screenshot</span></strong>
+          <span>AI unavailable degraded-mode runtime screenshot.</span>
+          <small>Path: test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png" title="test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-7-accessibility" class="panel span-12" data-ledger-id="cat-7-accessibility">
@@ -891,7 +921,7 @@
               <p class="eyebrow">Category 7</p>
               <h2>Accessibility Compliance</h2>
             </div>
-            <span class="badge partial">partial</span>
+            <span class="badge proven">proven</span>
           </div>
           <p>Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
@@ -918,16 +948,16 @@
           <ul class="check-list">
 
                   <li>
-                    <strong>Selected axe pages</strong>
-                    <span>/docs, selected /documents/:id, and /my-week all report 0 violations.</span>
+                    <strong>Official selected pages</strong>
+                    <span>/docs, selected /documents/:id, and /projects all report 0 critical/serious axe violations.</span>
                   </li>
                   <li>
-                    <strong>Missing proof</strong>
-                    <span>Ledger does not prove these are the source-required 3 most important pages.</span>
+                    <strong>Supporting page</strong>
+                    <span>/my-week also reports 0 critical/serious axe violations, but is not the official top-three replacement.</span>
                   </li>
                   <li>
                     <strong>Lighthouse</strong>
-                    <span>Not rerun in repo-local toolchain.</span>
+                    <span>Not rerun in repo-local toolchain; claim is the source-allowed axe critical/serious closeout path.</span>
                   </li>
           </ul>
         </div>
@@ -936,11 +966,11 @@
 
                   <li data-ledger-id="cat7-target-selected-axe-zero">
                     <strong>Target Selected Axe Zero <span class="badge proven">proven</span></strong>
-                    <span>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week.</span>
+                    <span>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week.</span>
                   </li>
                   <li data-ledger-id="cat7-target-source-backed-top3">
-                    <strong>Target Source Backed Top3 <span class="badge open">open</span></strong>
-                    <span>The selected pages are source-backed as the 3 most important pages. No source-backed page-selection rationale or /projects closeout scan is present.</span>
+                    <strong>Target Source Backed Top3 <span class="badge proven">proven</span></strong>
+                    <span>The selected pages are source-backed as the 3 most important pages. /docs and /documents/:id are the lowest Lighthouse/core document surfaces; /projects is the source-backed planning surface with baseline serious contrast objections. /my-week is retained only as supporting evidence.</span>
                   </li>
                   <li data-ledger-id="cat7-target-audit-fields">
                     <strong>Target Audit Fields <span class="badge proven">proven</span></strong>
@@ -951,15 +981,15 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat7-clears-axe-critical-serious-gate">
-                    <strong>Clears Axe Critical Serious Gate <span class="badge partial">partial</span></strong>
-                    <span>The selected closeout pages report 0 axe violations, but the ledger does not prove those pages are the 3 most important pages required by the source. Lighthouse was not rerun. The page-selection rationale needs fill-in or an additional closeout scan should include the source-relevant pages with baseline serious violations. Manual keyboard and accessibility polish gaps remain outside the axe gate.</span>
+                    <strong>Clears Axe Critical Serious Gate <span class="badge proven">proven</span></strong>
+                    <span>The source-backed top-three pages (/docs, selected /documents/:id, and /projects) report 0 critical/serious axe violations; /my-week also remains clean as supporting evidence. Lighthouse was not rerun. Automated axe does not prove full keyboard/screen-reader completion. Manual accessibility polish gaps remain outside the axe critical/serious gate.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
         <li data-ledger-id="cat7-closeout-axe-command">
           <strong>Closeout Axe Command <span class="subtle">command</span></strong>
-          <span>Repeatable closeout axe gate for /docs, selected /documents/:id, and /my-week.</span>
+          <span>Repeatable closeout axe gate for /docs, selected /documents/:id, /projects, plus supporting /my-week.</span>
           <small>Command: pnpm a11y:closeout -- --fail-on-serious | Result: pass</small>
 
         </li>
@@ -1075,9 +1105,9 @@
         </tr>
         <tr data-ledger-id="cat-2-bundle-size">
           <td>Cat 2. Bundle Size</td>
-          <td><span class="badge partial">partial</span></td>
-          <td>Reduce initial page-load bundle by at least 20% through code splitting. passes. 2025.1 -&gt; 517.82 (decreased 74.4%); threshold 20; actual 74.4.</td>
-          <td><div class="chip-list"><span class="test-chip pass" title="cat2-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat2-initial-entry-bundle-reduced-at-least-20-percent">PASS Initial Entry Bundle Reduced At Least 20 Percent</span> <span class="test-chip fail" title="cat2-before-after-bundle-analysis-output-present">FAIL Before After Bundle Analysis Output Present</span> <span class="test-chip pass" title="cat2-no-functionality-removal-documented">PASS No Functionality Removal Documented</span></div></td>
+          <td><span class="badge proven">proven</span></td>
+          <td>Reduce initial page-load bundle by at least 20% through code splitting. passes. 2025.1 -&gt; 530.77 (decreased 73.8%); threshold 20; actual 73.8.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat2-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat2-initial-entry-bundle-reduced-at-least-20-percent">PASS Initial Entry Bundle Reduced At Least 20 Percent</span> <span class="test-chip pass" title="cat2-before-after-bundle-analysis-output-present">PASS Before After Bundle Analysis Output Present</span> <span class="test-chip pass" title="cat2-no-functionality-removal-documented">PASS No Functionality Removal Documented</span></div></td>
           <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="evidence-runs/codex-final-review/collectors/bundle-stats.json" title="my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json">.../codex-final-review/collectors/bundle-stats.json</a></td>
         </tr>
         <tr data-ledger-id="cat-3-api-response-time">
@@ -1089,9 +1119,9 @@
         </tr>
         <tr data-ledger-id="cat-4-database-query-efficiency">
           <td>Cat 4. Database Query Efficiency</td>
-          <td><span class="badge partial">partial</span></td>
+          <td><span class="badge proven">proven</span></td>
           <td>Reduce total query count by at least 20% on at least one user flow. passes. 33 -&gt; 24 (decreased 27.3%); threshold 20; actual 27.3.</td>
-          <td><div class="chip-list"><span class="test-chip pass" title="cat4-audit-five-flows-present">PASS Audit Five Flows Present</span> <span class="test-chip pass" title="cat4-one-flow-query-count-reduced-at-least-20-percent">PASS One Flow Query Count Reduced At Least 20 Percent</span> <span class="test-chip fail" title="cat4-before-after-explain-analyze-present">FAIL Before After Explain Analyze Present</span> <span class="test-chip pass" title="cat4-inefficiency-and-fix-documented">PASS Inefficiency And Fix Documented</span> <span class="test-chip pass" title="cat4-no-n-plus-one-overclaim">PASS No N Plus One Overclaim</span></div></td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat4-audit-five-flows-present">PASS Audit Five Flows Present</span> <span class="test-chip pass" title="cat4-one-flow-query-count-reduced-at-least-20-percent">PASS One Flow Query Count Reduced At Least 20 Percent</span> <span class="test-chip pass" title="cat4-before-after-explain-analyze-present">PASS Before After Explain Analyze Present</span> <span class="test-chip pass" title="cat4-inefficiency-and-fix-documented">PASS Inefficiency And Fix Documented</span> <span class="test-chip pass" title="cat4-no-n-plus-one-overclaim">PASS No N Plus One Overclaim</span></div></td>
           <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">my-docs/DECISION_LOG.md</a></td>
         </tr>
         <tr data-ledger-id="cat-5-test-coverage-quality">
@@ -1103,16 +1133,16 @@
         </tr>
         <tr data-ledger-id="cat-6-runtime-error-handling">
           <td>Cat 6. Runtime Error and Edge Case Handling</td>
-          <td><span class="badge partial">partial</span></td>
-          <td>At least one fix involves real user-facing data loss or confusion. passes. Backlinks offline/degraded state preserves stale data visibly instead of failing silently..</td>
-          <td><div class="chip-list"><span class="test-chip pass" title="cat6-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat6-focused-runtime-e2e-passes">PASS Focused Runtime E2E Passes</span> <span class="test-chip pass" title="cat6-screenshots-present">PASS Screenshots Present</span> <span class="test-chip fail" title="cat6-three-error-handling-fixes-documented">FAIL Three Error Handling Fixes Documented</span> <span class="test-chip pass" title="cat6-user-facing-data-loss-or-confusion-fix-present">PASS User Facing Data Loss Or Confusion Fix Present</span> <span class="test-chip fail" title="cat6-each-fix-has-before-after-and-screenshot">FAIL Each Fix Has Before After And Screenshot</span></div></td>
+          <td><span class="badge proven">proven</span></td>
+          <td>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence. passes. 3 / 3 required; threshold 3; actual 3.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat6-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat6-focused-runtime-e2e-passes">PASS Focused Runtime E2E Passes</span> <span class="test-chip pass" title="cat6-screenshots-present">PASS Screenshots Present</span> <span class="test-chip pass" title="cat6-three-error-handling-fixes-documented">PASS Three Error Handling Fixes Documented</span> <span class="test-chip pass" title="cat6-user-facing-data-loss-or-confusion-fix-present">PASS User Facing Data Loss Or Confusion Fix Present</span> <span class="test-chip pass" title="cat6-each-fix-has-before-after-and-screenshot">PASS Each Fix Has Before After And Screenshot</span></div></td>
           <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
         <tr data-ledger-id="cat-7-accessibility">
           <td>Cat 7. Accessibility Compliance</td>
-          <td><span class="badge partial">partial</span></td>
-          <td>Selected closeout pages have zero axe violations. passes. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week..</td>
-          <td><div class="chip-list"><span class="test-chip pass" title="cat7-top3-axe-violations-zero">PASS Top3 Axe Violations Zero</span> <span class="test-chip pass" title="cat7-lighthouse-rerun-not-required-for-claimed-path">PASS Lighthouse Rerun Not Required For Claimed Path</span> <span class="test-chip fail" title="cat7-top3-page-selection-source-backed">FAIL Top3 Page Selection Source Backed</span> <span class="test-chip pass" title="cat7-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
+          <td><span class="badge proven">proven</span></td>
+          <td>Selected closeout pages have zero axe violations. passes. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week..</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat7-top3-axe-violations-zero">PASS Top3 Axe Violations Zero</span> <span class="test-chip pass" title="cat7-lighthouse-rerun-not-required-for-claimed-path">PASS Lighthouse Rerun Not Required For Claimed Path</span> <span class="test-chip pass" title="cat7-top3-page-selection-source-backed">PASS Top3 Page Selection Source Backed</span> <span class="test-chip pass" title="cat7-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
           <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
         <tr data-ledger-id="cat-8-security-audit">
@@ -1159,7 +1189,7 @@
             <td>Reduce initial page-load bundle by at least 20% through code splitting.</td>
             <td>percent_decrease_at_least</td>
             <td>20</td>
-            <td>74.4</td>
+            <td>73.8</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat2-target-before-after-output" data-ledger-id="cat2-target-before-after-output">
@@ -1168,8 +1198,8 @@
             <td>Provide before/after bundle analysis output.</td>
             <td>manual_gate</td>
             <td>N/A</td>
-            <td>false</td>
-            <td><span class="badge open">open</span></td>
+            <td>true</td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat2-target-no-functionality-removal" data-ledger-id="cat2-target-no-functionality-removal">
             <td>Cat 2</td>
@@ -1223,7 +1253,7 @@
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
-            <td><span class="badge open">open</span></td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat4-target-inefficiency-documented" data-ledger-id="cat4-target-inefficiency-documented">
             <td>Cat 4</td>
@@ -1267,8 +1297,8 @@
             <td>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence.</td>
             <td>count_at_least</td>
             <td>3</td>
-            <td>2</td>
-            <td><span class="badge open">open</span></td>
+            <td>3</td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat6-target-user-facing-confusion-fix" data-ledger-id="cat6-target-user-facing-confusion-fix">
             <td>Cat 6</td>
@@ -1304,7 +1334,7 @@
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
-            <td><span class="badge open">open</span></td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat7-target-audit-fields" data-ledger-id="cat7-target-audit-fields">
             <td>Cat 7</td>
@@ -1569,8 +1599,8 @@
             <td>Cat 4</td>
             <td><span title="cat4-improvement-before-after-explain">Improvement Before After Explain</span></td>
             <td>improvement</td>
-            <td>partial</td>
-            <td><span class="path" title="evidence[cat4-current-explain-artifact]">evidence[cat4-current-explain-artifact]</span></td>
+            <td>present</td>
+            <td><span class="path" title="evidence[cat4-before-after-explain-artifact]">evidence[cat4-before-after-explain-artifact]</span></td>
           </tr>
           <tr data-ledger-id="cat4-improvement-inefficiency-documented">
             <td>Cat 4</td>
@@ -1667,8 +1697,8 @@
             <td>Cat 6</td>
             <td><span title="cat6-improvement-three-fixes">Improvement Three Fixes</span></td>
             <td>improvement</td>
-            <td>partial</td>
-            <td><span class="path" title="claims[cat6-runtime-error-handling-partial]">claims[cat6-runtime-error-handling-partial]</span></td>
+            <td>present</td>
+            <td><span class="path" title="fix_records">fix_records</span></td>
           </tr>
           <tr data-ledger-id="cat6-improvement-screenshot-recording">
             <td>Cat 6</td>
@@ -1723,8 +1753,8 @@
             <td>Cat 7</td>
             <td><span title="cat7-improvement-critical-serious-top3">Improvement Critical Serious Top3</span></td>
             <td>improvement</td>
-            <td>partial</td>
-            <td><span class="path" title="claims[cat7-clears-axe-critical-serious-gate]">claims[cat7-clears-axe-critical-serious-gate]</span></td>
+            <td>present</td>
+            <td><a class="path" href="../test-results/a11y-closeout/axe-summary.json" title="test-results/a11y-closeout/axe-summary.json">test-results/a11y-closeout/axe-summary.json</a></td>
           </tr>
           <tr data-ledger-id="cat8-audit-probe-tool-runnable">
             <td>Cat 8</td>
@@ -1790,7 +1820,7 @@
         <article class="non-claim-card" data-ledger-id="cat-2-bundle-size">
           <h3>Cat 2: Bundle Size</h3>
           <ul>
-            <li>Does not claim 15% total production bundle reduction.</li><li>Does not claim every large dependency was removed.</li><li>Does not claim yjs should be lazy-loaded away from collaboration surfaces.</li>
+            <li>Does not claim total bundle reduction.</li><li>Does not claim every large async chunk is optimized.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-3-api-response-time">
@@ -1802,7 +1832,7 @@
         <article class="non-claim-card" data-ledger-id="cat-4-database-query-efficiency">
           <h3>Cat 4: Database Query Efficiency</h3>
           <ul>
-            <li>Does not claim full Category 4 completion.</li><li>Does not claim 50% slowest-query improvement.</li><li>Does not claim N+1 elimination.</li>
+            <li>Does not claim row-level N+1 was fixed.</li><li>Does not claim Cat 3 latency improvement from Cat 4 evidence.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-5-test-coverage-quality">
@@ -1814,13 +1844,13 @@
         <article class="non-claim-card" data-ledger-id="cat-6-runtime-error-handling">
           <h3>Cat 6: Runtime Error and Edge Case Handling</h3>
           <ul>
-            <li>Does not claim full Category 6 completion.</li><li>Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</li><li>Does not claim all error-boundary gaps are fixed.</li>
+            <li>Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</li><li>Does not count migration runner hardening as a Category 6 proof.</li><li>Does not claim all error-boundary gaps are fixed.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-7-accessibility">
           <h3>Cat 7: Accessibility Compliance</h3>
           <ul>
-            <li>Does not claim a latest Lighthouse score improvement.</li><li>Does not claim all manual keyboard polish gaps are fixed.</li>
+            <li>Does not claim Lighthouse 100.</li><li>Does not claim full manual keyboard/screen-reader certification.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-8-security-audit">
