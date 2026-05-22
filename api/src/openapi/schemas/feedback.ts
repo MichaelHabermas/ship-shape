@@ -4,7 +4,7 @@
 
 import { z, registry } from '../registry.js';
 import { UuidSchema, DateTimeSchema } from './common.js';
-import { jsonResponse, successEnvelope, IdParamSchema } from './route-helpers.js';
+import { IdParamSchema } from './route-helpers.js';
 
 export const FeedbackItemSchema = z.object({
   id: UuidSchema,
@@ -23,7 +23,7 @@ export const FeedbackItemSchema = z.object({
 
 registry.register('FeedbackItem', FeedbackItemSchema);
 
-const CreateFeedbackRequestSchema = z.object({
+export const CreateFeedbackRequestSchema = z.object({
   title: z.string().min(1).max(500),
   program_id: UuidSchema,
   submitter_email: z.string().email().optional(),
@@ -43,44 +43,13 @@ registry.register('FeedbackProgramPublic', FeedbackProgramPublicSchema);
 
 export const FeedbackIdParamsSchema = IdParamSchema.openapi('FeedbackIdParams');
 
+export const FeedbackProgramParamsSchema = z.object({
+  programId: UuidSchema,
+}).openapi('FeedbackProgramParams');
+
 export const FeedbackLegacyErrorSchema = z.object({
   error: z.string(),
-}).openapi('FeedbackLegacyError');
+  details: z.array(z.unknown()).optional(),
+}).passthrough().openapi('FeedbackLegacyError');
 
 registry.register('FeedbackLegacyError', FeedbackLegacyErrorSchema);
-
-registry.registerPath({
-  method: 'post',
-  path: '/feedback',
-  tags: ['Feedback'],
-  summary: 'Submit public feedback',
-  security: [],
-  request: {
-    body: {
-      content: {
-        'application/json': { schema: CreateFeedbackRequestSchema },
-      },
-    },
-  },
-  responses: {
-    201: jsonResponse(FeedbackItemSchema, 'Feedback created'),
-    400: { description: 'Validation error' },
-    500: { description: 'Internal server error' },
-  },
-});
-
-registry.registerPath({
-  method: 'get',
-  path: '/feedback/program/{programId}',
-  tags: ['Feedback'],
-  summary: 'Get public program info for feedback form',
-  security: [],
-  request: {
-    params: z.object({ programId: UuidSchema }),
-  },
-  responses: {
-    200: jsonResponse(FeedbackProgramPublicSchema, 'Program metadata'),
-    404: { description: 'Program not found' },
-    500: { description: 'Internal server error' },
-  },
-});

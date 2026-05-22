@@ -1,13 +1,15 @@
 import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
-import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { defineRoute } from '../openapi/define-route.js';
 import {
+  CreateFeedbackRequestSchema,
   FeedbackItemSchema,
   FeedbackIdParamsSchema,
   FeedbackLegacyErrorSchema,
+  FeedbackProgramParamsSchema,
+  FeedbackProgramPublicSchema,
 } from '../openapi/schemas/feedback.js';
 import { getActor, getDocumentAccessContext, visibilityPredicate } from '../services/document-access.js';
 
@@ -16,14 +18,6 @@ export const publicFeedbackRouter: ExpressRouter = Router();
 
 // Protected routes - auth/CSRF required
 const router = Router();
-
-// Validation schemas
-const createFeedbackSchema = z.object({
-  title: z.string().min(1).max(500),
-  program_id: z.string().uuid(),
-  submitter_email: z.string().email().optional(),
-  content: z.unknown().optional(),
-});
 
 type FeedbackRow = {
   id: string;
@@ -40,10 +34,6 @@ type FeedbackRow = {
   program_color?: string | null;
   created_by_name?: string | null;
 };
-
-function getRouteParam(value: string | string[] | undefined): string {
-  return typeof value === 'string' ? value : '';
-}
 
 // Helper to extract feedback from row
 function extractFeedbackFromRow(row: FeedbackRow, programPrefix?: string | null) {
@@ -72,113 +62,141 @@ function extractFeedbackFromRow(row: FeedbackRow, programPrefix?: string | null)
 
 // Create feedback - PUBLIC endpoint (no auth required)
 // Creates an issue with source='external', state='triage'
-publicFeedbackRouter.post('/', async (req: Request, res: Response) => {
-  try {
-    const parsed = createFeedbackSchema.safeParse(req.body);
-    if (!parsed.success) {
-      sendValidationError(res, parsed.error);
-      return;
-    }
+publicFeedbackRouter.post(
+  '/',
+  defineRoute({
+    method: 'post',
+    path: '/feedback',
+    tags: ['Feedback'],
+    summary: 'Submit public feedback',
+    security: [],
+    request: {
+      body: CreateFeedbackRequestSchema,
+    },
+    responses: {
+      201: { schema: FeedbackItemSchema, description: 'Feedback created' },
+      400: { schema: FeedbackLegacyErrorSchema, description: 'Validation error' },
+      404: { schema: FeedbackLegacyErrorSchema, description: 'Program not found' },
+      500: { schema: FeedbackLegacyErrorSchema, description: 'Internal server error' },
+    },
+    validationError: (res, error) => sendValidationError(res, error.zodError),
+    handler: async (_req: Request, res: Response, { body }) => {
+      try {
+        const { title, program_id, submitter_email, content } = body!;
 
-    const { title, program_id, submitter_email, content } = parsed.data;
+        // Verify public feedback is enabled for this workspace-visible program.
+        const programResult = await pool.query(
+          `SELECT id, workspace_id, properties->>'prefix' as prefix
+           FROM documents
+           WHERE id = $1
+             AND document_type = 'program'
+             AND visibility = 'workspace'
+             AND archived_at IS NULL
+             AND deleted_at IS NULL
+             AND properties->>'public_feedback_enabled' = 'true'`,
+          [program_id]
+        );
 
-    // Verify public feedback is enabled for this workspace-visible program.
-    const programResult = await pool.query(
-      `SELECT id, workspace_id, properties->>'prefix' as prefix
-       FROM documents
-       WHERE id = $1
-         AND document_type = 'program'
-         AND visibility = 'workspace'
-         AND archived_at IS NULL
-         AND deleted_at IS NULL
-         AND properties->>'public_feedback_enabled' = 'true'`,
-      [program_id]
-    );
+        if (programResult.rows.length === 0) {
+          res.status(404).json({ error: 'Program not found' });
+          return;
+        }
 
-    if (programResult.rows.length === 0) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
+        const workspaceId = programResult.rows[0].workspace_id;
+        const programPrefix = programResult.rows[0].prefix;
 
-    const workspaceId = programResult.rows[0].workspace_id;
-    const programPrefix = programResult.rows[0].prefix;
+        // Get next ticket number for workspace
+        const ticketResult = await pool.query(
+          `SELECT COALESCE(MAX(ticket_number), 0) + 1 as next_number
+           FROM documents
+           WHERE workspace_id = $1 AND document_type = 'issue'`,
+          [workspaceId]
+        );
+        const ticketNumber = ticketResult.rows[0].next_number;
 
-    // Get next ticket number for workspace
-    const ticketResult = await pool.query(
-      `SELECT COALESCE(MAX(ticket_number), 0) + 1 as next_number
-       FROM documents
-       WHERE workspace_id = $1 AND document_type = 'issue'`,
-      [workspaceId]
-    );
-    const ticketNumber = ticketResult.rows[0].next_number;
+        // Build properties JSONB - external feedback goes directly to triage
+        const properties = {
+          state: 'triage',
+          priority: 'medium',
+          source: 'external',
+          submitter_email: submitter_email || null,
+          assignee_id: null,
+          rejection_reason: null,
+        };
 
-    // Build properties JSONB - external feedback goes directly to triage
-    const properties = {
-      state: 'triage',
-      priority: 'medium',
-      source: 'external',
-      submitter_email: submitter_email || null,
-      assignee_id: null,
-      rejection_reason: null,
-    };
+        // Create the feedback issue (no created_by for public submissions)
+        const result = await pool.query(
+          `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, content)
+           VALUES ($1, 'issue', $2, $3, $4, $5)
+           RETURNING *`,
+          [workspaceId, title, JSON.stringify(properties), ticketNumber, content ? JSON.stringify(content) : null]
+        );
 
-    // Create the feedback issue (no created_by for public submissions)
-    const result = await pool.query(
-      `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, content)
-       VALUES ($1, 'issue', $2, $3, $4, $5)
-       RETURNING *`,
-      [workspaceId, title, JSON.stringify(properties), ticketNumber, content ? JSON.stringify(content) : null]
-    );
+        const feedbackId = result.rows[0].id;
 
-    const feedbackId = result.rows[0].id;
+        // Create program association via document_associations
+        await pool.query(
+          `INSERT INTO document_associations (document_id, related_id, relationship_type)
+           VALUES ($1, $2, 'program') ON CONFLICT DO NOTHING`,
+          [feedbackId, program_id]
+        );
 
-    // Create program association via document_associations
-    await pool.query(
-      `INSERT INTO document_associations (document_id, related_id, relationship_type)
-       VALUES ($1, $2, 'program') ON CONFLICT DO NOTHING`,
-      [feedbackId, program_id]
-    );
-
-    res.status(201).json({ ...extractFeedbackFromRow(result.rows[0], programPrefix), program_id });
-  } catch (err) {
-    sendInternalError(res, err, 'Create feedback error');
-  }
-});
+        res.status(201).json({ ...extractFeedbackFromRow(result.rows[0], programPrefix), program_id });
+      } catch (err) {
+        sendInternalError(res, err, 'Create feedback error');
+      }
+    },
+  })
+);
 
 // Get program info for public feedback form (no auth required)
-publicFeedbackRouter.get('/program/:programId', async (req: Request, res: Response) => {
-  try {
-    const programId = getRouteParam(req.params.programId);
-
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(programId)) {
+publicFeedbackRouter.get(
+  '/program/:programId',
+  defineRoute({
+    method: 'get',
+    path: '/feedback/program/{programId}',
+    tags: ['Feedback'],
+    summary: 'Get public program info for feedback form',
+    security: [],
+    request: {
+      params: FeedbackProgramParamsSchema,
+    },
+    responses: {
+      200: { schema: FeedbackProgramPublicSchema, description: 'Program metadata' },
+      404: { schema: FeedbackLegacyErrorSchema, description: 'Program not found' },
+      500: { schema: FeedbackLegacyErrorSchema, description: 'Internal server error' },
+    },
+    validationError: (res) => {
       res.status(404).json({ error: 'Program not found' });
-      return;
-    }
+    },
+    handler: async (_req: Request, res: Response, { params }) => {
+      try {
+        const { programId } = params!;
 
-    const result = await pool.query(
-      `SELECT id, title as name, properties->>'prefix' as prefix, properties->>'color' as color
-       FROM documents
-       WHERE id = $1
-         AND document_type = 'program'
-         AND visibility = 'workspace'
-         AND archived_at IS NULL
-         AND deleted_at IS NULL
-         AND properties->>'public_feedback_enabled' = 'true'`,
-      [programId]
-    );
+        const result = await pool.query(
+          `SELECT id, title as name, properties->>'prefix' as prefix, properties->>'color' as color
+           FROM documents
+           WHERE id = $1
+             AND document_type = 'program'
+             AND visibility = 'workspace'
+             AND archived_at IS NULL
+             AND deleted_at IS NULL
+             AND properties->>'public_feedback_enabled' = 'true'`,
+          [programId]
+        );
 
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
+        if (result.rows.length === 0) {
+          res.status(404).json({ error: 'Program not found' });
+          return;
+        }
 
-    res.json(result.rows[0]);
-  } catch (err) {
-    sendInternalError(res, err, 'Get program for feedback error');
-  }
-});
+        res.json(result.rows[0]);
+      } catch (err) {
+        sendInternalError(res, err, 'Get program for feedback error');
+      }
+    },
+  })
+);
 
 // Get single feedback item
 router.get(

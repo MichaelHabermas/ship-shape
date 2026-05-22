@@ -37,7 +37,7 @@ components:
     cookieAuth:
       type: apiKey
       in: cookie
-      name: session
+      name: session_id
       description: Session cookie authentication. Automatically set after login.
   schemas:
     ErrorResponse:
@@ -713,7 +713,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BelongsToResponse"
-          description: Associated documents (programs, projects, sprints, parent issues)
+          description: Associated documents when present; omitted for issues with no associations.
         ticket_number:
           type: integer
         display_id:
@@ -735,9 +735,7 @@ components:
         - state
         - priority
         - source
-        - created_at
         - updated_at
-        - belongs_to
     CreateIssue:
       type: object
       properties:
@@ -5181,6 +5179,10 @@ components:
       properties:
         error:
           type: string
+        details:
+          type: array
+          items:
+            nullable: true
       required:
         - error
     AuthProviderStatusData:
@@ -10028,54 +10030,6 @@ paths:
           description: Invalid invite
         500:
           description: Internal server error
-  /feedback:
-    post:
-      tags:
-        - Feedback
-      summary: Submit public feedback
-      security: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateFeedbackRequest"
-      responses:
-        201:
-          description: Feedback created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FeedbackItem"
-        400:
-          description: Validation error
-        500:
-          description: Internal server error
-  /feedback/program/{programId}:
-    get:
-      tags:
-        - Feedback
-      summary: Get public program info for feedback form
-      security: []
-      parameters:
-        - schema:
-            type: string
-            format: uuid
-            description: UUID identifier
-            example: 550e8400-e29b-41d4-a716-446655440000
-          required: true
-          name: programId
-          in: path
-      responses:
-        200:
-          description: Program metadata
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FeedbackProgramPublic"
-        404:
-          description: Program not found
-        500:
-          description: Internal server error
   /auth/caia/status:
     get:
       tags:
@@ -10855,8 +10809,6 @@ paths:
       tags:
         - Setup
       summary: Check whether initial setup is required
-      description:
-      operationId:
       security: []
       responses:
         200:
@@ -10876,8 +10828,6 @@ paths:
       tags:
         - Setup
       summary: Create first super admin and workspace
-      description:
-      operationId:
       security: []
       requestBody:
         content:
@@ -10914,9 +10864,8 @@ paths:
       tags:
         - Standups
       summary: Create standup (idempotent)
-      description: Create a standalone standup for the current user on a given date. Returns existing standup if one already exists for that date.
-      operationId:
       security:
+      description: Create a standalone standup for the current user on a given date. Returns existing standup if one already exists for that date.
       requestBody:
         content:
           application/json:
@@ -10945,9 +10894,8 @@ paths:
       tags:
         - Standups
       summary: List standups for current user
-      description: Get standups for the current user within a date range.
-      operationId:
       security:
+      description: Get standups for the current user within a date range.
       parameters:
         - schema:
             type: string
@@ -10983,9 +10931,8 @@ paths:
       tags:
         - Standups
       summary: Get standup due status
-      description: Check if current user needs to post a standup today.
-      operationId:
       security:
+      description: Check if current user needs to post a standup today.
       responses:
         200:
           description: Standup status
@@ -11004,9 +10951,8 @@ paths:
       tags:
         - Standups
       summary: Update standup
-      description: Only the author or an admin can update a standup.
-      operationId:
       security:
+      description: Only the author or an admin can update a standup.
       parameters:
         - schema:
             type: string
@@ -11050,9 +10996,8 @@ paths:
       tags:
         - Standups
       summary: Delete standup
-      description: Only the author or an admin can delete a standup.
-      operationId:
       security:
+      description: Only the author or an admin can delete a standup.
       parameters:
         - schema:
             type: string
@@ -11081,13 +11026,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StandupLegacyError"
+  /feedback:
+    post:
+      tags:
+        - Feedback
+      summary: Submit public feedback
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFeedbackRequest"
+      responses:
+        201:
+          description: Feedback created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackItem"
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackLegacyError"
+        404:
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackLegacyError"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackLegacyError"
+  /feedback/program/{programId}:
+    get:
+      tags:
+        - Feedback
+      summary: Get public program info for feedback form
+      security: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: programId
+          in: path
+      responses:
+        200:
+          description: Program metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackProgramPublic"
+        404:
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackLegacyError"
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackLegacyError"
   /feedback/{id}:
     get:
       tags:
         - Feedback
       summary: Get feedback by ID
-      description:
-      operationId:
       security:
       parameters:
         - schema:

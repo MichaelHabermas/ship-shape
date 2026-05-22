@@ -81,11 +81,18 @@ router.post(
         return;
       }
 
+      const passwordHash = await bcrypt.hash(password, 12);
+      const client = await pool.connect();
+
       try {
-        const countResult = await pool.query('SELECT COUNT(*) as count FROM users');
+        await client.query('BEGIN');
+        await client.query(`SELECT pg_advisory_xact_lock(hashtext('ship_setup_initialize'))`);
+
+        const countResult = await client.query('SELECT COUNT(*) as count FROM users');
         const userCount = parseInt(countResult.rows[0].count);
 
         if (userCount > 0) {
+          await client.query('ROLLBACK');
           res.status(HTTP_STATUS.FORBIDDEN).json({
             success: false,
             error: {
@@ -96,9 +103,7 @@ router.post(
           return;
         }
 
-        const passwordHash = await bcrypt.hash(password, 12);
-
-        const workspaceResult = await pool.query(
+        const workspaceResult = await client.query(
           `INSERT INTO workspaces (name)
            VALUES ($1)
            RETURNING id`,
@@ -106,7 +111,7 @@ router.post(
         );
         const workspaceId = workspaceResult.rows[0].id;
 
-        const userResult = await pool.query(
+        const userResult = await client.query(
           `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
            VALUES ($1, $2, $3, true, $4)
            RETURNING id, email, name, is_super_admin`,
@@ -114,23 +119,25 @@ router.post(
         );
         const user = userResult.rows[0];
 
-        await pool.query(
+        await client.query(
           `INSERT INTO workspace_memberships (workspace_id, user_id, role)
            VALUES ($1, $2, 'admin')`,
           [workspaceId, user.id]
         );
 
-        await pool.query(
+        await client.query(
           `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
            VALUES ($1, 'person', $2, $3, $4)`,
           [workspaceId, name, JSON.stringify({ user_id: user.id, email: email.toLowerCase() }), user.id]
         );
 
-        await pool.query(
+        await client.query(
           `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
            VALUES ($1, 'wiki', $2, $3, $4)`,
           [workspaceId, WELCOME_DOCUMENT_TITLE, JSON.stringify(WELCOME_DOCUMENT_CONTENT), user.id]
         );
+
+        await client.query('COMMIT');
 
         console.log(`Initial setup complete: ${email} is now super admin`);
 
@@ -147,6 +154,11 @@ router.post(
           },
         });
       } catch (error) {
+        try {
+          await client.query('ROLLBACK');
+        } catch {
+          // Ignore rollback errors after a failed transaction or closed client.
+        }
         console.error('Setup initialization error:', error);
         res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
@@ -155,6 +167,8 @@ router.post(
             message: 'Failed to complete setup',
           },
         });
+      } finally {
+        client.release();
       }
     },
   })

@@ -32,7 +32,7 @@ registry.registerComponent('securitySchemes', 'bearerAuth', {
 registry.registerComponent('securitySchemes', 'cookieAuth', {
   type: 'apiKey',
   in: 'cookie',
-  name: 'session',
+  name: 'session_id',
   description: 'Session cookie authentication. Automatically set after login.',
 });
 
