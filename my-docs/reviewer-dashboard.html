@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- GENERATED FILE: run pnpm submission:render-dashboard. Do not edit by hand. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -8,57 +9,96 @@
     <style>
       :root { --bg:#f6f4ef; --paper:#fffdf8; --ink:#151515; --muted:#66635d; --line:#d8d1c3; --dark:#20201d; --proven-bg:#e7f2e5; --proven-ink:#24542a; --partial-bg:#fff3cf; --partial-ink:#73500b; --open-bg:#f7dedc; --open-ink:#7d2f28; --fill-bg:#e9edf3; --fill-ink:#38475d; }
       * { box-sizing: border-box; }
-      body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.5; }
-      .page { width:min(1240px, calc(100vw - 32px)); margin:0 auto; padding:28px 0 56px; }
+      body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.45; }
+      .page { width:min(1180px, calc(100vw - 32px)); margin:0 auto; padding:20px 0 44px; }
       p,li,td,code { overflow-wrap:anywhere; }
-      .hero { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(310px,.65fr); gap:18px; margin-bottom:18px; }
+      a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
+      .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.8fr); align-items:start; gap:14px; margin-bottom:14px; }
       .hero-main,.hero-side,.panel,.card,.table-wrap,.callout { background:var(--paper); border:1px solid var(--line); }
-      .hero-main { padding:26px; min-height:270px; display:flex; flex-direction:column; justify-content:space-between; }
-      .hero-side,.panel,.callout { padding:18px; }
-      .eyebrow { margin:0 0 10px; color:var(--muted); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+      .hero-main { padding:18px 20px; min-height:0; display:flex; flex-direction:column; justify-content:space-between; }
+      .hero-side,.panel,.callout { padding:14px; }
+      .eyebrow { margin:0 0 8px; color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
       h1,h2,h3,p { margin-top:0; }
-      h1 { max-width:900px; margin-bottom:18px; font-family:Georgia,"Times New Roman",serif; font-size:clamp(36px,6vw,76px); line-height:.95; letter-spacing:0; }
-      h2 { margin-bottom:12px; font-size:26px; line-height:1.15; }
-      h3 { margin-bottom:8px; font-size:17px; line-height:1.2; }
+      h1 { max-width:760px; margin-bottom:10px; font-size:clamp(30px,3.5vw,44px); line-height:1.02; letter-spacing:0; }
+      h2 { margin-bottom:9px; font-size:24px; line-height:1.15; }
+      h3 { margin-bottom:7px; font-size:16px; line-height:1.2; }
       p { color:var(--muted); }
-      .lede { max-width:820px; color:#34342f; font-size:18px; }
-      .badge { display:inline-flex; align-items:center; min-height:26px; padding:4px 9px; border:1px solid transparent; border-radius:999px; font-size:12px; font-weight:800; line-height:1; white-space:nowrap; text-transform:capitalize; }
+      .lede { max-width:820px; color:#34342f; font-size:15px; }
+      .hero-main > p:last-child { margin-bottom:0; font-size:13px; }
+      .verdict-strip { display:grid; gap:7px; margin-top:18px; }
+      .verdict-row { display:grid; grid-template-columns:minmax(160px,.55fr) minmax(0,1fr); gap:10px; align-items:center; padding:9px 10px; border:1px solid var(--line); background:#fbf8f0; }
+      .verdict-row strong { display:block; font-size:13px; line-height:1.2; }
+      .verdict-row span { color:var(--muted); font-size:12px; }
+      .cat-chip-row { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:5px; }
+      .cat-chip { display:inline-flex; align-items:center; min-height:22px; padding:3px 7px; border:1px solid var(--line); background:var(--paper); color:var(--dark); font-size:11px; font-weight:850; white-space:nowrap; }
+      .verdict-empty { color:var(--muted); font-size:12px; }
+      .badge { display:inline-flex; align-items:center; min-height:22px; padding:3px 8px; border:1px solid transparent; border-radius:999px; font-size:11px; font-weight:800; line-height:1; white-space:nowrap; text-transform:capitalize; }
       .badge.proven { background:var(--proven-bg); border-color:#b6d6b2; color:var(--proven-ink); }
       .badge.partial { background:var(--partial-bg); border-color:#e2c77f; color:var(--partial-ink); }
       .badge.open { background:var(--open-bg); border-color:#e0aaa4; color:var(--open-ink); }
       .badge.fill { background:var(--fill-bg); border-color:#c8d1df; color:var(--fill-ink); }
-      .tabs { position:sticky; top:0; z-index:10; display:flex; gap:6px; overflow-x:auto; padding:10px 0; margin:0 0 18px; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
-      .tab { appearance:none; border:1px solid var(--line); background:var(--paper); color:var(--dark); padding:9px 12px; font:inherit; font-size:14px; font-weight:750; cursor:pointer; white-space:nowrap; }
+      .tabs { position:sticky; top:0; z-index:10; display:flex; gap:5px; overflow-x:auto; padding:8px 0; margin:0 0 14px; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+      .tab { appearance:none; border:1px solid var(--line); background:var(--paper); color:var(--dark); padding:7px 10px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; white-space:nowrap; }
       .tab:hover { border-color:var(--dark); }
       .tab:focus-visible { border-color:var(--dark); outline:2px solid var(--dark); outline-offset:2px; }
       .tab[aria-selected="true"] { background:var(--dark); border-color:var(--dark); color:#fffdf8; }
       .tab-panel { display:none; }
       .tab-panel.active { display:block; }
-      .section-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:14px; margin-bottom:14px; }
+      .section-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
       .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-6 { grid-column:span 6; } .span-4 { grid-column:span 4; }
-      .score-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-      .score-card { min-height:170px; padding:14px; border:1px solid var(--line); background:var(--paper); display:flex; flex-direction:column; gap:10px; }
+      .score-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+      .score-card { min-height:155px; padding:12px; border:1px solid var(--line); background:var(--paper); display:flex; flex-direction:column; gap:8px; }
       .score-card header,.section-heading { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; }
+      .score-card p { margin-bottom:0; font-size:13px; }
+      .score-foot { display:grid; gap:5px; margin-top:auto; padding-top:8px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; font-weight:700; }
+      .blocker-link { color:var(--open-ink); font-weight:850; text-decoration:none; }
+      .blocker-link:hover { text-decoration:underline; }
+      tr:target { outline:2px solid var(--dark); outline-offset:-2px; background:#fff8df; }
       .cat-id { color:var(--muted); font-size:12px; font-weight:850; letter-spacing:.06em; text-transform:uppercase; }
-      .mini-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-      .mini { padding:12px; border:1px solid var(--line); background:#fbf8f0; }
-      .mini strong { display:block; font-size:20px; line-height:1.1; }
+      .hero-side .score-grid { grid-template-columns:repeat(4,minmax(0,1fr)); margin:9px 0 0; }
+      .category-card { display:flex; flex-direction:column; min-height:280px; }
+      .category-card .mini-grid { margin-top:auto; }
+      .category-card p { margin-bottom:14px; }
+      .status-dot { display:flex; align-items:center; gap:5px; min-width:0; font-size:12px; font-weight:800; white-space:nowrap; }
+      .status-dot .badge { min-height:18px; padding:2px 6px; font-size:10px; }
+      .mini-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+      .mini { padding:9px 10px; border:1px solid var(--line); background:#fbf8f0; }
+      .mini strong { display:block; font-size:20px; line-height:1.05; }
       .mini span,.check-list span { color:var(--muted); font-size:13px; }
       .subtle { color:var(--muted); font-size:12px; font-weight:700; }
-      .summary-card { margin:14px 0; }
-      .check-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
-      .check-list li { padding:12px; border:1px solid var(--line); background:#fbf8f0; }
+      .summary-card { margin:12px 0; }
+      .check-list { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+      .check-list li { padding:10px; border:1px solid var(--line); background:#fbf8f0; }
       .check-list strong { display:block; margin-bottom:3px; }
+      .check-list small { display:block; margin-top:5px; color:var(--muted); font-size:12px; }
+      .gate-list { display:grid; gap:7px; margin:10px 0 0; padding:0; list-style:none; }
+      .gate-list li { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:6px 8px; align-items:start; padding:7px 8px; border:1px solid var(--line); background:#fbf8f0; }
+      .gate-list strong { font-size:13px; line-height:1.25; }
+      .gate-list span:last-child { display:none; }
+      .gate-cat { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; white-space:nowrap; }
+      .chip-list { display:flex; flex-wrap:wrap; gap:5px; }
+      .test-chip { display:inline-flex; align-items:center; max-width:100%; padding:3px 6px; border:1px solid var(--line); background:#fbf8f0; color:var(--muted); font-size:11px; font-weight:750; line-height:1.15; }
+      .test-chip.pass { color:var(--proven-ink); border-color:#b6d6b2; background:var(--proven-bg); }
+      .test-chip.warn { color:var(--partial-ink); border-color:#e2c77f; background:var(--partial-bg); }
+      .test-chip.fail { color:var(--open-ink); border-color:#e0aaa4; background:var(--open-bg); }
+      .artifact-link { margin-top:5px; }
+      .path { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:12px; }
+      .non-claim-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+      .non-claim-card { padding:12px; border:1px solid var(--line); background:#fbf8f0; }
+      .non-claim-card h3 { margin-bottom:7px; font-size:14px; }
+      .non-claim-card ul { margin:0; padding-left:18px; color:var(--muted); font-size:13px; }
+      .non-claim-card li + li { margin-top:4px; }
       .table-wrap { overflow-x:auto; }
-      table { width:100%; min-width:760px; border-collapse:collapse; font-size:14px; }
-      th,td { padding:12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+      table { width:100%; min-width:760px; border-collapse:collapse; font-size:13px; }
+      th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
       th { color:var(--muted); font-size:11px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
       tr:last-child td { border-bottom:0; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
-      @media (max-width: 960px) { .hero,.section-grid,.score-grid,.mini-grid { grid-template-columns:1fr; } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
-      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
+      @media (max-width: 1100px) { .score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media (max-width: 960px) { .hero,.section-grid,.mini-grid,.non-claim-grid { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
+      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
     </style>
   </head>
   <body>
@@ -68,9 +108,40 @@
           <div>
             <p class="eyebrow">Generated From Evidence Ledger</p>
             <h1 id="page-title">ShipShape evidence dashboard</h1>
-            <p class="lede">Full evidence ledger for GauntletAI ShipShape reviewer claims. Categories 1-8 are represented with source requirements, measurements, derived metrics, bounded claims, evidence pointers, caveats, and acceptance tests. The dashboard is generated from this file; do not make reviewer claims outside this ledger.</p>
+            <p class="lede">Week 4 reviewer console for source-backed category status, acceptance gates, evidence paths, and explicit non-claims.</p>
           </div>
-          <p>Generated from <code>my-docs/evidence/submission-ledger.json</code>.</p>
+
+    <div class="verdict-strip" aria-label="Reviewer verdict map">
+
+            <div class="verdict-row">
+              <div>
+                <strong>Claim-ready</strong>
+                <span>Safe to lead with.</span>
+              </div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 5</span></div>
+            </div>
+            <div class="verdict-row">
+              <div>
+                <strong>Evidence-backed, blocked</strong>
+                <span>Good result, missing required artifact.</span>
+              </div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 3</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span></div>
+            </div>
+            <div class="verdict-row">
+              <div>
+                <strong>Needs proof</strong>
+                <span>Useful work, source gate still open.</span>
+              </div>
+              <div class="cat-chip-row"><span class="verdict-empty">None</span></div>
+            </div>
+            <div class="verdict-row">
+              <div>
+                <strong>Not ready</strong>
+                <span>Placeholder lane.</span>
+              </div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 8</span></div>
+            </div>
+    </div>
         </div>
         <aside class="hero-side" aria-label="Current review status">
           <p class="eyebrow">Reviewer Gate Snapshot</p>
@@ -79,8 +150,50 @@
             <div class="mini"><strong>5</strong><span>partial</span></div>
             <div class="mini"><strong>1</strong><span>open/fill</span></div>
           </div>
-          <div class="score-grid"><div><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div><span class="badge partial">partial</span> <strong>Cat 2</strong></div><div><span class="badge partial">partial</span> <strong>Cat 3</strong></div><div><span class="badge partial">partial</span> <strong>Cat 4</strong></div><div><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div><span class="badge partial">partial</span> <strong>Cat 6</strong></div><div><span class="badge partial">partial</span> <strong>Cat 7</strong></div><div><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
-          <p>Failing acceptance tests: Cat 2: cat2-before-after-bundle-analysis-output-present; Cat 3: cat3-two-endpoints-clear-20-percent-p95; Cat 4: cat4-before-after-explain-analyze-present; Cat 6: cat6-three-error-handling-fixes-documented; Cat 6: cat6-each-fix-has-before-after-and-screenshot; Cat 7: cat7-top3-page-selection-source-backed; Cat 8: cat8-probe-tool-runnable; Cat 8: cat8-four-attack-surfaces-covered; Cat 8: cat8-manual-review-complete; Cat 8: cat8-two-verified-vulnerability-fixes. Warning acceptance tests: Cat 5: cat5-e2e-baseline-not-green.</p>
+          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge partial">partial</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
+          <ul class="gate-list">
+        <li data-ledger-id="cat2-before-after-bundle-analysis-output-present">
+          <span class="gate-cat">Cat 2</span>
+          <strong title="cat2-before-after-bundle-analysis-output-present">Provide before/after bundle analysis output.</strong>
+          <span class="badge open">open</span>
+          <span>Baseline bundle analysis exists, latest stats exist, but latest treemap/equivalent bundle-analysis artifact is missing.</span>
+        </li>
+        <li data-ledger-id="cat3-two-endpoints-clear-20-percent-p95">
+          <span class="gate-cat">Cat 3</span>
+          <strong title="cat3-two-endpoints-clear-20-percent-p95">At least two endpoints show 20% P95 reduction under identical benchmark conditions.</strong>
+          <span class="badge open">open</span>
+          <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions</span>
+        </li>
+        <li data-ledger-id="cat4-before-after-explain-analyze-present">
+          <span class="gate-cat">Cat 4</span>
+          <strong title="cat4-before-after-explain-analyze-present">Provide before/after EXPLAIN ANALYZE output.</strong>
+          <span class="badge open">open</span>
+          <span>Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.</span>
+        </li>
+        <li data-ledger-id="cat6-three-error-handling-fixes-documented">
+          <span class="gate-cat">Cat 6</span>
+          <strong title="cat6-three-error-handling-fixes-documented, cat6-each-fix-has-before-after-and-screenshot">Runtime Error and Edge Case Handling proof gaps (2)</strong>
+          <span class="badge open">open</span>
+          <span>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence Ledger does not yet contain three fix-specific before/after records.</span>
+        </li>
+        <li data-ledger-id="cat7-top3-page-selection-source-backed">
+          <span class="gate-cat">Cat 7</span>
+          <strong title="cat7-top3-page-selection-source-backed">The selected pages are source-backed as the 3 most important pages.</strong>
+          <span class="badge open">open</span>
+          <span>The closeout pages have zero axe violations, but the source docs do not prove this set is the 3 most important pages; /projects had baseline serious contrast failures and was not in the closeout scan.</span>
+        </li>
+        <li data-ledger-id="cat8-probe-tool-runnable">
+          <span class="gate-cat">Cat 8</span>
+          <strong title="cat8-probe-tool-runnable, cat8-four-attack-surfaces-covered, cat8-manual-review-complete, cat8-two-verified-vulnerability-fixes">Security Audit proof gaps (4)</strong>
+          <span class="badge open">open</span>
+          <span>Runnable single-command security probe exists and produces a structured report Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs 2 more in Targets.</span>
+        </li>
+        <li data-ledger-id="cat5-e2e-baseline-not-green">
+          <span class="gate-cat">Cat 5</span>
+          <strong title="cat5-e2e-baseline-not-green">E2E Baseline Not Green</strong>
+          <span class="badge partial">partial</span>
+          <span>Full E2E baseline still had failing/flaky evidence; this does not invalidate the three meaningful regression-test target.</span>
+        </li></ul>
         </aside>
       </section>
 
@@ -95,141 +208,84 @@
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
         <div class="section-grid">
           <div class="span-12"><div class="score-grid">
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-1-type-safety">
           <header><span class="cat-id">Cat 1</span><span class="badge proven">proven</span></header>
           <h3>Type Safety</h3>
-          <p>Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement.</p>
+          <p>1340 -&gt; 623 (decreased 53.5%)</p>
+          <div class="score-foot">
+            <span>4/4 acceptance pass; all gates clear</span>
+
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-2-bundle-size">
           <header><span class="cat-id">Cat 2</span><span class="badge partial">partial</span></header>
           <h3>Bundle Size</h3>
-          <p>Initial entry bundle decreased from 2025.10 KB to about 517.82 KB, a 74.4% reduction, clearing the 20% code-splitting target.</p>
+          <p>Provide before/after bundle analysis output.</p>
+          <div class="score-foot">
+            <span>3/4 acceptance pass; 1 open/warn gate</span>
+            <a class="blocker-link" href="#target-cat2-target-before-after-output">Missing: before/after bundle analysis output</a>
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-3-api-response-time">
           <header><span class="cat-id">Cat 3</span><span class="badge partial">partial</span></header>
           <h3>API Response Time</h3>
-          <p>GET /api/issues clears the 20% P95 reduction bar at 10c and 25c, but not 50c; /api/dashboard/my-week has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ; no second endpoint has stable comparable 20% P95 proof.</p>
+          <p>At least two endpoints show 20% P95 reduction under identical benchmark conditions.</p>
+          <div class="score-foot">
+            <span>2/3 acceptance pass; 1 open/warn gate</span>
+            <a class="blocker-link" href="#target-cat3-target-two-endpoints-p95">Missing: two endpoints show 20% P95 reduction under identical benchmark conditions</a>
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-4-database-query-efficiency">
           <header><span class="cat-id">Cat 4</span><span class="badge partial">partial</span></header>
           <h3>Database Query Efficiency</h3>
-          <p>Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, but full Category 4 proof remains partial because before/after EXPLAIN ANALYZE output is missing.</p>
+          <p>Provide before/after EXPLAIN ANALYZE output.</p>
+          <div class="score-foot">
+            <span>4/5 acceptance pass; 1 open/warn gate</span>
+            <a class="blocker-link" href="#target-cat4-target-before-after-explain">Missing: before/after EXPLAIN ANALYZE output</a>
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-5-test-coverage-quality">
           <header><span class="cat-id">Cat 5</span><span class="badge proven">proven</span></header>
           <h3>Test Coverage and Quality</h3>
-          <p>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility.</p>
+          <p>3 / 3 required</p>
+          <div class="score-foot">
+            <span>4/5 acceptance pass; 1 open/warn gate</span>
+            <a class="blocker-link" href="#category-cat-5-test-coverage-quality">Missing: E2E Baseline Not Green</a>
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-6-runtime-error-handling">
           <header><span class="cat-id">Cat 6</span><span class="badge partial">partial</span></header>
           <h3>Runtime Error and Edge Case Handling</h3>
-          <p>Focused runtime evidence improved CSRF JSON errors and Backlinks offline/degraded behavior, with screenshots, but Category 6 remains partial until three fix-specific before/after records are explicit.</p>
+          <p>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence.</p>
+          <div class="score-foot">
+            <span>4/6 acceptance pass; 2 open/warn gates</span>
+            <a class="blocker-link" href="#target-cat6-target-three-error-handling-fixes">Missing: Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence</a>
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-7-accessibility">
           <header><span class="cat-id">Cat 7</span><span class="badge partial">partial</span></header>
           <h3>Accessibility Compliance</h3>
-          <p>The selected closeout pages report 0 axe violations, but the ledger does not prove those pages are the 3 most important pages required by the source.</p>
+          <p>The selected pages are source-backed as the 3 most important pages.</p>
+          <div class="score-foot">
+            <span>3/4 acceptance pass; 1 open/warn gate</span>
+            <a class="blocker-link" href="#target-cat7-target-source-backed-top3">Missing: The selected pages are source-backed as the 3 most important pages</a>
+          </div>
         </article>
-        <article class="score-card">
+        <article class="score-card" data-ledger-id="cat-8-security-audit">
           <header><span class="cat-id">Cat 8</span><span class="badge open">open</span></header>
           <h3>Security Audit</h3>
-          <p>Security 8 is represented as a required lane, but no runnable probe/report and no two verified probe-driven vulnerability fixes are evidenced yet.</p>
+          <p>Runnable single-command security probe exists and produces a structured report.</p>
+          <div class="score-foot">
+            <span>0/4 acceptance pass; 4 open/warn gates</span>
+            <a class="blocker-link" href="#target-cat8-target-runnable-probe">Missing: Runnable single-command security probe exists and produces a structured report</a>
+          </div>
         </article></div></div>
-
-    <article class="panel span-4">
-      <p class="eyebrow">Category 1</p>
-      <h2>Type Safety</h2>
-      <div class="status-row"><span class="badge proven">proven</span></div>
-      <p>Eliminate 25% of type safety violations. Every fix must preserve existing functionality; all tests still pass. Superficial fixes do not count. Replacing any with unknown without proper type narrowing is not an improvement; fixes must include correct, meaningful types that reflect the actual data.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>10</strong><span>rubric items</span></div>
-        <div class="mini"><strong>4</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>0</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 2</p>
-      <h2>Bundle Size</h2>
-      <div class="status-row"><span class="badge partial">partial</span></div>
-      <p>15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>8</strong><span>rubric items</span></div>
-        <div class="mini"><strong>3</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>1</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 3</p>
-      <h2>API Response Time</h2>
-      <div class="status-row"><span class="badge partial">partial</span></div>
-      <p>20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>7</strong><span>rubric items</span></div>
-        <div class="mini"><strong>2</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>1</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 4</p>
-      <h2>Database Query Efficiency</h2>
-      <div class="status-row"><span class="badge partial">partial</span></div>
-      <p>20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>7</strong><span>rubric items</span></div>
-        <div class="mini"><strong>4</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>1</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 5</p>
-      <h2>Test Coverage and Quality</h2>
-      <div class="status-row"><span class="badge proven">proven</span></div>
-      <p>Add meaningful tests for 3 previously untested critical paths, or fix 3 flaky tests with documented root cause analysis. Meaningful tests catch real regressions and each test must include a comment explaining the risk it mitigates.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>7</strong><span>rubric items</span></div>
-        <div class="mini"><strong>4</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>1</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 6</p>
-      <h2>Runtime Error and Edge Case Handling</h2>
-      <div class="status-row"><span class="badge partial">partial</span></div>
-      <p>Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>7</strong><span>rubric items</span></div>
-        <div class="mini"><strong>4</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>2</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 7</p>
-      <h2>Accessibility Compliance</h2>
-      <div class="status-row"><span class="badge partial">partial</span></div>
-      <p>Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>7</strong><span>rubric items</span></div>
-        <div class="mini"><strong>3</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>1</strong><span>fail/warn</span></div>
-      </div>
-    </article>
-    <article class="panel span-4">
-      <p class="eyebrow">Category 8</p>
-      <h2>Security Audit</h2>
-      <div class="status-row"><span class="badge open">open</span></div>
-      <p>Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof.</p>
-      <div class="mini-grid">
-        <div class="mini"><strong>7</strong><span>rubric items</span></div>
-        <div class="mini"><strong>0</strong><span>acceptance pass</span></div>
-        <div class="mini"><strong>4</strong><span>fail/warn</span></div>
-      </div>
-    </article>
         </div>
       </section>
 
       <section id="panel-evidence" class="tab-panel" role="tabpanel" aria-labelledby="tab-evidence" tabindex="0" hidden>
         <div class="section-grid">
-        <article class="panel span-12">
+        <article id="category-cat-1-type-safety" class="panel span-12" data-ledger-id="cat-1-type-safety">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 1</p>
@@ -237,9 +293,9 @@
             </div>
             <span class="badge proven">proven</span>
           </div>
-          <p>Eliminate 25% of type safety violations. Every fix must preserve existing functionality; all tests still pass. Superficial fixes do not count. Replacing any with unknown without proper type narrowing is not an improvement; fixes must include correct, meaningful types that reflect the actual data.</p>
+          <p>Eliminate 25% of type safety violations. Every fix must preserve existing functionality; all tests still pass. Superficial fixes do not count. Replacing any with unknown without proper type narrowing is not an improvement; fixes must include correct, meaningful types that reflect the actual data. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat1-type-safety-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -257,7 +313,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat1-type-safety-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -278,51 +334,61 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat1-target-total-counted-syntax-25-percent <span class="badge proven">proven</span></strong>
-                    <span>Eliminate at least 25% of counted type-safety syntax violations. Threshold: 25; actual: 53.5. </span>
+                  <li data-ledger-id="cat1-target-total-counted-syntax-25-percent">
+                    <strong>Target Total Counted Syntax 25 Percent <span class="badge proven">proven</span></strong>
+                    <span>Eliminate at least 25% of counted type-safety syntax violations. 1340 -&gt; 623 (decreased 53.5%); threshold 25; actual 53.5</span>
                   </li>
-                  <li>
-                    <strong>cat1-target-tests-still-pass <span class="badge proven">proven</span></strong>
-                    <span>Existing API and web tests still pass after the type-safety work. Threshold: N/A; actual: N/A. Recorded API and web suite pass evidence exists.</span>
+                  <li data-ledger-id="cat1-target-tests-still-pass">
+                    <strong>Target Tests Still Pass <span class="badge proven">proven</span></strong>
+                    <span>Existing API and web tests still pass after the type-safety work. Recorded API and web suite pass evidence exists.</span>
                   </li>
-                  <li>
-                    <strong>cat1-target-meaningful-types <span class="badge proven">proven</span></strong>
-                    <span>Type cleanup uses meaningful boundary/schema typing rather than superficial unknown replacements. Threshold: N/A; actual: N/A. Improvement report documents shared boundary schemas and typed route/client contracts.</span>
+                  <li data-ledger-id="cat1-target-meaningful-types">
+                    <strong>Target Meaningful Types <span class="badge proven">proven</span></strong>
+                    <span>Type cleanup uses meaningful boundary/schema typing rather than superficial unknown replacements. Improvement report documents shared boundary schemas and typed route/client contracts.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat1-clears-total-25-percent-counted-syntax-reduction <span class="badge proven">proven</span></strong>
+                  <li data-ledger-id="cat1-clears-total-25-percent-counted-syntax-reduction">
+                    <strong>Clears Total 25 Percent Counted Syntax Reduction <span class="badge proven">proven</span></strong>
                     <span>Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement. This is a syntax-count denominator, not a semantic type-risk score. Production counted syntax decreased 58.6%, which is useful context but separate from the total-count source gate. Production any usage decreased from 94 to 1; production non-null assertions decreased from 325 to 35 after the authenticated-route context sweep.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat1-audit-methodology <span class="subtle">methodology</span></strong>
-          <span>Category 1 methodology defines the TypeScript AST counter used as the official denominator. Path: my-docs/AUDIT_REPORT.md</span>
+        <li data-ledger-id="cat1-audit-methodology">
+          <strong>Audit Methodology <span class="subtle">methodology</span></strong>
+          <span>Category 1 methodology defines the TypeScript AST counter used as the official denominator.</span>
+          <small>Path: my-docs/AUDIT_REPORT.md</small>
+          <div class="artifact-link"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat1-type-check <span class="subtle">command</span></strong>
-          <span>Improvement report records type-check passing after structural boundary changes and the meaningful `as` cast reduction pass. Command: pnpm type-check | Result: pass</span>
+        <li data-ledger-id="cat1-type-check">
+          <strong>Type Check <span class="subtle">command</span></strong>
+          <span>Improvement report records type-check passing after structural boundary changes and the meaningful `as` cast reduction pass.</span>
+          <small>Command: pnpm type-check | Result: pass</small>
+
         </li>
-        <li>
-          <strong>cat1-api-tests <span class="subtle">test_run</span></strong>
-          <span>Full API test suite passed after the meaningful `as` cast reduction pass. Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm test | Result: 36 files passed / 509 tests passed</span>
+        <li data-ledger-id="cat1-api-tests">
+          <strong>Api Tests <span class="subtle">test_run</span></strong>
+          <span>Full API test suite passed after the meaningful `as` cast reduction pass.</span>
+          <small>Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm test | Result: 36 files passed / 509 tests passed</small>
+
         </li>
-        <li>
-          <strong>cat1-web-tests <span class="subtle">test_run</span></strong>
-          <span>Full web test suite passed after the meaningful `as` cast reduction pass. Command: pnpm --filter @ship/web test | Result: 21 files passed / 168 tests passed</span>
+        <li data-ledger-id="cat1-web-tests">
+          <strong>Web Tests <span class="subtle">test_run</span></strong>
+          <span>Full web test suite passed after the meaningful `as` cast reduction pass.</span>
+          <small>Command: pnpm --filter @ship/web test | Result: 21 files passed / 168 tests passed</small>
+
         </li>
-        <li>
-          <strong>cat1-meaningful-boundary-narrowing <span class="subtle">methodology</span></strong>
-          <span>Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, typed client/server contracts, API query coercion, approval JSONB guards, API status errors, and API-response-to-editor mappers rather than replacing any with unknown. Path: my-docs/IMPROVEMENT_REPORT.md</span>
+        <li data-ledger-id="cat1-meaningful-boundary-narrowing">
+          <strong>Meaningful Boundary Narrowing <span class="subtle">methodology</span></strong>
+          <span>Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, typed client/server contracts, API query coercion, approval JSONB guards, API status errors, and API-response-to-editor mappers rather than replacing any with unknown.</span>
+          <small>Path: my-docs/IMPROVEMENT_REPORT.md</small>
+          <div class="artifact-link"><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">Open artifact</a></div>
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-2-bundle-size" class="panel span-12" data-ledger-id="cat-2-bundle-size">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 2</p>
@@ -330,9 +396,9 @@
             </div>
             <span class="badge partial">partial</span>
           </div>
-          <p>15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count.</p>
+          <p>15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat2-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -350,7 +416,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat2-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -371,47 +437,55 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat2-target-initial-entry-20-percent <span class="badge proven">proven</span></strong>
-                    <span>Reduce initial page-load bundle by at least 20% through code splitting. Threshold: 20; actual: 74.4. </span>
+                  <li data-ledger-id="cat2-target-initial-entry-20-percent">
+                    <strong>Target Initial Entry 20 Percent <span class="badge proven">proven</span></strong>
+                    <span>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 517.82 (decreased 74.4%); threshold 20; actual 74.4</span>
                   </li>
-                  <li>
-                    <strong>cat2-target-before-after-output <span class="badge open">open</span></strong>
-                    <span>Provide before/after bundle analysis output. Threshold: N/A; actual: false. Baseline treemap/stats and latest stats exist, but no latest treemap or equivalent after bundle-analysis artifact is committed.</span>
+                  <li data-ledger-id="cat2-target-before-after-output">
+                    <strong>Target Before After Output <span class="badge open">open</span></strong>
+                    <span>Provide before/after bundle analysis output. actual false; Baseline treemap/stats and latest stats exist, but no latest treemap or equivalent after bundle-analysis artifact is committed.</span>
                   </li>
-                  <li>
-                    <strong>cat2-target-no-functionality-removal <span class="badge proven">proven</span></strong>
-                    <span>Do not remove user-facing functionality to shrink the bundle. Threshold: N/A; actual: N/A. Changes lazy-load features/routes and remove confirmed unused dependency instead of deleting product capability.</span>
+                  <li data-ledger-id="cat2-target-no-functionality-removal">
+                    <strong>Target No Functionality Removal <span class="badge proven">proven</span></strong>
+                    <span>Do not remove user-facing functionality to shrink the bundle. Changes lazy-load features/routes and remove confirmed unused dependency instead of deleting product capability.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat2-clears-initial-entry-code-splitting-target <span class="badge partial">partial</span></strong>
+                  <li data-ledger-id="cat2-clears-initial-entry-code-splitting-target">
+                    <strong>Clears Initial Entry Code Splitting Target <span class="badge partial">partial</span></strong>
                     <span>Initial entry bundle decreased from 2025.10 KB to about 517.82 KB, a 74.4% reduction, clearing the 20% code-splitting target. This does not claim a 15% total JS/CSS bundle reduction; total JS/CSS increased by about 3.3%. The claim is scoped to initial page-load/code-splitting improvement. Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat2-build-web-command <span class="subtle">command</span></strong>
-          <span>Production frontend build command used for bundle measurements. Command: pnpm build:web | Result: pass</span>
+        <li data-ledger-id="cat2-build-web-command">
+          <strong>Build Web Command <span class="subtle">command</span></strong>
+          <span>Production frontend build command used for bundle measurements.</span>
+          <small>Command: pnpm build:web | Result: pass</small>
+
         </li>
-        <li>
-          <strong>cat2-baseline-bundle-stats <span class="subtle">artifact</span></strong>
-          <span>Baseline production bundle stats artifact. Path: my-docs/audit-evidence/category-2-bundle/bundle-stats.json</span>
+        <li data-ledger-id="cat2-baseline-bundle-stats">
+          <strong>Baseline Bundle Stats <span class="subtle">artifact</span></strong>
+          <span>Baseline production bundle stats artifact.</span>
+          <small>Path: my-docs/audit-evidence/category-2-bundle/bundle-stats.json</small>
+          <div class="artifact-link"><a class="path" href="audit-evidence/category-2-bundle/bundle-stats.json" title="my-docs/audit-evidence/category-2-bundle/bundle-stats.json">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat2-baseline-bundle-treemap <span class="subtle">artifact</span></strong>
-          <span>Baseline bundle treemap artifact. Path: my-docs/audit-evidence/category-2-bundle/bundle-treemap.html</span>
+        <li data-ledger-id="cat2-baseline-bundle-treemap">
+          <strong>Baseline Bundle Treemap <span class="subtle">artifact</span></strong>
+          <span>Baseline bundle treemap artifact.</span>
+          <small>Path: my-docs/audit-evidence/category-2-bundle/bundle-treemap.html</small>
+          <div class="artifact-link"><a class="path" href="audit-evidence/category-2-bundle/bundle-treemap.html" title="my-docs/audit-evidence/category-2-bundle/bundle-treemap.html">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat2-latest-bundle-stats <span class="subtle">artifact</span></strong>
-          <span>Latest evidence-run bundle stats artifact. Path: my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json</span>
+        <li data-ledger-id="cat2-latest-bundle-stats">
+          <strong>Latest Bundle Stats <span class="subtle">artifact</span></strong>
+          <span>Latest evidence-run bundle stats artifact.</span>
+          <small>Path: my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json</small>
+          <div class="artifact-link"><a class="path" href="evidence-runs/codex-final-review/collectors/bundle-stats.json" title="my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json">Open artifact</a></div>
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-3-api-response-time" class="panel span-12" data-ledger-id="cat-3-api-response-time">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 3</p>
@@ -419,9 +493,9 @@
             </div>
             <span class="badge partial">partial</span>
           </div>
-          <p>20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck.</p>
+          <p>20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat3-api-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -439,7 +513,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat3-api-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -460,43 +534,49 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat3-target-two-endpoints-p95 <span class="badge open">open</span></strong>
-                    <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions. Threshold: 2; actual: 1. </span>
+                  <li data-ledger-id="cat3-target-two-endpoints-p95">
+                    <strong>Target Two Endpoints P95 <span class="badge open">open</span></strong>
+                    <span>At least two endpoints show 20% P95 reduction under identical benchmark conditions. threshold 2; actual 1</span>
                   </li>
-                  <li>
-                    <strong>cat3-target-before-after-comparable <span class="badge proven">proven</span></strong>
-                    <span>Before/after benchmarks use identical data, concurrency, hardware, and command shape. Threshold: true; actual: true. </span>
+                  <li data-ledger-id="cat3-target-before-after-comparable">
+                    <strong>Target Before After Comparable <span class="badge proven">proven</span></strong>
+                    <span>Before/after benchmarks use identical data, concurrency, hardware, and command shape. threshold true; actual true</span>
                   </li>
-                  <li>
-                    <strong>cat3-target-root-cause-documented <span class="badge proven">proven</span></strong>
-                    <span>Root cause of each bottleneck is documented. Threshold: N/A; actual: N/A. Report records payload/serialization and benchmark/rate-limit findings.</span>
+                  <li data-ledger-id="cat3-target-root-cause-documented">
+                    <strong>Target Root Cause Documented <span class="badge proven">proven</span></strong>
+                    <span>Root cause of each bottleneck is documented. Report records payload/serialization and benchmark/rate-limit findings.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat3-p95-target <span class="badge partial">partial</span></strong>
+                  <li data-ledger-id="cat3-p95-target">
+                    <strong>P95 Target <span class="badge partial">partial</span></strong>
                     <span>GET /api/issues clears the 20% P95 reduction bar at 10c and 25c, but not 50c; /api/dashboard/my-week has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ; no second endpoint has stable comparable 20% P95 proof. The source requirement asks for 20% P95 reduction on at least two endpoints. Endpoint and concurrency results are mixed. The My Week follow-up benchmark is artifact-backed but not part of the primary identical-condition before/after comparability group. Payload size improved materially, but payload reduction is not the same as endpoint P95 proof.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat3-before-benchmark-artifact <span class="subtle">artifact</span></strong>
-          <span>Before benchmark artifact referenced by IMPROVEMENT_REPORT.md. Path: my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json</span>
+        <li data-ledger-id="cat3-before-benchmark-artifact">
+          <strong>Before Benchmark Artifact <span class="subtle">artifact</span></strong>
+          <span>Before benchmark artifact referenced by IMPROVEMENT_REPORT.md.</span>
+          <small>Path: my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json" title="my-docs/evidence/artifacts/cat3-api-before-2026-05-21T02-40-19-503Z.json">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat3-after-benchmark-artifact <span class="subtle">artifact</span></strong>
-          <span>After benchmark artifact referenced by IMPROVEMENT_REPORT.md. Path: my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json</span>
+        <li data-ledger-id="cat3-after-benchmark-artifact">
+          <strong>After Benchmark Artifact <span class="subtle">artifact</span></strong>
+          <span>After benchmark artifact referenced by IMPROVEMENT_REPORT.md.</span>
+          <small>Path: my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json" title="my-docs/evidence/artifacts/cat3-api-after-2026-05-21T03-11-53-590Z.json">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat3-benchmark-command <span class="subtle">command</span></strong>
-          <span>Benchmark rail used for Category 3 local dev measurements. Command: API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api | Result: pass; generated the benchmark artifacts referenced by baseline/latest measurements</span>
+        <li data-ledger-id="cat3-benchmark-command">
+          <strong>Benchmark Command <span class="subtle">command</span></strong>
+          <span>Benchmark rail used for Category 3 local dev measurements.</span>
+          <small>Command: API_BASE_URL=http://localhost:3001 BENCHMARK_DURATION_MS=15000 BENCHMARK_CONNECTIONS=10,25,50 BENCHMARK_RATE_PER_SECOND=100 pnpm benchmark:api | Result: pass; generated the benchmark artifacts referenced by baseline/latest measurements</small>
+
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-4-database-query-efficiency" class="panel span-12" data-ledger-id="cat-4-database-query-efficiency">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 4</p>
@@ -504,9 +584,9 @@
             </div>
             <span class="badge partial">partial</span>
           </div>
-          <p>20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it.</p>
+          <p>20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat4-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -524,7 +604,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat4-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -545,47 +625,55 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat4-target-one-flow-query-count-20-percent <span class="badge proven">proven</span></strong>
-                    <span>Reduce total query count by at least 20% on at least one user flow. Threshold: 20; actual: 27.3. </span>
+                  <li data-ledger-id="cat4-target-one-flow-query-count-20-percent">
+                    <strong>Target One Flow Query Count 20 Percent <span class="badge proven">proven</span></strong>
+                    <span>Reduce total query count by at least 20% on at least one user flow. 33 -&gt; 24 (decreased 27.3%); threshold 20; actual 27.3</span>
                   </li>
-                  <li>
-                    <strong>cat4-target-before-after-explain <span class="badge open">open</span></strong>
-                    <span>Provide before/after EXPLAIN ANALYZE output. Threshold: N/A; actual: N/A. Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.</span>
+                  <li data-ledger-id="cat4-target-before-after-explain">
+                    <strong>Target Before After Explain <span class="badge open">open</span></strong>
+                    <span>Provide before/after EXPLAIN ANALYZE output. Current EXPLAIN output exists, but before/after EXPLAIN proof is still missing.</span>
                   </li>
-                  <li>
-                    <strong>cat4-target-inefficiency-documented <span class="badge proven">proven</span></strong>
-                    <span>Document what was inefficient and why the change fixes it. Threshold: N/A; actual: N/A. Docs identify fanout/repeated requests and bootstrap consolidation.</span>
+                  <li data-ledger-id="cat4-target-inefficiency-documented">
+                    <strong>Target Inefficiency Documented <span class="badge proven">proven</span></strong>
+                    <span>Document what was inefficient and why the change fixes it. Docs identify fanout/repeated requests and bootstrap consolidation.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat4-query-count-branch-partial <span class="badge partial">partial</span></strong>
+                  <li data-ledger-id="cat4-query-count-branch-partial">
+                    <strong>Query Count Branch Partial <span class="badge partial">partial</span></strong>
                     <span>Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, but full Category 4 proof remains partial because before/after EXPLAIN ANALYZE output is missing. Does not claim 50% slowest-query improvement. Does not claim all five original audit flows improved. Does not claim row-level N+1 was fixed; no row-level N+1 was confirmed.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat4-query-count-command <span class="subtle">command</span></strong>
-          <span>Repeatable query-count harness for endpoint and flow-level evidence. Command: pnpm perf:query-count-api | Result: pass</span>
+        <li data-ledger-id="cat4-query-count-command">
+          <strong>Query Count Command <span class="subtle">command</span></strong>
+          <span>Repeatable query-count harness for endpoint and flow-level evidence.</span>
+          <small>Command: pnpm perf:query-count-api | Result: pass</small>
+
         </li>
-        <li>
-          <strong>cat4-explain-command <span class="subtle">command</span></strong>
-          <span>Repeatable EXPLAIN capture rail. Command: pnpm perf:explain | Result: pass</span>
+        <li data-ledger-id="cat4-explain-command">
+          <strong>Explain Command <span class="subtle">command</span></strong>
+          <span>Repeatable EXPLAIN capture rail.</span>
+          <small>Command: pnpm perf:explain | Result: pass</small>
+
         </li>
-        <li>
-          <strong>cat4-query-count-artifact <span class="subtle">artifact</span></strong>
-          <span>Flow-level query-count artifact with old fanout and current bootstrap rows. Path: test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json</span>
+        <li data-ledger-id="cat4-query-count-artifact">
+          <strong>Query Count Artifact <span class="subtle">artifact</span></strong>
+          <span>Flow-level query-count artifact with old fanout and current bootstrap rows.</span>
+          <small>Path: test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json</small>
+          <div class="artifact-link"><a class="path" href="../test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json" title="test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat4-current-explain-artifact <span class="subtle">artifact</span></strong>
-          <span>Current EXPLAIN output; not sufficient alone for before/after proof. Path: test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json</span>
+        <li data-ledger-id="cat4-current-explain-artifact">
+          <strong>Current Explain Artifact <span class="subtle">artifact</span></strong>
+          <span>Current EXPLAIN output; not sufficient alone for before/after proof.</span>
+          <small>Path: test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json</small>
+          <div class="artifact-link"><a class="path" href="../test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json" title="test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json">Open artifact</a></div>
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-5-test-coverage-quality" class="panel span-12" data-ledger-id="cat-5-test-coverage-quality">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 5</p>
@@ -593,9 +681,9 @@
             </div>
             <span class="badge proven">proven</span>
           </div>
-          <p>Add meaningful tests for 3 previously untested critical paths, or fix 3 flaky tests with documented root cause analysis. Meaningful tests catch real regressions and each test must include a comment explaining the risk it mitigates.</p>
+          <p>Add meaningful tests for 3 previously untested critical paths, or fix 3 flaky tests with documented root cause analysis. Meaningful tests catch real regressions and each test must include a comment explaining the risk it mitigates. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat5-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -613,7 +701,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat5-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -634,47 +722,55 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat5-target-three-meaningful-regressions <span class="badge proven">proven</span></strong>
-                    <span>Add at least three meaningful regression tests for previously weak critical paths. Threshold: 3; actual: 3. </span>
+                  <li data-ledger-id="cat5-target-three-meaningful-regressions">
+                    <strong>Target Three Meaningful Regressions <span class="badge proven">proven</span></strong>
+                    <span>Add at least three meaningful regression tests for previously weak critical paths. 3 / 3 required; threshold 3; actual 3</span>
                   </li>
-                  <li>
-                    <strong>cat5-target-risk-comments <span class="badge proven">proven</span></strong>
-                    <span>Each counted test includes a risk comment explaining the regression it guards. Threshold: N/A; actual: N/A. Ledger references the three risk-comment locations.</span>
+                  <li data-ledger-id="cat5-target-risk-comments">
+                    <strong>Target Risk Comments <span class="badge proven">proven</span></strong>
+                    <span>Each counted test includes a risk comment explaining the regression it guards. Ledger references the three risk-comment locations.</span>
                   </li>
-                  <li>
-                    <strong>cat5-target-current-unit-suites-pass <span class="badge proven">proven</span></strong>
-                    <span>Current API and web unit suites pass. Threshold: N/A; actual: N/A. Improvement report records full API and web suite passes.</span>
+                  <li data-ledger-id="cat5-target-current-unit-suites-pass">
+                    <strong>Target Current Unit Suites Pass <span class="badge proven">proven</span></strong>
+                    <span>Current API and web unit suites pass. Improvement report records full API and web suite passes.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat5-three-meaningful-regressions <span class="badge proven">proven</span></strong>
+                  <li data-ledger-id="cat5-three-meaningful-regressions">
+                    <strong>Three Meaningful Regressions <span class="badge proven">proven</span></strong>
                     <span>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility. Does not claim the full E2E suite is green. Does not claim web coverage tooling was added. The claim is the source target of three meaningful regressions plus current unit-suite pass evidence.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat5-api-suite-pass <span class="subtle">test_run</span></strong>
-          <span>Latest full API suite pass recorded in the improvement report after the meaningful `as` cast reduction pass. Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test | Result: 36 files passed / 509 tests passed</span>
+        <li data-ledger-id="cat5-api-suite-pass">
+          <strong>Api Suite Pass <span class="subtle">test_run</span></strong>
+          <span>Latest full API suite pass recorded in the improvement report after the meaningful `as` cast reduction pass.</span>
+          <small>Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test | Result: 36 files passed / 509 tests passed</small>
+
         </li>
-        <li>
-          <strong>cat5-web-suite-pass <span class="subtle">test_run</span></strong>
-          <span>Latest full web suite pass recorded in the improvement report after the meaningful `as` cast reduction pass. Command: pnpm --filter @ship/web test | Result: 21 files passed / 168 tests passed</span>
+        <li data-ledger-id="cat5-web-suite-pass">
+          <strong>Web Suite Pass <span class="subtle">test_run</span></strong>
+          <span>Latest full web suite pass recorded in the improvement report after the meaningful `as` cast reduction pass.</span>
+          <small>Command: pnpm --filter @ship/web test | Result: 21 files passed / 168 tests passed</small>
+
         </li>
-        <li>
-          <strong>cat5-focused-e2e-pass <span class="subtle">test_run</span></strong>
-          <span>Focused E2E rerun for stale tree selector proof. Command: E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;navigating to nested document auto-expands tree ancestors&quot; | Result: 1 passed / 0 failed</span>
+        <li data-ledger-id="cat5-focused-e2e-pass">
+          <strong>Focused E2E Pass <span class="subtle">test_run</span></strong>
+          <span>Focused E2E rerun for stale tree selector proof.</span>
+          <small>Command: E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;navigating to nested document auto-expands tree ancestors&quot; | Result: 1 passed / 0 failed</small>
+
         </li>
-        <li>
-          <strong>cat5-risk-comment-locations <span class="subtle">methodology</span></strong>
-          <span>Counted risk comments live in web/src/components/editor/CommentMark.test.ts:15, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:301. Path: my-docs/IMPROVEMENT_REPORT.md</span>
+        <li data-ledger-id="cat5-risk-comment-locations">
+          <strong>Risk Comment Locations <span class="subtle">methodology</span></strong>
+          <span>Counted risk comments live in web/src/components/editor/CommentMark.test.ts:15, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:301.</span>
+          <small>Path: my-docs/IMPROVEMENT_REPORT.md</small>
+          <div class="artifact-link"><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">Open artifact</a></div>
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-6-runtime-error-handling" class="panel span-12" data-ledger-id="cat-6-runtime-error-handling">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 6</p>
@@ -682,9 +778,9 @@
             </div>
             <span class="badge partial">partial</span>
           </div>
-          <p>Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording.</p>
+          <p>Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat6-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -702,7 +798,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat6-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -723,59 +819,73 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat6-target-three-error-handling-fixes <span class="badge open">open</span></strong>
-                    <span>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence. Threshold: 3; actual: 2. </span>
+                  <li data-ledger-id="cat6-target-three-error-handling-fixes">
+                    <strong>Target Three Error Handling Fixes <span class="badge open">open</span></strong>
+                    <span>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence. 2 / 3 required; threshold 3; actual 2</span>
                   </li>
-                  <li>
-                    <strong>cat6-target-user-facing-confusion-fix <span class="badge proven">proven</span></strong>
-                    <span>At least one fix involves real user-facing data loss or confusion. Threshold: N/A; actual: N/A. Backlinks offline/degraded state preserves stale data visibly instead of failing silently.</span>
+                  <li data-ledger-id="cat6-target-user-facing-confusion-fix">
+                    <strong>Target User Facing Confusion Fix <span class="badge proven">proven</span></strong>
+                    <span>At least one fix involves real user-facing data loss or confusion. Backlinks offline/degraded state preserves stale data visibly instead of failing silently.</span>
                   </li>
-                  <li>
-                    <strong>cat6-target-runtime-screenshots <span class="badge proven">proven</span></strong>
-                    <span>Runtime evidence screenshots or recordings exist. Threshold: N/A; actual: N/A. Focused runtime E2E wrote named screenshots.</span>
+                  <li data-ledger-id="cat6-target-runtime-screenshots">
+                    <strong>Target Runtime Screenshots <span class="badge proven">proven</span></strong>
+                    <span>Runtime evidence screenshots or recordings exist. Focused runtime E2E wrote named screenshots.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat6-runtime-error-handling-partial <span class="badge partial">partial</span></strong>
+                  <li data-ledger-id="cat6-runtime-error-handling-partial">
+                    <strong>Runtime Error Handling Partial <span class="badge partial">partial</span></strong>
                     <span>Focused runtime evidence improved CSRF JSON errors and Backlinks offline/degraded behavior, with screenshots, but Category 6 remains partial until three fix-specific before/after records are explicit. Does not count comments visibility or migration bootstrap as Category 6 proof. Does not claim process-level unhandled rejection handling is solved. Does not claim three complete fix records yet.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat6-csrf-json-fix <span class="subtle">manual_observation</span></strong>
+        <li data-ledger-id="cat6-csrf-json-fix">
+          <strong>CSRF Json Fix <span class="subtle">manual_observation</span></strong>
           <span>Missing-CSRF probe returned JSON 403 instead of Express HTML/error output.</span>
+
+
         </li>
-        <li>
-          <strong>cat6-backlinks-offline-fix <span class="subtle">manual_observation</span></strong>
+        <li data-ledger-id="cat6-backlinks-offline-fix">
+          <strong>Backlinks Offline Fix <span class="subtle">manual_observation</span></strong>
           <span>Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect.</span>
+
+
         </li>
-        <li>
-          <strong>cat6-runtime-e2e-run <span class="subtle">test_run</span></strong>
-          <span>Focused runtime evidence E2E run. Command: E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts | Result: 8 passed / 0 failed</span>
+        <li data-ledger-id="cat6-runtime-e2e-run">
+          <strong>Runtime E2E Run <span class="subtle">test_run</span></strong>
+          <span>Focused runtime evidence E2E run.</span>
+          <small>Command: E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts | Result: 8 passed / 0 failed</small>
+
         </li>
-        <li>
-          <strong>cat6-runtime-screenshot-api-500 <span class="subtle">screenshot</span></strong>
-          <span>API 500 fallback UI runtime screenshot. Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png</span>
+        <li data-ledger-id="cat6-runtime-screenshot-api-500">
+          <strong>Runtime Screenshot Api 500 <span class="subtle">screenshot</span></strong>
+          <span>API 500 fallback UI runtime screenshot.</span>
+          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat6-runtime-screenshot-offline <span class="subtle">screenshot</span></strong>
-          <span>Offline editor draft preservation runtime screenshot. Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png</span>
+        <li data-ledger-id="cat6-runtime-screenshot-offline">
+          <strong>Runtime Screenshot Offline <span class="subtle">screenshot</span></strong>
+          <span>Offline editor draft preservation runtime screenshot.</span>
+          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat6-runtime-screenshot-csrf <span class="subtle">screenshot</span></strong>
-          <span>CSRF JSON/editor usable runtime screenshot. Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png</span>
+        <li data-ledger-id="cat6-runtime-screenshot-csrf">
+          <strong>Runtime Screenshot CSRF <span class="subtle">screenshot</span></strong>
+          <span>CSRF JSON/editor usable runtime screenshot.</span>
+          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat6-runtime-screenshot-concurrent <span class="subtle">screenshot</span></strong>
-          <span>Concurrent API failure fallback runtime screenshot. Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png</span>
+        <li data-ledger-id="cat6-runtime-screenshot-concurrent">
+          <strong>Runtime Screenshot Concurrent <span class="subtle">screenshot</span></strong>
+          <span>Concurrent API failure fallback runtime screenshot.</span>
+          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png">Open artifact</a></div>
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-7-accessibility" class="panel span-12" data-ledger-id="cat-7-accessibility">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 7</p>
@@ -783,9 +893,9 @@
             </div>
             <span class="badge partial">partial</span>
           </div>
-          <p>Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence.</p>
+          <p>Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence. <a href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat7-a11y-baseline-card">
           <h3>Audit Baseline</h3>
           <ul class="check-list">
 
@@ -803,7 +913,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat7-a11y-closeout-card">
           <h3>Closeout Proof</h3>
           <ul class="check-list">
 
@@ -824,43 +934,49 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat7-target-selected-axe-zero <span class="badge proven">proven</span></strong>
-                    <span>Selected closeout pages have zero axe violations. Threshold: true; actual: true. Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week.</span>
+                  <li data-ledger-id="cat7-target-selected-axe-zero">
+                    <strong>Target Selected Axe Zero <span class="badge proven">proven</span></strong>
+                    <span>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week.</span>
                   </li>
-                  <li>
-                    <strong>cat7-target-source-backed-top3 <span class="badge open">open</span></strong>
-                    <span>The selected pages are source-backed as the 3 most important pages. Threshold: N/A; actual: N/A. No source-backed page-selection rationale or /projects closeout scan is present.</span>
+                  <li data-ledger-id="cat7-target-source-backed-top3">
+                    <strong>Target Source Backed Top3 <span class="badge open">open</span></strong>
+                    <span>The selected pages are source-backed as the 3 most important pages. No source-backed page-selection rationale or /projects closeout scan is present.</span>
                   </li>
-                  <li>
-                    <strong>cat7-target-audit-fields <span class="badge proven">proven</span></strong>
-                    <span>Accessibility audit includes Lighthouse, critical/serious, keyboard, screen reader, contrast, and ARIA fields. Threshold: N/A; actual: N/A. Audit deliverable fields are present in the ledger.</span>
+                  <li data-ledger-id="cat7-target-audit-fields">
+                    <strong>Target Audit Fields <span class="badge proven">proven</span></strong>
+                    <span>Accessibility audit includes Lighthouse, critical/serious, keyboard, screen reader, contrast, and ARIA fields. Audit deliverable fields are present in the ledger.</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat7-clears-axe-critical-serious-gate <span class="badge partial">partial</span></strong>
+                  <li data-ledger-id="cat7-clears-axe-critical-serious-gate">
+                    <strong>Clears Axe Critical Serious Gate <span class="badge partial">partial</span></strong>
                     <span>The selected closeout pages report 0 axe violations, but the ledger does not prove those pages are the 3 most important pages required by the source. Lighthouse was not rerun. The page-selection rationale needs fill-in or an additional closeout scan should include the source-relevant pages with baseline serious violations. Manual keyboard and accessibility polish gaps remain outside the axe gate.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat7-closeout-axe-command <span class="subtle">command</span></strong>
-          <span>Repeatable closeout axe gate for /docs, selected /documents/:id, and /my-week. Command: pnpm a11y:closeout -- --fail-on-serious | Result: pass</span>
+        <li data-ledger-id="cat7-closeout-axe-command">
+          <strong>Closeout Axe Command <span class="subtle">command</span></strong>
+          <span>Repeatable closeout axe gate for /docs, selected /documents/:id, and /my-week.</span>
+          <small>Command: pnpm a11y:closeout -- --fail-on-serious | Result: pass</small>
+
         </li>
-        <li>
-          <strong>cat7-axe-summary-artifact <span class="subtle">artifact</span></strong>
-          <span>Closeout axe summary artifact referenced by IMPROVEMENT_REPORT.md. Path: test-results/a11y-closeout/axe-summary.json</span>
+        <li data-ledger-id="cat7-axe-summary-artifact">
+          <strong>Axe Summary Artifact <span class="subtle">artifact</span></strong>
+          <span>Closeout axe summary artifact referenced by IMPROVEMENT_REPORT.md.</span>
+          <small>Path: test-results/a11y-closeout/axe-summary.json</small>
+          <div class="artifact-link"><a class="path" href="../test-results/a11y-closeout/axe-summary.json" title="test-results/a11y-closeout/axe-summary.json">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat7-tree-selector-e2e <span class="subtle">test_run</span></strong>
-          <span>Focused E2E verification for updated document tree selector. Command: E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;navigating to nested document auto-expands tree ancestors&quot; | Result: 1 passed / 0 failed</span>
+        <li data-ledger-id="cat7-tree-selector-e2e">
+          <strong>Tree Selector E2E <span class="subtle">test_run</span></strong>
+          <span>Focused E2E verification for updated document tree selector.</span>
+          <small>Command: E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;navigating to nested document auto-expands tree ancestors&quot; | Result: 1 passed / 0 failed</small>
+
         </li></ul>
         </article>
-        <article class="panel span-12">
+        <article id="category-cat-8-security-audit" class="panel span-12" data-ledger-id="cat-8-security-audit">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Category 8</p>
@@ -868,9 +984,9 @@
             </div>
             <span class="badge open">open</span>
           </div>
-          <p>Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof.</p>
+          <p>Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof. <a href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">Source</a></p>
 
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat8-security-required-card">
           <h3>Required Security Probe</h3>
           <ul class="check-list">
 
@@ -888,7 +1004,7 @@
                   </li>
           </ul>
         </div>
-        <div class="summary-card">
+        <div class="summary-card" data-ledger-id="cat8-security-current-card">
           <h3>Current Claim Boundary</h3>
           <ul class="check-list">
 
@@ -909,322 +1025,326 @@
           <h3>Targets</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat8-target-runnable-probe <span class="badge open">open</span></strong>
-                    <span>Runnable single-command security probe exists and produces a structured report. Threshold: true; actual: false. </span>
+                  <li data-ledger-id="cat8-target-runnable-probe">
+                    <strong>Target Runnable Probe <span class="badge open">open</span></strong>
+                    <span>Runnable single-command security probe exists and produces a structured report. threshold true; actual false</span>
                   </li>
-                  <li>
-                    <strong>cat8-target-four-attack-surfaces <span class="badge open">open</span></strong>
-                    <span>Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs. Threshold: 4; actual: 0. </span>
+                  <li data-ledger-id="cat8-target-four-attack-surfaces">
+                    <strong>Target Four Attack Surfaces <span class="badge open">open</span></strong>
+                    <span>Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs. 0 / 4 required; threshold 4; actual 0</span>
                   </li>
-                  <li>
-                    <strong>cat8-target-manual-review <span class="badge open">open</span></strong>
-                    <span>Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete. Threshold: N/A; actual: N/A. Manual review fields are placeholders only.</span>
+                  <li data-ledger-id="cat8-target-manual-review">
+                    <strong>Target Manual Review <span class="badge open">open</span></strong>
+                    <span>Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete. Manual review fields are placeholders only.</span>
                   </li>
-                  <li>
-                    <strong>cat8-target-two-verified-fixes <span class="badge open">open</span></strong>
-                    <span>At least two verified vulnerabilities have before/after proof. Threshold: 2; actual: 0. </span>
+                  <li data-ledger-id="cat8-target-two-verified-fixes">
+                    <strong>Target Two Verified Fixes <span class="badge open">open</span></strong>
+                    <span>At least two verified vulnerabilities have before/after proof. 0 / 2 required; threshold 2; actual 0</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li>
-                    <strong>cat8-security-audit-open <span class="badge open">open</span></strong>
+                  <li data-ledger-id="cat8-security-audit-open">
+                    <strong>Security Audit Open <span class="badge open">open</span></strong>
                     <span>Security 8 is represented as a required lane, but no runnable probe/report and no two verified probe-driven vulnerability fixes are evidenced yet. Dependency cleanup and authz hardening are useful context, but they do not substitute for the required security probe deliverable. No high/critical CVE count is claimed from this ledger entry. No CORS/CSP/secrets/rate-limit/error-review completion is claimed.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
-        <li>
-          <strong>cat8-security-brief <span class="subtle">source_doc</span></strong>
-          <span>Category 8 source brief defining required probe/manual review/fix proof. Path: my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</span>
+        <li data-ledger-id="cat8-security-brief">
+          <strong>Security Brief <span class="subtle">source_doc</span></strong>
+          <span>Category 8 source brief defining required probe/manual review/fix proof.</span>
+          <small>Path: my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</small>
+          <div class="artifact-link"><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">Open artifact</a></div>
         </li>
-        <li>
-          <strong>cat8-dependency-cleanup-context <span class="subtle">source_doc</span></strong>
-          <span>Dependency cleanup decision records zero-advisory audit context, but it is not a full Security 8 probe. Path: my-docs/DECISION_LOG.md</span>
+        <li data-ledger-id="cat8-dependency-cleanup-context">
+          <strong>Dependency Cleanup Context <span class="subtle">source_doc</span></strong>
+          <span>Dependency cleanup decision records zero-advisory audit context, but it is not a full Security 8 probe.</span>
+          <small>Path: my-docs/DECISION_LOG.md</small>
+          <div class="artifact-link"><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">Open artifact</a></div>
         </li></ul>
         </article></div>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Primary Claim</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>
-        <tr>
+        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>
+        <tr data-ledger-id="cat-1-type-safety">
           <td>Cat 1. Type Safety</td>
           <td><span class="badge proven">proven</span></td>
-          <td>Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement.</td>
-          <td>PASS cat1-total-counted-syntax-reduction-at-least-25-percent; PASS cat1-audit-required-fields-present; PASS cat1-tests-still-pass-documented; PASS cat1-meaningful-types-documented</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/MEMORY.md</code></td>
+          <td>Eliminate at least 25% of counted type-safety syntax violations. passes. 1340 -&gt; 623 (decreased 53.5%); threshold 25; actual 53.5.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat1-total-counted-syntax-reduction-at-least-25-percent">PASS Total Counted Syntax Reduction At Least 25 Percent</span> <span class="test-chip pass" title="cat1-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat1-tests-still-pass-documented">PASS Tests Still Pass Documented</span> <span class="test-chip pass" title="cat1-meaningful-types-documented">PASS Meaningful Types Documented</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-2-bundle-size">
           <td>Cat 2. Bundle Size</td>
           <td><span class="badge partial">partial</span></td>
-          <td>Initial entry bundle decreased from 2025.10 KB to about 517.82 KB, a 74.4% reduction, clearing the 20% code-splitting target.</td>
-          <td>PASS cat2-audit-required-fields-present; PASS cat2-initial-entry-bundle-reduced-at-least-20-percent; FAIL cat2-before-after-bundle-analysis-output-present; PASS cat2-no-functionality-removal-documented</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json</code></td>
+          <td>Reduce initial page-load bundle by at least 20% through code splitting. passes. 2025.1 -&gt; 517.82 (decreased 74.4%); threshold 20; actual 74.4.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat2-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat2-initial-entry-bundle-reduced-at-least-20-percent">PASS Initial Entry Bundle Reduced At Least 20 Percent</span> <span class="test-chip fail" title="cat2-before-after-bundle-analysis-output-present">FAIL Before After Bundle Analysis Output Present</span> <span class="test-chip pass" title="cat2-no-functionality-removal-documented">PASS No Functionality Removal Documented</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="evidence-runs/codex-final-review/collectors/bundle-stats.json" title="my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json">.../codex-final-review/collectors/bundle-stats.json</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-3-api-response-time">
           <td>Cat 3. API Response Time</td>
           <td><span class="badge partial">partial</span></td>
-          <td>GET /api/issues clears the 20% P95 reduction bar at 10c and 25c, but not 50c; /api/dashboard/my-week has follow-up measurement after route round-trip optimization, but that measurement is excluded from endpoint-clearance proof because duration/environment differ; no second endpoint has stable comparable 20% P95 proof.</td>
-          <td>FAIL cat3-two-endpoints-clear-20-percent-p95; PASS cat3-before-after-comparable; PASS cat3-audit-required-fields-present</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/MEMORY.md</code></td>
+          <td>Before/after benchmarks use identical data, concurrency, hardware, and command shape. passes. threshold true; actual true.</td>
+          <td><div class="chip-list"><span class="test-chip fail" title="cat3-two-endpoints-clear-20-percent-p95">FAIL Two Endpoints Clear 20 Percent P95</span> <span class="test-chip pass" title="cat3-before-after-comparable">PASS Before After Comparable</span> <span class="test-chip pass" title="cat3-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-4-database-query-efficiency">
           <td>Cat 4. Database Query Efficiency</td>
           <td><span class="badge partial">partial</span></td>
-          <td>Protected docs startup app-shell query count decreased from 33 to 24 queries, a 27.3% reduction, but full Category 4 proof remains partial because before/after EXPLAIN ANALYZE output is missing.</td>
-          <td>PASS cat4-audit-five-flows-present; PASS cat4-one-flow-query-count-reduced-at-least-20-percent; FAIL cat4-before-after-explain-analyze-present; PASS cat4-inefficiency-and-fix-documented; PASS cat4-no-n-plus-one-overclaim</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/DECISION_LOG.md</code></td>
+          <td>Reduce total query count by at least 20% on at least one user flow. passes. 33 -&gt; 24 (decreased 27.3%); threshold 20; actual 27.3.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat4-audit-five-flows-present">PASS Audit Five Flows Present</span> <span class="test-chip pass" title="cat4-one-flow-query-count-reduced-at-least-20-percent">PASS One Flow Query Count Reduced At Least 20 Percent</span> <span class="test-chip fail" title="cat4-before-after-explain-analyze-present">FAIL Before After Explain Analyze Present</span> <span class="test-chip pass" title="cat4-inefficiency-and-fix-documented">PASS Inefficiency And Fix Documented</span> <span class="test-chip pass" title="cat4-no-n-plus-one-overclaim">PASS No N Plus One Overclaim</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">my-docs/DECISION_LOG.md</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-5-test-coverage-quality">
           <td>Cat 5. Test Coverage and Quality</td>
           <td><span class="badge proven">proven</span></td>
-          <td>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility.</td>
-          <td>PASS cat5-audit-required-fields-present; PASS cat5-three-meaningful-regression-tests-present; PASS cat5-risk-comments-documented; PASS cat5-current-unit-suites-pass; WARN cat5-e2e-baseline-not-green</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code></td>
+          <td>Add at least three meaningful regression tests for previously weak critical paths. passes. 3 / 3 required; threshold 3; actual 3.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat5-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat5-three-meaningful-regression-tests-present">PASS Three Meaningful Regression Tests Present</span> <span class="test-chip pass" title="cat5-risk-comments-documented">PASS Risk Comments Documented</span> <span class="test-chip pass" title="cat5-current-unit-suites-pass">PASS Current Unit Suites Pass</span> <span class="test-chip warn" title="cat5-e2e-baseline-not-green">WARN E2E Baseline Not Green</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-6-runtime-error-handling">
           <td>Cat 6. Runtime Error and Edge Case Handling</td>
           <td><span class="badge partial">partial</span></td>
-          <td>Focused runtime evidence improved CSRF JSON errors and Backlinks offline/degraded behavior, with screenshots, but Category 6 remains partial until three fix-specific before/after records are explicit.</td>
-          <td>PASS cat6-audit-required-fields-present; PASS cat6-focused-runtime-e2e-passes; PASS cat6-screenshots-present; FAIL cat6-three-error-handling-fixes-documented; PASS cat6-user-facing-data-loss-or-confusion-fix-present; FAIL cat6-each-fix-has-before-after-and-screenshot</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/MEMORY.md</code></td>
+          <td>At least one fix involves real user-facing data loss or confusion. passes. Backlinks offline/degraded state preserves stale data visibly instead of failing silently..</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat6-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat6-focused-runtime-e2e-passes">PASS Focused Runtime E2E Passes</span> <span class="test-chip pass" title="cat6-screenshots-present">PASS Screenshots Present</span> <span class="test-chip fail" title="cat6-three-error-handling-fixes-documented">FAIL Three Error Handling Fixes Documented</span> <span class="test-chip pass" title="cat6-user-facing-data-loss-or-confusion-fix-present">PASS User Facing Data Loss Or Confusion Fix Present</span> <span class="test-chip fail" title="cat6-each-fix-has-before-after-and-screenshot">FAIL Each Fix Has Before After And Screenshot</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-7-accessibility">
           <td>Cat 7. Accessibility Compliance</td>
           <td><span class="badge partial">partial</span></td>
-          <td>The selected closeout pages report 0 axe violations, but the ledger does not prove those pages are the 3 most important pages required by the source.</td>
-          <td>PASS cat7-top3-axe-violations-zero; PASS cat7-lighthouse-rerun-not-required-for-claimed-path; FAIL cat7-top3-page-selection-source-backed; PASS cat7-audit-required-fields-present</td>
-          <td><code>my-docs/AUDIT_REPORT.md</code><br><code>my-docs/IMPROVEMENT_REPORT.md</code><br><code>my-docs/MEMORY.md</code></td>
+          <td>Selected closeout pages have zero axe violations. passes. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, and /my-week..</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat7-top3-axe-violations-zero">PASS Top3 Axe Violations Zero</span> <span class="test-chip pass" title="cat7-lighthouse-rerun-not-required-for-claimed-path">PASS Lighthouse Rerun Not Required For Claimed Path</span> <span class="test-chip fail" title="cat7-top3-page-selection-source-backed">FAIL Top3 Page Selection Source Backed</span> <span class="test-chip pass" title="cat7-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
+          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
         </tr>
-        <tr>
+        <tr data-ledger-id="cat-8-security-audit">
           <td>Cat 8. Security Audit</td>
           <td><span class="badge open">open</span></td>
-          <td>Security 8 is represented as a required lane, but no runnable probe/report and no two verified probe-driven vulnerability fixes are evidenced yet.</td>
-          <td>FAIL cat8-probe-tool-runnable; FAIL cat8-four-attack-surfaces-covered; FAIL cat8-manual-review-complete; FAIL cat8-two-verified-vulnerability-fixes</td>
-          <td><code>my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</code><br><code>my-docs/MEMORY.md</code><br><code>my-docs/DECISION_LOG.md</code></td>
+          <td>Runnable single-command security probe exists and produces a structured report. does not pass. threshold true; actual false.</td>
+          <td><div class="chip-list"><span class="test-chip fail" title="cat8-probe-tool-runnable">FAIL Probe Tool Runnable</span> <span class="test-chip fail" title="cat8-four-attack-surfaces-covered">FAIL Four Attack Surfaces Covered</span> <span class="test-chip fail" title="cat8-manual-review-complete">FAIL Manual Review Complete</span> <span class="test-chip fail" title="cat8-two-verified-vulnerability-fixes">FAIL Two Verified Vulnerability Fixes</span></div></td>
+          <td><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">my-docs/DECISION_LOG.md</a></td>
         </tr></tbody></table></div>
       </section>
 
       <section id="panel-targets" class="tab-panel" role="tabpanel" aria-labelledby="tab-targets" tabindex="0" hidden>
         <div class="table-wrap"><table><thead><tr><th>Category</th><th>Target</th><th>Description</th><th>Operator</th><th>Threshold</th><th>Actual</th><th>Result</th></tr></thead><tbody>
-          <tr>
+          <tr id="target-cat1-target-total-counted-syntax-25-percent" data-ledger-id="cat1-target-total-counted-syntax-25-percent">
             <td>Cat 1</td>
-            <td>cat1-target-total-counted-syntax-25-percent</td>
+            <td><span title="cat1-target-total-counted-syntax-25-percent">Target Total Counted Syntax 25 Percent</span></td>
             <td>Eliminate at least 25% of counted type-safety syntax violations.</td>
             <td>percent_decrease_at_least</td>
             <td>25</td>
             <td>53.5</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat1-target-tests-still-pass" data-ledger-id="cat1-target-tests-still-pass">
             <td>Cat 1</td>
-            <td>cat1-target-tests-still-pass</td>
+            <td><span title="cat1-target-tests-still-pass">Target Tests Still Pass</span></td>
             <td>Existing API and web tests still pass after the type-safety work.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat1-target-meaningful-types" data-ledger-id="cat1-target-meaningful-types">
             <td>Cat 1</td>
-            <td>cat1-target-meaningful-types</td>
+            <td><span title="cat1-target-meaningful-types">Target Meaningful Types</span></td>
             <td>Type cleanup uses meaningful boundary/schema typing rather than superficial unknown replacements.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat2-target-initial-entry-20-percent" data-ledger-id="cat2-target-initial-entry-20-percent">
             <td>Cat 2</td>
-            <td>cat2-target-initial-entry-20-percent</td>
+            <td><span title="cat2-target-initial-entry-20-percent">Target Initial Entry 20 Percent</span></td>
             <td>Reduce initial page-load bundle by at least 20% through code splitting.</td>
             <td>percent_decrease_at_least</td>
             <td>20</td>
             <td>74.4</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat2-target-before-after-output" data-ledger-id="cat2-target-before-after-output">
             <td>Cat 2</td>
-            <td>cat2-target-before-after-output</td>
+            <td><span title="cat2-target-before-after-output">Target Before After Output</span></td>
             <td>Provide before/after bundle analysis output.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>false</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat2-target-no-functionality-removal" data-ledger-id="cat2-target-no-functionality-removal">
             <td>Cat 2</td>
-            <td>cat2-target-no-functionality-removal</td>
+            <td><span title="cat2-target-no-functionality-removal">Target No Functionality Removal</span></td>
             <td>Do not remove user-facing functionality to shrink the bundle.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat3-target-two-endpoints-p95" data-ledger-id="cat3-target-two-endpoints-p95">
             <td>Cat 3</td>
-            <td>cat3-target-two-endpoints-p95</td>
+            <td><span title="cat3-target-two-endpoints-p95">Target Two Endpoints P95</span></td>
             <td>At least two endpoints show 20% P95 reduction under identical benchmark conditions.</td>
             <td>count_at_least</td>
             <td>2</td>
             <td>1</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat3-target-before-after-comparable" data-ledger-id="cat3-target-before-after-comparable">
             <td>Cat 3</td>
-            <td>cat3-target-before-after-comparable</td>
+            <td><span title="cat3-target-before-after-comparable">Target Before After Comparable</span></td>
             <td>Before/after benchmarks use identical data, concurrency, hardware, and command shape.</td>
             <td>boolean_true</td>
             <td>true</td>
             <td>true</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat3-target-root-cause-documented" data-ledger-id="cat3-target-root-cause-documented">
             <td>Cat 3</td>
-            <td>cat3-target-root-cause-documented</td>
+            <td><span title="cat3-target-root-cause-documented">Target Root Cause Documented</span></td>
             <td>Root cause of each bottleneck is documented.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat4-target-one-flow-query-count-20-percent" data-ledger-id="cat4-target-one-flow-query-count-20-percent">
             <td>Cat 4</td>
-            <td>cat4-target-one-flow-query-count-20-percent</td>
+            <td><span title="cat4-target-one-flow-query-count-20-percent">Target One Flow Query Count 20 Percent</span></td>
             <td>Reduce total query count by at least 20% on at least one user flow.</td>
             <td>percent_decrease_at_least</td>
             <td>20</td>
             <td>27.3</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat4-target-before-after-explain" data-ledger-id="cat4-target-before-after-explain">
             <td>Cat 4</td>
-            <td>cat4-target-before-after-explain</td>
+            <td><span title="cat4-target-before-after-explain">Target Before After Explain</span></td>
             <td>Provide before/after EXPLAIN ANALYZE output.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat4-target-inefficiency-documented" data-ledger-id="cat4-target-inefficiency-documented">
             <td>Cat 4</td>
-            <td>cat4-target-inefficiency-documented</td>
+            <td><span title="cat4-target-inefficiency-documented">Target Inefficiency Documented</span></td>
             <td>Document what was inefficient and why the change fixes it.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat5-target-three-meaningful-regressions" data-ledger-id="cat5-target-three-meaningful-regressions">
             <td>Cat 5</td>
-            <td>cat5-target-three-meaningful-regressions</td>
+            <td><span title="cat5-target-three-meaningful-regressions">Target Three Meaningful Regressions</span></td>
             <td>Add at least three meaningful regression tests for previously weak critical paths.</td>
             <td>count_at_least</td>
             <td>3</td>
             <td>3</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat5-target-risk-comments" data-ledger-id="cat5-target-risk-comments">
             <td>Cat 5</td>
-            <td>cat5-target-risk-comments</td>
+            <td><span title="cat5-target-risk-comments">Target Risk Comments</span></td>
             <td>Each counted test includes a risk comment explaining the regression it guards.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat5-target-current-unit-suites-pass" data-ledger-id="cat5-target-current-unit-suites-pass">
             <td>Cat 5</td>
-            <td>cat5-target-current-unit-suites-pass</td>
+            <td><span title="cat5-target-current-unit-suites-pass">Target Current Unit Suites Pass</span></td>
             <td>Current API and web unit suites pass.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat6-target-three-error-handling-fixes" data-ledger-id="cat6-target-three-error-handling-fixes">
             <td>Cat 6</td>
-            <td>cat6-target-three-error-handling-fixes</td>
+            <td><span title="cat6-target-three-error-handling-fixes">Target Three Error Handling Fixes</span></td>
             <td>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence.</td>
             <td>count_at_least</td>
             <td>3</td>
             <td>2</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat6-target-user-facing-confusion-fix" data-ledger-id="cat6-target-user-facing-confusion-fix">
             <td>Cat 6</td>
-            <td>cat6-target-user-facing-confusion-fix</td>
+            <td><span title="cat6-target-user-facing-confusion-fix">Target User Facing Confusion Fix</span></td>
             <td>At least one fix involves real user-facing data loss or confusion.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat6-target-runtime-screenshots" data-ledger-id="cat6-target-runtime-screenshots">
             <td>Cat 6</td>
-            <td>cat6-target-runtime-screenshots</td>
+            <td><span title="cat6-target-runtime-screenshots">Target Runtime Screenshots</span></td>
             <td>Runtime evidence screenshots or recordings exist.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat7-target-selected-axe-zero" data-ledger-id="cat7-target-selected-axe-zero">
             <td>Cat 7</td>
-            <td>cat7-target-selected-axe-zero</td>
+            <td><span title="cat7-target-selected-axe-zero">Target Selected Axe Zero</span></td>
             <td>Selected closeout pages have zero axe violations.</td>
             <td>boolean_true</td>
             <td>true</td>
             <td>true</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat7-target-source-backed-top3" data-ledger-id="cat7-target-source-backed-top3">
             <td>Cat 7</td>
-            <td>cat7-target-source-backed-top3</td>
+            <td><span title="cat7-target-source-backed-top3">Target Source Backed Top3</span></td>
             <td>The selected pages are source-backed as the 3 most important pages.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat7-target-audit-fields" data-ledger-id="cat7-target-audit-fields">
             <td>Cat 7</td>
-            <td>cat7-target-audit-fields</td>
+            <td><span title="cat7-target-audit-fields">Target Audit Fields</span></td>
             <td>Accessibility audit includes Lighthouse, critical/serious, keyboard, screen reader, contrast, and ARIA fields.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat8-target-runnable-probe" data-ledger-id="cat8-target-runnable-probe">
             <td>Cat 8</td>
-            <td>cat8-target-runnable-probe</td>
+            <td><span title="cat8-target-runnable-probe">Target Runnable Probe</span></td>
             <td>Runnable single-command security probe exists and produces a structured report.</td>
             <td>boolean_true</td>
             <td>true</td>
             <td>false</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat8-target-four-attack-surfaces" data-ledger-id="cat8-target-four-attack-surfaces">
             <td>Cat 8</td>
-            <td>cat8-target-four-attack-surfaces</td>
+            <td><span title="cat8-target-four-attack-surfaces">Target Four Attack Surfaces</span></td>
             <td>Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs.</td>
             <td>count_at_least</td>
             <td>4</td>
             <td>0</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat8-target-manual-review" data-ledger-id="cat8-target-manual-review">
             <td>Cat 8</td>
-            <td>cat8-target-manual-review</td>
+            <td><span title="cat8-target-manual-review">Target Manual Review</span></td>
             <td>Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete.</td>
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
             <td><span class="badge open">open</span></td>
           </tr>
-          <tr>
+          <tr id="target-cat8-target-two-verified-fixes" data-ledger-id="cat8-target-two-verified-fixes">
             <td>Cat 8</td>
-            <td>cat8-target-two-verified-fixes</td>
+            <td><span title="cat8-target-two-verified-fixes">Target Two Verified Fixes</span></td>
             <td>At least two verified vulnerabilities have before/after proof.</td>
             <td>count_at_least</td>
             <td>2</td>
@@ -1235,520 +1355,480 @@
 
       <section id="panel-rubric" class="tab-panel" role="tabpanel" aria-labelledby="tab-rubric" tabindex="0" hidden>
         <div class="table-wrap"><table><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>
-          <tr>
+          <tr data-ledger-id="cat1-audit-total-any-types">
             <td>Cat 1</td>
-            <td>cat1-audit-total-any-types</td>
+            <td><span title="cat1-audit-total-any-types">Audit Total Any Types</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>measurements[cat1-baseline-ast-counts].values.any_total</code></td>
+            <td><span class="path" title="measurements[cat1-baseline-ast-counts].values.any_total">measurements[cat1-baseline-ast-counts].values.any_total</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-audit-total-type-assertions">
             <td>Cat 1</td>
-            <td>cat1-audit-total-type-assertions</td>
+            <td><span title="cat1-audit-total-type-assertions">Audit Total Type Assertions</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>measurements[cat1-baseline-ast-counts].values.type_assertions_total</code></td>
+            <td><span class="path" title="measurements[cat1-baseline-ast-counts].values.type_assertions_total">measurements[cat1-baseline-ast-counts].values.type_assertions_total</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-audit-total-non-null-assertions">
             <td>Cat 1</td>
-            <td>cat1-audit-total-non-null-assertions</td>
+            <td><span title="cat1-audit-total-non-null-assertions">Audit Total Non Null Assertions</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>measurements[cat1-baseline-ast-counts].values.non_null_assertions_total</code></td>
+            <td><span class="path" title="measurements[cat1-baseline-ast-counts].values.non_null_assertions_total">measurements[cat1-baseline-ast-counts].values.non_null_assertions_total</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-audit-total-ts-suppressions">
             <td>Cat 1</td>
-            <td>cat1-audit-total-ts-suppressions</td>
+            <td><span title="cat1-audit-total-ts-suppressions">Audit Total Ts Suppressions</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>measurements[cat1-baseline-ast-counts].values.ts_suppressions_total</code></td>
+            <td><span class="path" title="measurements[cat1-baseline-ast-counts].values.ts_suppressions_total">measurements[cat1-baseline-ast-counts].values.ts_suppressions_total</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-audit-strict-mode-enabled">
             <td>Cat 1</td>
-            <td>cat1-audit-strict-mode-enabled</td>
+            <td><span title="cat1-audit-strict-mode-enabled">Audit Strict Mode Enabled</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.strict_mode_enabled</code></td>
+            <td><span class="path" title="audit_deliverable.fields.strict_mode_enabled">audit_deliverable.fields.strict_mode_enabled</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-audit-strict-mode-error-count-if-disabled">
             <td>Cat 1</td>
-            <td>cat1-audit-strict-mode-error-count-if-disabled</td>
+            <td><span title="cat1-audit-strict-mode-error-count-if-disabled">Audit Strict Mode Error Count If Disabled</span></td>
             <td>audit</td>
             <td>not_applicable</td>
-            <td><code>audit_deliverable.fields.strict_mode_error_count_if_disabled</code></td>
+            <td><span class="path" title="audit_deliverable.fields.strict_mode_error_count_if_disabled">audit_deliverable.fields.strict_mode_error_count_if_disabled</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-audit-top-5-dense-files">
             <td>Cat 1</td>
-            <td>cat1-audit-top-5-dense-files</td>
+            <td><span title="cat1-audit-top-5-dense-files">Audit Top 5 Dense Files</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.top_violation_dense_files</code></td>
+            <td><span class="path" title="audit_deliverable.top_violation_dense_files">audit_deliverable.top_violation_dense_files</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-improvement-25-percent-reduction">
             <td>Cat 1</td>
-            <td>cat1-improvement-25-percent-reduction</td>
+            <td><span title="cat1-improvement-25-percent-reduction">Improvement 25 Percent Reduction</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>claims[cat1-clears-total-25-percent-counted-syntax-reduction]</code></td>
+            <td><span class="path" title="claims[cat1-clears-total-25-percent-counted-syntax-reduction]">claims[cat1-clears-total-25-percent-counted-syntax-reduction]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-improvement-tests-still-pass">
             <td>Cat 1</td>
-            <td>cat1-improvement-tests-still-pass</td>
+            <td><span title="cat1-improvement-tests-still-pass">Improvement Tests Still Pass</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>evidence[cat1-api-tests], evidence[cat1-web-tests]</code></td>
+            <td><span class="path" title="evidence[cat1-api-tests], evidence[cat1-web-tests]">evidence[cat1-api-tests], evidence[cat1-web-tests]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat1-improvement-meaningful-types">
             <td>Cat 1</td>
-            <td>cat1-improvement-meaningful-types</td>
+            <td><span title="cat1-improvement-meaningful-types">Improvement Meaningful Types</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>evidence[cat1-meaningful-boundary-narrowing]</code></td>
+            <td><span class="path" title="evidence[cat1-meaningful-boundary-narrowing]">evidence[cat1-meaningful-boundary-narrowing]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-audit-total-bundle-size">
             <td>Cat 2</td>
-            <td>cat2-audit-total-bundle-size</td>
+            <td><span title="cat2-audit-total-bundle-size">Audit Total Bundle Size</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.total_production_bundle_kb</code></td>
+            <td><span class="path" title="audit_deliverable.fields.total_production_bundle_kb">audit_deliverable.fields.total_production_bundle_kb</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-audit-largest-chunk">
             <td>Cat 2</td>
-            <td>cat2-audit-largest-chunk</td>
+            <td><span title="cat2-audit-largest-chunk">Audit Largest Chunk</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.largest_chunk_name</code></td>
+            <td><span class="path" title="audit_deliverable.fields.largest_chunk_name">audit_deliverable.fields.largest_chunk_name</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-audit-number-of-chunks">
             <td>Cat 2</td>
-            <td>cat2-audit-number-of-chunks</td>
+            <td><span title="cat2-audit-number-of-chunks">Audit Number Of Chunks</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.number_of_chunks</code></td>
+            <td><span class="path" title="audit_deliverable.fields.number_of_chunks">audit_deliverable.fields.number_of_chunks</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-audit-top-3-dependencies">
             <td>Cat 2</td>
-            <td>cat2-audit-top-3-dependencies</td>
+            <td><span title="cat2-audit-top-3-dependencies">Audit Top 3 Dependencies</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.top_3_largest_dependencies</code></td>
+            <td><span class="path" title="audit_deliverable.fields.top_3_largest_dependencies">audit_deliverable.fields.top_3_largest_dependencies</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-audit-unused-dependencies">
             <td>Cat 2</td>
-            <td>cat2-audit-unused-dependencies</td>
+            <td><span title="cat2-audit-unused-dependencies">Audit Unused Dependencies</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.unused_dependencies_identified</code></td>
+            <td><span class="path" title="audit_deliverable.fields.unused_dependencies_identified">audit_deliverable.fields.unused_dependencies_identified</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-improvement-initial-entry-20-percent">
             <td>Cat 2</td>
-            <td>cat2-improvement-initial-entry-20-percent</td>
+            <td><span title="cat2-improvement-initial-entry-20-percent">Improvement Initial Entry 20 Percent</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>claims[cat2-clears-initial-entry-code-splitting-target]</code></td>
+            <td><span class="path" title="claims[cat2-clears-initial-entry-code-splitting-target]">claims[cat2-clears-initial-entry-code-splitting-target]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-improvement-before-after-analysis-output">
             <td>Cat 2</td>
-            <td>cat2-improvement-before-after-analysis-output</td>
+            <td><span title="cat2-improvement-before-after-analysis-output">Improvement Before After Analysis Output</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>evidence[cat2-baseline-bundle-stats], evidence[cat2-latest-bundle-stats]</code></td>
+            <td><span class="path" title="evidence[cat2-baseline-bundle-stats], evidence[cat2-latest-bundle-stats]">evidence[cat2-baseline-bundle-stats], evidence[cat2-latest-bundle-stats]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat2-improvement-no-functionality-removal">
             <td>Cat 2</td>
-            <td>cat2-improvement-no-functionality-removal</td>
+            <td><span title="cat2-improvement-no-functionality-removal">Improvement No Functionality Removal</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>claims[cat2-clears-initial-entry-code-splitting-target].limits</code></td>
+            <td><span class="path" title="claims[cat2-clears-initial-entry-code-splitting-target].limits">claims[cat2-clears-initial-entry-code-splitting-target].limits</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-audit-seeded-realistic-data">
             <td>Cat 3</td>
-            <td>cat3-audit-seeded-realistic-data</td>
+            <td><span title="cat3-audit-seeded-realistic-data">Audit Seeded Realistic Data</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.seed_data_scale</code></td>
+            <td><span class="path" title="audit_deliverable.seed_data_scale">audit_deliverable.seed_data_scale</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-audit-five-important-endpoints">
             <td>Cat 3</td>
-            <td>cat3-audit-five-important-endpoints</td>
+            <td><span title="cat3-audit-five-important-endpoints">Audit Five Important Endpoints</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.baseline_endpoint_rows</code></td>
+            <td><span class="path" title="audit_deliverable.baseline_endpoint_rows">audit_deliverable.baseline_endpoint_rows</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-audit-p50-p95-p99">
             <td>Cat 3</td>
-            <td>cat3-audit-p50-p95-p99</td>
+            <td><span title="cat3-audit-p50-p95-p99">Audit P50 P95 P99</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.baseline_endpoint_rows</code></td>
+            <td><span class="path" title="audit_deliverable.baseline_endpoint_rows">audit_deliverable.baseline_endpoint_rows</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-audit-concurrent-load-10-25-50">
             <td>Cat 3</td>
-            <td>cat3-audit-concurrent-load-10-25-50</td>
+            <td><span title="cat3-audit-concurrent-load-10-25-50">Audit Concurrent Load 10 25 50</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.methodology.connections</code></td>
+            <td><span class="path" title="audit_deliverable.methodology.connections">audit_deliverable.methodology.connections</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-audit-findings">
             <td>Cat 3</td>
-            <td>cat3-audit-findings</td>
+            <td><span title="cat3-audit-findings">Audit Findings</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.findings</code></td>
+            <td><span class="path" title="audit_deliverable.findings">audit_deliverable.findings</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-improvement-two-endpoints-p95-20-percent">
             <td>Cat 3</td>
-            <td>cat3-improvement-two-endpoints-p95-20-percent</td>
+            <td><span title="cat3-improvement-two-endpoints-p95-20-percent">Improvement Two Endpoints P95 20 Percent</span></td>
             <td>improvement</td>
             <td>partial</td>
-            <td><code>claims[cat3-p95-target]</code></td>
+            <td><span class="path" title="claims[cat3-p95-target]">claims[cat3-p95-target]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat3-improvement-root-cause-documented">
             <td>Cat 3</td>
-            <td>cat3-improvement-root-cause-documented</td>
+            <td><span title="cat3-improvement-root-cause-documented">Improvement Root Cause Documented</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>audit_deliverable.findings, claims[cat3-p95-target].limits</code></td>
+            <td><span class="path" title="audit_deliverable.findings, claims[cat3-p95-target].limits">audit_deliverable.findings, claims[cat3-p95-target].limits</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-audit-five-common-flows">
             <td>Cat 4</td>
-            <td>cat4-audit-five-common-flows</td>
+            <td><span title="cat4-audit-five-common-flows">Audit Five Common Flows</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.user_flows</code></td>
+            <td><span class="path" title="audit_deliverable.fields.user_flows">audit_deliverable.fields.user_flows</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-audit-total-query-counts">
             <td>Cat 4</td>
-            <td>cat4-audit-total-query-counts</td>
+            <td><span title="cat4-audit-total-query-counts">Audit Total Query Counts</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.user_flows[].total_queries</code></td>
+            <td><span class="path" title="audit_deliverable.fields.user_flows[].total_queries">audit_deliverable.fields.user_flows[].total_queries</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-audit-slowest-query">
             <td>Cat 4</td>
-            <td>cat4-audit-slowest-query</td>
+            <td><span title="cat4-audit-slowest-query">Audit Slowest Query</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.user_flows[].slowest_query_ms</code></td>
+            <td><span class="path" title="audit_deliverable.fields.user_flows[].slowest_query_ms">audit_deliverable.fields.user_flows[].slowest_query_ms</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-audit-n-plus-one">
             <td>Cat 4</td>
-            <td>cat4-audit-n-plus-one</td>
+            <td><span title="cat4-audit-n-plus-one">Audit N Plus One</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.user_flows[].n_plus_one_detected</code></td>
+            <td><span class="path" title="audit_deliverable.fields.user_flows[].n_plus_one_detected">audit_deliverable.fields.user_flows[].n_plus_one_detected</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-improvement-query-count-20-percent">
             <td>Cat 4</td>
-            <td>cat4-improvement-query-count-20-percent</td>
+            <td><span title="cat4-improvement-query-count-20-percent">Improvement Query Count 20 Percent</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>claims[cat4-query-count-branch-partial]</code></td>
+            <td><span class="path" title="claims[cat4-query-count-branch-partial]">claims[cat4-query-count-branch-partial]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-improvement-before-after-explain">
             <td>Cat 4</td>
-            <td>cat4-improvement-before-after-explain</td>
+            <td><span title="cat4-improvement-before-after-explain">Improvement Before After Explain</span></td>
             <td>improvement</td>
             <td>partial</td>
-            <td><code>evidence[cat4-current-explain-artifact]</code></td>
+            <td><span class="path" title="evidence[cat4-current-explain-artifact]">evidence[cat4-current-explain-artifact]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat4-improvement-inefficiency-documented">
             <td>Cat 4</td>
-            <td>cat4-improvement-inefficiency-documented</td>
+            <td><span title="cat4-improvement-inefficiency-documented">Improvement Inefficiency Documented</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>claims[cat4-query-count-branch-partial].limits</code></td>
+            <td><span class="path" title="claims[cat4-query-count-branch-partial].limits">claims[cat4-query-count-branch-partial].limits</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-audit-total-tests">
             <td>Cat 5</td>
-            <td>cat5-audit-total-tests</td>
+            <td><span title="cat5-audit-total-tests">Audit Total Tests</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.total_tests</code></td>
+            <td><span class="path" title="audit_deliverable.fields.total_tests">audit_deliverable.fields.total_tests</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-audit-pass-fail-flaky">
             <td>Cat 5</td>
-            <td>cat5-audit-pass-fail-flaky</td>
+            <td><span title="cat5-audit-pass-fail-flaky">Audit Pass Fail Flaky</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.pass_fail_flaky</code></td>
+            <td><span class="path" title="audit_deliverable.fields.pass_fail_flaky">audit_deliverable.fields.pass_fail_flaky</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-audit-suite-runtime">
             <td>Cat 5</td>
-            <td>cat5-audit-suite-runtime</td>
+            <td><span title="cat5-audit-suite-runtime">Audit Suite Runtime</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.suite_runtime</code></td>
+            <td><span class="path" title="audit_deliverable.fields.suite_runtime">audit_deliverable.fields.suite_runtime</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-audit-critical-flows-zero-coverage">
             <td>Cat 5</td>
-            <td>cat5-audit-critical-flows-zero-coverage</td>
+            <td><span title="cat5-audit-critical-flows-zero-coverage">Audit Critical Flows Zero Coverage</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.critical_flows_with_zero_coverage</code></td>
+            <td><span class="path" title="audit_deliverable.fields.critical_flows_with_zero_coverage">audit_deliverable.fields.critical_flows_with_zero_coverage</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-audit-code-coverage">
             <td>Cat 5</td>
-            <td>cat5-audit-code-coverage</td>
+            <td><span title="cat5-audit-code-coverage">Audit Code Coverage</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.code_coverage</code></td>
+            <td><span class="path" title="audit_deliverable.fields.code_coverage">audit_deliverable.fields.code_coverage</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-improvement-three-meaningful-tests">
             <td>Cat 5</td>
-            <td>cat5-improvement-three-meaningful-tests</td>
+            <td><span title="cat5-improvement-three-meaningful-tests">Improvement Three Meaningful Tests</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>claims[cat5-three-meaningful-regressions]</code></td>
+            <td><span class="path" title="claims[cat5-three-meaningful-regressions]">claims[cat5-three-meaningful-regressions]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat5-improvement-risk-comments">
             <td>Cat 5</td>
-            <td>cat5-improvement-risk-comments</td>
+            <td><span title="cat5-improvement-risk-comments">Improvement Risk Comments</span></td>
             <td>improvement</td>
             <td>present</td>
-            <td><code>evidence[cat5-risk-comment-locations]</code></td>
+            <td><span class="path" title="evidence[cat5-risk-comment-locations]">evidence[cat5-risk-comment-locations]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-audit-console-errors">
             <td>Cat 6</td>
-            <td>cat6-audit-console-errors</td>
+            <td><span title="cat6-audit-console-errors">Audit Console Errors</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.console_errors_during_normal_usage</code></td>
+            <td><span class="path" title="audit_deliverable.fields.console_errors_during_normal_usage">audit_deliverable.fields.console_errors_during_normal_usage</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-audit-unhandled-rejections">
             <td>Cat 6</td>
-            <td>cat6-audit-unhandled-rejections</td>
+            <td><span title="cat6-audit-unhandled-rejections">Audit Unhandled Rejections</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.unhandled_promise_rejections_server</code></td>
+            <td><span class="path" title="audit_deliverable.fields.unhandled_promise_rejections_server">audit_deliverable.fields.unhandled_promise_rejections_server</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-audit-network-disconnect">
             <td>Cat 6</td>
-            <td>cat6-audit-network-disconnect</td>
+            <td><span title="cat6-audit-network-disconnect">Audit Network Disconnect</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.network_disconnect_recovery</code></td>
+            <td><span class="path" title="audit_deliverable.fields.network_disconnect_recovery">audit_deliverable.fields.network_disconnect_recovery</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-audit-missing-boundaries">
             <td>Cat 6</td>
-            <td>cat6-audit-missing-boundaries</td>
+            <td><span title="cat6-audit-missing-boundaries">Audit Missing Boundaries</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.missing_error_boundaries</code></td>
+            <td><span class="path" title="audit_deliverable.fields.missing_error_boundaries">audit_deliverable.fields.missing_error_boundaries</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-audit-silent-failures">
             <td>Cat 6</td>
-            <td>cat6-audit-silent-failures</td>
+            <td><span title="cat6-audit-silent-failures">Audit Silent Failures</span></td>
             <td>audit</td>
             <td>present</td>
-            <td><code>audit_deliverable.fields.silent_failures_identified</code></td>
+            <td><span class="path" title="audit_deliverable.fields.silent_failures_identified">audit_deliverable.fields.silent_failures_identified</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-improvement-three-fixes">
             <td>Cat 6</td>
-            <td>cat6-improvement-three-fixes</td>
-            <td>improvement</td>
-            <td>partial</td>
-            <td><code>claims[cat6-runtime-error-handling-partial]</code></td>
-          </tr>
-          <tr>
-            <td>Cat 6</td>
-            <td>cat6-improvement-screenshot-recording</td>
-            <td>improvement</td>
-            <td>present</td>
-            <td><code>evidence[cat6-runtime-screenshot-api-500], evidence[cat6-runtime-screenshot-offline], evidence[cat6-runtime-screenshot-csrf], evidence[cat6-runtime-screenshot-concurrent]</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-audit-lighthouse-scores-per-page</td>
-            <td>audit</td>
-            <td>present</td>
-            <td><code>audit_deliverable.fields.lighthouse_accessibility_score_per_page</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-audit-total-critical-serious</td>
-            <td>audit</td>
-            <td>present</td>
-            <td><code>audit_deliverable.fields.total_critical_or_serious_violations</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-audit-keyboard-navigation</td>
-            <td>audit</td>
-            <td>present</td>
-            <td><code>audit_deliverable.fields.keyboard_navigation_completeness</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-audit-screen-reader-usability</td>
-            <td>audit</td>
-            <td>present</td>
-            <td><code>audit_deliverable.fields.screen_reader_usability</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-audit-color-contrast-failures</td>
-            <td>audit</td>
-            <td>present</td>
-            <td><code>audit_deliverable.fields.color_contrast_failures</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-audit-missing-aria-labels-or-roles</td>
-            <td>audit</td>
-            <td>present</td>
-            <td><code>audit_deliverable.fields.missing_aria_labels_or_roles</code></td>
-          </tr>
-          <tr>
-            <td>Cat 7</td>
-            <td>cat7-improvement-critical-serious-top3</td>
+            <td><span title="cat6-improvement-three-fixes">Improvement Three Fixes</span></td>
             <td>improvement</td>
             <td>partial</td>
-            <td><code>claims[cat7-clears-axe-critical-serious-gate]</code></td>
+            <td><span class="path" title="claims[cat6-runtime-error-handling-partial]">claims[cat6-runtime-error-handling-partial]</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat6-improvement-screenshot-recording">
+            <td>Cat 6</td>
+            <td><span title="cat6-improvement-screenshot-recording">Improvement Screenshot Recording</span></td>
+            <td>improvement</td>
+            <td>present</td>
+            <td><span class="path" title="evidence[cat6-runtime-screenshot-api-500], evidence[cat6-runtime-screenshot-offline], evidence[cat6-runtime-screenshot-csrf], evidence[cat6-runtime-screenshot-concurrent]">evidence[cat6-runtime-screenshot-api-500], evidence[cat6-runtime-screenshot-offline], evidence[cat6-runtime-screenshot-csrf], evidence[cat6-runtime-screenshot-concurrent]</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-audit-lighthouse-scores-per-page">
+            <td>Cat 7</td>
+            <td><span title="cat7-audit-lighthouse-scores-per-page">Audit Lighthouse Scores Per Page</span></td>
+            <td>audit</td>
+            <td>present</td>
+            <td><span class="path" title="audit_deliverable.fields.lighthouse_accessibility_score_per_page">audit_deliverable.fields.lighthouse_accessibility_score_per_page</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-audit-total-critical-serious">
+            <td>Cat 7</td>
+            <td><span title="cat7-audit-total-critical-serious">Audit Total Critical Serious</span></td>
+            <td>audit</td>
+            <td>present</td>
+            <td><span class="path" title="audit_deliverable.fields.total_critical_or_serious_violations">audit_deliverable.fields.total_critical_or_serious_violations</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-audit-keyboard-navigation">
+            <td>Cat 7</td>
+            <td><span title="cat7-audit-keyboard-navigation">Audit Keyboard Navigation</span></td>
+            <td>audit</td>
+            <td>present</td>
+            <td><span class="path" title="audit_deliverable.fields.keyboard_navigation_completeness">audit_deliverable.fields.keyboard_navigation_completeness</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-audit-screen-reader-usability">
+            <td>Cat 7</td>
+            <td><span title="cat7-audit-screen-reader-usability">Audit Screen Reader Usability</span></td>
+            <td>audit</td>
+            <td>present</td>
+            <td><span class="path" title="audit_deliverable.fields.screen_reader_usability">audit_deliverable.fields.screen_reader_usability</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-audit-color-contrast-failures">
+            <td>Cat 7</td>
+            <td><span title="cat7-audit-color-contrast-failures">Audit Color Contrast Failures</span></td>
+            <td>audit</td>
+            <td>present</td>
+            <td><span class="path" title="audit_deliverable.fields.color_contrast_failures">audit_deliverable.fields.color_contrast_failures</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-audit-missing-aria-labels-or-roles">
+            <td>Cat 7</td>
+            <td><span title="cat7-audit-missing-aria-labels-or-roles">Audit Missing Aria Labels Or Roles</span></td>
+            <td>audit</td>
+            <td>present</td>
+            <td><span class="path" title="audit_deliverable.fields.missing_aria_labels_or_roles">audit_deliverable.fields.missing_aria_labels_or_roles</span></td>
+          </tr>
+          <tr data-ledger-id="cat7-improvement-critical-serious-top3">
+            <td>Cat 7</td>
+            <td><span title="cat7-improvement-critical-serious-top3">Improvement Critical Serious Top3</span></td>
+            <td>improvement</td>
+            <td>partial</td>
+            <td><span class="path" title="claims[cat7-clears-axe-critical-serious-gate]">claims[cat7-clears-axe-critical-serious-gate]</span></td>
+          </tr>
+          <tr data-ledger-id="cat8-audit-probe-tool-runnable">
             <td>Cat 8</td>
-            <td>cat8-audit-probe-tool-runnable</td>
+            <td><span title="cat8-audit-probe-tool-runnable">Audit Probe Tool Runnable</span></td>
             <td>audit</td>
             <td>missing</td>
-            <td><code>audit_deliverable.probe_tool.command</code></td>
+            <td><span class="path" title="audit_deliverable.probe_tool.command">audit_deliverable.probe_tool.command</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat8-audit-auth-session-surface">
             <td>Cat 8</td>
-            <td>cat8-audit-auth-session-surface</td>
+            <td><span title="cat8-audit-auth-session-surface">Audit Auth Session Surface</span></td>
             <td>audit</td>
             <td>missing</td>
-            <td><code>audit_deliverable.fields.auth_session_vulnerabilities</code></td>
+            <td><span class="path" title="audit_deliverable.fields.auth_session_vulnerabilities">audit_deliverable.fields.auth_session_vulnerabilities</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat8-audit-websocket-validation-surface">
             <td>Cat 8</td>
-            <td>cat8-audit-websocket-validation-surface</td>
+            <td><span title="cat8-audit-websocket-validation-surface">Audit Websocket Validation Surface</span></td>
             <td>audit</td>
             <td>missing</td>
-            <td><code>audit_deliverable.fields.websocket_validation_failures</code></td>
+            <td><span class="path" title="audit_deliverable.fields.websocket_validation_failures">audit_deliverable.fields.websocket_validation_failures</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat8-audit-input-sanitization-surface">
             <td>Cat 8</td>
-            <td>cat8-audit-input-sanitization-surface</td>
+            <td><span title="cat8-audit-input-sanitization-surface">Audit Input Sanitization Surface</span></td>
             <td>audit</td>
             <td>missing</td>
-            <td><code>audit_deliverable.fields.input_sanitization_failures</code></td>
+            <td><span class="path" title="audit_deliverable.fields.input_sanitization_failures">audit_deliverable.fields.input_sanitization_failures</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat8-audit-dependency-cves">
             <td>Cat 8</td>
-            <td>cat8-audit-dependency-cves</td>
+            <td><span title="cat8-audit-dependency-cves">Audit Dependency Cves</span></td>
             <td>audit</td>
             <td>missing</td>
-            <td><code>audit_deliverable.fields.dependency_cves</code></td>
+            <td><span class="path" title="audit_deliverable.fields.dependency_cves">audit_deliverable.fields.dependency_cves</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat8-audit-manual-review-fields">
             <td>Cat 8</td>
-            <td>cat8-audit-manual-review-fields</td>
+            <td><span title="cat8-audit-manual-review-fields">Audit Manual Review Fields</span></td>
             <td>audit</td>
             <td>missing</td>
-            <td><code>audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage</code></td>
+            <td><span class="path" title="audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage">audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage</span></td>
           </tr>
-          <tr>
+          <tr data-ledger-id="cat8-improvement-two-verified-fixes">
             <td>Cat 8</td>
-            <td>cat8-improvement-two-verified-fixes</td>
+            <td><span title="cat8-improvement-two-verified-fixes">Improvement Two Verified Fixes</span></td>
             <td>improvement</td>
             <td>missing</td>
-            <td><code>audit_deliverable.verified_vulnerability_fixes</code></td>
+            <td><span class="path" title="audit_deliverable.verified_vulnerability_fixes">audit_deliverable.verified_vulnerability_fixes</span></td>
           </tr></tbody></table></div>
       </section>
 
       <section id="panel-boundaries" class="tab-panel" role="tabpanel" aria-labelledby="tab-boundaries" tabindex="0" hidden>
         <article class="panel">
           <h2>Explicit Non-Claims</h2>
-          <ul class="check-list">
-          <li>
-            <strong>Cat 1: Type Safety</strong>
-            <span>Does not claim production counted syntax alone clears the 25% threshold.</span>
-          </li>
-          <li>
-            <strong>Cat 1: Type Safety</strong>
-            <span>Does not claim all syntax categories carry equal semantic risk.</span>
-          </li>
-          <li>
-            <strong>Cat 2: Bundle Size</strong>
-            <span>Does not claim 15% total production bundle reduction.</span>
-          </li>
-          <li>
-            <strong>Cat 2: Bundle Size</strong>
-            <span>Does not claim every large dependency was removed.</span>
-          </li>
-          <li>
-            <strong>Cat 2: Bundle Size</strong>
-            <span>Does not claim yjs should be lazy-loaded away from collaboration surfaces.</span>
-          </li>
-          <li>
-            <strong>Cat 3: API Response Time</strong>
-            <span>Does not claim Category 3 completion.</span>
-          </li>
-          <li>
-            <strong>Cat 3: API Response Time</strong>
-            <span>Does not claim payload-byte reduction is equivalent to P95 latency improvement.</span>
-          </li>
-          <li>
-            <strong>Cat 3: API Response Time</strong>
-            <span>Does not claim /api/bootstrap clears the 20% P95 endpoint target.</span>
-          </li>
-          <li>
-            <strong>Cat 4: Database Query Efficiency</strong>
-            <span>Does not claim full Category 4 completion.</span>
-          </li>
-          <li>
-            <strong>Cat 4: Database Query Efficiency</strong>
-            <span>Does not claim 50% slowest-query improvement.</span>
-          </li>
-          <li>
-            <strong>Cat 4: Database Query Efficiency</strong>
-            <span>Does not claim N+1 elimination.</span>
-          </li>
-          <li>
-            <strong>Cat 5: Test Coverage and Quality</strong>
-            <span>Does not claim all flaky E2E behavior is fixed.</span>
-          </li>
-          <li>
-            <strong>Cat 5: Test Coverage and Quality</strong>
-            <span>Does not claim code coverage percentage improved.</span>
-          </li>
-          <li>
-            <strong>Cat 5: Test Coverage and Quality</strong>
-            <span>Does not count stale selector cleanup as one of the three meaningful regression tests.</span>
-          </li>
-          <li>
-            <strong>Cat 6: Runtime Error and Edge Case Handling</strong>
-            <span>Does not claim full Category 6 completion.</span>
-          </li>
-          <li>
-            <strong>Cat 6: Runtime Error and Edge Case Handling</strong>
-            <span>Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</span>
-          </li>
-          <li>
-            <strong>Cat 6: Runtime Error and Edge Case Handling</strong>
-            <span>Does not claim all error-boundary gaps are fixed.</span>
-          </li>
-          <li>
-            <strong>Cat 7: Accessibility Compliance</strong>
-            <span>Does not claim a latest Lighthouse score improvement.</span>
-          </li>
-          <li>
-            <strong>Cat 7: Accessibility Compliance</strong>
-            <span>Does not claim all manual keyboard polish gaps are fixed.</span>
-          </li>
-          <li>
-            <strong>Cat 8: Security Audit</strong>
-            <span>Does not claim Security 8 completion.</span>
-          </li>
-          <li>
-            <strong>Cat 8: Security Audit</strong>
-            <span>Does not claim dependency cleanup alone satisfies Security 8.</span>
-          </li>
-          <li>
-            <strong>Cat 8: Security Audit</strong>
-            <span>Does not claim manual CORS/CSP/secrets/rate-limit/error review is complete.</span>
-          </li></ul>
+          <div class="non-claim-grid">
+        <article class="non-claim-card" data-ledger-id="cat-1-type-safety">
+          <h3>Cat 1: Type Safety</h3>
+          <ul>
+            <li>Does not claim production counted syntax alone clears the 25% threshold.</li><li>Does not claim all syntax categories carry equal semantic risk.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-2-bundle-size">
+          <h3>Cat 2: Bundle Size</h3>
+          <ul>
+            <li>Does not claim 15% total production bundle reduction.</li><li>Does not claim every large dependency was removed.</li><li>Does not claim yjs should be lazy-loaded away from collaboration surfaces.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-3-api-response-time">
+          <h3>Cat 3: API Response Time</h3>
+          <ul>
+            <li>Does not claim Category 3 completion.</li><li>Does not claim payload-byte reduction is equivalent to P95 latency improvement.</li><li>Does not claim /api/bootstrap clears the 20% P95 endpoint target.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-4-database-query-efficiency">
+          <h3>Cat 4: Database Query Efficiency</h3>
+          <ul>
+            <li>Does not claim full Category 4 completion.</li><li>Does not claim 50% slowest-query improvement.</li><li>Does not claim N+1 elimination.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-5-test-coverage-quality">
+          <h3>Cat 5: Test Coverage and Quality</h3>
+          <ul>
+            <li>Does not claim all flaky E2E behavior is fixed.</li><li>Does not claim code coverage percentage improved.</li><li>Does not count stale selector cleanup as one of the three meaningful regression tests.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-6-runtime-error-handling">
+          <h3>Cat 6: Runtime Error and Edge Case Handling</h3>
+          <ul>
+            <li>Does not claim full Category 6 completion.</li><li>Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</li><li>Does not claim all error-boundary gaps are fixed.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-7-accessibility">
+          <h3>Cat 7: Accessibility Compliance</h3>
+          <ul>
+            <li>Does not claim a latest Lighthouse score improvement.</li><li>Does not claim all manual keyboard polish gaps are fixed.</li>
+          </ul>
+        </article>
+        <article class="non-claim-card" data-ledger-id="cat-8-security-audit">
+          <h3>Cat 8: Security Audit</h3>
+          <ul>
+            <li>Does not claim Security 8 completion.</li><li>Does not claim dependency cleanup alone satisfies Security 8.</li><li>Does not claim manual CORS/CSP/secrets/rate-limit/error review is complete.</li>
+          </ul>
+        </article></div>
         </article>
       </section>
 
@@ -1787,6 +1867,19 @@
           }
         });
       }
+      function activateHashTarget() {
+        if (!location.hash) return;
+        const target = document.getElementById(location.hash.slice(1));
+        if (!target) return;
+        const panel = target.closest('[role="tabpanel"]');
+        if (!panel) return;
+        const tab = tabs.find((item) => item.getAttribute('aria-controls') === panel.id);
+        if (!tab) return;
+        activateTab(tab, false);
+        requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
+      }
+      window.addEventListener('hashchange', activateHashTarget);
+      activateHashTarget();
     </script>
   </body>
 </html>
