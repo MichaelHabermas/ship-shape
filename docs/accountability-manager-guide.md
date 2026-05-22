@@ -270,11 +270,13 @@ When a project ends:
 
 When items are severely overdue (7+ days):
 
-1. Check if auto-generated issue exists
-2. Have direct conversation with responsible party
+1. Check the accountability grid or login prompt for inferred gaps
+2. Have a direct conversation with the responsible party
 3. Understand blockers (real or process)
-4. Get commitment on resolution date
+4. Get a commitment on a resolution date
 5. Follow up at that date
+
+Ship surfaces overdue accountability as inferred items — it does not auto-create issues. If a gap needs tracked follow-up, create an issue manually.
 
 ## Troubleshooting
 

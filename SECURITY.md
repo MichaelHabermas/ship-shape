@@ -78,21 +78,19 @@ If you encounter a situation where you're tempted to use `--no-verify`:
 | Need to commit urgently | No exception. Fix the issue first. |
 | CI is down | Local hooks still work. CI is backup enforcement. |
 
-### CI Enforcement
+### Local Enforcement (Husky Pre-commit)
 
-GitHub Actions provides a second layer of enforcement:
+Security and contract checks run locally via `.husky/pre-commit` on every commit:
 
-- **secrets-scan**: Runs gitleaks on every PR
-- **attestation-check**: Verifies ATTESTATION.md exists and is current
+- **Empty Playwright tests**: Blocks tests with no assertions (`scripts/check-empty-tests.sh`)
+- **API coverage**: Staged UI routes are checked against API coverage heuristics
+- **OpenAPI parity**: `pnpm openapi:check:strict` enforces runtime route / OpenAPI alignment
+- **Secrets and sensitive changes**: When the Treasury `comply` CLI is installed, `comply opensource --hook --staged` runs gitleaks and AI-assisted sensitive-data analysis on staged files (Trivy is temporarily skipped via `--skip-trivy`)
 
-These are required status checks. PRs cannot merge without passing.
+This repository does **not** ship GitHub Actions workflows for `secrets-scan` or `attestation-check`. Local hooks are the enforcement layer; install `comply` so secret scanning is not skipped with a warning.
 
 ### Attestation
 
-Every commit to main should have an associated security attestation in `ATTESTATION.md`. This file:
+`ATTESTATION.md` can record security review history when using the Treasury `comply` toolchain (who reviewed, which tools ran). Per stakeholder guidance for this Gauntlet project structure, the former Treasury-style required attestation gate is **not enforced**—commits are not blocked on attestation freshness, and restoring a deleted GitHub Actions compliance workflow is out of scope unless requirements change.
 
-- Records who performed the security review
-- Documents which scanning tools were used
-- Provides audit trail for FISMA compliance
-
-Run `comply opensource` to update the attestation before committing.
+When you use `comply opensource` locally, it may update `ATTESTATION.md`; that remains optional audit history, not a merge gate.

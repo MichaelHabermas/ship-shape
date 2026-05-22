@@ -837,3 +837,53 @@ Consequences: Benchmark artifacts must record bypass state, base URL, duration, 
 Evidence: Before artifact `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json` was produced from isolated ref `7d31add` with only the bypass patch applied; after artifact `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json` was produced from the current built server. Both used `ship_dev`, built `node dist/index.js`, `http://127.0.0.1:3001`, 15s duration, 10/25/50 concurrency, 100 rps, and the same bypass token. Ledger now marks Category 3 proven.
 
 **Decision Gist**: Measure API latency, not limiter latency.
+
+## Post-GFA Authorization Kernel (2026-05-22)
+
+### D049: Shared Session Validation For HTTP And WebSocket
+
+Status: Accepted
+
+Decision: Extract `validateAuthenticatedSession()` into `api/src/services/session-auth.ts` and use it from `authMiddleware` (session cookie path) and collaboration WebSocket upgrade (`validateWebSocketSession`). The helper enforces absolute/inactivity timeouts **and** live `workspace_memberships` checks, deleting revoked sessions fail-closed.
+
+Why: Discovery log flagged WebSocket paths that reimplemented partial session checks without membership revocation. Duplicated timeout logic drifted from HTTP middleware.
+
+Alternatives considered: Periodic membership polling on open sockets only (more complex); trusting session cookie until timeout (rejected — fails closed requirement).
+
+Consequences: WebSocket upgrade rejects revoked members immediately. HTTP and WS share one timeout/membership policy. DB errors propagate to HTTP 500; WS catches and rejects upgrade.
+
+Evidence: `api/src/services/__tests__/session-auth.test.ts`; API suite 535/535 on `ship_test_audit`.
+
+**Decision Gist**: One session validator for HTTP and realtime.
+
+### D050: Governance Authority Module For Team And Week Mutations
+
+Status: Accepted
+
+Decision: Add `api/src/services/governance-auth.ts` with `requireTeamAllocationAuthority` (workspace admin) and `requireWeekLifecycleAuthority` (supervisor/accountable/admin/sprint owner via person doc). Wire `POST/DELETE /api/team/assign`, `POST /api/weeks/:id/start`, and `POST /api/weeks/:id/carryover`.
+
+Why: Visibility-only checks allowed any member who could see a sprint to start weeks or mutate allocations — bypassing the approval authority model.
+
+Alternatives considered: Inline checks per route (rejected — DRY); full declarative policy engine (deferred).
+
+Consequences: Sprint `owner_id` resolves through person document `user_id`, not raw user UUID in properties.
+
+Evidence: `api/src/services/__tests__/governance-auth.test.ts`; `weeks.test.ts` owner fixtures updated.
+
+**Decision Gist**: Lifecycle and allocation mutations require governance authority, not visibility alone.
+
+### D051: Tier 1 Shared Type Consolidation (`@ship/shared`)
+
+Status: Accepted
+
+Decision: Centralize Tier 1 cross-tier types and UI constants in `@ship/shared`: `InferredProjectStatus`, `ISSUE_STATE_OPTIONS`, `ISSUE_STATE_LABELS`, `SelectableDocumentType`, `ConversionDocumentType`, wire `ApiResponse`/`ApiError`, and domain `BelongsTo` (replacing API-local `BelongsToEntry`). Web/API import these directly; OpenAPI wire names (`BelongsToEntry`, `BelongsToResponse`) stay on the HTTP contract layer.
+
+Why: Duplicate unions and label arrays drifted between API routes, query hooks, sidebars, and list views. Foundational enums belong in one package with existing `document-boundary.test.ts` guardrails for core unions.
+
+Alternatives considered: OpenAPI-generated types as sole web wire source (Tier 2 — deferred); renaming OpenAPI `BelongsToEntry` now (would churn clients — deferred).
+
+Consequences: `pnpm build:shared` required after edits. Remaining intentional local subsets (`PanelDocumentType`, `UnifiedDocumentType`, `CurrentDocumentContext` local type) are UI-scoped, not duplicates of the same name. `ISSUE_PRIORITY_OPTIONS` consolidation is Tier 2 follow-up.
+
+Evidence: Multi-agent verification pass 2026-05-22 — `pnpm type-check` green; `document-boundary.test.ts` 4/4; grep shows zero `ApiEnvelope` and zero API-domain `BelongsToEntry`.
+
+**Decision Gist**: Domain types and shared UI label tables live in `@ship/shared`; wire/OpenAPI names may differ intentionally.

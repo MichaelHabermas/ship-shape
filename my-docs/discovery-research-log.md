@@ -2,6 +2,51 @@
 
 ---
 
+## Tier 1 Shared Types Verification (2026-05-22)
+
+Orchestrated parallel review of `@ship/shared` Tier 1 consolidation (types/constants moved out of API/web duplicates). Gates: build + type-check + boundary tests green.
+
+| Agent focus | Verdict | Action taken |
+|-------------|---------|--------------|
+| Regression grep | FAIL → fixed | Completed shadow `ConversionDocumentType`/`SelectableDocumentType` migration in CommandPalette, ConversionDialog, Editor, collab session, UnifiedDocumentPage, collaboration server; `bootstrap` uses `InferredProjectStatus`; `IssuesList` uses `ISSUE_STATE_LABELS` |
+| Contract alignment | PASS | `BelongsTo` ↔ extractor aligned; `ApiResponse` compatible with web; OpenAPI `BelongsToEntry` intentionally wire-only |
+| SOLID/DRY | PASS after fixes | Removed dead `contextMenuActions` re-export; unified import paths |
+| GFA Cat 1 spec | Aligned | Supporting infrastructure, not standalone violation-count claim |
+| Build gates | PASS | |
+
+**Galaxy-brained follow-ups (not in Tier 1):** OpenAPI-as-wire-source for web hooks; centralize `ISSUE_PRIORITY_OPTIONS`; add `InferredProjectStatus` + `ISSUE_STATE_OPTIONS` exhaustiveness to `document-boundary.test.ts`; align OpenAPI `ApiError` with shared `details?` field.
+
+---
+
+## Post-GFA Resolution Pass (2026-05-22)
+
+Status hygiene for findings addressed in Wave 3 (`my-docs/post-gfa-orchestration-plan.md`). Cat 8 probe tool remains a separate track.
+
+| Finding | Prior status | Now |
+|---------|--------------|-----|
+| WebSocket membership revocation | Confirmed | **Resolved** — `session-auth.ts` + collab upgrade |
+| Claude context visibility bypass | Confirmed | **Resolved** — `requireReadableDocument` + visibility SQL |
+| Claude retro dead SQL | Confirmed | **Resolved** — properties-based sprint_number; project-row retro |
+| Team allocation without admin | Confirmed | **Resolved** — `governance-auth.ts` |
+| Week start/carryover visibility-only | Confirmed | **Resolved** — `requireWeekLifecycleAuthority` |
+| File delete uploader/admin | Confirmed | **Resolved** — files route check |
+| Convert missing collab hook | Confirmed | **Resolved** — `handleDocumentConversion` wired |
+| Cross-workspace belongs_to route layer | Partial | **Resolved** — `requireReferenceableDocument` on issue sync |
+| API token super-admin delegation | Partial | **Resolved** — superAdminMiddleware blocks bearer tokens |
+| Debug user delete non-transactional | Confirmed | **Resolved** — transaction wrap |
+| Public feedback gating | Confirmed | **Resolved** (prior pass) |
+| asApprovalRecord unchecked cast | Open follow-up | **Resolved** (prior pass) — runtime guard + tests |
+| Converted list legacy model | Confirmed | **Resolved** — in-place query |
+| Accountability auto-issue docs | Confirmed | **Resolved** — inference-only docs |
+| RACI stub comments | Needs verification | **Resolved** — passive metadata comments |
+| deploy auto-terraform | Confirmed | **Resolved** — opt-in bootstrap flag |
+| SECURITY.md vs GitHub Actions | Confirmed | **Resolved** — Husky + stakeholder note |
+| defineRoute contract gaps | Open | **Partially resolved** — param/feedback/standups tests; standups legacy 400 schema drift remains optional follow-up |
+
+Still **open** (not in Wave 3 scope): document-scoped file attachments/CDN model, full E2E baseline green, defineRoute route sweep, OpenAPI client migration.
+
+---
+
 ## simplify-1 Verification Pass: Tests Green But Contract Gaps Remain
 
 ### Name

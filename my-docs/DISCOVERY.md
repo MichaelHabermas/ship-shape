@@ -11,32 +11,34 @@ This write-up documents three things I learned by studying the Ship Shape codeba
 > 3. What it does and why it matters
 > 4. How you would apply this knowledge in a future project
 
-## Discovery 1: Server-canonical realtime room identity
+## Discovery 1: Realtime identity must be server-canonical
 
 ### Where I found it
 
-- `api/src/collaboration/index.ts` (upgrade handler, in-memory `docs` map keyed by full room string)
-- `shared/src/collab-protocol.ts` (`buildCollaborationRoomName`, `roomPrefixMatchesDocumentType`)
-- `discovery-research-log.md` Discovery 2 (room prefix vs UUID persistence)
+- `api/src/collaboration/index.ts` lines 99-102 (`docs`, `awareness`, and `conns` keyed by collaboration room name)
+- `api/src/collaboration/index.ts` lines 651-679 (upgrade handler resolves `document_type` and builds the canonical room)
+- `shared/src/collab-protocol.ts` lines 17-47 (room parsing, canonical room building, and legacy prefix matching)
 
 ### What it does
 
-The collaboration server used to accept any `{prefix}:{uuid}` room name while persisting only the UUID to PostgreSQL. That let two clients join different in-memory Yjs documents for the same row. The deepening pass resolves `document_type` from the database on upgrade and always uses `{document_type}:{uuid}` as the room key, with shared protocol constants for message types and close codes.
+The collaboration server keeps live Yjs documents, awareness, and sockets under an in-memory room key, but persistence ultimately belongs to a row in the unified `documents` table. The current upgrade path accepts a requested room, extracts the UUID, checks access, resolves the authoritative `document_type` from PostgreSQL, and then uses `buildCollaborationRoomName(documentType, docId)` as the server room key.
 
 ### Why it matters
 
-In a unified document model, the prefix feels cosmetic but the realtime layer treated it as primary identity. This is a sharp example of **server truth**: the database row is one document, so the collaboration cache must have one room per row.
+In a unified document model, a URL prefix can look cosmetic while still becoming operational identity in realtime state. If `issue:<id>` and `wiki:<id>` are allowed to create different live rooms for one persisted row, collaborators can split across separate CRDT states. The transferable lesson is that realtime namespace and persistence identity have to collapse to the same server-owned key.
 
 ### How I would apply it in a future project
 
 Treat realtime namespace and persistence primary keys as one design decision. If the URL or client prefix can vary, either validate against authoritative metadata on connect or canonicalize server-side before loading CRDT state.
 
-## Discovery 2: OpenAPI ownership can preserve legacy public contracts
+## Discovery 2: Typed route ownership does not have to break legacy contracts
 
 ### Where I found it
 
-- `api/src/openapi/define-route.ts` lines 25-45 and 121-150
-- `api/src/routes/feedback.ts` lines 67-190
+- `api/src/openapi/define-route.ts` lines 25-49 (typed route config and parsed request contract)
+- `api/src/openapi/define-route.ts` lines 132-170 (OpenAPI registration, request parsing, and validation-error handling)
+- `api/src/routes/feedback.ts` lines 66-150 (`POST /api/feedback` using `defineRoute` with legacy validation errors)
+- `api/src/routes/feedback.ts` lines 154-200 (`GET /api/feedback/program/:programId` preserving the public `{ error }` shape)
 
 ### What it does
 
@@ -50,12 +52,14 @@ I expected route/spec consolidation to force contract churn. This showed the bet
 
 When migrating old routes into a typed route wrapper, separate "who owns the schema" from "what exact response shape exists today." Give legacy behavior a named escape hatch, keep the default modern, and require tests for each exception.
 
-## Discovery 3: Real isolation tests need real foreign records
+## Discovery 3: Authorization tests need real foreign records
 
 ### Where I found it
 
-- `e2e/fixtures/isolated-env.ts` lines 70-84 and 95-137
-- `e2e/authorization.spec.ts` lines 35-114 and 214-279
+- `e2e/fixtures/isolated-env.ts` lines 70-84 (worker/test fixture types expose `dbPool`)
+- `e2e/fixtures/isolated-env.ts` lines 95-137 (fresh PostgreSQL container per worker)
+- `e2e/authorization.spec.ts` lines 43-153 (owned and foreign workspaces, users, documents, and issues seeded directly)
+- `e2e/authorization.spec.ts` lines 247-290 (UI/API assertions against real foreign document and issue IDs)
 
 ### What it does
 

@@ -767,3 +767,78 @@ Parallel review found two correctness issues in the Category 1 cast-reduction br
 - Added focused tests for unsupported document-type mapping, query param coercion/clamping, and approval-record JSONB parsing.
 
 Evidence: `pnpm type-check`; `pnpm --filter @ship/web exec vitest run src/lib/document-view-mapper.test.ts` (5/5); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/search.test.ts` (30/30); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/utils/__tests__/query-params.test.ts src/utils/__tests__/approval-workflow.test.ts` (7/7).
+
+---
+
+## Post-GFA Improvement Orchestration (2026-05-22)
+
+Wave 3 per `my-docs/post-gfa-orchestration-plan.md`. **Cat 8 excluded** per user scope. No git commits in this pass.
+
+### Authorization kernel
+
+- **`api/src/services/session-auth.ts`**: shared session validation (timeouts + membership revocation) for HTTP cookies and WebSocket upgrade.
+- **`api/src/services/governance-auth.ts`**: team allocation (admin-only) and week start/carryover authority (supervisor/accountable/admin/sprint owner).
+- **Visibility DRY**: `bootstrap-queries.ts` re-exports canonical filter; bootstrap wiki + search routes use `VISIBILITY_FILTER_SQL`.
+
+### Security fixes (discovery log targets)
+
+| Area | Change |
+|------|--------|
+| WebSocket membership | Upgrade uses `validateAuthenticatedSession` |
+| Claude `/context` | `requireReadableDocument` + visibility on joined rows; retro SQL fixed |
+| Team assign | Admin-only via `requireTeamAllocationAuthority` |
+| Week start/carryover | Governance authority after visibility |
+| Files DELETE | Uploader or admin |
+| Document convert | `invalidateDocumentCache` + `handleDocumentConversion` |
+| Issue `belongs_to` | `requireReferenceableDocument` before sync |
+| Admin debug user delete | Transaction-wrapped |
+| API token + super-admin | `superAdminMiddleware` blocks bearer tokens |
+
+### Maintainability and product
+
+- `useAiQuality`: single document fetch on mount
+- `listIssueChildren` repository slice; bootstrap issues via `listIssuesMetadata`
+- `/converted/list`: in-place conversion model
+- Accountability + RACI docs aligned with inference-only / passive metadata
+
+### Contract tests
+
+- `define-route.test.ts`: param validation 400 envelope
+- `feedback.test.ts`: `GET /api/feedback/:id` (401/404/200)
+- `standups.test.ts`: standalone `POST /api/standups`
+
+### Ops
+
+- `scripts/deploy.sh`: `--bootstrap-infra` / `DEPLOY_BOOTSTRAP_INFRA=1` required for terraform apply
+- `terraform/README.md`: prod uses root `terraform/`
+- `SECURITY.md`: Husky pre-commit reality + attestation stakeholder note
+- Inline comment cancel: Escape + mark removal fix
+
+### Verification
+
+- `pnpm type-check`: pass
+- API vitest (`ship_test_audit`): **535/535**
+- Web vitest: **174/174**
+- E2E authz lane: blocked by sandbox `get-port` / `uv_interface_addresses` in isolated fixture (`test-results/post-gfa-authz/`)
+
+### Deferred
+
+- defineRoute pilot on `documents.ts` / `issues.ts` / `auth.ts`
+- Full E2E baseline green (Cat 5 warning unchanged)
+- Cat 8 probe tool (separate track)
+
+### Tier 1 shared type consolidation + verification (2026-05-22)
+
+Parallel sub-agent audit of foundational type moves (regression grep, contract alignment, SOLID/DRY, GFA spec compliance, build gates). **No submission-ledger row** — internal refactor supporting Cat 1 drift prevention, not standalone AST counter credit.
+
+| Check | Result |
+|-------|--------|
+| `pnpm build:shared` | Pass |
+| `pnpm type-check` | Pass |
+| `document-boundary.test.ts` | 4/4 |
+| `ApiEnvelope` removed | Pass (0 hits) |
+| API `BelongsToEntry` domain duplicate | Pass (OpenAPI wire name only) |
+| Shadow conversion/selectable unions | Pass after follow-up fixes |
+| `IssuesList.STATE_LABELS` DRY | Pass — derives from `ISSUE_STATE_LABELS` |
+
+Follow-ups deferred to Tier 2: `ISSUE_PRIORITY_OPTIONS`, OpenAPI `BelongsToEntry` rename, web hooks → generated OpenAPI DTOs, `InferredProjectStatus` in boundary tests. See D051 in `DECISION_LOG.md`.
