@@ -2,6 +2,26 @@
 
 ---
 
+## Tier 2 Hardening — Second Multi-Agent Verification (2026-05-22)
+
+Orchestrator ran six parallel reviewers (API contract, React Query cache, OpenAPI/apiClient, E2E/integration, GFA compliance, security) on the completed D054 hardening pass. **Verdict: ship with orchestrator fixes (D056).**
+
+| Finding | Reviewer | Disposition |
+|---------|----------|-------------|
+| `formatWireDate` UTC components wrong on UTC+ servers for pg DATE | API contract | **Resolved** — local calendar parts + space-datetime strip |
+| POST /weeks OpenAPI `Week` vs handler subset | API contract | **Open** — regex test only until handler aligned |
+| Bulk update no `onSuccess` reconciliation | Cache | **Resolved** — server truth + `failed[]` filter |
+| E2E asserted issue stays in locked sprint after move | E2E | **Resolved** — departure + target-sprint arrival |
+| Filter eviction on update/bulk | Cache | **Already fixed** (D055) |
+| apiClient CSRF/credentials on migrated hooks | Security | **Pass** — no regression |
+| PATCH week status bypass / bulk sprint visibility | Security | **Open pre-existing** |
+
+Gates after fixes: API contract 60/60, `issue-list-cache.test.ts` 4/4, E2E 1/1, `type-check`, OpenAPI 193/193. Submission ledger unchanged.
+
+**Galaxy-brained:** auto contract-test generator; align POST /weeks response to `WeekResponseSchema` or split create schema; OpenAPI 3.1 nullable migration.
+
+---
+
 ## Tier 2 Shared Types Verification (2026-05-22)
 
 Orchestrated parallel review after Tier 2 enum + OpenAPI wire consolidation. Gates green after targeted fixes.
@@ -13,9 +33,23 @@ Orchestrated parallel review after Tier 2 enum + OpenAPI wire consolidation. Gat
 | SOLID / DRY | Pass w/ follow-ups | Architecture sound; cache-key and stub-cast tail documented |
 | Build gates | Pass | type-check, boundary 6/6, OpenAPI 193/193 |
 
-**Galaxy-brained follow-ups:** `expectOpenApiResponse` on sprint/week list families; complete mutation `apiClient` migration; fix OpenAPI generator nullability; filtered issue cache coherence helper.
+**Galaxy-brained follow-ups:** auto contract-test generator on `openapi:generate`; migrate remaining component-level `@/lib/api` mutations; OpenAPI 3.1 nullable refs.
 
-Detail: `my-docs/tier2-shared-types-verification.md`.
+Detail: `my-docs/tier2-shared-types-verification.md`. D054 documents the follow-up hardening pass (wire dates, contract tests, cache helper, nullable OpenAPI fix, apiClient migration, E2E).
+
+---
+
+## Tier 2 Follow-up Hardening (2026-05-22)
+
+Implemented D054 closeout: wire date normalization, four new contract tests, issue list cache coherence, OpenAPI nullable generation fix, typed optimistic stubs, apiClient on core hooks, E2E bulk inline sprint proof.
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | Pass |
+| Contract tests | 4/4 |
+| `openapi:generate` + type gate | Pass |
+| `openapi:check:strict` | 193/193 |
+| `e2e/issues-inline-sprint.spec.ts` | 1/1 |
 
 ---
 
@@ -61,6 +95,22 @@ Status hygiene for findings addressed in Wave 3 (`my-docs/post-gfa-orchestration
 | defineRoute contract gaps | Open | **Partially resolved** — param/feedback/standups tests; standups legacy 400 schema drift remains optional follow-up |
 
 Still **open** (not in Wave 3 scope): document-scoped file attachments/CDN model, full E2E baseline green, defineRoute route sweep, OpenAPI client migration.
+
+---
+
+## specs-polish-1 Multi-Agent Verification (2026-05-22)
+
+Parallel review of staged Tier 2 hardening on branch `specs-polish-1`. D055 fixes applied by orchestrator.
+
+| Finding | Review | Disposition |
+|---------|--------|-------------|
+| Issue cache wrong-list flash on sprint move | OpenAPI + hooks + code quality | **Resolved** — filter eviction in `issue-list-cache.ts` + tests |
+| POST /weeks 201 raw datetime wire | OpenAPI | **Resolved** — `formatWireDate` + 500 guard |
+| `formatWireDate` garbage string pass-through | OpenAPI + code quality | **Resolved** — returns null |
+| createIssue `priority: 'none'` vs server default | GFA compliance | **Resolved** — explicit `medium` |
+| PATCH week status bypasses governance | Security (pre-existing) | **Open** — not in this branch |
+| Bulk sprint_id without target visibility | Security (pre-existing, UI now exercises) | **Open** — track for auth hardening |
+| Wire dates on `projects.ts` week lists | OpenAPI | **Open** — `DateTimeSchema` vs date-only elsewhere |
 
 ---
 

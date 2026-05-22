@@ -859,4 +859,63 @@ Parallel sub-agent audit of enum source migration, OpenAPI wire fixes, and web h
 
 **Verification fixes (same day):** inline sprint assignment → bulk API; bootstrap issue cache → `IssueListItem[]`; `ISSUE_PRIORITY_LABELS` DRY; `action_items` source badge.
 
-**Deferred gaps:** `workspace_sprint_start_date` date-format vs OpenAPI; unimplemented program sprints `status` query; filtered issue cache key mismatch on optimistic updates. Full report: `my-docs/tier2-shared-types-verification.md`. See D052–D053 in `DECISION_LOG.md`.
+**Gaps found in audit (closed same day in hardening pass):** wire date format, program sprints `status` query param, filtered issue cache keys. See D052–D054 in `DECISION_LOG.md`; full report: `my-docs/tier2-shared-types-verification.md`.
+
+### Tier 2 follow-up hardening (2026-05-22)
+
+Closed verification gaps from D053 and the multi-agent audit. **No submission-ledger row.**
+
+| Workstream | Result |
+|------------|--------|
+| `formatWireDate` + handler normalization | Pass |
+| `expectOpenApiResponse` (programs/weeks/projects lists) | 4/4 contract tests |
+| `issue-list-cache.ts` + normalized `issueKeys.list({})` | Pass |
+| OpenAPI nullable post-process + type gate | Pass (`UserReference \| null`, no `& unknown`) |
+| `optimistic-stubs.ts` + hook `apiClient` migration | Pass (`pnpm type-check`) |
+| E2E inline sprint → bulk API | 1/1 (`e2e/issues-inline-sprint.spec.ts`) |
+
+See D054 in `DECISION_LOG.md` and updated `my-docs/tier2-shared-types-verification.md`.
+
+### Multi-agent verification pass (`specs-polish-1`, 2026-05-22)
+
+Five parallel reviewers (security/auth, OpenAPI contract, frontend cache, GFA compliance, code quality) audited staged Tier 2 hardening. **Verdict: SHIP WITH FIXES** — orchestrator applied D055 fixes. **No submission-ledger row.**
+
+| Reviewer focus | Key finding | Disposition |
+|----------------|-------------|-------------|
+| Security/auth | Staged diffs auth-neutral; pre-existing PATCH week status bypass + bulk sprint target visibility | Tracked open; not introduced here |
+| OpenAPI contract | Nullable refs + program/active-week dates correct; POST /weeks 201 drift | Fixed (D055) |
+| Frontend cache | Filter eviction missing on association changes | Fixed + unit tests (D055) |
+| GFA compliance | No ledger overclaim; createIssue priority drift | Fixed to `medium` |
+| Code quality | Same cache/date gaps confirmed | Fixed |
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | Pass |
+| API contract suite (programs/weeks/projects + format-wire-date) | 52/52 |
+| `issue-list-cache.test.ts` | 4/4 |
+| E2E / Playwright | Not re-run (browser binary missing in prior attempt) |
+
+Still open: full wire-date sweep on `projects.ts`, PATCH week governance, bulk sprint visibility check, defineRoute tail coverage.
+
+### Second multi-agent verification round (2026-05-22, D056)
+
+Six parallel reviewers re-audited the completed Tier 2 hardening pass. **Verdict: foundational layer sound after orchestrator fixes.** **No submission-ledger row.**
+
+| Reviewer focus | Key finding | Disposition |
+|----------------|-------------|-------------|
+| API wire/contract | UTC `formatWireDate` risk on pg DATE; POST /weeks schema subset | Fixed local calendar + date regex test; OpenAPI/handler mismatch open |
+| React Query cache | Bulk partial-failure reconciliation missing | Fixed `onSuccess` in `useBulkUpdateIssues` |
+| OpenAPI/apiClient | Nullable refs + migrations correct; body typing permissive | Pass; compile-time tail noted |
+| E2E/integration | False-positive assertion on locked sprint Plan tab | Fixed departure + target arrival |
+| GFA compliance | Aligned with Week 4 intent | Pass |
+| Security | No auth/CSRF regression from apiClient migration | Pass |
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | Pass |
+| API contract suite | 60/60 |
+| `issue-list-cache.test.ts` | 4/4 |
+| E2E `issues-inline-sprint.spec.ts` | 1/1 |
+| `openapi:check:strict` | 193/193 |
+
+Still open: POST /weeks create response vs `WeekResponseSchema`, PATCH week governance, bulk sprint target visibility.

@@ -919,3 +919,51 @@ Consequences: Document remaining OpenAPI/runtime gaps (`workspace_sprint_start_d
 Evidence: `pnpm type-check` green; `document-boundary.test.ts` 6/6; verification report `my-docs/tier2-shared-types-verification.md`.
 
 **Decision Gist**: Verification fixes close real UX bugs exposed by type consolidation; wire drift items stay explicitly deferred with contract-test recommendation.
+
+### D054: Tier 2 follow-up hardening (wire dates, contract tests, cache, nullable OpenAPI, apiClient)
+
+Status: Accepted
+
+Decision: Close Tier 2 verification gaps in one hardening pass: (1) normalize `workspace_sprint_start_date` to OpenAPI `DateSchema` via `formatWireDate`; (2) add `expectOpenApiResponse` contract tests for program sprints, active weeks, and project issue/week lists; (3) remove unimplemented program sprints `status` query from OpenAPI; (4) add `issue-list-cache.ts` so issue mutations update all filtered TanStack list caches; (5) post-process OpenAPI nullable `$ref` patterns before `openapi-typescript` and gate on zero `& unknown` in generated types; (6) add `optimistic-stubs.ts` and migrate issue/program/project hook reads/mutations to `apiClient`; (7) add E2E proof that inline week assignment hits `POST /api/issues/bulk`.
+
+Why: Tier 2 made drift visible; follow-up prevents regression at the wire boundary and restores optimistic UX on filtered issue views without weakening PATCH schemas.
+
+Alternatives considered: Relax OpenAPI to `DateTimeSchema` everywhere (rejected — active weeks/program sprints already document `YYYY-MM-DD`); keep single-cache mutations (rejected — filtered views are primary UX).
+
+Consequences: `pnpm openapi:generate` runs `check-openapi-types.mjs`. Issue list cache keys normalize `undefined` filters to `{}`. Component-level legacy mutations remain on `@/lib/api` until a later pass.
+
+Evidence: `pnpm type-check`; contract tests 4/4; `openapi:check:strict` 193/193; `e2e/issues-inline-sprint.spec.ts` 1/1; report `my-docs/tier2-shared-types-verification.md`.
+
+**Decision Gist**: Wire fidelity + cache coherence + typed client migration are part of the Tier 2 foundation, not optional polish.
+
+### D055: Multi-agent verification fixes on `specs-polish-1` (cache eviction + wire dates)
+
+Status: Accepted
+
+Decision: After parallel security/OpenAPI/hooks/GFA/code-quality reviews of staged Tier 2 hardening, apply targeted correctness fixes: (1) filter-aware eviction in `issue-list-cache.ts` when `belongs_to` changes; (2) unit tests for cache membership; (3) `formatWireDate` rejects non-conforming strings and uses **local** calendar parts (pg DATE arrives as local-midnight `Date`); (4) `POST /weeks` 201 uses `formatWireDate` with fail-closed 500; (5) sprint optimistic stubs use `YYYY-MM-DD`; (6) `createIssueApi` keeps server-default `priority: 'medium'`.
+
+Why: Three independent reviewers flagged the same cache and wire-date gaps; fixing before merge avoids foundational regressions in filtered issue views and week create responses.
+
+Alternatives considered: Rely on `onSettled` invalidation only (rejected — wrong rows flash in filtered tabs); relax OpenAPI to datetime everywhere (deferred — project week lists still use `DateTimeSchema`).
+
+Consequences: Pre-existing auth gaps (PATCH week status bypass, bulk sprint target visibility) remain tracked in discovery log — not introduced by this branch. Submission ledger unchanged.
+
+Evidence: `issue-list-cache.test.ts` 4/4; `format-wire-date.test.ts`; focused API contract suite 52/52; `pnpm type-check`.
+
+**Decision Gist**: Filtered issue cache updates must re-evaluate list membership, not only patch rows in place.
+
+### D056: Second multi-agent verification round on Tier 2 hardening (orchestrator fixes)
+
+Status: Accepted
+
+Decision: Run six parallel reviewers (API wire/contract, React Query cache, OpenAPI/apiClient migration, E2E/integration, GFA source-of-truth compliance, security regression) on the completed Tier 2 hardening pass. Apply orchestrator fixes for confirmed gaps: (1) `formatWireDate` uses local calendar parts for pg DATE midnight values and strips space-separated datetimes; (2) `POST /weeks` create test asserts `YYYY-MM-DD` regex (full `WeekResponseSchema` contract deferred — handler returns a subset); (3) `useBulkUpdateIssues` reconciles server truth on `onSuccess` including partial `failed[]` entries; (4) E2E inline sprint spec asserts issue **leaves** sprint-locked Plan tab and **arrives** in target sprint (prior assertion expected wrong UI state).
+
+Why: Foundational wire/cache/E2E layers need adversarial review beyond first-pass gates; false-positive E2E would have masked product-correct behavior.
+
+Alternatives considered: Full `expectOpenApiResponse` on POST /weeks create (blocked — OpenAPI registers full `Week` schema but handler omits list-only fields); rely on invalidation-only for bulk partial failures (rejected — optimistic wrong state until refetch).
+
+Consequences: Document POST /weeks OpenAPI/handler shape mismatch as open tail. Pre-existing security items (PATCH week status bypass, bulk sprint target visibility) remain tracked, not introduced here. Submission ledger unchanged.
+
+Evidence: API contract suite 60/60; `issue-list-cache.test.ts` 4/4; `e2e/issues-inline-sprint.spec.ts` 1/1 (departure + arrival); `pnpm type-check`; `openapi:check:strict` 193/193.
+
+**Decision Gist**: Verification is not complete until E2E asserts product-correct outcomes, not convenient DOM states.
