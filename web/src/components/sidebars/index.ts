@@ -4,4 +4,4 @@ export { ProjectSidebar } from './ProjectSidebar';
 export { WeekSidebar } from './WeekSidebar';
 export { ProgramSidebar } from './ProgramSidebar';
 export { DocumentTypeSelector, getRequiredFieldsForType, getMissingRequiredFields } from './DocumentTypeSelector';
-export type { DocumentType } from './DocumentTypeSelector';
+export type { SelectableDocumentType } from './DocumentTypeSelector';

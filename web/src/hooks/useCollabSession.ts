@@ -8,6 +8,7 @@ import {
   COLLAB_CLOSE_CODE_CONVERSION,
   COLLAB_CLOSE_CODE_CONTENT_UPDATE,
   buildCollaborationRoomName,
+  type ConversionDocumentType,
 } from '@ship/shared';
 
 export type CollabSyncStatus = 'connecting' | 'cached' | 'synced' | 'disconnected';
@@ -19,7 +20,7 @@ export interface CollabUser {
 
 interface DocumentConversionInfo {
   newDocId?: string;
-  newDocType?: 'issue' | 'project';
+  newDocType?: ConversionDocumentType;
 }
 
 interface AwarenessState {
@@ -55,7 +56,7 @@ export interface UseCollabSessionOptions {
   userColor: string;
   ydoc: Y.Doc;
   onBack?: () => void;
-  onDocumentConverted?: (newDocId: string, newDocType: 'issue' | 'project') => void;
+  onDocumentConverted?: (newDocId: string, newDocType: ConversionDocumentType) => void;
 }
 
 export interface UseCollabSessionResult {

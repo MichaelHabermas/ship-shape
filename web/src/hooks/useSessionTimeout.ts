@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
 import { apiPost, readJson } from '@/lib/api';
-import type { ApiEnvelope } from '@/api/schemas';
+import type { ApiResponse } from '@/api/schemas';
 
 // Warning appears 60 seconds before timeout
 const WARNING_THRESHOLD_MS = 60 * 1000;
@@ -57,7 +57,7 @@ export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
           credentials: 'include',
         });
         if (response.ok) {
-          const data = await readJson<ApiEnvelope<SessionInfo>>(response);
+          const data = await readJson<ApiResponse<SessionInfo>>(response);
           if (data.success && data.data) {
             const info = data.data;
             setSessionCreatedAt(new Date(info.createdAt).getTime());

@@ -2,13 +2,14 @@
 // In production, use VITE_API_URL or relative URLs
 import { clearTypedApiCsrfToken } from '@/api/client';
 import { readJson } from '@/api/read-json';
-import type { ApiEnvelope, CsrfTokenResponse } from '@/api/schemas';
+import type { CsrfTokenResponse } from '@/api/schemas';
+import type { ApiResponse } from '@ship/shared';
 import { clearQuietCsrfToken } from '@/lib/quiet-fetch';
 import { createApiStatusError } from '@/lib/api-error';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
-export type { ApiEnvelope as ApiResponse } from '@/api/schemas';
+export type { ApiResponse } from '@ship/shared';
 export { readJson } from '@/api/read-json';
 
 // CSRF token cache for state-changing requests
@@ -195,7 +196,7 @@ export async function apiDeleteJson<T>(endpoint: string, body?: object, message 
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<ApiEnvelope<T>> {
+): Promise<ApiResponse<T>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
@@ -226,7 +227,7 @@ async function request<T>(
     handleSessionExpired(); // never returns
   }
 
-  const data = await readJson<ApiEnvelope<T>>(response);
+  const data = await readJson<ApiResponse<T>>(response);
 
   // Handle session expiration - redirect to login with expired=true
   // Only for SESSION_EXPIRED (actual expiration), not UNAUTHORIZED (no session existed)
@@ -254,7 +255,7 @@ async function request<T>(
     if (!isJsonResponse(retryResponse)) {
       handleSessionExpired(); // never returns
     }
-    return readJson<ApiEnvelope<T>>(retryResponse);
+    return readJson<ApiResponse<T>>(retryResponse);
   }
 
   return data;

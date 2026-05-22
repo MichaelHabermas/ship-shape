@@ -1,5 +1,7 @@
 import type { components } from './generated/ship-openapi';
 
+export type { ApiError, ApiResponse } from '@ship/shared';
+
 export type Document = components['schemas']['Document'];
 export type Standup = components['schemas']['Standup'];
 export type UpdatedStandup = components['schemas']['UpdatedStandup'];
@@ -30,13 +32,4 @@ export interface CsrfTokenResponse {
 
 export interface LegacyErrorResponse {
   error?: string;
-}
-
-export interface ApiEnvelope<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
 }

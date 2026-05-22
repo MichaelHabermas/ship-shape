@@ -56,6 +56,8 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
   const lastContentRef = useRef('');
   const requestIdRef = useRef(0);
   const persistedHashRef = useRef<string | null>(null);
+  const documentContentRef = useRef<Record<string, unknown> | null>(null);
+  const [documentLoaded, setDocumentLoaded] = useState(false);
   const onAnalysisChangeRef = useRef(onAnalysisChange);
   const depsRef = useRef(deps);
   depsRef.current = deps;
@@ -72,6 +74,8 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
     requestIdRef.current++;
     lastContentRef.current = '';
     persistedHashRef.current = null;
+    documentContentRef.current = null;
+    setDocumentLoaded(false);
     setLoading(false);
     setAiAvailable(null);
     setAnalysis(null);
@@ -89,6 +93,10 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
     void quietGetJson<Document>(`/api/documents/${documentId}`)
       .then(async (doc) => {
         if (cancelled || !doc) return;
+        if (doc.content && typeof doc.content === 'object') {
+          documentContentRef.current = doc.content as Record<string, unknown>;
+        }
+        setDocumentLoaded(true);
         const persisted = getPersistedAnalysis<TAnalysis>(doc);
         if (persisted) {
           setAnalysis(persisted);
@@ -153,23 +161,11 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
   }, [analyzeEndpoint, buildCompareKey, buildHashInput, buildRequestBody, canAnalyze, persistAnalysis, setAnalysis]);
 
   useEffect(() => {
-    if (!aiAvailable || !editorContent || !canAnalyze(deps)) return;
-    void runAnalysis(editorContent);
-  }, [editorContent, aiAvailable, depsKey, runAnalysis]);
-
-  useEffect(() => {
-    if (!aiAvailable || analysis || !canAnalyze(depsRef.current)) return;
-    let cancelled = false;
-    void quietGetJson<Document>(`/api/documents/${documentId}`)
-      .then(doc => {
-        if (cancelled || !doc?.content || typeof doc.content !== 'object') return;
-        void runAnalysis(doc.content as Record<string, unknown>);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [aiAvailable, documentId, analysis, depsKey, runAnalysis]);
+    if (!aiAvailable || !canAnalyze(deps)) return;
+    const content = editorContent ?? documentContentRef.current;
+    if (!content) return;
+    void runAnalysis(content);
+  }, [editorContent, aiAvailable, depsKey, runAnalysis, documentLoaded, canAnalyze, deps]);
 
   return { analysis, loading, aiAvailable, setAnalysis };
 }
