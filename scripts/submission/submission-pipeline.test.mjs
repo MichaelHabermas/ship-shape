@@ -1,0 +1,75 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import { ledgerPath } from './ledger-utils.mjs';
+import { buildLedgerModel } from './ledger-projections.mjs';
+import { replaceCurrentTruthSection, renderCurrentTruthBlock } from './render-markdown-sections.mjs';
+import { renderDashboard } from './render-dashboard.mjs';
+import { validateLedger } from './validate-ledger.mjs';
+
+async function fixtureLedger() {
+  return JSON.parse(await readFile(ledgerPath, 'utf8'));
+}
+
+test('validator catches stale computed percent metrics', async () => {
+  const ledger = await fixtureLedger();
+  const metric = ledger.categories[0].derived_metrics.find((item) => item.id === 'cat1-total-counted-syntax-reduction');
+  metric.change_percent = -1;
+
+  const errors = await validateLedger(ledger);
+
+  assert(errors.some((error) => error.includes('derived_metrics[0].change_percent')));
+});
+
+test('validator catches target actual drift from referenced metric', async () => {
+  const ledger = await fixtureLedger();
+  const target = ledger.categories[0].targets.find((item) => item.id === 'cat1-target-total-counted-syntax-25-percent');
+  target.actual = 1;
+
+  const errors = await validateLedger(ledger);
+
+  assert(errors.some((error) => error.includes('targets[0].actual') && error.includes('cat1-total-counted-syntax-reduction')));
+});
+
+test('validator rejects proven claims that depend on failing targets', async () => {
+  const ledger = await fixtureLedger();
+  const category = ledger.categories.find((item) => item.id === 'cat-2-bundle-size');
+  const claim = category.claims[0];
+  claim.status = 'proven';
+  claim.basis = ['cat2-target-before-after-output'];
+
+  const errors = await validateLedger(ledger);
+
+  assert(errors.some((error) => error.includes('proven claim cannot depend on non-passing basis cat2-target-before-after-output')));
+});
+
+test('markdown generated block replacement is stable and scoped', async () => {
+  const ledger = await fixtureLedger();
+  const block = renderCurrentTruthBlock(buildLedgerModel(ledger));
+  const markdown = [
+    '### Current Ledger Truth',
+    '',
+    '- stale text',
+    '',
+    '### Operating Rule',
+    '',
+    'human text',
+  ].join('\n');
+
+  const next = replaceCurrentTruthSection(markdown, block);
+  const rerendered = replaceCurrentTruthSection(next, block);
+
+  assert.equal(next, rerendered);
+  assert(next.includes('ledger:generated start id="submission-current-truth"'));
+  assert(next.includes('### Operating Rule\n\nhuman text'));
+});
+
+test('dashboard render is deterministic from ledger projections', async () => {
+  const ledger = await fixtureLedger();
+  const first = renderDashboard(ledger);
+  const second = renderDashboard(ledger);
+
+  assert.equal(first, second);
+  assert(first.includes('GENERATED FILE'));
+  assert(first.includes('data-ledger-id="cat-8-security-audit"'));
+});

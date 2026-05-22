@@ -13,8 +13,8 @@
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://github.com/US-Department-of-the-Treasury/ship/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
-  <img src="https://img.shields.io/badge/Section_508-Compliant-blue.svg" alt="Section 508 Compliant">
-  <img src="https://img.shields.io/badge/WCAG_2.1-AA-blue.svg" alt="WCAG 2.1 AA">
+  <img src="https://img.shields.io/badge/Section_508-Target-blue.svg" alt="Section 508 Target">
+  <img src="https://img.shields.io/badge/WCAG_2.1_AA-Target-blue.svg" alt="WCAG 2.1 AA Target">
 </p>
 
 ---
@@ -83,7 +83,8 @@ The goal isn't to check boxes. It's to capture what your team learned so you can
 
 - [Node.js](https://nodejs.org/) 20 or newer
 - [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
-- [Docker](https://www.docker.com/) (for the database)
+- PostgreSQL 14 or newer for normal local development
+- [Docker](https://www.docker.com/) for E2E tests and optional full-stack Docker Compose
 
 ### Setup
 
@@ -95,22 +96,19 @@ cd ship
 # 2. Install dependencies
 pnpm install
 
-# 3. Configure environment
-cp api/.env.example api/.env.local
-cp web/.env.example web/.env
-
-# 4. Start the database
-docker-compose up -d
-
-# 5. Create sample data
-pnpm db:seed
-
-# 6. Run database migrations
-pnpm db:migrate
-
-# 7. Start the application
+# 3. Start the application
 pnpm dev
 ```
+
+`pnpm dev` creates `api/.env.local` if needed, creates a local PostgreSQL database for this checkout, runs migrations and seed data for a fresh database, picks open API/web ports, and starts both servers.
+
+If you prefer a containerized local stack, use:
+
+```bash
+pnpm docker:up
+```
+
+That starts PostgreSQL, the API, and the web app through `docker-compose.local.yml`. E2E tests also require Docker because Playwright uses Testcontainers-backed PostgreSQL isolation.
 
 ### Open the App
 
@@ -130,7 +128,7 @@ Log in with the demo account:
 | API server | http://localhost:3000 | Backend services |
 | Swagger UI | http://localhost:3000/api/docs | Interactive API documentation |
 | OpenAPI spec | http://localhost:3000/api/openapi.json | OpenAPI 3.0 specification |
-| PostgreSQL | localhost:5432 | Database (via Docker) |
+| PostgreSQL | local instance | Database used by `pnpm dev` |
 
 ### Common Commands
 
@@ -138,6 +136,7 @@ Log in with the demo account:
 pnpm dev          # Start everything
 pnpm dev:web      # Start just the web app
 pnpm dev:api      # Start just the API
+pnpm docker:up    # Start the optional Docker Compose stack
 pnpm db:seed      # Reset database with sample data
 pnpm db:migrate   # Run database migrations
 pnpm test         # Run tests
@@ -170,7 +169,7 @@ Ship is a monorepo with three packages:
 - **Everything is a document** — Single `documents` table with a `document_type` field
 - **Server is truth** — Offline-tolerant, syncs when reconnected
 - **Boring technology** — Well-understood tools over cutting-edge experiments
-- **E2E testing** — 869 Playwright tests covering real user flows
+- **E2E testing** — 71 Playwright specs, organized into focused lanes for real user flows
 
 See [docs/application-architecture.md](docs/application-architecture.md) for more.
 
@@ -221,23 +220,20 @@ Ship uses Playwright for end-to-end testing with Testcontainers-backed PostgreSQ
 
 ## Deployment
 
-Ship supports multiple deployment patterns:
+Ship currently has a Render deployment path for public/demo evidence and an AWS/Terraform path for future government-style infrastructure work.
 
 | Environment | Recommended Approach |
 |-------------|---------------------|
-| **Development** | Local with Docker Compose |
-| **Staging** | AWS Elastic Beanstalk |
-| **Production** | AWS GovCloud with Terraform |
+| **Local development** | `pnpm dev` with local PostgreSQL |
+| **Optional local container stack** | `pnpm docker:up` |
+| **Public/demo deployment** | Render (`render.yaml`) |
+| **Future government deployment** | AWS/Terraform docs in `DEPLOYMENT.md` and `terraform/` |
 
 ### Docker
 
 ```bash
-# Build production images
-docker build -t ship-api ./api
-docker build -t ship-web ./web
-
-# Run with Docker Compose
-docker-compose -f docker-compose.prod.yml up
+# Run the local Docker Compose stack
+pnpm docker:up
 ```
 
 ### Environment Variables
@@ -263,7 +259,7 @@ docker-compose -f docker-compose.prod.yml up
 
 ## Accessibility
 
-Ship is Section 508 compliant and meets WCAG 2.1 AA standards:
+Ship targets Section 508 and WCAG 2.1 AA accessibility:
 
 - All color contrasts meet 4.5:1 minimum
 - Full keyboard navigation

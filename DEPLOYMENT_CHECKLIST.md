@@ -1,6 +1,6 @@
-# Ship - Deployment Checklist
+# Ship - AWS Deployment Checklist
 
-Quick reference for deploying Ship to AWS.
+Quick reference for the optional AWS deployment path. The current public/demo deployment is Render via `render.yaml`.
 
 ## Initial Setup (One-time)
 
@@ -76,7 +76,7 @@ eb deploy --staged
 ### Apply Database Migration
 ```bash
 DATABASE_URL=$(aws ssm get-parameter --name "/ship/dev/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
-psql "$DATABASE_URL" -f api/src/db/schema.sql
+pnpm --filter @ship/api db:migrate
 ```
 
 ### SSH to Instance

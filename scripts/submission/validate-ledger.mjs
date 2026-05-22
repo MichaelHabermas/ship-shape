@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readJson, readLedger, repoPathExists, repoRoot, schemaPath } from './ledger-utils.mjs';
+import { buildLedgerModel } from './ledger-projections.mjs';
 
 const allowedStatuses = new Set(['proven', 'partial', 'open', 'needs_fill_in', 'not_measured']);
 const allowedEvidenceTypes = new Set([
@@ -126,6 +128,44 @@ function validateReferenceIds(errors, item, key, path, knownIds) {
   }
 }
 
+function isPassingBasis(item) {
+  if (!item) return false;
+  if (item.collectionName === 'targets' || item.collectionName === 'acceptance_tests') return item.result === 'pass';
+  if (item.collectionName === 'derived_metrics') {
+    if (item.kind === 'percent_change' && typeof item.change_percent === 'number' && typeof item.threshold_percent === 'number') {
+      return item.change_percent <= item.threshold_percent;
+    }
+    if (item.kind === 'count' && typeof item.value === 'number' && typeof item.threshold === 'number') {
+      return item.value >= item.threshold;
+    }
+    if (item.kind === 'boolean_gate' && typeof item.value === 'boolean') return item.value;
+  }
+  return item.collectionName === 'evidence' || item.collectionName === 'measurements';
+}
+
+function derivedActual(metric, operator) {
+  if (!metric) return undefined;
+  if (operator === 'percent_decrease_at_least' && metric.kind === 'percent_change' && typeof metric.change_percent === 'number') {
+    return Math.abs(metric.change_percent);
+  }
+  if (operator === 'count_at_least' && metric.kind === 'count' && typeof metric.value === 'number') return metric.value;
+  if (operator === 'boolean_true' && metric.kind === 'boolean_gate' && typeof metric.value === 'boolean') return metric.value;
+  return undefined;
+}
+
+function validateDerivedMetricConsistency(errors, metric, metricPath) {
+  if (metric.kind !== 'percent_change') return;
+  if (typeof metric.baseline_value !== 'number' || typeof metric.latest_value !== 'number') return;
+  const expectedAbsolute = Number((metric.latest_value - metric.baseline_value).toFixed(2));
+  const expectedPercent = Number((((metric.latest_value - metric.baseline_value) / metric.baseline_value) * 100).toFixed(1));
+  if (typeof metric.change_absolute === 'number' && Number(metric.change_absolute.toFixed(2)) !== expectedAbsolute) {
+    fail(errors, `${metricPath}.change_absolute`, `must equal latest - baseline (${expectedAbsolute})`);
+  }
+  if (typeof metric.change_percent === 'number' && Number(metric.change_percent.toFixed(1)) !== expectedPercent) {
+    fail(errors, `${metricPath}.change_percent`, `must equal computed percent change (${expectedPercent})`);
+  }
+}
+
 function validateLedgerShape(ledger) {
   const errors = [];
   if (ledger.schema_version !== 2) {
@@ -193,7 +233,7 @@ function validateLedgerShape(ledger) {
         if (!item?.id) continue;
         if (knownIds.has(item.id)) fail(errors, `${path}.${collectionName}`, `duplicate category-local id ${item.id}`);
         knownIds.add(item.id);
-        knownItems.set(item.id, item);
+        knownItems.set(item.id, { ...item, collectionName });
       }
     }
 
@@ -253,6 +293,7 @@ function validateLedgerShape(ledger) {
       requireString(errors, metric, 'kind', metricPath);
       if (!allowedOrigins.has(metric.origin)) fail(errors, `${metricPath}.origin`, `unknown origin ${metric.origin}`);
       if (!allowedConfidence.has(metric.confidence)) fail(errors, `${metricPath}.confidence`, `unknown confidence ${metric.confidence}`);
+      validateDerivedMetricConsistency(errors, metric, metricPath);
       validateReferenceIds(errors, metric, 'references', metricPath, knownIds);
     }
 
@@ -269,6 +310,11 @@ function validateLedgerShape(ledger) {
         if (!Array.isArray(target.references) || target.references.length === 0) {
           fail(errors, `${targetPath}.references`, 'manual_gate targets must include at least one reference');
         }
+      }
+      const metric = knownItems.get(target.metric_id);
+      const expectedActual = derivedActual(metric, target.operator);
+      if (expectedActual !== undefined && target.actual !== expectedActual) {
+        fail(errors, `${targetPath}.actual`, `must match metric ${target.metric_id}: ${expectedActual}`);
       }
       validateTargetResult(errors, target, targetPath);
       validateReferenceIds(errors, target, 'references', targetPath, knownIds);
@@ -296,6 +342,10 @@ function validateLedgerShape(ledger) {
       requireString(errors, claim, 'statement', claimPath);
       for (const basisId of requireArray(errors, claim, 'basis', claimPath)) {
         if (!knownIds.has(basisId)) fail(errors, `${claimPath}.basis`, `unknown basis id ${basisId}`);
+        const basis = knownItems.get(basisId);
+        if (claim.status === 'proven' && basis && !isPassingBasis(basis)) {
+          fail(errors, `${claimPath}.basis`, `proven claim cannot depend on non-passing basis ${basisId}`);
+        }
       }
       requireArray(errors, claim, 'limits', claimPath);
       validateReferenceIds(errors, claim, 'references', claimPath, knownIds);
@@ -343,6 +393,12 @@ function validateLedgerShape(ledger) {
       );
       if (incompleteRequiredRubric.length > 0) {
         fail(errors, `${path}.status`, `proven category cannot have incomplete required rubric items: ${incompleteRequiredRubric.map((item) => item.id).join(', ')}`);
+      }
+    }
+    if (category.status !== 'proven') {
+      const failedOrWarningTests = (category.acceptance_tests || []).filter((test) => test.result === 'fail' || test.result === 'warn');
+      if (failedOrWarningTests.length === 0 && (!Array.isArray(category.caveats) || category.caveats.length === 0)) {
+        fail(errors, `${path}.status`, 'non-proven category must include a caveat or failing/warning acceptance test');
       }
     }
 
@@ -492,7 +548,7 @@ function summarize(ledger) {
   return lines;
 }
 
-function acceptanceFailures(ledger) {
+export function acceptanceFailures(ledger) {
   return ledger.categories.flatMap((category) =>
     (category.acceptance_tests || [])
       .filter((test) => test.result === 'fail')
@@ -500,28 +556,35 @@ function acceptanceFailures(ledger) {
   );
 }
 
-const ledger = await readLedger();
-await readJson(schemaPath);
-const measurementErrors = [];
-for (const validator of Object.values(measurementValidators)) {
-  measurementErrors.push(...(await validator(ledger)));
-}
-const errors = [...validateLedgerShape(ledger), ...measurementErrors];
-if (errors.length > 0) {
-  console.error('Submission ledger validation failed:');
-  for (const error of errors) console.error(`- ${error}`);
-  process.exit(1);
+export async function validateLedger(ledger) {
+  buildLedgerModel(ledger);
+  const measurementErrors = [];
+  for (const validator of Object.values(measurementValidators)) {
+    measurementErrors.push(...(await validator(ledger)));
+  }
+  return [...validateLedgerShape(ledger), ...measurementErrors];
 }
 
-for (const line of summarize(ledger)) {
-  console.log(line);
-}
-
-if (process.argv.includes('--fail-on-acceptance-fail')) {
-  const failures = acceptanceFailures(ledger);
-  if (failures.length > 0) {
-    console.error('Submission ledger acceptance failures:');
-    for (const failure of failures) console.error(`- ${failure}`);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const ledger = await readLedger();
+  await readJson(schemaPath);
+  const errors = await validateLedger(ledger);
+  if (errors.length > 0) {
+    console.error('Submission ledger validation failed:');
+    for (const error of errors) console.error(`- ${error}`);
     process.exit(1);
+  }
+
+  for (const line of summarize(ledger)) {
+    console.log(line);
+  }
+
+  if (process.argv.includes('--fail-on-acceptance-fail')) {
+    const failures = acceptanceFailures(ledger);
+    if (failures.length > 0) {
+      console.error('Submission ledger acceptance failures:');
+      for (const failure of failures) console.error(`- ${failure}`);
+      process.exit(1);
+    }
   }
 }

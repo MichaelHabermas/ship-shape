@@ -1,6 +1,8 @@
-# Ship - Deployment Guide
+# Ship - AWS Deployment Guide
 
-**Government-compliant AWS deployment for Express API + React frontend**
+**Optional AWS/Terraform deployment path for Express API + React frontend.**
+
+The current public/demo deployment path is Render (`render.yaml`). Keep this guide for future government-style AWS infrastructure work; do not treat it as the only active deployment path.
 
 ## Prerequisites
 
@@ -80,7 +82,7 @@ export AWS_REGION="us-east-1"           # Your AWS region
 
 The script automatically:
 1. Builds the shared TypeScript package
-2. Builds the API package (including schema.sql)
+2. Builds the API package, including the migration runner and database files
 3. Creates a deployment ZIP with proper structure
 4. Uploads to S3 and creates EB application version
 5. Deploys to EB environment and waits for completion
@@ -90,7 +92,7 @@ The script automatically:
 
 ### 3. Initialize Database (One-time)
 
-Apply database schema and optionally seed with test data:
+Run the migration runner and optionally seed with test data:
 
 ```bash
 ./scripts/init-database.sh
@@ -98,7 +100,7 @@ Apply database schema and optionally seed with test data:
 
 This script:
 - Fetches the DATABASE_URL from SSM Parameter Store
-- Applies the schema from `api/src/db/schema.sql`
+- Runs `api/src/db/migrate.ts`, which applies the bootstrap schema on fresh databases and then runs numbered migrations
 - Optionally seeds test data
 
 ### 4. Deploy Frontend (Frequent)
@@ -310,12 +312,15 @@ This deployment follows government compliance patterns:
 
 ### Update Database Schema
 
-1. Update `api/src/db/schema.sql`
-2. Apply manually:
+1. Add a numbered migration under `api/src/db/migrations/`.
+2. Keep `api/src/db/schema.sql` aligned only for fresh database bootstrap when needed.
+3. Run the migration runner:
    ```bash
    DATABASE_URL=$(aws ssm get-parameter --name "/ship/dev/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
-   psql "$DATABASE_URL" -f api/src/db/schema.sql
+   pnpm --filter @ship/api db:migrate
    ```
+
+Do not manually apply `api/src/db/schema.sql` to an existing database. Existing databases move forward through numbered migrations.
 
 ### Terraform State Management
 
