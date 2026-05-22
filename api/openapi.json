@@ -4401,6 +4401,32 @@
           "has_due_today"
         ]
       },
+      "BootstrapDocumentProperties": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "nullable": true
+          },
+          "priority": {
+            "nullable": true
+          },
+          "estimate": {
+            "nullable": true
+          },
+          "assignee_id": {
+            "nullable": true
+          },
+          "source": {
+            "nullable": true
+          },
+          "prefix": {
+            "nullable": true
+          },
+          "color": {
+            "nullable": true
+          }
+        }
+      },
       "BootstrapProject": {
         "type": "object",
         "properties": {
@@ -4768,11 +4794,14 @@
                       "nullable": true
                     },
                     "properties": {
-                      "type": "object",
-                      "nullable": true,
-                      "additionalProperties": {
-                        "nullable": true
-                      }
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/BootstrapDocumentProperties"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
                     },
                     "created_at": {
                       "type": "string",

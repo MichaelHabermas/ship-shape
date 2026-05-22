@@ -18,6 +18,12 @@ import { isBusinessDay } from '../utils/business-days.js';
 import { hasContent } from '../utils/document-content.js';
 import { getAllocations } from '../utils/allocation.js';
 import type { AccountabilityType } from '@ship/shared';
+import {
+  computeCurrentSprintNumber,
+  formatUtcDateIso,
+  normalizeWorkspaceStartDate,
+  utcToday,
+} from '@ship/shared';
 
 // Accountability item returned from check
 export interface MissingAccountabilityItem {
@@ -67,6 +73,7 @@ export async function checkMissingAccountability(
 
   const rawStartDate = workspaceResult.rows[0].sprint_start_date;
   const sprintDuration = 7;
+  const workspaceStartDate = normalizeWorkspaceStartDate(rawStartDate);
 
   // Get current user's person document ID for weekly_plan navigation
   const personResult = await pool.query(
@@ -78,22 +85,9 @@ export async function checkMissingAccountability(
   );
   const personId = personResult.rows[0]?.id || null;
 
-  // Parse workspace start date
-  let workspaceStartDate: Date;
-  if (rawStartDate instanceof Date) {
-    workspaceStartDate = new Date(Date.UTC(rawStartDate.getFullYear(), rawStartDate.getMonth(), rawStartDate.getDate()));
-  } else if (typeof rawStartDate === 'string') {
-    workspaceStartDate = new Date(rawStartDate + 'T00:00:00Z');
-  } else {
-    workspaceStartDate = new Date();
-  }
-
-  // Calculate today and current sprint
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split('T')[0];
-  const daysSinceStart = Math.floor((today.getTime() - workspaceStartDate.getTime()) / (1000 * 60 * 60 * 24));
-  const currentSprintNumber = Math.floor(daysSinceStart / sprintDuration) + 1;
+  const today = utcToday();
+  const todayStr = formatUtcDateIso(today);
+  const currentSprintNumber = computeCurrentSprintNumber(workspaceStartDate, sprintDuration);
 
   // Check for missing standups (current sprint, business days only)
   if (todayStr) {

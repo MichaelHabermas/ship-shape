@@ -1,6 +1,7 @@
 // In development, Vite proxy handles /api routes (see vite.config.ts)
 // In production, use VITE_API_URL or relative URLs
 import { clearTypedApiCsrfToken } from '@/api/client';
+import { clearQuietCsrfToken } from '@/lib/quiet-fetch';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -87,6 +88,7 @@ async function ensureCsrfToken(): Promise<string> {
 export function clearCsrfToken(): void {
   csrfToken = null;
   clearTypedApiCsrfToken();
+  clearQuietCsrfToken();
 }
 
 // Simple helpers that return Response objects (for contexts that need res.ok checks)

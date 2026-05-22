@@ -14,10 +14,16 @@ import { sendLegacyError } from '../utils/route-http.js';
 
 const router = Router();
 
+function aiStatusPayload(available: boolean) {
+  return available
+    ? { available: true as const }
+    : { available: false as const, error: 'ai_unavailable' as const };
+}
+
 // GET /api/ai/status - Check if AI analysis is available
 router.get('/status', authMiddleware, async (_req: Request, res: Response) => {
   const available = await isAiAvailable();
-  res.json(available ? { available } : { available, error: 'ai_unavailable' });
+  res.json(aiStatusPayload(available));
 });
 
 // POST /api/ai/analyze-plan - Analyze weekly plan quality

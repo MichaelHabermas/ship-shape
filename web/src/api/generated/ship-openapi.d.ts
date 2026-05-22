@@ -10677,6 +10677,15 @@ export interface components {
             /** @description True if any item has days_overdue === 0 */
             has_due_today: boolean;
         };
+        BootstrapDocumentProperties: {
+            state?: unknown;
+            priority?: unknown;
+            estimate?: unknown;
+            assignee_id?: unknown;
+            source?: unknown;
+            prefix?: unknown;
+            color?: unknown;
+        };
         BootstrapProject: {
             /**
              * Format: uuid
@@ -10852,9 +10861,7 @@ export interface components {
                     parent_id: string | null;
                     position: number | null;
                     ticket_number: number | null;
-                    properties: {
-                        [key: string]: unknown;
-                    } | null;
+                    properties: components["schemas"]["BootstrapDocumentProperties"] & unknown;
                     /**
                      * Format: date-time
                      * @description ISO 8601 datetime string

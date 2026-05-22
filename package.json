@@ -49,7 +49,7 @@
     "evidence:compare": "node ./scripts/evidence/compare.mjs",
     "perf:seed-audit-load": "node ./scripts/seed-audit-load.mjs",
     "perf:query-count-api": "node ./scripts/query-count-api.mjs",
-    "perf:explain": "node ./scripts/explain-performance.mjs",
+    "perf:explain": "pnpm --filter @ship/api exec tsx ../scripts/explain-performance.ts",
     "a11y:closeout": "node ./scripts/a11y-closeout.mjs",
     "submission:validate": "node ./scripts/submission/validate-ledger.mjs",
     "submission:validate:strict": "node ./scripts/submission/validate-ledger.mjs --fail-on-acceptance-fail",
