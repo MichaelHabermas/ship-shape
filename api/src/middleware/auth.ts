@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
-import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS, ERROR_CODES, HTTP_STATUS } from '@ship/shared';
+import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { sessionCookieOptions } from '../config/session-cookies.js';
+import { validateAuthenticatedSession } from '../services/session-auth.js';
 
 // Extend Express Request to include session info
 declare global {
@@ -131,19 +132,37 @@ export async function authMiddleware(
   }
 
   try {
-    // Get session and check if it's valid
-    const result = await pool.query(
-      `SELECT s.id, s.user_id, s.workspace_id, s.expires_at, s.last_activity, s.created_at,
-              u.is_super_admin
-       FROM sessions s
-       JOIN users u ON s.user_id = u.id
-       WHERE s.id = $1`,
-      [sessionId]
-    );
+    const validation = await validateAuthenticatedSession(sessionId, { updateActivity: true });
 
-    const session = result.rows[0];
+    if (!validation.ok) {
+      if (validation.reason === 'membership_revoked') {
+        res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          error: {
+            code: ERROR_CODES.FORBIDDEN,
+            message: 'Access to this workspace has been revoked',
+          },
+        });
+        return;
+      }
 
-    if (!session) {
+      if (
+        validation.reason === 'absolute_timeout' ||
+        validation.reason === 'inactivity_timeout'
+      ) {
+        res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          error: {
+            code: ERROR_CODES.SESSION_EXPIRED,
+            message:
+              validation.reason === 'absolute_timeout'
+                ? 'Session expired. Please log in again.'
+                : 'Session expired due to inactivity',
+          },
+        });
+        return;
+      }
+
       res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         error: {
@@ -154,77 +173,14 @@ export async function authMiddleware(
       return;
     }
 
-    const now = new Date();
-    const lastActivity = new Date(session.last_activity);
-    const createdAt = new Date(session.created_at);
-    const inactivityMs = now.getTime() - lastActivity.getTime();
-    const sessionAgeMs = now.getTime() - createdAt.getTime();
-
-    // Check 12-hour absolute session timeout (NIST SP 800-63B-4 AAL2)
-    if (sessionAgeMs > ABSOLUTE_SESSION_TIMEOUT_MS) {
-      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
-
-      res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        error: {
-          code: ERROR_CODES.SESSION_EXPIRED,
-          message: 'Session expired. Please log in again.',
-        },
-      });
-      return;
-    }
-
-    // Check 15-minute inactivity timeout
-    if (inactivityMs > SESSION_TIMEOUT_MS) {
-      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
-
-      res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        error: {
-          code: ERROR_CODES.SESSION_EXPIRED,
-          message: 'Session expired due to inactivity',
-        },
-      });
-      return;
-    }
-
-    // Verify user still has access to the workspace (unless super-admin)
-    if (session.workspace_id && !session.is_super_admin) {
-      const membershipResult = await pool.query(
-        'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
-        [session.workspace_id, session.user_id]
-      );
-
-      if (!membershipResult.rows[0]) {
-        // User no longer has access - delete session
-        await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
-
-        res.status(HTTP_STATUS.FORBIDDEN).json({
-          success: false,
-          error: {
-            code: ERROR_CODES.FORBIDDEN,
-            message: 'Access to this workspace has been revoked',
-          },
-        });
-        return;
-      }
-    }
-
-    const COOKIE_REFRESH_THRESHOLD_MS = 60 * 1000;
-    if (inactivityMs > COOKIE_REFRESH_THRESHOLD_MS) {
-      await pool.query(
-        'UPDATE sessions SET last_activity = $1 WHERE id = $2',
-        [now, sessionId]
-      );
-
+    if (validation.session.sessionId === sessionId && validation.activityUpdated) {
       res.cookie('session_id', sessionId, sessionCookieOptions());
     }
 
-    // Attach session info to request
-    req.sessionId = session.id;
-    req.userId = session.user_id;
-    req.workspaceId = session.workspace_id;
-    req.isSuperAdmin = session.is_super_admin;
+    req.sessionId = validation.session.sessionId;
+    req.userId = validation.session.userId;
+    req.workspaceId = validation.session.workspaceId ?? undefined;
+    req.isSuperAdmin = validation.session.isSuperAdmin;
 
     next();
   } catch (error) {
@@ -245,6 +201,17 @@ export async function superAdminMiddleware(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  if (req.isApiToken) {
+    res.status(HTTP_STATUS.FORBIDDEN).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.FORBIDDEN,
+        message: 'API tokens cannot access super-admin routes',
+      },
+    });
+    return;
+  }
+
   if (!req.isSuperAdmin) {
     res.status(HTTP_STATUS.FORBIDDEN).json({
       success: false,

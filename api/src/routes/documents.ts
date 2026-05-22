@@ -9,7 +9,7 @@ import {
   updateSprintAssociation,
 } from '../utils/document-crud.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
-import { handleVisibilityChange, invalidateDocumentCache, broadcastToUser } from '../collaboration/index.js';
+import { handleVisibilityChange, invalidateDocumentCache, handleDocumentConversion, broadcastToUser } from '../collaboration/index.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent, checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { loadContentFromYjsState } from '../utils/yjsConverter.js';
 import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../schemas/document-boundary.js';
@@ -74,13 +74,11 @@ type ConvertedDocumentRow = {
   id: string;
   title: string;
   original_type: string;
-  ticket_number: number | null;
-  converted_to_id: string;
+  converted_type: string;
+  converted_ticket_number: number | null;
+  original_ticket_number: number | null;
   converted_at: Date | null;
   converted_by: string | null;
-  converted_type: string;
-  converted_title: string;
-  converted_ticket_number: number | null;
   converted_by_name: string | null;
 };
 
@@ -300,7 +298,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// List converted documents (archived originals that were converted to another type)
+// List documents converted in-place (same row, updated document_type)
 router.get('/converted/list', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = String(req.userId);
@@ -309,34 +307,40 @@ router.get('/converted/list', authMiddleware, async (req: Request, res: Response
 
     // Only show documents the user can access (workspace-visible or owned by user)
     let query = `
-      SELECT d.id, d.title, d.document_type as original_type, d.ticket_number,
-             d.converted_to_id, d.converted_at, d.converted_by,
-             d.created_at, d.updated_at,
-             converted_doc.document_type as converted_type,
-             converted_doc.title as converted_title,
-             converted_doc.ticket_number as converted_ticket_number,
+      SELECT d.id, d.title,
+             d.original_type,
+             d.document_type as converted_type,
+             d.ticket_number as converted_ticket_number,
+             snapshot.ticket_number as original_ticket_number,
+             d.converted_at, d.converted_by,
              converter.name as converted_by_name
       FROM documents d
-      INNER JOIN documents converted_doc ON d.converted_to_id = converted_doc.id
+      LEFT JOIN LATERAL (
+        SELECT ticket_number
+        FROM document_snapshots
+        WHERE document_id = d.id AND snapshot_reason = 'conversion'
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) snapshot ON true
       LEFT JOIN users converter ON d.converted_by = converter.id
       WHERE d.workspace_id = $1
-        AND d.converted_to_id IS NOT NULL
-        AND d.archived_at IS NOT NULL
+        AND (COALESCE(d.conversion_count, 0) > 0 OR d.converted_at IS NOT NULL)
+        AND d.original_type IS NOT NULL
+        AND d.original_type != d.document_type
         AND (d.visibility = 'workspace' OR d.created_by = $2)
-        AND (converted_doc.visibility = 'workspace' OR converted_doc.created_by = $2)
     `;
     const params: (string | null)[] = [workspaceId, userId];
 
-    // Filter by original document type
+    // Filter by original document type (before conversion)
     if (original_type && typeof original_type === 'string') {
       params.push(original_type);
-      query += ` AND d.document_type = $${params.length}`;
+      query += ` AND d.original_type = $${params.length}`;
     }
 
-    // Filter by converted document type
+    // Filter by current document type (after conversion)
     if (converted_type && typeof converted_type === 'string') {
       params.push(converted_type);
-      query += ` AND converted_doc.document_type = $${params.length}`;
+      query += ` AND d.document_type = $${params.length}`;
     }
 
     query += ` ORDER BY d.converted_at DESC NULLS LAST, d.updated_at DESC`;
@@ -347,9 +351,9 @@ router.get('/converted/list', authMiddleware, async (req: Request, res: Response
       original_id: row.id,
       original_title: row.title,
       original_type: row.original_type,
-      original_ticket_number: row.ticket_number,
-      converted_id: row.converted_to_id,
-      converted_title: row.converted_title,
+      original_ticket_number: row.original_ticket_number,
+      converted_id: row.id,
+      converted_title: row.title,
       converted_type: row.converted_type,
       converted_ticket_number: row.converted_ticket_number,
       converted_at: row.converted_at,
@@ -1423,6 +1427,9 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
     // If converting to issue, keep all associations (issues support more types)
 
     await client.query('COMMIT');
+
+    invalidateDocumentCache(id);
+    handleDocumentConversion(id, id, sourceType, target_type);
 
     // Return the updated document (same ID!)
     const props = updatedDoc.properties || {};

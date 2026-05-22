@@ -8,6 +8,8 @@ import { logDocumentChange } from '../../utils/document-crud.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import { extractText } from '../../utils/document-content.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
+import { getActor } from '../../services/document-access.js';
+import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
 import type {
   SprintReviewSprintData,
   SprintReviewIssueRow,
@@ -593,6 +595,13 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
 
     if (sourceSprintResult.rows.length === 0) {
       res.status(404).json({ error: 'Source week not found' });
+      return;
+    }
+
+    const actor = getActor(req);
+    const auth = await requireWeekLifecycleAuthority(pool, actor, sourceSprintId as string, 'carryover');
+    if (!auth.authorized) {
+      res.status(403).json({ error: auth.error });
       return;
     }
 

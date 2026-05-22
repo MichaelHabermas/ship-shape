@@ -334,3 +334,47 @@ export async function getIssueDetailByTicketNumber(
   );
   return result.rows[0] ?? null;
 }
+
+/**
+ * Sub-issues of a parent issue — same SQL as GET /api/issues/:id/children.
+ */
+export async function listIssueChildren(
+  parentId: string,
+  workspaceId: string,
+  userId: string,
+  isAdmin: boolean
+): Promise<IssueExtractRow[]> {
+  const result = await pool.query<IssueExtractRow>(
+    `SELECT d.id, d.title, d.properties, d.ticket_number,
+            d.content,
+            d.created_at, d.updated_at, d.created_by,
+            d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
+            d.converted_from_id,
+            u.name as assignee_name,
+            CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
+     FROM documents d
+     JOIN document_associations da ON da.document_id = d.id
+     LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+     LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+       AND person_doc.document_type = 'person'
+       AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
+     WHERE da.related_id = $1
+       AND da.relationship_type = 'parent'
+       AND d.workspace_id = $2
+       AND d.document_type = 'issue'
+       AND d.archived_at IS NULL
+       AND d.deleted_at IS NULL
+       AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
+     ORDER BY
+       CASE d.properties->>'priority'
+         WHEN 'urgent' THEN 1
+         WHEN 'high' THEN 2
+         WHEN 'medium' THEN 3
+         WHEN 'low' THEN 4
+         ELSE 5
+       END,
+       d.updated_at DESC`,
+    [parentId, workspaceId, userId, isAdmin]
+  );
+  return result.rows;
+}

@@ -7,7 +7,7 @@ import {
   getQueryString,
   getTrimmedQueryString,
 } from '../utils/query-params.js';
-import { isWorkspaceAdmin } from '../middleware/visibility.js';
+import { isWorkspaceAdmin, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { documentTypeSchema } from '../schemas/document-boundary.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
@@ -73,13 +73,13 @@ searchRouter.get('/mentions', authMiddleware, async (req: Request, res: Response
     // Filter by visibility: workspace docs, user's private docs, or all if admin
     const documentsResult = await pool.query(
       `SELECT id, title, document_type, visibility
-       FROM documents
-       WHERE workspace_id = $1
-         AND document_type IN ('wiki', 'issue', 'project', 'program')
-         AND archived_at IS NULL
-         AND deleted_at IS NULL
-         AND title ILIKE $2
-         AND (visibility = 'workspace' OR created_by = $3 OR $4 = TRUE)
+       FROM documents d
+       WHERE d.workspace_id = $1
+         AND d.document_type IN ('wiki', 'issue', 'project', 'program')
+         AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND d.title ILIKE $2
+         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
        ORDER BY
          CASE document_type
            WHEN 'issue' THEN 1
@@ -122,11 +122,11 @@ searchRouter.get('/documents', authMiddleware, async (req: Request, res: Respons
     const params: (string | boolean | number)[] = [workspaceId, userId, isAdmin];
     let query = `
       SELECT id, title, document_type, visibility, ticket_number, updated_at
-      FROM documents
-      WHERE workspace_id = $1
-        AND archived_at IS NULL
-        AND deleted_at IS NULL
-        AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE)
+      FROM documents d
+      WHERE d.workspace_id = $1
+        AND d.archived_at IS NULL
+        AND d.deleted_at IS NULL
+        AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
     `;
 
     if (searchQuery) {
@@ -235,7 +235,7 @@ searchRouter.get('/content', authMiddleware, async (req: Request, res: Response)
          WHERE d.workspace_id = $1
            AND d.archived_at IS NULL
            AND d.deleted_at IS NULL
-           AND (d.visibility = 'workspace' OR d.created_by = $3 OR $4 = TRUE)
+           AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
            ${typeFilter}
            AND i.search_vector @@ search_query.query
        )
@@ -312,7 +312,7 @@ searchRouter.get('/learnings', authMiddleware, async (req: Request, res: Respons
         AND d.document_type = 'wiki'
         AND d.archived_at IS NULL
         AND d.deleted_at IS NULL
-        AND (d.visibility = 'workspace' OR d.created_by = $2 OR $3 = TRUE)
+        AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
         AND (
           d.title LIKE 'Learning:%'
           OR d.properties->'tags' ? 'learning'

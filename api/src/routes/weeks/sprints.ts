@@ -3,6 +3,8 @@ import { pool } from '../../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { getActor } from '../../services/document-access.js';
+import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
 import { logDocumentChange } from '../../utils/document-crud.js';
@@ -819,6 +821,13 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
 
     if (existing.rows.length === 0) {
       res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+
+    const actor = getActor(req);
+    const auth = await requireWeekLifecycleAuthority(pool, actor, id as string, 'start_week');
+    if (!auth.authorized) {
+      res.status(403).json({ error: auth.error });
       return;
     }
 

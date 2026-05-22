@@ -4,13 +4,13 @@ import {
   extractIssueFromRow,
   getIssueDetailById,
   getIssueDetailByTicketNumber,
+  listIssueChildren,
   listIssuesMetadata,
   type IssueDetailRow,
   type IssueDocumentRow,
-  type IssueExtractRow,
 } from '../db/documents-repository.js';
 import { z } from 'zod';
-import type { IssueProperties } from '@ship/shared';
+import type { IssueProperties, BelongsTo } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
@@ -28,13 +28,16 @@ import {
   getBelongsToAssociationsBatch,
   syncBelongsToAssociations,
   syncAssociationOfTypeForDocuments,
-  type BelongsToEntry,
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import {
   canReadDocument,
+  expectedTypeForRelationship,
   getActor,
   getDocumentAccessContext,
+  getReadableDocument,
+  requireReferenceableDocument,
+  type DocumentActor,
 } from '../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
@@ -43,7 +46,6 @@ import { requireFirstRow } from '../utils/query-rows.js';
 const router = Router();
 
 type IdRow = { id: string };
-type ConvertedDocRow = { id: string; document_type: string };
 type PersonIdRow = { id: string };
 type CountRow = { count: string | number };
 type TicketNumberRow = { next_number: number };
@@ -217,16 +219,12 @@ const listIssuesQuerySchema = z.object({
 async function sendIssueDetailResponse(
   res: Response,
   row: IssueDetailRow,
-  workspaceId: string
+  actor: DocumentActor
 ): Promise<void> {
   if (row.converted_to_id) {
-    const newDocResult = await pool.query<ConvertedDocRow>(
-      'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
-      [row.converted_to_id, workspaceId]
-    );
+    const newDoc = await getReadableDocument(pool, actor, row.converted_to_id);
 
-    if (newDocResult.rows.length > 0) {
-      const newDoc = requireFirstRow(newDocResult.rows);
+    if (newDoc) {
       res.set('X-Converted-Type', newDoc.document_type);
       res.set('X-Converted-To', newDoc.id);
       res.redirect(301, `/api/${newDoc.document_type}s/${newDoc.id}`);
@@ -375,7 +373,7 @@ router.get('/by-ticket/:number', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    await sendIssueDetailResponse(res, row, actor.workspaceId);
+    await sendIssueDetailResponse(res, row, actor);
   } catch (err) {
     sendInternalError(res, err, 'Get issue by ticket error');
   }
@@ -393,46 +391,13 @@ router.get('/:id/children', authMiddleware, async (req: Request, res: Response) 
       return;
     }
 
-    // Query junction table for sub-issues
-    // Sub-issues have document_id pointing to this issue's id via relationship_type='parent'
-    const result = await pool.query<IssueExtractRow>(
-      `SELECT d.id, d.title, d.properties, d.ticket_number,
-              d.content,
-              d.created_at, d.updated_at, d.created_by,
-              d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
-              d.converted_from_id,
-              u.name as assignee_name,
-              CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
-       FROM documents d
-       JOIN document_associations da ON da.document_id = d.id
-       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-         AND person_doc.document_type = 'person'
-         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-       WHERE da.related_id = $1
-         AND da.relationship_type = 'parent'
-         AND d.workspace_id = $2
-         AND d.document_type = 'issue'
-         AND d.archived_at IS NULL
-         AND d.deleted_at IS NULL
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
-       ORDER BY
-         CASE d.properties->>'priority'
-           WHEN 'urgent' THEN 1
-           WHEN 'high' THEN 2
-           WHEN 'medium' THEN 3
-           WHEN 'low' THEN 4
-           ELSE 5
-         END,
-         d.updated_at DESC`,
-      [id, actor.workspaceId, actor.userId, isAdmin]
-    );
+    const rows = await listIssueChildren(id, actor.workspaceId, actor.userId, isAdmin);
 
     // Batch-fetch associations to avoid N+1 queries
-    const childIds = result.rows.map(row => row.id);
+    const childIds = rows.map(row => row.id);
     const associationsMap = await getBelongsToAssociationsBatch(childIds);
 
-    const children = result.rows.map(row => {
+    const children = rows.map(row => {
       const issue = extractIssueFromRow(row);
       return {
         ...issue,
@@ -461,7 +426,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    await sendIssueDetailResponse(res, row, actor.workspaceId);
+    await sendIssueDetailResponse(res, row, actor);
   } catch (err) {
     sendInternalError(res, err, 'Get issue error');
   }
@@ -532,6 +497,25 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     );
 
     const newIssueId = requireFirstRow(result.rows).id;
+
+    const actor = getActor(req);
+    for (const assoc of belongs_to) {
+      try {
+        await requireReferenceableDocument(
+          client,
+          actor,
+          assoc.id,
+          expectedTypeForRelationship(assoc.type)
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === 'DOCUMENT_NOT_READABLE') {
+          await client.query('ROLLBACK');
+          res.status(404).json({ error: 'Referenced document not found' });
+          return;
+        }
+        throw error;
+      }
+    }
 
     await syncBelongsToAssociations(
       newIssueId,
@@ -735,8 +719,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Handle belongs_to association updates via junction table
     let belongsToChanged = false;
-    let oldBelongsTo: BelongsToEntry[] = [];
-    let newBelongsTo: BelongsToEntry[] = [];
+    let oldBelongsTo: BelongsTo[] = [];
+    let newBelongsTo: BelongsTo[] = [];
 
     if (data.belongs_to !== undefined) {
       // Get existing associations for comparison
@@ -839,6 +823,25 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     if (belongsToChanged) {
+      const actor = getActor(req);
+      for (const assoc of newBelongsTo) {
+        try {
+          await requireReferenceableDocument(
+            client,
+            actor,
+            assoc.id,
+            expectedTypeForRelationship(assoc.type)
+          );
+        } catch (error) {
+          if (error instanceof Error && error.message === 'DOCUMENT_NOT_READABLE') {
+            await client.query('ROLLBACK');
+            res.status(404).json({ error: 'Referenced document not found' });
+            return;
+          }
+          throw error;
+        }
+      }
+
       await syncBelongsToAssociations(
         id,
         newBelongsTo.map((assoc) => ({ id: assoc.id, type: assoc.type })),

@@ -7,6 +7,7 @@ import { mkdir, writeFile, unlink } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authMiddleware } from '../middleware/auth.js';
+import { getActor, getDocumentAccessContext } from '../services/document-access.js';
 import { useS3Uploads } from '../config/runtime.js';
 import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
@@ -366,6 +367,13 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
     }
 
     const file = fileResult.rows[0];
+
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
+    if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
+      res.status(403).json({ error: 'Only the uploader or an admin can delete this file' });
+      return;
+    }
 
     // Delete from storage (local or S3)
     if (useS3Uploads()) {
