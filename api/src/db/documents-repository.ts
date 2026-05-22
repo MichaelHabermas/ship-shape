@@ -2,6 +2,7 @@
  * Narrow document repository slice — SQL for documents/issues list projections.
  * Routes remain thin HTTP handlers; persistence lives here.
  */
+import type { IssueProperties } from '@ship/shared';
 import { pool } from './client.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 
@@ -203,25 +204,83 @@ export async function listIssuesMetadata(
   return result.rows;
 }
 
-export type IssueDetailRow = {
+export type IssueExtractRow = {
   id: string;
   title: string;
-  properties: Record<string, unknown> | null;
+  properties: IssueProperties | Record<string, unknown> | null;
   ticket_number: number | null;
-  content: unknown;
+  content?: unknown;
   created_at: Date;
   updated_at: Date;
   created_by: string;
-  started_at: Date | null;
-  completed_at: Date | null;
-  cancelled_at: Date | null;
-  reopened_at: Date | null;
-  converted_to_id: string | null;
-  converted_from_id: string | null;
-  assignee_name: string | null;
-  assignee_archived: boolean | null;
-  created_by_name: string | null;
+  started_at?: Date | null;
+  completed_at?: Date | null;
+  cancelled_at?: Date | null;
+  reopened_at?: Date | null;
+  converted_from_id?: string | null;
+  assignee_name?: string | null;
+  assignee_archived?: boolean | null;
+  created_by_name?: string | null;
 };
+
+export type IssueDocumentRow = IssueExtractRow & {
+  archived_at?: Date | null;
+  deleted_at?: Date | null;
+};
+
+export type IssueDetailRow = IssueExtractRow & {
+  content: unknown;
+  converted_to_id: string | null;
+};
+
+function issuePropertiesFromRow(
+  properties: IssueProperties | Record<string, unknown> | null | undefined
+): Partial<IssueProperties> {
+  return (properties ?? {}) as Partial<IssueProperties>;
+}
+
+/** Map issue SQL projection to API issue shape (without belongs_to). */
+export function extractIssueFromRow(
+  row: IssueExtractRow,
+  options: { includeContent?: boolean } = {}
+) {
+  const props = issuePropertiesFromRow(row.properties);
+  const issue = {
+    id: row.id,
+    title: row.title,
+    state: props.state || 'backlog',
+    priority: props.priority || 'medium',
+    assignee_id: props.assignee_id || null,
+    estimate: props.estimate ?? null,
+    source: props.source || 'internal',
+    rejection_reason: props.rejection_reason || null,
+    due_date: props.due_date || null,
+    is_system_generated: props.is_system_generated || false,
+    accountability_target_id: props.accountability_target_id || null,
+    accountability_type: props.accountability_type || null,
+    ticket_number: row.ticket_number,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    created_by: row.created_by,
+    started_at: row.started_at || null,
+    completed_at: row.completed_at || null,
+    cancelled_at: row.cancelled_at || null,
+    reopened_at: row.reopened_at || null,
+    converted_from_id: row.converted_from_id || null,
+    assignee_name: row.assignee_name,
+    assignee_archived: row.assignee_archived || false,
+    created_by_name: row.created_by_name,
+  };
+
+  if (options.includeContent === false) {
+    return issue;
+  }
+
+  return {
+    ...issue,
+    content: row.content ?? null,
+  };
+}
 
 const ISSUE_DETAIL_SELECT = `
   SELECT d.id, d.title, d.properties, d.ticket_number,

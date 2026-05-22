@@ -8,6 +8,176 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 const router = Router();
 
+type WorkspaceSprintStartRow = {
+  sprint_start_date: Date | string | null;
+};
+
+type DashboardIssueProperties = {
+  state?: string;
+  priority?: string;
+};
+
+type DashboardIssueRow = {
+  id: string;
+  title: string;
+  properties: DashboardIssueProperties | null;
+  ticket_number: number | null;
+  sprint_id: string | null;
+  sprint_name: string | null;
+  sprint_number: number | null;
+  program_name: string | null;
+};
+
+type DashboardProjectProperties = {
+  impact?: number | null;
+  confidence?: number | null;
+  ease?: number | null;
+};
+
+type DashboardProjectRow = {
+  id: string;
+  title: string;
+  properties: DashboardProjectProperties | null;
+  program_name: string | null;
+  inferred_status: string;
+};
+
+type DashboardSprintProperties = {
+  sprint_number?: number | string | null;
+};
+
+type DashboardSprintRow = {
+  id: string;
+  title: string;
+  properties: DashboardSprintProperties | null;
+  program_name: string | null;
+  sprint_number: number | null;
+};
+
+type PersonLookupRow = {
+  id: string;
+  title: string;
+};
+
+type FocusAllocationRow = {
+  project_id: string;
+  project_title: string;
+  program_name: string | null;
+};
+
+type WeeklyPlanRow = {
+  id: string;
+  content: unknown;
+  properties: {
+    project_id?: string;
+    week_number?: number | string;
+  } | null;
+};
+
+type FocusActivityRow = {
+  id: string;
+  title: string;
+  ticket_number: number;
+  state: string;
+  updated_at: string;
+  project_id: string;
+};
+
+type MyWeekContextRow = {
+  person_id: string | null;
+  person_name: string | null;
+  sprint_start_date: Date | string | null;
+};
+
+type WeeklyDocRow = {
+  id: string;
+  title: string;
+  content: unknown;
+  properties: {
+    week_number?: number | string;
+    submitted_at?: string | null;
+  } | null;
+  document_type: string;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type StandupDocRow = {
+  id: string;
+  title: string;
+  properties: {
+    date?: string;
+  } | null;
+  created_at: string;
+};
+
+function extractDashboardIssueWorkItem(
+  row: DashboardIssueRow,
+  currentSprintNumber: number
+): WorkItem {
+  const props = row.properties || {};
+  const sprintNumber = row.sprint_number;
+
+  let urgency: Urgency = 'later';
+  if (sprintNumber) {
+    if (sprintNumber < currentSprintNumber) {
+      urgency = 'overdue';
+    } else if (sprintNumber === currentSprintNumber) {
+      urgency = 'this_sprint';
+    }
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    type: 'issue',
+    urgency,
+    state: props.state || 'backlog',
+    priority: props.priority || 'medium',
+    ticket_number: row.ticket_number ?? undefined,
+    sprint_id: row.sprint_id,
+    sprint_name: row.sprint_name,
+    program_name: row.program_name,
+  };
+}
+
+function extractDashboardProjectWorkItem(row: DashboardProjectRow): WorkItem {
+  const props = row.properties || {};
+  const impact = props.impact !== undefined ? props.impact : null;
+  const confidence = props.confidence !== undefined ? props.confidence : null;
+  const ease = props.ease !== undefined ? props.ease : null;
+
+  let urgency: Urgency = 'later';
+  if (row.inferred_status === 'active') {
+    urgency = 'this_sprint';
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    type: 'project',
+    urgency,
+    ice_score: computeICEScore(impact, confidence, ease),
+    inferred_status: row.inferred_status,
+    program_name: row.program_name,
+  };
+}
+
+function extractDashboardSprintWorkItem(
+  row: DashboardSprintRow,
+  daysRemaining: number
+): WorkItem {
+  return {
+    id: row.id,
+    title: row.title || `Week ${row.sprint_number}`,
+    type: 'sprint',
+    urgency: 'this_sprint',
+    sprint_number: row.sprint_number ?? undefined,
+    days_remaining: daysRemaining,
+    program_name: row.program_name,
+  };
+}
+
 // Urgency levels for work items
 type Urgency = 'overdue' | 'this_sprint' | 'later';
 
@@ -47,7 +217,7 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get workspace sprint configuration to calculate current sprint number
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -57,7 +227,11 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+    const rawStartDate = workspaceResult.rows[0]?.sprint_start_date;
+    if (rawStartDate === undefined) {
+      res.status(404).json({ error: 'Workspace not found' });
+      return;
+    }
     const sprintDuration = 7; // 7-day sprints
 
     // Calculate the current sprint number
@@ -85,7 +259,7 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
     const workItems: WorkItem[] = [];
 
     // 1. Get issues assigned to current user (not done/cancelled)
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<DashboardIssueRow>(
       `SELECT d.id, d.title, d.properties, d.ticket_number,
               sprint_assoc.related_id as sprint_id,
               sprint.title as sprint_name,
@@ -114,37 +288,11 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
     );
 
     for (const row of issuesResult.rows) {
-      const props = row.properties || {};
-      const sprintNumber = row.sprint_number;
-
-      // Determine urgency based on sprint status
-      let urgency: Urgency = 'later';
-      if (sprintNumber) {
-        if (sprintNumber < currentSprintNumber) {
-          urgency = 'overdue'; // Past sprint, issue not done
-        } else if (sprintNumber === currentSprintNumber) {
-          urgency = 'this_sprint';
-        }
-        // Future sprints stay as 'later'
-      }
-      // No sprint = 'later' (backlog)
-
-      workItems.push({
-        id: row.id,
-        title: row.title,
-        type: 'issue',
-        urgency,
-        state: props.state || 'backlog',
-        priority: props.priority || 'medium',
-        ticket_number: row.ticket_number,
-        sprint_id: row.sprint_id,
-        sprint_name: row.sprint_name,
-        program_name: row.program_name,
-      });
+      workItems.push(extractDashboardIssueWorkItem(row, currentSprintNumber));
     }
 
     // 2. Get projects owned by current user (not archived)
-    const projectsResult = await pool.query(
+    const projectsResult = await pool.query<DashboardProjectRow>(
       `SELECT d.id, d.title, d.properties,
               p.title as program_name,
               CASE
@@ -192,32 +340,11 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
     );
 
     for (const row of projectsResult.rows) {
-      const props = row.properties || {};
-      const impact = props.impact !== undefined ? props.impact : null;
-      const confidence = props.confidence !== undefined ? props.confidence : null;
-      const ease = props.ease !== undefined ? props.ease : null;
-
-      // Determine urgency based on project status
-      let urgency: Urgency = 'later';
-      if (row.inferred_status === 'active') {
-        urgency = 'this_sprint';
-      }
-      // 'completed' projects are filtered out or could be shown differently
-      // 'planned' and 'backlog' stay as 'later'
-
-      workItems.push({
-        id: row.id,
-        title: row.title,
-        type: 'project',
-        urgency,
-        ice_score: computeICEScore(impact, confidence, ease),
-        inferred_status: row.inferred_status,
-        program_name: row.program_name,
-      });
+      workItems.push(extractDashboardProjectWorkItem(row));
     }
 
     // 3. Get active sprints owned by current user
-    const sprintsResult = await pool.query(
+    const sprintsResult = await pool.query<DashboardSprintRow>(
       `SELECT d.id, d.title, d.properties,
               p.title as program_name,
               (d.properties->>'sprint_number')::int as sprint_number
@@ -234,15 +361,7 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
     );
 
     for (const row of sprintsResult.rows) {
-      workItems.push({
-        id: row.id,
-        title: row.title || `Week ${row.sprint_number}`,
-        type: 'sprint',
-        urgency: 'this_sprint',
-        sprint_number: row.sprint_number,
-        days_remaining: daysRemaining,
-        program_name: row.program_name,
-      });
+      workItems.push(extractDashboardSprintWorkItem(row, daysRemaining));
     }
 
     // Group by urgency for the response
@@ -289,7 +408,7 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // 1. Look up the user's person document
-    const personResult = await pool.query(
+    const personResult = await pool.query<PersonLookupRow>(
       `SELECT id, title FROM documents
        WHERE workspace_id = $1 AND document_type = 'person'
          AND (properties->>'user_id') = $2
@@ -302,10 +421,12 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const personId = personResult.rows[0].id;
-
-    // 2. Get workspace sprint configuration
-    const workspaceResult = await pool.query(
+    const personId = personResult.rows[0]?.id;
+    if (!personId) {
+      res.status(404).json({ error: 'Person not found for current user' });
+      return;
+    }
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -315,7 +436,11 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+    const rawStartDate = workspaceResult.rows[0]?.sprint_start_date;
+    if (rawStartDate === undefined) {
+      res.status(404).json({ error: 'Workspace not found' });
+      return;
+    }
     const sprintDuration = 7;
 
     let workspaceStartDate: Date;
@@ -341,7 +466,7 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
 
     // 3. Find projects the user is allocated to for the current week
     //    Sprint documents have assignee_ids array and project_id in properties
-    const allocationsResult = await pool.query(
+    const allocationsResult = await pool.query<FocusAllocationRow>(
       `SELECT DISTINCT
          proj.id as project_id,
          proj.title as project_title,
@@ -362,9 +487,9 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
     const projectIds = allocationsResult.rows.map(r => r.project_id);
 
     // 4. Get weekly plans for current AND previous week for these projects
-    let plansResult = { rows: [] as { id: string; content: unknown; properties: Record<string, unknown> }[] };
+    let plansResult = { rows: [] as WeeklyPlanRow[] };
     if (projectIds.length > 0) {
-      plansResult = await pool.query(
+      plansResult = await pool.query<WeeklyPlanRow>(
         `SELECT id, content, properties
          FROM documents
          WHERE workspace_id = $1
@@ -389,9 +514,9 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // 5. Get recent activity: issues associated with each project updated in last 7 days
-    let activityResult = { rows: [] as { id: string; title: string; ticket_number: number; state: string; updated_at: string; project_id: string }[] };
+    let activityResult = { rows: [] as FocusActivityRow[] };
     if (projectIds.length > 0) {
-      activityResult = await pool.query(
+      activityResult = await pool.query<FocusActivityRow>(
         `SELECT d.id, d.title, d.ticket_number,
                 COALESCE(d.properties->>'state', 'backlog') as state,
                 d.updated_at,
@@ -467,7 +592,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // 1. Look up the user's person document and workspace sprint configuration.
-    const contextResult = await pool.query(
+    const contextResult = await pool.query<MyWeekContextRow>(
       `SELECT
          person.id as person_id,
          person.title as person_name,
@@ -486,7 +611,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    if (!contextResult.rows[0].person_id) {
+    if (!contextResult.rows[0]?.person_id) {
       res.status(404).json({ error: 'Person not found for current user' });
       return;
     }
@@ -494,6 +619,10 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
     const personId = contextResult.rows[0].person_id;
     const personName = contextResult.rows[0].person_name;
     const rawStartDate = contextResult.rows[0].sprint_start_date;
+    if (rawStartDate === undefined) {
+      res.status(404).json({ error: 'Workspace not found' });
+      return;
+    }
     const sprintDuration = 7;
 
     let workspaceStartDate: Date;
@@ -529,7 +658,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
     weekEnd.setUTCDate(weekEnd.getUTCDate() + sprintDuration - 1);
 
     // 3. Fetch plan, current retro, and previous retro in one pass.
-    const weeklyDocsResult = await pool.query(
+    const weeklyDocsResult = await pool.query<WeeklyDocRow>(
       `SELECT id, title, content, properties, document_type, created_at, updated_at
        FROM documents
        WHERE workspace_id = $1
@@ -598,7 +727,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
 
     // 5. Fetch standups and project allocations in parallel.
     const [standupsResult, allocationsResult] = await Promise.all([
-      pool.query(
+      pool.query<StandupDocRow>(
         `SELECT id, title, properties, created_at, updated_at
          FROM documents
          WHERE workspace_id = $1
@@ -609,7 +738,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
          ORDER BY (properties->>'date') ASC`,
         [workspaceId, userId, standupDates]
       ),
-      pool.query(
+      pool.query<FocusAllocationRow>(
         `SELECT DISTINCT
            proj.id as project_id,
            proj.title as project_title,

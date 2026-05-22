@@ -121,6 +121,45 @@ type ProjectRetroIssueRow = {
   state: string | null;
 };
 
+type ProjectExistsRow = { id: string };
+
+type DocumentTypeRow = {
+  id: string;
+  document_type: string;
+};
+
+type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type ProjectPropertiesRow = {
+  id: string;
+  properties: ProjectRouteProperties | null;
+  content?: unknown;
+};
+
+type ProjectWithProgramRow = {
+  id: string;
+  program_id: string | null;
+  sprint_start_date: Date | string | null;
+};
+
+type MaxSprintNumberRow = {
+  max_sprint: number | string | null;
+};
+
+type ProjectSprintCreateRow = {
+  id: string;
+  title: string;
+  properties: ProjectSprintProperties | null;
+};
+
+type IdRow = { id: string };
+
+type WorkspaceMemberUserRow = UserRow;
+
 // Helper to extract project from row with computed ice_score
 function extractProjectFromRow(row: ProjectRow) {
   const props = row.properties || {};
@@ -603,13 +642,17 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Check if project was converted - redirect to new document
     if (row.converted_to_id) {
       // Fetch the new document to determine its type for proper routing
-      const newDocResult = await pool.query(
+      const newDocResult = await pool.query<DocumentTypeRow>(
         'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
         [row.converted_to_id, workspaceId]
       );
 
       if (newDocResult.rows.length > 0) {
         const newDoc = newDocResult.rows[0];
+        if (!newDoc) {
+          res.status(404).json({ error: 'Project not found' });
+          return;
+        }
         // Return 301 with Location header to the new document's API endpoint
         // Include X-Converted-Type header so frontend knows the target type for routing
         res.set('X-Converted-Type', newDoc.document_type);
@@ -682,7 +725,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Get user info for owner response (only if owner_id is set)
     let owner = null;
     if (owner_id) {
-      const userResult = await pool.query(
+      const userResult = await pool.query<UserRow>(
         'SELECT id, name, email FROM users WHERE id = $1',
         [owner_id]
       );
@@ -727,7 +770,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -739,7 +782,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
+    const currentProps = existing.rows[0]?.properties || {};
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -759,17 +802,17 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     let propsChanged = false;
 
     if (data.impact !== undefined) {
-      newProps.impact = data.impact;
+      newProps.impact = data.impact as ProjectRouteProperties['impact'];
       propsChanged = true;
     }
 
     if (data.confidence !== undefined) {
-      newProps.confidence = data.confidence;
+      newProps.confidence = data.confidence as ProjectRouteProperties['confidence'];
       propsChanged = true;
     }
 
     if (data.ease !== undefined) {
-      newProps.ease = data.ease;
+      newProps.ease = data.ease as ProjectRouteProperties['ease'];
       propsChanged = true;
     }
 
@@ -962,7 +1005,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // First verify user can access the project
-    const accessCheck = await pool.query(
+    const accessCheck = await pool.query<ProjectExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1105,7 +1148,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1117,7 +1160,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
+    const currentProps = existing.rows[0]?.properties || {};
     const { plan_validated, monetary_impact_actual, success_criteria, next_steps, content } = parsed.data;
 
     // Update properties with retro data
@@ -1237,7 +1280,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const projectCheck = await pool.query(
+    const projectCheck = await pool.query<ProjectExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1310,7 +1353,7 @@ router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const projectCheck = await pool.query(
+    const projectCheck = await pool.query<ProjectExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1323,7 +1366,7 @@ router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => 
     }
 
     // Get sprints associated with this project via junction table
-    const result = await pool.query(
+    const result = await pool.query<ProjectSprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               w.sprint_start_date as workspace_sprint_start_date,
@@ -1367,7 +1410,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const projectCheck = await pool.query(
+    const projectCheck = await pool.query<ProjectExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1380,7 +1423,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Get sprints associated with this project via junction table
-    const result = await pool.query(
+    const result = await pool.query<ProjectSprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               w.sprint_start_date as workspace_sprint_start_date,
@@ -1430,7 +1473,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists, user can access it, and get workspace info
-    const projectCheck = await pool.query(
+    const projectCheck = await pool.query<ProjectWithProgramRow>(
       `SELECT d.id, prog_da.related_id as program_id, w.sprint_start_date
        FROM documents d
        JOIN workspaces w ON d.workspace_id = w.id
@@ -1446,23 +1489,27 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     }
 
     const project = projectCheck.rows[0];
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
     const { title, owner_id, plan, success_criteria, confidence } = parsed.data;
     let { sprint_number } = parsed.data;
 
     // If sprint_number not provided, auto-increment based on project's existing sprints
     if (!sprint_number) {
-      const maxSprintResult = await pool.query(
+      const maxSprintResult = await pool.query<MaxSprintNumberRow>(
         `SELECT MAX((d.properties->>'sprint_number')::int) as max_sprint
          FROM documents d
          JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
          WHERE d.document_type = 'sprint'`,
         [id]
       );
-      sprint_number = (maxSprintResult.rows[0]?.max_sprint || 0) + 1;
+      sprint_number = (Number(maxSprintResult.rows[0]?.max_sprint) || 0) + 1;
     }
 
     // Check if sprint number already exists for this project
-    const existingCheck = await pool.query(
+    const existingCheck = await pool.query<IdRow>(
       `SELECT d.id FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
        WHERE d.document_type = 'sprint' AND (d.properties->>'sprint_number')::int = $2`,
@@ -1477,7 +1524,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     // Verify owner exists in workspace (if provided)
     let ownerData = null;
     if (owner_id) {
-      const ownerCheck = await pool.query(
+      const ownerCheck = await pool.query<WorkspaceMemberUserRow>(
         `SELECT u.id, u.name, u.email FROM users u
          JOIN workspace_memberships wm ON wm.user_id = u.id
          WHERE u.id = $1 AND wm.workspace_id = $2`,
@@ -1532,7 +1579,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
 
     // Create the sprint document
     // program_id is set via document_associations below (not directly on documents table)
-    const result = await pool.query(
+    const result = await pool.query<ProjectSprintCreateRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by, content)
        VALUES ($1, 'sprint', $2, $3, $4, $5)
        RETURNING id, title, properties`,
@@ -1540,6 +1587,9 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
     );
 
     const sprint = result.rows[0];
+    if (!sprint) {
+      throw new Error('Create sprint did not return a row');
+    }
 
     // Create association in junction table for project
     await pool.query(
@@ -1599,7 +1649,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties, content FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1611,8 +1661,8 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
-    const currentContent = existing.rows[0].content;
+    const currentProps = existing.rows[0]?.properties || {};
+    const currentContent = existing.rows[0]?.content;
     const { plan_validated, monetary_impact_actual, success_criteria, next_steps, content } = parsed.data;
 
     // Update properties with retro data (only update fields that are provided)
@@ -1678,12 +1728,13 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Re-query to get updated data
-    const result = await pool.query(
+    const result = await pool.query<ProjectPropertiesRow>(
       `SELECT id, title, content, properties FROM documents WHERE id = $1`,
       [id]
     );
 
-    const updatedProps = result.rows[0].properties || {};
+    const updatedRow = result.rows[0];
+    const updatedProps = updatedRow?.properties || {};
     res.json({
       is_draft: false,
       plan_validated: updatedProps.plan_validated,
@@ -1691,7 +1742,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       monetary_impact_actual: updatedProps.monetary_impact_actual || null,
       success_criteria: updatedProps.success_criteria || [],
       next_steps: updatedProps.next_steps || null,
-      content: result.rows[0].content || {},
+      content: updatedRow?.content || {},
     });
   } catch (err) {
     sendInternalError(res, err, 'Update project retro error:');
@@ -1708,7 +1759,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and get its properties
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1721,6 +1772,10 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
     }
 
     const project = projectResult.rows[0];
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
     const currentProps = project.properties || {};
     const auth = checkProjectAccountableAuth(currentProps.accountable_id, userId, isAdmin, 'plans');
     if (!auth.authorized) {
@@ -1760,7 +1815,7 @@ router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Resp
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify project exists and get its properties
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<ProjectPropertiesRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -1773,6 +1828,10 @@ router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Resp
     }
 
     const project = projectResult.rows[0];
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
     const currentProps = project.properties || {};
     const auth = checkProjectAccountableAuth(currentProps.accountable_id, userId, isAdmin, 'retros');
     if (!auth.authorized) {

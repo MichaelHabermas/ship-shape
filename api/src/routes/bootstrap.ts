@@ -9,6 +9,7 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError } from '../utils/route-http.js';
 import { INFERRED_PROJECT_STATUS_SUBQUERY } from '../sql/bootstrap-queries.js';
 import { pickBootstrapDocumentProperties } from '../constants/bootstrap-document.js';
+import type { IssueMetadataRow } from '../db/documents-repository.js';
 
 const router = Router();
 
@@ -71,22 +72,7 @@ type ProjectRow = {
   converted_from_id?: string | null;
 };
 
-type IssueRow = {
-  id: string;
-  title: string;
-  properties: IssueProperties | null;
-  ticket_number: number | null;
-  created_at: Date;
-  updated_at: Date;
-  created_by: string;
-  started_at?: Date | null;
-  completed_at?: Date | null;
-  cancelled_at?: Date | null;
-  reopened_at?: Date | null;
-  converted_from_id?: string | null;
-  assignee_name?: string | null;
-  assignee_archived?: boolean | null;
-};
+type IssueRow = IssueMetadataRow;
 
 function mapProgram(row: ProgramRow) {
   const props = row.properties || {};

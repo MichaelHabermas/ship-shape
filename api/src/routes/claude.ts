@@ -19,6 +19,144 @@ import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
 const router = Router();
 
+type ClaudeSprintContextRow = {
+  sprint_id: string;
+  sprint_title: string;
+  sprint_number: string | null;
+  sprint_status: string | null;
+  sprint_plan: string | null;
+  program_id: string | null;
+  program_name: string | null;
+  program_content: unknown;
+  program_description: string | null;
+  program_goals: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  project_plan: string | null;
+  ice_impact: string | null;
+  ice_confidence: string | null;
+  ice_ease: string | null;
+  monetary_impact_expected: string | null;
+};
+
+type ClaudeStandupRow = {
+  id: string;
+  title: string;
+  content: unknown;
+  created_at: Date;
+  author_id: string | null;
+  author_name: string | null;
+  author_email: string | null;
+};
+
+type ClaudeIssueRow = {
+  id: string;
+  title: string;
+  status: string | null;
+  priority: string | null;
+  assignee_id?: string | null;
+  added_mid_sprint?: string | null;
+  cancelled?: string | null;
+};
+
+type ClaudeReviewRow = {
+  id: string;
+  content: unknown;
+  plan_validated: string | null;
+  owner_id: string | null;
+};
+
+type ClaudeProjectContextRow = {
+  project_id: string;
+  project_name: string;
+  project_plan: string | null;
+  ice_impact: string | null;
+  ice_confidence: string | null;
+  ice_ease: string | null;
+  monetary_impact_expected: string | null;
+  project_status: string | null;
+  project_created_at: Date;
+  program_id: string | null;
+  program_name: string | null;
+  program_description: string | null;
+  program_goals: string | null;
+};
+
+type ClaudeRetroSprintRow = {
+  id: string;
+  title: string;
+  sprint_number: string | number | null;
+  status: string | null;
+  plan: string | null;
+};
+
+type ClaudeSprintReviewDataRow = {
+  sprint_id: string;
+  content: unknown;
+  plan_validated: string | null;
+};
+
+type ClaudeRetroStandupRow = {
+  sprint_id: string;
+  content: unknown;
+  author_name: string | null;
+  created_at: Date;
+};
+
+type ClaudeRetroRow = {
+  id: string;
+  content: unknown;
+  plan_validated: string | null;
+  monetary_impact_actual: string | null;
+  success_criteria: string | null;
+  key_learnings: string | null;
+};
+
+function extractClaudeProgramFromRow(row: ClaudeSprintContextRow | ClaudeProjectContextRow) {
+  if (!row.program_id) return null;
+  return {
+    id: row.program_id,
+    name: row.program_name,
+    description: 'program_description' in row ? row.program_description : null,
+    goals: 'program_goals' in row ? row.program_goals : null,
+  };
+}
+
+function extractClaudeProjectFromRow(row: ClaudeSprintContextRow) {
+  if (!row.project_id) return null;
+  return {
+    id: row.project_id,
+    name: row.project_name,
+    plan: row.project_plan,
+    ice_scores: {
+      impact: row.ice_impact,
+      confidence: row.ice_confidence,
+      ease: row.ice_ease,
+    },
+    monetary_impact_expected: row.monetary_impact_expected,
+  };
+}
+
+function extractClaudeSprintFromRow(row: ClaudeSprintContextRow) {
+  return {
+    id: row.sprint_id,
+    title: row.sprint_title,
+    number: row.sprint_number,
+    status: row.sprint_status,
+    plan: row.sprint_plan,
+  };
+}
+
+function extractClaudeStandupFromRow(row: ClaudeStandupRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    author: row.author_name || row.author_email,
+    created_at: row.created_at,
+  };
+}
+
 interface ClaudeContextRequest {
   context_type: 'standup' | 'review' | 'retro';
   sprint_id?: string;
@@ -116,7 +254,7 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
  */
 async function getStandupContext(sprintId: string, workspaceId: string) {
   // Get sprint with program and project info via junction table
-  const sprintResult = await pool.query(`
+  const sprintResult = await pool.query<ClaudeSprintContextRow>(`
     SELECT
       s.id as sprint_id,
       s.title as sprint_title,
@@ -150,9 +288,12 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
   }
 
   const sprint = sprintResult.rows[0];
+  if (!sprint) {
+    throw new Error('Week not found');
+  }
 
   // Get recent standups for this sprint (last 5) via junction table
-  const standupsResult = await pool.query(`
+  const standupsResult = await pool.query<ClaudeStandupRow>(`
     SELECT
       d.id,
       d.title,
@@ -171,7 +312,7 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
   `, [sprintId, workspaceId]);
 
   // Get issues assigned to this sprint via junction table
-  const issuesResult = await pool.query(`
+  const issuesResult = await pool.query<ClaudeIssueRow>(`
     SELECT
       d.id,
       d.title,
@@ -201,37 +342,10 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
 
   return {
     context_type: 'standup',
-    sprint: {
-      id: sprint.sprint_id,
-      title: sprint.sprint_title,
-      number: sprint.sprint_number,
-      status: sprint.sprint_status,
-      plan: sprint.sprint_plan,
-    },
-    program: sprint.program_id ? {
-      id: sprint.program_id,
-      name: sprint.program_name,
-      description: sprint.program_description,
-      goals: sprint.program_goals,
-    } : null,
-    project: sprint.project_id ? {
-      id: sprint.project_id,
-      name: sprint.project_name,
-      plan: sprint.project_plan,
-      ice_scores: {
-        impact: sprint.ice_impact,
-        confidence: sprint.ice_confidence,
-        ease: sprint.ice_ease,
-      },
-      monetary_impact_expected: sprint.monetary_impact_expected,
-    } : null,
-    recent_standups: standupsResult.rows.map(s => ({
-      id: s.id,
-      title: s.title,
-      content: s.content,
-      author: s.author_name || s.author_email,
-      created_at: s.created_at,
-    })),
+    sprint: extractClaudeSprintFromRow(sprint),
+    program: extractClaudeProgramFromRow(sprint),
+    project: extractClaudeProjectFromRow(sprint),
+    recent_standups: standupsResult.rows.map(extractClaudeStandupFromRow),
     issues: {
       stats: issueStats,
       items: issuesResult.rows.slice(0, 10), // Top 10 issues
@@ -245,7 +359,7 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
  */
 async function getReviewContext(sprintId: string, workspaceId: string) {
   // Get sprint with program and project info via junction table
-  const sprintResult = await pool.query(`
+  const sprintResult = await pool.query<ClaudeSprintContextRow>(`
     SELECT
       s.id as sprint_id,
       s.title as sprint_title,
@@ -279,9 +393,12 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
   }
 
   const sprint = sprintResult.rows[0];
+  if (!sprint) {
+    throw new Error('Week not found');
+  }
 
   // Get ALL standups for this sprint (for review we want the full history) via junction table
-  const standupsResult = await pool.query(`
+  const standupsResult = await pool.query<ClaudeStandupRow>(`
     SELECT
       d.id,
       d.title,
@@ -299,7 +416,7 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
   `, [sprintId, workspaceId]);
 
   // Get issues with scope change tracking via junction table
-  const issuesResult = await pool.query(`
+  const issuesResult = await pool.query<ClaudeIssueRow>(`
     SELECT
       d.id,
       d.title,
@@ -324,7 +441,7 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
   };
 
   // Get existing review if any via junction table
-  const reviewResult = await pool.query(`
+  const reviewResult = await pool.query<ClaudeReviewRow>(`
     SELECT
       d.id,
       d.content,
@@ -341,37 +458,10 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
 
   return {
     context_type: 'review',
-    sprint: {
-      id: sprint.sprint_id,
-      title: sprint.sprint_title,
-      number: sprint.sprint_number,
-      status: sprint.sprint_status,
-      plan: sprint.sprint_plan,
-    },
-    program: sprint.program_id ? {
-      id: sprint.program_id,
-      name: sprint.program_name,
-      description: sprint.program_description,
-      goals: sprint.program_goals,
-    } : null,
-    project: sprint.project_id ? {
-      id: sprint.project_id,
-      name: sprint.project_name,
-      plan: sprint.project_plan,
-      ice_scores: {
-        impact: sprint.ice_impact,
-        confidence: sprint.ice_confidence,
-        ease: sprint.ice_ease,
-      },
-      monetary_impact_expected: sprint.monetary_impact_expected,
-    } : null,
-    standups: standupsResult.rows.map(s => ({
-      id: s.id,
-      title: s.title,
-      content: s.content,
-      author: s.author_name || s.author_email,
-      created_at: s.created_at,
-    })),
+    sprint: extractClaudeSprintFromRow(sprint),
+    program: extractClaudeProgramFromRow(sprint),
+    project: extractClaudeProjectFromRow(sprint),
+    standups: standupsResult.rows.map(extractClaudeStandupFromRow),
     issues: {
       stats: issueStats,
       completed_items: issuesResult.rows.filter(i => i.status === 'done'),
@@ -387,7 +477,7 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
  */
 async function getRetroContext(projectId: string, workspaceId: string) {
   // Get project with program info via junction table
-  const projectResult = await pool.query(`
+  const projectResult = await pool.query<ClaudeProjectContextRow>(`
     SELECT
       proj.id as project_id,
       proj.title as project_name,
@@ -415,10 +505,13 @@ async function getRetroContext(projectId: string, workspaceId: string) {
   }
 
   const project = projectResult.rows[0];
+  if (!project) {
+    throw new Error('Project not found');
+  }
 
   // Get all sprints for this project via junction table
   // Note: dates computed from sprint_number + workspace.sprint_start_date
-  const sprintsResult = await pool.query(`
+  const sprintsResult = await pool.query<ClaudeRetroSprintRow>(`
     SELECT
       d.id,
       d.title,
@@ -434,10 +527,10 @@ async function getRetroContext(projectId: string, workspaceId: string) {
 
   // Get all sprint reviews for this project's sprints via junction table
   const sprintIds = sprintsResult.rows.map(s => s.id);
-  let reviewsData: Array<{sprint_id: string; content: unknown; plan_validated: string}> = [];
+  let reviewsData: ClaudeSprintReviewDataRow[] = [];
 
   if (sprintIds.length > 0) {
-    const reviewsResult = await pool.query(`
+    const reviewsResult = await pool.query<ClaudeSprintReviewDataRow>(`
       SELECT
         da.related_id as sprint_id,
         d.content,
@@ -452,9 +545,9 @@ async function getRetroContext(projectId: string, workspaceId: string) {
   }
 
   // Get all standups across all sprints via junction table
-  let standupsData: Array<{sprint_id: string; content: unknown; author_name: string; created_at: Date}> = [];
+  let standupsData: ClaudeRetroStandupRow[] = [];
   if (sprintIds.length > 0) {
-    const standupsResult = await pool.query(`
+    const standupsResult = await pool.query<ClaudeRetroStandupRow>(`
       SELECT
         da.related_id as sprint_id,
         d.content,
@@ -473,7 +566,7 @@ async function getRetroContext(projectId: string, workspaceId: string) {
   }
 
   // Get all issues for this project via junction table
-  const issuesResult = await pool.query(`
+  const issuesResult = await pool.query<ClaudeIssueRow>(`
     SELECT
       d.id,
       d.title,
@@ -489,12 +582,12 @@ async function getRetroContext(projectId: string, workspaceId: string) {
   const issueStats = {
     total: issuesResult.rows.length,
     completed: issuesResult.rows.filter(i => i.status === 'done').length,
-    active: issuesResult.rows.filter(i => ['in_progress', 'todo'].includes(i.status)).length,
+    active: issuesResult.rows.filter(i => i.status != null && ['in_progress', 'todo'].includes(i.status)).length,
     cancelled: issuesResult.rows.filter(i => i.status === 'cancelled').length,
   };
 
   // Get existing retro if any via junction table
-  const retroResult = await pool.query(`
+  const retroResult = await pool.query<ClaudeRetroRow>(`
     SELECT
       d.id,
       d.content,
@@ -566,7 +659,7 @@ async function getRetroContext(projectId: string, workspaceId: string) {
 /**
  * Generate context-aware clarifying questions for standup
  */
-function generateStandupQuestions(sprint: Record<string, unknown>, issueStats: StandupIssueStats) {
+function generateStandupQuestions(sprint: ClaudeSprintContextRow, issueStats: StandupIssueStats) {
   const questions: string[] = [];
 
   // Plan-related questions
@@ -595,9 +688,9 @@ function generateStandupQuestions(sprint: Record<string, unknown>, issueStats: S
  * Generate context-aware clarifying questions for sprint review
  */
 function generateReviewQuestions(
-  sprint: Record<string, unknown>,
+  sprint: ClaudeSprintContextRow,
   issueStats: ReviewIssueStats,
-  standups: Array<Record<string, unknown>>
+  standups: ClaudeStandupRow[]
 ) {
   const questions: string[] = [];
 
@@ -637,8 +730,8 @@ function generateReviewQuestions(
  * Generate context-aware clarifying questions for project retro
  */
 function generateRetroQuestions(
-  project: Record<string, unknown>,
-  sprints: Array<Record<string, unknown>>,
+  project: ClaudeProjectContextRow,
+  sprints: Array<ClaudeRetroSprintRow & { plan_validated?: string | null; has_review: boolean }>,
   issueStats: RetroIssueStats
 ) {
   const questions: string[] = [];

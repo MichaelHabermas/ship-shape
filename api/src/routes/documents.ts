@@ -84,6 +84,55 @@ type ConvertedDocumentRow = {
   converted_by_name: string | null;
 };
 
+type DocumentTypeRow = {
+  id: string;
+  document_type: string;
+};
+
+type PersonOwnerRow = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type PersonTitleRow = {
+  title: string;
+};
+
+type BelongsToAssocRow = {
+  id: string;
+  type: string;
+  title: string | null;
+  color: string | null;
+};
+
+type DocumentContentAccessRow = {
+  id: string;
+  content: unknown;
+  yjs_state: Buffer | null;
+  title: string;
+  can_access: boolean;
+};
+
+type DocumentDeleteRow = {
+  id: string;
+};
+
+type DocumentContentRow = {
+  id: string;
+  title: string;
+  content: unknown;
+};
+
+function extractBelongsToAssocFromRow(row: BelongsToAssocRow) {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title || undefined,
+    color: row.color || undefined,
+  };
+}
+
 function asDocumentProperties(value: unknown): DocumentProperties {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
@@ -341,13 +390,17 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     // This redirect only applies to documents converted before the in-place model was implemented.
     if (doc.converted_to_id && doc.converted_to_id !== doc.id) {
       // Fetch the new document to determine its type for proper routing
-      const newDocResult = await pool.query(
+      const newDocResult = await pool.query<DocumentTypeRow>(
         'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
         [doc.converted_to_id, workspaceId]
       );
 
       if (newDocResult.rows.length > 0) {
         const newDoc = newDocResult.rows[0];
+        if (!newDoc) {
+          res.status(404).json({ error: 'Document not found' });
+          return;
+        }
         // Return 301 with Location header to the new document's API endpoint
         res.set('X-Converted-Type', newDoc.document_type);
         res.set('X-Converted-To', newDoc.id);
@@ -362,7 +415,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Return user_id as id so PersonCombobox can match correctly
     let owner: { id: string; name: string; email: string } | null = null;
     if (doc.document_type === 'project' && props.owner_id) {
-      const ownerResult = await pool.query(
+      const ownerResult = await pool.query<PersonOwnerRow>(
         `SELECT (d.properties->>'user_id')::text as id, d.title as name, COALESCE(d.properties->>'email', u.email) as email
          FROM documents d
          LEFT JOIN users u ON u.id = (d.properties->>'user_id')::uuid
@@ -370,14 +423,14 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
         [props.owner_id, workspaceId]
       );
       if (ownerResult.rows.length > 0) {
-        owner = ownerResult.rows[0];
+        owner = ownerResult.rows[0] ?? null;
       }
     }
 
     // Get owner details for sprints (owner stored in assignee_ids[0], consistent with sprints API)
     // Return user_id as id so Combobox can match correctly
     if (doc.document_type === 'sprint' && Array.isArray(props.assignee_ids) && props.assignee_ids[0]) {
-      const ownerResult = await pool.query(
+      const ownerResult = await pool.query<PersonOwnerRow>(
         `SELECT u.id::text as id, d.title as name, COALESCE(d.properties->>'email', u.email) as email
          FROM users u
          LEFT JOIN documents d ON (d.properties->>'user_id')::uuid = u.id AND d.document_type = 'person' AND d.workspace_id = $2
@@ -385,27 +438,29 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
         [props.assignee_ids[0], workspaceId]
       );
       if (ownerResult.rows.length > 0) {
-        owner = ownerResult.rows[0];
+        owner = ownerResult.rows[0] ?? null;
       }
     }
 
     // Compute title for weekly_plan/weekly_retro documents (includes person name for entity reference)
     let computedTitle = doc.title;
     if ((doc.document_type === 'weekly_plan' || doc.document_type === 'weekly_retro') && props.person_id) {
-      const personResult = await pool.query(
+      const personResult = await pool.query<PersonTitleRow>(
         `SELECT title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
         [props.person_id, workspaceId]
       );
       if (personResult.rows.length > 0) {
-        const personName = personResult.rows[0].title;
-        computedTitle = `${doc.title} - ${personName}`;
+        const personName = personResult.rows[0]?.title;
+        if (personName) {
+          computedTitle = `${doc.title} - ${personName}`;
+        }
       }
     }
 
     // Get belongs_to associations from junction table (for issues, wikis, sprints, and projects)
     let belongs_to: Array<{ id: string; type: string; title?: string; color?: string }> = [];
     if (doc.document_type === 'issue' || doc.document_type === 'wiki' || doc.document_type === 'sprint' || doc.document_type === 'project') {
-      const assocResult = await pool.query(
+      const assocResult = await pool.query<BelongsToAssocRow>(
         `SELECT da.related_id as id, da.relationship_type as type,
                 d.title, (d.properties->>'color') as color
          FROM document_associations da
@@ -417,12 +472,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
            AND ${visibilityPredicate('d', '$3', '$4')}`,
         [id, workspaceId, userId, isAdmin]
       );
-      belongs_to = assocResult.rows.map(row => ({
-        id: row.id,
-        type: row.type,
-        title: row.title || undefined,
-        color: row.color || undefined,
-      }));
+      belongs_to = assocResult.rows.map(extractBelongsToAssocFromRow);
     }
 
     // Return with flattened properties for backwards compatibility
@@ -479,7 +529,7 @@ router.get('/:id/content', authMiddleware, async (req: Request, res: Response) =
     const workspaceId = String(req.workspaceId);
 
     // Verify document exists and user can access it
-    const result = await pool.query(
+    const result = await pool.query<DocumentContentAccessRow>(
       `SELECT d.id, d.content, d.yjs_state, d.title,
               (d.visibility = 'workspace' OR d.created_by = $2 OR
                (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
@@ -494,6 +544,10 @@ router.get('/:id/content', authMiddleware, async (req: Request, res: Response) =
     }
 
     const doc = result.rows[0];
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
 
     if (!doc.can_access) {
       res.status(404).json({ error: 'Document not found' });
@@ -581,7 +635,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
 
     await updateDocumentContent(id, workspaceId, content, null, newProps);
 
-    const result = await pool.query<{ id: string; title: string; content: unknown }>(
+    const result = await pool.query<DocumentContentRow>(
       `SELECT id, title, content FROM documents WHERE id = $1 AND workspace_id = $2`,
       [id, workspaceId]
     );
@@ -1114,7 +1168,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Return user_id as id so PersonCombobox can match correctly
     let owner: { id: string; name: string; email: string } | null = null;
     if (updatedDoc.document_type === 'project' && props.owner_id) {
-      const ownerResult = await pool.query(
+      const ownerResult = await pool.query<PersonOwnerRow>(
         `SELECT (d.properties->>'user_id')::text as id, d.title as name, COALESCE(d.properties->>'email', u.email) as email
          FROM documents d
          LEFT JOIN users u ON u.id = (d.properties->>'user_id')::uuid
@@ -1122,7 +1176,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
         [props.owner_id, workspaceId]
       );
       if (ownerResult.rows.length > 0) {
-        owner = ownerResult.rows[0];
+        owner = ownerResult.rows[0] ?? null;
       }
     }
 
@@ -1178,7 +1232,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await pool.query(
+    const result = await pool.query<DocumentDeleteRow>(
       'DELETE FROM documents WHERE id = $1 AND workspace_id = $2 RETURNING id',
       [id, workspaceId]
     );

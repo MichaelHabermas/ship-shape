@@ -9,13 +9,40 @@ import { broadcastToUser } from '../../collaboration/index.js';
 import { extractText } from '../../utils/document-content.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import type {
-  SprintRouteProperties,
   SprintReviewSprintData,
   SprintReviewIssueRow,
   TipTapJsonDoc,
+  SprintReviewSprintRow,
+  SprintReviewDocumentRow,
+  WeeklyPlanContentRow,
+  SprintReviewInsertRow,
+  UserNameEmailRow,
+  SprintPropertiesOnlyRow,
+  SprintCarryoverSprintRow,
+  IdRow,
 } from './types.js';
 
 const router = Router();
+
+function extractReviewResponseFromRow(
+  review: SprintReviewDocumentRow,
+  sprintId: string,
+) {
+  const reviewProps = review.properties || {};
+  return {
+    id: review.id,
+    sprint_id: sprintId,
+    title: review.title,
+    content: review.content,
+    plan_validated: reviewProps.plan_validated ?? null,
+    owner_id: reviewProps.owner_id || null,
+    owner_name: review.owner_name || null,
+    owner_email: review.owner_email || null,
+    created_at: review.created_at,
+    updated_at: review.updated_at,
+    is_draft: false,
+  };
+}
 
 const sprintReviewSchema = z.object({
   content: z.record(z.unknown()).optional(),
@@ -168,13 +195,7 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and user can access it
-    const sprintResult = await pool.query<{
-      id: string;
-      title: string;
-      properties: SprintRouteProperties | null;
-      program_id: string | null;
-      program_name: string | null;
-    }>(
+    const sprintResult = await pool.query<SprintReviewSprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name
        FROM documents d
@@ -195,7 +216,7 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
 
     // Check if a weekly_review already exists for this sprint
     // Note: weekly_review documents use document_associations to link to sprint
-    const existingReview = await pool.query(
+    const existingReview = await pool.query<SprintReviewDocumentRow>(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               u.name as owner_name, u.email as owner_email
        FROM documents d
@@ -210,20 +231,11 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
     if (existingReview.rows.length > 0) {
       // Return existing review
       const review = existingReview.rows[0];
-      const reviewProps = review.properties || {};
-      res.json({
-        id: review.id,
-        sprint_id: id,
-        title: review.title,
-        content: review.content,
-        plan_validated: reviewProps.plan_validated ?? null,
-        owner_id: reviewProps.owner_id || null,
-        owner_name: review.owner_name || null,
-        owner_email: review.owner_email || null,
-        created_at: review.created_at,
-        updated_at: review.updated_at,
-        is_draft: false,
-      });
+      if (!review) {
+        res.status(404).json({ error: 'Weekly review not found' });
+        return;
+      }
+      res.json(extractReviewResponseFromRow(review, id as string));
       return;
     }
 
@@ -238,7 +250,7 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
     );
 
     // Fetch weekly_plan documents for this sprint (plans are now separate documents, not sprint properties)
-    const weeklyPlansResult = await pool.query(
+    const weeklyPlansResult = await pool.query<WeeklyPlanContentRow>(
       `SELECT content FROM documents
        WHERE document_type = 'weekly_plan'
          AND (properties->>'week_number')::int = $1
@@ -247,8 +259,8 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
       [sprintProps.sprint_number || 1, workspaceId]
     );
     const planTexts = weeklyPlansResult.rows
-      .map((row: { content: unknown }) => extractText(row.content))
-      .filter((t: string) => t.trim().length > 0);
+      .map((row) => extractText(row.content))
+      .filter((t) => t.trim().length > 0);
 
     const sprintData = {
       sprint_number: sprintProps.sprint_number || 1,
@@ -294,7 +306,7 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and user can access it
-    const sprintCheck = await pool.query(
+    const sprintCheck = await pool.query<SprintPropertiesOnlyRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -307,7 +319,7 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Check if a weekly_review already exists
-    const existingCheck = await pool.query(
+    const existingCheck = await pool.query<IdRow>(
       `SELECT d.id FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
        WHERE d.document_type = 'weekly_review'
@@ -320,7 +332,7 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
       return;
     }
 
-    const sprintProps = sprintCheck.rows[0].properties || {};
+    const sprintProps = sprintCheck.rows[0]?.properties || {};
 
     // Create the weekly_review document
     const properties = {
@@ -332,22 +344,27 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
     const reviewTitle = title || `Week ${sprintProps.sprint_number || 'N'} Review`;
     const reviewContent = content || { type: 'doc', content: [{ type: 'paragraph' }] };
 
-    const result = await pool.query(
+    const result = await pool.query<SprintReviewInsertRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, properties, created_by, visibility)
        VALUES ($1, 'weekly_review', $2, $3, $4, $5, 'workspace')
        RETURNING id, title, content, properties, created_at, updated_at`,
       [workspaceId, reviewTitle, JSON.stringify(reviewContent), JSON.stringify(properties), userId]
     );
 
+    const review = result.rows[0];
+    if (!review) {
+      throw new Error('Create weekly review did not return a row');
+    }
+
     // Create document_association to link weekly_review to sprint
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'sprint')`,
-      [result.rows[0].id, id]
+      [review.id, id]
     );
 
     // Get owner info
-    const ownerResult = await pool.query(
+    const ownerResult = await pool.query<UserNameEmailRow>(
       `SELECT name, email FROM users WHERE id = $1`,
       [userId]
     );
@@ -356,7 +373,6 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
     broadcastToUser(userId, 'accountability:updated', { type: 'weekly_review', targetId: id as string });
 
     // Log initial review content to document_history for approval workflow tracking
-    const review = result.rows[0];
     if (reviewContent) {
       await logDocumentChange(
         review.id,
@@ -405,7 +421,7 @@ router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Find existing weekly_review for this sprint
-    const existing = await pool.query(
+    const existing = await pool.query<SprintReviewDocumentRow>(
       `SELECT d.id, d.properties, d.content FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
        WHERE d.document_type = 'weekly_review'
@@ -419,9 +435,15 @@ router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) 
       return;
     }
 
-    const reviewId = existing.rows[0].id;
-    const currentProps = existing.rows[0].properties || {};
-    const currentContent = existing.rows[0].content;
+    const existingReview = existing.rows[0];
+    if (!existingReview) {
+      res.status(404).json({ error: 'Weekly review not found. Use POST to create.' });
+      return;
+    }
+
+    const reviewId = existingReview.id;
+    const currentProps = existingReview.properties || {};
+    const currentContent = existingReview.content;
 
     // Check if user is owner or admin
     const ownerId = currentProps.owner_id;
@@ -491,17 +513,18 @@ router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) 
     const reviewFieldsChanged = content !== undefined || plan_validated !== undefined;
     if (reviewFieldsChanged) {
       // Fetch parent sprint to check review_approval state
-      const sprintResult = await pool.query(
+      const sprintResult = await pool.query<SprintPropertiesOnlyRow>(
         `SELECT properties FROM documents WHERE id = $1 AND document_type = 'sprint'`,
         [id]
       );
       if (sprintResult.rows.length > 0) {
-        const sprintProps = sprintResult.rows[0].properties || {};
-        if (sprintProps.review_approval?.state === 'approved') {
+        const sprintProps = sprintResult.rows[0]?.properties || {};
+        const reviewApproval = sprintProps.review_approval as { state?: string } | null | undefined;
+        if (reviewApproval?.state === 'approved') {
           const newSprintProps = {
             ...sprintProps,
             review_approval: {
-              ...sprintProps.review_approval,
+              ...reviewApproval,
               state: 'changed_since_approved',
             },
           };
@@ -516,7 +539,7 @@ router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) 
 
     // Re-query to get full review with owner info
     // Note: weekly_review documents use owner_id (not assignee_ids like sprint docs)
-    const result = await pool.query(
+    const result = await pool.query<SprintReviewDocumentRow>(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               u.name as owner_name, u.email as owner_email
        FROM documents d
@@ -526,21 +549,12 @@ router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) 
     );
 
     const review = result.rows[0];
-    const reviewProps = review.properties || {};
+    if (!review) {
+      res.status(404).json({ error: 'Weekly review not found' });
+      return;
+    }
 
-    res.json({
-      id: review.id,
-      sprint_id: id,
-      title: review.title,
-      content: review.content,
-      plan_validated: reviewProps.plan_validated ?? null,
-      owner_id: reviewProps.owner_id || null,
-      owner_name: review.owner_name || null,
-      owner_email: review.owner_email || null,
-      created_at: review.created_at,
-      updated_at: review.updated_at,
-      is_draft: false,
-    });
+    res.json(extractReviewResponseFromRow(review, id as string));
   } catch (err) {
     sendInternalError(res, err, 'Update sprint review error:');
   }
@@ -570,7 +584,7 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // 1. Validate source sprint exists
-    const sourceSprintResult = await pool.query(
+    const sourceSprintResult = await pool.query<SprintCarryoverSprintRow>(
       `SELECT d.id, d.title, d.properties FROM documents d
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -583,9 +597,13 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
     }
 
     const sourceSprint = sourceSprintResult.rows[0];
+    if (!sourceSprint) {
+      res.status(404).json({ error: 'Source week not found' });
+      return;
+    }
 
     // 2. Validate target sprint exists and is planning/active
-    const targetSprintResult = await pool.query(
+    const targetSprintResult = await pool.query<SprintCarryoverSprintRow>(
       `SELECT d.id, d.title, d.properties FROM documents d
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
@@ -598,6 +616,10 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
     }
 
     const targetSprint = targetSprintResult.rows[0];
+    if (!targetSprint) {
+      res.status(404).json({ error: 'Target week not found' });
+      return;
+    }
     const targetProps = targetSprint.properties || {};
     const targetStatus = targetProps.status || 'planning';
 
@@ -607,7 +629,7 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
     }
 
     // 3. Verify all issue_ids belong to the source sprint and user has access
-    const issueCheckResult = await pool.query(
+    const issueCheckResult = await pool.query<IdRow>(
       `SELECT d.id FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
        WHERE d.id = ANY($2) AND d.document_type = 'issue' AND d.workspace_id = $3

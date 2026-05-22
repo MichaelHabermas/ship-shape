@@ -25,6 +25,59 @@ import {
   utcToday,
 } from '@ship/shared';
 
+type WorkspaceSprintStartRow = {
+  sprint_start_date: Date | string | null;
+};
+
+type PersonIdRow = {
+  id: string;
+};
+
+type ActiveSprintStandupRow = {
+  id: string;
+  title: string | null;
+  properties: {
+    sprint_number?: number | string | null;
+  } | null;
+  issue_count: string | number;
+};
+
+type StandupIdRow = {
+  id: string;
+};
+
+type LastStandupDateRow = {
+  last_standup_date: Date | string | null;
+};
+
+type SprintAccountabilityRow = {
+  id: string;
+  title: string | null;
+  properties: {
+    sprint_number?: number | string | null;
+    status?: string | null;
+  } | null;
+  project_id: string | null;
+};
+
+type CountRow = {
+  count: string | number;
+};
+
+type WeeklyPersonDocRow = {
+  id: string;
+  content: unknown;
+};
+
+type ChangesRequestedSprintRow = {
+  sprint_id: string;
+  sprint_number: number | string | null;
+  plan_approval: { state?: string } | null;
+  review_approval: { state?: string } | null;
+  sprint_title: string | null;
+  project_id: string | null;
+};
+
 // Accountability item returned from check
 export interface MissingAccountabilityItem {
   type: AccountabilityType;
@@ -62,7 +115,7 @@ export async function checkMissingAccountability(
   const items: MissingAccountabilityItem[] = [];
 
   // Get workspace sprint_start_date to calculate sprint dates
-  const workspaceResult = await pool.query(
+  const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
     `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
     [workspaceId]
   );
@@ -71,12 +124,15 @@ export async function checkMissingAccountability(
     return items;
   }
 
-  const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+  const rawStartDate = workspaceResult.rows[0]?.sprint_start_date;
+  if (rawStartDate === undefined) {
+    return items;
+  }
   const sprintDuration = 7;
   const workspaceStartDate = normalizeWorkspaceStartDate(rawStartDate);
 
   // Get current user's person document ID for weekly_plan navigation
-  const personResult = await pool.query(
+  const personResult = await pool.query<PersonIdRow>(
     `SELECT id FROM documents
      WHERE workspace_id = $1
        AND document_type = 'person'
@@ -151,7 +207,7 @@ async function checkMissingStandups(
 
   // Find active sprints where user has assigned issues with count
   // (This inherently skips empty sprints with no members)
-  const activeSprintsResult = await pool.query(
+  const activeSprintsResult = await pool.query<ActiveSprintStandupRow>(
     `SELECT s.id, s.title, s.properties, COUNT(i.id) as issue_count
      FROM documents i
      JOIN document_associations da ON da.document_id = i.id AND da.relationship_type = 'sprint'
@@ -167,7 +223,7 @@ async function checkMissingStandups(
 
   // Check each sprint for missing standup today
   for (const sprint of activeSprintsResult.rows) {
-    const standupResult = await pool.query(
+    const standupResult = await pool.query<StandupIdRow>(
       `SELECT id FROM documents
        WHERE workspace_id = $1
          AND document_type = 'standup'
@@ -180,7 +236,7 @@ async function checkMissingStandups(
 
     if (standupResult.rows.length === 0) {
       // Calculate days since last standup
-      const lastStandupResult = await pool.query(
+      const lastStandupResult = await pool.query<LastStandupDateRow>(
         `SELECT MAX(created_at::date) as last_standup_date
          FROM documents
          WHERE workspace_id = $1
@@ -193,7 +249,7 @@ async function checkMissingStandups(
       const lastStandupDate = lastStandupResult.rows[0]?.last_standup_date;
       let daysSinceLastStandup = 0;
       const sprintTitle = sprint.title || `Week ${sprint.properties?.sprint_number || 'N'}`;
-      const issueCount = parseInt(sprint.issue_count, 10) || 0;
+      const issueCount = parseInt(String(sprint.issue_count), 10) || 0;
 
       // Format: "Post standup for {sprint_title} ({issue_count} issues)"
       let message = `Post standup for ${sprintTitle}`;
@@ -241,7 +297,7 @@ async function checkSprintAccountability(
 
   // Find sprints where user is owner (accountable) and sprint has started
   // Also get the project associated with each sprint (via document_associations)
-  const sprintsResult = await pool.query(
+  const sprintsResult = await pool.query<SprintAccountabilityRow>(
     `SELECT s.id, s.title, s.properties, da.related_id as project_id
      FROM documents s
      LEFT JOIN document_associations da ON da.document_id = s.id AND da.relationship_type = 'project'
@@ -255,7 +311,7 @@ async function checkSprintAccountability(
 
   for (const sprint of sprintsResult.rows) {
     const props = sprint.properties || {};
-    const sprintNumber = props.sprint_number || 1;
+    const sprintNumber = Number(props.sprint_number) || 1;
     // Calculate sprint start date
     const sprintStartDate = new Date(workspaceStartDate);
     sprintStartDate.setUTCDate(sprintStartDate.getUTCDate() + (sprintNumber - 1) * sprintDuration);
@@ -286,7 +342,7 @@ async function checkSprintAccountability(
     }
 
     // Check if sprint has no issues
-    const issueCountResult = await pool.query(
+    const issueCountResult = await pool.query<CountRow>(
       `SELECT COUNT(*) as count
        FROM document_associations da
        JOIN documents d ON d.id = da.document_id
@@ -297,7 +353,7 @@ async function checkSprintAccountability(
       [sprint.id]
     );
 
-    const issueCount = parseInt(issueCountResult.rows[0].count, 10);
+    const issueCount = parseInt(String(issueCountResult.rows[0]?.count ?? 0), 10);
     if (issueCount === 0) {
       items.push({
         type: 'week_issues',
@@ -370,7 +426,7 @@ async function checkWeeklyPersonAccountability(
     // Check for missing weekly_plan (due from Saturday before the week starts)
     // A plan counts as "done" only if it has meaningful content (not just template headings)
     if (todayStr >= planDueStr) {
-      const planResult = await pool.query(
+      const planResult = await pool.query<WeeklyPersonDocRow>(
         `SELECT id, content FROM documents
          WHERE workspace_id = $1
            AND document_type = 'weekly_plan'
@@ -392,7 +448,7 @@ async function checkWeeklyPersonAccountability(
           message: `Write week ${sprintNumber} plan for ${projectName}`,
           personId,
           projectId,
-          weekNumber: sprintNumber,
+          weekNumber: sprintNumber != null ? Number(sprintNumber) : undefined,
         });
       }
     }
@@ -400,7 +456,7 @@ async function checkWeeklyPersonAccountability(
     // Check for missing weekly_retro (due from Thursday of the sprint week)
     // A retro counts as "done" only if it has meaningful content (not just template headings)
     if (todayStr >= retroActionableStr) {
-      const retroResult = await pool.query(
+      const retroResult = await pool.query<WeeklyPersonDocRow>(
         `SELECT id, content FROM documents
          WHERE workspace_id = $1
            AND document_type = 'weekly_retro'
@@ -422,7 +478,7 @@ async function checkWeeklyPersonAccountability(
           message: `Write week ${sprintNumber} retro for ${projectName}`,
           personId,
           projectId,
-          weekNumber: sprintNumber,
+          weekNumber: sprintNumber != null ? Number(sprintNumber) : undefined,
         });
       }
     }
@@ -447,7 +503,7 @@ async function checkChangesRequested(
   const items: MissingAccountabilityItem[] = [];
 
   // Find sprints where this person is allocated and changes are requested
-  const result = await pool.query(
+  const result = await pool.query<ChangesRequestedSprintRow>(
     `SELECT
        s.id as sprint_id,
        (s.properties->>'sprint_number')::int as sprint_number,
@@ -484,7 +540,7 @@ async function checkChangesRequested(
         message: `Changes requested on your Week ${sprintNumber} plan`,
         personId,
         projectId: row.project_id || undefined,
-        weekNumber: sprintNumber,
+        weekNumber: sprintNumber != null ? Number(sprintNumber) : undefined,
       });
     }
 
@@ -499,7 +555,7 @@ async function checkChangesRequested(
         message: `Changes requested on your Week ${sprintNumber} retro`,
         personId,
         projectId: row.project_id || undefined,
-        weekNumber: sprintNumber,
+        weekNumber: sprintNumber != null ? Number(sprintNumber) : undefined,
       });
     }
   }

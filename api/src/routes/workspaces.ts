@@ -6,6 +6,119 @@ import { logAuditEvent } from '../services/audit.js';
 
 const router = Router();
 
+type WorkspaceRow = {
+  id: string;
+  name: string;
+  sprint_start_date: Date | string | null;
+  archived_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type WorkspaceListRow = WorkspaceRow & {
+  role?: string | null;
+};
+
+type UserSuperAdminRow = {
+  is_super_admin: boolean;
+};
+
+type IdRow = {
+  id: string;
+};
+
+type WorkspaceSwitchRow = {
+  id: string;
+  name: string;
+  archived_at: Date | null;
+};
+
+type ActiveMemberRow = {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: Date;
+  email: string;
+  name: string;
+  person_document_id: string | null;
+  is_archived: boolean;
+};
+
+type ArchivedMemberRow = {
+  person_document_id: string;
+  user_id: string | null;
+  archived_at: Date | null;
+  email: string | null;
+  name: string | null;
+  is_archived: boolean;
+};
+
+type UserRow = {
+  id: string;
+  email: string;
+  name: string;
+};
+
+type MembershipCreatedRow = {
+  id: string;
+  created_at: Date;
+};
+
+type RoleRow = {
+  role: string;
+};
+
+type CountRow = {
+  count: string | number;
+};
+
+type MembershipUpdatedRow = {
+  id: string;
+  role: string;
+};
+
+type PersonDocRow = {
+  id: string;
+  title: string;
+  properties: Record<string, unknown> | null;
+  archived_at: Date | null;
+};
+
+type InviteListRow = {
+  id: string;
+  email: string;
+  token: string;
+  role: string;
+  expires_at: Date;
+  created_at: Date;
+  invited_by_name: string;
+};
+
+type InviteCreatedRow = {
+  id: string;
+  email: string;
+  x509_subject_dn: string | null;
+  role: string;
+  expires_at: Date;
+  created_at: Date;
+};
+
+type AuditLogRow = {
+  id: string;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: Date;
+  actor_email: string;
+  actor_name: string;
+  impersonating_email: string | null;
+};
+
+type MutationRow = Record<string, never>;
+
 type WorkspaceMemberResponse = {
   id: string;
   userId: string | null;
@@ -16,6 +129,148 @@ type WorkspaceMemberResponse = {
   joinedAt: Date | string | null;
   isArchived: boolean;
 };
+
+function toCount(value: string | number): number {
+  return typeof value === 'number' ? value : Number(value);
+}
+
+function requireFirstRow<T>(rows: T[]): T {
+  const row = rows[0];
+  if (!row) {
+    throw new Error('Expected query to return a row');
+  }
+  return row;
+}
+
+function mapWorkspaceListItem(row: WorkspaceListRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    sprintStartDate: row.sprint_start_date,
+    archivedAt: row.archived_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    role: row.role,
+  };
+}
+
+function mapSuperAdminWorkspaceItem(row: WorkspaceRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    sprintStartDate: row.sprint_start_date,
+    archivedAt: row.archived_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    role: 'admin' as const,
+    isSuperAdmin: true,
+  };
+}
+
+function mapCurrentWorkspace(row: WorkspaceListRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    sprintStartDate: row.sprint_start_date,
+    archivedAt: row.archived_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    role: row.role || 'admin',
+  };
+}
+
+function mapActiveMember(row: ActiveMemberRow): WorkspaceMemberResponse {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    personDocumentId: row.person_document_id,
+    joinedAt: row.created_at,
+    isArchived: false,
+  };
+}
+
+function mapArchivedMember(row: ArchivedMemberRow): WorkspaceMemberResponse {
+  return {
+    id: row.person_document_id,
+    userId: row.user_id,
+    email: row.email,
+    name: row.name,
+    role: null,
+    personDocumentId: row.person_document_id,
+    joinedAt: null,
+    isArchived: true,
+  };
+}
+
+function mapCreatedMembership(
+  membership: MembershipCreatedRow,
+  user: UserRow,
+  userId: string,
+  role: string,
+  personDocumentId: string,
+) {
+  return {
+    id: membership.id,
+    userId,
+    email: user.email,
+    name: user.name,
+    role,
+    personDocumentId,
+    createdAt: membership.created_at,
+  };
+}
+
+function mapDirectAddMember(user: UserRow, role: string) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role,
+  };
+}
+
+function mapInvite(row: InviteListRow) {
+  return {
+    id: row.id,
+    email: row.email,
+    token: row.token,
+    role: row.role,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+    invitedByName: row.invited_by_name,
+  };
+}
+
+function mapCreatedInvite(row: InviteCreatedRow, token: string) {
+  return {
+    id: row.id,
+    email: row.email,
+    x509SubjectDn: row.x509_subject_dn,
+    role: row.role,
+    token,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+  };
+}
+
+function mapAuditLog(row: AuditLogRow) {
+  return {
+    id: row.id,
+    action: row.action,
+    resourceType: row.resource_type,
+    resourceId: row.resource_id,
+    details: row.details,
+    ipAddress: row.ip_address,
+    userAgent: row.user_agent,
+    createdAt: row.created_at,
+    actorEmail: row.actor_email,
+    actorName: row.actor_name,
+    impersonatingEmail: row.impersonating_email,
+  };
+}
 
 function getQueryString(value: unknown, fallback: string): string {
   if (Array.isArray(value)) {
@@ -29,7 +284,7 @@ function getQueryString(value: unknown, fallback: string): string {
 // GET /api/workspaces - List user's workspaces
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const result = await pool.query<WorkspaceListRow>(
       `SELECT w.id, w.name, w.sprint_start_date, w.archived_at, w.created_at, w.updated_at,
               wm.role
        FROM workspaces w
@@ -40,25 +295,17 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     );
 
     // Check if user is super-admin (they see all workspaces)
-    const userResult = await pool.query(
+    const userResult = await pool.query<UserSuperAdminRow>(
       'SELECT is_super_admin FROM users WHERE id = $1',
       [req.userId]
     );
     const isSuperAdmin = userResult.rows[0]?.is_super_admin || false;
 
-    let workspaces = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      sprintStartDate: row.sprint_start_date,
-      archivedAt: row.archived_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      role: row.role,
-    }));
+    let workspaces = result.rows.map(mapWorkspaceListItem);
 
     // Super-admins see all workspaces (even ones they're not members of)
     if (isSuperAdmin) {
-      const allWorkspacesResult = await pool.query(
+      const allWorkspacesResult = await pool.query<WorkspaceRow>(
         `SELECT id, name, sprint_start_date, archived_at, created_at, updated_at
          FROM workspaces
          WHERE archived_at IS NULL
@@ -68,16 +315,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       const memberWorkspaceIds = new Set(workspaces.map(w => w.id));
       const additionalWorkspaces = allWorkspacesResult.rows
         .filter(row => !memberWorkspaceIds.has(row.id))
-        .map(row => ({
-          id: row.id,
-          name: row.name,
-          sprintStartDate: row.sprint_start_date,
-          archivedAt: row.archived_at,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at,
-          role: 'admin' as const, // Super-admins have admin access to all
-          isSuperAdmin: true,
-        }));
+        .map(mapSuperAdminWorkspaceItem);
 
       workspaces = [...workspaces, ...additionalWorkspaces];
     }
@@ -112,7 +350,7 @@ router.get('/current', authMiddleware, async (req: Request, res: Response): Prom
       return;
     }
 
-    const result = await pool.query(
+    const result = await pool.query<WorkspaceListRow>(
       `SELECT w.id, w.name, w.sprint_start_date, w.archived_at, w.created_at, w.updated_at,
               wm.role
        FROM workspaces w
@@ -136,15 +374,7 @@ router.get('/current', authMiddleware, async (req: Request, res: Response): Prom
     res.json({
       success: true,
       data: {
-        workspace: {
-          id: workspace.id,
-          name: workspace.name,
-          sprintStartDate: workspace.sprint_start_date,
-          archivedAt: workspace.archived_at,
-          createdAt: workspace.created_at,
-          updatedAt: workspace.updated_at,
-          role: workspace.role || 'admin', // Super-admin without membership
-        },
+        workspace: mapCurrentWorkspace(workspace),
       },
     });
   } catch (error) {
@@ -165,13 +395,13 @@ router.post('/:id/switch', authMiddleware, async (req: Request, res: Response): 
 
   try {
     // Check user has access to this workspace (member or super-admin)
-    const userResult = await pool.query(
+    const userResult = await pool.query<UserSuperAdminRow>(
       'SELECT is_super_admin FROM users WHERE id = $1',
       [req.userId]
     );
     const isSuperAdmin = userResult.rows[0]?.is_super_admin || false;
 
-    const membershipResult = await pool.query(
+    const membershipResult = await pool.query<IdRow>(
       'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, req.userId]
     );
@@ -188,7 +418,7 @@ router.post('/:id/switch', authMiddleware, async (req: Request, res: Response): 
     }
 
     // Verify workspace exists and is not archived
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSwitchRow>(
       'SELECT id, name, archived_at FROM workspaces WHERE id = $1',
       [workspaceId]
     );
@@ -217,13 +447,13 @@ router.post('/:id/switch', authMiddleware, async (req: Request, res: Response): 
     }
 
     // Update user's last_workspace_id
-    await pool.query(
+    await pool.query<MutationRow>(
       'UPDATE users SET last_workspace_id = $1, updated_at = NOW() WHERE id = $2',
       [workspaceId, req.userId]
     );
 
     // Update session's workspace_id
-    await pool.query(
+    await pool.query<MutationRow>(
       'UPDATE sessions SET workspace_id = $1 WHERE id = $2',
       [workspaceId, req.sessionId]
     );
@@ -260,7 +490,7 @@ router.get('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req:
 
   try {
     // Query active members (with memberships)
-    const activeResult = await pool.query(
+    const activeResult = await pool.query<ActiveMemberRow>(
       `SELECT wm.id, wm.user_id, wm.role, wm.created_at,
               u.email, u.name,
               d.id as person_document_id,
@@ -275,10 +505,10 @@ router.get('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req:
       [workspaceId]
     );
 
-    let archivedRows: typeof activeResult.rows = [];
+    let archivedRows: ArchivedMemberRow[] = [];
     if (includeArchived) {
       // Query archived members (person docs with archived_at but no membership)
-      const archivedResult = await pool.query(
+      const archivedResult = await pool.query<ArchivedMemberRow>(
         `SELECT d.id as person_document_id,
                 d.properties->>'user_id' as user_id,
                 d.archived_at,
@@ -302,26 +532,8 @@ router.get('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req:
     }
 
     const members: WorkspaceMemberResponse[] = [
-      ...activeResult.rows.map(row => ({
-        id: row.id,
-        userId: row.user_id,
-        email: row.email,
-        name: row.name,
-        role: row.role,
-        personDocumentId: row.person_document_id,
-        joinedAt: row.created_at,
-        isArchived: false,
-      })),
-      ...archivedRows.map(row => ({
-        id: row.person_document_id, // Use person doc ID for archived
-        userId: row.user_id,
-        email: row.email,
-        name: row.name,
-        role: null, // Archived users have no role
-        personDocumentId: row.person_document_id,
-        joinedAt: null, // No membership join date
-        isArchived: true,
-      })),
+      ...activeResult.rows.map(mapActiveMember),
+      ...archivedRows.map(mapArchivedMember),
     ];
 
     res.json({
@@ -358,7 +570,7 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
 
   try {
     // Check if user exists
-    const userResult = await pool.query('SELECT id, email, name FROM users WHERE id = $1', [userId]);
+    const userResult = await pool.query<UserRow>('SELECT id, email, name FROM users WHERE id = $1', [userId]);
     if (!userResult.rows[0]) {
       res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
@@ -370,8 +582,10 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
       return;
     }
 
+    const user = userResult.rows[0];
+
     // Check if already a member
-    const existingResult = await pool.query(
+    const existingResult = await pool.query<IdRow>(
       'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, userId]
     );
@@ -387,7 +601,7 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
     }
 
     // Create membership
-    const membershipResult = await pool.query(
+    const membershipResult = await pool.query<MembershipCreatedRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, $3)
        RETURNING id, created_at`,
@@ -395,13 +609,13 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
     );
 
     // Create Person document for this user in this workspace (links via properties.user_id)
-    const personDocResult = await pool.query(
+    const personDocResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'person', $2, $3, $4)
        RETURNING id`,
-      [workspaceId, userResult.rows[0].name, JSON.stringify({ user_id: userId, email: userResult.rows[0].email }), req.userId]
+      [workspaceId, user.name, JSON.stringify({ user_id: userId, email: user.email }), req.userId]
     );
-    const personDocumentId = personDocResult.rows[0].id;
+    const personDocumentId = requireFirstRow(personDocResult.rows).id;
 
     await logAuditEvent({
       workspaceId,
@@ -416,15 +630,13 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       data: {
-        membership: {
-          id: membershipResult.rows[0].id,
+        membership: mapCreatedMembership(
+          requireFirstRow(membershipResult.rows),
+          user,
           userId,
-          email: userResult.rows[0].email,
-          name: userResult.rows[0].name,
           role,
           personDocumentId,
-          createdAt: membershipResult.rows[0].created_at,
-        },
+        ),
       },
     });
   } catch (error) {
@@ -459,20 +671,20 @@ router.patch('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, a
   try {
     // If demoting to member, check this isn't the last admin
     if (role === 'member') {
-      const adminCountResult = await pool.query(
+      const adminCountResult = await pool.query<CountRow>(
         `SELECT COUNT(*) as count FROM workspace_memberships
          WHERE workspace_id = $1 AND role = 'admin'`,
         [workspaceId]
       );
 
-      const currentMemberResult = await pool.query(
+      const currentMemberResult = await pool.query<RoleRow>(
         'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
         [workspaceId, userId]
       );
 
       if (
         currentMemberResult.rows[0]?.role === 'admin' &&
-        parseInt(adminCountResult.rows[0].count) <= 1
+        toCount(requireFirstRow(adminCountResult.rows).count) <= 1
       ) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
@@ -485,7 +697,7 @@ router.patch('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, a
       }
     }
 
-    const result = await pool.query(
+    const result = await pool.query<MembershipUpdatedRow>(
       `UPDATE workspace_memberships
        SET role = $1, updated_at = NOW()
        WHERE workspace_id = $2 AND user_id = $3
@@ -537,7 +749,7 @@ router.delete('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, 
 
   try {
     // Check this isn't the last admin
-    const memberResult = await pool.query(
+    const memberResult = await pool.query<RoleRow>(
       'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, userId]
     );
@@ -554,13 +766,13 @@ router.delete('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, 
     }
 
     if (memberResult.rows[0].role === 'admin') {
-      const adminCountResult = await pool.query(
+      const adminCountResult = await pool.query<CountRow>(
         `SELECT COUNT(*) as count FROM workspace_memberships
          WHERE workspace_id = $1 AND role = 'admin'`,
         [workspaceId]
       );
 
-      if (parseInt(adminCountResult.rows[0].count) <= 1) {
+      if (toCount(requireFirstRow(adminCountResult.rows).count) <= 1) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           error: {
@@ -573,34 +785,34 @@ router.delete('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, 
     }
 
     // Delete membership
-    await pool.query(
+    await pool.query<MutationRow>(
       'DELETE FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, userId]
     );
 
     // Archive the person document (preserve for audit history)
-    await pool.query(
+    await pool.query<MutationRow>(
       `UPDATE documents SET archived_at = NOW()
        WHERE workspace_id = $1 AND document_type = 'person' AND properties->>'user_id' = $2`,
       [workspaceId, userId]
     );
 
     // Clear owner_id on programs owned by this user (set to Unassigned)
-    await pool.query(
+    await pool.query<MutationRow>(
       `UPDATE documents SET properties = properties - 'owner_id', updated_at = NOW()
        WHERE workspace_id = $1 AND document_type = 'program' AND properties->>'owner_id' = $2`,
       [workspaceId, userId]
     );
 
     // Clear owner_id on sprints owned by this user (set to Unassigned)
-    await pool.query(
+    await pool.query<MutationRow>(
       `UPDATE documents SET properties = properties - 'owner_id', updated_at = NOW()
        WHERE workspace_id = $1 AND document_type = 'sprint' AND properties->>'owner_id' = $2`,
       [workspaceId, userId]
     );
 
     // Invalidate all sessions for this user in this workspace
-    await pool.query(
+    await pool.query<MutationRow>(
       'DELETE FROM sessions WHERE user_id = $1 AND workspace_id = $2',
       [userId, workspaceId]
     );
@@ -634,7 +846,7 @@ router.post('/:id/members/:userId/restore', authMiddleware, workspaceAdminMiddle
 
   try {
     // Verify the person document exists and is archived
-    const personResult = await pool.query(
+    const personResult = await pool.query<PersonDocRow>(
       `SELECT d.id, d.title, d.properties, d.archived_at
        FROM documents d
        WHERE d.workspace_id = $1
@@ -654,7 +866,7 @@ router.post('/:id/members/:userId/restore', authMiddleware, workspaceAdminMiddle
       return;
     }
 
-    const person = personResult.rows[0];
+    const person = requireFirstRow(personResult.rows);
     if (!person.archived_at) {
       res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
@@ -667,21 +879,21 @@ router.post('/:id/members/:userId/restore', authMiddleware, workspaceAdminMiddle
     }
 
     // Check if membership already exists (shouldn't, but be safe)
-    const membershipCheck = await pool.query(
+    const membershipCheck = await pool.query<IdRow>(
       'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, userId]
     );
 
     if (membershipCheck.rows.length === 0) {
       // Re-create the membership as a regular member
-      await pool.query(
+      await pool.query<MutationRow>(
         'INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, $3)',
         [workspaceId, userId, 'member']
       );
     }
 
     // Clear archived_at from person document
-    await pool.query(
+    await pool.query<MutationRow>(
       `UPDATE documents SET archived_at = NULL, updated_at = NOW()
        WHERE workspace_id = $1 AND document_type = 'person' AND properties->>'user_id' = $2`,
       [workspaceId, userId]
@@ -714,7 +926,7 @@ router.get('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req:
   const workspaceId = String(req.params.id);
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<InviteListRow>(
       `SELECT wi.id, wi.email, wi.token, wi.role, wi.expires_at, wi.created_at,
               u.name as invited_by_name
        FROM workspace_invites wi
@@ -724,15 +936,7 @@ router.get('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req:
       [workspaceId]
     );
 
-    const invites = result.rows.map(row => ({
-      id: row.id,
-      email: row.email,
-      token: row.token,
-      role: row.role,
-      expiresAt: row.expires_at,
-      createdAt: row.created_at,
-      invitedByName: row.invited_by_name,
-    }));
+    const invites = result.rows.map(mapInvite);
 
     res.json({
       success: true,
@@ -771,7 +975,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
 
   try {
     // Check if user already exists and is a member (by email or subject DN)
-    const existingUserResult = await pool.query(
+    const existingUserResult = await pool.query<IdRow>(
       `SELECT u.id FROM users u
        JOIN workspace_memberships wm ON u.id = wm.user_id
        WHERE wm.workspace_id = $1
@@ -793,7 +997,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
 
     // Check if user exists but is not a member (e.g., super admin or member of other workspace)
     // If so, directly add them as a member instead of creating a pending invite
-    const existingNonMemberResult = await pool.query(
+    const existingNonMemberResult = await pool.query<UserRow>(
       `SELECT id, name, email FROM users
        WHERE ($1::TEXT IS NOT NULL AND LOWER(email) = LOWER($1))
           OR ($2::TEXT IS NOT NULL AND x509_subject_dn = $2)`,
@@ -804,14 +1008,14 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
       const existingUser = existingNonMemberResult.rows[0];
 
       // Create membership directly
-      await pool.query(
+      await pool.query<MutationRow>(
         `INSERT INTO workspace_memberships (workspace_id, user_id, role)
          VALUES ($1, $2, $3)`,
         [workspaceId, existingUser.id, role]
       );
 
       // Check for existing pending person doc (from a previous invite attempt)
-      const existingPendingPerson = await pool.query(
+      const existingPendingPerson = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE workspace_id = $1
            AND document_type = 'person'
@@ -824,7 +1028,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
 
       if (existingPendingPerson.rows[0]) {
         // Update existing pending person doc to be a real person doc
-        await pool.query(
+        await pool.query<MutationRow>(
           `UPDATE documents
            SET title = $1,
                properties = jsonb_build_object('user_id', $2::text, 'email', $3)
@@ -833,7 +1037,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
         );
 
         // Archive any OTHER pending person docs for same email (defensive cleanup)
-        await pool.query(
+        await pool.query<MutationRow>(
           `UPDATE documents SET archived_at = NOW()
            WHERE workspace_id = $1
              AND document_type = 'person'
@@ -845,7 +1049,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
         );
       } else {
         // Create person document with user_id (not pending)
-        await pool.query(
+        await pool.query<MutationRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties)
            VALUES ($1, 'person', $2, $3)`,
           [workspaceId, existingUser.name, JSON.stringify({
@@ -855,7 +1059,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
         );
 
         // Archive any orphaned pending person docs for this email (defensive cleanup)
-        await pool.query(
+        await pool.query<MutationRow>(
           `UPDATE documents SET archived_at = NOW()
            WHERE workspace_id = $1
              AND document_type = 'person'
@@ -867,7 +1071,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
       }
 
       // Cancel any active invites for this email since user is being added directly
-      await pool.query(
+      await pool.query<MutationRow>(
         `UPDATE workspace_invites SET used_at = NOW()
          WHERE workspace_id = $1
            AND LOWER(email) = LOWER($2)
@@ -888,12 +1092,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
         data: {
-          member: {
-            id: existingUser.id,
-            email: existingUser.email,
-            name: existingUser.name,
-            role,
-          },
+          member: mapDirectAddMember(existingUser, role),
           message: 'User added as member (existing account)',
         },
       });
@@ -901,7 +1100,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
     }
 
     // Check for existing pending invite (by email or subject DN)
-    const existingInviteResult = await pool.query(
+    const existingInviteResult = await pool.query<IdRow>(
       `SELECT id FROM workspace_invites
        WHERE workspace_id = $1
          AND used_at IS NULL
@@ -927,22 +1126,24 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const result = await pool.query(
+    const result = await pool.query<InviteCreatedRow>(
       `INSERT INTO workspace_invites (workspace_id, email, x509_subject_dn, token, role, invited_by_user_id, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, email, x509_subject_dn, role, expires_at, created_at`,
       [workspaceId, email, x509SubjectDn || null, token, role, req.userId, expiresAt]
     );
 
+    const createdInvite = requireFirstRow(result.rows);
+
     // Create pending person document for the invited user
     // This allows them to appear in team lists and assignment dropdowns immediately
     const personTitle = email.split('@')[0]; // Use email prefix as name
-    await pool.query(
+    await pool.query<MutationRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties)
        VALUES ($1, 'person', $2, $3)`,
       [workspaceId, personTitle, JSON.stringify({
         pending: true,
-        invite_id: result.rows[0].id,
+        invite_id: createdInvite.id,
         email: email
       })]
     );
@@ -952,7 +1153,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
       actorUserId: req.userId,
       action: 'invite.create',
       resourceType: 'invite',
-      resourceId: result.rows[0].id,
+      resourceId: createdInvite.id,
       details: { email: email || null, x509SubjectDn: x509SubjectDn || null, role },
       req,
     });
@@ -960,15 +1161,7 @@ router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       data: {
-        invite: {
-          id: result.rows[0].id,
-          email: result.rows[0].email,
-          x509SubjectDn: result.rows[0].x509_subject_dn,
-          role: result.rows[0].role,
-          token, // Include token for the admin to share (null for PIV-only invites)
-          expiresAt: result.rows[0].expires_at,
-          createdAt: result.rows[0].created_at,
-        },
+        invite: mapCreatedInvite(createdInvite, token),
       },
     });
   } catch (error) {
@@ -989,7 +1182,7 @@ router.delete('/:id/invites/:inviteId', authMiddleware, workspaceAdminMiddleware
   const inviteId = String(req.params.inviteId);
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<IdRow>(
       'DELETE FROM workspace_invites WHERE id = $1 AND workspace_id = $2 RETURNING id',
       [inviteId, workspaceId]
     );
@@ -1006,7 +1199,7 @@ router.delete('/:id/invites/:inviteId', authMiddleware, workspaceAdminMiddleware
     }
 
     // Archive the pending person document associated with this invite
-    await pool.query(
+    await pool.query<MutationRow>(
       `UPDATE documents SET archived_at = NOW()
        WHERE workspace_id = $1
          AND document_type = 'person'
@@ -1043,7 +1236,7 @@ router.get('/:id/audit-logs', authMiddleware, workspaceAdminMiddleware, async (r
   const offset = getQueryString(req.query.offset, '0');
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<AuditLogRow>(
       `SELECT al.id, al.action, al.resource_type, al.resource_id, al.details,
               al.ip_address, al.user_agent, al.created_at,
               u.email as actor_email, u.name as actor_name,
@@ -1057,19 +1250,7 @@ router.get('/:id/audit-logs', authMiddleware, workspaceAdminMiddleware, async (r
       [workspaceId, parseInt(limit, 10), parseInt(offset, 10)]
     );
 
-    const logs = result.rows.map(row => ({
-      id: row.id,
-      action: row.action,
-      resourceType: row.resource_type,
-      resourceId: row.resource_id,
-      details: row.details,
-      ipAddress: row.ip_address,
-      userAgent: row.user_agent,
-      createdAt: row.created_at,
-      actorEmail: row.actor_email,
-      actorName: row.actor_name,
-      impersonatingEmail: row.impersonating_email,
-    }));
+    const logs = result.rows.map(mapAuditLog);
 
     res.json({
       success: true,

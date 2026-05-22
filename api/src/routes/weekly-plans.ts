@@ -17,6 +17,135 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 const router = Router();
 
+type WeeklyDocumentProperties = Record<string, unknown> & {
+  person_id?: string;
+  week_number?: number;
+  project_id?: string;
+  submitted_at?: string | null;
+};
+
+type WeeklyPlanDocumentRow = {
+  id: string;
+  title: string;
+  content: unknown;
+  properties: WeeklyDocumentProperties | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type WeeklyPlanListRow = WeeklyPlanDocumentRow & {
+  person_name: string | null;
+  project_name: string | null;
+};
+
+type WeeklyPlanContentRow = {
+  id: string;
+  content: unknown;
+};
+
+type ContentHistoryRow = {
+  id: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: Date;
+  changed_by_id: string | null;
+  changed_by_name: string | null;
+};
+
+type WorkspaceSprintStartRow = {
+  sprint_start_date: Date | string;
+};
+
+type AllocatedPersonRow = {
+  person_id: string;
+  person_name: string | null;
+  week_number: number;
+};
+
+type WeeklyDocStatusRow = {
+  person_id: string;
+  week_number: number;
+  id: string;
+  content: unknown;
+};
+
+function requireFirstRow<T>(rows: T[]): T {
+  const row = rows[0];
+  if (!row) {
+    throw new Error('Expected query to return a row');
+  }
+  return row;
+}
+
+function computeWeeklyDocumentTitle(baseTitle: string, personName: string | null | undefined): string {
+  return personName ? `${baseTitle} - ${personName}` : baseTitle;
+}
+
+function mapWeeklyPlanDocument(row: WeeklyPlanDocumentRow, personName: string | null | undefined) {
+  return {
+    id: row.id,
+    title: computeWeeklyDocumentTitle(row.title, personName),
+    document_type: 'weekly_plan' as const,
+    content: row.content,
+    properties: row.properties,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function mapWeeklyRetroDocument(row: WeeklyPlanDocumentRow, personName: string | null | undefined) {
+  return {
+    id: row.id,
+    title: computeWeeklyDocumentTitle(row.title, personName),
+    document_type: 'weekly_retro' as const,
+    content: row.content,
+    properties: row.properties,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function mapWeeklyPlanListItem(row: WeeklyPlanListRow) {
+  return {
+    id: row.id,
+    title: computeWeeklyDocumentTitle(row.title, row.person_name),
+    document_type: 'weekly_plan' as const,
+    content: row.content,
+    properties: row.properties,
+    person_name: row.person_name,
+    project_name: row.project_name,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function mapWeeklyRetroListItem(row: WeeklyPlanListRow) {
+  return {
+    id: row.id,
+    title: computeWeeklyDocumentTitle(row.title, row.person_name),
+    document_type: 'weekly_retro' as const,
+    content: row.content,
+    properties: row.properties,
+    person_name: row.person_name,
+    project_name: row.project_name,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function mapContentHistoryRow(row: ContentHistoryRow) {
+  return {
+    id: row.id,
+    old_content: row.old_value ? JSON.parse(row.old_value) : null,
+    new_content: row.new_value ? JSON.parse(row.new_value) : null,
+    created_at: row.created_at,
+    changed_by: row.changed_by_id ? {
+      id: row.changed_by_id,
+      name: row.changed_by_name,
+    } : null,
+  };
+}
+
 // Templates for weekly plan and retro documents
 // These provide structure for users to fill in, and "done" status is based on adding content beyond the template
 const WEEKLY_PLAN_TEMPLATE = {
@@ -180,7 +309,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Check if weekly plan already exists for this person+week (uniqueness by person+week only)
-    const existingResult = await client.query(
+    const existingResult = await client.query<WeeklyPlanDocumentRow>(
       `SELECT id, title, content, properties, created_at, updated_at
        FROM documents
        WHERE workspace_id = $1
@@ -195,18 +324,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     if (existingResult.rows.length > 0) {
       // Return existing document with 200
-      const doc = existingResult.rows[0];
-      // Compute full title with person name for entity reference
-      const computedTitle = personName ? `${doc.title} - ${personName}` : doc.title;
-      res.status(200).json({
-        id: doc.id,
-        title: computedTitle,
-        document_type: 'weekly_plan',
-        content: doc.content,
-        properties: doc.properties,
-        created_at: doc.created_at,
-        updated_at: doc.updated_at,
-      });
+      res.status(200).json(mapWeeklyPlanDocument(requireFirstRow(existingResult.rows), personName));
       return;
     }
 
@@ -226,7 +344,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Insert the document with template content
-    const insertResult = await client.query(
+    const insertResult = await client.query<WeeklyPlanDocumentRow>(
       `INSERT INTO documents (id, workspace_id, document_type, title, content, properties, visibility, created_by, position)
        VALUES ($1, $2, 'weekly_plan', $3, $4, $5, 'workspace', $6, 0)
        RETURNING id, title, content, properties, created_at, updated_at`,
@@ -244,18 +362,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     await client.query('COMMIT');
 
-    const doc = insertResult.rows[0];
-    // Compute full title with person name for entity reference
-    const computedTitle = personName ? `${doc.title} - ${personName}` : doc.title;
-    res.status(201).json({
-      id: doc.id,
-      title: computedTitle,
-      document_type: 'weekly_plan',
-      content: doc.content,
-      properties: doc.properties,
-      created_at: doc.created_at,
-      updated_at: doc.updated_at,
-    });
+    res.status(201).json(mapWeeklyPlanDocument(requireFirstRow(insertResult.rows), personName));
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     sendInternalError(res, err, 'Create weekly plan error:');
@@ -341,25 +448,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     query += ` ORDER BY (d.properties->>'week_number')::int DESC, d.created_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<WeeklyPlanListRow>(query, params);
 
-    const plans = result.rows.map(row => {
-      // Compute full title with person name for entity reference
-      const computedTitle = row.person_name ? `${row.title} - ${row.person_name}` : row.title;
-      return {
-        id: row.id,
-        title: computedTitle,
-        document_type: 'weekly_plan' as const,
-        content: row.content,
-        properties: row.properties,
-        person_name: row.person_name,
-        project_name: row.project_name,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      };
-    });
-
-    res.json(plans);
+    res.json(result.rows.map(mapWeeklyPlanListItem));
   } catch (err) {
     sendInternalError(res, err, 'Get weekly plans error:');
   }
@@ -404,7 +495,7 @@ router.get('/:id/history', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Get content history entries
-    const result = await pool.query(
+    const result = await pool.query<ContentHistoryRow>(
       `SELECT h.id, h.old_value, h.new_value, h.created_at,
               u.id as changed_by_id, u.name as changed_by_name
        FROM document_history h
@@ -414,18 +505,7 @@ router.get('/:id/history', authMiddleware, async (req: Request, res: Response) =
       [id]
     );
 
-    const history = result.rows.map(row => ({
-      id: row.id,
-      old_content: row.old_value ? JSON.parse(row.old_value) : null,
-      new_content: row.new_value ? JSON.parse(row.new_value) : null,
-      created_at: row.created_at,
-      changed_by: row.changed_by_id ? {
-        id: row.changed_by_id,
-        name: row.changed_by_name,
-      } : null,
-    }));
-
-    res.json(history);
+    res.json(result.rows.map(mapContentHistoryRow));
   } catch (err) {
     sendInternalError(res, err, 'Get weekly plan history error:');
   }
@@ -459,7 +539,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
 
-    const result = await pool.query(
+    const result = await pool.query<WeeklyPlanListRow>(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               p.title as person_name, pr.title as project_name
        FROM documents d
@@ -492,20 +572,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const row = result.rows[0];
-    // Compute full title with person name for entity reference
-    const computedTitle = row.person_name ? `${row.title} - ${row.person_name}` : row.title;
-    res.json({
-      id: row.id,
-      title: computedTitle,
-      document_type: 'weekly_plan' as const,
-      content: row.content,
-      properties: row.properties,
-      person_name: row.person_name,
-      project_name: row.project_name,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    });
+    res.json(mapWeeklyPlanListItem(requireFirstRow(result.rows)));
   } catch (err) {
     sendInternalError(res, err, 'Get weekly plan error:');
   }
@@ -588,7 +655,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
     }
 
     // Check if weekly retro already exists for this person+week (uniqueness by person+week only)
-    const existingResult = await client.query(
+    const existingResult = await client.query<WeeklyPlanDocumentRow>(
       `SELECT id, title, content, properties, created_at, updated_at
        FROM documents
        WHERE workspace_id = $1
@@ -603,18 +670,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
 
     if (existingResult.rows.length > 0) {
       // Return existing document with 200
-      const doc = existingResult.rows[0];
-      // Compute full title with person name for entity reference
-      const computedTitle = personName ? `${doc.title} - ${personName}` : doc.title;
-      res.status(200).json({
-        id: doc.id,
-        title: computedTitle,
-        document_type: 'weekly_retro',
-        content: doc.content,
-        properties: doc.properties,
-        created_at: doc.created_at,
-        updated_at: doc.updated_at,
-      });
+      res.status(200).json(mapWeeklyRetroDocument(requireFirstRow(existingResult.rows), personName));
       return;
     }
 
@@ -635,7 +691,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
 
     // Fetch corresponding plan to auto-populate retro with plan items (by person+week only)
     let retroTemplate = WEEKLY_RETRO_TEMPLATE;
-    const planResult = await client.query(
+    const planResult = await client.query<WeeklyPlanContentRow>(
       `SELECT id, content FROM documents
        WHERE workspace_id = $1
          AND document_type = 'weekly_plan'
@@ -647,15 +703,16 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
       [workspaceId, person_id, week_number, userId, isAdmin]
     );
 
-    if (planResult.rows.length > 0 && planResult.rows[0].content) {
-      const planItems = extractPlanItemsFromContent(planResult.rows[0].content);
+    if (planResult.rows.length > 0 && planResult.rows[0]?.content) {
+      const planRow = requireFirstRow(planResult.rows);
+      const planItems = extractPlanItemsFromContent(planRow.content);
       if (planItems.length > 0) {
-        retroTemplate = buildRetroTemplateWithPlanItems(planItems, planResult.rows[0].id) as typeof WEEKLY_RETRO_TEMPLATE;
+        retroTemplate = buildRetroTemplateWithPlanItems(planItems, planRow.id) as typeof WEEKLY_RETRO_TEMPLATE;
       }
     }
 
     // Insert the document with template content
-    const insertResult = await client.query(
+    const insertResult = await client.query<WeeklyPlanDocumentRow>(
       `INSERT INTO documents (id, workspace_id, document_type, title, content, properties, visibility, created_by, position)
        VALUES ($1, $2, 'weekly_retro', $3, $4, $5, 'workspace', $6, 0)
        RETURNING id, title, content, properties, created_at, updated_at`,
@@ -673,18 +730,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
 
     await client.query('COMMIT');
 
-    const doc = insertResult.rows[0];
-    // Compute full title with person name for entity reference
-    const computedTitle = personName ? `${doc.title} - ${personName}` : doc.title;
-    res.status(201).json({
-      id: doc.id,
-      title: computedTitle,
-      document_type: 'weekly_retro',
-      content: doc.content,
-      properties: doc.properties,
-      created_at: doc.created_at,
-      updated_at: doc.updated_at,
-    });
+    res.status(201).json(mapWeeklyRetroDocument(requireFirstRow(insertResult.rows), personName));
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     sendInternalError(res, err, 'Create weekly retro error:');
@@ -770,25 +816,9 @@ weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) 
 
     query += ` ORDER BY (d.properties->>'week_number')::int DESC, d.created_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<WeeklyPlanListRow>(query, params);
 
-    const retros = result.rows.map(row => {
-      // Compute full title with person name for entity reference
-      const computedTitle = row.person_name ? `${row.title} - ${row.person_name}` : row.title;
-      return {
-        id: row.id,
-        title: computedTitle,
-        document_type: 'weekly_retro' as const,
-        content: row.content,
-        properties: row.properties,
-        person_name: row.person_name,
-        project_name: row.project_name,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      };
-    });
-
-    res.json(retros);
+    res.json(result.rows.map(mapWeeklyRetroListItem));
   } catch (err) {
     sendInternalError(res, err, 'Get weekly retros error:');
   }
@@ -833,7 +863,7 @@ weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res:
     }
 
     // Get content history entries
-    const result = await pool.query(
+    const result = await pool.query<ContentHistoryRow>(
       `SELECT h.id, h.old_value, h.new_value, h.created_at,
               u.id as changed_by_id, u.name as changed_by_name
        FROM document_history h
@@ -843,18 +873,7 @@ weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res:
       [id]
     );
 
-    const history = result.rows.map(row => ({
-      id: row.id,
-      old_content: row.old_value ? JSON.parse(row.old_value) : null,
-      new_content: row.new_value ? JSON.parse(row.new_value) : null,
-      created_at: row.created_at,
-      changed_by: row.changed_by_id ? {
-        id: row.changed_by_id,
-        name: row.changed_by_name,
-      } : null,
-    }));
-
-    res.json(history);
+    res.json(result.rows.map(mapContentHistoryRow));
   } catch (err) {
     sendInternalError(res, err, 'Get weekly retro history error:');
   }
@@ -886,7 +905,7 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
 
-    const result = await pool.query(
+    const result = await pool.query<WeeklyPlanListRow>(
       `SELECT d.id, d.title, d.content, d.properties, d.created_at, d.updated_at,
               p.title as person_name, pr.title as project_name
        FROM documents d
@@ -919,20 +938,7 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
       return;
     }
 
-    const row = result.rows[0];
-    // Compute full title with person name for entity reference
-    const computedTitle = row.person_name ? `${row.title} - ${row.person_name}` : row.title;
-    res.json({
-      id: row.id,
-      title: computedTitle,
-      document_type: 'weekly_retro' as const,
-      content: row.content,
-      properties: row.properties,
-      person_name: row.person_name,
-      project_name: row.project_name,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    });
+    res.json(mapWeeklyRetroListItem(requireFirstRow(result.rows)));
   } catch (err) {
     sendInternalError(res, err, 'Get weekly retro error:');
   }
@@ -970,7 +976,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
     }
 
     // Get workspace sprint config
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -980,7 +986,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
       return;
     }
 
-    const sprintStartDate = new Date(workspaceResult.rows[0].sprint_start_date);
+    const sprintStartDate = new Date(requireFirstRow(workspaceResult.rows).sprint_start_date);
     const sprintDuration = 7; // 1 week sprints (standard for Ship)
 
     // Calculate current sprint number
@@ -990,7 +996,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
 
     // Find all people allocated to sprints for this project (via assignee_ids + project_id in sprint properties)
     // Note: team.ts stores project assignment in properties.project_id, NOT document_associations
-    const allocatedPeopleResult = await pool.query(
+    const allocatedPeopleResult = await pool.query<AllocatedPersonRow>(
       `SELECT DISTINCT p.id as person_id, p.title as person_name, (s.properties->>'sprint_number')::int as week_number
        FROM documents s
        CROSS JOIN LATERAL jsonb_array_elements_text(COALESCE(s.properties->'assignee_ids', '[]'::jsonb)) AS assignee_id
@@ -1026,7 +1032,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
     }
 
     // Get all weekly plans for this project (include content to check if "done")
-    const plansResult = await pool.query(
+    const plansResult = await pool.query<WeeklyDocStatusRow>(
       `SELECT (properties->>'person_id') as person_id, (properties->>'week_number')::int as week_number, id, content
        FROM documents d
        JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
@@ -1046,7 +1052,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
     );
 
     // Get all weekly retros for this project (include content to check if "done")
-    const retrosResult = await pool.query(
+    const retrosResult = await pool.query<WeeklyDocStatusRow>(
       `SELECT (properties->>'person_id') as person_id, (properties->>'week_number')::int as week_number, id, content
        FROM documents d
        JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
