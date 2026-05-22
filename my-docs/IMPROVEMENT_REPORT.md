@@ -28,6 +28,24 @@ GFA tie-in: structural maintainability supports Cat 5 (tests) and Cat 4 (query c
 
 D029–D037 in `DECISION_LOG.md`.
 
+### Wave 2 simplification orchestration (2026-05-22)
+
+Second focused pass per `my-docs/code-simplification-orchestration-plan.md` **Wave 2** section. **No git commits** unless user requests.
+
+| ID | Target | Status |
+|----|--------|--------|
+| W1 | `@ship/shared` sprint-time | Done |
+| W2 | Bootstrap SQL catalog + explain-performance TS | Done |
+| W3 | AI backend single guard layer | Done |
+| W4 | Bootstrap OpenAPI properties alignment | Done |
+| W5 | AI quality frontend modularization | Done |
+| W6 | DocumentTreeItem full consolidation | Done |
+| W7 | Micro cleanups | Done |
+
+Gates: `pnpm type-check` green; OpenAPI strict 193/193; bootstrap + sprint-time + accountability + ai-analysis guard API tests 20/20; web PlanQualityBanner + quiet-fetch 5/5; `pnpm perf:explain` smoke pass; `pnpm submission:validate` + `pnpm submission:render` + `pnpm submission:check` (Cat 8 still open by instruction). Post-audit fix (2026-05-22): restored `hasUsableBedrockClient()` guard in `callBedrock` (Wave 1 regression vs D044); added `api/src/services/__tests__/ai-analysis.test.ts`; `clearQuietCsrfToken()` wired into `clearCsrfToken()`. Thermo-nuclear follow-ups remain: bootstrap SQL catalog mirrors route (single builder deferred); visibility filter third copy; `useAiQuality` duplicate GET on mount. D046 documents DocumentTreeItem variant + sidebar adapter.
+
+---
+
 ### Phase 5 verification summary (2026-05-21)
 
 Seven parallel read-only agents + orchestrator gate re-run. **No CRITICAL regressions.** Security/access, weeks mount order, App shell, and route-http envelopes match `master` intent. **Intentional deltas:** `defineRoute` validation envelope on standups/feedback; OpenAPI route count 193 (grid v1/v2 removed).

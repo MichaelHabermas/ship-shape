@@ -778,4 +778,34 @@ Consequences: Any narrowed bootstrap field must be reflected in OpenAPI and fron
 
 Evidence: `pnpm type-check`; OpenAPI regenerated; focused API route tests on `ship_test_audit` passed for bootstrap/issues/search/visibility. The full benchmark rerun was excluded from Cat 3 proof because rate limiting caused non-2xx responses.
 
+Follow-up (2026-05-22 Wave 2): `BootstrapDocumentPropertiesSchema` in OpenAPI now matches runtime `pickBootstrapDocumentProperties` allowlist in `api/src/constants/bootstrap-document.ts`.
+
 **Decision Gist**: Bootstrap is metadata-first; detail routes keep full data.
+
+### D046: Canonical DocumentTreeItem With Sidebar Adapter
+
+Status: Accepted
+
+Decision: Use one shared `DocumentTreeItem` component with an `inline` default for `/docs` main tree and a `sidebar` variant wired through `SidebarDocumentTreeItem` for app-shell context menus. Keyboard navigation helpers live in `web/src/lib/documentTreeKeyboard.ts`.
+
+Why: The S10 app-shell extraction duplicated ~340 lines of tree row logic. Consolidation prevents paired fixes (e.g. a11y min-height) and matches `docs/document-model-conventions.md`.
+
+Consequences: Sidebar keeps undo-delete semantics; `/docs` main tree keeps inline add/delete callbacks. Delete UX parity between sidebar and main tree remains intentionally deferred.
+
+Evidence: `pnpm type-check`; web tests for PlanQualityBanner and quiet-fetch pass.
+
+**Decision Gist**: One tree component; sidebar binds context via adapter.
+
+### D047: Restore Bedrock Credential Guard After Wave 1 Refactor
+
+Status: Accepted
+
+Decision: Keep `hasUsableBedrockClient()` at the top of `callBedrock` in `api/src/services/ai-analysis.ts` so analyze endpoints never invoke Bedrock when credentials are unavailable, matching D044 and pre-Wave-2 behavior.
+
+Why: Wave 1 Agent A1 removed the guard from `callBedrock` without adding entry guards on `analyzePlan`/`analyzeRetro`; `/api/ai/status` could report unavailable while analyze still attempted invoke.
+
+Consequences: Unit test `api/src/services/__tests__/ai-analysis.test.ts` locks guard behavior; frontend `useAiQuality` status gate remains defense-in-depth.
+
+Evidence: Vitest guard test passes; `isAiAvailable()` and analyze paths share credential cache.
+
+**Decision Gist**: One guard at invoke boundary; D044 preserved.

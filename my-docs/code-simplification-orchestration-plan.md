@@ -145,3 +145,21 @@ Agents report to orchestrator; orchestrator updates `MEMORY.md`, `DECISION_LOG.m
 | LOW | E2E `e2e/status-overview-heatmap.spec.ts` not re-run this pass | optional gate |
 
 **GFA alignment:** No forbidden functionality removal; fail-closed access not weakened; tests not weakened (but coverage gaps documented). Category metric rows still require before/after benchmarks for claimed credit.
+
+---
+
+## Wave 2 — DRY / modular simplification (2026-05-22)
+
+**Plan reference:** `.cursor/plans/simplify_orchestration_wave_2_9bdfc184.plan.md` (do not edit plan file during execution).
+
+| ID | Work | Status |
+|----|------|--------|
+| W1 | `@ship/shared` sprint-time helpers | Done |
+| W2 | Bootstrap SQL catalog + explain-performance TS | Done |
+| W3 | AI backend single guard layer | Done |
+| W4 | Bootstrap OpenAPI properties alignment | Done |
+| W5 | AI quality frontend modularization | Done |
+| W6 | DocumentTreeItem full consolidation | Done |
+| W7 | Micro cleanups (useAuth meta, test helpers) | Done |
+
+**Deferred:** Wave 2b repo-wide sprint-time migration (`weeks/*`, `team.ts`, `standups.ts`); runtime OpenAPI response validation middleware.

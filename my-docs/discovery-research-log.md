@@ -1081,3 +1081,35 @@ Validation notes:
 - `pnpm submission:validate` passes schema/gates for Cats 2, 4, 6, and 7; Cat 3 remains partial; Cat 8 remains open by instruction.
 - `pnpm submission:render` regenerated `my-docs/reviewer-dashboard.html` and the generated ledger block in `my-docs/IMPROVEMENT_REPORT.md`.
 - Focused Cat 6 E2E rerun was blocked by Docker/Testcontainers preflight in this environment; do not describe it as a fresh pass.
+
+---
+
+## Wave 2 simplification orchestration (2026-05-22)
+
+DRY/modular refactor (no GFA metric claims unless noted):
+
+- **Shared sprint-time** (`shared/src/sprint-time.ts`): wired into bootstrap route and accountability service; explain script imports same helpers.
+- **Bootstrap SQL catalog** (`api/src/sql/bootstrap-queries.ts`): `INFERRED_PROJECT_STATUS_SUBQUERY` + `buildBootstrapExplainCatalog`; bootstrap route imports subquery; `scripts/explain-performance.ts` replaces `.mjs` (run via `pnpm perf:explain`).
+- **Bootstrap document properties**: runtime allowlist in `api/src/constants/bootstrap-document.ts`; OpenAPI `BootstrapDocumentPropertiesSchema` aligned (Cat 3 ledger note only).
+- **AI quality UI**: deleted dead `QualityAssistant.tsx`; `quiet-fetch`, `useAiQuality`, `QualityBannerShell`; Cat 6 fix record wording updated; vitest 5/5 on banner + quiet-fetch.
+- **Document tree**: `documentTreeKeyboard.ts` + unified `DocumentTreeItem` + `SidebarDocumentTreeItem` (D046).
+
+Gates: `pnpm type-check` pass; `pnpm openapi:check:strict` 193/193; bootstrap + accountability + sprint-time + ai-analysis guard API tests pass; web vitest 5/5 on banner + quiet-fetch; `pnpm perf:explain` smoke pass on `ship_dev`.
+
+### Wave 2 multi-agent verification audit (2026-05-22)
+
+Parallel sub-agents (API, web, shell gates, GFA alignment, E2E):
+
+| Area | Verdict | Notes |
+|------|---------|-------|
+| Sprint-time / bootstrap SQL / OpenAPI allowlist / D045 | PASS | Behavior-preserving extractions |
+| AI Bedrock guard | FAIL → **fixed** | Guard restored in `callBedrock` + `ai-analysis.test.ts` (D047) |
+| Web AI/tree modularization | PASS | D044 UX preserved; CSRF cache cleared on logout via `clearCsrfToken()` |
+| explain-performance TS | PASS | 10+10+10 query names unchanged vs `.mjs` |
+| GFA / ledger honesty | PASS | Cat 3 partial, Cat 4/6/7 claims bounded |
+| Shell gates | PASS | type-check, vitest, openapi, perf:explain, submission:check |
+| E2E context menus | PASS | 8/8 |
+| E2E tree auto-expand | FAIL (env) | Seed nested docs missing — not Wave 2 regression |
+| a11y closeout | FAIL (env) | Dev server not running on :5173 |
+
+Follow-ups (non-blocking): single bootstrap SQL builder; unify visibility filter import; dedupe `useAiQuality` mount GET; post-W6 axe re-run when dev server up.
