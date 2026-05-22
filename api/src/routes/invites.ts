@@ -1,16 +1,13 @@
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
+import { sessionCookieOptions } from '../config/session-cookies.js';
 
-const router: RouterType = Router();
-const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
-  ? 'none'
-  : 'lax';
+const router = Router();
 
 // GET /api/invites/:token - Validate invite token
 router.get('/:token', async (req: Request, res: Response): Promise<void> => {
@@ -246,12 +243,7 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
     });
 
     // Set cookie
-    res.cookie('session_id', sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: sameSiteCookiePolicy,
-      maxAge: SESSION_TIMEOUT_MS,
-    });
+    res.cookie('session_id', sessionId, sessionCookieOptions({}, 'lax'));
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,

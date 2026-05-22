@@ -36,6 +36,8 @@ import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js'
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
+import { sessionSameSitePolicy } from './config/session-cookies.js';
+import { isDevEnv, isProduction, isTestEnv } from './config/runtime.js';
 
 // Validate SESSION_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -43,9 +45,6 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 }
 
 const sessionSecret = process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production';
-const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
-  ? 'none'
-  : 'strict';
 
 function getHeaderValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -80,14 +79,12 @@ function isCsrfError(err: unknown): boolean {
 // Rate limiting configurations
 // In test/dev environment, use much higher limits to avoid issues
 // Production limits: login=5/15min (failed only), api=100/min
-const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TEST === '1';
-const isDevEnv = process.env.NODE_ENV !== 'production';
 
 // Strict rate limit for login (5 failed attempts / 15 min) - brute force protection
 // skipSuccessfulRequests: true means only failed attempts count toward the limit
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isTestEnv ? 1000 : 5, // High limit for tests
+  max: isTestEnv() ? 1000 : 5, // High limit for tests
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Try again in 15 minutes.' },
@@ -97,7 +94,7 @@ const loginLimiter = rateLimit({
 // General API rate limit (100 req/min in prod, 1000 in dev)
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: isTestEnv ? 10000 : isDevEnv ? 1000 : 100, // High limit for tests/dev
+  max: isTestEnv() ? 10000 : isDevEnv() ? 1000 : 100, // High limit for tests/dev
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please slow down.' },
@@ -108,7 +105,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   const app = express();
 
   // Trust proxy headers (CloudFront) for secure cookies and correct protocol detection
-  if (process.env.NODE_ENV === 'production') {
+  if (isProduction()) {
     app.set('trust proxy', 1);
 
     // CloudFront with viewer_protocol_policy="redirect-to-https" always serves viewers over HTTPS.
@@ -167,8 +164,8 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: sameSiteCookiePolicy,
+      secure: isProduction(),
+      sameSite: sessionSameSitePolicy(),
       maxAge: 15 * 60 * 1000, // 15 minutes
     },
   }));

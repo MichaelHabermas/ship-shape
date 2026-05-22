@@ -4,6 +4,7 @@
 
 import { z, registry } from '../registry.js';
 import { UuidSchema, DateTimeSchema, DateSchema } from './common.js';
+import { IdParamSchema } from './route-helpers.js';
 
 // ============== Standup Response ==============
 
@@ -20,6 +21,10 @@ export const StandupResponseSchema = z.object({
 }).openapi('Standup');
 
 registry.register('Standup', StandupResponseSchema);
+
+export const StandupsListResponseSchema = z.array(StandupResponseSchema).openapi('StandupsList');
+
+registry.register('StandupsList', StandupsListResponseSchema);
 
 // ============== Standup Status ==============
 
@@ -49,147 +54,31 @@ export const UpdateStandupSchema = z.object({
 
 registry.register('UpdateStandup', UpdateStandupSchema);
 
-// ============== Register Standup Endpoints ==============
+export const ListStandupsQuerySchema = z.object({
+  date_from: DateSchema.openapi({ description: 'Start date (YYYY-MM-DD)' }),
+  date_to: DateSchema.openapi({ description: 'End date (YYYY-MM-DD)' }),
+}).openapi('ListStandupsQuery');
 
-registry.registerPath({
-  method: 'get',
-  path: '/standups/status',
-  tags: ['Standups'],
-  summary: 'Get standup due status',
-  description: 'Check if current user needs to post a standup today.',
-  responses: {
-    200: {
-      description: 'Standup status',
-      content: {
-        'application/json': {
-          schema: StandupStatusSchema,
-        },
-      },
-    },
-  },
-});
+registry.register('ListStandupsQuery', ListStandupsQuerySchema);
 
-registry.registerPath({
-  method: 'get',
-  path: '/standups',
-  tags: ['Standups'],
-  summary: 'List standups for current user',
-  description: 'Get standups for the current user within a date range.',
-  request: {
-    query: z.object({
-      date_from: DateSchema.openapi({ description: 'Start date (YYYY-MM-DD)' }),
-      date_to: DateSchema.openapi({ description: 'End date (YYYY-MM-DD)' }),
-    }),
-  },
-  responses: {
-    200: {
-      description: 'List of standups in the date range',
-      content: {
-        'application/json': {
-          schema: z.array(StandupResponseSchema),
-        },
-      },
-    },
-    400: {
-      description: 'Missing required date_from or date_to params',
-    },
-  },
-});
+export const StandupIdParamsSchema = IdParamSchema.openapi('StandupIdParams');
 
-registry.registerPath({
-  method: 'post',
-  path: '/standups',
-  tags: ['Standups'],
-  summary: 'Create standup (idempotent)',
-  description: 'Create a standalone standup for the current user on a given date. Returns existing standup if one already exists for that date.',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: CreateStandupSchema,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Existing standup returned (idempotent)',
-      content: {
-        'application/json': {
-          schema: StandupResponseSchema,
-        },
-      },
-    },
-    201: {
-      description: 'New standup created',
-      content: {
-        'application/json': {
-          schema: StandupResponseSchema,
-        },
-      },
-    },
-    400: {
-      description: 'Validation error',
-    },
-  },
-});
+export const UpdatedStandupResponseSchema = z.object({
+  id: UuidSchema,
+  sprint_id: UuidSchema.nullable(),
+  title: z.string(),
+  content: z.record(z.unknown()).nullable(),
+  author_id: z.string(),
+  author_name: z.string().nullable(),
+  author_email: z.string().nullable(),
+  created_at: DateTimeSchema,
+  updated_at: DateTimeSchema,
+}).openapi('UpdatedStandup');
 
-registry.registerPath({
-  method: 'patch',
-  path: '/standups/{id}',
-  tags: ['Standups'],
-  summary: 'Update standup',
-  description: 'Only the author or an admin can update a standup.',
-  request: {
-    params: z.object({
-      id: UuidSchema,
-    }),
-    body: {
-      content: {
-        'application/json': {
-          schema: UpdateStandupSchema,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Updated standup',
-      content: {
-        'application/json': {
-          schema: StandupResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - only author or admin can update',
-    },
-    404: {
-      description: 'Standup not found',
-    },
-  },
-});
+registry.register('UpdatedStandup', UpdatedStandupResponseSchema);
 
-registry.registerPath({
-  method: 'delete',
-  path: '/standups/{id}',
-  tags: ['Standups'],
-  summary: 'Delete standup',
-  description: 'Only the author or an admin can delete a standup.',
-  request: {
-    params: z.object({
-      id: UuidSchema,
-    }),
-  },
-  responses: {
-    204: {
-      description: 'Standup deleted',
-    },
-    403: {
-      description: 'Forbidden - only author or admin can delete',
-    },
-    404: {
-      description: 'Standup not found',
-    },
-  },
-});
+export const StandupLegacyErrorSchema = z.object({
+  error: z.string(),
+}).openapi('StandupLegacyError');
+
+registry.register('StandupLegacyError', StandupLegacyErrorSchema);

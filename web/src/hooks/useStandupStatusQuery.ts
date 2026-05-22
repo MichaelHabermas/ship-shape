@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient, assertApiData } from '@/api/client';
+import { apiGet } from '@/lib/api';
 import type { components } from '@/api/generated/ship-openapi';
 
 export type StandupStatus = components['schemas']['StandupStatus'];
@@ -12,8 +12,11 @@ export const standupStatusKeys = {
 
 // Fetch standup status
 async function fetchStandupStatus(): Promise<StandupStatus> {
-  const response = await apiClient.GET('/standups/status');
-  return assertApiData(response, 'Failed to fetch standup status');
+  const response = await apiGet('/api/standups/status');
+  if (!response.ok) {
+    throw new Error('Failed to fetch standup status');
+  }
+  return response.json();
 }
 
 // Hook to get standup due status

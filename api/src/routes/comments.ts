@@ -1,15 +1,14 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
-
-type RouterType = ReturnType<typeof Router>;
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 // ============== Document-scoped routes (/api/documents/:id/comments) ==============
 
-export const documentCommentsRouter: RouterType = Router();
+export const documentCommentsRouter: ExpressRouter = Router();
 
 const createCommentSchema = z.object({
   comment_id: z.string().uuid(),
@@ -72,8 +71,7 @@ documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request,
 
     res.json(comments);
   } catch (err) {
-    console.error('List comments error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'List comments error:');
   }
 });
 
@@ -90,7 +88,7 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
 
     const parsed = createCommentSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -145,14 +143,13 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
       updated_at: comment.updated_at,
     });
   } catch (err) {
-    console.error('Create comment error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create comment error:');
   }
 });
 
 // ============== Comment-scoped routes (/api/comments/:id) ==============
 
-export const commentsRouter: RouterType = Router();
+export const commentsRouter: ExpressRouter = Router();
 
 const updateCommentSchema = z.object({
   content: z.string().min(1).max(10000).optional(),
@@ -172,7 +169,7 @@ commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response)
 
     const parsed = updateCommentSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -251,8 +248,7 @@ commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response)
       updated_at: comment.updated_at,
     });
   } catch (err) {
-    console.error('Update comment error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update comment error:');
   }
 });
 
@@ -285,7 +281,6 @@ commentsRouter.delete('/:id', authMiddleware, async (req: Request, res: Response
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Delete comment error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Delete comment error:');
   }
 });

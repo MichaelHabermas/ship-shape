@@ -138,15 +138,15 @@ Evidence: `issues.ts` calls `listIssuesMetadata`; `documents.ts` calls `updateDo
 
 Status: Accepted
 
-Decision: Migrate `useIssuesQuery` `fetchIssues` to typed `apiClient.GET('/issues')` because `/issues` is registered and not stale. Defer other hooks until their route families are covered.
+Decision: Migrate `useIssuesQuery` `fetchIssues` to typed `apiClient.GET('/issues')` because `/issues` is registered and not stale. At the time, defer other hooks until their route families are covered.
 
 Why: D018 requires family-by-family migration; `GET /issues` is the safest covered read.
 
 Alternatives considered: Broad hook migration (false confidence with 82 missing routes); stay on `apiGet` forever. Pilot proves the pattern.
 
-Consequences: Next OpenAPI migrations should follow the same gate: `pnpm openapi:check` per family, then `apiClient`, then optional `expectOpenApiResponse`.
+Consequences: Next OpenAPI migrations should follow the same gate: `pnpm openapi:check` per family, then `apiClient`, then optional `expectOpenApiResponse`. Later D021 completed full route parity.
 
-Evidence: `web/src/hooks/useIssuesQuery.ts`; `pnpm openapi:check` 2026-05-21 (82 missing, 8 stale, report-only).
+Evidence: `web/src/hooks/useIssuesQuery.ts`; `pnpm openapi:check` 2026-05-21 initially reported 82 missing and 8 stale operations before the later D021 contract-completion pass.
 
 **Decision Gist**: One covered list endpoint uses the generated client; the rest wait for contract honesty.
 
@@ -164,7 +164,7 @@ Alternatives considered: Jump to Vite 8/React 19/Tailwind 4/TipTap 3/Zod 4 toget
 
 Consequences: `pnpm.overrides` now pins patched transitive versions for `flatted`, `markdown-it`, `qs`, and `yaml`, plus scoped `picomatch` overrides. The `picomatch` override must stay scoped: legacy chokidar consumers still need the 2.x line, while Vite/Vitest/tinyglobby paths can use 4.x. Root `@types/node` is pinned to the Node 22 type line to avoid accidental Node 25 type drift. `jsdom` intentionally stays on 27.4.0 because 29.x would silently raise the effective Node floor. These overrides should be reviewed during future parent-package upgrades and removed when no longer needed. `@modelcontextprotocol/sdk` still brings Express 5 transitively, but the app's direct API runtime remains Express 4.22.2.
 
-Evidence: `pnpm audit --prod --audit-level low` and `pnpm audit --audit-level low` both reported 0 advisories after the corrected pass. Static/build/unit/OpenAPI checks passed. E2E smoke, icons, and isolated Testcontainers checks passed. Full E2E remained non-green, but a clean-master comparison of the same failing spec files in `/Users/michaelhabermas/repos/GAI/ship-shape-baseline-e2e/test-results/baseline-failing-specs/` also failed, so the broad-suite failures are tracked as existing/overlapping E2E debt rather than a proven dependency-branch regression.
+Evidence: `pnpm audit --prod --audit-level low` and `pnpm audit --audit-level low` both reported 0 advisories after the corrected pass. Static/build/unit/OpenAPI checks passed. E2E smoke, icons, and isolated Testcontainers checks passed. Full E2E remained non-green, but a clean-master comparison of the same failing spec files also failed, so the broad-suite failures are tracked as existing/overlapping E2E debt rather than a proven dependency-branch regression. The old baseline worktree path is no longer present on this machine.
 
 **Decision Gist**: Use same-current-line dependency upgrades plus explicit patched transitive overrides; defer framework-major migrations to dedicated branches.
 
@@ -452,9 +452,9 @@ Why: Hand-maintained frontend response casts and `readJson<T>` calls made the AP
 
 Alternatives considered: Continue local frontend interfaces and casts; add runtime validation first; migrate all frontend calls immediately. Local casts recreate the current drift. Runtime validation is a valuable future 10x option, but it is larger and does not replace compile-time contract generation. Immediate broad migration is unsafe because the route/spec checker currently shows incomplete and stale OpenAPI coverage.
 
-Consequences: Route-family work that touches frontend API shape should update OpenAPI first, regenerate types, then migrate callers. `pnpm openapi:check` is report-first for now because the existing contract is incomplete; treating it as a hard gate would block on pre-existing drift. Use `pnpm openapi:check -- --strict` when a route-family pass is ready to make coverage blocking. The next 10x step is route/spec coverage enforcement, then optional runtime response validation for trust-boundary hardening.
+Consequences: Route-family work that touches frontend API shape should update OpenAPI first, regenerate types, then migrate callers. At this decision point, `pnpm openapi:check` was report-first because the existing contract was incomplete; later D021 made strict route parity a pre-commit gate. The next 10x step after route/spec coverage is optional runtime response validation for trust-boundary hardening.
 
-Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. `pnpm openapi:check` reports 195 runtime routes, 121 OpenAPI operations, 82 missing, and 8 stale after fixing duplicate route mounts, path-param normalization, and the files/auth route families on 2026-05-21. `pnpm type-check` passes after the first typed-client migrations.
+Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. At this point, `pnpm openapi:check` reported 195 runtime routes, 121 OpenAPI operations, 82 missing, and 8 stale after fixing duplicate route mounts, path-param normalization, and the files/auth route families on 2026-05-21. Later D021 completed parity at 195 runtime / 195 OpenAPI operations, 0 missing, 0 stale. `pnpm type-check` passes after the first typed-client migrations.
 
 **Decision Gist**: OpenAPI is now the frontend API type source, but coverage debt must be closed before broad generated-client migration.
 
@@ -462,15 +462,15 @@ Evidence: `pnpm openapi:generate` writes `api/openapi.json`, `api/openapi.yaml`,
 
 Status: Accepted
 
-Decision: Do not add production runtime response validation as the next blanket move. Use test-time response validation first: selected integration tests should assert that runtime JSON responses match the same Zod schemas that generate OpenAPI. Close OpenAPI coverage for each migrated route family before making that family strict.
+Decision: Do not add production runtime response validation as the next blanket move. Use test-time response validation first: selected integration tests should assert that runtime JSON responses match the same Zod schemas that generate OpenAPI. At this decision point, close OpenAPI coverage for each migrated route family before making that family strict.
 
-Why: Runtime validation only improves trust if the schema being enforced is true. The current checker still reports 195 runtime routes, 121 OpenAPI operations, 82 runtime routes missing from OpenAPI, and 8 stale OpenAPI operations. Test-time validation catches drift without adding request-path production risk while the contract is still being cleaned up.
+Why: Runtime validation only improves trust if the schema being enforced is true. At this point, the checker still reported 195 runtime routes, 121 OpenAPI operations, 82 runtime routes missing from OpenAPI, and 8 stale OpenAPI operations. Test-time validation catches drift without adding request-path production risk while the contract is still being cleaned up.
 
 Alternatives considered: Add production middleware immediately; skip runtime validation entirely; migrate all frontend calls to generated types first. Immediate middleware is premature while stale/missing route coverage is known. Skipping validation leaves the trust boundary compile-time only. Broad migration first would spread generated false confidence through more UI code.
 
 Consequences: The next API-contract 10x path is ordered: route/spec coverage, strict coverage gate, targeted test-time response validation, optional staging-only production validation, then broader generated-client migration. Runtime validators should focus on endpoints where malformed server data can silently corrupt UI state, not every low-risk read on day one.
 
-Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, and `api/src/routes/openapi-contract.test.ts` validates `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login` against their registered OpenAPI component schemas. The focused DB-backed test run passed. `pnpm openapi:check` is report-only today and currently reports 82 missing routes and 8 stale operations. `web/src/api/client.ts` uses `openapi-fetch` with legacy-compatible CSRF/session/JSON behavior, but it does not perform production response validation.
+Evidence: `api/src/test/openapi-response.ts` provides `expectOpenApiResponse`, and `api/src/routes/openapi-contract.test.ts` validates `GET /api/auth/session`, `GET /api/csrf-token`, and `POST /api/auth/login` against their registered OpenAPI component schemas. The focused DB-backed test run passed. At the time, `pnpm openapi:check` was report-only and reported 82 missing routes and 8 stale operations; later D021 made strict route parity pass at 195/195. `web/src/api/client.ts` uses `openapi-fetch` with legacy-compatible CSRF/session/JSON behavior, but it does not perform production response validation.
 
 **Decision Gist**: Runtime validation is valuable, but only after the OpenAPI source is honest enough to validate against.
 
@@ -537,3 +537,131 @@ Consequences: `api_tokens` authentication now requires current workspace members
 Evidence: Migrations `039_fail_closed_document_access_guards.sql` and `040_relationship_mutation_guards.sql` plus matching `schema.sql` trigger definitions. `pnpm --filter @ship/api db:migrate`, `pnpm type-check`, and the focused API batch pass.
 
 **Decision Gist**: Actor auth lives in code; structural impossibilities are blocked in the database.
+
+### D029: Code Simplification Orchestration (SOLID/DRY Pass)
+
+Status: In progress
+
+Decision: Execute ten simplification opportunities in dependency order via parallel sub-agents (route-http, runtime config, dead grid deletion, extractPlanItems unify, approval workflow, document-access/repository widening, defineRoute pilots, deferred `weeks.ts`/`App.tsx` splits). Master plan: `my-docs/code-simplification-orchestration-plan.md`.
+
+Why: Five copies of Render SameSite policy were already consolidated into `session-cookies.ts`. Remaining wins are god routes (`weeks.ts` ~3.3k lines), duplicate approval/TipTap/HTTP patterns, dead accountability-grid v1/v2, and OpenAPI split-brain. Eelon advisory: delete dead surfaces first; defer file splits until S5/S6/S7 land with tests.
+
+Alternatives considered: Big-bang `weeks.ts` split first (high merge/conflict risk, weak GFA attribution); skip deletion and only abstract (leaves dead OpenAPI surface).
+
+Consequences: No git commits in this pass unless user asks. Phase 3 splits (S8/S10) gated on Phase 1–2 integration + type-check/API tests. v3 accountability grid endpoint path unchanged (`/accountability-grid-v3`).
+
+Evidence: Orchestration plan; parallel agents A1–A4 Phase 1; eelon agent advisory 2026-05-21.
+
+**Decision Gist**: Delete dead code first, unify cross-cutting helpers second, split god files last with measurement.
+
+### D030: Canonical `extractPlanItemsFromContent` In Shared
+
+Status: Accepted
+
+Decision: Move weekly plan bullet extraction to `shared/src/content-extract.ts` as `extractPlanItemsFromContent` with optional `withChecked` / `includeParagraphs`. API consumers (`weekly-plans`, `dashboard`, `ai-analysis`) import from `@ship/shared`; dashboard keeps a thin mapper for `PlanItem[]`.
+
+Why: Three near-duplicate walkers risked drift (D021 pattern). Shared package is the cross-tier contract home.
+
+Alternatives considered: `api/src/utils/document-content.ts` only (web cannot import). Keeping three locals (DRY violation).
+
+Consequences: Run `pnpm --filter @ship/shared build` after changing shared extractors. Retro full-text for AI still uses `extractText` from `document-content.ts`. Next: dedupe `extractPlainText` vs `extractText`.
+
+Evidence: `api/src/__tests__/shared-content-boundary.test.ts`; type-check + 25 targeted API tests pass (2026-05-21).
+
+### D031: Weeks Route Module Split
+
+Status: Accepted
+
+Decision: Split `api/src/routes/weeks.ts` into `api/src/routes/weeks/` (`types`, `shared`, `sprints`, `my-week`, `nested-standups`, `reviews`, `approvals`, `index`). Keep `weeks.ts` as `export { default } from './weeks/index.js'`.
+
+Why: ~3.3k-line god file blocked review and duplicated sprint helpers. Shared `getSprintOwnerReportsTo` / `broadcastAccountabilityUpdateToSprintOwner` live in `weeks/shared.ts`.
+
+Consequences: New sprint/approval routes go in the matching submodule; mount order in `index.ts` must keep static paths before `/:id`.
+
+Evidence: `pnpm type-check`; weeks + projects tests pass on `ship_test_audit` (2026-05-21).
+
+**Decision Gist**: Sprint routes are a folder package, not one file.
+
+### D032: App Shell Component Split
+
+Status: Accepted
+
+Decision: Extract `useAppMode`, `AppHeader`, and `AppSidebar` from `App.tsx`; leave `AppLayout` as composition (~220 lines).
+
+Why: 1.9k-line layout mixed mode detection, chrome, and sidebar trees.
+
+Consequences: Sidebar/mode changes touch `AppSidebar` or `useAppMode`, not the full page.
+
+Evidence: `pnpm --filter @ship/web type-check` pass (2026-05-21).
+
+**Decision Gist**: App layout is composition of focused components.
+
+### D033: Issue Detail Reads Via Repository + Access Actor
+
+Status: Accepted
+
+Decision: Add `getIssueDetailById` / `getIssueDetailByTicketNumber` to `documents-repository.ts`; wire `issues.ts` GET `/:id`, `/by-ticket/:number`, and `/:id/children` parent check through `getActor` + repository / `canReadDocument`.
+
+Why: Extends D015 list projection pattern to detail reads without widening visibility SQL.
+
+Consequences: New issue detail fields belong in repository SELECT, not inline route SQL.
+
+Evidence: `issues.test.ts` pass on `ship_test_audit` (2026-05-21).
+
+**Decision Gist**: Issue detail SQL lives in the repository; access checks use `document-access`.
+
+### D034: Route HTTP Helper Sweep (Phase 4)
+
+Status: Accepted
+
+Decision: Standardize legacy `{ error }` / `{ error, details }` envelopes via `api/src/utils/route-http.ts` across major route files and `api/src/routes/weeks/*` submodules. Keep route-specific 404/403 messages as inline `res.status(...).json({ error: '...' })` unless migrating to `sendLegacyError`.
+
+Why: Phase 1 pilot left most routes on copy-paste `console.error` + 500 JSON. Sweep removes ~100+ duplicate catch blocks without changing response shapes.
+
+Alternatives considered: Middleware-only error handler (would change global behavior); `defineRoute` everywhere first (higher churn).
+
+Consequences: New/edited catch blocks in swept files should use `sendInternalError`. Zod validation should use `sendValidationError`.
+
+Evidence: `pnpm type-check`; `vitest run src/routes/` 313/313 on `ship_test_audit` (2026-05-21).
+
+**Decision Gist**: One helper trio for legacy route JSON errors; routes keep domain-specific 404 text inline.
+
+### D035: OpenAPI Route Scanner Parity (Phase 4b)
+
+Status: Accepted
+
+Decision: Import `standups.js` in `api/src/openapi/index.ts` so `defineRoute` registrations appear in generated spec. Extend `scripts/check-openapi-routes.mjs` to scan `api/src/routes/weeks/*` when `weeks.ts` is a re-export shell.
+
+Why: After S8/S9 split, strict check reported 5 missing standups routes and 24 stale weeks routes despite runtime and OpenAPI being aligned.
+
+Evidence: `pnpm openapi:check:strict` — Runtime 193, OpenAPI 193, 0 missing/stale (2026-05-21).
+
+### D036: Express Router Declaration Standard (Phase 4d)
+
+Status: Accepted
+
+Decision: Default route modules use `const router = Router()` (inferred type). Named exported routers (`searchRouter`, `filesRouter`, etc.) annotate with `import { type Router as ExpressRouter }` only where export typing is required. Remove per-file `type RouterType = ReturnType<typeof Router>()` and duplicate `import type { Router as RouterType }` lines.
+
+Why: ~25 files repeated three equivalent patterns with no behavioral value.
+
+Alternatives considered: `createRouter()` factory (extra indirection); shared `AppRouter` type alias file (unnecessary).
+
+Consequences: New route files follow inference-first; use `ExpressRouter` only on named exports.
+
+Evidence: `pnpm type-check` green across api/web/shared (2026-05-21).
+
+**Decision Gist**: One router idiom — infer by default, annotate exports only.
+
+### D037: simplify-1 Multi-Agent Verification Pass (Phase 5)
+
+Status: Accepted (conditional ship)
+
+Decision: Treat `simplify-1` refactor as **correctness-verified for merge** on automated gates and read-only audits, with documented follow-ups for test coverage and prod SSL policy — not as a full GFA category closure.
+
+Why: Foundational refactors (route-http, weeks split, document-access pilots, defineRoute pilots) need evidence beyond green status-code tests. Parallel agents (security, OpenAPI, weeks structure, web shell, thermo review, test-contract) found **no CRITICAL** regressions; visibility/approval/session behavior preserved vs `master`.
+
+Findings catalogued in `my-docs/code-simplification-orchestration-plan.md` Verification report. Intentional: defineRoute validation envelope; grid route removal (193 paths). Follow-up: prod `databaseSslOptions`, approval-workflow tests, feedback/standups contract tests, `asApprovalRecord` guard.
+
+Evidence: `pnpm type-check`; `openapi:check:strict` 193/193; `vitest run src/routes/` 313/313; standups+feedback 21/21 on `ship_test_audit` (2026-05-21).
+
+**Decision Gist**: Ship the structural pass; track HIGH follow-ups before claiming full GFA/test maturity.

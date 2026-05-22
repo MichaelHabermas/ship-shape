@@ -5,6 +5,7 @@ import { readFileSync } from 'fs';
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import { loadProductionSecrets } from '../config/ssm.js';
+import { databaseSslOptions } from '../config/runtime.js';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocument.js';
 
 const { Pool } = pg;
@@ -41,7 +42,7 @@ async function seed() {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: databaseSslOptions(),
   });
   console.log('🌱 Starting database seed...');
   // Only log hostname, never full connection string (contains credentials)

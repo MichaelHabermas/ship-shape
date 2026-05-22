@@ -10,6 +10,8 @@ import './schemas/index.js';
 
 // Routes registered via defineRoute (side-effect registration at module load)
 import '../routes/setup.js';
+import '../routes/standups.js';
+import '../routes/feedback.js';
 
 // Re-export the registry and generator
 export { registry, generateOpenAPIDocument } from './registry.js';

@@ -12,8 +12,8 @@ ShipShape was received already built. The AI work measured here was mostly audit
 | --- | --- |
 | Cash spend basis | $100/month Codex subscription |
 | Subscription status | Active as of 2026-05-21 |
-| Measured project usage | 211 Codex threads; 779,262,082 aggregate local tokens |
-| Measurement window | 2026-05-18 14:51:52 to 2026-05-21 16:10:00 America/Chicago |
+| Measured project usage | 228 Codex threads; 840,789,734 aggregate local tokens |
+| Measurement window | 2026-05-18 14:51:52 to 2026-05-21 19:06:22 America/Chicago |
 | Scope | Local Codex records for `/Users/michaelhabermas/repos/GAI/ship-shape` |
 | Exact token-metered bill | Not available from local Codex records |
 
@@ -27,17 +27,17 @@ Inclusive measurement window:
 | --- | --- |
 | First recorded thread | 2026-05-18 14:51:52 America/Chicago |
 | First recorded thread UTC | 2026-05-18 19:51:52 UTC |
-| Last recorded update | 2026-05-21 16:10:00 America/Chicago |
-| Last recorded update UTC | 2026-05-21 21:10:00 UTC |
-| Resume high-water mark | `created_at_ms > 1779397800637` |
+| Last recorded update | 2026-05-21 19:06:22 America/Chicago |
+| Last recorded update UTC | 2026-05-22 00:06:22 UTC |
+| Resume high-water mark | `created_at_ms > 1779408382796` |
 
-Next time, measure only threads for this repo with `created_at_ms > 1779397800637`, then update the high-water mark again. That avoids double-counting this window.
+Next time, measure only threads for this repo with `created_at_ms > 1779408382796`, then update the high-water mark again. That avoids double-counting this window.
 
 | Usage bucket | Threads | Tokens |
 | --- | ---: | ---: |
 | User/root Codex threads | 36 | 527,526,150 |
 | Spawned subagent threads | 175 | 252,346,173 |
-| Total local Codex usage | 211 | 779,262,082 |
+| Total local Codex usage | 228 | 840,789,734 |
 
 The unusually high usage is explained by the work shape: repeated source-of-truth review, repo-wide audits, large diffs, command output, and parallel subagents. That is the right shape for an evidence-heavy audit, but it is also context-expensive.
 
@@ -65,16 +65,16 @@ The token count should not be multiplied blindly by public API prices. Codex loc
 | 2026-05-18 | 3 | 87,774,273 | 29,258,091 | 79,977,259 |
 | 2026-05-19 | 13 | 121,710,812 | 9,362,370 | 47,210,903 |
 | 2026-05-20 | 110 | 280,127,893 | 2,546,617 | 34,717,810 |
-| 2026-05-21 | 85 | 290,259,345 | 3,414,816 | 51,217,042 |
+| 2026-05-21 | 102 | 351,176,756 | 3,442,909 | 51,217,042 |
 
 ## By Model
 
 | Model | Reasoning effort | Threads | Tokens |
 | --- | --- | ---: | ---: |
-| `gpt-5.5` | low | 75 | 564,419,278 |
-| `gpt-5.5` | medium | 68 | 105,972,529 |
-| `gpt-5.5` | high | 30 | 64,910,097 |
-| `codex-auto-review` | low | 36 | 39,460,640 |
+| `gpt-5.5` | low | 80 | 604,633,708 |
+| `gpt-5.5` | medium | 76 | 123,142,457 |
+| `gpt-5.5` | high | 30 | 67,205,779 |
+| `codex-auto-review` | low | 40 | 41,308,252 |
 | `gpt-5.5` | xhigh | 1 | 4,499,538 |
 | unknown | unknown | 1 | 0 |
 
@@ -84,11 +84,11 @@ Most usage was `gpt-5.5` with low reasoning effort. `codex-auto-review` usage re
 
 | Branch | Threads | Tokens |
 | --- | ---: | ---: |
-| `master` | 128 | 489,115,205 |
+| `master` | 146 | 543,503,263 |
 | `improvements-1` | 30 | 137,359,562 |
 | `openapi-typed-client` | 31 | 94,685,650 |
-| `audit-fail-open-paths` | 8 | 34,504,155 |
-| `improve-arch-1` | 11 | 18,966,893 |
+| `audit-fail-open-paths` | 9 | 44,563,127 |
+| `improve-arch-1` | 9 | 16,082,555 |
 | `simple-packages-upgrade` | 3 | 5,240,858 |
 
 ## Largest Threads
@@ -112,7 +112,7 @@ Do not overwrite this window when adding future work. Add a new window row or se
 
 For the next report:
 
-1. Run the incremental query using `created_at_ms > 1779397800637`.
+1. Run the incremental query using `created_at_ms > 1779408382796`.
 2. Record the new first/last timestamps and token total.
 3. Set the next high-water mark to the new `max(updated_at_ms)`.
 4. Keep cash spend separate from local token usage.
@@ -146,7 +146,7 @@ sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
           max(updated_at_ms) as next_high_water_mark
    from threads
    where cwd='/Users/michaelhabermas/repos/GAI/ship-shape'
-     and created_at_ms > 1779397800637;"
+     and created_at_ms > 1779408382796;"
 ```
 
 Useful breakdowns:

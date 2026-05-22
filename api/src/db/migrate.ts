@@ -11,6 +11,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import { loadProductionSecrets } from '../config/ssm.js';
+import { databaseSslOptions } from '../config/runtime.js';
 
 // Load .env.local for local development
 config({ path: join(dirname(fileURLToPath(import.meta.url)), '../../.env.local') });
@@ -31,7 +32,7 @@ async function migrate() {
 
   const pool = new Pool({
     connectionString: databaseUrl,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: databaseSslOptions(),
   });
 
   try {

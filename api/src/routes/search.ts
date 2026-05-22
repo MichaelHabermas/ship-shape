@@ -1,12 +1,12 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { isWorkspaceAdmin } from '../middleware/visibility.js';
 import { documentTypeSchema } from '../schemas/document-boundary.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-export const searchRouter: RouterType = Router();
+export const searchRouter: ExpressRouter = Router();
 
 type ContentSearchRow = {
   id: string | null;
@@ -92,8 +92,7 @@ searchRouter.get('/mentions', authMiddleware, async (req: Request, res: Response
       documents: documentsResult.rows,
     });
   } catch (error) {
-    console.error('Error searching mentions:', error);
-    res.status(500).json({ error: 'Failed to search mentions' });
+    sendInternalError(res, error, 'Error searching mentions:', { error: 'Failed to search mentions' });
   }
 });
 
@@ -110,7 +109,7 @@ searchRouter.get('/documents', authMiddleware, async (req: Request, res: Respons
     const isAdmin = await isWorkspaceAdmin(userId, workspaceId);
 
     if (documentType && !documentTypeSchema.safeParse(documentType).success) {
-      res.status(400).json({ error: 'Invalid document type' });
+      sendLegacyError(res, 400, 'Invalid document type');
       return;
     }
 
@@ -159,8 +158,7 @@ searchRouter.get('/documents', authMiddleware, async (req: Request, res: Respons
       total: result.rows.length,
     });
   } catch (error) {
-    console.error('Error searching documents:', error);
-    res.status(500).json({ error: 'Failed to search documents' });
+    sendInternalError(res, error, 'Error searching documents:', { error: 'Failed to search documents' });
   }
 });
 
@@ -175,12 +173,12 @@ searchRouter.get('/content', authMiddleware, async (req: Request, res: Response)
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
     if (!searchQuery) {
-      res.status(400).json({ error: 'Search query is required' });
+      sendLegacyError(res, 400, 'Search query is required');
       return;
     }
 
     if (documentType && !documentTypeSchema.safeParse(documentType).success) {
-      res.status(400).json({ error: 'Invalid document type' });
+      sendLegacyError(res, 400, 'Invalid document type');
       return;
     }
 
@@ -264,8 +262,9 @@ searchRouter.get('/content', authMiddleware, async (req: Request, res: Response)
       offset,
     });
   } catch (error) {
-    console.error('Error searching document content:', error);
-    res.status(500).json({ error: 'Failed to search document content' });
+    sendInternalError(res, error, 'Error searching document content:', {
+      error: 'Failed to search document content',
+    });
   }
 });
 
@@ -346,7 +345,6 @@ searchRouter.get('/learnings', authMiddleware, async (req: Request, res: Respons
       total: result.rows.length,
     });
   } catch (error) {
-    console.error('Error searching learnings:', error);
-    res.status(500).json({ error: 'Failed to search learnings' });
+    sendInternalError(res, error, 'Error searching learnings:', { error: 'Failed to search learnings' });
   }
 });

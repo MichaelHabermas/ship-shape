@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { pool } from '../db/client.js';
@@ -7,7 +6,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // Generate a secure API token with "ship_" prefix
 function generateApiToken(): { token: string; hash: string; prefix: string } {
