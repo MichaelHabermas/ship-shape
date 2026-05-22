@@ -10,12 +10,12 @@
  *   After:  const { byType: { issue: issues } } = useUnifiedDocuments({ type: 'issue' })
  */
 import { createContext, useContext, ReactNode } from 'react';
-import { useIssues as useIssuesQuery, Issue, CreateIssueOptions } from '@/hooks/useIssuesQuery';
+import { useIssues as useIssuesQuery, IssueListItem, Issue, CreateIssueOptions } from '@/hooks/useIssuesQuery';
 
-export type { Issue, CreateIssueOptions };
+export type { IssueListItem, Issue, CreateIssueOptions };
 
 interface IssuesContextValue {
-  issues: Issue[];
+  issues: IssueListItem[];
   loading: boolean;
   createIssue: (options?: CreateIssueOptions) => Promise<Issue | null>;
   updateIssue: (id: string, updates: Partial<Issue>) => Promise<Issue | null>;

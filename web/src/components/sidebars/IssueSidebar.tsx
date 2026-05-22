@@ -8,7 +8,7 @@ import { apiPost, apiDelete } from '@/lib/api';
 import { readJson } from '@/api/read-json';
 import type { SprintsResponse } from '@/hooks/useWeeksQuery';
 import { formatDateRange } from '@/lib/date-utils';
-import { ISSUE_STATE_OPTIONS, type BelongsTo, type BelongsToType } from '@ship/shared';
+import { ISSUE_STATE_OPTIONS, ISSUE_PRIORITY_OPTIONS_FULL, type BelongsTo, type BelongsToType } from '@ship/shared';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -70,14 +70,6 @@ interface IssueSidebarProps {
   /** Fields to highlight as missing (e.g., after type conversion) */
   highlightedFields?: string[];
 }
-
-const PRIORITIES = [
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
-  { value: 'none', label: 'No Priority' },
-];
 
 // Compute sprint dates from sprint number (1-week sprints)
 function computeSprintDates(sprintNumber: number, workspaceStartDate: Date): { start: Date; end: Date } {
@@ -358,7 +350,7 @@ export function IssueSidebar({
             isHighlighted('priority') ? 'bg-amber-500/20 border border-amber-500' : 'bg-border'
           }`}
         >
-          {PRIORITIES.map((p) => (
+          {ISSUE_PRIORITY_OPTIONS_FULL.map((p) => (
             <option key={p.value} value={p.value}>
               {p.label}
             </option>

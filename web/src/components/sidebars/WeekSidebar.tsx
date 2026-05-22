@@ -15,7 +15,7 @@ const STATUS_OPTIONS = [
 interface SprintOwner {
   id: string;
   name: string;
-  email: string;
+  email?: string;
 }
 
 interface ReviewRating {

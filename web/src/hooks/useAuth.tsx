@@ -13,7 +13,7 @@ import { queryClient } from '@/lib/queryClient';
 import { documentKeys, type WikiDocument } from '@/hooks/useDocumentsQuery';
 import { programKeys, type Program } from '@/hooks/useProgramsQuery';
 import { projectKeys, type Project } from '@/hooks/useProjectsQuery';
-import { issueKeys, type Issue } from '@/hooks/useIssuesQuery';
+import { issueKeys, type IssueListItem } from '@/hooks/useIssuesQuery';
 import { standupStatusKeys, type StandupStatus } from '@/hooks/useStandupStatusQuery';
 import { actionItemsKeys } from '@/hooks/useActionItemsQuery';
 
@@ -85,7 +85,7 @@ function seedBootstrapQueries(data: Awaited<ReturnType<typeof api.auth.bootstrap
   queryClient.setQueryData<WikiDocument[]>(documentKeys.wikiList(), data.documents as WikiDocument[], BOOTSTRAP_STALE_QUERY_META);
   queryClient.setQueryData<Program[]>(programKeys.lists(), data.programs as Program[]);
   queryClient.setQueryData<Project[]>(projectKeys.lists(), data.projects as Project[], BOOTSTRAP_STALE_QUERY_META);
-  queryClient.setQueryData<Issue[]>(issueKeys.list(undefined), data.issues as Issue[]);
+  queryClient.setQueryData<IssueListItem[]>(issueKeys.list(undefined), data.issues as IssueListItem[]);
   queryClient.setQueryData<StandupStatus>(standupStatusKeys.status(), data.standupStatus as StandupStatus, BOOTSTRAP_STALE_QUERY_META);
   queryClient.setQueryData(actionItemsKeys.list(), data.actionItems, BOOTSTRAP_STALE_QUERY_META);
 }

@@ -68,7 +68,7 @@ export function DashboardPage() {
                 ...s,
                 sprint_id: sprint.id,
                 sprint_title: sprint.name,
-                program_name: sprint.program_name,
+                program_name: sprint.program_name ?? undefined,
               }));
             } catch {
               return [];

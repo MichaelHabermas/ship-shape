@@ -50,7 +50,7 @@ interface ProjectSidebarData {
 
 interface SprintSidebarData {
   people?: Array<{ id: string; user_id: string; name: string }>;
-  existingSprints?: Array<{ owner?: { id: string; name: string; email: string } | null }>;
+  existingSprints?: Array<{ owner?: { id: string; name: string; email?: string } | null }>;
 }
 
 interface ProgramSidebarData {
