@@ -1449,7 +1449,7 @@
         {
           "id": "cat3-bootstrap-payload-narrowing",
           "type": "manual_observation",
-          "description": "Bootstrap wiki document properties and project list fields were narrowed while preserving detail endpoints and cache refetch behavior."
+          "description": "Bootstrap wiki document properties and project list fields were narrowed while preserving detail endpoints and cache refetch behavior. OpenAPI now exposes BootstrapDocumentProperties (allowlisted keys) and BootstrapProject schemas matching runtime projections (Wave 2 simplification, 2026-05-22)."
         },
         {
           "id": "cat3-rate-limited-benchmark-run-2026-05-22",
@@ -2602,7 +2602,7 @@
           "title": "AI unavailable degraded mode",
           "repro_steps": "Run the app without usable Bedrock/AWS credentials and open a weekly plan quality banner.",
           "before_behavior": "AI analysis unavailability could become noisy server failure or a disappearing/unclear assistant state.",
-          "after_behavior": "AI status and analysis endpoints return controlled ai_unavailable JSON; the banner shows a concise unavailable state and keeps editor content visible.",
+          "after_behavior": "AI status and analysis endpoints return controlled ai_unavailable JSON without invoking Bedrock when credentials are missing (guard test: api/src/services/__tests__/ai-analysis.test.ts); PlanQualityBanner/RetroQualityBanner use shared useAiQuality + QualityBannerShell and show a concise unavailable state while keeping editor content and persisted analysis visible.",
           "screenshot_path": "test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png",
           "user_impact": "Prevents confusion when provider credentials are missing and avoids clearing user/editor context.",
           "counts_toward_user_facing_confusion_or_data_loss": true

@@ -1,0 +1,193 @@
+{
+  "generated_at": "2026-05-22T21:06:10.391Z",
+  "base_url": "http://127.0.0.1:3001",
+  "node_env": null,
+  "benchmark_env_flags": {
+    "BENCHMARK_RATE_LIMIT_BYPASS": "1",
+    "BENCHMARK_RATE_LIMIT_BYPASS_TOKEN": "[set]",
+    "API_BENCHMARK_RATE_LIMIT_BYPASS": "1",
+    "API_BENCHMARK_RATE_LIMIT_BYPASS_TOKEN": "[set]"
+  },
+  "duration_ms": 15000,
+  "rate_per_second": 100,
+  "connections": [
+    10,
+    25,
+    50
+  ],
+  "rate_limit_bypass": true,
+  "endpoints": [
+    "/api/documents?type=wiki",
+    "/api/issues",
+    "/api/dashboard/my-week",
+    "/api/projects",
+    "/api/bootstrap"
+  ],
+  "results": [
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 10,
+      "duration_ms": 15111,
+      "requests": 1361,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.221041999999215,
+      "p95_ms": 14.58862500000032,
+      "p99_ms": 20.08208300000001
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 25,
+      "duration_ms": 15146,
+      "requests": 1450,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.107583999997587,
+      "p95_ms": 15.629041000000143,
+      "p99_ms": 22.044208999999682
+    },
+    {
+      "endpoint": "/api/documents?type=wiki",
+      "concurrency": 50,
+      "duration_ms": 15375,
+      "requests": 1500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.527334000005794,
+      "p95_ms": 22.372082999998383,
+      "p99_ms": 39.59529199999815
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 10,
+      "duration_ms": 15106,
+      "requests": 1349,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.64558300000499,
+      "p95_ms": 16.834499999997206,
+      "p99_ms": 37.173750000001746
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 25,
+      "duration_ms": 15258,
+      "requests": 1432,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.63329099999828,
+      "p95_ms": 32.43145799999911,
+      "p99_ms": 83.85187500000029
+    },
+    {
+      "endpoint": "/api/issues",
+      "concurrency": 50,
+      "duration_ms": 15505,
+      "requests": 1451,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 12.392500000001746,
+      "p95_ms": 96.4781670000084,
+      "p99_ms": 231.33120900001086
+    },
+    {
+      "endpoint": "/api/dashboard/my-week",
+      "concurrency": 10,
+      "duration_ms": 15076,
+      "requests": 1360,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.026749999989988,
+      "p95_ms": 14.453499999988708,
+      "p99_ms": 20.56104200000118
+    },
+    {
+      "endpoint": "/api/dashboard/my-week",
+      "concurrency": 25,
+      "duration_ms": 15093,
+      "requests": 1450,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 8.744833000004292,
+      "p95_ms": 17.568415999994613,
+      "p99_ms": 25.712834000005387
+    },
+    {
+      "endpoint": "/api/dashboard/my-week",
+      "concurrency": 50,
+      "duration_ms": 15485,
+      "requests": 1500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 9.937624999991385,
+      "p95_ms": 56.85870799999975,
+      "p99_ms": 68.64262499999313
+    },
+    {
+      "endpoint": "/api/projects",
+      "concurrency": 10,
+      "duration_ms": 15045,
+      "requests": 1340,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 11.026250000024447,
+      "p95_ms": 15.444957999978215,
+      "p99_ms": 16.8940419999999
+    },
+    {
+      "endpoint": "/api/projects",
+      "concurrency": 25,
+      "duration_ms": 15179,
+      "requests": 1450,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 11.063041999994311,
+      "p95_ms": 14.627332999982173,
+      "p99_ms": 18.53391699999338
+    },
+    {
+      "endpoint": "/api/projects",
+      "concurrency": 50,
+      "duration_ms": 15339,
+      "requests": 1500,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.187917000002926,
+      "p95_ms": 18.525582999980543,
+      "p99_ms": 21.934957999998005
+    },
+    {
+      "endpoint": "/api/bootstrap",
+      "concurrency": 10,
+      "duration_ms": 15110,
+      "requests": 1341,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.115749999997206,
+      "p95_ms": 17.215832999994745,
+      "p99_ms": 38.59262499999022
+    },
+    {
+      "endpoint": "/api/bootstrap",
+      "concurrency": 25,
+      "duration_ms": 15258,
+      "requests": 1424,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 10.342915999994148,
+      "p95_ms": 28.40799999999581,
+      "p99_ms": 109.40562500001397
+    },
+    {
+      "endpoint": "/api/bootstrap",
+      "concurrency": 50,
+      "duration_ms": 15510,
+      "requests": 1437,
+      "failures": 0,
+      "non_2xx": 0,
+      "p50_ms": 14.101792000001296,
+      "p95_ms": 162.58379199999035,
+      "p99_ms": 287.3477080000157
+    }
+  ]
+}
