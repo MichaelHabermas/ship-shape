@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import express from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
@@ -7,6 +7,8 @@ import { mkdir, writeFile, unlink } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authMiddleware } from '../middleware/auth.js';
+import { useS3Uploads } from '../config/runtime.js';
+import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -43,8 +45,7 @@ function isValidUUID(id: string | string[] | undefined): boolean {
   return UUID_REGEX.test(id);
 }
 
-type RouterType = ReturnType<typeof Router>;
-export const filesRouter: RouterType = Router();
+export const filesRouter: ExpressRouter = Router();
 
 // Validation schemas
 const uploadRequestSchema = z.object({
@@ -90,7 +91,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
   try {
     const validation = uploadRequestSchema.safeParse(req.body);
     if (!validation.success) {
-      res.status(400).json({ error: 'Invalid request', details: validation.error.errors });
+      sendValidationError(res, validation.error);
       return;
     }
 
@@ -100,7 +101,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
 
     // Validate file type
     if (!isAllowedFile(filename, mimeType)) {
-      res.status(400).json({ error: 'File type not allowed' });
+      sendLegacyError(res, 400, 'File type not allowed');
       return;
     }
 
@@ -118,8 +119,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
     );
 
     // Use S3 when configured; otherwise use local storage for lightweight deployments.
-    const useS3 = process.env.NODE_ENV === 'production' && !!S3_BUCKET_NAME;
-    const uploadUrl = useS3
+    const uploadUrl = useS3Uploads()
       ? await generateS3PresignedUrl(s3Key, mimeType, sizeBytes)
       : `/api/files/${fileId}/local-upload`;
 
@@ -129,8 +129,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
       s3Key,
     });
   } catch (error) {
-    console.error('Error creating upload:', error);
-    res.status(500).json({ error: 'Failed to create upload' });
+    sendInternalError(res, error, 'Error creating upload:', { error: 'Failed to create upload' });
   }
 });
 
@@ -149,7 +148,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
 
     // SECURITY: Validate UUID format to prevent path traversal
     if (!fileId || !isValidUUID(fileId)) {
-      res.status(400).json({ error: 'Invalid file ID format' });
+      sendLegacyError(res, 400, 'Invalid file ID format');
       return;
     }
 
@@ -185,12 +184,12 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
     } else if (typeof req.body === 'string') {
       buffer = Buffer.from(req.body, 'base64');
     } else {
-      res.status(400).json({ error: 'Invalid file data format' });
+      sendLegacyError(res, 400, 'Invalid file data format');
       return;
     }
 
     if (buffer.length === 0) {
-      res.status(400).json({ error: 'No file data received' });
+      sendLegacyError(res, 400, 'No file data received');
       return;
     }
 
@@ -210,8 +209,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error uploading file locally:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
+    sendInternalError(res, error, 'Error uploading file locally:', { error: 'Failed to upload file' });
   }
 });
 
@@ -223,7 +221,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
 
     // SECURITY: Validate UUID format to prevent path traversal
     if (!fileId || !isValidUUID(fileId)) {
-      res.status(400).json({ error: 'Invalid file ID format' });
+      sendLegacyError(res, 400, 'Invalid file ID format');
       return;
     }
 
@@ -246,9 +244,8 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
     // For local dev: file was already saved in local-upload
 
     // Generate CDN URL
-    const useS3 = process.env.NODE_ENV === 'production' && !!S3_BUCKET_NAME;
     let cdnUrl: string;
-    if (useS3) {
+    if (useS3Uploads()) {
       const cdnDomain = process.env.CDN_DOMAIN;
       if (!cdnDomain) {
         throw new Error('CDN_DOMAIN environment variable is required in production');
@@ -270,8 +267,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
       status: 'uploaded',
     });
   } catch (error) {
-    console.error('Error confirming upload:', error);
-    res.status(500).json({ error: 'Failed to confirm upload' });
+    sendInternalError(res, error, 'Error confirming upload:', { error: 'Failed to confirm upload' });
   }
 });
 
@@ -284,7 +280,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
 
     // SECURITY: Validate UUID format to prevent path traversal
     if (!fileId || !isValidUUID(fileId)) {
-      res.status(400).json({ error: 'Invalid file ID format' });
+      sendLegacyError(res, 400, 'Invalid file ID format');
       return;
     }
 
@@ -309,8 +305,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
     res.setHeader('Content-Disposition', `inline; filename="${file.filename}"`);
     res.sendFile(filePath);
   } catch (error) {
-    console.error('Error serving file:', error);
-    res.status(500).json({ error: 'Failed to serve file' });
+    sendInternalError(res, error, 'Error serving file:', { error: 'Failed to serve file' });
   }
 });
 
@@ -322,7 +317,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // SECURITY: Validate UUID format to prevent path traversal
     if (!fileId || !isValidUUID(fileId)) {
-      res.status(400).json({ error: 'Invalid file ID format' });
+      sendLegacyError(res, 400, 'Invalid file ID format');
       return;
     }
 
@@ -341,8 +336,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error getting file:', error);
-    res.status(500).json({ error: 'Failed to get file' });
+    sendInternalError(res, error, 'Error getting file:', { error: 'Failed to get file' });
   }
 });
 
@@ -354,7 +348,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
 
     // SECURITY: Validate UUID format to prevent path traversal
     if (!fileId || !isValidUUID(fileId)) {
-      res.status(400).json({ error: 'Invalid file ID format' });
+      sendLegacyError(res, 400, 'Invalid file ID format');
       return;
     }
 
@@ -374,8 +368,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
     const file = fileResult.rows[0];
 
     // Delete from storage (local or S3)
-    const isProduction = process.env.NODE_ENV === 'production';
-    if (isProduction && S3_BUCKET_NAME) {
+    if (useS3Uploads()) {
       const client = getS3Client();
       const command = new DeleteObjectCommand({
         Bucket: S3_BUCKET_NAME,
@@ -396,8 +389,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting file:', error);
-    res.status(500).json({ error: 'Failed to delete file' });
+    sendInternalError(res, error, 'Error deleting file:', { error: 'Failed to delete file' });
   }
 });
 

@@ -9,6 +9,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { checkMissingAccountability } from '../services/accountability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { sendInternalError } from '../utils/route-http.js';
 
 const router = Router();
 
@@ -97,8 +98,7 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
       has_due_today,
     });
   } catch (err) {
-    console.error('Get accountability action items error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get accountability action items error:');
   }
 });
 

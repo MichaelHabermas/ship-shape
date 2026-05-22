@@ -11,6 +11,7 @@
 
 import { createHash } from 'crypto';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { extractPlanItemsFromContent } from '@ship/shared';
 import { extractText } from '../utils/document-content.js';
 
 const MODEL_ID = 'global.anthropic.claude-opus-4-5-20251101-v1:0';
@@ -63,44 +64,6 @@ function checkRateLimit(userId: string): boolean {
 
   entry.count++;
   return true;
-}
-
-/** Extract individual plan items from TipTap JSON content */
-function extractPlanItems(content: unknown): string[] {
-  if (!content || typeof content !== 'object') return [];
-  const doc = content as { content?: unknown[] };
-  if (!Array.isArray(doc.content)) return [];
-
-  const items: string[] = [];
-
-  function walkNodes(nodes: unknown[]) {
-    for (const node of nodes) {
-      if (!node || typeof node !== 'object') continue;
-      const n = node as { type?: string; content?: unknown[] };
-
-      // Extract text from list items and paragraphs (plan items)
-      if (n.type === 'listItem' || n.type === 'taskItem') {
-        const text = extractText(n).trim();
-        if (text) items.push(text);
-      } else if (n.type === 'paragraph' && !isHeading(node)) {
-        const text = extractText(n).trim();
-        if (text && text.length > 10) items.push(text); // Skip short fragments
-      }
-
-      // Recurse into container nodes (but not into already-captured list items)
-      if (n.content && n.type !== 'listItem' && n.type !== 'taskItem') {
-        walkNodes(n.content);
-      }
-    }
-  }
-
-  function isHeading(node: unknown): boolean {
-    if (!node || typeof node !== 'object') return false;
-    return (node as { type?: string }).type === 'heading';
-  }
-
-  walkNodes(doc.content);
-  return items;
 }
 
 // Analysis result types
@@ -260,7 +223,7 @@ async function callBedrock(systemPrompt: string, userPrompt: string): Promise<st
  */
 export async function analyzePlan(content: unknown): Promise<PlanAnalysisResult | AnalysisError> {
   const contentHash = computeContentHash(content);
-  const planItems = extractPlanItems(content);
+  const planItems = extractPlanItemsFromContent(content);
 
   if (planItems.length === 0) {
     return {
@@ -317,7 +280,7 @@ export async function analyzeRetro(
   planContent: unknown
 ): Promise<RetroAnalysisResult | AnalysisError> {
   const contentHash = computeContentHash({ retro_content: retroContent, plan_content: planContent });
-  const planItems = extractPlanItems(planContent);
+  const planItems = extractPlanItemsFromContent(planContent);
   const retroText = extractText(retroContent);
 
   if (!retroText.trim()) {

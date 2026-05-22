@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // All admin routes require super-admin
 router.use(authMiddleware, superAdminMiddleware);

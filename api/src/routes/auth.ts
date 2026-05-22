@@ -1,22 +1,18 @@
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
+import { sessionClearCookieOptions, sessionCookieOptions } from '../config/session-cookies.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
 }
-
-const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
-  ? 'none'
-  : 'strict';
 
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
@@ -186,13 +182,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     const pendingAccountabilityItems: unknown[] = [];
 
     // Set cookie with hardened security options
-    res.cookie('session_id', sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: sameSiteCookiePolicy,
-      maxAge: SESSION_TIMEOUT_MS,
-      path: '/',
-    });
+    res.cookie('session_id', sessionId, sessionCookieOptions());
 
     res.json({
       success: true,
@@ -242,12 +232,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
     await pool.query('DELETE FROM sessions WHERE id = $1', [req.sessionId]);
 
     // Clear cookie with same options used when setting it
-    res.clearCookie('session_id', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: sameSiteCookiePolicy,
-      path: '/',
-    });
+    res.clearCookie('session_id', sessionClearCookieOptions());
 
     res.json({ success: true });
   } catch (error) {
@@ -365,13 +350,7 @@ router.post('/extend-session', authMiddleware, async (req: Request, res: Respons
     });
 
     // Refresh cookie with new maxAge (sliding expiration)
-    res.cookie('session_id', req.sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: sameSiteCookiePolicy,
-      maxAge: SESSION_TIMEOUT_MS,
-      path: '/',
-    });
+    res.cookie('session_id', req.sessionId, sessionCookieOptions());
 
     res.json({
       success: true,

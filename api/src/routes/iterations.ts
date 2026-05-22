@@ -3,9 +3,9 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Validation schemas
 const createIterationSchema = z.object({
@@ -31,7 +31,7 @@ router.post('/:id/iterations', authMiddleware, async (req: Request, res: Respons
 
     const parsed = createIterationSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -87,8 +87,7 @@ router.post('/:id/iterations', authMiddleware, async (req: Request, res: Respons
       updated_at: iteration.updated_at,
     });
   } catch (err) {
-    console.error('Create iteration error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create iteration error:');
   }
 });
 
@@ -165,8 +164,7 @@ router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response
 
     res.json(iterations);
   } catch (err) {
-    console.error('Get iterations error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get iterations error:');
   }
 });
 

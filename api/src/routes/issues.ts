@@ -1,6 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
-import { listIssuesMetadata } from '../db/documents-repository.js';
+import {
+  getIssueDetailById,
+  getIssueDetailByTicketNumber,
+  listIssuesMetadata,
+  type IssueDetailRow,
+} from '../db/documents-repository.js';
 import { z } from 'zod';
 import type { IssueProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
@@ -22,9 +27,14 @@ import {
   type BelongsToEntry,
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
+import {
+  canReadDocument,
+  getActor,
+  getDocumentAccessContext,
+} from '../services/document-access.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 type QueryParam = string | boolean | null | string[];
 
@@ -108,6 +118,35 @@ function extractIssueFromRow(row: IssueRow, options: { includeContent?: boolean 
   };
 }
 
+async function sendIssueDetailResponse(
+  res: Response,
+  row: IssueDetailRow,
+  workspaceId: string
+): Promise<void> {
+  if (row.converted_to_id) {
+    const newDocResult = await pool.query(
+      'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
+      [row.converted_to_id, workspaceId]
+    );
+
+    if (newDocResult.rows.length > 0) {
+      const newDoc = newDocResult.rows[0];
+      res.set('X-Converted-Type', newDoc.document_type);
+      res.set('X-Converted-To', newDoc.id);
+      res.redirect(301, `/api/${newDoc.document_type}s/${newDoc.id}`);
+      return;
+    }
+  }
+
+  const issue = extractIssueFromRow(row as IssueRow);
+  const belongs_to = await getBelongsToAssociations(row.id);
+  res.json({
+    ...issue,
+    display_id: `#${issue.ticket_number}`,
+    belongs_to,
+  });
+}
+
 function extractIssueListItemFromRow(row: IssueRow) {
   const props: Partial<IssueProperties> = row.properties || {};
   return {
@@ -175,8 +214,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(issues);
   } catch (err) {
-    console.error('List issues error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'List issues error:');
   }
 });
 
@@ -266,8 +304,7 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
       total: items.length,
     });
   } catch (err) {
-    console.error('Get action items error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get action items error:');
   }
 });
 
@@ -285,89 +322,35 @@ router.get('/by-ticket/:number', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    const result = await pool.query(
-      `SELECT d.id, d.title, d.properties, d.ticket_number,
-              d.content,
-              d.created_at, d.updated_at, d.created_by,
-              d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
-              d.converted_to_id, d.converted_from_id,
-              u.name as assignee_name,
-              CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived,
-              creator.name as created_by_name
-       FROM documents d
-       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-         AND person_doc.document_type = 'person'
-         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-       LEFT JOIN users creator ON d.created_by = creator.id
-       WHERE d.ticket_number = $1 AND d.workspace_id = $2 AND d.document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-      [ticketNumber, workspaceId, userId, isAdmin]
+    const row = await getIssueDetailByTicketNumber(
+      ticketNumber,
+      actor.workspaceId,
+      actor.userId,
+      isAdmin
     );
 
-    if (result.rows.length === 0) {
+    if (!row) {
       res.status(404).json({ error: 'Issue not found' });
       return;
     }
 
-    const row = result.rows[0];
-
-    // Check if issue was converted - redirect to new document
-    if (row.converted_to_id) {
-      // Fetch the new document to determine its type for proper routing
-      const newDocResult = await pool.query(
-        'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
-        [row.converted_to_id, workspaceId]
-      );
-
-      if (newDocResult.rows.length > 0) {
-        const newDoc = newDocResult.rows[0];
-        // Return 301 with Location header to the new document's API endpoint
-        res.set('X-Converted-Type', newDoc.document_type);
-        res.set('X-Converted-To', newDoc.id);
-        res.redirect(301, `/api/${newDoc.document_type}s/${newDoc.id}`);
-        return;
-      }
-    }
-
-    const issue = extractIssueFromRow(row);
-    const belongs_to = await getBelongsToAssociations(row.id);
-    res.json({
-      ...issue,
-      display_id: `#${issue.ticket_number}`,
-      belongs_to,
-    });
+    await sendIssueDetailResponse(res, row, actor.workspaceId);
   } catch (err) {
-    console.error('Get issue by ticket error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get issue by ticket error');
   }
 });
 
 // Get sub-issues (children) of an issue
 router.get('/:id/children', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const id = String(req.params.id);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify parent issue exists and user can access it
-    const parentCheck = await pool.query(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (parentCheck.rows.length === 0) {
+    if (!(await canReadDocument(pool, actor, id, 'issue'))) {
       res.status(404).json({ error: 'Issue not found' });
       return;
     }
@@ -404,7 +387,7 @@ router.get('/:id/children', authMiddleware, async (req: Request, res: Response) 
            ELSE 5
          END,
          d.updated_at DESC`,
-      [id, workspaceId, userId, isAdmin]
+      [id, actor.workspaceId, actor.userId, isAdmin]
     );
 
     // Batch-fetch associations to avoid N+1 queries
@@ -422,77 +405,27 @@ router.get('/:id/children', authMiddleware, async (req: Request, res: Response) 
 
     res.json(children);
   } catch (err) {
-    console.error('Get issue children error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get issue children error');
   }
 });
 
 // Get single issue
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const id = String(req.params.id);
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
+    const row = await getIssueDetailById(id, actor.workspaceId, actor.userId, isAdmin);
 
-    const result = await pool.query(
-      `SELECT d.id, d.title, d.properties, d.ticket_number,
-              d.content,
-              d.created_at, d.updated_at, d.created_by,
-              d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
-              d.converted_to_id, d.converted_from_id,
-              u.name as assignee_name,
-              CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived,
-              creator.name as created_by_name
-       FROM documents d
-       LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-       LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-         AND person_doc.document_type = 'person'
-         AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-       LEFT JOIN users creator ON d.created_by = creator.id
-       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (result.rows.length === 0) {
+    if (!row) {
       res.status(404).json({ error: 'Issue not found' });
       return;
     }
 
-    const row = result.rows[0];
-
-    // Check if issue was converted - redirect to new document
-    if (row.converted_to_id) {
-      // Fetch the new document to determine its type for proper routing
-      const newDocResult = await pool.query(
-        'SELECT id, document_type FROM documents WHERE id = $1 AND workspace_id = $2',
-        [row.converted_to_id, workspaceId]
-      );
-
-      if (newDocResult.rows.length > 0) {
-        const newDoc = newDocResult.rows[0];
-        // Return 301 with Location header to the new document's API endpoint
-        // Include X-Converted-Type header so frontend knows the target type for routing
-        res.set('X-Converted-Type', newDoc.document_type);
-        res.set('X-Converted-To', newDoc.id);
-        res.redirect(301, `/api/${newDoc.document_type}s/${newDoc.id}`);
-        return;
-      }
-    }
-
-    const issue = extractIssueFromRow(row);
-    const belongs_to = await getBelongsToAssociations(row.id);
-    res.json({
-      ...issue,
-      display_id: `#${issue.ticket_number}`,
-      belongs_to,
-    });
+    await sendIssueDetailResponse(res, row, actor.workspaceId);
   } catch (err) {
-    console.error('Get issue error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get issue error');
   }
 });
 
@@ -503,7 +436,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createIssueSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -598,8 +531,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Create issue error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create issue error:');
   } finally {
     client.release();
   }
@@ -615,7 +547,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const parsed = updateIssueSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -923,8 +855,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     res.json({ ...issue, display_id: displayId, belongs_to: belongsTo });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    console.error('Update issue error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update issue error:');
   } finally {
     client.release();
   }
@@ -976,8 +907,7 @@ router.get('/:id/history', authMiddleware, async (req: Request, res: Response) =
       automated_by: row.automated_by,
     })));
   } catch (err) {
-    console.error('Get issue history error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get issue history error:');
   }
 });
 
@@ -1001,7 +931,7 @@ router.post('/:id/history', authMiddleware, async (req: Request, res: Response) 
 
     const parsed = logHistorySchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1032,8 +962,7 @@ router.post('/:id/history', authMiddleware, async (req: Request, res: Response) 
 
     res.status(201).json({ success: true });
   } catch (err) {
-    console.error('Log history entry error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Log history entry error:');
   }
 });
 
@@ -1054,7 +983,7 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = bulkUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1211,8 +1140,7 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
     res.json({ updated, failed });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Bulk update issues error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Bulk update issues error:');
   } finally {
     client.release();
   }
@@ -1261,8 +1189,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.status(204).send();
   } catch (err) {
-    console.error('Delete issue error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Delete issue error:');
   }
 });
 
@@ -1313,8 +1240,7 @@ router.post('/:id/accept', authMiddleware, async (req: Request, res: Response) =
     const issue = extractIssueFromRow(result.rows[0]);
     res.json({ ...issue, display_id: `#${issue.ticket_number}` });
   } catch (err) {
-    console.error('Accept issue error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Accept issue error:');
   }
 });
 
@@ -1341,7 +1267,7 @@ router.post('/:id/iterations', authMiddleware, async (req: Request, res: Respons
 
     const parsed = createIterationSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1395,8 +1321,7 @@ router.post('/:id/iterations', authMiddleware, async (req: Request, res: Respons
       updated_at: iteration.updated_at,
     });
   } catch (err) {
-    console.error('Create iteration error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create iteration error:');
   }
 });
 
@@ -1465,8 +1390,7 @@ router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response
 
     res.json(iterations);
   } catch (err) {
-    console.error('Get iterations error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get iterations error:');
   }
 });
 
@@ -1525,8 +1449,7 @@ router.post('/:id/reject', authMiddleware, async (req: Request, res: Response) =
     const issue = extractIssueFromRow(result.rows[0]);
     res.json({ ...issue, display_id: `#${issue.ticket_number}` });
   } catch (err) {
-    console.error('Reject issue error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Reject issue error:');
   }
 });
 

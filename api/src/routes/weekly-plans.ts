@@ -1,9 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
-import { extractText } from '../utils/document-content.js';
+import { extractText, TEMPLATE_HEADINGS } from '../utils/document-content.js';
+import { extractPlanItemsFromContent } from '@ship/shared';
 import {
   getActor,
   getDocumentAccessContext,
@@ -11,9 +12,9 @@ import {
   requireSelfOrAdminPerson,
   visibilityPredicate,
 } from '../services/document-access.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
-type RouterType = ReturnType<typeof Router>;
-const router: RouterType = Router();
+const router = Router();
 
 // Templates for weekly plan and retro documents
 // These provide structure for users to fill in, and "done" status is based on adding content beyond the template
@@ -58,48 +59,6 @@ const WEEKLY_RETRO_TEMPLATE = {
     }
   ]
 };
-
-// Template heading texts - used to check if user has added content beyond the template
-const TEMPLATE_HEADINGS = [
-  'What I plan to accomplish this week',
-  'What I delivered this week',
-  'Unplanned work',
-];
-
-/** Extract plan items from TipTap JSON content (mirrors ai-analysis.ts logic) */
-function extractPlanItems(content: unknown): string[] {
-  if (!content || typeof content !== 'object') return [];
-  const doc = content as { content?: unknown[] };
-  if (!Array.isArray(doc.content)) return [];
-
-  const items: string[] = [];
-
-  function walkNodes(nodes: unknown[]) {
-    for (const node of nodes) {
-      if (!node || typeof node !== 'object') continue;
-      const n = node as { type?: string; content?: unknown[] };
-
-      if (n.type === 'listItem' || n.type === 'taskItem') {
-        const text = extractText(n).trim();
-        if (text) items.push(text);
-      } else if (n.type === 'paragraph') {
-        // Skip headings and short fragments
-        const parentIsHeading = false; // top-level paragraphs only
-        if (!parentIsHeading) {
-          const text = extractText(n).trim();
-          if (text && text.length > 10) items.push(text);
-        }
-      }
-
-      if (n.content && n.type !== 'listItem' && n.type !== 'taskItem') {
-        walkNodes(n.content);
-      }
-    }
-  }
-
-  walkNodes(doc.content);
-  return items;
-}
 
 /** Build a retro template auto-populated with plan reference blocks */
 function buildRetroTemplateWithPlanItems(planItems: string[], planDocumentId: string): object {
@@ -192,7 +151,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = weeklyPlanSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -298,9 +257,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       updated_at: doc.updated_at,
     });
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Create weekly plan error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    await client.query('ROLLBACK').catch(() => {});
+    sendInternalError(res, err, 'Create weekly plan error:');
   } finally {
     client.release();
   }
@@ -403,8 +361,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(plans);
   } catch (err) {
-    console.error('Get weekly plans error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get weekly plans error:');
   }
 });
 
@@ -470,8 +427,7 @@ router.get('/:id/history', authMiddleware, async (req: Request, res: Response) =
 
     res.json(history);
   } catch (err) {
-    console.error('Get weekly plan history error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get weekly plan history error:');
   }
 });
 
@@ -551,8 +507,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       updated_at: row.updated_at,
     });
   } catch (err) {
-    console.error('Get weekly plan error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get weekly plan error:');
   }
 });
 
@@ -599,14 +554,14 @@ const weeklyRetroSchema = z.object({
  *       201:
  *         description: New weekly retro document created
  */
-export const weeklyRetrosRouter: RouterType = Router();
+export const weeklyRetrosRouter: ExpressRouter = Router();
 
 weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
     const parsed = weeklyRetroSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -694,7 +649,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
     );
 
     if (planResult.rows.length > 0 && planResult.rows[0].content) {
-      const planItems = extractPlanItems(planResult.rows[0].content);
+      const planItems = extractPlanItemsFromContent(planResult.rows[0].content);
       if (planItems.length > 0) {
         retroTemplate = buildRetroTemplateWithPlanItems(planItems, planResult.rows[0].id) as typeof WEEKLY_RETRO_TEMPLATE;
       }
@@ -732,9 +687,8 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
       updated_at: doc.updated_at,
     });
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Create weekly retro error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    await client.query('ROLLBACK').catch(() => {});
+    sendInternalError(res, err, 'Create weekly retro error:');
   } finally {
     client.release();
   }
@@ -837,8 +791,7 @@ weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) 
 
     res.json(retros);
   } catch (err) {
-    console.error('Get weekly retros error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get weekly retros error:');
   }
 });
 
@@ -904,8 +857,7 @@ weeklyRetrosRouter.get('/:id/history', authMiddleware, async (req: Request, res:
 
     res.json(history);
   } catch (err) {
-    console.error('Get weekly retro history error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get weekly retro history error:');
   }
 });
 
@@ -983,8 +935,7 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
       updated_at: row.updated_at,
     });
   } catch (err) {
-    console.error('Get weekly retro error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get weekly retro error:');
   }
 });
 
@@ -1260,8 +1211,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
       people,
     });
   } catch (err) {
-    console.error('Get project allocation grid error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get project allocation grid error:');
   }
 }
 

@@ -6,7 +6,6 @@
  */
 
 import { Router, Request, Response } from 'express';
-import type { Router as RouterType } from 'express';
 import { authMiddleware, superAdminMiddleware } from '../middleware/auth.js';
 import { logAuditEvent } from '../services/audit.js';
 import {
@@ -21,8 +20,9 @@ import {
   getChangedFields,
   type CAIACredentials,
 } from '../services/secrets-manager.js';
+import { sendInternalError } from '../utils/route-http.js';
 
-const router: RouterType = Router();
+const router = Router();
 
 // Get base URL from environment
 function getBaseUrl(): string {
@@ -575,7 +575,7 @@ router.post('/save', authMiddleware, superAdminMiddleware, async (req: Request, 
       req,
     });
 
-    res.status(500).json({
+    sendInternalError(res, err, '[AdminCredentials] Save failed:', {
       success: false,
       error: { message: `Failed to save credentials: ${errorMessage}` },
     });
@@ -629,7 +629,7 @@ router.post('/test-api', authMiddleware, superAdminMiddleware, async (req: Reque
       req,
     });
 
-    res.status(500).json({
+    sendInternalError(res, err, '[AdminCredentials] CAIA test failed:', {
       success: false,
       error: { message: `CAIA connection failed: ${errorMessage}` },
     });

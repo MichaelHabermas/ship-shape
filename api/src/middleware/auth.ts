@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
 import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS, ERROR_CODES, HTTP_STATUS } from '@ship/shared';
+import { sessionCookieOptions } from '../config/session-cookies.js';
 
 // Extend Express Request to include session info
 declare global {
@@ -20,10 +21,6 @@ declare global {
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
-
-const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
-  ? 'none'
-  : 'strict';
 
 // Validate API token and return user info if valid
 async function validateApiToken(token: string): Promise<{
@@ -220,13 +217,7 @@ export async function authMiddleware(
         [now, sessionId]
       );
 
-      res.cookie('session_id', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: sameSiteCookiePolicy,
-        maxAge: SESSION_TIMEOUT_MS,
-        path: '/',
-      });
+      res.cookie('session_id', sessionId, sessionCookieOptions());
     }
 
     // Attach session info to request

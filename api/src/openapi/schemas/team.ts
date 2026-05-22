@@ -235,22 +235,6 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'get',
-  path: '/team/accountability-grid',
-  tags: ['Team'],
-  summary: 'Get accountability grid (v1)',
-  responses: { 200: { description: 'Accountability grid', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
-});
-
-registry.registerPath({
-  method: 'get',
-  path: '/team/accountability-grid-v2',
-  tags: ['Team'],
-  summary: 'Get accountability grid (v2)',
-  responses: { 200: { description: 'Accountability grid v2', content: { 'application/json': { schema: TeamJsonResponseSchema } } } },
-});
-
-registry.registerPath({
-  method: 'get',
   path: '/team/accountability-grid-v3',
   tags: ['Team'],
   summary: 'Get accountability grid (v3)',
