@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch, apiDelete, readJson } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiClient, assertApiData, assertApiSuccess } from '@/api/client';
+import { createOptimisticProject } from '@/api/optimistic-stubs';
 import { computeICEScore } from '@ship/shared';
 import type {
   Project,
@@ -26,11 +26,8 @@ export const projectKeys = {
 
 // Fetch projects
 async function fetchProjects(): Promise<Project[]> {
-  const res = await apiGet('/api/projects');
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch projects', res.status);
-  }
-  return readJson<Project[]>(res);
+  const result = await apiClient.GET('/projects');
+  return assertApiData(result, 'Failed to fetch projects');
 }
 
 // Create project
@@ -50,28 +47,39 @@ interface CreateProjectData {
 }
 
 async function createProjectApi(data: CreateProjectData): Promise<Project> {
-  const res = await apiPost('/api/projects', data);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to create project', res.status);
-  }
-  return readJson<Project>(res);
+  const result = await apiClient.POST('/projects', {
+    body: {
+      title: data.title ?? 'Untitled',
+      impact: data.impact ?? null,
+      confidence: data.confidence ?? null,
+      ease: data.ease ?? null,
+      owner_id: data.owner_id ?? null,
+      accountable_id: data.accountable_id ?? null,
+      consulted_ids: data.consulted_ids ?? [],
+      informed_ids: data.informed_ids ?? [],
+      color: data.color ?? '#6366f1',
+      emoji: null,
+      program_id: data.program_id ?? null,
+      plan: data.plan ?? null,
+      target_date: data.target_date ?? null,
+    },
+  });
+  return assertApiData(result, 'Failed to create project');
 }
 
-// Update project
 async function updateProjectApi(id: string, updates: Partial<Project>): Promise<Project> {
-  const res = await apiPatch(`/api/projects/${id}`, updates);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to update project', res.status);
-  }
-  return readJson<Project>(res);
+  const result = await apiClient.PATCH('/projects/{id}', {
+    params: { path: { id } },
+    body: updates,
+  });
+  return assertApiData(result, 'Failed to update project');
 }
 
-// Delete project
 async function deleteProjectApi(id: string): Promise<void> {
-  const res = await apiDelete(`/api/projects/${id}`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to delete project', res.status);
-  }
+  const result = await apiClient.DELETE('/projects/{id}', {
+    params: { path: { id } },
+  });
+  assertApiSuccess(result, 'Failed to delete project');
 }
 
 // Hook to get projects
@@ -93,43 +101,7 @@ export function useCreateProject() {
       await queryClient.cancelQueries({ queryKey: projectKeys.lists() });
       const previousProjects = queryClient.getQueryData<Project[]>(projectKeys.lists());
 
-      // ICE values default to null (not yet set)
-      const impact = newProject.impact ?? null;
-      const confidence = newProject.confidence ?? null;
-      const ease = newProject.ease ?? null;
-
-      const optimisticProject = {
-        id: `temp-${crypto.randomUUID()}`,
-        title: newProject.title ?? 'Untitled',
-        impact,
-        confidence,
-        ease,
-        ice_score: computeICEScore(impact, confidence, ease),
-        color: newProject.color ?? '#6366f1',
-        emoji: null,
-        program_id: newProject.program_id ?? null,
-        owner: null,
-        owner_id: newProject.owner_id ?? null,
-        accountable_id: newProject.accountable_id ?? null,
-        consulted_ids: newProject.consulted_ids ?? [],
-        informed_ids: newProject.informed_ids ?? [],
-        plan: newProject.plan ?? null,
-        plan_approval: null,
-        retro_approval: null,
-        has_retro: false,
-        has_design_review: null,
-        design_review_notes: null,
-        target_date: newProject.target_date ?? null,
-        sprint_count: 0,
-        issue_count: 0,
-        inferred_status: 'backlog' as const,
-        archived_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_complete: null,
-        missing_fields: [],
-        converted_from_id: null,
-      } as unknown as Project;
+      const optimisticProject = createOptimisticProject(newProject);
 
       queryClient.setQueryData<Project[]>(
         projectKeys.lists(),
@@ -293,11 +265,10 @@ export function useProjects() {
 
 // Fetch project issues
 async function fetchProjectIssues(projectId: string): Promise<ProjectIssue[]> {
-  const res = await apiGet(`/api/projects/${projectId}/issues`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch project issues', res.status);
-  }
-  return readJson<ProjectIssue[]>(res);
+  const result = await apiClient.GET('/projects/{id}/issues', {
+    params: { path: { id: projectId } },
+  });
+  return assertApiData(result, 'Failed to fetch project issues');
 }
 
 // Hook to get project issues
@@ -315,11 +286,10 @@ export function useProjectIssuesQuery(projectId: string | undefined) {
 
 // Fetch project weeks
 async function fetchProjectWeeks(projectId: string): Promise<ProjectWeek[]> {
-  const res = await apiGet(`/api/projects/${projectId}/weeks`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch project weeks', res.status);
-  }
-  return readJson<ProjectWeek[]>(res);
+  const result = await apiClient.GET('/projects/{id}/weeks', {
+    params: { path: { id: projectId } },
+  });
+  return assertApiData(result, 'Failed to fetch project weeks');
 }
 
 // Hook to get project weeks

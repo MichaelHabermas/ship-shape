@@ -2093,9 +2093,7 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: {
-                    status?: "planning" | "active" | "completed";
-                };
+                query?: never;
                 header?: never;
                 path: {
                     id: string;
@@ -9337,7 +9335,7 @@ export interface components {
              * @example 2025-01-30T14:30:00.000Z
              */
             created_at: string;
-            changed_by: components["schemas"]["UserReference"] & unknown;
+            changed_by: components["schemas"]["UserReference"] | null;
             /** @description Automation source (e.g., "claude") */
             automated_by?: string;
         };
@@ -9468,11 +9466,11 @@ export interface components {
             consulted_ids: string[];
             /** @description I - Informed (kept in loop) */
             informed_ids: string[];
-            owner: components["schemas"]["UserReference"] & unknown;
+            owner: components["schemas"]["UserReference"] | null;
             /** @description Project hypothesis/plan statement */
             plan: string | null;
-            plan_approval: components["schemas"]["ApprovalTracking"] & unknown;
-            retro_approval: components["schemas"]["ApprovalTracking"] & unknown;
+            plan_approval: components["schemas"]["ApprovalTracking"] | null;
+            retro_approval: components["schemas"]["ApprovalTracking"] | null;
             /** @description Whether project has a retrospective document */
             has_retro: boolean;
             /** @description Whether design review has been completed */
@@ -9587,7 +9585,7 @@ export interface components {
             sprint_number: number;
             /** @enum {string} */
             status: "planning" | "active" | "completed";
-            owner: components["schemas"]["UserReference"] & unknown;
+            owner: components["schemas"]["UserReference"] | null;
             /**
              * Format: uuid
              * @description UUID identifier
@@ -9767,7 +9765,7 @@ export interface components {
             updated_at: string;
             issue_count: number;
             sprint_count: number;
-            owner: components["schemas"]["UserReference"] & unknown;
+            owner: components["schemas"]["UserReference"] | null;
             /**
              * Format: uuid
              * @description R - Responsible
@@ -9796,7 +9794,7 @@ export interface components {
             sprint_number: number;
             /** @enum {string} */
             status: "planning" | "active" | "completed";
-            owner: components["schemas"]["UserReference"] & unknown;
+            owner: components["schemas"]["UserReference"] | null;
             issue_count: number;
             completed_count: number;
             started_count: number;
@@ -9931,7 +9929,7 @@ export interface components {
              * @enum {string}
              */
             status: "planning" | "active" | "completed";
-            owner: components["schemas"]["UserReference"] & unknown;
+            owner: components["schemas"]["UserReference"] | null;
             /**
              * Format: uuid
              * @description UUID identifier
@@ -9992,8 +9990,8 @@ export interface components {
              * @example 2025-01-30T14:30:00.000Z
              */
             snapshot_taken_at: string | null;
-            plan_approval: components["schemas"]["ApprovalTracking"] & unknown;
-            review_approval: components["schemas"]["ApprovalTracking"] & unknown;
+            plan_approval: components["schemas"]["ApprovalTracking"] | null;
+            review_approval: components["schemas"]["ApprovalTracking"] | null;
             /**
              * Format: uuid
              * @description UUID identifier
@@ -10642,7 +10640,7 @@ export interface components {
         };
         AuthContextData: {
             user: components["schemas"]["AuthUser"];
-            currentWorkspace: components["schemas"]["AuthWorkspace"] & unknown;
+            currentWorkspace: components["schemas"]["AuthWorkspace"] | null;
             workspaces: components["schemas"]["AuthWorkspace"][];
             pendingAccountabilityItems: unknown[];
         };
@@ -10997,7 +10995,7 @@ export interface components {
                     parent_id: string | null;
                     position: number | null;
                     ticket_number: number | null;
-                    properties: components["schemas"]["BootstrapDocumentProperties"] & unknown;
+                    properties: components["schemas"]["BootstrapDocumentProperties"] | null;
                     /**
                      * Format: date-time
                      * @description ISO 8601 datetime string
@@ -11487,9 +11485,9 @@ export interface components {
             person_id: string;
             person_name: string;
             week: components["schemas"]["WeekMetadata"];
-            plan: components["schemas"]["MyWeekPlan"] & unknown;
-            retro: components["schemas"]["MyWeekRetro"] & unknown;
-            previous_retro: components["schemas"]["PreviousRetro"] & unknown;
+            plan: components["schemas"]["MyWeekPlan"] | null;
+            retro: components["schemas"]["MyWeekRetro"] | null;
+            previous_retro: components["schemas"]["PreviousRetro"] | null;
             /** @description 7-slot array, one per day of the week */
             standups: components["schemas"]["StandupSlot"][];
             projects: components["schemas"]["WeekProject"][];

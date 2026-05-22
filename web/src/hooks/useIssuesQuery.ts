@@ -1,6 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiPost, apiPatch, readJson } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
 import { apiClient, assertApiData } from '@/api/client';
 import type { Issue, IssueListItem } from '@/api/schemas';
 import type {
@@ -11,7 +9,21 @@ import type {
   IssueState,
 } from '@ship/shared';
 
-export type { Issue, IssueListItem };
+import {
+  cancelIssueListQueries,
+  issueMatchesFilters,
+  patchIssueListQueries,
+  patchIssuesInMatchingLists,
+  prependIssueToMatchingLists,
+  replaceIssueInMatchingLists,
+  replaceIssueWithServerData,
+  restoreIssueListQueries,
+  snapshotIssueListQueries,
+} from '@/hooks/issue-list-cache';
+import { issueKeys, type IssueFilters } from '@/hooks/issue-keys';
+
+export type { Issue, IssueListItem, IssueFilters };
+export { issueKeys };
 
 // Custom error type for cascade warning (409 response)
 export class CascadeWarningError extends Error {
@@ -83,22 +95,6 @@ export function getSprintTitle(issue: IssueWithAssociations): string | null {
   return getAssociationTitle(issue, 'sprint');
 }
 
-// Filter interface for locked context
-export interface IssueFilters {
-  programId?: string;
-  projectId?: string;
-  sprintId?: string;
-}
-
-// Query keys
-export const issueKeys = {
-  all: ['issues'] as const,
-  lists: () => [...issueKeys.all, 'list'] as const,
-  list: (filters?: IssueFilters) => [...issueKeys.lists(), filters] as const,
-  details: () => [...issueKeys.all, 'detail'] as const,
-  detail: (id: string) => [...issueKeys.details(), id] as const,
-};
-
 // Fetch issues with optional filters
 async function fetchIssues(filters?: IssueFilters): Promise<IssueListItem[]> {
   const result = await apiClient.GET('/issues', {
@@ -120,35 +116,35 @@ interface CreateIssueData {
 }
 
 async function createIssueApi(data: CreateIssueData): Promise<Issue> {
-  const apiData: Record<string, unknown> = { title: data.title ?? 'Untitled' };
-  if (data.belongs_to && data.belongs_to.length > 0) {
-    apiData.belongs_to = data.belongs_to;
-  }
-
-  const res = await apiPost('/api/issues', apiData);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to create issue', res.status);
-  }
-  const apiIssue = await readJson<Issue>(res);
-  return apiIssue;
+  const result = await apiClient.POST('/issues', {
+    body: {
+      title: data.title ?? 'Untitled',
+      state: 'backlog',
+      priority: 'medium',
+      belongs_to: data.belongs_to ?? [],
+      source: 'internal',
+      is_system_generated: false,
+    },
+  });
+  return assertApiData(result, 'Failed to create issue');
 }
 
-// Update issue
 async function updateIssueApi(id: string, updates: Partial<Issue>): Promise<Issue> {
-  // API accepts belongs_to directly - no conversion needed
-  const res = await apiPatch(`/api/issues/${id}`, updates);
-  if (!res.ok) {
-    // Check for cascade warning (409 with incomplete_children)
-    if (res.status === 409) {
-      const body = await readJson<{ error?: string } & CascadeWarning>(res);
-      if (body.error === 'incomplete_children') {
-        throw new CascadeWarningError(body);
-      }
+  const result = await apiClient.PATCH('/issues/{id}', {
+    params: { path: { id } },
+    body: updates,
+  });
+
+  if (result.response.status === 409) {
+    const body = (result.error ?? await result.response.clone().json().catch(() => null)) as
+      | ({ error?: string } & CascadeWarning)
+      | null;
+    if (body?.error === 'incomplete_children') {
+      throw new CascadeWarningError(body);
     }
-    throw createApiStatusError('Failed to update issue', res.status);
   }
-  const apiIssue = await readJson<Issue>(res);
-  return apiIssue;
+
+  return assertApiData(result, 'Failed to update issue');
 }
 
 // Hook to get issues with optional filters
@@ -174,17 +170,16 @@ export function useCreateIssue() {
   return useMutation({
     mutationFn: (data?: CreateIssueData) => createIssueApi(data || {}),
     onMutate: async (newIssue) => {
-      await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-      const previousIssues = queryClient.getQueryData<IssueListItem[]>(issueKeys.lists());
+      await cancelIssueListQueries(queryClient);
+      const snapshot = snapshotIssueListQueries(queryClient);
 
-      // Use belongs_to directly from input
       const belongs_to: BelongsTo[] = newIssue?.belongs_to || [];
 
       const optimisticIssue: IssueListItem = {
         id: `temp-${crypto.randomUUID()}`,
         title: newIssue?.title ?? 'Untitled',
         state: 'backlog',
-        priority: 'none',
+        priority: 'medium',
         ticket_number: -1,
         display_id: 'PENDING',
         belongs_to,
@@ -194,24 +189,18 @@ export function useCreateIssue() {
         updated_at: new Date().toISOString(),
       };
 
-      queryClient.setQueryData<IssueListItem[]>(
-        issueKeys.lists(),
-        (old) => [optimisticIssue, ...(old || [])]
-      );
+      prependIssueToMatchingLists(queryClient, optimisticIssue);
 
-      return { previousIssues, optimisticId: optimisticIssue.id };
+      return { snapshot, optimisticId: optimisticIssue.id };
     },
     onError: (_err, _newIssue, context) => {
-      if (context?.previousIssues) {
-        queryClient.setQueryData(issueKeys.lists(), context.previousIssues);
+      if (context?.snapshot) {
+        restoreIssueListQueries(queryClient, context.snapshot);
       }
     },
     onSuccess: (data, _variables, context) => {
       if (context?.optimisticId) {
-        queryClient.setQueryData<IssueListItem[]>(
-          issueKeys.lists(),
-          (old) => old?.map(i => i.id === context.optimisticId ? issueToListItem(data) : i) || [issueToListItem(data)]
-        );
+        replaceIssueWithServerData(queryClient, context.optimisticId, issueToListItem(data));
       }
     },
     onSettled: () => {
@@ -228,32 +217,23 @@ export function useUpdateIssue() {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Issue> }) =>
       updateIssueApi(id, updates),
     onMutate: async ({ id, updates }) => {
-      await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-      const previousIssues = queryClient.getQueryData<IssueListItem[]>(issueKeys.lists());
+      await cancelIssueListQueries(queryClient);
+      const snapshot = snapshotIssueListQueries(queryClient);
 
-      queryClient.setQueryData<IssueListItem[]>(
-        issueKeys.lists(),
-        (old) => old?.map(i => {
-          if (i.id !== id) return i;
+      replaceIssueInMatchingLists(queryClient, id, (issue) => {
+        const newBelongsTo = updates.belongs_to ?? issue.belongs_to ?? [];
+        return { ...issue, ...updates, belongs_to: newBelongsTo } as IssueListItem;
+      });
 
-          const newBelongsTo = updates.belongs_to ?? i.belongs_to ?? [];
-
-          return { ...i, ...updates, belongs_to: newBelongsTo } as IssueListItem;
-        }) || []
-      );
-
-      return { previousIssues };
+      return { snapshot };
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousIssues) {
-        queryClient.setQueryData(issueKeys.lists(), context.previousIssues);
+      if (context?.snapshot) {
+        restoreIssueListQueries(queryClient, context.snapshot);
       }
     },
     onSuccess: (data, { id }) => {
-      queryClient.setQueryData<IssueListItem[]>(
-        issueKeys.lists(),
-        (old) => old?.map(i => i.id === id ? issueToListItem(data) : i) || []
-      );
+      replaceIssueWithServerData(queryClient, id, issueToListItem(data));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: issueKeys.lists() });
@@ -279,11 +259,8 @@ interface BulkUpdateResponse {
 }
 
 async function bulkUpdateIssuesApi(data: BulkUpdateRequest): Promise<BulkUpdateResponse> {
-  const res = await apiPost('/api/issues/bulk', data);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to bulk update issues', res.status);
-  }
-  return readJson<BulkUpdateResponse>(res);
+  const result = await apiClient.POST('/issues/bulk', { body: data });
+  return assertApiData(result, 'Failed to bulk update issues');
 }
 
 // Hook for bulk updates
@@ -293,53 +270,64 @@ export function useBulkUpdateIssues() {
   return useMutation({
     mutationFn: (data: BulkUpdateRequest) => bulkUpdateIssuesApi(data),
     onMutate: async ({ ids, action, updates }) => {
-      await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-      const previousIssues = queryClient.getQueryData<IssueListItem[]>(issueKeys.lists());
+      await cancelIssueListQueries(queryClient);
+      const snapshot = snapshotIssueListQueries(queryClient);
 
-      queryClient.setQueryData<IssueListItem[]>(issueKeys.lists(), (old) => {
-        if (!old) return old;
-
+      patchIssuesInMatchingLists(queryClient, (old, filters) => {
         if (action === 'archive' || action === 'delete') {
-          return old.filter(i => !ids.includes(i.id));
+          return old.filter((issue) => !ids.includes(issue.id));
         }
 
         if (action === 'update' && updates) {
-          return old.map(i => {
-            if (!ids.includes(i.id)) return i;
+          const updated = old.map((issue) => {
+            if (!ids.includes(issue.id)) return issue;
 
-            // Start with existing belongs_to
-            let newBelongsTo = [...(i.belongs_to || [])];
+            let newBelongsTo = [...(issue.belongs_to || [])];
 
-            // Handle project_id update: update or add project association
             if ('project_id' in updates) {
-              newBelongsTo = newBelongsTo.filter(a => a.type !== 'project');
+              newBelongsTo = newBelongsTo.filter((association) => association.type !== 'project');
               if (updates.project_id) {
                 newBelongsTo.push({ id: updates.project_id, type: 'project' });
               }
             }
 
-            // Handle sprint_id update: update or add sprint association
             if ('sprint_id' in updates) {
-              newBelongsTo = newBelongsTo.filter(a => a.type !== 'sprint');
+              newBelongsTo = newBelongsTo.filter((association) => association.type !== 'sprint');
               if (updates.sprint_id) {
                 newBelongsTo.push({ id: updates.sprint_id, type: 'sprint' });
               }
             }
 
-            // Apply state and assignee_id updates directly
             const { project_id: _p, sprint_id: _s, ...directUpdates } = updates;
-            return { ...i, ...directUpdates, belongs_to: newBelongsTo } as IssueListItem;
+            return { ...issue, ...directUpdates, belongs_to: newBelongsTo } as IssueListItem;
           });
+          return updated.filter((issue) => issueMatchesFilters(issue, filters));
         }
 
         return old;
       });
 
-      return { previousIssues };
+      return { snapshot };
+    },
+    onSuccess: (data) => {
+      const updatedById = new Map(data.updated.map((issue) => [issue.id, issueToListItem(issue)]));
+      const failedIds = new Set(data.failed.map((entry) => entry.id));
+
+      patchIssueListQueries(queryClient, (old, filters) => {
+        if (!old) {
+          return old;
+        }
+
+        const next = old
+          .map((issue) => (updatedById.has(issue.id) ? updatedById.get(issue.id)! : issue))
+          .filter((issue) => !failedIds.has(issue.id) || issueMatchesFilters(issue, filters));
+
+        return next;
+      });
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousIssues) {
-        queryClient.setQueryData(issueKeys.lists(), context.previousIssues);
+      if (context?.snapshot) {
+        restoreIssueListQueries(queryClient, context.snapshot);
       }
     },
     onSettled: () => {
