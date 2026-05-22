@@ -3,6 +3,17 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  computeCurrentSprintNumber,
+  formatUtcDateIso,
+  normalizeWorkspaceStartDate,
+  utcToday,
+} from '@ship/shared';
+import {
+  buildBootstrapExplainCatalog,
+  oldFanoutQueries,
+  type BootstrapExplainQuery,
+} from '../api/src/sql/bootstrap-queries.js';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const requireFromApi = createRequire(resolve(rootDir, 'api/package.json'));
@@ -29,7 +40,13 @@ const outputPath = resolve(
 const { Pool } = pg;
 const pool = new Pool({ connectionString: databaseUrl });
 
-async function context(client) {
+interface ExplainContext {
+  workspace_id: string;
+  user_id: string;
+  is_admin: boolean;
+}
+
+async function loadContext(client: { query: typeof pool.query }): Promise<ExplainContext> {
   const result = await client.query(
     `SELECT w.id AS workspace_id, u.id AS user_id,
             EXISTS (
@@ -46,10 +63,15 @@ async function context(client) {
   if (!result.rows[0]) {
     throw new Error(`Could not find workspace "${workspaceName}" and user "${email}". Run pnpm db:seed first.`);
   }
-  return result.rows[0];
+  return result.rows[0] as ExplainContext;
 }
 
-async function explain(client, name, sql, params) {
+async function explainQuery(
+  client: { query: typeof pool.query },
+  name: string,
+  sql: string,
+  params: unknown[]
+) {
   const startedAt = performance.now();
   const result = await client.query(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${sql}`, params);
   const elapsedMs = performance.now() - startedAt;
@@ -64,7 +86,21 @@ async function explain(client, name, sql, params) {
   };
 }
 
-function queryCatalog({ workspace_id: workspaceId, user_id: userId, is_admin: isAdmin }) {
+async function loadSprintContext(client: { query: typeof pool.query }, workspaceId: string) {
+  const result = await client.query('SELECT sprint_start_date FROM workspaces WHERE id = $1', [workspaceId]);
+  const rawStartDate = result.rows[0]?.sprint_start_date;
+  const workspaceStartDate = normalizeWorkspaceStartDate(rawStartDate);
+  const today = utcToday();
+
+  return {
+    currentSprintNumber: computeCurrentSprintNumber(workspaceStartDate),
+    todayIso: today.toISOString(),
+    todayStr: formatUtcDateIso(today),
+  };
+}
+
+function queryCatalog(ctx: ExplainContext) {
+  const { workspace_id: workspaceId, user_id: userId, is_admin: isAdmin } = ctx;
   const visibilitySql = '(d.visibility = \'workspace\' OR d.created_by = $2 OR $3 = TRUE)';
   const contentSearchSql = `WITH search_query AS (
                               SELECT websearch_to_tsquery('english', $4) AS query
@@ -201,29 +237,70 @@ function queryCatalog({ workspace_id: workspaceId, user_id: userId, is_admin: is
   ];
 }
 
-const client = await pool.connect();
-try {
-  const ctx = await context(client);
+async function explainEvidenceGroup(
+  client: { query: typeof pool.query },
+  queries: BootstrapExplainQuery[]
+) {
   const results = [];
-  for (const item of queryCatalog(ctx)) {
-    results.push(await explain(client, item.name, item.sql, item.params));
+  for (const item of queries) {
+    results.push({
+      endpoint: item.endpoint,
+      source: item.source,
+      sql: item.sql,
+      params: item.params,
+      ...(await explainQuery(client, item.name, item.sql, item.params)),
+    });
   }
+  return results;
+}
 
-  const report = {
-    generated_at: new Date().toISOString(),
-    database: new URL(databaseUrl).pathname.slice(1),
-    workspace: workspaceName,
-    user: email,
-    results,
-  };
+async function main(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    const ctx = await loadContext(client);
+    const sprintContext = await loadSprintContext(client, ctx.workspace_id);
+    const results = [];
+    for (const item of queryCatalog(ctx)) {
+      results.push(await explainQuery(client, item.name, item.sql, item.params));
+    }
+    const bootstrapEvidence = buildBootstrapExplainCatalog({
+      workspaceId: ctx.workspace_id,
+      userId: ctx.user_id,
+      isAdmin: ctx.is_admin,
+      ...sprintContext,
+    });
 
-  await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
-  console.log(`EXPLAIN report written to ${outputPath}`);
-} catch (error) {
+    const report = {
+      generated_at: new Date().toISOString(),
+      database: new URL(databaseUrl).pathname.slice(1),
+      workspace: workspaceName,
+      user: email,
+      results,
+      before_after_bootstrap_explain: {
+        old_protected_docs_startup_fanout: {
+          description: 'Pre-bootstrap protected docs startup fanout: auth plus app-shell list/status requests. EXPLAIN rows below use equivalent constituent SQL definitions so this report is runnable against the current schema; request-count evidence remains in perf:query-count-api.',
+          requests: bootstrapEvidence.old_protected_docs_startup_fanout,
+          results: await explainEvidenceGroup(client, oldFanoutQueries(bootstrapEvidence)),
+        },
+        current_bootstrap: {
+          description: 'Current protected startup hydration through /api/bootstrap constituent SQL.',
+          endpoint: '/api/bootstrap',
+          sprint_context: sprintContext,
+          results: await explainEvidenceGroup(client, bootstrapEvidence.current_bootstrap),
+        },
+      },
+    };
+
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
+    console.log(`EXPLAIN report written to ${outputPath}`);
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
+main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
-} finally {
-  client.release();
-  await pool.end();
-}
+});

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import * as Y from 'yjs'
 import { pool } from '../../db/client.js'
+import { ContentRow, DocumentContentRow, DocumentStateRow, IdRow, requireFirstRow } from '../../test/pg-result.js';
 import { jsonToYjs, yjsToJson, loadContentFromYjsState } from '../../utils/yjsConverter.js'
 
 /**
@@ -24,19 +25,19 @@ describe('API Content Preservation', () => {
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'API Content User') RETURNING id`,
       [`api-content-${testRunId}@test.local`]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     // Create workspace membership
     await pool.query(
@@ -71,21 +72,21 @@ describe('API Content Preservation', () => {
       }
 
       // Create document with content (simulating POST /api/documents with content)
-      const docResult = await pool.query(
+      const docResult = await pool.query<DocumentContentRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'API Content Test', $2, $3)
          RETURNING id, content, yjs_state`,
         [testWorkspaceId, JSON.stringify(testContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // Verify content was stored correctly
-      expect(docResult.rows[0].content).toEqual(testContent)
-      expect(docResult.rows[0].yjs_state).toBeNull() // yjs_state is NULL on API creation
+      expect(requireFirstRow(docResult.rows).content).toEqual(testContent)
+      expect(requireFirstRow(docResult.rows).yjs_state).toBeNull() // yjs_state is NULL on API creation
 
       // Simulate what collaboration server does on first connection
-      const result = await pool.query(
+      const result = await pool.query<DocumentStateRow>(
         'SELECT yjs_state, content FROM documents WHERE id = $1',
         [docId]
       )
@@ -94,11 +95,11 @@ describe('API Content Preservation', () => {
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
 
-      if (result.rows[0].yjs_state) {
-        Y.applyUpdate(doc, result.rows[0].yjs_state)
-      } else if (result.rows[0].content) {
+      if (requireFirstRow(result.rows).yjs_state) {
+        Y.applyUpdate(doc, requireFirstRow(result.rows).yjs_state)
+      } else if (requireFirstRow(result.rows).content) {
         // This is what getOrCreateDoc does
-        let jsonContent = result.rows[0].content
+        let jsonContent = requireFirstRow(result.rows).content
         if (typeof jsonContent === 'string') {
           jsonContent = JSON.parse(jsonContent)
         }
@@ -124,28 +125,28 @@ describe('API Content Preservation', () => {
 
     it('should use default content for issues created without explicit content', async () => {
       // Create issue without content column (mimics POST /api/issues)
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<DocumentContentRow>(
         `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
          VALUES ($1, 'issue', 'Test Issue', '{"state": "backlog"}', $2)
          RETURNING id, content, yjs_state`,
         [testWorkspaceId, testUserId]
       )
 
-      const issueId = issueResult.rows[0].id
+      const issueId = requireFirstRow(issueResult.rows).id
 
       // The schema default should be applied
-      expect(issueResult.rows[0].content).toEqual({
+      expect(requireFirstRow(issueResult.rows).content).toEqual({
         type: 'doc',
         content: [{ type: 'paragraph' }]
       })
-      expect(issueResult.rows[0].yjs_state).toBeNull()
+      expect(requireFirstRow(issueResult.rows).yjs_state).toBeNull()
 
       // Simulate collaboration server loading
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
 
-      if (issueResult.rows[0].content) {
-        let jsonContent = issueResult.rows[0].content
+      if (requireFirstRow(issueResult.rows).content) {
+        let jsonContent = requireFirstRow(issueResult.rows).content
         if (jsonContent && jsonContent.type === 'doc' && Array.isArray(jsonContent.content)) {
           jsonToYjs(doc, fragment, jsonContent)
         }
@@ -204,24 +205,24 @@ describe('API Content Preservation', () => {
       }
 
       // Create document
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Rich Content Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(richContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // Load and convert
-      const result = await pool.query(
+      const result = await pool.query<ContentRow>(
         'SELECT content FROM documents WHERE id = $1',
         [docId]
       )
 
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
-      jsonToYjs(doc, fragment, result.rows[0].content)
+      jsonToYjs(doc, fragment, requireFirstRow(result.rows).content)
 
       // Should have heading, paragraph, and bulletList
       expect(fragment.length).toBe(3)
@@ -250,23 +251,23 @@ describe('API Content Preservation', () => {
         ]
       }
 
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Code Block Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(codeContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
-      const result = await pool.query(
+      const result = await pool.query<ContentRow>(
         'SELECT content FROM documents WHERE id = $1',
         [docId]
       )
 
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
-      jsonToYjs(doc, fragment, result.rows[0].content)
+      jsonToYjs(doc, fragment, requireFirstRow(result.rows).content)
 
       expect(fragment.length).toBe(1)
 
@@ -297,19 +298,19 @@ describe('API Content Preservation', () => {
           ]
         }
 
-        const docResult = await pool.query(
+        const docResult = await pool.query<DocumentContentRow>(
           `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id, content, yjs_state`,
           [testWorkspaceId, docType, `${docType} Test`, JSON.stringify(testContent), testUserId]
         )
 
-        const docId = docResult.rows[0].id
+        const docId = requireFirstRow(docResult.rows).id
 
         // Simulate collaboration server loading
         const doc = new Y.Doc()
         const fragment = doc.getXmlFragment('default')
-        jsonToYjs(doc, fragment, docResult.rows[0].content)
+        jsonToYjs(doc, fragment, requireFirstRow(docResult.rows).content)
 
         // Verify content was preserved
         expect(fragment.length).toBe(1)
@@ -337,14 +338,14 @@ describe('API Content Preservation', () => {
         ]
       }
 
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Update Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(initialContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // Simulate PATCH /content update (what the API does)
       const updatedContent = {
@@ -368,16 +369,16 @@ describe('API Content Preservation', () => {
       )
 
       // Simulate collaboration server reloading after invalidation
-      const result = await pool.query(
+      const result = await pool.query<DocumentStateRow>(
         'SELECT content, yjs_state FROM documents WHERE id = $1',
         [docId]
       )
 
-      expect(result.rows[0].yjs_state).toBeNull()
+      expect(requireFirstRow(result.rows).yjs_state).toBeNull()
 
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
-      jsonToYjs(doc, fragment, result.rows[0].content)
+      jsonToYjs(doc, fragment, requireFirstRow(result.rows).content)
 
       // Should have both paragraphs
       expect(fragment.length).toBe(2)
@@ -401,14 +402,14 @@ describe('API Content Preservation', () => {
         ]
       }
 
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Yjs Persist Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(content), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // Convert to Yjs and persist (what collaboration server does)
       const doc = new Y.Doc()
@@ -423,16 +424,16 @@ describe('API Content Preservation', () => {
       )
 
       // Now reload from yjs_state (preferred path)
-      const result = await pool.query(
+      const result = await pool.query<DocumentStateRow>(
         'SELECT yjs_state, content FROM documents WHERE id = $1',
         [docId]
       )
 
-      expect(result.rows[0].yjs_state).not.toBeNull()
+      expect(requireFirstRow(result.rows).yjs_state).not.toBeNull()
 
       // Load from Yjs state
       const doc2 = new Y.Doc()
-      Y.applyUpdate(doc2, new Uint8Array(result.rows[0].yjs_state))
+      Y.applyUpdate(doc2, new Uint8Array(requireFirstRow(result.rows).yjs_state))
 
       const fragment2 = doc2.getXmlFragment('default')
       expect(fragment2.length).toBe(1)
@@ -448,25 +449,25 @@ describe('API Content Preservation', () => {
   describe('Edge Cases and Error Handling', () => {
     it('should handle NULL content gracefully', async () => {
       // Explicitly set content to NULL
-      const docResult = await pool.query(
+      const docResult = await pool.query<ContentRow & IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Null Content Test', NULL, $2)
          RETURNING id, content`,
         [testWorkspaceId, testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // content should be null
-      expect(docResult.rows[0].content).toBeNull()
+      expect(requireFirstRow(docResult.rows).content).toBeNull()
 
       // Simulate collaboration server handling
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
 
       // When content is null, jsonToYjs should handle gracefully
-      if (docResult.rows[0].content) {
-        jsonToYjs(doc, fragment, docResult.rows[0].content)
+      if (requireFirstRow(docResult.rows).content) {
+        jsonToYjs(doc, fragment, requireFirstRow(docResult.rows).content)
       }
 
       // Fragment should be empty but not throw
@@ -482,23 +483,23 @@ describe('API Content Preservation', () => {
         content: []
       }
 
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Empty Content Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(emptyContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
-      const result = await pool.query(
+      const result = await pool.query<ContentRow>(
         'SELECT content FROM documents WHERE id = $1',
         [docId]
       )
 
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
-      jsonToYjs(doc, fragment, result.rows[0].content)
+      jsonToYjs(doc, fragment, requireFirstRow(result.rows).content)
 
       // Empty but valid
       expect(fragment.length).toBe(0)
@@ -517,16 +518,16 @@ describe('API Content Preservation', () => {
         invalid: 'structure'
       }
 
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Malformed Content Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(malformedContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
-      const result = await pool.query(
+      const result = await pool.query<ContentRow>(
         'SELECT content FROM documents WHERE id = $1',
         [docId]
       )
@@ -535,7 +536,7 @@ describe('API Content Preservation', () => {
       const fragment = doc.getXmlFragment('default')
 
       // jsonToYjs should handle gracefully (return early)
-      const content = result.rows[0].content
+      const content = requireFirstRow(result.rows).content
       if (content && content.type === 'doc' && Array.isArray(content.content)) {
         jsonToYjs(doc, fragment, content)
       }
@@ -560,22 +561,22 @@ describe('API Content Preservation', () => {
       }
 
       // Simulate content being double-stringified or stored as string
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'String Content Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(content), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
-      const result = await pool.query(
+      const result = await pool.query<ContentRow>(
         'SELECT content FROM documents WHERE id = $1',
         [docId]
       )
 
       // Parse if string (what collaboration server does)
-      let jsonContent = result.rows[0].content
+      let jsonContent = requireFirstRow(result.rows).content
       if (typeof jsonContent === 'string') {
         jsonContent = JSON.parse(jsonContent)
       }
@@ -638,14 +639,14 @@ describe('API Content Preservation', () => {
       }
 
       // Create document with initial content
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Invalidation Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(initialContent), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // Simulate first browser load - convert JSON to Yjs
       const doc1 = new Y.Doc()
@@ -676,19 +677,19 @@ describe('API Content Preservation', () => {
       )
 
       // Simulate second browser load after invalidation
-      const result = await pool.query(
+      const result = await pool.query<DocumentStateRow>(
         'SELECT yjs_state, content FROM documents WHERE id = $1',
         [docId]
       )
 
       // yjs_state should be NULL after API update
-      expect(result.rows[0].yjs_state).toBeNull()
+      expect(requireFirstRow(result.rows).yjs_state).toBeNull()
 
       // Create new Y.Doc and load from content
       const doc2 = new Y.Doc()
       const fragment2 = doc2.getXmlFragment('default')
 
-      const content = result.rows[0].content
+      const content = requireFirstRow(result.rows).content
       if (content && content.type === 'doc' && Array.isArray(content.content)) {
         jsonToYjs(doc2, fragment2, content)
       }
@@ -715,14 +716,14 @@ describe('API Content Preservation', () => {
       }
 
       // Create document
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
          VALUES ($1, 'wiki', 'Concurrent Update Test', $2, $3)
          RETURNING id`,
         [testWorkspaceId, JSON.stringify(content1), testUserId]
       )
 
-      const docId = docResult.rows[0].id
+      const docId = requireFirstRow(docResult.rows).id
 
       // Simulate multiple API updates in sequence
       for (let i = 2; i <= 5; i++) {
@@ -743,14 +744,14 @@ describe('API Content Preservation', () => {
       }
 
       // Final load should have version 5
-      const result = await pool.query(
+      const result = await pool.query<ContentRow>(
         'SELECT content FROM documents WHERE id = $1',
         [docId]
       )
 
       const doc = new Y.Doc()
       const fragment = doc.getXmlFragment('default')
-      jsonToYjs(doc, fragment, result.rows[0].content)
+      jsonToYjs(doc, fragment, requireFirstRow(result.rows).content)
 
       const convertedBack = yjsToJson(fragment)
       expect(convertedBack.content[0].content[0].text).toBe('Version 5')

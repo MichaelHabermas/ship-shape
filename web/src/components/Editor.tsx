@@ -34,7 +34,9 @@ import { TableOfContentsExtension } from './editor/TableOfContents';
 import { HypothesisBlockExtension } from './editor/HypothesisBlockExtension';
 import { CommentMark } from './editor/CommentMark';
 import { CommentDisplayExtension } from './editor/CommentDisplay';
+import type { CommentDisplayStorage } from './editor/CommentDisplay';
 import { AIScoringDisplayExtension } from './editor/AIScoringDisplay';
+import type { AIScoringStorage } from './editor/AIScoringDisplay';
 import { PlanReferenceBlockExtension } from './editor/PlanReferenceBlock';
 import { useCommentsQuery, useCreateComment, useUpdateComment } from '@/hooks/useCommentsQuery';
 import { BubbleMenu } from '@tiptap/react';
@@ -375,12 +377,12 @@ export function Editor({
   // Sync comment data into the CommentDisplay extension storage
   useEffect(() => {
     if (!editor) return;
-    const ext = editor.extensionManager.extensions.find(e => e.name === 'commentDisplay');
-    if (!ext) return;
+    const storage = editor.storage.commentDisplay as CommentDisplayStorage | undefined;
+    if (!storage) return;
 
-    ext.storage.comments = comments;
-    ext.storage.pendingCommentId = pendingCommentId;
-    ext.storage.onReply = (commentId: string, content: string) => {
+    storage.comments = comments;
+    storage.pendingCommentId = pendingCommentId;
+    storage.onReply = (commentId: string, content: string) => {
       const rootComment = commentsRef.current.find(c => c.comment_id === commentId && !c.parent_id);
       createCommentRef.current.mutate({
         comment_id: commentId,
@@ -388,7 +390,7 @@ export function Editor({
         parent_id: rootComment?.id,
       });
     };
-    ext.storage.onResolve = (commentId: string, resolved: boolean) => {
+    storage.onResolve = (commentId: string, resolved: boolean) => {
       const rootComment = commentsRef.current.find(c => c.comment_id === commentId && !c.parent_id);
       if (rootComment) {
         updateCommentRef.current.mutate({
@@ -399,11 +401,11 @@ export function Editor({
         // The CommentDisplay plugin handles showing resolved vs unresolved states.
       }
     };
-    ext.storage.onSubmitComment = (commentId: string, content: string) => {
+    storage.onSubmitComment = (commentId: string, content: string) => {
       createCommentRef.current.mutate({ comment_id: commentId, content });
       setPendingCommentId(null);
     };
-    ext.storage.onCancelComment = (commentId: string) => {
+    storage.onCancelComment = (commentId: string) => {
       editor.commands.unsetComment(commentId);
       setPendingCommentId(null);
     };
@@ -425,11 +427,11 @@ export function Editor({
   // Sync AI scoring data into the AIScoringDisplay extension storage
   useEffect(() => {
     if (!editor) return;
-    const ext = editor.extensionManager.extensions.find(e => e.name === 'aiScoringDisplay');
-    if (!ext) return;
+    const storage = editor.storage.aiScoringDisplay as AIScoringStorage | undefined;
+    if (!storage) return;
 
-    ext.storage.planAnalysis = aiScoringAnalysis?.planAnalysis || null;
-    ext.storage.retroAnalysis = aiScoringAnalysis?.retroAnalysis || null;
+    storage.planAnalysis = (aiScoringAnalysis?.planAnalysis as AIScoringStorage['planAnalysis']) ?? null;
+    storage.retroAnalysis = (aiScoringAnalysis?.retroAnalysis as AIScoringStorage['retroAnalysis']) ?? null;
 
     // Force ProseMirror to re-evaluate decorations
     const timer = setTimeout(() => {

@@ -8,7 +8,9 @@ import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useProgramsQuery } from '@/hooks/useProgramsQuery';
 import { useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useDocumentConversion } from '@/hooks/useDocumentConversion';
-import { apiGet, apiPatch, apiDelete, apiPost } from '@/lib/api';
+import { apiGetJson, apiPatchJson, apiDelete, apiPostJson } from '@/lib/api';
+import { getApiErrorStatus } from '@/lib/api-error';
+import type { Document } from '@/api/schemas';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
@@ -49,14 +51,14 @@ export function UnifiedDocumentPage() {
   const { data: document, isLoading, error } = useQuery<DocumentResponse>({
     queryKey: ['document', id],
     queryFn: async () => {
-      const response = await apiGet(`/api/documents/${id}`);
-      if (!response.ok) {
-        if (response.status === 404) {
+      try {
+        return await apiGetJson<DocumentResponse>(`/api/documents/${id}`, 'Failed to fetch document');
+      } catch (err) {
+        if (getApiErrorStatus(err) === 404) {
           throw new Error('Document not found');
         }
-        throw new Error('Failed to fetch document');
+        throw err;
       }
-      return response.json();
     },
     enabled: !!id,
     retry: false,
@@ -171,22 +173,19 @@ export function UnifiedDocumentPage() {
     if (!document || !id) return;
 
     try {
-      const res = await apiPost(`/api/documents/${id}/undo-conversion`, {});
-
-      if (res.ok) {
-        // Invalidate caches to refresh the UI
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: ['document', id] }),
-        ]);
-        showToast('Conversion undone successfully', 'success');
+      await apiPostJson<Document>(`/api/documents/${id}/undo-conversion`, {}, 'Failed to undo conversion');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: ['document', id] }),
+      ]);
+      showToast('Conversion undone successfully', 'success');
+    } catch (err) {
+      if (err instanceof Error && 'status' in err) {
+        showToast(err.message, 'error');
       } else {
-        const error = await res.json();
-        showToast(error.error || 'Failed to undo conversion', 'error');
+        showToast('Failed to undo conversion', 'error');
       }
-    } catch {
-      showToast('Failed to undo conversion', 'error');
     }
   }, [document, id, queryClient, showToast]);
 
@@ -207,26 +206,21 @@ export function UnifiedDocumentPage() {
     }
 
     try {
-      const res = await apiPost(`/api/documents/${id}/convert`, { target_type: newType });
+      const data = await apiPostJson<Document>(
+        `/api/documents/${id}/convert`,
+        { target_type: newType },
+        'Failed to convert document'
+      );
 
-      if (res.ok) {
-        const data = await res.json();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: ['document', id] }),
+      ]);
 
-        // Invalidate caches
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: ['document', id] }),
-        ]);
-
-        // Navigate to the new document
-        navigate(`/documents/${data.id}`, { replace: true });
-      } else {
-        const error = await res.json();
-        showToast(error.error || 'Failed to convert document', 'error');
-      }
-    } catch {
-      showToast('Failed to convert document', 'error');
+      navigate(`/documents/${data.id}`, { replace: true });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to convert document', 'error');
     }
   }, [document, id, navigate, queryClient, showToast]);
 
@@ -237,13 +231,8 @@ export function UnifiedDocumentPage() {
 
   // Update mutation with optimistic updates
   const updateMutation = useMutation({
-    mutationFn: async ({ documentId, updates }: { documentId: string; updates: Partial<DocumentResponse> }) => {
-      const response = await apiPatch(`/api/documents/${documentId}`, updates);
-      if (!response.ok) {
-        throw new Error('Failed to update document');
-      }
-      return response.json();
-    },
+    mutationFn: ({ documentId, updates }: { documentId: string; updates: Partial<DocumentResponse> }) =>
+      apiPatchJson<DocumentResponse>(`/api/documents/${documentId}`, updates, 'Failed to update document'),
     onMutate: async ({ documentId, updates }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['document', documentId] });

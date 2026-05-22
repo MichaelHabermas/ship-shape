@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 import { usePrograms } from '@/hooks/useProgramsQuery';
 import { useToast } from '@/components/ui/Toast';
 import { useNavigate } from 'react-router-dom';
@@ -63,11 +64,11 @@ export function MergeProgramDialog({ isOpen, onClose, sourceId, sourceName }: Me
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
-          const data = await res.json();
+          const data = await readJson<LegacyErrorResponse>(res);
           setError(data.error || 'Failed to load preview');
           setPreview(null);
         } else {
-          const data = await res.json();
+          const data = await readJson<MergePreview>(res);
           setPreview(data);
         }
       })
@@ -104,7 +105,7 @@ export function MergeProgramDialog({ isOpen, onClose, sourceId, sourceName }: Me
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await readJson<LegacyErrorResponse>(res);
         setError(data.error || 'Merge failed');
         setIsMerging(false);
         return;

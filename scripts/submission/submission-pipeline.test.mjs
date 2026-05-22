@@ -33,14 +33,16 @@ test('validator catches target actual drift from referenced metric', async () =>
 
 test('validator rejects proven claims that depend on failing targets', async () => {
   const ledger = await fixtureLedger();
-  const category = ledger.categories.find((item) => item.id === 'cat-2-bundle-size');
+  const category = ledger.categories.find((item) => item.id === 'cat-3-api-response-time');
+  const target = category.targets.find((item) => item.id === 'cat3-target-two-endpoints-p95');
+  target.result = 'fail';
   const claim = category.claims[0];
   claim.status = 'proven';
-  claim.basis = ['cat2-target-before-after-output'];
+  claim.basis = ['cat3-target-two-endpoints-p95'];
 
   const errors = await validateLedger(ledger);
 
-  assert(errors.some((error) => error.includes('proven claim cannot depend on non-passing basis cat2-target-before-after-output')));
+  assert(errors.some((error) => error.includes('proven claim cannot depend on non-passing basis cat3-target-two-endpoints-p95')));
 });
 
 test('markdown generated block replacement is stable and scoped', async () => {

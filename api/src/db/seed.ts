@@ -7,6 +7,8 @@ import bcrypt from 'bcryptjs';
 import { loadProductionSecrets } from '../config/ssm.js';
 import { databaseSslOptions } from '../config/runtime.js';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocument.js';
+import { IdRow, MaxTicketRow, SprintStartDateRow } from '../test/pg-result.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 
 const { Pool } = pg;
 
@@ -56,7 +58,7 @@ async function seed() {
     console.log('✅ Schema created');
 
     // Check if workspace exists
-    const existingWorkspace = await pool.query(
+    const existingWorkspace = await pool.query<IdRow>(
       'SELECT id FROM workspaces WHERE name = $1',
       ['Ship Workspace']
     );
@@ -64,7 +66,7 @@ async function seed() {
     let workspaceId: string;
 
     if (existingWorkspace.rows[0]) {
-      workspaceId = existingWorkspace.rows[0].id;
+      workspaceId = requireFirstRow(existingWorkspace.rows).id;
       console.log('ℹ️  Workspace already exists');
     } else {
       // Create workspace with sprint_start_date ~3 months ago, aligned to Monday.
@@ -76,13 +78,13 @@ async function seed() {
       const dayOfWeek = threeMonthsAgo.getDay(); // 0=Sun, 1=Mon, ...
       const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       threeMonthsAgo.setDate(threeMonthsAgo.getDate() - daysToSubtract);
-      const workspaceResult = await pool.query(
+      const workspaceResult = await pool.query<IdRow>(
         `INSERT INTO workspaces (name, sprint_start_date)
          VALUES ($1, $2)
          RETURNING id`,
         ['Ship Workspace', threeMonthsAgo.toISOString().split('T')[0]]
       );
-      workspaceId = workspaceResult.rows[0].id;
+      workspaceId = requireFirstRow(workspaceResult.rows).id;
       console.log('✅ Workspace created');
     }
 
@@ -105,8 +107,8 @@ async function seed() {
     let usersCreated = 0;
 
     for (const member of teamMembers) {
-      const existingUser = await pool.query(
-        'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+      const existingUser = await pool.query<IdRow>(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
         [member.email]
       );
 
@@ -143,8 +145,8 @@ async function seed() {
 
     for (const user of allUsersForMembership.rows) {
       // Check for existing membership
-      const existingMembership = await pool.query(
-        'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
+      const existingMembership = await pool.query<IdRow>(
+      'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
         [workspaceId, user.id]
       );
 
@@ -160,7 +162,7 @@ async function seed() {
       }
 
       // Check for existing person document (via properties.user_id)
-      const existingPersonDoc = await pool.query(
+      const existingPersonDoc = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE workspace_id = $1 AND document_type = 'person' AND properties->>'user_id' = $2`,
         [workspaceId, user.id]
@@ -253,22 +255,22 @@ async function seed() {
     let programsCreated = 0;
 
     for (const prog of programsToSeed) {
-      const existingProgram = await pool.query(
+      const existingProgram = await pool.query<IdRow>(
         `SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND properties->>'prefix' = $3`,
         [workspaceId, 'program', prog.prefix]
       );
 
       if (existingProgram.rows[0]) {
-        programs.push({ id: existingProgram.rows[0].id, ...prog });
+        programs.push({ id: requireFirstRow(existingProgram.rows).id, ...prog });
       } else {
         const properties = { prefix: prog.prefix, color: prog.color };
-        const programResult = await pool.query(
+        const programResult = await pool.query<IdRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties)
            VALUES ($1, 'program', $2, $3)
            RETURNING id`,
           [workspaceId, prog.name, JSON.stringify(properties)]
         );
-        programs.push({ id: programResult.rows[0].id, ...prog });
+        programs.push({ id: requireFirstRow(programResult.rows).id, ...prog });
         programsCreated++;
       }
     }
@@ -346,7 +348,7 @@ async function seed() {
         const projectTitle = `${program.name} - ${template.name}`;
 
         // Check if project already exists (via junction table association to program)
-        const existingProject = await pool.query(
+        const existingProject = await pool.query<IdRow>(
           `SELECT d.id FROM documents d
            JOIN document_associations da ON da.document_id = d.id
              AND da.related_id = $3 AND da.relationship_type = 'program'
@@ -356,7 +358,7 @@ async function seed() {
 
         if (existingProject.rows[0]) {
           projects.push({
-            id: existingProject.rows[0].id,
+            id: requireFirstRow(existingProject.rows).id,
             programId: program.id,
             title: projectTitle,
           });
@@ -389,13 +391,13 @@ async function seed() {
             projectProperties.design_review_notes = template.design_review_notes;
           }
           // Create project document without legacy program_id column
-          const projectResult = await pool.query(
+          const projectResult = await pool.query<IdRow>(
             `INSERT INTO documents (workspace_id, document_type, title, properties)
              VALUES ($1, 'project', $2, $3)
              RETURNING id`,
             [workspaceId, projectTitle, JSON.stringify(projectProperties)]
           );
-          const projectId = projectResult.rows[0].id;
+          const projectId = requireFirstRow(projectResult.rows).id;
 
           // Create association to program via junction table
           await createAssociation(pool, projectId, program.id, 'program');
@@ -417,11 +419,11 @@ async function seed() {
     }
 
     // Get workspace sprint start date and calculate current sprint (1-week sprints)
-    const wsResult = await pool.query(
+    const wsResult = await pool.query<SprintStartDateRow>(
       'SELECT sprint_start_date FROM workspaces WHERE id = $1',
       [workspaceId]
     );
-    const sprintStartDate = new Date(wsResult.rows[0].sprint_start_date);
+    const sprintStartDate = new Date(requireFirstRow(wsResult.rows).sprint_start_date);
     const today = new Date();
     const daysSinceStart = Math.floor((today.getTime() - sprintStartDate.getTime()) / (1000 * 60 * 60 * 24));
     const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / 7) + 1);
@@ -459,7 +461,7 @@ async function seed() {
       const owner = allUsers[sprint.ownerIdx]!;
 
       // Check for existing sprint by sprint_number and project (via junction table)
-      const existingSprint = await pool.query(
+      const existingSprint = await pool.query<IdRow>(
         `SELECT d.id FROM documents d
          JOIN document_associations da ON da.document_id = d.id
            AND da.related_id = $2 AND da.relationship_type = 'project'
@@ -470,7 +472,7 @@ async function seed() {
 
       if (existingSprint.rows[0]) {
         sprints.push({
-          id: existingSprint.rows[0].id,
+          id: requireFirstRow(existingSprint.rows).id,
           programId: sprint.programId,
           projectId: sprint.projectId,
           number: sprint.number,
@@ -526,13 +528,13 @@ async function seed() {
           ...(sprintStatus && { status: sprintStatus }),
         };
         // Create sprint document without legacy project_id and program_id columns
-        const sprintResult = await pool.query(
+        const sprintResult = await pool.query<IdRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties)
            VALUES ($1, 'sprint', $2, $3)
            RETURNING id`,
           [workspaceId, `Week ${sprint.number}`, JSON.stringify(sprintProperties)]
         );
-        const sprintId = sprintResult.rows[0].id;
+        const sprintId = requireFirstRow(sprintResult.rows).id;
 
         // Create associations via junction table (sprint belongs to project AND program)
         await createAssociation(pool, sprintId, sprint.projectId, 'project');
@@ -644,7 +646,7 @@ async function seed() {
     // Get existing max ticket numbers per program (via junction table)
     const maxTickets: Record<string, number> = {};
     for (const program of programs) {
-      const maxResult = await pool.query(
+      const maxResult = await pool.query<MaxTicketRow>(
         `SELECT COALESCE(MAX(d.ticket_number), 0) as max_ticket
          FROM documents d
          JOIN document_associations da ON da.document_id = d.id
@@ -652,7 +654,7 @@ async function seed() {
          WHERE d.workspace_id = $1 AND d.document_type = 'issue'`,
         [workspaceId, program.id]
       );
-      maxTickets[program.id] = maxResult.rows[0].max_ticket;
+      maxTickets[program.id] = requireFirstRow(maxResult.rows).max_ticket ?? 0;
     }
 
     // Seed Ship Core issues with comprehensive sprint coverage
@@ -672,7 +674,7 @@ async function seed() {
       }
 
       // Check if issue already exists (via junction table association to program)
-      const existingIssue = await pool.query(
+      const existingIssue = await pool.query<IdRow>(
         `SELECT d.id FROM documents d
          JOIN document_associations da ON da.document_id = d.id
            AND da.related_id = $2 AND da.relationship_type = 'program'
@@ -695,13 +697,13 @@ async function seed() {
           issueProperties.estimate = issue.estimate;
         }
         // Create issue document without legacy program_id and sprint_id columns
-        const issueResult = await pool.query(
+        const issueResult = await pool.query<IdRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number)
            VALUES ($1, 'issue', $2, $3, $4)
            RETURNING id`,
           [workspaceId, issue.title, JSON.stringify(issueProperties), maxTickets[shipCoreProgram.id]]
         );
-        const issueId = issueResult.rows[0].id;
+        const issueId = requireFirstRow(issueResult.rows).id;
 
         // Create associations via junction table
         await createAssociation(pool, issueId, shipCoreProgram.id, 'program');
@@ -744,7 +746,7 @@ async function seed() {
         }
 
         // Check if issue already exists (via junction table association to program)
-        const existingIssue = await pool.query(
+        const existingIssue = await pool.query<IdRow>(
           `SELECT d.id FROM documents d
            JOIN document_associations da ON da.document_id = d.id
              AND da.related_id = $2 AND da.relationship_type = 'program'
@@ -764,13 +766,13 @@ async function seed() {
             estimate: template.estimate,
           };
           // Create issue document without legacy program_id and sprint_id columns
-          const issueResult = await pool.query(
+          const issueResult = await pool.query<IdRow>(
             `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number)
              VALUES ($1, 'issue', $2, $3, $4)
              RETURNING id`,
             [workspaceId, template.title, JSON.stringify(issueProperties), maxTickets[program.id]]
           );
-          const issueId = issueResult.rows[0].id;
+          const issueId = requireFirstRow(issueResult.rows).id;
 
           // Create associations via junction table
           await createAssociation(pool, issueId, program.id, 'program');
@@ -802,7 +804,7 @@ async function seed() {
     }
 
     // Create welcome/tutorial wiki document
-    const existingTutorial = await pool.query(
+    const existingTutorial = await pool.query<IdRow>(
       'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3',
       [workspaceId, 'wiki', WELCOME_DOCUMENT_TITLE]
     );
@@ -810,16 +812,16 @@ async function seed() {
     let tutorialDocId: string;
     if (!existingTutorial.rows[0]) {
       // Insert the tutorial document with position=0 to ensure it appears first
-      const tutorialResult = await pool.query(
+      const tutorialResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, position)
          VALUES ($1, 'wiki', $2, $3, 0)
          RETURNING id`,
         [workspaceId, WELCOME_DOCUMENT_TITLE, JSON.stringify(WELCOME_DOCUMENT_CONTENT)]
       );
-      tutorialDocId = tutorialResult.rows[0].id;
+      tutorialDocId = requireFirstRow(tutorialResult.rows).id;
       console.log('✅ Created welcome tutorial document');
     } else {
-      tutorialDocId = existingTutorial.rows[0].id;
+      tutorialDocId = requireFirstRow(existingTutorial.rows).id;
       console.log('ℹ️  Welcome tutorial already exists');
     }
 
@@ -831,8 +833,8 @@ async function seed() {
 
     let nestedDocsCreated = 0;
     for (const doc of nestedDocs) {
-      const existingDoc = await pool.query(
-        'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3 AND parent_id = $4',
+      const existingDoc = await pool.query<IdRow>(
+      'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3 AND parent_id = $4',
         [workspaceId, 'wiki', doc.title, doc.parentId]
       );
 
@@ -862,8 +864,8 @@ async function seed() {
     let standaloneDocsCreated = 0;
     for (let i = 0; i < standaloneWikiDocs.length; i++) {
       const doc = standaloneWikiDocs[i]!;
-      const existingDoc = await pool.query(
-        'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3 AND parent_id IS NULL',
+      const existingDoc = await pool.query<IdRow>(
+      'SELECT id FROM documents WHERE workspace_id = $1 AND document_type = $2 AND title = $3 AND parent_id IS NULL',
         [workspaceId, 'wiki', doc.title]
       );
 
@@ -893,7 +895,7 @@ async function seed() {
     for (const sprint of shipCoreSprints) {
       if (sprint.number >= currentSprintNumber - 1 && sprint.number <= currentSprintNumber) {
         // Check if standups already exist for this sprint (via junction table)
-        const existingStandups = await pool.query(
+        const existingStandups = await pool.query<IdRow>(
           `SELECT d.id FROM documents d
            JOIN document_associations da ON da.document_id = d.id
              AND da.related_id = $2 AND da.relationship_type = 'sprint'
@@ -944,13 +946,13 @@ async function seed() {
             const properties = { author_id: author.id };
 
             // Create standup document without legacy sprint_id column
-            const standupResult = await pool.query(
+            const standupResult = await pool.query<IdRow>(
               `INSERT INTO documents (workspace_id, document_type, title, content, created_by, properties, created_at)
                VALUES ($1, 'standup', $2, $3, $4, $5, NOW() - INTERVAL '${daysAgo} days')
                RETURNING id`,
               [workspaceId, `Standup - ${author.name}`, JSON.stringify(message.content), author.id, JSON.stringify(properties)]
             );
-            const standupId = standupResult.rows[0].id;
+            const standupId = requireFirstRow(standupResult.rows).id;
 
             // Create association to sprint via junction table
             await createAssociation(pool, standupId, sprint.id, 'sprint');
@@ -975,7 +977,7 @@ async function seed() {
     for (const sprint of allPastSprints) {
       {
         // Check if review exists (via junction table)
-        const existingReview = await pool.query(
+        const existingReview = await pool.query<IdRow>(
           `SELECT d.id FROM documents d
            JOIN document_associations da ON da.document_id = d.id
              AND da.related_id = $2 AND da.relationship_type = 'sprint'
@@ -1002,13 +1004,13 @@ async function seed() {
 
           const owner = allUsers[sprint.number % allUsers.length]!;
           // Create sprint review document without legacy sprint_id column
-          const reviewResult = await pool.query(
+          const reviewResult = await pool.query<IdRow>(
             `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
              VALUES ($1, 'weekly_review', $2, $3, $4)
              RETURNING id`,
             [workspaceId, `Week ${sprint.number} Review`, JSON.stringify(reviewContent), owner.id]
           );
-          const reviewId = reviewResult.rows[0].id;
+          const reviewId = requireFirstRow(reviewResult.rows).id;
 
           // Create association to sprint via junction table
           await createAssociation(pool, reviewId, sprint.id, 'sprint');
@@ -1133,8 +1135,8 @@ async function seed() {
         // Past sprints: create plan + retro with content (some deliberately skipped)
         if (sprintOffset < 0) {
           if (!skipPlanForPast) {
-            const existing = await pool.query(
-              `SELECT id FROM documents
+            const existing = await pool.query<IdRow>(
+        `SELECT id FROM documents
                WHERE workspace_id = $1 AND document_type = 'weekly_plan'
                  AND (properties->>'person_id') = $2
                  AND (properties->>'project_id') = $3
@@ -1163,8 +1165,8 @@ async function seed() {
           }
 
           if (!skipRetroForPast) {
-            const existing = await pool.query(
-              `SELECT id FROM documents
+            const existing = await pool.query<IdRow>(
+        `SELECT id FROM documents
                WHERE workspace_id = $1 AND document_type = 'weekly_retro'
                  AND (properties->>'person_id') = $2
                  AND (properties->>'project_id') = $3
@@ -1195,8 +1197,8 @@ async function seed() {
 
         // Current sprint: create plan for most people (no retros yet)
         if (sprintOffset === 0 && !skipPlanForCurrent) {
-          const existing = await pool.query(
-            `SELECT id FROM documents
+          const existing = await pool.query<IdRow>(
+        `SELECT id FROM documents
              WHERE workspace_id = $1 AND document_type = 'weekly_plan'
                AND (properties->>'person_id') = $2
                AND (properties->>'project_id') = $3

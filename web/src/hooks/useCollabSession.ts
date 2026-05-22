@@ -17,6 +17,35 @@ export interface CollabUser {
   color: string;
 }
 
+interface DocumentConversionInfo {
+  newDocId?: string;
+  newDocType?: 'issue' | 'project';
+}
+
+interface AwarenessState {
+  user?: unknown;
+}
+
+function parseDocumentConversionInfo(reason: string): DocumentConversionInfo | null {
+  try {
+    const parsed: unknown = JSON.parse(reason || '{}');
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const obj = parsed as Record<string, unknown>;
+    const newDocId = typeof obj.newDocId === 'string' ? obj.newDocId : undefined;
+    const newDocType =
+      obj.newDocType === 'issue' || obj.newDocType === 'project' ? obj.newDocType : undefined;
+    return { newDocId, newDocType };
+  } catch {
+    return null;
+  }
+}
+
+function isCollabUser(value: unknown): value is CollabUser {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj.name === 'string' && typeof obj.color === 'string';
+}
+
 export interface UseCollabSessionOptions {
   documentId: string;
   /** Authoritative document type for room naming (preferred over roomPrefix). */
@@ -161,9 +190,9 @@ export function useCollabSession({
 	          onBackRef.current?.();
 	        } else if (event?.code === COLLAB_CLOSE_CODE_CONVERSION) {
 	          provider.shouldConnect = false;
-	          try {
-	            const conversionInfo = JSON.parse(event.reason || '{}');
-            if (conversionInfo.newDocId && conversionInfo.newDocType && onDocumentConvertedRef.current) {
+          try {
+            const conversionInfo = parseDocumentConversionInfo(event.reason || '');
+            if (conversionInfo?.newDocId && conversionInfo.newDocType && onDocumentConvertedRef.current) {
               onDocumentConvertedRef.current(conversionInfo.newDocId, conversionInfo.newDocType);
             } else {
               alert('This document was converted. Please refresh to view the new document.');
@@ -196,8 +225,8 @@ export function useCollabSession({
 	        if (cancelled) return;
 	        const users: CollabUser[] = [];
 	        const seenNames = new Set<string>();
-	        provider.awareness.getStates().forEach((state) => {
-	          if (state.user && !seenNames.has(state.user.name)) {
+	        provider.awareness.getStates().forEach((state: AwarenessState) => {
+	          if (isCollabUser(state.user) && !seenNames.has(state.user.name)) {
             seenNames.add(state.user.name);
             users.push(state.user);
           }

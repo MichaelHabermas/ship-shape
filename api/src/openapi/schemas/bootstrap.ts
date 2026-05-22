@@ -9,6 +9,17 @@ import { IssueListResponseSchema } from './issues.js';
 import { ProgramResponseSchema } from './programs.js';
 import { ProjectResponseSchema } from './projects.js';
 import { AccountabilityActionItemsResponseSchema } from './accountability.js';
+import { BOOTSTRAP_DOCUMENT_PROPERTY_KEYS } from '../../constants/bootstrap-document.js';
+
+const BootstrapDocumentPropertiesSchema = z
+  .object(
+    Object.fromEntries(
+      BOOTSTRAP_DOCUMENT_PROPERTY_KEYS.map((key) => [key, z.unknown().optional()])
+    ) as Record<(typeof BOOTSTRAP_DOCUMENT_PROPERTY_KEYS)[number], z.ZodOptional<z.ZodUnknown>>
+  )
+  .openapi('BootstrapDocumentProperties');
+
+registry.register('BootstrapDocumentProperties', BootstrapDocumentPropertiesSchema);
 
 const BootstrapUserSchema = z.object({
   id: UuidSchema,
@@ -31,7 +42,7 @@ const BootstrapDocumentSchema = z.object({
   parent_id: UuidSchema.nullable(),
   position: z.number().int().nullable(),
   ticket_number: z.number().int().nullable(),
-  properties: z.record(z.unknown()).nullable(),
+  properties: BootstrapDocumentPropertiesSchema.nullable(),
   created_at: DateTimeSchema,
   updated_at: DateTimeSchema,
   created_by: UuidSchema,
@@ -43,6 +54,21 @@ const BootstrapStandupStatusSchema = z.object({
   lastPosted: DateTimeSchema.nullable(),
 });
 
+const BootstrapProjectSchema = ProjectResponseSchema.omit({
+  plan: true,
+  plan_approval: true,
+  retro_approval: true,
+  design_review_notes: true,
+}).extend({
+  owner: z.object({
+    id: UuidSchema,
+    name: z.string().openapi({ description: 'User display name' }),
+    email: z.string().email().optional().openapi({ description: 'User email address' }),
+  }).nullable(),
+}).openapi('BootstrapProject');
+
+registry.register('BootstrapProject', BootstrapProjectSchema);
+
 export const BootstrapResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
@@ -52,7 +78,7 @@ export const BootstrapResponseSchema = z.object({
     pendingAccountabilityItems: z.array(z.unknown()),
     documents: z.array(BootstrapDocumentSchema),
     programs: z.array(ProgramResponseSchema),
-    projects: z.array(ProjectResponseSchema),
+    projects: z.array(BootstrapProjectSchema),
     issues: z.array(IssueListResponseSchema),
     standupStatus: BootstrapStandupStatusSchema,
     actionItems: AccountabilityActionItemsResponseSchema,

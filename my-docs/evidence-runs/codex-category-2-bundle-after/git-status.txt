@@ -1,0 +1,6 @@
+branch: cat-checks-1
+commit: 190bd1e7ca926d093233f1529678d2fd49376a5b
+
+status --short:
+ M scripts/a11y-closeout.mjs
+ M scripts/evidence/collectors/bundle-stats.mjs

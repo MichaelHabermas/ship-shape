@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiPost, apiPatch } from '@/lib/api';
+import { apiPost, apiPatch, readJson } from '@/lib/api';
 import { createApiStatusError } from '@/lib/api-error';
 import { apiClient, assertApiData } from '@/api/client';
 import type { CascadeWarning, IncompleteChild, BelongsTo, BelongsToType } from '@ship/shared';
@@ -148,7 +148,7 @@ async function createIssueApi(data: CreateIssueData): Promise<Issue> {
   if (!res.ok) {
     throw createApiStatusError('Failed to create issue', res.status);
   }
-  const apiIssue = await res.json();
+  const apiIssue = await readJson<Record<string, unknown>>(res);
   return transformIssue(apiIssue);
 }
 
@@ -159,14 +159,14 @@ async function updateIssueApi(id: string, updates: Partial<Issue>): Promise<Issu
   if (!res.ok) {
     // Check for cascade warning (409 with incomplete_children)
     if (res.status === 409) {
-      const body = await res.json();
+      const body = await readJson<{ error?: string } & CascadeWarning>(res);
       if (body.error === 'incomplete_children') {
-        throw new CascadeWarningError(body as CascadeWarning);
+        throw new CascadeWarningError(body);
       }
     }
     throw createApiStatusError('Failed to update issue', res.status);
   }
-  const apiIssue = await res.json();
+  const apiIssue = await readJson<Record<string, unknown>>(res);
   return transformIssue(apiIssue);
 }
 
@@ -306,7 +306,7 @@ async function bulkUpdateIssuesApi(data: BulkUpdateRequest): Promise<BulkUpdateR
   if (!res.ok) {
     throw createApiStatusError('Failed to bulk update issues', res.status);
   }
-  return res.json();
+  return readJson<BulkUpdateResponse>(res);
 }
 
 // Hook for bulk updates

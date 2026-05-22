@@ -1,0 +1,233 @@
+{
+  "name": "bundle-stats",
+  "status": "passed",
+  "summary": "Measured 334 built files totaling 3511292 bytes, including 293 JS chunks and 2 CSS chunks.",
+  "data": {
+    "distDir": "web/dist",
+    "fileCount": 334,
+    "totalBytes": 3511292,
+    "totalGzipBytes": 751782,
+    "totalJsBytes": 2328607,
+    "totalCssBytes": 67678,
+    "jsChunkCount": 293,
+    "cssChunkCount": 2,
+    "byExtension": {
+      ".js": {
+        "files": 293,
+        "bytes": 2328607
+      },
+      ".css": {
+        "files": 2,
+        "bytes": 67678
+      },
+      ".xml": {
+        "files": 1,
+        "bytes": 367
+      },
+      ".png": {
+        "files": 31,
+        "bytes": 1065895
+      },
+      ".ico": {
+        "files": 2,
+        "bytes": 28972
+      },
+      ".svg": {
+        "files": 2,
+        "bytes": 13362
+      },
+      ".html": {
+        "files": 1,
+        "bytes": 4548
+      },
+      ".json": {
+        "files": 1,
+        "bytes": 1663
+      },
+      ".txt": {
+        "files": 1,
+        "bytes": 200
+      }
+    },
+    "largestAssets": [
+      {
+        "path": "web/dist/assets/PropertyRow-DPbMYz5a.js",
+        "name": "PropertyRow-DPbMYz5a.js",
+        "bytes": 837240,
+        "gzipBytes": 261567,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-CeOsbhgF.js",
+        "name": "index-CeOsbhgF.js",
+        "bytes": 530769,
+        "gzipBytes": 154945,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/emoji-picker-react.esm-1fWkK4dK.js",
+        "name": "emoji-picker-react.esm-1fWkK4dK.js",
+        "bytes": 309510,
+        "gzipBytes": 74966,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-1024.png",
+        "name": "logo-1024.png",
+        "bytes": 275505,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/assets/UnifiedDocumentPage-DwBBmPYW.js",
+        "name": "UnifiedDocumentPage-DwBBmPYW.js",
+        "bytes": 138032,
+        "gzipBytes": 36350,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/icons/blue/android-chrome-512x512.png",
+        "name": "android-chrome-512x512.png",
+        "bytes": 135090,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-512.png",
+        "name": "logo-512.png",
+        "bytes": 135090,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/og-image.png",
+        "name": "og-image.png",
+        "bytes": 70180,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/assets/index-BHt3n1XP.css",
+        "name": "index-BHt3n1XP.css",
+        "bytes": 66268,
+        "gzipBytes": 12705,
+        "extension": ".css"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-256.png",
+        "name": "logo-256.png",
+        "bytes": 65673,
+        "gzipBytes": null,
+        "extension": ".png"
+      }
+    ],
+    "topBuiltChunks": [
+      {
+        "path": "web/dist/assets/PropertyRow-DPbMYz5a.js",
+        "name": "PropertyRow-DPbMYz5a.js",
+        "bytes": 837240,
+        "gzipBytes": 261567,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-CeOsbhgF.js",
+        "name": "index-CeOsbhgF.js",
+        "bytes": 530769,
+        "gzipBytes": 154945,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/emoji-picker-react.esm-1fWkK4dK.js",
+        "name": "emoji-picker-react.esm-1fWkK4dK.js",
+        "bytes": 309510,
+        "gzipBytes": 74966,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/UnifiedDocumentPage-DwBBmPYW.js",
+        "name": "UnifiedDocumentPage-DwBBmPYW.js",
+        "bytes": 138032,
+        "gzipBytes": 36350,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-BHt3n1XP.css",
+        "name": "index-BHt3n1XP.css",
+        "bytes": 66268,
+        "gzipBytes": 12705,
+        "extension": ".css"
+      },
+      {
+        "path": "web/dist/assets/IssuesList-OqD6neiq.js",
+        "name": "IssuesList-OqD6neiq.js",
+        "bytes": 54119,
+        "gzipBytes": 15776,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/core.esm-B0dDMEVl.js",
+        "name": "core.esm-B0dDMEVl.js",
+        "bytes": 43698,
+        "gzipBytes": 14509,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/ReviewsPage-CJHFlAQZ.js",
+        "name": "ReviewsPage-CJHFlAQZ.js",
+        "bytes": 28410,
+        "gzipBytes": 7202,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/TeamMode-ByfT1dma.js",
+        "name": "TeamMode-ByfT1dma.js",
+        "bytes": 21739,
+        "gzipBytes": 6486,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/WorkspaceSettings-_6ui_3-9.js",
+        "name": "WorkspaceSettings-_6ui_3-9.js",
+        "bytes": 17518,
+        "gzipBytes": 4395,
+        "extension": ".js"
+      }
+    ],
+    "currentEntry": "assets/index-CeOsbhgF.js",
+    "currentEntryAsset": {
+      "path": "web/dist/assets/index-CeOsbhgF.js",
+      "name": "index-CeOsbhgF.js",
+      "bytes": 530769,
+      "gzipBytes": 154945,
+      "extension": ".js"
+    },
+    "indexHtml": {
+      "path": "web/dist/index.html",
+      "name": "index.html",
+      "bytes": 4548,
+      "gzipBytes": 1163,
+      "extension": ".html"
+    },
+    "report": {
+      "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html",
+      "title": "Bundle Analysis"
+    }
+  },
+  "claims": [
+    {
+      "id": "bundle.dist-present",
+      "status": "met",
+      "statement": "web/dist exists and was measured."
+    },
+    {
+      "id": "bundle.index-html",
+      "status": "met",
+      "statement": "web/dist/index.html is present."
+    },
+    {
+      "id": "bundle.entry-js",
+      "status": "met",
+      "statement": "Current entry JS was found at web/dist/assets/index-CeOsbhgF.js."
+    }
+  ]
+}

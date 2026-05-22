@@ -1,4 +1,5 @@
 // Shared types and utilities
+export * from './sprint-time.js';
 export * from './types/index.js';
 export * from './constants.js';
 export * from './document-view.js';

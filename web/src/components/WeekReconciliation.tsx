@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { apiGet, apiPatch, apiPost } from '@/lib/api';
+import { apiGet, apiPatch, apiPost, readJson } from '@/lib/api';
+import type { SprintsResponse, Sprint as WeekSprint } from '@/hooks/useWeeksQuery';
 import { priorityColors } from '@/lib/statusColors';
 
 interface Issue {
@@ -13,13 +14,6 @@ interface Issue {
   display_id: string;
   estimate: number | null;
   assignee_name: string | null;
-}
-
-interface Sprint {
-  id: string;
-  name: string;
-  sprint_number: number;
-  program_id: string;
 }
 
 export interface ReconciliationDecision {
@@ -73,7 +67,7 @@ export function WeekReconciliation({
     queryFn: async () => {
       const response = await apiGet(`/api/weeks/${sprintId}/issues`);
       if (!response.ok) throw new Error('Failed to fetch issues');
-      return response.json();
+      return readJson<Issue[]>(response);
     },
   });
 
@@ -83,16 +77,15 @@ export function WeekReconciliation({
   }, [issues]);
 
   // Fetch or find next sprint
-  const { data: nextSprint } = useQuery<Sprint | null>({
+  const { data: nextSprint } = useQuery<WeekSprint | null>({
     queryKey: ['next-sprint', programId, sprintNumber],
     queryFn: async () => {
       // Try to find existing sprint with sprint_number + 1 for same program
       const response = await apiGet(`/api/programs/${programId}/sprints`);
       if (!response.ok) return null;
 
-      const data = await response.json();
-      // API returns { workspace_sprint_start_date, weeks: [...] } object
-      const sprints: Sprint[] = data.weeks || [];
+      const data = await readJson<SprintsResponse>(response);
+      const sprints = data.weeks || [];
       const next = sprints.find(s => s.sprint_number === sprintNumber + 1);
       return next || null;
     },
@@ -101,7 +94,7 @@ export function WeekReconciliation({
   // Mutation to move issue to next sprint
   const moveToNextSprintMutation = useMutation({
     mutationFn: async (issue: Issue) => {
-      let targetSprintId = nextSprint?.id;
+      let targetSprintId: string | undefined = nextSprint?.id;
 
       // If next sprint doesn't exist, create it
       if (!targetSprintId) {
@@ -115,15 +108,21 @@ export function WeekReconciliation({
           throw new Error('Failed to create next week');
         }
 
-        const newSprint = await createResponse.json();
+        const newSprint = await readJson<{ id: string }>(createResponse);
         targetSprintId = newSprint.id;
       }
+
+      if (!targetSprintId) {
+        throw new Error('Missing target sprint');
+      }
+
+      const resolvedTargetSprintId = targetSprintId;
 
       // Move issue to next sprint with carryover tracking
       // Build belongs_to array preserving program, updating sprint
       const belongs_to = [
-        { id: programId, type: 'program' },
-        { id: targetSprintId, type: 'sprint' },
+        { id: programId, type: 'program' as const },
+        { id: resolvedTargetSprintId, type: 'sprint' as const },
       ];
       const response = await apiPatch(`/api/issues/${issue.id}`, {
         belongs_to,
@@ -134,7 +133,7 @@ export function WeekReconciliation({
         throw new Error('Failed to move issue to next week');
       }
 
-      return { issue, targetSprintId };
+      return { issue, targetSprintId: resolvedTargetSprintId };
     },
     onSuccess: ({ issue }) => {
       queryClient.invalidateQueries({ queryKey: ['sprint-issues', sprintId] });

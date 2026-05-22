@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocuments, WikiDocument } from '@/contexts/DocumentsContext';
+import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import { buildDocumentTree } from '@/lib/documentTree';
 import { DocumentTreeItem } from '@/components/DocumentTreeItem';
 import { DocumentsListSkeleton } from '@/components/ui/Skeleton';
@@ -66,6 +67,8 @@ export function DocumentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { currentDocumentId, currentDocumentType } = useCurrentDocument();
+  const activeDocumentId = currentDocumentType === 'wiki' ? currentDocumentId ?? undefined : undefined;
 
   // Use shared hooks for list state management (matches Issues page)
   const { sortBy, setSortBy, viewMode, setViewMode } = useListFilters({
@@ -365,6 +368,8 @@ export function DocumentsPage() {
               <DocumentTreeItem
                 key={doc.id}
                 document={doc}
+                activeDocumentId={activeDocumentId}
+                autoExpandActive
                 onCreateChild={handleCreateDocument}
                 onDelete={handleDeleteWithUndo}
               />

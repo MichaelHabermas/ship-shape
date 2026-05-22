@@ -4,7 +4,9 @@ import { Command } from 'cmdk';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/Tooltip';
 
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGetJson, apiPostJson } from '@/lib/api';
+import type { Document, DocumentSearchResponse } from '@/api/schemas';
+import type { Program } from '@/hooks/useProgramsQuery';
 
 interface SearchableDocument {
   id: string;
@@ -103,21 +105,14 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
 
   const createIssue = async () => {
     try {
-      // Get the first program to create the issue in
-      const programsRes = await apiGet('/api/programs');
-      if (!programsRes.ok) return;
-      const programs = await programsRes.json();
+      const programs = await apiGetJson<Program[]>('/api/programs', 'Failed to fetch programs');
       if (programs.length === 0) return;
 
-      const res = await apiPost('/api/issues', {
+      const issue = await apiPostJson<Document>('/api/issues', {
         title: 'Untitled',
         belongs_to: [{ id: programs[0].id, type: 'program' }],
-      });
-
-      if (res.ok) {
-        const issue = await res.json();
-        navigate(`/documents/${issue.id}`);
-      }
+      }, 'Failed to create issue');
+      navigate(`/documents/${issue.id}`);
     } catch (err) {
       console.error('Failed to create issue:', err);
     }
@@ -125,12 +120,12 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
 
   const createDocument = async () => {
     try {
-      const res = await apiPost('/api/documents', { title: 'Untitled', document_type: 'wiki' });
-
-      if (res.ok) {
-        const doc = await res.json();
-        navigate(`/documents/${doc.id}`);
-      }
+      const doc = await apiPostJson<Document>(
+        '/api/documents',
+        { title: 'Untitled', document_type: 'wiki' },
+        'Failed to create document'
+      );
+      navigate(`/documents/${doc.id}`);
     } catch (err) {
       console.error('Failed to create document:', err);
     }
@@ -153,12 +148,12 @@ export function CommandPalette({ open, onOpenChange, currentDocument, onConvertD
           q: search,
           limit: '20',
         });
-        const res = await apiGet(`/api/search/documents?${params.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled) {
-            setDocuments(data.documents);
-          }
+        const data = await apiGetJson<DocumentSearchResponse>(
+          `/api/search/documents?${params.toString()}`,
+          'Failed to search documents'
+        );
+        if (!cancelled) {
+          setDocuments(data.documents);
         }
       } catch (err) {
         if (!cancelled) {

@@ -6,18 +6,12 @@ import Link from '@tiptap/extension-link';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidateStandupStatus } from '@/hooks/useStandupStatusQuery';
-import { apiPost, apiPatch, apiDelete, apiGet } from '@/lib/api';
+import { readJson } from '@/api/read-json';
+import type { LegacyErrorResponse, UpdatedStandup } from '@/api/schemas';
+import { apiPost, apiPatch, apiDelete, apiGetJson } from '@/lib/api';
 
-interface Standup {
-  id: string;
-  sprint_id: string;
-  title: string;
+interface Standup extends UpdatedStandup {
   content: JSONContent;
-  author_id: string;
-  author_name: string | null;
-  author_email: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 interface StandupFeedProps {
@@ -70,13 +64,11 @@ export function StandupFeed({ sprintId }: StandupFeedProps) {
 
   const fetchStandups = useCallback(async () => {
     try {
-      const res = await apiGet(`/api/weeks/${sprintId}/standups`);
-      if (res.ok) {
-        const data = await res.json();
-        setStandups(data);
-      } else {
-        showToast('Failed to load standups', 'error');
-      }
+      const data = await apiGetJson<Standup[]>(
+        `/api/weeks/${sprintId}/standups`,
+        'Failed to load standups'
+      );
+      setStandups(data);
     } catch (err) {
       console.error('Failed to fetch standups:', err);
       showToast('Failed to load standups. Please try again.', 'error');
@@ -108,8 +100,14 @@ export function StandupFeed({ sprintId }: StandupFeedProps) {
         invalidateStandupStatus(); // Clear the "standup due" indicator
         showToast('Standup posted', 'success');
       } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || 'Failed to post standup', 'error');
+        let message = 'Failed to post standup';
+        try {
+          const data = await readJson<LegacyErrorResponse>(res);
+          if (data.error) message = data.error;
+        } catch {
+          // ignore parse errors
+        }
+        showToast(message, 'error');
       }
     } catch (err) {
       console.error('Failed to create standup:', err);
@@ -142,8 +140,14 @@ export function StandupFeed({ sprintId }: StandupFeedProps) {
       } else if (res.status === 403) {
         showToast('You can only edit your own standups', 'error');
       } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || 'Failed to update standup', 'error');
+        let message = 'Failed to update standup';
+        try {
+          const data = await readJson<LegacyErrorResponse>(res);
+          if (data.error) message = data.error;
+        } catch {
+          // ignore parse errors
+        }
+        showToast(message, 'error');
       }
     } catch (err) {
       console.error('Failed to update standup:', err);
@@ -163,8 +167,14 @@ export function StandupFeed({ sprintId }: StandupFeedProps) {
       } else if (res.status === 403) {
         showToast('You can only delete your own standups', 'error');
       } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || 'Failed to delete standup', 'error');
+        let message = 'Failed to delete standup';
+        try {
+          const data = await readJson<LegacyErrorResponse>(res);
+          if (data.error) message = data.error;
+        } catch {
+          // ignore parse errors
+        }
+        showToast(message, 'error');
       }
     } catch (err) {
       console.error('Failed to delete standup:', err);

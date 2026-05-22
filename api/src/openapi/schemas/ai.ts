@@ -22,6 +22,18 @@ const PlanAnalysisResultSchema = z.object({
 
 registry.register('PlanAnalysisResult', PlanAnalysisResultSchema);
 
+const AiUnavailableSchema = z.object({
+  error: z.literal('ai_unavailable'),
+}).openapi('AiUnavailable');
+
+registry.register('AiUnavailable', AiUnavailableSchema);
+
+const AiAnalysisErrorSchema = z.object({
+  error: z.enum(['ai_unavailable', 'content_too_large', 'ai_parse_error']),
+}).openapi('AiAnalysisError');
+
+registry.register('AiAnalysisError', AiAnalysisErrorSchema);
+
 // ============== Retro Analysis ==============
 
 const RetroItemAnalysisSchema = z.object({
@@ -41,9 +53,10 @@ registry.register('RetroAnalysisResult', RetroAnalysisResultSchema);
 
 // ============== AI Status ==============
 
-const AiStatusSchema = z.object({
-  available: z.boolean(),
-}).openapi('AiStatus');
+const AiStatusSchema = z.union([
+  z.object({ available: z.literal(true) }),
+  z.object({ available: z.literal(false), error: z.literal('ai_unavailable') }),
+]).openapi('AiStatus');
 
 registry.register('AiStatus', AiStatusSchema);
 
@@ -54,7 +67,7 @@ registry.registerPath({
   path: '/ai/status',
   tags: ['AI'],
   summary: 'Check AI analysis availability',
-  description: 'Returns whether the AI analysis service is available (Bedrock client initialized).',
+  description: 'Returns whether the AI analysis service is available. When Bedrock credentials cannot be loaded, returns { available: false, error: "ai_unavailable" }.',
   responses: {
     200: {
       description: 'AI availability status',
@@ -82,11 +95,11 @@ registry.registerPath({
   },
   responses: {
     200: {
-      description: 'Plan analysis result (or {error: "ai_unavailable"} if service is down)',
-      content: { 'application/json': { schema: PlanAnalysisResultSchema } },
+      description: 'Plan analysis result or analysis error',
+      content: { 'application/json': { schema: z.union([PlanAnalysisResultSchema, AiAnalysisErrorSchema]) } },
     },
     429: {
-      description: 'Rate limit exceeded (max 10 per hour)',
+      description: 'Rate limit exceeded (max 120 per hour)',
     },
   },
 });
@@ -111,11 +124,11 @@ registry.registerPath({
   },
   responses: {
     200: {
-      description: 'Retro analysis result (or {error: "ai_unavailable"} if service is down)',
-      content: { 'application/json': { schema: RetroAnalysisResultSchema } },
+      description: 'Retro analysis result or analysis error',
+      content: { 'application/json': { schema: z.union([RetroAnalysisResultSchema, AiAnalysisErrorSchema]) } },
     },
     429: {
-      description: 'Rate limit exceeded (max 10 per hour)',
+      description: 'Rate limit exceeded (max 120 per hour)',
     },
   },
 });

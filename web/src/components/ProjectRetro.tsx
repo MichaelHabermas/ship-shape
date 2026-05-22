@@ -4,7 +4,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { cn } from '@/lib/cn';
 import { useToast } from '@/components/ui/Toast';
-import { apiPost, apiPatch, apiGet } from '@/lib/api';
+import { apiPost, apiPatch, apiGet, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 
 interface ProjectRetroProps {
   projectId: string;
@@ -55,7 +56,7 @@ export function ProjectRetro({ projectId }: ProjectRetroProps) {
     try {
       const res = await apiGet(`/api/projects/${projectId}/retro`);
       if (res.ok) {
-        const data: RetroData = await res.json();
+        const data = await readJson<RetroData>(res);
         setRetroData(data);
         setPlanValidated(data.plan_validated ?? null);
         setMonetaryImpactActual(data.monetary_impact_actual || '');
@@ -96,12 +97,12 @@ export function ProjectRetro({ projectId }: ProjectRetroProps) {
           success_criteria: successCriteria,
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await readJson<Partial<RetroData>>(res);
           setRetroData({ ...retroData, ...data, is_draft: false });
           setIsDirty(false);
           showToast('Project retrospective saved', 'success');
         } else {
-          const data = await res.json().catch(() => ({}));
+          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({} as LegacyErrorResponse));
           showToast(data.error || 'Failed to save project retrospective', 'error');
         }
       } else {
@@ -116,7 +117,7 @@ export function ProjectRetro({ projectId }: ProjectRetroProps) {
           setIsDirty(false);
           showToast('Project retrospective updated', 'success');
         } else {
-          const data = await res.json().catch(() => ({}));
+          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({} as LegacyErrorResponse));
           showToast(data.error || 'Failed to update project retrospective', 'error');
         }
       }

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useReviewQueue } from '@/contexts/ReviewQueueContext';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGetJson, apiPostJson } from '@/lib/api';
+import type { Document } from '@/api/schemas';
 
 export interface WeeklyReviewDocumentRef {
   id: string;
@@ -79,55 +80,65 @@ export function useWeeklyReviewActions(
   // Fetch person name
   const { data: personDoc } = useQuery<{ title: string }>({
     queryKey: ['document', personId],
-    queryFn: async () => {
-      const res = await apiGet(`/api/documents/${personId}`);
-      if (!res.ok) throw new Error('Failed to fetch person');
-      return res.json();
-    },
+    queryFn: () => apiGetJson<{ title: string }>(`/api/documents/${personId}`, 'Failed to fetch person'),
     enabled: !!weeklyDocument && !!personId,
   });
 
   // Fetch project name
   const { data: projectDoc } = useQuery<{ title: string }>({
     queryKey: ['document', projectId],
-    queryFn: async () => {
-      const res = await apiGet(`/api/documents/${projectId}`);
-      if (!res.ok) throw new Error('Failed to fetch project');
-      return res.json();
-    },
+    queryFn: () => apiGetJson<{ title: string }>(`/api/documents/${projectId}`, 'Failed to fetch project'),
     enabled: !!weeklyDocument && !!projectId,
   });
 
+  interface SprintLookupResult {
+    id: string;
+  }
+
+  interface SprintApprovalData {
+    id: string;
+    properties: Record<string, unknown>;
+    approverName?: string;
+  }
+
+  interface WeekApprovalResponse {
+    approval?: ApprovalData;
+    review_rating?: { value?: number };
+  }
+
   // Fetch sprint data with approval state + approver name in a single query
-  const { data: sprintData } = useQuery<{ id: string; properties: Record<string, unknown>; approverName?: string }>({
+  const { data: sprintData } = useQuery<SprintApprovalData>({
     queryKey: ['sprint-approval-v2', sprintIdFromQuery || `lookup-${projectId}-${weekNumber}`, isRetro],
     queryFn: async () => {
       let sid = sprintIdFromQuery;
       if (!sid) {
-        const lookupRes = await apiGet(`/api/weeks/lookup?project_id=${projectId}&sprint_number=${weekNumber}`);
-        if (!lookupRes.ok) throw new Error('Sprint not found');
-        const lookup = await lookupRes.json();
-        sid = lookup.id as string;
+        const lookup = await apiGetJson<SprintLookupResult>(
+          `/api/weeks/lookup?project_id=${projectId}&sprint_number=${weekNumber}`,
+          'Sprint not found'
+        );
+        sid = lookup.id;
       }
 
-      const res = await apiGet(`/api/documents/${sid}`);
-      if (!res.ok) throw new Error('Failed to fetch sprint');
-      const data = await res.json();
+      const data = await apiGetJson<Document>(`/api/documents/${sid}`, 'Failed to fetch sprint');
 
-      // Resolve approver name if there's an approval
-      const props = (data.properties || {}) as Record<string, unknown>;
+      const props = (data.properties && typeof data.properties === 'object'
+        ? data.properties
+        : {}) as Record<string, unknown>;
       const approval = (isRetro ? props.review_approval : props.plan_approval) as ApprovalData | undefined;
+      const result: SprintApprovalData = {
+        id: data.id,
+        properties: props,
+      };
       if (approval?.approved_by) {
-        const personRes = await fetch(
-          `${import.meta.env.VITE_API_URL ?? ''}/api/weeks/lookup-person?user_id=${approval.approved_by}`,
-          { credentials: 'include' }
-        );
-        if (personRes.ok) {
-          const person = await personRes.json();
-          data.approverName = person.title;
+        const person = await apiGetJson<{ title: string }>(
+          `/api/weeks/lookup-person?user_id=${approval.approved_by}`,
+          'Failed to fetch approver'
+        ).catch(() => null);
+        if (person?.title) {
+          result.approverName = person.title;
         }
       }
-      return data;
+      return result;
     },
     enabled: !!weeklyDocument && (!!sprintIdFromQuery || (!!projectId && !!weekNumber)),
   });
@@ -177,17 +188,13 @@ export function useWeeklyReviewActions(
 
     setApproving(true);
     try {
-      const res = await apiPost(`/api/weeks/${effectiveSprintId}/approve-plan`, {
-        comment,
-      });
+      const data = await apiPostJson<WeekApprovalResponse>(
+        `/api/weeks/${effectiveSprintId}/approve-plan`,
+        { comment },
+        'Failed to approve plan'
+      );
 
-      if (!res.ok) {
-        console.error('Failed to approve plan:', res.status, await res.text().catch(() => ''));
-        return false;
-      }
-
-      const data = await res.json().catch(() => ({}));
-      const approval = data?.approval as ApprovalData | undefined;
+      const approval = data.approval;
       setLocalApprovalOverride({
         state: approval?.state ?? 'approved',
         approvedAt: approval?.approved_at ?? new Date().toISOString(),
@@ -215,15 +222,13 @@ export function useWeeklyReviewActions(
     setApproving(true);
     try {
       const endpoint = isRetro ? 'request-retro-changes' : 'request-plan-changes';
-      const res = await apiPost(`/api/weeks/${effectiveSprintId}/${endpoint}`, { feedback });
+      const data = await apiPostJson<WeekApprovalResponse>(
+        `/api/weeks/${effectiveSprintId}/${endpoint}`,
+        { feedback },
+        'Failed to request changes'
+      );
 
-      if (!res.ok) {
-        console.error('Failed to request changes:', res.status, await res.text().catch(() => ''));
-        return false;
-      }
-
-      const data = await res.json().catch(() => ({}));
-      const approval = data?.approval as ApprovalData | undefined;
+      const approval = data.approval;
       setLocalApprovalOverride({
         state: approval?.state ?? 'changes_requested',
         approvedAt: approval?.approved_at ?? new Date().toISOString(),
@@ -247,19 +252,14 @@ export function useWeeklyReviewActions(
 
     setApproving(true);
     try {
-      const res = await apiPost(`/api/weeks/${effectiveSprintId}/approve-review`, {
-        rating,
-        comment,
-      });
+      const data = await apiPostJson<WeekApprovalResponse>(
+        `/api/weeks/${effectiveSprintId}/approve-review`,
+        { rating, comment },
+        'Failed to approve retro'
+      );
 
-      if (!res.ok) {
-        console.error('Failed to approve retro:', res.status, await res.text().catch(() => ''));
-        return false;
-      }
-
-      const data = await res.json().catch(() => ({}));
-      const approval = data?.approval as ApprovalData | undefined;
-      const nextRating = (data?.review_rating as { value?: number } | null)?.value ?? rating;
+      const approval = data.approval;
+      const nextRating = data.review_rating?.value ?? rating;
       setLocalApprovalOverride({
         state: approval?.state ?? 'approved',
         approvedAt: approval?.approved_at ?? new Date().toISOString(),

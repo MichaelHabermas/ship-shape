@@ -1063,3 +1063,75 @@ The useful cast-reduction pattern was not "delete every `as`." `as const`, DOM/l
 - Document pages/tabs now map API responses into editor views through a web-local mapper; `belongs_to` remains the relationship source of truth and wins over legacy flattened relationship fields.
 
 Evidence: `pnpm type-safety:counts` moved `as` from 575 total / 461 production to 460 total / 346 production, while `any` and non-null counts held at 91/1 and 71/35. `pnpm type-check` passed, focused web mapper/tab tests passed 25/25, focused API route tests passed 108/108 on `ship_test_audit`, full web passed 168/168, and full API passed 509/509.
+
+---
+
+## Non-Cat-8 closeout pass (2026-05-22)
+
+Closed the non-Cat-8 admissibility gaps that had evidence but not proof packaging:
+
+- Category 2 now has an after bundle-analysis HTML artifact from `my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
+- Category 4 now has explicit before/after bootstrap EXPLAIN evidence in `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json`; claim remains flow-level query-count/request-count consolidation.
+- Category 7 closeout now scans `/projects` in addition to `/docs`, a real `/documents/:id`, and supporting `/my-week`; all four have 0 critical/serious axe violations in `test-results/a11y-closeout/axe-summary.json`.
+- Category 6 now has a third explicit fix record: AI/Bedrock unavailable degraded mode, with screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The evidence collector was corrected to use existing data or `CAT6_DOCUMENT_PATH` rather than creating a weekly plan.
+- Category 3 bootstrap was narrowed further, but the standard full benchmark rerun hit rate limits and is excluded from proof. Category 3 remains partial instead of being rounded up.
+
+Validation notes:
+
+- `pnpm submission:validate` passes schema/gates for Cats 2, 4, 6, and 7; Cat 3 remains partial; Cat 8 remains open by instruction.
+- `pnpm submission:render` regenerated `my-docs/reviewer-dashboard.html` and the generated ledger block in `my-docs/IMPROVEMENT_REPORT.md`.
+- Focused Cat 6 E2E rerun was blocked by Docker/Testcontainers preflight in this environment; do not describe it as a fresh pass.
+
+---
+
+## Wave 2 simplification orchestration (2026-05-22)
+
+DRY/modular refactor (no GFA metric claims unless noted):
+
+- **Shared sprint-time** (`shared/src/sprint-time.ts`): wired into bootstrap route and accountability service; explain script imports same helpers.
+- **Bootstrap SQL catalog** (`api/src/sql/bootstrap-queries.ts`): `INFERRED_PROJECT_STATUS_SUBQUERY` + `buildBootstrapExplainCatalog`; bootstrap route imports subquery; `scripts/explain-performance.ts` replaces `.mjs` (run via `pnpm perf:explain`).
+- **Bootstrap document properties**: runtime allowlist in `api/src/constants/bootstrap-document.ts`; OpenAPI `BootstrapDocumentPropertiesSchema` aligned (Cat 3 ledger note only).
+- **AI quality UI**: deleted dead `QualityAssistant.tsx`; `quiet-fetch`, `useAiQuality`, `QualityBannerShell`; Cat 6 fix record wording updated; vitest 5/5 on banner + quiet-fetch.
+- **Document tree**: `documentTreeKeyboard.ts` + unified `DocumentTreeItem` + `SidebarDocumentTreeItem` (D046).
+
+Gates: `pnpm type-check` pass; `pnpm openapi:check:strict` 193/193; bootstrap + accountability + sprint-time + ai-analysis guard API tests pass; web vitest 5/5 on banner + quiet-fetch; `pnpm perf:explain` smoke pass on `ship_dev`.
+
+### Wave 2 multi-agent verification audit (2026-05-22)
+
+Parallel sub-agents (API, web, shell gates, GFA alignment, E2E):
+
+| Area | Verdict | Notes |
+|------|---------|-------|
+| Sprint-time / bootstrap SQL / OpenAPI allowlist / D045 | PASS | Behavior-preserving extractions |
+| AI Bedrock guard | FAIL → **fixed** | Guard restored in `callBedrock` + `ai-analysis.test.ts` (D047) |
+| Web AI/tree modularization | PASS | D044 UX preserved; CSRF cache cleared on logout via `clearCsrfToken()` |
+| explain-performance TS | PASS | 10+10+10 query names unchanged vs `.mjs` |
+| GFA / ledger honesty | PASS | Cat 3 partial, Cat 4/6/7 claims bounded |
+| Shell gates | PASS | type-check, vitest, openapi, perf:explain, submission:check |
+| E2E context menus | PASS | 8/8 |
+| E2E tree auto-expand | FAIL (env) | Seed nested docs missing — not Wave 2 regression |
+| a11y closeout | FAIL (env) | Dev server not running on :5173 |
+
+Follow-ups (non-blocking): single bootstrap SQL builder; unify visibility filter import; dedupe `useAiQuality` mount GET; post-W6 axe re-run when dev server up.
+
+---
+
+## Lint unsafe-* cleanup L1–L8 (2026-05-22)
+
+Orchestrated ESLint remediation (GFA Cat 1 adjacent; AST counter unchanged at 1 production `any`):
+
+- **Web:** `read-json.ts`, `schemas.ts`, `apiGetJson`/`quietGetJson`, `public-fetch.ts`, `mention-search.ts`; consumers migrated off bare `res.json()`. ESLint unsafe **324→38**.
+- **API:** `pool.query<Row>()` on top routes (issues, workspaces, weekly-plans, admin, team, documents, dashboard, projects, claude, weeks/*); `utils/query-rows.ts`; test `pg-result.ts` + typed integration tests. ESLint unsafe **4121→1894**.
+- Gates: type-check green; API 521/521; web vitest 174/174. D048. No Cat 1 ledger change (production `any` still 1).
+
+Deferred: remaining ~1894 API warnings (middleware, claude client.query, smaller routes); full openapi-fetch migration.
+
+---: Rate-Limit-Proof Benchmark Pair (2026-05-22)
+
+The missing Cat 3 proof was measurement legitimacy plus bootstrap critical-path work, not another SQL index. The final admissible method uses an explicit non-production benchmark rate-limit bypass rather than `NODE_ENV=test`, and reruns the historical before state from isolated ref `7d31add` with the same bypass patch applied. Both before and after use built API server mode (`node dist/index.js`) against the same `ship_dev` audit-load database and benchmark matrix.
+
+Final artifacts:
+- Before: `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json`
+- After: `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json`
+
+Result: `/api/bootstrap` clears the 20% P95 target at 10/25/50 concurrency after removing inferred accountability and standup-status work from the bootstrap critical path. `/api/dashboard/my-week` also clears the 20% P95 target across the same matrix in the clean repeat after-run. Category 3 is now proven in the ledger. Rate-limited or watcher-restarted benchmark runs remain excluded.

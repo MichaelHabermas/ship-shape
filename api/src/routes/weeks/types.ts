@@ -5,6 +5,7 @@ export type CanonicalWeekProperties = Partial<Pick<WeekProperties, 'sprint_numbe
 };
 
 export type SprintRouteProperties = CanonicalWeekProperties & {
+  assignee_ids?: string[] | null;
   status?: string;
   plan?: string | null;
   success_criteria?: string[] | null;
@@ -144,4 +145,124 @@ export type SprintReviewIssueRow = {
   title: string;
   properties: SprintReviewIssueProperties | null;
   ticket_number: number | null;
+};
+
+export type IdRow = { id: string };
+
+export type WorkspaceSprintStartRow = {
+  sprint_start_date: Date | string | null;
+};
+
+export type SprintIssueIdRow = { id: string };
+
+export type UserIdRow = { id: string };
+
+export type MaxSprintNumberRow = {
+  max_sprint: number | string | null;
+};
+
+export type WorkspaceMemberUserRow = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type SprintExistsRow = {
+  id: string;
+  properties?: SprintRouteProperties | null;
+  program_id?: string | null;
+  sprint_start_date?: Date | string | null;
+};
+
+export type ProgramExistsRow = { id: string };
+
+export type SprintPrefixRow = {
+  id: string;
+  prefix: string | null;
+};
+
+export type SprintScopeInfoRow = {
+  id: string;
+  sprint_number: string | number | null;
+  workspace_sprint_start_date: Date | string | null;
+};
+
+export type SprintIssueEstimateRow = {
+  id: string;
+  estimate: string | number | null;
+};
+
+export type SprintHistoryRow = {
+  document_id: string;
+  created_at: Date;
+  old_value: string | null;
+  new_value: string | null;
+};
+
+export type SprintTitleRow = {
+  id: string;
+  title: string;
+};
+
+export type SprintReviewSprintRow = {
+  id: string;
+  title: string;
+  properties: SprintRouteProperties | null;
+  program_id: string | null;
+  program_name: string | null;
+};
+
+export type SprintReviewDocumentRow = {
+  id: string;
+  title: string;
+  content: unknown;
+  properties: Record<string, unknown> | null;
+  created_at: Date;
+  updated_at: Date;
+  owner_name: string | null;
+  owner_email: string | null;
+};
+
+export type WeeklyPlanContentRow = { content: unknown };
+
+export type SprintReviewInsertRow = {
+  id: string;
+  title: string;
+  content: unknown;
+  properties: Record<string, unknown> | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export type UserNameEmailRow = {
+  name: string;
+  email: string;
+};
+
+export type SprintPropertiesOnlyRow = {
+  properties: SprintRouteProperties | null;
+};
+
+export type SprintCarryoverSprintRow = {
+  id: string;
+  title: string;
+  properties: SprintRouteProperties | null;
+};
+
+export type SprintIssueListRow = {
+  id: string;
+  title: string;
+  properties: {
+    state?: string;
+    priority?: string;
+    assignee_id?: string | null;
+    estimate?: number | null;
+    carryover_from_sprint_id?: string | null;
+  } | null;
+  ticket_number: number | null;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  assignee_name: string | null;
+  assignee_archived: boolean | 't' | 'f' | null;
 };

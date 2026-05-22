@@ -400,11 +400,11 @@ Evidence: `pnpm --filter @ship/web exec vitest run src/components/editor/Backlin
 
 Status: Accepted
 
-Decision: Use `pnpm a11y:closeout` as a repeatable Playwright/axe reporter for `/docs`, a real `/documents/:id`, and `/my-week`. Keep it non-blocking by default, with `-- --fail-on-serious` available when the known contrast debt is resolved and the team wants a hard gate.
+Decision: Use `pnpm a11y:closeout` as a repeatable Playwright/axe reporter for `/docs`, `/projects`, a real `/documents/:id`, and supporting `/my-week`. Keep it non-blocking by default, with `-- --fail-on-serious` available when the known contrast debt is resolved and the team wants a hard gate.
 
 Why: The manual closeout found real product/a11y signals, but some are currently known failures. A report-first runner saves manual effort without making the normal E2E lane fail on already-known debt.
 
-Consequences: Category 7 can be remeasured quickly, and the report can become a gate when serious violations are resolved. Later closeout evidence showed the `--fail-on-serious` gate passing on `/docs`, a selected document page, and `/my-week`; Lighthouse remains unrereun.
+Consequences: Category 7 can be remeasured quickly, and the report can become a gate when serious violations are resolved. Later closeout evidence showed the `--fail-on-serious` gate passing on `/docs`, `/projects`, a selected document page, and supporting `/my-week`; Lighthouse remains unrereun.
 
 Evidence: `pnpm a11y:closeout` writes `test-results/a11y-closeout/axe-summary.json` and screenshots.
 
@@ -751,3 +751,89 @@ Evidence: `pnpm type-safety:counts` after the pass reports `as` assertions at 46
 Correctness follow-up: Review found that persisted document types must not be silently remapped to `wiki`, and runtime query parsing should not live under the OpenAPI schema module. The mapper now preserves `standup` and `weekly_review` as base editor views, returning `null` only for truly unknown document type strings. Runtime query helpers live in `api/src/utils/query-params.ts`; `api/src/openapi/schemas/query-helpers.ts` only exports schema constants. Focused verification passed: `pnpm type-check`; web mapper test 5/5; API search/OpenAPI tests 30/30 on `ship_test_audit`; query-param and approval-workflow utility tests 7/7 on `ship_test_audit`.
 
 **Decision Gist**: Remove casts at ingress boundaries, not by moving assertions around.
+
+### D044: AI Provider Outage Uses Explicit Degraded Mode
+
+Status: Accepted
+
+Decision: Treat missing Bedrock/AWS credentials as an expected degraded runtime state, not as a generic server failure. AI status and analysis endpoints return controlled `ai_unavailable` JSON, and plan/retro quality banners show a concise unavailable message while keeping editor content and existing persisted analysis visible.
+
+Why: The AI assistant is helpful but non-critical. A provider credential outage should not look like data loss, a blank assistant, or noisy stack output to the user.
+
+Consequences: Future AI features should share the same provider-availability guard and degraded response shape. Do not count provider outage handling as Security Cat 8; it is Category 6 runtime-error UX evidence.
+
+Evidence: `pnpm --filter @ship/web exec vitest run src/components/PlanQualityBanner.test.tsx` passed; `node scripts/cat6-ai-unavailable-evidence.mjs` wrote `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The collector now requires an existing weekly plan or `CAT6_DOCUMENT_PATH`, so it does not manufacture evidence data.
+
+**Decision Gist**: AI unavailable is a supported degraded mode.
+
+### D045: Bootstrap Payload Can Be Narrower Than Detail Payloads
+
+Status: Accepted
+
+Decision: `/api/bootstrap` may return metadata/list projections for app-shell hydration while detail endpoints remain full-fidelity. Bootstrap-seeded React Query list caches should be marked stale when fields are intentionally narrowed so observed list/detail queries refetch their complete contracts.
+
+Why: Bootstrap is an app-shell accelerator, not a detail endpoint. Shipping editor/detail-heavy fields in the shell payload increases latency risk without improving initial navigation.
+
+Consequences: Any narrowed bootstrap field must be reflected in OpenAPI and frontend consumers. Do not remove user-facing capability; if a route needs full document/project detail, keep loading it from the existing detail endpoint.
+
+Evidence: `pnpm type-check`; OpenAPI regenerated; focused API route tests on `ship_test_audit` passed for bootstrap/issues/search/visibility. The full benchmark rerun was excluded from Cat 3 proof because rate limiting caused non-2xx responses.
+
+Follow-up (2026-05-22 Wave 2): `BootstrapDocumentPropertiesSchema` in OpenAPI now matches runtime `pickBootstrapDocumentProperties` allowlist in `api/src/constants/bootstrap-document.ts`.
+
+**Decision Gist**: Bootstrap is metadata-first; detail routes keep full data.
+
+### D046: Canonical DocumentTreeItem With Sidebar Adapter
+
+Status: Accepted
+
+Decision: Use one shared `DocumentTreeItem` component with an `inline` default for `/docs` main tree and a `sidebar` variant wired through `SidebarDocumentTreeItem` for app-shell context menus. Keyboard navigation helpers live in `web/src/lib/documentTreeKeyboard.ts`.
+
+Why: The S10 app-shell extraction duplicated ~340 lines of tree row logic. Consolidation prevents paired fixes (e.g. a11y min-height) and matches `docs/document-model-conventions.md`.
+
+Consequences: Sidebar keeps undo-delete semantics; `/docs` main tree keeps inline add/delete callbacks. Delete UX parity between sidebar and main tree remains intentionally deferred.
+
+Evidence: `pnpm type-check`; web tests for PlanQualityBanner and quiet-fetch pass.
+
+**Decision Gist**: One tree component; sidebar binds context via adapter.
+
+### D047: Restore Bedrock Credential Guard After Wave 1 Refactor
+
+Status: Accepted
+
+Decision: Keep `hasUsableBedrockClient()` at the top of `callBedrock` in `api/src/services/ai-analysis.ts` so analyze endpoints never invoke Bedrock when credentials are unavailable, matching D044 and pre-Wave-2 behavior.
+
+Why: Wave 1 Agent A1 removed the guard from `callBedrock` without adding entry guards on `analyzePlan`/`analyzeRetro`; `/api/ai/status` could report unavailable while analyze still attempted invoke.
+
+Consequences: Unit test `api/src/services/__tests__/ai-analysis.test.ts` locks guard behavior; frontend `useAiQuality` status gate remains defense-in-depth.
+
+Evidence: Vitest guard test passes; `isAiAvailable()` and analyze paths share credential cache.
+
+**Decision Gist**: One guard at invoke boundary; D044 preserved.
+
+### D048: JSON And SQL Row Type Boundaries
+
+Status: Accepted
+
+Decision: Web fetches parse JSON only through `web/src/api/read-json.ts` (`readJson`, `apiGetJson`, `quietGetJson`). OpenAPI schema aliases live in `web/src/api/schemas.ts`. API routes type PostgreSQL reads with co-located `*Row` types and `pool.query<Row>()`, using `api/src/utils/query-rows.ts` `requireFirstRow()` where a row must exist.
+
+Why: ~4,400 ESLint `no-unsafe-*` warnings traced to untyped `response.json()` and untyped `pool.query` rows. Central boundaries contain casts; consumers get meaningful types per GFA Cat 1.
+
+Consequences: ESLint unsafe warnings web 324→38, api 4121→1894 (2026-05-22). Production AST `any` remains 1; further API route typing deferred to follow-up passes.
+
+Evidence: `pnpm type-check`; API 521/521; web vitest 174/174.
+
+**Decision Gist**: One JSON parse module; per-route SQL row types.
+
+### D048: Cat 3 Benchmarks Bypass Rate Limits Only In Non-Production
+
+Status: Accepted
+
+Decision: Add an explicit benchmark-only rate-limit bypass that is disabled in production and requires a matching token on both the API process and benchmark client. Use it for Cat 3 benchmark evidence instead of `NODE_ENV=test` or accepting 429-contaminated rows.
+
+Why: Category 3 needs endpoint latency proof, not rate-limiter behavior. The standard 100 rps matrix can trigger 429s and make latency look artificially fast. `NODE_ENV=test` also changes environment conditions, so the cleaner measurement is a documented non-production bypass with identical before/after settings.
+
+Consequences: Benchmark artifacts must record bypass state, base URL, duration, rate, connections, and endpoint set. Any artifact with non-2xx or request failures remains inadmissible for Cat 3 proof. Production rate limiting remains unchanged.
+
+Evidence: Before artifact `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json` was produced from isolated ref `7d31add` with only the bypass patch applied; after artifact `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json` was produced from the current built server. Both used `ship_dev`, built `node dist/index.js`, `http://127.0.0.1:3001`, 15s duration, 10/25/50 concurrency, 100 rps, and the same bypass token. Ledger now marks Category 3 proven.
+
+**Decision Gist**: Measure API latency, not limiter latency.

@@ -16,6 +16,14 @@ interface EmojiListRef {
 }
 
 // Curated list of common emojis
+interface EmojiNodeAttrs {
+  emoji?: string | null;
+}
+
+interface EmojiAttributes {
+  emoji?: string | null;
+}
+
 export const EMOJI_LIST: EmojiItem[] = [
   { emoji: '👍', shortcode: '+1', keywords: ['thumbs', 'up', 'yes', 'approve'] },
   { emoji: '👎', shortcode: '-1', keywords: ['thumbs', 'down', 'no', 'disapprove'] },
@@ -106,7 +114,7 @@ export const EmojiExtension = Node.create({
       emoji: {
         default: null,
         parseHTML: (element) => element.getAttribute('data-emoji'),
-        renderHTML: (attributes) => {
+        renderHTML: (attributes: EmojiAttributes) => {
           if (!attributes.emoji) {
             return {};
           }
@@ -127,17 +135,19 @@ export const EmojiExtension = Node.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
+    const attrs = node.attrs as EmojiNodeAttrs;
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
-        'data-emoji': node.attrs.emoji,
+        'data-emoji': attrs.emoji,
       }),
-      node.attrs.emoji,
+      attrs.emoji,
     ];
   },
 
   renderText({ node }) {
-    return node.attrs.emoji;
+    const attrs = node.attrs as EmojiNodeAttrs;
+    return attrs.emoji ?? '';
   },
 
   addInputRules() {
@@ -186,7 +196,7 @@ export const EmojiExtension = Node.create({
           return filterEmojis(query);
         },
         command: ({ editor, range, props }) => {
-          const emoji = props;
+          const emoji = props as EmojiItem;
           // Replace the trigger and query with the emoji
           editor
             .chain()

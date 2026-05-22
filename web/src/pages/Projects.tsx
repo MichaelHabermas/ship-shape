@@ -15,7 +15,8 @@ import { FilterTabs } from '@/components/FilterTabs';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/date-utils';
 import { ArchiveIcon } from '@/components/icons/ArchiveIcon';
-import { apiPost } from '@/lib/api';
+import { apiPostJson } from '@/lib/api';
+import type { Document } from '@/api/schemas';
 import { useQueryClient } from '@tanstack/react-query';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys } from '@/hooks/useProjectsQuery';
@@ -265,25 +266,20 @@ export function ProjectsPage() {
     if (!convertingProject) return;
     setIsConverting(true);
     try {
-      const res = await apiPost(`/api/documents/${convertingProject.id}/convert`, { target_type: 'issue' });
-      if (res.ok) {
-        const data = await res.json();
-        // Invalidate both issues and projects caches to reflect the conversion
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
-        ]);
-        showToast(`Project converted to issue: ${convertingProject.title}`, 'success');
-        navigate(`/documents/${data.id}`, { replace: true });
-      } else {
-        const error = await res.json();
-        showToast(error.error || 'Failed to convert project to issue', 'error');
-        setIsConverting(false);
-        setConvertingProject(null);
-      }
+      const data = await apiPostJson<Document>(
+        `/api/documents/${convertingProject.id}/convert`,
+        { target_type: 'issue' },
+        'Failed to convert project to issue'
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
+      ]);
+      showToast(`Project converted to issue: ${convertingProject.title}`, 'success');
+      navigate(`/documents/${data.id}`, { replace: true });
     } catch (err) {
       console.error('Failed to convert project:', err);
-      showToast('Failed to convert project to issue', 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to convert project to issue', 'error');
       setIsConverting(false);
       setConvertingProject(null);
     }

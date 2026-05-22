@@ -5,6 +5,8 @@ import { PropertyRow } from '@/components/ui/PropertyRow';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { isCascadeWarningError, type IncompleteChild } from '@/hooks/useIssuesQuery';
 import { apiPost, apiDelete } from '@/lib/api';
+import { readJson } from '@/api/read-json';
+import type { SprintsResponse } from '@/hooks/useWeeksQuery';
 import { formatDateRange } from '@/lib/date-utils';
 import type { BelongsTo, BelongsToType } from '@ship/shared';
 
@@ -178,7 +180,10 @@ export function IssueSidebar({
     let cancelled = false;
 
     fetch(`${API_URL}/api/programs/${programId}/sprints`, { credentials: 'include' })
-      .then(res => res.ok ? res.json() : { weeks: [], workspace_sprint_start_date: null })
+      .then(async (res): Promise<SprintsResponse> => {
+        if (!res.ok) return { weeks: [], workspace_sprint_start_date: '' };
+        return readJson<SprintsResponse>(res);
+      })
       .then(data => {
         if (!cancelled) {
           setSprints(data.weeks || []);

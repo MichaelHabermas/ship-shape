@@ -129,6 +129,7 @@ async function main() {
     const documentPath = await firstDocumentPath(page, baseUrl);
     const targets = [
       { name: 'docs', path: '/docs' },
+      { name: 'projects', path: '/projects' },
       ...(documentPath ? [{ name: 'document', path: documentPath }] : []),
       { name: 'my-week', path: '/my-week' },
     ];

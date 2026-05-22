@@ -20,6 +20,8 @@ const REGION = 'us-east-1';
 // Lazy-initialize client (fails gracefully if AWS credentials unavailable)
 let bedrockClient: BedrockRuntimeClient | null = null;
 let clientInitFailed = false;
+let credentialCheck: Promise<boolean> | null = null;
+let credentialsAvailable: boolean | null = null;
 
 function getClient(): BedrockRuntimeClient | null {
   if (clientInitFailed) return null;
@@ -33,6 +35,32 @@ function getClient(): BedrockRuntimeClient | null {
     clientInitFailed = true;
     return null;
   }
+}
+
+async function hasUsableBedrockClient(): Promise<boolean> {
+  if (credentialsAvailable !== null) return credentialsAvailable;
+  if (credentialCheck) return credentialCheck;
+
+  credentialCheck = (async () => {
+    const client = getClient();
+    if (!client) return false;
+
+    try {
+      const credentials = await client.config.credentials();
+      credentialsAvailable = !!credentials.accessKeyId;
+      return credentialsAvailable;
+    } catch (err) {
+      console.warn('Bedrock credentials unavailable:', err);
+      clientInitFailed = true;
+      bedrockClient = null;
+      credentialsAvailable = false;
+      return false;
+    } finally {
+      credentialCheck = null;
+    }
+  })();
+
+  return credentialCheck;
 }
 
 // Simple in-memory rate limiter with periodic cleanup
@@ -189,6 +217,8 @@ Respond ONLY with valid JSON matching this exact structure:
 }`;
 
 async function callBedrock(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  if (!(await hasUsableBedrockClient())) return null;
+
   const client = getClient();
   if (!client) return null;
 
@@ -333,9 +363,9 @@ export async function analyzeRetro(
   }
 }
 
-/** Check if Bedrock client is available (for UI to decide whether to render quality assistant) */
-export function isAiAvailable(): boolean {
-  return getClient() !== null;
+/** Check if Bedrock client and credentials are available for quality analysis. */
+export async function isAiAvailable(): Promise<boolean> {
+  return hasUsableBedrockClient();
 }
 
 export { checkRateLimit };

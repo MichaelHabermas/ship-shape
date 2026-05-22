@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
 import { createApp } from '../app.js';
+import { IdRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js';
 
 describe('Document Visibility', () => {
@@ -27,39 +28,39 @@ describe('Document Visibility', () => {
   // Setup: Create test users and sessions
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     );
-    testWorkspaceId = workspaceResult.rows[0].id;
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id;
 
     // Create user 1 (regular member)
-    const user1Result = await pool.query(
+    const user1Result = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'User One')
        RETURNING id`,
       [user1Email]
     );
-    user1Id = user1Result.rows[0].id;
+    user1Id = requireFirstRow(user1Result.rows).id;
 
     // Create user 2 (regular member)
-    const user2Result = await pool.query(
+    const user2Result = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'User Two')
        RETURNING id`,
       [user2Email]
     );
-    user2Id = user2Result.rows[0].id;
+    user2Id = requireFirstRow(user2Result.rows).id;
 
     // Create admin user
-    const adminResult = await pool.query(
+    const adminResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Admin User')
        RETURNING id`,
       [adminEmail]
     );
-    adminId = adminResult.rows[0].id;
+    adminId = requireFirstRow(adminResult.rows).id;
 
     // Create workspace memberships
     await pool.query(
@@ -208,13 +209,13 @@ describe('Document Visibility', () => {
   describe('Single document access', () => {
     it('allows creator to access their private doc', async () => {
       // Create private document as user1
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'My Private Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       const res = await request(app)
         .get(`/api/documents/${docId}`)
@@ -227,13 +228,13 @@ describe('Document Visibility', () => {
 
     it('blocks non-creator from accessing private doc', async () => {
       // Create private document as user1
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       // User2 should get 404 (not 403, to not reveal existence)
       const res = await request(app)
@@ -245,13 +246,13 @@ describe('Document Visibility', () => {
 
     it('allows admin to access any private doc', async () => {
       // Create private document as user1
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User1 Private Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       const res = await request(app)
         .get(`/api/documents/${docId}`)
@@ -263,13 +264,13 @@ describe('Document Visibility', () => {
 
     it('returns 404 for private doc accessed by non-creator', async () => {
       // Create private document as user1
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Secret Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       // Non-creator gets 404 to not reveal document exists
       const res = await request(app)
@@ -283,13 +284,13 @@ describe('Document Visibility', () => {
 
   describe('Document-scoped comments visibility', () => {
     it('returns 404 for private document comments accessed by non-creator workspace member', async () => {
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private Comment Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
       const commentThreadId = crypto.randomUUID();
 
       await pool.query(
@@ -333,13 +334,13 @@ describe('Document Visibility', () => {
 
     it('inherits visibility from parent document', async () => {
       // Create private parent
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private Parent', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const parentId = parentResult.rows[0].id;
+      const parentId = requireFirstRow(parentResult.rows).id;
 
       // Create child without specifying visibility
       const res = await request(app)
@@ -356,13 +357,13 @@ describe('Document Visibility', () => {
   describe('Updating visibility', () => {
     it('allows creator to change visibility to private', async () => {
       // Create workspace document
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Public Doc', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       const res = await request(app)
         .patch(`/api/documents/${docId}`)
@@ -376,13 +377,13 @@ describe('Document Visibility', () => {
 
     it('allows creator to change visibility to workspace', async () => {
       // Create private document
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       const res = await request(app)
         .patch(`/api/documents/${docId}`)
@@ -396,22 +397,22 @@ describe('Document Visibility', () => {
 
     it('cascades visibility change to child documents', async () => {
       // Create parent with workspace visibility
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Parent Doc', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const parentId = parentResult.rows[0].id;
+      const parentId = requireFirstRow(parentResult.rows).id;
 
       // Create child
-      const childResult = await pool.query(
+      const childResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, parent_id)
          VALUES ($1, 'wiki', 'Child Doc', 'workspace', $2, $3)
          RETURNING id`,
         [testWorkspaceId, user1Id, parentId]
       );
-      const childId = childResult.rows[0].id;
+      const childId = requireFirstRow(childResult.rows).id;
 
       // Change parent to private
       await request(app)
@@ -431,13 +432,13 @@ describe('Document Visibility', () => {
 
     it('prevents non-creator from changing visibility', async () => {
       // Create workspace document as user1
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User1 Doc', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       // User2 tries to change visibility
       const res = await request(app)
@@ -452,13 +453,13 @@ describe('Document Visibility', () => {
 
     it('allows admin to change any document visibility', async () => {
       // Create document as user1
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User1 Doc', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       // Admin changes visibility
       const res = await request(app)
@@ -475,22 +476,22 @@ describe('Document Visibility', () => {
   describe('Moving documents', () => {
     it('updates visibility when moving private doc to workspace parent', async () => {
       // Create workspace parent
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Workspace Parent', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const parentId = parentResult.rows[0].id;
+      const parentId = requireFirstRow(parentResult.rows).id;
 
       // Create private standalone doc
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private Doc', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       // Move private doc to workspace parent
       const res = await request(app)
@@ -505,22 +506,22 @@ describe('Document Visibility', () => {
 
     it('preserves visibility when moving workspace doc to workspace parent', async () => {
       // Create workspace parent
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Workspace Parent', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const parentId = parentResult.rows[0].id;
+      const parentId = requireFirstRow(parentResult.rows).id;
 
       // Create workspace doc
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Workspace Doc', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       // Move to parent
       const res = await request(app)
@@ -536,13 +537,13 @@ describe('Document Visibility', () => {
 
   describe('Document reference validation', () => {
     it('blocks creating a child under an unreadable private parent', async () => {
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User1 Private Parent', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const parentId = parentResult.rows[0].id;
+      const parentId = requireFirstRow(parentResult.rows).id;
 
       const res = await request(app)
         .post('/api/documents')
@@ -555,21 +556,21 @@ describe('Document Visibility', () => {
     });
 
     it('blocks moving a document under an unreadable private parent', async () => {
-      const parentResult = await pool.query(
+      const parentResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User1 Private Parent', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const parentId = parentResult.rows[0].id;
+      const parentId = requireFirstRow(parentResult.rows).id;
 
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User2 Doc', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user2Id]
       );
-      const docId = docResult.rows[0].id;
+      const docId = requireFirstRow(docResult.rows).id;
 
       const res = await request(app)
         .patch(`/api/documents/${docId}`)
@@ -584,21 +585,21 @@ describe('Document Visibility', () => {
 
   describe('Association visibility', () => {
     it('filters unreadable related documents from associations', async () => {
-      const sourceResult = await pool.query(
+      const sourceResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Workspace Source', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user2Id]
       );
-      const sourceId = sourceResult.rows[0].id;
+      const sourceId = requireFirstRow(sourceResult.rows).id;
 
-      const privateRelatedResult = await pool.query(
+      const privateRelatedResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Hidden Related', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const privateRelatedId = privateRelatedResult.rows[0].id;
+      const privateRelatedId = requireFirstRow(privateRelatedResult.rows).id;
 
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
@@ -615,21 +616,21 @@ describe('Document Visibility', () => {
     });
 
     it('blocks creating an association to an unreadable private document', async () => {
-      const sourceResult = await pool.query(
+      const sourceResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Workspace Source', 'workspace', $2)
          RETURNING id`,
         [testWorkspaceId, user2Id]
       );
-      const sourceId = sourceResult.rows[0].id;
+      const sourceId = requireFirstRow(sourceResult.rows).id;
 
-      const privateRelatedResult = await pool.query(
+      const privateRelatedResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Hidden Related', 'private', $2)
          RETURNING id`,
         [testWorkspaceId, user1Id]
       );
-      const privateRelatedId = privateRelatedResult.rows[0].id;
+      const privateRelatedId = requireFirstRow(privateRelatedResult.rows).id;
 
       const res = await request(app)
         .post(`/api/documents/${sourceId}/associations`)

@@ -8,9 +8,13 @@ import {
   isWeeklyDocumentAccountabilityType,
 } from './accountability';
 
-vi.mock('@/lib/api', () => ({
-  apiPost: vi.fn(),
-}));
+vi.mock('@/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/api')>();
+  return {
+    ...actual,
+    apiPost: vi.fn(),
+  };
+});
 
 const mockedApiPost = vi.mocked(apiPost);
 

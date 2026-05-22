@@ -24,6 +24,60 @@ export interface BelongsToEntry {
 
 type QueryRunner = { query: typeof pool.query };
 
+type BelongsToRow = {
+  id: string;
+  type: BelongsToType;
+  title: string | null;
+  color: string | null;
+};
+
+type BatchBelongsToRow = BelongsToRow & {
+  document_id: string;
+};
+
+type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type DocumentFieldHistoryRow = {
+  id: number;
+  document_id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string | null;
+  automated_by: string | null;
+  created_at: Date;
+  changed_by_name: string | null;
+  changed_by_email: string | null;
+};
+
+function extractBelongsToFromRow(row: BelongsToRow): BelongsToEntry {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title || undefined,
+    color: row.color || undefined,
+  };
+}
+
+function extractFieldHistoryFromRow(row: DocumentFieldHistoryRow): DocumentFieldHistoryEntry {
+  return {
+    id: row.id,
+    documentId: row.document_id,
+    field: row.field,
+    oldValue: row.old_value,
+    newValue: row.new_value,
+    changedBy: row.changed_by,
+    changedByName: row.changed_by_name || undefined,
+    changedByEmail: row.changed_by_email || undefined,
+    automatedBy: row.automated_by,
+    createdAt: row.created_at,
+  };
+}
+
 /**
  * Fields that are tracked in document_history for audit trail
  */
@@ -119,7 +173,7 @@ export function getTimestampUpdates(
 export async function getBelongsToAssociations(
   documentId: string
 ): Promise<BelongsToEntry[]> {
-  const result = await pool.query(
+  const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
      FROM document_associations da
@@ -128,12 +182,7 @@ export async function getBelongsToAssociations(
      ORDER BY da.relationship_type, da.created_at`,
     [documentId]
   );
-  return result.rows.map((row) => ({
-    id: row.id,
-    type: row.type,
-    title: row.title || undefined,
-    color: row.color || undefined,
-  }));
+  return result.rows.map(extractBelongsToFromRow);
 }
 
 /**
@@ -155,7 +204,7 @@ export async function getBelongsToAssociationsBatch(
     return new Map();
   }
 
-  const result = await pool.query(
+  const result = await pool.query<BatchBelongsToRow>(
     `SELECT da.document_id, da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
      FROM document_associations da
@@ -174,12 +223,7 @@ export async function getBelongsToAssociationsBatch(
     }
     const entries = associationsMap.get(docId);
     if (!entries) continue;
-    entries.push({
-      id: row.id,
-      type: row.type,
-      title: row.title || undefined,
-      color: row.color || undefined,
-    });
+    entries.push(extractBelongsToFromRow(row));
   }
 
   return associationsMap;
@@ -350,7 +394,7 @@ export async function syncAssociationOfTypeForDocuments(
 export async function getProgramAssociation(
   documentId: string
 ): Promise<BelongsToEntry | null> {
-  const result = await pool.query(
+  const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
      FROM document_associations da
@@ -361,12 +405,8 @@ export async function getProgramAssociation(
   );
   if (result.rows.length === 0) return null;
   const row = result.rows[0];
-  return {
-    id: row.id,
-    type: row.type,
-    title: row.title || undefined,
-    color: row.color || undefined,
-  };
+  if (!row) return null;
+  return extractBelongsToFromRow(row);
 }
 
 /**
@@ -378,7 +418,7 @@ export async function getProgramAssociation(
 export async function getProjectAssociation(
   documentId: string
 ): Promise<BelongsToEntry | null> {
-  const result = await pool.query(
+  const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
      FROM document_associations da
@@ -389,12 +429,8 @@ export async function getProjectAssociation(
   );
   if (result.rows.length === 0) return null;
   const row = result.rows[0];
-  return {
-    id: row.id,
-    type: row.type,
-    title: row.title || undefined,
-    color: row.color || undefined,
-  };
+  if (!row) return null;
+  return extractBelongsToFromRow(row);
 }
 
 /**
@@ -406,7 +442,7 @@ export async function getProjectAssociation(
 export async function getSprintAssociation(
   documentId: string
 ): Promise<BelongsToEntry | null> {
-  const result = await pool.query(
+  const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
      FROM document_associations da
@@ -417,12 +453,8 @@ export async function getSprintAssociation(
   );
   if (result.rows.length === 0) return null;
   const row = result.rows[0];
-  return {
-    id: row.id,
-    type: row.type,
-    title: row.title || undefined,
-    color: row.color || undefined,
-  };
+  if (!row) return null;
+  return extractBelongsToFromRow(row);
 }
 
 /**
@@ -505,7 +537,7 @@ export async function getProgramAssociationsBatch(
     return new Map();
   }
 
-  const result = await pool.query(
+  const result = await pool.query<BatchBelongsToRow>(
     `SELECT da.document_id, da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
      FROM document_associations da
@@ -516,12 +548,7 @@ export async function getProgramAssociationsBatch(
 
   const programsMap = new Map<string, BelongsToEntry>();
   for (const row of result.rows) {
-    programsMap.set(row.document_id, {
-      id: row.id,
-      type: row.type,
-      title: row.title || undefined,
-      color: row.color || undefined,
-    });
+    programsMap.set(row.document_id, extractBelongsToFromRow(row));
   }
 
   return programsMap;
@@ -543,17 +570,20 @@ export async function getUserInfo(
 ): Promise<{ id: string; name: string; email: string } | null> {
   if (!userId) return null;
 
-  const result = await pool.query(
+  const result = await pool.query<UserRow>(
     'SELECT id, name, email FROM users WHERE id = $1',
     [userId]
   );
 
   if (result.rows.length === 0) return null;
 
+  const row = result.rows[0];
+  if (!row) return null;
+
   return {
-    id: result.rows[0].id,
-    name: result.rows[0].name,
-    email: result.rows[0].email,
+    id: row.id,
+    name: row.name,
+    email: row.email,
   };
 }
 
@@ -574,7 +604,7 @@ export async function getUserInfoBatch(
     return new Map();
   }
 
-  const result = await pool.query(
+  const result = await pool.query<UserRow>(
     'SELECT id, name, email FROM users WHERE id = ANY($1)',
     [uniqueIds]
   );
@@ -625,7 +655,7 @@ export async function getDocumentFieldHistory(
   documentId: string,
   field: string
 ): Promise<DocumentFieldHistoryEntry[]> {
-  const result = await pool.query(
+  const result = await pool.query<DocumentFieldHistoryRow>(
     `SELECT dh.id, dh.document_id, dh.field, dh.old_value, dh.new_value,
             dh.changed_by, dh.automated_by, dh.created_at,
             u.name as changed_by_name, u.email as changed_by_email
@@ -636,18 +666,7 @@ export async function getDocumentFieldHistory(
     [documentId, field]
   );
 
-  return result.rows.map((row) => ({
-    id: row.id,
-    documentId: row.document_id,
-    field: row.field,
-    oldValue: row.old_value,
-    newValue: row.new_value,
-    changedBy: row.changed_by,
-    changedByName: row.changed_by_name || undefined,
-    changedByEmail: row.changed_by_email || undefined,
-    automatedBy: row.automated_by,
-    createdAt: row.created_at,
-  }));
+  return result.rows.map(extractFieldHistoryFromRow);
 }
 
 /**
@@ -662,7 +681,7 @@ export async function getLatestDocumentFieldHistory(
   documentId: string,
   field: string
 ): Promise<DocumentFieldHistoryEntry | null> {
-  const result = await pool.query(
+  const result = await pool.query<DocumentFieldHistoryRow>(
     `SELECT dh.id, dh.document_id, dh.field, dh.old_value, dh.new_value,
             dh.changed_by, dh.automated_by, dh.created_at,
             u.name as changed_by_name, u.email as changed_by_email
@@ -677,16 +696,6 @@ export async function getLatestDocumentFieldHistory(
   if (result.rows.length === 0) return null;
 
   const row = result.rows[0];
-  return {
-    id: row.id,
-    documentId: row.document_id,
-    field: row.field,
-    oldValue: row.old_value,
-    newValue: row.new_value,
-    changedBy: row.changed_by,
-    changedByName: row.changed_by_name || undefined,
-    changedByEmail: row.changed_by_email || undefined,
-    automatedBy: row.automated_by,
-    createdAt: row.created_at,
-  };
+  if (!row) return null;
+  return extractFieldHistoryFromRow(row);
 }

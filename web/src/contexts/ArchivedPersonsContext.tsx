@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
+import { apiGetJson } from '@/lib/api';
+import type { TeamMember } from '@/hooks/useTeamMembersQuery';
 
 interface ArchivedPersonsContextValue {
   /** Set of archived person document IDs */
@@ -16,16 +17,13 @@ export const archivedPersonsKey = ['archivedPersons'] as const;
 
 // Fetch archived person IDs
 async function fetchArchivedPersonIds(): Promise<string[]> {
-  // Get all people including archived, then filter to just archived ones
-  const res = await apiGet('/api/team/people?includeArchived=true');
-  if (!res.ok) {
-    throw new Error('Failed to fetch team members');
-  }
-  const data = await res.json();
-  // Return just the IDs of archived persons
+  const data = await apiGetJson<TeamMember[]>(
+    '/api/team/people?includeArchived=true',
+    'Failed to fetch team members'
+  );
   return data
-    .filter((p: { isArchived?: boolean }) => p.isArchived)
-    .map((p: { id: string }) => p.id);
+    .filter((p) => p.isArchived)
+    .map((p) => p.id);
 }
 
 export function ArchivedPersonsProvider({ children }: { children: ReactNode }) {

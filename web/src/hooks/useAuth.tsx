@@ -76,15 +76,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/** Mark bootstrap-seeded list caches stale so detail routes refetch full contracts (D045). */
+const BOOTSTRAP_STALE_QUERY_META = { updatedAt: 0 };
+
 function seedBootstrapQueries(data: Awaited<ReturnType<typeof api.auth.bootstrap>>['data']): void {
   if (!data) return;
 
-  queryClient.setQueryData<WikiDocument[]>(documentKeys.wikiList(), data.documents as WikiDocument[]);
+  queryClient.setQueryData<WikiDocument[]>(documentKeys.wikiList(), data.documents as WikiDocument[], BOOTSTRAP_STALE_QUERY_META);
   queryClient.setQueryData<Program[]>(programKeys.lists(), data.programs as Program[]);
-  queryClient.setQueryData<Project[]>(projectKeys.lists(), data.projects as Project[]);
+  queryClient.setQueryData<Project[]>(projectKeys.lists(), data.projects as Project[], BOOTSTRAP_STALE_QUERY_META);
   queryClient.setQueryData<Issue[]>(issueKeys.list(undefined), data.issues as Issue[]);
-  queryClient.setQueryData<StandupStatus>(standupStatusKeys.status(), data.standupStatus as StandupStatus);
-  queryClient.setQueryData(actionItemsKeys.list(), data.actionItems);
+  queryClient.setQueryData<StandupStatus>(standupStatusKeys.status(), data.standupStatus as StandupStatus, BOOTSTRAP_STALE_QUERY_META);
+  queryClient.setQueryData(actionItemsKeys.list(), data.actionItems, BOOTSTRAP_STALE_QUERY_META);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

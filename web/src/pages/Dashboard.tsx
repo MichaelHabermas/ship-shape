@@ -6,21 +6,12 @@ import { useDashboardActionItems } from '@/hooks/useDashboardActionItems';
 import { cn } from '@/lib/cn';
 import { formatRelativeTime } from '@/lib/date-utils';
 import { DashboardVariantC } from '@/components/dashboard/DashboardVariantC';
+import { apiGetJson } from '@/lib/api';
+import type { UpdatedStandup } from '@/api/schemas';
 
 type DashboardView = 'my-work' | 'overview';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
-
-interface Standup {
-  id: string;
-  sprint_id: string;
-  title: string;
-  content: unknown;
-  author_id: string;
-  author_name: string | null;
-  author_email: string | null;
-  created_at: string;
-  updated_at: string;
+interface Standup extends UpdatedStandup {
   sprint_title?: string;
   program_name?: string;
 }
@@ -68,19 +59,20 @@ export function DashboardPage() {
 
         const responses = await Promise.all(
           activeWeeks.map(async (sprint) => {
-            const res = await fetch(`${API_URL}/api/weeks/${sprint.id}/standups`, {
-              credentials: 'include',
-            });
-            if (res.ok) {
-              const standups: Standup[] = await res.json();
+            try {
+              const standups = await apiGetJson<Standup[]>(
+                `/api/weeks/${sprint.id}/standups`,
+                'Failed to fetch standups'
+              );
               return standups.map(s => ({
                 ...s,
                 sprint_id: sprint.id,
                 sprint_title: sprint.name,
                 program_name: sprint.program_name,
               }));
+            } catch {
+              return [];
             }
-            return [];
           })
         );
 

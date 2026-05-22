@@ -2,12 +2,14 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
-import { checkMissingAccountability } from '../services/accountability.js';
 import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type IssueProperties, type ProjectProperties } from '@ship/shared';
 import { getBelongsToAssociationsBatch } from '../utils/document-crud.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError } from '../utils/route-http.js';
+import { INFERRED_PROJECT_STATUS_SUBQUERY } from '../sql/bootstrap-queries.js';
+import { pickBootstrapDocumentProperties } from '../constants/bootstrap-document.js';
+import type { IssueMetadataRow } from '../db/documents-repository.js';
 
 const router = Router();
 
@@ -70,22 +72,7 @@ type ProjectRow = {
   converted_from_id?: string | null;
 };
 
-type IssueRow = {
-  id: string;
-  title: string;
-  properties: IssueProperties | null;
-  ticket_number: number | null;
-  created_at: Date;
-  updated_at: Date;
-  created_by: string;
-  started_at?: Date | null;
-  completed_at?: Date | null;
-  cancelled_at?: Date | null;
-  reopened_at?: Date | null;
-  converted_from_id?: string | null;
-  assignee_name?: string | null;
-  assignee_archived?: boolean | null;
-};
+type IssueRow = IssueMetadataRow;
 
 function mapProgram(row: ProgramRow) {
   const props = row.properties || {};
@@ -145,103 +132,45 @@ function mapProject(row: ProjectRow) {
     accountable_id: props.accountable_id || null,
     consulted_ids: props.consulted_ids || [],
     informed_ids: props.informed_ids || [],
-    plan: props.plan || null,
-    plan_approval: props.plan_approval || null,
-    retro_approval: props.retro_approval || null,
     has_retro: props.has_retro ?? false,
     target_date: props.target_date || null,
     has_design_review: props.has_design_review ?? null,
-    design_review_notes: props.design_review_notes || null,
   };
 }
 
-function toAccountabilityResponse(missingItems: Awaited<ReturnType<typeof checkMissingAccountability>>) {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-
-  const items = missingItems.map((item) => {
-    let daysOverdue = -999;
-
-    if (item.dueDate) {
-      const dueDate = new Date(`${item.dueDate}T00:00:00Z`);
-      daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-    } else if (item.type === 'changes_requested_plan' || item.type === 'changes_requested_retro') {
-      daysOverdue = 0;
-    }
-
-    return {
-      id: `${item.type}-${item.targetId}`,
-      title: item.message,
-      state: 'todo',
-      priority: 'high',
-      ticket_number: 0,
-      display_id: '',
-      is_system_generated: true,
-      accountability_type: item.type,
-      accountability_target_id: item.targetId,
-      target_title: item.targetTitle,
-      due_date: item.dueDate,
-      days_overdue: daysOverdue,
-      person_id: item.personId || null,
-      project_id: item.projectId || null,
-      week_number: item.weekNumber || null,
-    };
-  });
-
-  items.sort((a, b) => {
-    if (a.due_date && !b.due_date) return -1;
-    if (!a.due_date && b.due_date) return 1;
-    if (a.due_date && b.due_date) return b.days_overdue - a.days_overdue;
-    return 0;
-  });
-
+function mapBootstrapDocument(row: DocumentListRow) {
   return {
-    items,
-    total: items.length,
-    has_overdue: items.some(item => item.days_overdue > 0),
-    has_due_today: items.some(item => item.days_overdue === 0),
+    id: row.id,
+    workspace_id: row.workspace_id,
+    document_type: row.document_type,
+    title: row.title,
+    parent_id: row.parent_id,
+    position: row.position,
+    ticket_number: row.ticket_number,
+    properties: pickBootstrapDocumentProperties(row.properties),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    created_by: row.created_by,
+    visibility: row.visibility,
   };
 }
+
+const EMPTY_ACTION_ITEMS_RESPONSE = {
+  items: [],
+  total: 0,
+  has_overdue: false,
+  has_due_today: false,
+};
+
+const STALE_STANDUP_STATUS = {
+  due: false,
+  lastPosted: null,
+};
 
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-    const inferredProjectStatusSubquery = `
-      CASE
-        WHEN d.archived_at IS NOT NULL THEN 'archived'
-        WHEN d.properties->>'plan_validated' IS NOT NULL THEN 'completed'
-        ELSE COALESCE(
-          (
-            SELECT
-              CASE MAX(
-                CASE
-                  WHEN CURRENT_DATE BETWEEN
-                    (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                    AND (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7 + 6)
-                  THEN 3
-                  WHEN CURRENT_DATE < (w.sprint_start_date + ((sprint.properties->>'sprint_number')::int - 1) * 7)
-                  THEN 2
-                  ELSE 1
-                END
-              )
-              WHEN 3 THEN 'active'
-              WHEN 2 THEN 'planned'
-              ELSE NULL
-              END
-            FROM documents sprint
-            JOIN workspaces w ON w.id = sprint.workspace_id
-            JOIN document_associations project_da ON project_da.document_id = sprint.id
-              AND project_da.relationship_type = 'project'
-              AND project_da.related_id = d.id
-            WHERE sprint.document_type = 'sprint'
-              AND sprint.workspace_id = d.workspace_id
-              AND jsonb_array_length(COALESCE(sprint.properties->'assignee_ids', '[]'::jsonb)) > 0
-          ),
-          'backlog'
-        )
-      END
-    `;
 
     const [
       userResult,
@@ -252,7 +181,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       projectsResult,
       issuesResult,
       workspaceResult,
-      accountabilityItems,
     ] = await Promise.all([
       pool.query('SELECT id, email, name, is_super_admin FROM users WHERE id = $1', [userId]),
       pool.query(
@@ -311,7 +239,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
                 (SELECT COUNT(*) FROM documents i
                  JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
                  WHERE i.document_type = 'issue') as issue_count,
-                (${inferredProjectStatusSubquery}) as inferred_status
+                (${INFERRED_PROJECT_STATUS_SUBQUERY}) as inferred_status
          FROM documents d
          LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
          LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
@@ -349,7 +277,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         [workspaceId, userId, isAdmin]
       ),
       pool.query('SELECT sprint_start_date FROM workspaces WHERE id = $1', [workspaceId]),
-      checkMissingAccountability(userId, workspaceId),
     ]);
 
     const user = userResult.rows[0];
@@ -369,54 +296,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const associationsMap = await getBelongsToAssociationsBatch(issueIds);
     const issues = issuesResult.rows.map(row => mapIssueListItem(row, associationsMap.get(row.id) || []));
 
-    const rawStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const workspaceStartDate = rawStartDate instanceof Date
-      ? new Date(Date.UTC(rawStartDate.getFullYear(), rawStartDate.getMonth(), rawStartDate.getDate()))
-      : typeof rawStartDate === 'string'
-        ? new Date(`${rawStartDate}T00:00:00Z`)
-        : new Date();
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const currentSprintNumber = Math.floor(
-      Math.floor((today.getTime() - workspaceStartDate.getTime()) / (1000 * 60 * 60 * 24)) / 7
-    ) + 1;
-
-    const activeSprintsResult = await pool.query(
-      `SELECT DISTINCT s.id as sprint_id
-       FROM documents i
-       JOIN document_associations da ON da.document_id = i.id AND da.relationship_type = 'sprint'
-       JOIN documents s ON s.id = da.related_id AND s.document_type = 'sprint'
-       WHERE i.workspace_id = $1
-         AND i.document_type = 'issue'
-         AND i.archived_at IS NULL
-         AND i.deleted_at IS NULL
-         AND ${VISIBILITY_FILTER_SQL('i', '$4', '$5')}
-         AND (i.properties->>'assignee_id')::uuid = $2
-         AND (s.properties->>'sprint_number')::int = $3`,
-      [workspaceId, userId, currentSprintNumber, userId, isAdmin]
-    );
-
-    let standupStatus = { due: false, lastPosted: null as Date | null };
-    if (activeSprintsResult.rows.length > 0) {
-      const activeSprints = activeSprintsResult.rows.map(row => row.sprint_id);
-      const todayStr = today.toISOString().split('T')[0];
-      const standupResult = await pool.query(
-        `SELECT MAX(created_at) as last_posted
-         FROM documents
-         WHERE workspace_id = $1
-           AND document_type = 'standup'
-           AND (properties->>'author_id')::uuid = $2
-           AND deleted_at IS NULL
-           AND (
-             (properties->>'date') = $3
-             OR (parent_id = ANY($4) AND created_at >= $5)
-           )`,
-        [workspaceId, userId, todayStr, activeSprints, today.toISOString()]
-      );
-      const lastPosted = standupResult.rows[0]?.last_posted || null;
-      standupStatus = { due: !lastPosted, lastPosted };
-    }
-
     res.json({
       success: true,
       data: {
@@ -433,12 +312,12 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
           role: w.role,
         })),
         pendingAccountabilityItems: [],
-        documents: documentsResult.rows,
+        documents: documentsResult.rows.map(mapBootstrapDocument),
         programs: programsResult.rows.map(mapProgram),
         projects: projectsResult.rows.map(mapProject),
         issues,
-        standupStatus,
-        actionItems: toAccountabilityResponse(accountabilityItems),
+        standupStatus: STALE_STANDUP_STATUS,
+        actionItems: EMPTY_ACTION_ITEMS_RESPONSE,
       },
     });
   } catch (error) {

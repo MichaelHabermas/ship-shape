@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '@/components/ui/ContextMenu';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { api } from '@/lib/api';
+import { api, apiGetJson } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 interface Person {
   id: string;       // Document ID (for navigation)
@@ -29,18 +27,9 @@ export function TeamDirectoryPage() {
 
   const fetchPeople = useCallback(async (includeArchived = false) => {
     try {
-      const params = new URLSearchParams();
-      if (includeArchived) params.set('includeArchived', 'true');
-      const url = params.toString()
-        ? `${API_URL}/api/team/people?${params}`
-        : `${API_URL}/api/team/people`;
-      const response = await fetch(url, {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPeople(data);
-      }
+      const query = includeArchived ? '?includeArchived=true' : '';
+      const data = await apiGetJson<Person[]>(`/api/team/people${query}`, 'Failed to fetch people');
+      setPeople(data);
     } catch (error) {
       console.error('Failed to fetch people:', error);
     } finally {

@@ -46,7 +46,7 @@ function findCommentPositions(doc: ProseMirrorNode): Map<string, number> {
 
 export const commentDisplayPluginKey = new PluginKey('commentDisplay');
 
-interface CommentDisplayStorage {
+export interface CommentDisplayStorage {
   comments: Comment[];
   onReply: ((commentId: string, content: string) => void) | null;
   onResolve: ((commentId: string, resolved: boolean) => void) | null;

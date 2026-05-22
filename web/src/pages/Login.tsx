@@ -3,8 +3,13 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { Icon } from '@/components/icons/uswds';
-
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { publicFetchJson } from '@/lib/public-fetch';
+import type {
+  ApiEnvelope,
+  AuthProviderLoginData,
+  AuthProviderStatusData,
+  SetupStatusData,
+} from '@/api/schemas';
 
 // Validate that returnTo URL is same-origin (security measure)
 function isValidReturnTo(url: string): boolean {
@@ -77,12 +82,9 @@ export function LoginPage() {
   useEffect(() => {
     async function checkSetup() {
       try {
-        const res = await fetch(`${API_URL}/api/setup/status`, {
-          credentials: 'include',
-        });
-        const data = await res.json();
+        const data = await publicFetchJson<ApiEnvelope<SetupStatusData>>('/api/setup/status');
 
-        if (data.success && data.data.needsSetup) {
+        if (data.success && data.data?.needsSetup) {
           navigate('/setup', { replace: true });
           return;
         }
@@ -95,11 +97,8 @@ export function LoginPage() {
 
     async function checkCaiaStatus() {
       try {
-        const res = await fetch(`${API_URL}/api/auth/caia/status`, {
-          credentials: 'include',
-        });
-        const data = await res.json();
-        if (data.success && data.data.available) {
+        const data = await publicFetchJson<ApiEnvelope<AuthProviderStatusData>>('/api/auth/caia/status');
+        if (data.success && data.data?.available) {
           setCaiaAvailable(true);
         }
       } catch (err) {
@@ -118,12 +117,9 @@ export function LoginPage() {
     setIsCaiaLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/caia/login`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
+      const data = await publicFetchJson<ApiEnvelope<AuthProviderLoginData>>('/api/auth/caia/login');
 
-      if (data.success && data.data.authorizationUrl) {
+      if (data.success && data.data?.authorizationUrl) {
         // Redirect to CAIA for PIV authentication
         window.location.href = data.data.authorizationUrl;
       } else {

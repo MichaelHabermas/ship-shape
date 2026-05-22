@@ -16,6 +16,19 @@ import type {
   PersonLookupRow,
   SprintLookupRow,
   SprintInsertRow,
+  WorkspaceSprintStartRow,
+  SprintIssueIdRow,
+  ProgramExistsRow,
+  IdRow,
+  UserIdRow,
+  WorkspaceMemberUserRow,
+  SprintExistsRow,
+  SprintPrefixRow,
+  SprintIssueListRow,
+  SprintTitleRow,
+  SprintScopeInfoRow,
+  SprintIssueEstimateRow,
+  SprintHistoryRow,
 } from './types.js';
 
 const router = Router();
@@ -195,7 +208,7 @@ function isSprintActive(sprintNumber: number, workspaceStartDate: Date | string)
 
 // Take a snapshot of current issues in the sprint
 async function takeSprintSnapshot(sprintId: string): Promise<string[]> {
-  const result = await pool.query(
+  const result = await pool.query<SprintIssueIdRow>(
     `SELECT d.id FROM documents d
      JOIN document_associations da ON da.document_id = d.id
      WHERE da.related_id = $1 AND da.relationship_type = 'sprint' AND d.document_type = 'issue'`,
@@ -213,7 +226,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // First, get the workspace sprint_start_date to calculate current sprint number
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -223,7 +236,11 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const rawStartDate = workspaceResult.rows[0].sprint_start_date;
+    const rawStartDate = workspaceResult.rows[0]?.sprint_start_date;
+    if (rawStartDate === undefined) {
+      res.status(404).json({ error: 'Workspace not found' });
+      return;
+    }
     const sprintDuration = 7; // 7-day sprints
 
     // Calculate the current sprint number
@@ -414,7 +431,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get workspace info (always needed for sprint_start_date)
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -424,11 +441,11 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const sprintStartDate = workspaceResult.rows[0].sprint_start_date;
+    const sprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
 
     // If program_id provided, verify it belongs to workspace and user can access it
     if (program_id) {
-      const programCheck = await pool.query(
+      const programCheck = await pool.query<ProgramExistsRow>(
         `SELECT d.id
          FROM documents d
          WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'program'
@@ -442,7 +459,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       }
 
       // Check if sprint already exists for this program + sprint_number
-      const existingCheck = await pool.query(
+      const existingCheck = await pool.query<IdRow>(
         `SELECT d.id FROM documents d
          JOIN document_associations da ON da.document_id = d.id
          WHERE da.related_id = $1 AND da.relationship_type = 'program'
@@ -456,7 +473,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       }
     } else {
       // For projectless sprints, check workspace-wide uniqueness (sprints without program association)
-      const existingCheck = await pool.query(
+      const existingCheck = await pool.query<IdRow>(
         `SELECT d.id FROM documents d
          WHERE d.workspace_id = $1
            AND d.document_type = 'sprint'
@@ -477,7 +494,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Verify owner exists in workspace (if provided)
     let ownerData = null;
     if (owner_id) {
-      const ownerCheck = await pool.query(
+      const ownerCheck = await pool.query<WorkspaceMemberUserRow>(
         `SELECT u.id, u.name, u.email FROM users u
          JOIN workspace_memberships wm ON wm.user_id = u.id
          WHERE u.id = $1 AND wm.workspace_id = $2`,
@@ -605,7 +622,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and user can access it, also get workspace start date
-    const existing = await pool.query(
+    const existing = await pool.query<SprintExistsRow>(
       `SELECT d.id, d.properties, prog_da.related_id as program_id, w.sprint_start_date
        FROM documents d
        JOIN workspaces w ON d.workspace_id = w.id
@@ -620,8 +637,14 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
-    const programId = existing.rows[0].program_id;
+    const existingRow = existing.rows[0];
+    if (!existingRow) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+
+    const currentProps = existingRow.properties || {};
+    const programId = existingRow.program_id;
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -642,7 +665,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       // Only validate if owner_id is not null (i.e., setting a new owner, not clearing)
       if (data.owner_id) {
         // Verify owner exists in workspace
-        const ownerCheck = await pool.query(
+        const ownerCheck = await pool.query<UserIdRow>(
           `SELECT u.id FROM users u
            JOIN workspace_memberships wm ON wm.user_id = u.id
            WHERE u.id = $1 AND wm.workspace_id = $2`,
@@ -658,7 +681,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       // Store as assignee_ids array (migration converted owner_id to assignee_ids)
       // Also store owner_id directly for accountability checks
       newProps.assignee_ids = data.owner_id ? [data.owner_id] : [];
-      newProps.owner_id = data.owner_id || null;
+      newProps.owner_id = data.owner_id ?? undefined;
       propsChanged = true;
     }
 
@@ -666,7 +689,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (data.sprint_number !== undefined && data.sprint_number !== currentProps.sprint_number) {
       // Check if new sprint_number already exists for this program
       if (programId) {
-        const existingCheck = await pool.query(
+        const existingCheck = await pool.query<IdRow>(
           `SELECT d.id FROM documents d
            JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
            WHERE d.document_type = 'sprint' AND d.id != $2 AND (d.properties->>'sprint_number')::int = $3`,
@@ -679,7 +702,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
         }
       } else {
         // For programless sprints, check workspace-wide uniqueness (sprints with no program association)
-        const existingCheck = await pool.query(
+        const existingCheck = await pool.query<IdRow>(
           `SELECT d.id FROM documents d
            WHERE d.workspace_id = $1 AND d.document_type = 'sprint' AND d.id != $2
              AND (d.properties->>'sprint_number')::int = $3
@@ -727,7 +750,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Re-query to get full sprint with owner info
-    const result = await pool.query(
+    const result = await pool.query<SprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               p.properties->>'accountable_id' as program_accountable_id,
@@ -762,7 +785,12 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       [id]
     );
 
-    res.json(extractSprintFromRow(result.rows[0]));
+    const updatedRow = result.rows[0];
+    if (!updatedRow) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+    res.json(extractSprintFromRow(updatedRow));
   } catch (err) {
     sendInternalError(res, err, 'Update sprint error:');
   }
@@ -779,7 +807,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<SprintExistsRow>(
       `SELECT d.id, d.properties, prog_da.related_id as program_id, w.sprint_start_date
        FROM documents d
        JOIN workspaces w ON d.workspace_id = w.id
@@ -794,10 +822,14 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
-    const currentStatus = currentProps.status || 'planning';
+    const startExisting = existing.rows[0];
+    if (!startExisting) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
 
-    // Only allow starting a sprint that's in planning status
+    const currentProps = startExisting.properties || {};
+    const currentStatus = currentProps.status || 'planning';
     if (currentStatus !== 'planning') {
       res.status(400).json({
         error: `Cannot start week: week is already ${currentStatus}`,
@@ -827,7 +859,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
     broadcastToUser(userId, 'accountability:updated', { type: 'week_start', targetId: id as string });
 
     // Re-query to get full sprint with owner info
-    const result = await pool.query(
+    const result = await pool.query<SprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               p.properties->>'accountable_id' as program_accountable_id,
@@ -862,7 +894,12 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
       [id]
     );
 
-    const sprint = extractSprintFromRow(result.rows[0]);
+    const sprintRow = result.rows[0];
+    if (!sprintRow) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+    const sprint = extractSprintFromRow(sprintRow);
 
     res.json({
       ...sprint,
@@ -883,7 +920,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and user can access it
-    const existing = await pool.query(
+    const existing = await pool.query<SprintExistsRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -929,7 +966,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists and user can access it, get current properties
-    const existing = await pool.query(
+    const existing = await pool.query<SprintExistsRow>(
       `SELECT id, properties FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -941,7 +978,13 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const currentProps = existing.rows[0].properties || {};
+    const planExisting = existing.rows[0];
+    if (!planExisting) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+
+    const currentProps = planExisting.properties || {};
     const newProps = { ...currentProps };
     const data = parsed.data;
     const now = new Date().toISOString();
@@ -981,9 +1024,9 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
       JSON.stringify(data.success_criteria) !== JSON.stringify(currentProps.success_criteria);
 
     if ((planChanged || criteriaChanged) &&
-        currentProps.plan_approval?.state === 'approved') {
+        asApprovalRecord(currentProps.plan_approval)?.state === 'approved') {
       newProps.plan_approval = {
-        ...currentProps.plan_approval,
+        ...(currentProps.plan_approval as Record<string, unknown>),
         state: 'changed_since_approved',
       };
     }
@@ -1025,7 +1068,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Re-query to get full sprint with owner info
-    const result = await pool.query(
+    const result = await pool.query<SprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'prefix' as program_prefix,
               p.properties->>'accountable_id' as program_accountable_id,
@@ -1060,7 +1103,12 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
       [id]
     );
 
-    res.json(extractSprintFromRow(result.rows[0]));
+    const updatedRow = result.rows[0];
+    if (!updatedRow) {
+      res.status(404).json({ error: 'Week not found' });
+      return;
+    }
+    res.json(extractSprintFromRow(updatedRow));
   } catch (err) {
     sendInternalError(res, err, 'Update sprint plan error:');
   }
@@ -1076,7 +1124,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify sprint exists, user can access it, and get program info
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintPrefixRow>(
       `SELECT d.id, p.properties->>'prefix' as prefix FROM documents d
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
@@ -1090,7 +1138,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const result = await pool.query(
+    const result = await pool.query<SprintIssueListRow>(
       `SELECT d.id, d.title, d.properties, d.ticket_number,
               d.created_at, d.updated_at, d.created_by,
               u.name as assignee_name,
@@ -1123,7 +1171,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
     let carryoverSprintNames: Record<string, string> = {};
     if (carryoverSprintIds.length > 0) {
       const uniqueIds = [...new Set(carryoverSprintIds)];
-      const sprintNamesResult = await pool.query(
+      const sprintNamesResult = await pool.query<SprintTitleRow>(
         `SELECT id, title FROM documents WHERE id = ANY($1) AND document_type = 'sprint'`,
         [uniqueIds]
       );
@@ -1173,7 +1221,7 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get sprint info including sprint_number and workspace start date
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintScopeInfoRow>(
       `SELECT d.id, d.properties->>'sprint_number' as sprint_number,
               w.sprint_start_date as workspace_sprint_start_date
        FROM documents d
@@ -1188,8 +1236,8 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const sprintNumber = parseInt(sprintResult.rows[0].sprint_number, 10);
-    const rawStartDate = sprintResult.rows[0].workspace_sprint_start_date;
+    const sprintNumber = parseInt(String(sprintResult.rows[0]?.sprint_number ?? ''), 10);
+    const rawStartDate = sprintResult.rows[0]?.workspace_sprint_start_date;
     const sprintDuration = 7; // 1-week sprints
 
     // Calculate sprint start date
@@ -1206,7 +1254,7 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
     sprintStartDate.setUTCDate(sprintStartDate.getUTCDate() + (sprintNumber - 1) * sprintDuration);
 
     // Get all issues currently in the sprint with their estimates
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<SprintIssueEstimateRow>(
       `SELECT d.id, COALESCE((d.properties->>'estimate')::numeric, 0) as estimate
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
@@ -1216,7 +1264,7 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
 
     // Get when each issue was added to this sprint from document_history
     // field = 'sprint_id' and new_value = sprint_id means issue was added to sprint
-    const historyResult = await pool.query(
+    const historyResult = await pool.query<SprintHistoryRow>(
       `SELECT document_id, created_at, old_value, new_value
        FROM document_history
        WHERE field = 'sprint_id' AND new_value = $1
@@ -1238,7 +1286,7 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
     let currentScope = 0;
 
     for (const issue of issuesResult.rows) {
-      const estimate = parseFloat(issue.estimate) || 0;
+      const estimate = parseFloat(String(issue.estimate)) || 0;
       currentScope += estimate;
 
       const addedAt = issueAddedAtMap[issue.id];
@@ -1261,7 +1309,7 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
     // Get estimates for issues when they were added
     const issueEstimateMap: Record<string, number> = {};
     for (const issue of issuesResult.rows) {
-      issueEstimateMap[issue.id] = parseFloat(issue.estimate) || 0;
+      issueEstimateMap[issue.id] = parseFloat(String(issue.estimate)) || 0;
     }
 
     // Only track changes after sprint starts
@@ -1281,7 +1329,7 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
     }
 
     // Also check for issues removed from sprint (sprint_id changed away from this sprint)
-    const removedResult = await pool.query(
+    const removedResult = await pool.query<SprintHistoryRow>(
       `SELECT document_id, created_at, old_value, new_value
        FROM document_history
        WHERE field = 'sprint_id' AND old_value = $1 AND created_at > $2
@@ -1293,12 +1341,14 @@ router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Respo
       // We need the estimate of the issue at time of removal
       // For simplicity, we'll use the current estimate (or 0 if issue no longer in sprint)
       // In a real system, you might want to track historical estimates
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<SprintIssueEstimateRow>(
         `SELECT COALESCE((properties->>'estimate')::numeric, 0) as estimate
          FROM documents WHERE id = $1`,
         [row.document_id]
       );
-      const estimate = issueResult.rows[0] ? parseFloat(issueResult.rows[0].estimate) : 0;
+      const estimate = issueResult.rows[0]
+        ? parseFloat(String(issueResult.rows[0].estimate))
+        : 0;
 
       scopeChanges.push({
         timestamp: new Date(row.created_at).toISOString(),

@@ -3368,6 +3368,199 @@ components:
         - total
         - has_overdue
         - has_due_today
+    BootstrapDocumentProperties:
+      type: object
+      properties:
+        state:
+          nullable: true
+        priority:
+          nullable: true
+        estimate:
+          nullable: true
+        assignee_id:
+          nullable: true
+        source:
+          nullable: true
+        prefix:
+          nullable: true
+        color:
+          nullable: true
+    BootstrapProject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+        impact:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+          description: How much will this move the needle? (1-5, null = not set)
+          example: 3
+        confidence:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+          description: How certain are we this will achieve the impact? (1-5, null = not set)
+          example: 3
+        ease:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+          description: How easy is this to implement? (1-5, null = not set)
+          example: 3
+        ice_score:
+          type: number
+          nullable: true
+          description: Computed ICE score (impact * confidence * ease)
+        color:
+          type: string
+          example: "#6366f1"
+        emoji:
+          type: string
+          nullable: true
+        program_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        owner_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: R - Responsible (does the work)
+          example: 550e8400-e29b-41d4-a716-446655440000
+        accountable_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: A - Accountable (approver)
+          example: 550e8400-e29b-41d4-a716-446655440000
+        consulted_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          description: C - Consulted (provide input)
+        informed_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          description: I - Informed (kept in loop)
+        owner:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: UUID identifier
+              example: 550e8400-e29b-41d4-a716-446655440000
+            name:
+              type: string
+              description: User display name
+            email:
+              type: string
+              format: email
+              description: User email address
+          required:
+            - id
+            - name
+        has_retro:
+          type: boolean
+          description: Whether project has a retrospective document
+        has_design_review:
+          type: boolean
+          nullable: true
+          description: Whether design review has been completed
+        target_date:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        inferred_status:
+          type: string
+          enum:
+            - active
+            - planned
+            - completed
+            - backlog
+            - archived
+          description: Status computed from sprint relationships
+        sprint_count:
+          type: integer
+        issue_count:
+          type: integer
+        is_complete:
+          type: boolean
+          nullable: true
+        missing_fields:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        archived_at:
+          type: string
+          nullable: true
+          format: date-time
+          description: ISO 8601 datetime string
+          example: "2025-01-30T14:30:00.000Z"
+        converted_from_id:
+          type: string
+          nullable: true
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - id
+        - title
+        - impact
+        - confidence
+        - ease
+        - ice_score
+        - color
+        - emoji
+        - program_id
+        - owner_id
+        - accountable_id
+        - consulted_ids
+        - informed_ids
+        - owner
+        - has_retro
+        - has_design_review
+        - target_date
+        - inferred_status
+        - sprint_count
+        - issue_count
+        - is_complete
+        - missing_fields
+        - created_at
+        - updated_at
+        - archived_at
+        - converted_from_id
     BootstrapResponse:
       type: object
       properties:
@@ -3487,10 +3680,9 @@ components:
                     type: integer
                     nullable: true
                   properties:
-                    type: object
-                    nullable: true
-                    additionalProperties:
-                      nullable: true
+                    allOf:
+                      - $ref: "#/components/schemas/BootstrapDocumentProperties"
+                      - nullable: true
                   created_at:
                     type: string
                     format: date-time
@@ -3532,7 +3724,7 @@ components:
             projects:
               type: array
               items:
-                $ref: "#/components/schemas/Project"
+                $ref: "#/components/schemas/BootstrapProject"
             issues:
               type: array
               items:
@@ -4857,6 +5049,26 @@ components:
         - items
         - workload_assessment
         - workload_feedback
+    AiUnavailable:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - ai_unavailable
+      required:
+        - error
+    AiAnalysisError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum:
+            - ai_unavailable
+            - content_too_large
+            - ai_parse_error
+      required:
+        - error
     RetroItemAnalysis:
       type: object
       properties:
@@ -4893,12 +5105,28 @@ components:
         - plan_coverage
         - suggestions
     AiStatus:
-      type: object
-      properties:
-        available:
-          type: boolean
-      required:
-        - available
+      anyOf:
+        - type: object
+          properties:
+            available:
+              type: boolean
+              enum:
+                - true
+          required:
+            - available
+        - type: object
+          properties:
+            available:
+              type: boolean
+              enum:
+                - false
+            error:
+              type: string
+              enum:
+                - ai_unavailable
+          required:
+            - available
+            - error
     SetupStatusData:
       type: object
       properties:
@@ -9903,7 +10131,7 @@ paths:
       tags:
         - AI
       summary: Check AI analysis availability
-      description: Returns whether the AI analysis service is available (Bedrock client initialized).
+      description: 'Returns whether the AI analysis service is available. When Bedrock credentials cannot be loaded, returns { available: false, error: "ai_unavailable" }.'
       responses:
         200:
           description: AI availability status
@@ -9932,13 +10160,15 @@ paths:
                 - content
       responses:
         200:
-          description: 'Plan analysis result (or {error: "ai_unavailable"} if service is down)'
+          description: Plan analysis result or analysis error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PlanAnalysisResult"
+                anyOf:
+                  - $ref: "#/components/schemas/PlanAnalysisResult"
+                  - $ref: "#/components/schemas/AiAnalysisError"
         429:
-          description: Rate limit exceeded (max 10 per hour)
+          description: Rate limit exceeded (max 120 per hour)
   /ai/analyze-retro:
     post:
       tags:
@@ -9966,13 +10196,15 @@ paths:
                 - plan_content
       responses:
         200:
-          description: 'Retro analysis result (or {error: "ai_unavailable"} if service is down)'
+          description: Retro analysis result or analysis error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RetroAnalysisResult"
+                anyOf:
+                  - $ref: "#/components/schemas/RetroAnalysisResult"
+                  - $ref: "#/components/schemas/AiAnalysisError"
         429:
-          description: Rate limit exceeded (max 10 per hour)
+          description: Rate limit exceeded (max 120 per hour)
   /invites/{token}:
     get:
       tags:

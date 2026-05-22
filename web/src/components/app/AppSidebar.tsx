@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArchiveIcon } from '@/components/icons/ArchiveIcon';
 import { useDocuments, WikiDocument } from '@/contexts/DocumentsContext';
@@ -10,12 +10,12 @@ import { useTeamMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { cn, getContrastTextColor } from '@/lib/cn';
 import { buildDocumentTree, DocumentTreeNode } from '@/lib/documentTree';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { SidebarDocumentTreeItem } from '@/components/app/SidebarDocumentTreeItem';
 import { ContextTreeNav } from '@/components/ContextTreeNav';
 import { ProjectContextSidebar } from '@/components/sidebars/ProjectContextSidebar';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubmenu } from '@/components/ui/ContextMenu';
 import { useToast } from '@/components/ui/Toast';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { VISIBILITY_OPTIONS } from '@/lib/contextMenuActions';
 import type { Mode } from '@/hooks/useAppMode';
 
 export type AppSidebarProps = {
@@ -120,7 +120,6 @@ export function AppSidebar({
                 <DocumentsTree
                   documents={documents}
                   activeId={activeDocumentId}
-                  onSelect={(id) => navigate(`/documents/${id}`)}
                 />
               )}
               {activeMode === 'issues' && (
@@ -170,7 +169,7 @@ export function AppSidebar({
 
 const SIDEBAR_ITEM_LIMIT = 10;
 
-function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocument[]; activeId?: string; onSelect: (id: string) => void }) {
+function DocumentsTree({ documents, activeId }: { documents: WikiDocument[]; activeId?: string }) {
   // Split documents by visibility and build separate trees
   const { privateTree, workspaceTree } = useMemo(() => {
     // Group documents by visibility (root documents determine the section)
@@ -204,11 +203,10 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
         <ul role="tree" aria-label="Workspace documents" aria-live="polite" className="space-y-0.5 px-2">
           {workspaceToShow.length > 0 ? (
             workspaceToShow.map((doc) => (
-              <DocumentTreeItem
+              <SidebarDocumentTreeItem
                 key={doc.id}
                 document={doc}
-                activeId={activeId}
-                onSelect={onSelect}
+                activeDocumentId={activeId}
                 depth={0}
               />
             ))
@@ -239,11 +237,10 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
           </div>
           <ul role="tree" aria-label="Private documents" aria-live="polite" className="space-y-0.5 px-2">
             {privateToShow.map((doc) => (
-              <DocumentTreeItem
+              <SidebarDocumentTreeItem
                 key={doc.id}
                 document={doc}
-                activeId={activeId}
-                onSelect={onSelect}
+                activeDocumentId={activeId}
                 depth={0}
               />
             ))}
@@ -262,347 +259,6 @@ function DocumentsTree({ documents, activeId, onSelect }: { documents: WikiDocum
         </div>
       )}
     </div>
-  );
-}
-
-// Check if any descendant node matches the activeId
-function hasActiveDescendant(node: DocumentTreeNode, activeId?: string): boolean {
-  if (!activeId) return false;
-  for (const child of node.children) {
-    if (child.id === activeId || hasActiveDescendant(child, activeId)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function getVisibleTreeItems(tree: Element): HTMLElement[] {
-  return Array.from(tree.querySelectorAll<HTMLElement>('[role="treeitem"]')).filter((item) => {
-    return item.offsetParent !== null;
-  });
-}
-
-function focusTreeItem(item: HTMLElement | null) {
-  item?.focus();
-  item?.scrollIntoView({ block: 'nearest' });
-}
-
-function handleDocumentTreeItemKeyDown(
-  event: ReactKeyboardEvent<HTMLDivElement>,
-  options: {
-    hasChildren: boolean;
-    isOpen: boolean;
-    setIsOpen: (isOpen: boolean) => void;
-  }
-) {
-  const tree = event.currentTarget.closest('[role="tree"]');
-  if (!tree) return;
-
-  const items = getVisibleTreeItems(tree);
-  const currentIndex = items.indexOf(event.currentTarget);
-  if (currentIndex === -1) return;
-
-  switch (event.key) {
-    case 'ArrowDown':
-      event.preventDefault();
-      focusTreeItem(items[Math.min(currentIndex + 1, items.length - 1)]);
-      break;
-    case 'ArrowUp':
-      event.preventDefault();
-      focusTreeItem(items[Math.max(currentIndex - 1, 0)]);
-      break;
-    case 'Home':
-      event.preventDefault();
-      focusTreeItem(items[0]);
-      break;
-    case 'End':
-      event.preventDefault();
-      focusTreeItem(items[items.length - 1]);
-      break;
-    case 'ArrowRight':
-      if (!options.hasChildren) return;
-      event.preventDefault();
-      if (!options.isOpen) {
-        options.setIsOpen(true);
-      } else {
-        focusTreeItem(items[Math.min(currentIndex + 1, items.length - 1)]);
-      }
-      break;
-    case 'ArrowLeft':
-      event.preventDefault();
-      if (options.hasChildren && options.isOpen) {
-        options.setIsOpen(false);
-        return;
-      }
-      focusTreeItem(
-        event.currentTarget
-          .closest('ul[role="group"]')
-          ?.closest('li[data-tree-item]')
-          ?.querySelector<HTMLElement>(':scope > [role="treeitem"]') ?? null
-      );
-      break;
-    case 'Enter':
-    case ' ':
-      if (event.target !== event.currentTarget) return;
-      event.preventDefault();
-      event.currentTarget.querySelector<HTMLAnchorElement>('a[href]')?.click();
-      break;
-  }
-}
-
-function DocumentTreeItem({
-  document,
-  activeId,
-  onSelect,
-  depth
-}: {
-  document: DocumentTreeNode;
-  activeId?: string;
-  onSelect: (id: string) => void;
-  depth: number;
-}) {
-  const { createDocument, updateDocument, deleteDocument } = useDocuments();
-  const { showToast } = useToast();
-  const navigate = useNavigate();
-
-  // Auto-expand if this node or any descendant is active
-  const shouldAutoExpand = hasActiveDescendant(document, activeId);
-  const [isOpen, setIsOpen] = useState(shouldAutoExpand);
-
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Update isOpen when activeId changes (for navigation)
-  useEffect(() => {
-    if (shouldAutoExpand && !isOpen) {
-      setIsOpen(true);
-    }
-  }, [shouldAutoExpand, isOpen]);
-
-  const isActive = activeId === document.id;
-  const hasChildren = document.children.length > 0;
-
-  // Context menu handlers
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  }, []);
-
-  const handleMenuButtonClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (menuButtonRef.current) {
-      const rect = menuButtonRef.current.getBoundingClientRect();
-      setContextMenu({ x: rect.right - 180, y: rect.bottom + 4 });
-    }
-  }, []);
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
-
-  // Action handlers
-  const handleCreateSubdocument = useCallback(async () => {
-    closeContextMenu();
-    const newDoc = await createDocument(document.id);
-    if (newDoc) {
-      navigate(`/documents/${newDoc.id}`);
-    }
-  }, [createDocument, document.id, navigate, closeContextMenu]);
-
-  const handleRename = useCallback(() => {
-    closeContextMenu();
-    // Navigate to document and focus title (the title becomes editable when you click it)
-    navigate(`/documents/${document.id}`);
-  }, [document.id, navigate, closeContextMenu]);
-
-  const handleChangeVisibility = useCallback(async (visibility: string) => {
-    closeContextMenu();
-    await updateDocument(document.id, { visibility: visibility as 'private' | 'workspace' });
-    showToast(`Visibility changed to ${visibility}`, 'success');
-  }, [document.id, updateDocument, showToast, closeContextMenu]);
-
-  const handleDelete = useCallback(async () => {
-    closeContextMenu();
-    const docTitle = document.title || 'Untitled';
-    const childCount = document.children.length;
-
-    // Store document data for undo
-    const docData = {
-      id: document.id,
-      title: document.title,
-      visibility: document.visibility,
-      parent_id: document.parent_id,
-    };
-
-    const success = await deleteDocument(document.id);
-    if (success) {
-      const message = childCount > 0
-        ? `Deleted "${docTitle}" and ${childCount} child document${childCount > 1 ? 's' : ''}`
-        : `Deleted "${docTitle}"`;
-
-      showToast(message, 'info', 5000, {
-        label: 'Undo',
-        onClick: async () => {
-          // Recreate the document (undo)
-          const restored = await createDocument(docData.parent_id || undefined);
-          if (restored) {
-            await updateDocument(restored.id, {
-              title: docData.title,
-              visibility: docData.visibility,
-            });
-            showToast('Document restored', 'success');
-          }
-        },
-      });
-    }
-  }, [document, deleteDocument, createDocument, updateDocument, showToast, closeContextMenu]);
-
-  return (
-    <li
-      role="none"
-      data-tree-item
-      data-testid="doc-item"
-    >
-      <div
-        role="treeitem"
-        aria-expanded={hasChildren ? isOpen : undefined}
-        aria-selected={isActive}
-        tabIndex={0}
-        className={cn(
-          'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors group',
-          isActive
-            ? 'bg-border/50 text-foreground'
-            : 'text-muted hover:bg-border/30 hover:text-foreground',
-          'focus:bg-border/30 focus:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset focus-within:bg-border/30 focus-within:text-foreground'
-        )}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
-        onContextMenu={handleContextMenu}
-        onKeyDown={(event) => handleDocumentTreeItemKeyDown(event, { hasChildren, isOpen, setIsOpen })}
-      >
-        {/* Expand/collapse button - always visible for accessibility */}
-        {hasChildren ? (
-          <button
-            type="button"
-            className="h-6 w-6 flex-shrink-0 flex items-center justify-center p-0 rounded hover:bg-border/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label={isOpen ? 'Collapse' : 'Expand'}
-          >
-            <ChevronIcon isOpen={isOpen} />
-          </button>
-        ) : (
-          <div className="h-6 w-6 flex-shrink-0 flex items-center justify-center">
-            <DocIcon />
-          </div>
-        )}
-        {/* Main navigation link */}
-        <Link
-          to={`/documents/${document.id}`}
-          className="flex-1 truncate text-left cursor-pointer flex items-center gap-1"
-          aria-current={isActive ? 'page' : undefined}
-        >
-          <span className="truncate">{document.title || 'Untitled'}</span>
-          {document.visibility === 'private' && (
-            <LockIcon className="h-3 w-3 flex-shrink-0 text-muted" />
-          )}
-        </Link>
-        {/* Three-dot menu button - visible on hover */}
-        <button
-          ref={menuButtonRef}
-          type="button"
-          onClick={handleMenuButtonClick}
-          className="flex h-6 w-6 items-center justify-center rounded hover:bg-border/50 opacity-0 group-hover:opacity-100 focus:opacity-100 group-focus-within:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          aria-label="Document actions"
-          aria-haspopup="menu"
-          aria-expanded={contextMenu !== null}
-        >
-          <MoreHorizontalIcon className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Context menu */}
-      {contextMenu && (
-        <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu}>
-          <ContextMenuItem onClick={handleCreateSubdocument}>
-            Create sub-document
-          </ContextMenuItem>
-          <ContextMenuItem onClick={handleRename}>
-            Rename
-          </ContextMenuItem>
-          <ContextMenuSubmenu label="Change visibility">
-            {VISIBILITY_OPTIONS.map((opt) => (
-              <ContextMenuItem
-                key={opt.value}
-                onClick={() => handleChangeVisibility(opt.value)}
-              >
-                {opt.value === 'private' && <LockIcon className="h-3.5 w-3.5 mr-2" />}
-                {opt.value === 'workspace' && <GlobeIcon className="h-3.5 w-3.5 mr-2" />}
-                {opt.label}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubmenu>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={handleDelete} destructive>
-            Delete
-          </ContextMenuItem>
-        </ContextMenu>
-      )}
-
-      {/* Children (collapsible) */}
-      {hasChildren && isOpen && (
-        <ul role="group" className="space-y-0.5">
-          {document.children.map((child) => (
-            <DocumentTreeItem
-              key={child.id}
-              document={child}
-              activeId={activeId}
-              onSelect={onSelect}
-              depth={depth + 1}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-function MoreHorizontalIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="1" fill="currentColor" />
-      <circle cx="19" cy="12" r="1" fill="currentColor" />
-      <circle cx="5" cy="12" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ isOpen }: { isOpen: boolean }) {
-  return (
-    <svg
-      className={cn(
-        'h-4 w-4 text-muted transition-transform',
-        isOpen && 'rotate-90'
-      )}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 5l7 7-7 7"
-      />
-    </svg>
   );
 }
 
@@ -1471,6 +1127,30 @@ function PlusIcon() {
   return (
     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ isOpen }: { isOpen: boolean }) {
+  return (
+    <svg
+      className={cn('h-4 w-4 text-muted transition-transform', isOpen && 'rotate-90')}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+function MoreHorizontalIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <circle cx="19" cy="12" r="1" fill="currentColor" />
+      <circle cx="5" cy="12" r="1" fill="currentColor" />
     </svg>
   );
 }

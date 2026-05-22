@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { IssuesList, DEFAULT_FILTER_TABS } from '@/components/IssuesList';
-import { apiPost } from '@/lib/api';
+import { apiPost, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
 import type { DocumentTabProps } from '@/lib/document-tabs';
@@ -37,10 +38,10 @@ export default function SprintPlanningTab({ documentId, document }: DocumentTabP
     mutationFn: async () => {
       const response = await apiPost(`/api/weeks/${documentId}/start`);
       if (!response.ok) {
-        const err = await response.json();
+        const err = await readJson<LegacyErrorResponse>(response);
         throw new Error(err.error || 'Failed to start week');
       }
-      return response.json();
+      return readJson<{ snapshot_issue_count?: number }>(response);
     },
     onSuccess: (data) => {
       const count = data.snapshot_issue_count ?? 0;

@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiPost } from '@/lib/api';
+import { apiPostJson } from '@/lib/api';
+import type { Document, LegacyErrorResponse } from '@/api/schemas';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys } from '@/hooks/useProjectsQuery';
 import { useToast } from '@/components/ui/Toast';
@@ -23,6 +24,18 @@ interface ConversionResult {
   title: string;
 }
 
+function conversionFromDocument(doc: Document): ConversionResult {
+  return {
+    id: doc.id,
+    document_type: doc.document_type,
+    title: doc.title,
+  };
+}
+
+function errorMessageFromResponse(error: LegacyErrorResponse, fallback: string): string {
+  return typeof error.error === 'string' ? error.error : fallback;
+}
+
 export function useDocumentConversion(options: UseDocumentConversionOptions = {}) {
   const { navigateAfterConvert = true, onSuccess, onError } = options;
   const [isConverting, setIsConverting] = useState(false);
@@ -39,35 +52,30 @@ export function useDocumentConversion(options: UseDocumentConversionOptions = {}
     const targetType = sourceType === 'issue' ? 'project' : 'issue';
 
     try {
-      const res = await apiPost(`/api/documents/${documentId}/convert`, { target_type: targetType });
+      const data = await apiPostJson<Document>(
+        `/api/documents/${documentId}/convert`,
+        { target_type: targetType },
+        `Failed to convert ${sourceType} to ${targetType}`
+      );
 
-      if (res.ok) {
-        const data = await res.json();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: ['document', documentId] }),
+      ]);
 
-        // Invalidate caches - document stays same ID with in-place conversion
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: ['document', documentId] }),
-        ]);
+      const result = conversionFromDocument(data);
 
-        if (navigateAfterConvert) {
-          // Use unified document route - ID stays same with in-place conversion
-          navigate(`/documents/${data.id}`, { replace: true });
-        }
-
-        onSuccess?.(data.id);
-        return data as ConversionResult;
-      } else {
-        const error = await res.json();
-        const errorMessage = error.error || `Failed to convert ${sourceType} to ${targetType}`;
-        console.error(`Failed to convert ${sourceType}:`, error);
-        showToast(errorMessage, 'error');
-        onError?.(errorMessage);
-        return null;
+      if (navigateAfterConvert) {
+        navigate(`/documents/${result.id}`, { replace: true });
       }
+
+      onSuccess?.(result.id);
+      return result;
     } catch (err) {
-      const errorMessage = `Failed to convert ${sourceType} to ${targetType}`;
+      const errorMessage = err instanceof Error && err.message
+        ? err.message
+        : `Failed to convert ${sourceType} to ${targetType}`;
       console.error(`Failed to convert ${sourceType}:`, err);
       showToast(errorMessage, 'error');
       onError?.(errorMessage);
@@ -84,35 +92,30 @@ export function useDocumentConversion(options: UseDocumentConversionOptions = {}
     setIsConverting(true);
 
     try {
-      const res = await apiPost(`/api/documents/${documentId}/undo-conversion`, {});
+      const data = await apiPostJson<Document>(
+        `/api/documents/${documentId}/undo-conversion`,
+        {},
+        'Failed to undo conversion'
+      );
 
-      if (res.ok) {
-        const data = await res.json();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: ['document', documentId] }),
+      ]);
 
-        // Invalidate caches - document restores to previous type in-place
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
-          queryClient.invalidateQueries({ queryKey: ['document', documentId] }),
-        ]);
+      const result = conversionFromDocument(data);
 
-        if (navigateAfterConvert) {
-          // Use unified document route - ID stays same with in-place restoration
-          navigate(`/documents/${data.id}`, { replace: true });
-        }
-
-        onSuccess?.(data.id);
-        return data as ConversionResult;
-      } else {
-        const error = await res.json();
-        const errorMessage = error.error || 'Failed to undo conversion';
-        console.error('Failed to undo conversion:', error);
-        showToast(errorMessage, 'error');
-        onError?.(errorMessage);
-        return null;
+      if (navigateAfterConvert) {
+        navigate(`/documents/${result.id}`, { replace: true });
       }
+
+      onSuccess?.(result.id);
+      return result;
     } catch (err) {
-      const errorMessage = 'Failed to undo conversion';
+      const errorMessage = err instanceof Error && err.message
+        ? err.message
+        : 'Failed to undo conversion';
       console.error('Failed to undo conversion:', err);
       showToast(errorMessage, 'error');
       onError?.(errorMessage);
@@ -128,3 +131,6 @@ export function useDocumentConversion(options: UseDocumentConversionOptions = {}
     isConverting,
   };
 }
+
+// Keep helper exported for tests that assert error shape parsing
+export { errorMessageFromResponse };

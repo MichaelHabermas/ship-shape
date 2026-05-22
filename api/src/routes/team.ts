@@ -6,6 +6,43 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { hasContent } from '../utils/document-content.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
+function parseMetricEstimate(estimate: string | number): number {
+  if (typeof estimate === 'number') {
+    return Number.isFinite(estimate) ? estimate : 0;
+  }
+  const parsed = parseFloat(estimate);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+import {
+  mapReviewPersonResponse,
+  mapReviewSprintMapEntry,
+  type AccountabilityGridAssignmentRow,
+  type AccountabilityGridPersonRow,
+  type AccountabilityGridProgramRow,
+  type AccountabilityGridWeeklyDocRow,
+  type AccountabilityIssueRow,
+  type AccountabilityPersonRow,
+  type AssignmentInferenceIssueRow,
+  type EmptyRow,
+  type ExplicitAssignmentRow,
+  type IdRow,
+  type PersonSprintMetricsIssueRow,
+  type PersonUserIdRow,
+  type ProjectWithProgramRow,
+  type ReviewPersonRow,
+  type ReviewSprintMapEntry,
+  type ReviewSprintRow,
+  type ReviewWeeklyDocRow,
+  type SprintDocumentRow,
+  type TeamGridIssueRow,
+  type TeamGridSprintRow,
+  type TeamGridUserRow,
+  type TeamPersonRow,
+  type TeamProgramRow,
+  type TeamProjectRow,
+  type WorkspaceSprintStartRow,
+} from './team/types.js';
+
 const router = Router();
 
 // GET /api/team/grid - Get team grid data
@@ -25,7 +62,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
     // Get all people in workspace via person documents (only visible ones)
     // Include pending users so they appear in the grid
     // personId is the document ID (used for allocations), id is the user_id (null for pending users)
-    const usersResult = await pool.query(
+    const usersResult = await pool.query<TeamGridUserRow>(
       `SELECT
          d.id as "personId",
          d.properties->>'user_id' as id,
@@ -45,7 +82,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Get workspace sprint start date
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -105,7 +142,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
     const minDate = sprints[0]?.startDate || today.toISOString().split('T')[0];
     const maxDate = sprints[sprints.length - 1]?.endDate || today.toISOString().split('T')[0];
 
-    await pool.query(
+    await pool.query<TeamGridSprintRow>(
       `SELECT d.id, d.title as name, d.properties->>'start_date' as start_date, d.properties->>'end_date' as end_date,
               prog_da.related_id as program_id,
               p.title as program_name, p.properties->>'emoji' as program_emoji, p.properties->>'color' as program_color
@@ -119,7 +156,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Get issues with sprint and assignee info (only visible issues)
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<TeamGridIssueRow>(
       `SELECT i.id, i.title, da_sprint.related_id as sprint_id, i.properties->>'assignee_id' as assignee_id, i.properties->>'state' as state, i.ticket_number,
               s.properties->>'start_date' as sprint_start, s.properties->>'end_date' as sprint_end,
               prog_da.related_id as program_id, p.title as program_name, p.properties->>'emoji' as program_emoji, p.properties->>'color' as program_color
@@ -165,21 +202,23 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
         id: issue.id,
         title: issue.title,
         displayId: `#${issue.ticket_number}`,
-        state: issue.state,
+        state: issue.state ?? '',
       });
 
       // Add program if not already there
-      const existingProgram = cell.programs.find(p => p.id === issue.program_id);
-      if (existingProgram) {
-        existingProgram.issueCount++;
-      } else {
-        cell.programs.push({
-          id: issue.program_id,
-          name: issue.program_name,
-          emoji: issue.program_emoji,
-          color: issue.program_color,
-          issueCount: 1,
-        });
+      if (issue.program_id) {
+        const existingProgram = cell.programs.find(p => p.id === issue.program_id);
+        if (existingProgram) {
+          existingProgram.issueCount++;
+        } else {
+          cell.programs.push({
+            id: issue.program_id,
+            name: issue.program_name ?? '',
+            emoji: issue.program_emoji ?? null,
+            color: issue.program_color ?? '',
+            issueCount: 1,
+          });
+        }
       }
     }
 
@@ -205,7 +244,7 @@ router.get('/projects', authMiddleware, async (req: Request, res: Response) => {
 
     // Get all projects with their parent program info
     // Projects without a program will have null programId
-    const result = await pool.query(
+    const result = await pool.query<TeamProjectRow>(
       `SELECT
          proj.id,
          proj.title,
@@ -239,7 +278,7 @@ router.get('/programs', authMiddleware, async (req: Request, res: Response) => {
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    const result = await pool.query(
+    const result = await pool.query<TeamProgramRow>(
       `SELECT id, title as name, properties->>'emoji' as emoji, properties->>'color' as color
        FROM documents
        WHERE workspace_id = $1 AND document_type = 'program'
@@ -266,7 +305,7 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
 
     // First, get explicit sprint document assignments (assignee_ids array + project_id in properties)
     // Program is resolved via: project -> program (preferred), or sprint -> program (fallback for legacy programId assignments)
-    const explicitResult = await pool.query(
+    const explicitResult = await pool.query<ExplicitAssignmentRow>(
       `SELECT
          jsonb_array_elements_text(s.properties->'assignee_ids') as person_id,
          (s.properties->>'sprint_number')::int as sprint_number,
@@ -321,7 +360,7 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Get workspace sprint configuration for issue-based inference
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -340,7 +379,7 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
     }
 
     // Get all issues with assignees, projects, and sprint info for inferred assignments
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<AssignmentInferenceIssueRow>(
       `SELECT
          i.properties->>'assignee_id' as assignee_id,
          da_project.related_id as project_id,
@@ -473,7 +512,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
     // Validate personId belongs to current workspace (SECURITY: prevent cross-workspace injection)
     let personDocId = personId;
     if (personId) {
-      const personCheck = await pool.query(
+      const personCheck = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
         [personId, workspaceId]
@@ -484,7 +523,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
       }
     } else if (userId) {
       // If userId was provided instead of personId, look up the person doc ID
-      const personResult = await pool.query(
+      const personResult = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE workspace_id = $1 AND document_type = 'person'
            AND properties->>'user_id' = $2 AND archived_at IS NULL`,
@@ -498,12 +537,12 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
-    let resolvedProgramId: string;
+    let resolvedProgramId: string | null = null;
     let resolvedProjectId: string | null = null;
 
     if (isProjectAssignment) {
       // Validate projectId and get its parent program via document_associations
-      const projectCheck = await pool.query(
+      const projectCheck = await pool.query<ProjectWithProgramRow>(
         `SELECT d.id, prog_da.related_id as program_id
          FROM documents d
          LEFT JOIN document_associations prog_da ON d.id = prog_da.document_id AND prog_da.relationship_type = 'program'
@@ -518,7 +557,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
       resolvedProgramId = projectCheck.rows[0].program_id; // Can be null for projects without programs
     } else {
       // Legacy: Validate programId belongs to current workspace
-      const programCheck = await pool.query(
+      const programCheck = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'`,
         [programId, workspaceId]
@@ -532,7 +571,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
 
     // Check if person is already assigned to this exact project/sprint (prevent duplicates)
     // Use IS NOT DISTINCT FROM for program_id to handle NULL values correctly
-    const existingAssignment = await pool.query(
+    const existingAssignment = await pool.query<IdRow>(
       `SELECT s.id
        FROM documents s
        WHERE s.workspace_id = $1 AND s.document_type = 'sprint'
@@ -551,7 +590,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
 
     // Enforce one allocation per person per week: remove from any OTHER project's sprint
     // for the same sprint_number before assigning to the new one.
-    const conflictingSprints = await pool.query(
+    const conflictingSprints = await pool.query<SprintDocumentRow>(
       `SELECT id, properties FROM documents
        WHERE workspace_id = $1 AND document_type = 'sprint'
          AND (properties->>'sprint_number')::int = $2
@@ -563,7 +602,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
     for (const conflicting of conflictingSprints.rows) {
       const props = conflicting.properties || {};
       const assignees: string[] = (props.assignee_ids || []).filter((id: string) => id !== personDocId);
-      await pool.query(
+      await pool.query<EmptyRow>(
         `UPDATE documents SET properties = jsonb_set(properties, '{assignee_ids}', $1::jsonb), updated_at = now() WHERE id = $2`,
         [JSON.stringify(assignees), conflicting.id]
       );
@@ -571,7 +610,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
 
     // Find existing sprint for this program, project, and sprint number
     // Use IS NOT DISTINCT FROM for program_id to handle NULL values correctly
-    let sprintResult = await pool.query(
+    let sprintResult = await pool.query<SprintDocumentRow>(
       `SELECT id, properties FROM documents
        WHERE workspace_id = $1 AND document_type = 'sprint'
          AND ($2::uuid IS NULL AND NOT EXISTS (SELECT 1 FROM document_associations WHERE document_id = documents.id AND relationship_type = 'program') OR id IN (SELECT document_id FROM document_associations WHERE related_id = $2 AND relationship_type = 'program'))
@@ -597,7 +636,7 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
         assignee_ids: currentAssignees,
       };
 
-      await pool.query(
+      await pool.query<EmptyRow>(
         `UPDATE documents SET properties = $1, updated_at = now() WHERE id = $2`,
         [JSON.stringify(updatedProps), sprintId]
       );
@@ -611,16 +650,20 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
         props.project_id = resolvedProjectId;
       }
 
-      const newSprintResult = await pool.query(
+      const newSprintResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, properties)
          VALUES ($1, 'sprint', $2, $3)
          RETURNING id`,
         [workspaceId, `Week ${sprintNumber}`, JSON.stringify(props)]
       );
-      sprintId = newSprintResult.rows[0].id;
+      const createdSprint = newSprintResult.rows[0];
+      if (!createdSprint) {
+        throw new Error('Failed to create sprint');
+      }
+      sprintId = createdSprint.id;
 
       // Create program association for the new sprint
-      await pool.query(
+      await pool.query<EmptyRow>(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'program')`,
         [sprintId, resolvedProgramId]
@@ -653,7 +696,7 @@ router.delete('/assign', authMiddleware, async (req: Request, res: Response) => 
     // Validate personId belongs to current workspace (SECURITY: prevent cross-workspace injection)
     let personDocId = personId;
     if (personId) {
-      const personCheck = await pool.query(
+      const personCheck = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
         [personId, workspaceId]
@@ -664,7 +707,7 @@ router.delete('/assign', authMiddleware, async (req: Request, res: Response) => 
       }
     } else if (userId) {
       // If userId was provided instead of personId, look up the person doc ID
-      const personResult = await pool.query(
+      const personResult = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE workspace_id = $1 AND document_type = 'person'
            AND properties->>'user_id' = $2 AND archived_at IS NULL`,
@@ -679,7 +722,7 @@ router.delete('/assign', authMiddleware, async (req: Request, res: Response) => 
     }
 
     // Find the sprint containing this person in assignee_ids for this sprint number
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<SprintDocumentRow>(
       `SELECT id, properties FROM documents
        WHERE workspace_id = $1 AND document_type = 'sprint'
          AND properties->'assignee_ids' ? $2
@@ -705,7 +748,7 @@ router.delete('/assign', authMiddleware, async (req: Request, res: Response) => 
       assignee_ids: updatedAssignees,
     };
 
-    await pool.query(
+    await pool.query<EmptyRow>(
       `UPDATE documents SET properties = $1, updated_at = now() WHERE id = $2`,
       [JSON.stringify(updatedProps), sprintId]
     );
@@ -731,7 +774,7 @@ router.get('/people', authMiddleware, async (req: Request, res: Response) => {
     // Also include user_id for grid consistency
     // Email comes from properties or joined user
     // Include pending users so they appear in team lists (but can't be assigned)
-    const result = await pool.query(
+    const result = await pool.query<TeamPersonRow>(
       `SELECT d.id, d.properties->>'user_id' as user_id, d.title as name,
               COALESCE(d.properties->>'email', u.email) as email,
               CASE WHEN d.archived_at IS NOT NULL THEN true ELSE false END as "isArchived",
@@ -768,7 +811,7 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
     }
 
     // Get workspace sprint start date
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -812,7 +855,7 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
     }
 
     // Get all people in workspace (exclude pending - they can't have assignments)
-    const peopleResult = await pool.query(
+    const peopleResult = await pool.query<AccountabilityPersonRow>(
       `SELECT
          d.properties->>'user_id' as id,
          d.title as name
@@ -826,7 +869,7 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
     );
 
     // Get all issues with estimates, assignees, sprint info, and completion state
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<AccountabilityIssueRow>(
       `SELECT
          i.properties->>'assignee_id' as assignee_id,
          da_sprint.related_id as sprint_id,
@@ -848,7 +891,7 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
     for (const issue of issuesResult.rows) {
       const assigneeId = issue.assignee_id;
       const sprintNumber = parseInt(issue.sprint_number, 10);
-      const estimate = parseFloat(issue.estimate) || 0;
+      const estimate = parseMetricEstimate(issue.estimate);
       const isDone = issue.state === 'done';
 
       // Skip if outside our range
@@ -875,6 +918,9 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
     }> = {};
 
     for (const person of peopleResult.rows) {
+      if (!person.id) {
+        continue;
+      }
       const personMetrics = metrics[person.id];
       if (!personMetrics) {
         patternAlerts[person.id] = { hasAlert: false, consecutiveCount: 0, trend: [] };
@@ -930,7 +976,7 @@ router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Reque
     const { personId } = req.params;
 
     // Get the person document to find the user_id
-    const personResult = await pool.query(
+    const personResult = await pool.query<PersonUserIdRow>(
       `SELECT properties->>'user_id' as user_id
        FROM documents
        WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
@@ -954,7 +1000,7 @@ router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Reque
     }
 
     // Get workspace sprint start date
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -998,7 +1044,7 @@ router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Reque
     }
 
     // Get all issues for this person with estimates, sprint info, and completion state
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<PersonSprintMetricsIssueRow>(
       `SELECT
          COALESCE((i.properties->>'estimate')::numeric, 0) as estimate,
          i.properties->>'state' as state,
@@ -1017,7 +1063,7 @@ router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Reque
 
     for (const issue of issuesResult.rows) {
       const sprintNumber = parseInt(issue.sprint_number, 10);
-      const estimate = parseFloat(issue.estimate) || 0;
+      const estimate = parseMetricEstimate(issue.estimate);
       const isDone = issue.state === 'done';
 
       // Skip if outside our range
@@ -1068,7 +1114,7 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Get workspace sprint config
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -1115,7 +1161,7 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Get all workspace people (include reports_to for My Team filter)
-    const peopleResult = await pool.query(
+    const peopleResult = await pool.query<ReviewPersonRow>(
       `SELECT id, title as name, properties->>'reports_to' as "reportsTo"
        FROM documents
        WHERE workspace_id = $1
@@ -1126,7 +1172,7 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Get sprint documents with approval/rating properties
-    const sprintsResult = await pool.query(
+    const sprintsResult = await pool.query<ReviewSprintRow>(
       `SELECT
          jsonb_array_elements_text(s.properties->'assignee_ids') as person_id,
          (s.properties->>'sprint_number')::int as sprint_number,
@@ -1151,7 +1197,7 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Get weekly plans (to check content existence)
-    const plansResult = await pool.query(
+    const plansResult = await pool.query<ReviewWeeklyDocRow>(
       `SELECT
          (properties->>'person_id') as person_id,
          (properties->>'week_number')::int as week_number,
@@ -1165,7 +1211,7 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     );
 
     // Get weekly retros (to check content existence)
-    const retrosResult = await pool.query(
+    const retrosResult = await pool.query<ReviewWeeklyDocRow>(
       `SELECT
          (properties->>'person_id') as person_id,
          (properties->>'week_number')::int as week_number,
@@ -1202,43 +1248,19 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Build sprint approval map: personId_sprintNumber -> { sprintId, planApproval, reviewApproval, reviewRating, programId, programName }
-    const sprintMap = new Map<string, {
-      sprintId: string;
-      planApproval: unknown;
-      reviewApproval: unknown;
-      reviewRating: unknown;
-      programId: string | null;
-      programName: string | null;
-      programColor: string | null;
-    }>();
+    const sprintMap = new Map<string, ReviewSprintMapEntry>();
 
     for (const row of sprintsResult.rows) {
-      if (row.person_id && row.sprint_number) {
-        const key = `${row.person_id}_${row.sprint_number}`;
-        sprintMap.set(key, {
-          sprintId: row.sprint_id,
-          planApproval: row.plan_approval || null,
-          reviewApproval: row.review_approval || null,
-          reviewRating: row.review_rating || null,
-          programId: row.program_id || null,
-          programName: row.program_name || null,
-          programColor: row.program_color || null,
-        });
+      const mapped = mapReviewSprintMapEntry(row);
+      if (mapped) {
+        sprintMap.set(mapped.key, mapped.entry);
       }
     }
 
     // Build people list with program info from current sprint
-    const people = peopleResult.rows.map((p: { id: string; name: string; reportsTo?: string | null }) => {
-      const currentSprint = sprintMap.get(`${p.id}_${currentSprintNumber}`);
-      return {
-        personId: p.id,
-        name: p.name,
-        programId: currentSprint?.programId || null,
-        programName: currentSprint?.programName || null,
-        programColor: currentSprint?.programColor || null,
-        reportsTo: p.reportsTo || null,
-      };
-    });
+    const people = peopleResult.rows.map((person) =>
+      mapReviewPersonResponse(person, currentSprintNumber, sprintMap),
+    );
 
     // Build reviews map: personId -> sprintNumber -> cell data
     const reviews: Record<string, Record<number, {
@@ -1312,7 +1334,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     }
 
     // Get workspace sprint config
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<WorkspaceSprintStartRow>(
       `SELECT sprint_start_date FROM workspaces WHERE id = $1`,
       [workspaceId]
     );
@@ -1361,7 +1383,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     }
 
     // Get all workspace people
-    const peopleResult = await pool.query(
+    const peopleResult = await pool.query<AccountabilityGridPersonRow>(
       `SELECT id, title as name
        FROM documents
        WHERE workspace_id = $1
@@ -1372,7 +1394,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     );
 
     // Get all programs
-    const programsResult = await pool.query(
+    const programsResult = await pool.query<AccountabilityGridProgramRow>(
       `SELECT id, title as name, properties->>'color' as color
        FROM documents
        WHERE workspace_id = $1
@@ -1383,7 +1405,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     );
 
     // Get explicit sprint assignments (person -> sprint -> project)
-    const explicitAssignmentsResult = await pool.query(
+    const explicitAssignmentsResult = await pool.query<AccountabilityGridAssignmentRow>(
       `SELECT
          jsonb_array_elements_text(s.properties->'assignee_ids') as person_id,
          (s.properties->>'sprint_number')::int as sprint_number,
@@ -1438,7 +1460,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     }
 
     // Infer assignments from issues (fallback for people without explicit assignments)
-    const issuesResult = await pool.query(
+    const issuesResult = await pool.query<AssignmentInferenceIssueRow>(
       `SELECT
          i.properties->>'assignee_id' as assignee_id,
          da_project.related_id as project_id,
@@ -1529,7 +1551,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     }
 
     // Get ALL weekly plans in the workspace for the week range
-    const plansResult = await pool.query(
+    const plansResult = await pool.query<AccountabilityGridWeeklyDocRow>(
       `SELECT
          (properties->>'person_id') as person_id,
          (properties->>'project_id') as project_id,
@@ -1545,7 +1567,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     );
 
     // Get ALL weekly retros in the workspace for the week range
-    const retrosResult = await pool.query(
+    const retrosResult = await pool.query<AccountabilityGridWeeklyDocRow>(
       `SELECT
          (properties->>'person_id') as person_id,
          (properties->>'project_id') as project_id,

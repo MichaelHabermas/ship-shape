@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
 import { createApp } from '../app.js';
+import { IdRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js';
 import { rebuildDocumentSearchIndex } from '../utils/tiptap-search.js';
 
@@ -24,29 +25,29 @@ describe('Search API', () => {
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     );
-    testWorkspaceId = workspaceResult.rows[0].id;
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id;
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Search Test User')
        RETURNING id`,
       [testEmail]
     );
-    testUserId = userResult.rows[0].id;
+    testUserId = requireFirstRow(userResult.rows).id;
 
-    const secondUserResult = await pool.query(
+    const secondUserResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Second Search Test User')
        RETURNING id`,
       [secondTestEmail]
     );
-    secondTestUserId = secondUserResult.rows[0].id;
+    secondTestUserId = requireFirstRow(secondUserResult.rows).id;
 
     // Create workspace membership
     await pool.query(
@@ -91,22 +92,22 @@ describe('Search API', () => {
     secondUserSessionCookie = `session_id=${secondUserSessionId}`;
 
     // Create test person document
-    const personResult = await pool.query(
+    const personResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content)
        VALUES ($1, 'person', 'Test Person', '{}')
        RETURNING id`,
       [testWorkspaceId]
     );
-    testPersonDocId = personResult.rows[0].id;
+    testPersonDocId = requireFirstRow(personResult.rows).id;
 
     // Create test wiki document
-    const wikiResult = await pool.query(
+    const wikiResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content)
        VALUES ($1, 'wiki', 'Test Wiki', '{}')
        RETURNING id`,
       [testWorkspaceId]
     );
-    testWikiDocId = wikiResult.rows[0].id;
+    testWikiDocId = requireFirstRow(wikiResult.rows).id;
   });
 
   afterAll(async () => {
@@ -190,13 +191,13 @@ describe('Search API', () => {
   });
 
   it('GET /api/search/documents searches titles only and returns metadata', async () => {
-    const contentOnlyResult = await pool.query(
+    const contentOnlyResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'No Title Match', '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"PaletteOnlyNeedle"}]}]}', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     );
-    const titleResult = await pool.query(
+    const titleResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'PaletteOnlyNeedle Title', '{"type":"doc","content":[]}', $2)
        RETURNING id`,
@@ -212,12 +213,12 @@ describe('Search API', () => {
     expect(res.body).toHaveProperty('total');
 
     const ids = res.body.documents.map((doc: any) => doc.id);
-    expect(ids).toContain(titleResult.rows[0].id);
-    expect(ids).not.toContain(contentOnlyResult.rows[0].id);
+    expect(ids).toContain(requireFirstRow(titleResult.rows).id);
+    expect(ids).not.toContain(requireFirstRow(contentOnlyResult.rows).id);
 
-    const doc = res.body.documents.find((item: any) => item.id === titleResult.rows[0].id);
+    const doc = res.body.documents.find((item: any) => item.id === requireFirstRow(titleResult.rows).id);
     expect(doc).toMatchObject({
-      id: titleResult.rows[0].id,
+      id: requireFirstRow(titleResult.rows).id,
       title: 'PaletteOnlyNeedle Title',
       document_type: 'wiki',
     });
@@ -286,7 +287,7 @@ describe('Search API', () => {
   });
 
   it('GET /api/search/content searches extracted TipTap body text', async () => {
-    const bodyOnlyResult = await pool.query(
+    const bodyOnlyResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'Body Match Search', $2, $3)
        RETURNING id`,
@@ -317,7 +318,7 @@ describe('Search API', () => {
       offset: 0,
     });
     expect(res.body.documents[0]).toMatchObject({
-      id: bodyOnlyResult.rows[0].id,
+      id: requireFirstRow(bodyOnlyResult.rows).id,
       title: 'Body Match Search',
       document_type: 'wiki',
     });
@@ -326,7 +327,7 @@ describe('Search API', () => {
   });
 
   it('GET /api/search/content matches selected properties text', async () => {
-    const propertiesOnlyResult = await pool.query(
+    const propertiesOnlyResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, content, created_by)
        VALUES ($1, 'wiki', 'Properties Only Search', $2, '{"type":"doc","content":[]}', $3)
        RETURNING id`,
@@ -343,11 +344,11 @@ describe('Search API', () => {
       .set('Cookie', sessionCookie);
 
     expect(res.status).toBe(200);
-    expect(res.body.documents.map((doc: any) => doc.id)).toContain(propertiesOnlyResult.rows[0].id);
+    expect(res.body.documents.map((doc: any) => doc.id)).toContain(requireFirstRow(propertiesOnlyResult.rows).id);
   });
 
   it('GET /api/search/content ranks title matches above body-only matches', async () => {
-    const bodyResult = await pool.query(
+    const bodyResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'Body Ranked Doc', $2, $3)
        RETURNING id`,
@@ -360,7 +361,7 @@ describe('Search API', () => {
         testUserId,
       ]
     );
-    const titleResult = await pool.query(
+    const titleResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'RankNeedleBeta Title Ranked Doc', $2, $3)
        RETURNING id`,
@@ -378,11 +379,11 @@ describe('Search API', () => {
 
     expect(res.status).toBe(200);
     const ids = res.body.documents.map((doc: any) => doc.id);
-    expect(ids.indexOf(titleResult.rows[0].id)).toBeLessThan(ids.indexOf(bodyResult.rows[0].id));
+    expect(ids.indexOf(requireFirstRow(titleResult.rows).id)).toBeLessThan(ids.indexOf(requireFirstRow(bodyResult.rows).id));
   });
 
   it('GET /api/search/content filters by document type', async () => {
-    const wikiResult = await pool.query(
+    const wikiResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'Type Content Wiki', $2, $3)
        RETURNING id`,
@@ -392,7 +393,7 @@ describe('Search API', () => {
         testUserId,
       ]
     );
-    const issueResult = await pool.query(
+    const issueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'issue', 'Type Content Issue', $2, $3)
        RETURNING id`,
@@ -410,8 +411,8 @@ describe('Search API', () => {
 
     expect(res.status).toBe(200);
     const ids = res.body.documents.map((doc: any) => doc.id);
-    expect(ids).toContain(issueResult.rows[0].id);
-    expect(ids).not.toContain(wikiResult.rows[0].id);
+    expect(ids).toContain(requireFirstRow(issueResult.rows).id);
+    expect(ids).not.toContain(requireFirstRow(wikiResult.rows).id);
     expect(res.body.documents.every((doc: any) => doc.document_type === 'issue')).toBe(true);
   });
 
@@ -425,7 +426,7 @@ describe('Search API', () => {
   });
 
   it('GET /api/search/content applies visibility before limit', async () => {
-    const privateResult = await pool.query(
+    const privateResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, visibility, created_by)
        VALUES ($1, 'wiki', 'Private LimitVisibilityNeedleDelta LimitVisibilityNeedleDelta', $2, 'private', $3)
        RETURNING id`,
@@ -438,7 +439,7 @@ describe('Search API', () => {
         secondTestUserId,
       ]
     );
-    const visibleResult = await pool.query(
+    const visibleResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, visibility, created_by)
        VALUES ($1, 'wiki', 'Visible Limit Doc', $2, 'workspace', $3)
        RETURNING id`,
@@ -459,14 +460,14 @@ describe('Search API', () => {
 
     expect(userRes.status).toBe(200);
     expect(userRes.body.documents).toHaveLength(1);
-    expect(userRes.body.documents[0].id).toBe(visibleResult.rows[0].id);
+    expect(userRes.body.documents[0].id).toBe(requireFirstRow(visibleResult.rows).id);
 
     const secondUserRes = await request(app)
       .get('/api/search/content?q=LimitVisibilityNeedleDelta&limit=1')
       .set('Cookie', secondUserSessionCookie);
 
     expect(secondUserRes.status).toBe(200);
-    expect(secondUserRes.body.documents[0].id).toBe(privateResult.rows[0].id);
+    expect(secondUserRes.body.documents[0].id).toBe(requireFirstRow(privateResult.rows).id);
   });
 
   it('GET /api/search/content respects limit and offset', async () => {
@@ -564,20 +565,20 @@ describe('Search Learnings API', () => {
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     );
-    testWorkspaceId = workspaceResult.rows[0].id;
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id;
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Learning Test User')
        RETURNING id`,
       [testEmail]
     );
-    testUserId = userResult.rows[0].id;
+    testUserId = requireFirstRow(userResult.rows).id;
 
     // Create workspace membership
     await pool.query(
@@ -596,22 +597,22 @@ describe('Search Learnings API', () => {
     sessionCookie = `session_id=${sessionId}`;
 
     // Create learning document (title starts with "Learning:")
-    const learningResult = await pool.query(
+    const learningResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, content, created_by)
        VALUES ($1, 'wiki', 'Learning: API Token Authentication', $2, '{"type":"doc","content":[]}', $3)
        RETURNING id`,
       [testWorkspaceId, JSON.stringify({ tags: ['security', 'api'], category: 'authentication', source_prd: 'test-prd' }), testUserId]
     );
-    learningDocId = learningResult.rows[0].id;
+    learningDocId = requireFirstRow(learningResult.rows).id;
 
     // Create regular wiki document (should not appear in learnings search)
-    const regularResult = await pool.query(
+    const regularResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
        VALUES ($1, 'wiki', 'Regular Wiki Document', '{}', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     );
-    regularWikiId = regularResult.rows[0].id;
+    regularWikiId = requireFirstRow(regularResult.rows).id;
   });
 
   afterAll(async () => {

@@ -2,13 +2,20 @@ import { useSyncExternalStore } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { subscribeToArchivedIds, getArchivedIdsSnapshot } from '@/contexts/ArchivedPersonsContext';
 
+interface MentionNodeAttrs {
+  id: string;
+  label: string;
+  mentionType: string;
+  documentType: string | null;
+}
+
 /**
  * React NodeView component for rendering mentions.
  * Checks if person mentions are for archived users and displays accordingly.
  * Uses useSyncExternalStore to reactively update when archived status changes.
  */
 export function MentionNodeView({ node }: NodeViewProps) {
-  const { id, label, mentionType, documentType } = node.attrs;
+  const { id, label, mentionType, documentType } = node.attrs as MentionNodeAttrs;
   const isPerson = mentionType === 'person';
 
   // Subscribe to archived IDs changes so we re-render when someone is archived/restored

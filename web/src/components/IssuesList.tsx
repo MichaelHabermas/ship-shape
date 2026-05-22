@@ -22,7 +22,8 @@ import { useToast } from '@/components/ui/Toast';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubmenu } from '@/components/ui/ContextMenu';
 import { cn } from '@/lib/cn';
 import { FilterTabs, FilterTab } from '@/components/FilterTabs';
-import { apiPost, apiPatch } from '@/lib/api';
+import { apiPost, apiPatch, readJson } from '@/lib/api';
+import type { LegacyErrorResponse } from '@/api/schemas';
 import { ConversionDialog } from '@/components/dialogs/ConversionDialog';
 import { BacklogPickerModal } from '@/components/dialogs/BacklogPickerModal';
 import { useSelectionPersistenceOptional } from '@/contexts/SelectionPersistenceContext';
@@ -903,7 +904,7 @@ export function IssuesList({
     try {
       const res = await apiPost(`/api/documents/${convertingIssue.id}/convert`, { target_type: 'project' });
       if (res.ok) {
-        const data = await res.json();
+        const data = await readJson<{ id: string }>(res);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: issueKeys.lists() }),
           queryClient.invalidateQueries({ queryKey: projectKeys.lists() }),
@@ -911,7 +912,7 @@ export function IssuesList({
         showToast(`Issue promoted to project: ${convertingIssue.title}`, 'success');
         navigate(`/documents/${data.id}`, { replace: true });
       } else {
-        const error = await res.json();
+        const error = await readJson<LegacyErrorResponse>(res);
         showToast(error.error || 'Failed to convert issue to project', 'error');
         setIsConverting(false);
         setConvertingIssue(null);

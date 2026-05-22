@@ -1,21 +1,15 @@
 // In development, Vite proxy handles /api routes (see vite.config.ts)
 // In production, use VITE_API_URL or relative URLs
 import { clearTypedApiCsrfToken } from '@/api/client';
+import { readJson } from '@/api/read-json';
+import type { ApiEnvelope, CsrfTokenResponse } from '@/api/schemas';
+import { clearQuietCsrfToken } from '@/lib/quiet-fetch';
+import { createApiStatusError } from '@/lib/api-error';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
-interface CsrfTokenResponse {
-  token: string;
-}
+export type { ApiEnvelope as ApiResponse } from '@/api/schemas';
+export { readJson } from '@/api/read-json';
 
 // CSRF token cache for state-changing requests
 let csrfToken: string | null = null;
@@ -24,11 +18,6 @@ let csrfToken: string | null = null;
 function isJsonResponse(response: Response): boolean {
   const contentType = response.headers.get('content-type');
   return contentType?.includes('application/json') ?? false;
-}
-
-export async function readJson<T>(response: Response): Promise<T> {
-  const data = (await response.json()) as unknown;
-  return data as T;
 }
 
 /**
@@ -87,6 +76,7 @@ async function ensureCsrfToken(): Promise<string> {
 export function clearCsrfToken(): void {
   csrfToken = null;
   clearTypedApiCsrfToken();
+  clearQuietCsrfToken();
 }
 
 // Simple helpers that return Response objects (for contexts that need res.ok checks)
@@ -170,10 +160,42 @@ export async function apiDelete(endpoint: string, body?: object): Promise<Respon
   return fetchWithCsrf(endpoint, 'DELETE', body);
 }
 
+export async function apiGetJson<T>(endpoint: string, message = 'Request failed'): Promise<T> {
+  const res = await apiGet(endpoint);
+  if (!res.ok) {
+    throw createApiStatusError(message, res.status);
+  }
+  return readJson<T>(res);
+}
+
+export async function apiPostJson<T>(endpoint: string, body?: object, message = 'Request failed'): Promise<T> {
+  const res = await apiPost(endpoint, body);
+  if (!res.ok) {
+    throw createApiStatusError(message, res.status);
+  }
+  return readJson<T>(res);
+}
+
+export async function apiPatchJson<T>(endpoint: string, body: object, message = 'Request failed'): Promise<T> {
+  const res = await apiPatch(endpoint, body);
+  if (!res.ok) {
+    throw createApiStatusError(message, res.status);
+  }
+  return readJson<T>(res);
+}
+
+export async function apiDeleteJson<T>(endpoint: string, body?: object, message = 'Request failed'): Promise<T> {
+  const res = await apiDelete(endpoint, body);
+  if (!res.ok) {
+    throw createApiStatusError(message, res.status);
+  }
+  return readJson<T>(res);
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+): Promise<ApiEnvelope<T>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
@@ -204,7 +226,7 @@ async function request<T>(
     handleSessionExpired(); // never returns
   }
 
-  const data = await readJson<ApiResponse<T>>(response);
+  const data = await readJson<ApiEnvelope<T>>(response);
 
   // Handle session expiration - redirect to login with expired=true
   // Only for SESSION_EXPIRED (actual expiration), not UNAUTHORIZED (no session existed)
@@ -232,7 +254,7 @@ async function request<T>(
     if (!isJsonResponse(retryResponse)) {
       handleSessionExpired(); // never returns
     }
-    return readJson<ApiResponse<T>>(retryResponse);
+    return readJson<ApiEnvelope<T>>(retryResponse);
   }
 
   return data;
