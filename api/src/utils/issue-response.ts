@@ -1,10 +1,9 @@
-import type { IssueProperties } from '@ship/shared';
+import type { BelongsTo, IssueProperties } from '@ship/shared';
 import type { IssueMetadataRow } from '../db/documents-repository.js';
-import type { BelongsToEntry } from './document-crud.js';
 
 export type IssueListRow = IssueMetadataRow;
 
-export function mapIssueListItem(row: IssueMetadataRow, belongsTo: BelongsToEntry[] = []) {
+export function mapIssueListItem(row: IssueMetadataRow, belongsTo: BelongsTo[] = []) {
   const props: Partial<IssueProperties> = (row.properties ?? {}) as Partial<IssueProperties>;
   return {
     id: row.id,

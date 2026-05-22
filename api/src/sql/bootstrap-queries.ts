@@ -2,6 +2,10 @@
  * Shared bootstrap SQL fragments for routes and performance evidence scripts.
  */
 
+import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+
+export { VISIBILITY_FILTER_SQL as visibilityFilterSql } from '../middleware/visibility.js';
+
 export const INFERRED_PROJECT_STATUS_SUBQUERY = `
       CASE
         WHEN d.archived_at IS NOT NULL THEN 'archived'
@@ -38,15 +42,6 @@ export const INFERRED_PROJECT_STATUS_SUBQUERY = `
       END
     `;
 
-/** Visibility filter for scripts that cannot import middleware modules. */
-export function visibilityFilterSql(
-  tableAlias: string,
-  userIdParam: string,
-  isAdminParam: string
-): string {
-  return `(${tableAlias}.visibility = 'workspace' OR ${tableAlias}.created_by = ${userIdParam} OR ${isAdminParam} = TRUE)`;
-}
-
 export interface BootstrapExplainContext {
   workspaceId: string;
   userId: string;
@@ -73,7 +68,7 @@ export function buildBootstrapExplainCatalog(ctx: BootstrapExplainContext): {
   current_bootstrap: BootstrapExplainQuery[];
 } {
   const { workspaceId, userId, isAdmin, currentSprintNumber, todayIso, todayStr } = ctx;
-  const visibilitySql = visibilityFilterSql('d', '$2', '$3');
+  const visibilitySql = VISIBILITY_FILTER_SQL('d', '$2', '$3');
 
   const currentBootstrap: BootstrapExplainQuery[] = [
     {

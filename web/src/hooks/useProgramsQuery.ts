@@ -1,26 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGetJson, apiPostJson, apiPatchJson, apiDelete } from '@/lib/api';
+import { apiClient, assertApiData, assertApiSuccess } from '@/api/client';
+import { createOptimisticProgram } from '@/api/optimistic-stubs';
+import type { Program, UserReference } from '@/api/schemas';
 
-export interface ProgramOwner {
-  id: string;
-  name: string;
-  email: string;
-}
+export type { Program };
+export type ProgramOwner = UserReference;
 
-export interface Program {
-  id: string;
-  name: string;
-  color: string;
-  emoji?: string | null;
-  archived_at: string | null;
-  created_at?: string;
-  updated_at?: string;
-  issue_count?: number;
-  sprint_count?: number;
-  owner: ProgramOwner | null;
-}
-
-// Query keys
 export const programKeys = {
   all: ['programs'] as const,
   lists: () => [...programKeys.all, 'list'] as const,
@@ -29,36 +14,48 @@ export const programKeys = {
   detail: (id: string) => [...programKeys.details(), id] as const,
 };
 
-// Fetch programs
 async function fetchPrograms(): Promise<Program[]> {
-  return apiGetJson<Program[]>('/api/programs', 'Failed to fetch programs');
+  const result = await apiClient.GET('/programs');
+  return assertApiData(result, 'Failed to fetch programs');
 }
 
 async function createProgramApi(data: { title: string }): Promise<Program> {
-  return apiPostJson<Program>('/api/programs', data, 'Failed to create program');
+  const result = await apiClient.POST('/programs', {
+    body: {
+      title: data.title,
+      color: '#6366f1',
+      owner_id: null,
+      accountable_id: null,
+      consulted_ids: [],
+      informed_ids: [],
+    },
+  });
+  return assertApiData(result, 'Failed to create program');
 }
 
 async function updateProgramApi(id: string, updates: Record<string, unknown>): Promise<Program> {
-  return apiPatchJson<Program>(`/api/programs/${id}`, updates, 'Failed to update program');
+  const result = await apiClient.PATCH('/programs/{id}', {
+    params: { path: { id } },
+    body: updates,
+  });
+  return assertApiData(result, 'Failed to update program');
 }
 
 async function deleteProgramApi(id: string): Promise<void> {
-  const res = await apiDelete(`/api/programs/${id}`);
-  if (!res.ok) {
-    throw new Error('Failed to delete program');
-  }
+  const result = await apiClient.DELETE('/programs/{id}', {
+    params: { path: { id } },
+  });
+  assertApiSuccess(result, 'Failed to delete program');
 }
 
-// Hook to get programs
 export function useProgramsQuery() {
   return useQuery({
     queryKey: programKeys.lists(),
     queryFn: fetchPrograms,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 }
 
-// Hook to create program with optimistic update
 export function useCreateProgram() {
   const queryClient = useQueryClient();
 
@@ -69,16 +66,7 @@ export function useCreateProgram() {
       await queryClient.cancelQueries({ queryKey: programKeys.lists() });
       const previousPrograms = queryClient.getQueryData<Program[]>(programKeys.lists());
 
-      const optimisticProgram: Program = {
-        id: `temp-${crypto.randomUUID()}`,
-        name: newProgram?.title ?? 'Untitled',
-        color: '#6B7280',
-        emoji: null,
-        archived_at: null,
-        issue_count: 0,
-        sprint_count: 0,
-        owner: null,
-      };
+      const optimisticProgram = createOptimisticProgram(newProgram ?? {});
 
       queryClient.setQueryData<Program[]>(
         programKeys.lists(),
@@ -106,13 +94,11 @@ export function useCreateProgram() {
   });
 }
 
-// Hook to update program with optimistic update
 export function useUpdateProgram() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Program> & { owner_id?: string | null } }) => {
-      // Map frontend field names to API field names
       const apiUpdates: Record<string, unknown> = {};
       if (updates.name !== undefined) apiUpdates.title = updates.name;
       if (updates.color !== undefined) apiUpdates.color = updates.color;
@@ -148,7 +134,6 @@ export function useUpdateProgram() {
   });
 }
 
-// Hook to delete program with optimistic update
 export function useDeleteProgram() {
   const queryClient = useQueryClient();
 
@@ -176,22 +161,21 @@ export function useDeleteProgram() {
   });
 }
 
-// Compatibility hook that matches the old usePrograms interface
 export function usePrograms() {
   const { data: programs = [], isLoading: loading, refetch } = useProgramsQuery();
   const createMutation = useCreateProgram();
   const updateMutation = useUpdateProgram();
   const deleteMutation = useDeleteProgram();
 
-  const createProgram = async (): Promise<Program | null> => {
+  const createProgram = async (options?: { title?: string }): Promise<Program | null> => {
     try {
-      return await createMutation.mutateAsync({});
+      return await createMutation.mutateAsync(options);
     } catch {
       return null;
     }
   };
 
-  const updateProgram = async (id: string, updates: Partial<Program> & { owner_id?: string | null }): Promise<Program | null> => {
+  const updateProgram = async (id: string, updates: Partial<Program>): Promise<Program | null> => {
     try {
       return await updateMutation.mutateAsync({ id, updates });
     } catch {

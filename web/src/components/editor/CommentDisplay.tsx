@@ -299,6 +299,17 @@ export const CommentDisplayExtension = Extension.create<Record<string, never>, C
             keydown: (view, event) => {
               const target = event.target as HTMLElement;
 
+              // Cancel pending comment on Escape even if focus did not land in the widget input yet
+              if (
+                event.key === 'Escape' &&
+                storage.pendingCommentId &&
+                storage.onCancelComment
+              ) {
+                storage.onCancelComment(storage.pendingCommentId);
+                event.preventDefault();
+                return true;
+              }
+
               // Handle Enter/Escape on pending comment input
               if (target.classList.contains('comment-pending-field')) {
                 const input = target as HTMLInputElement;

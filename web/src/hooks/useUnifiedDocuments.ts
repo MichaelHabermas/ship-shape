@@ -12,7 +12,7 @@
  */
 import { useMemo } from 'react';
 import { useDocumentsQuery, WikiDocument } from './useDocumentsQuery';
-import { useIssuesQuery, Issue } from './useIssuesQuery';
+import { useIssuesQuery, IssueListItem, Issue } from './useIssuesQuery';
 import { useProjectsQuery, Project } from './useProjectsQuery';
 import { useProgramsQuery, Program } from './useProgramsQuery';
 
@@ -30,7 +30,7 @@ export interface UnifiedDocumentBase {
 }
 
 // Union type for all document types
-export type UnifiedDocument = WikiDocument | Issue | Project | Program;
+export type UnifiedDocument = WikiDocument | IssueListItem | Project | Program;
 
 // Options for querying documents
 export interface UseUnifiedDocumentsOptions {
@@ -57,7 +57,7 @@ export interface UseUnifiedDocumentsResult {
   /** Documents grouped by type for type-safe access */
   byType: {
     wiki: WikiDocument[];
-    issue: Issue[];
+    issue: IssueListItem[];
     project: Project[];
     program: Program[];
   };
@@ -198,4 +198,4 @@ export function useUnifiedDocuments(
 }
 
 // Re-export types for convenience
-export type { WikiDocument, Issue, Project, Program };
+export type { WikiDocument, IssueListItem, Issue, Project, Program };

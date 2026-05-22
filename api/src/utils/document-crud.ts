@@ -6,21 +6,11 @@
  */
 
 import { pool } from '../db/client.js';
-import type { BelongsToType } from '@ship/shared';
+import type { BelongsTo, BelongsToType } from '@ship/shared';
 
 // =============================================================================
 // Types
 // =============================================================================
-
-/**
- * Represents a belongs_to association entry from document_associations table
- */
-export interface BelongsToEntry {
-  id: string;
-  type: BelongsToType;
-  title?: string;
-  color?: string;
-}
 
 type QueryRunner = { query: typeof pool.query };
 
@@ -54,7 +44,7 @@ type DocumentFieldHistoryRow = {
   changed_by_email: string | null;
 };
 
-function extractBelongsToFromRow(row: BelongsToRow): BelongsToEntry {
+function extractBelongsToFromRow(row: BelongsToRow): BelongsTo {
   return {
     id: row.id,
     type: row.type,
@@ -172,7 +162,7 @@ export function getTimestampUpdates(
  */
 export async function getBelongsToAssociations(
   documentId: string
-): Promise<BelongsToEntry[]> {
+): Promise<BelongsTo[]> {
   const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
@@ -199,7 +189,7 @@ export async function getBelongsToAssociations(
  */
 export async function getBelongsToAssociationsBatch(
   documentIds: string[]
-): Promise<Map<string, BelongsToEntry[]>> {
+): Promise<Map<string, BelongsTo[]>> {
   if (documentIds.length === 0) {
     return new Map();
   }
@@ -215,7 +205,7 @@ export async function getBelongsToAssociationsBatch(
   );
 
   // Group results by document_id
-  const associationsMap = new Map<string, BelongsToEntry[]>();
+  const associationsMap = new Map<string, BelongsTo[]>();
   for (const row of result.rows) {
     const docId = row.document_id;
     if (!associationsMap.has(docId)) {
@@ -393,7 +383,7 @@ export async function syncAssociationOfTypeForDocuments(
  */
 export async function getProgramAssociation(
   documentId: string
-): Promise<BelongsToEntry | null> {
+): Promise<BelongsTo | null> {
   const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
@@ -417,7 +407,7 @@ export async function getProgramAssociation(
  */
 export async function getProjectAssociation(
   documentId: string
-): Promise<BelongsToEntry | null> {
+): Promise<BelongsTo | null> {
   const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
@@ -441,7 +431,7 @@ export async function getProjectAssociation(
  */
 export async function getSprintAssociation(
   documentId: string
-): Promise<BelongsToEntry | null> {
+): Promise<BelongsTo | null> {
   const result = await pool.query<BelongsToRow>(
     `SELECT da.related_id as id, da.relationship_type as type,
             d.title, d.properties->>'color' as color
@@ -532,7 +522,7 @@ export async function updateSprintAssociation(
  */
 export async function getProgramAssociationsBatch(
   documentIds: string[]
-): Promise<Map<string, BelongsToEntry>> {
+): Promise<Map<string, BelongsTo>> {
   if (documentIds.length === 0) {
     return new Map();
   }
@@ -546,7 +536,7 @@ export async function getProgramAssociationsBatch(
     [documentIds]
   );
 
-  const programsMap = new Map<string, BelongsToEntry>();
+  const programsMap = new Map<string, BelongsTo>();
   for (const row of result.rows) {
     programsMap.set(row.document_id, extractBelongsToFromRow(row));
   }

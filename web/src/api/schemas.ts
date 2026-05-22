@@ -1,11 +1,27 @@
 import type { components } from './generated/ship-openapi';
 
+export type { ApiError, ApiResponse } from '@ship/shared';
+
 export type Document = components['schemas']['Document'];
 export type Standup = components['schemas']['Standup'];
 export type UpdatedStandup = components['schemas']['UpdatedStandup'];
 export type StandupStatus = components['schemas']['StandupStatus'];
 export type MentionSearchResult = components['schemas']['MentionSearchResult'];
 export type DocumentSearchResponse = components['schemas']['DocumentSearchResponse'];
+
+export type IssueListItem = components['schemas']['IssueListItem'];
+export type Issue = components['schemas']['Issue'];
+export type Project = components['schemas']['Project'];
+export type ProjectIssueListItem = components['schemas']['ProjectIssueListItem'];
+export type ProjectWeekListItem = components['schemas']['ProjectWeekListItem'];
+export type Program = components['schemas']['Program'];
+export type UserReference = components['schemas']['UserReference'];
+export type BelongsToResponse = components['schemas']['BelongsToResponse'];
+export type Week = components['schemas']['Week'];
+export type ProgramSprintListItem = components['schemas']['ProgramSprintListItem'];
+export type ProgramSprintsResponse = components['schemas']['ProgramSprintsResponse'];
+export type ActiveWeekItem = components['schemas']['ActiveWeekItem'];
+export type ActiveWeeksResponse = components['schemas']['ActiveWeeksResponse'];
 
 export interface SetupStatusData {
   needsSetup: boolean;
@@ -30,13 +46,4 @@ export interface CsrfTokenResponse {
 
 export interface LegacyErrorResponse {
   error?: string;
-}
-
-export interface ApiEnvelope<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
 }

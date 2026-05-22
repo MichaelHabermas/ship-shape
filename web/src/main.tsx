@@ -31,7 +31,6 @@ const PersonEditorPage = React.lazy(() => import('@/pages/PersonEditor').then((m
 const FeedbackEditorPage = React.lazy(() => import('@/pages/FeedbackEditor').then((module) => ({ default: module.FeedbackEditorPage })));
 const PublicFeedbackPage = React.lazy(() => import('@/pages/PublicFeedback').then((module) => ({ default: module.PublicFeedbackPage })));
 const ProjectsPage = React.lazy(() => import('@/pages/Projects').then((module) => ({ default: module.ProjectsPage })));
-const DashboardPage = React.lazy(() => import('@/pages/Dashboard').then((module) => ({ default: module.DashboardPage })));
 const MyWeekPage = React.lazy(() => import('@/pages/MyWeekPage').then((module) => ({ default: module.MyWeekPage })));
 const AdminDashboardPage = React.lazy(() => import('@/pages/AdminDashboard').then((module) => ({ default: module.AdminDashboardPage })));
 const AdminWorkspaceDetailPage = React.lazy(() => import('@/pages/AdminWorkspaceDetail').then((module) => ({ default: module.AdminWorkspaceDetailPage })));
@@ -210,7 +209,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="/my-week" replace />} />
-        <Route path="dashboard" element={<LazyRoute><DashboardPage /></LazyRoute>} />
+        <Route path="dashboard" element={<Navigate to="/my-week" replace />} />
         <Route path="my-week" element={<LazyRoute><MyWeekPage /></LazyRoute>} />
         <Route path="docs" element={<LazyRoute><DocumentsPage /></LazyRoute>} />
         <Route path="docs/:id" element={<DocumentRedirect />} />

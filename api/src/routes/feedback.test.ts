@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
+import crypto from 'crypto';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
-import { FeedbackItemSchema, FeedbackProgramPublicSchema } from '../openapi/schemas/feedback.js';
+import {
+  FeedbackItemSchema,
+  FeedbackLegacyErrorSchema,
+  FeedbackProgramPublicSchema,
+} from '../openapi/schemas/feedback.js';
 import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 describe('Public Feedback API', () => {
@@ -14,6 +19,8 @@ describe('Public Feedback API', () => {
   let enabledProgramId: string;
   let disabledProgramId: string;
   let privateProgramId: string;
+  let testUserId: string;
+  let sessionCookie: string;
 
   beforeAll(async () => {
     const workspaceResult = await pool.query(
@@ -46,9 +53,43 @@ describe('Public Feedback API', () => {
       [testWorkspaceId, JSON.stringify({ prefix: 'PRI', public_feedback_enabled: true })]
     );
     privateProgramId = privateProgramResult.rows[0].id;
+
+    const testEmail = `feedback-protected-${testRunId}@ship.local`;
+    const userResult = await pool.query(
+      `INSERT INTO users (email, password_hash, name)
+       VALUES ($1, 'test-hash', 'Feedback Test User')
+       RETURNING id`,
+      [testEmail]
+    );
+    testUserId = userResult.rows[0].id;
+
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+       VALUES ($1, $2, 'member')`,
+      [testWorkspaceId, testUserId]
+    );
+
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    await pool.query(
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
+       VALUES ($1, $2, $3, now() + interval '1 hour')`,
+      [sessionId, testUserId, testWorkspaceId]
+    );
+    sessionCookie = `session_id=${sessionId}`;
+
+    const csrfRes = await request(app)
+      .get('/api/csrf-token')
+      .set('Cookie', sessionCookie);
+    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || '';
+    if (connectSidCookie) {
+      sessionCookie = `${sessionCookie}; ${connectSidCookie}`;
+    }
   });
 
   afterAll(async () => {
+    await pool.query('DELETE FROM sessions WHERE user_id = $1', [testUserId]);
+    await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [testUserId]);
+    await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
     await pool.query(
       `DELETE FROM document_associations
        WHERE document_id IN (SELECT id FROM documents WHERE workspace_id = $1)
@@ -147,5 +188,59 @@ describe('Public Feedback API', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('Program not found');
+  });
+
+  describe('GET /api/feedback/:id (protected)', () => {
+    it('returns 401 without auth', async () => {
+      const res = await request(app).get('/api/feedback/00000000-0000-0000-0000-000000000001');
+
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 404 for non-existent id', async () => {
+      const res = await request(app)
+        .get('/api/feedback/00000000-0000-0000-0000-000000000000')
+        .set('Cookie', sessionCookie);
+
+      const error = expectOpenApiResponse({
+        method: 'get',
+        path: '/feedback/{id}',
+        status: 404,
+        response: res,
+        openApiSchemaName: 'FeedbackLegacyError',
+        schema: FeedbackLegacyErrorSchema,
+      });
+      expect(error.error).toBe('Feedback not found');
+    });
+
+    it('returns 200 with valid feedback when authenticated', async () => {
+      const createRes = await request(app)
+        .post('/api/feedback')
+        .send({
+          title: 'Protected read signal',
+          program_id: enabledProgramId,
+          content: { type: 'doc', content: [{ type: 'paragraph' }] },
+        });
+
+      expect(createRes.status).toBe(201);
+      const feedbackId = createRes.body.id;
+
+      const res = await request(app)
+        .get(`/api/feedback/${feedbackId}`)
+        .set('Cookie', sessionCookie);
+
+      const feedback = expectOpenApiResponse({
+        method: 'get',
+        path: '/feedback/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'FeedbackItem',
+        schema: FeedbackItemSchema,
+      });
+      expect(feedback.id).toBe(feedbackId);
+      expect(feedback.title).toBe('Protected read signal');
+      expect(feedback.program_id).toBe(enabledProgramId);
+      expect(feedback.source).toBe('external');
+    });
   });
 });

@@ -11,8 +11,6 @@ import { yjsToJson, jsonToYjs } from '../utils/yjsConverter.js';
 import { resolveInitialContent } from '../db/document-content-codec.js';
 import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
 import {
-  SESSION_TIMEOUT_MS,
-  ABSOLUTE_SESSION_TIMEOUT_MS,
   COLLAB_MESSAGE_SYNC as messageSync,
   COLLAB_MESSAGE_AWARENESS as messageAwareness,
   COLLAB_MESSAGE_CLEAR_CACHE as messageClearCache,
@@ -23,8 +21,10 @@ import {
   parseDocumentIdFromRoomName,
   parseCollaborationRoomName,
   roomPrefixMatchesDocumentType,
+  type ConversionDocumentType,
 } from '@ship/shared';
 import { getDocumentTypeById } from '../db/documents-repository.js';
+import { validateAuthenticatedSession } from '../services/session-auth.js';
 import cookie from 'cookie';
 
 // Rate limiting configuration
@@ -337,40 +337,15 @@ async function validateWebSocketSession(request: IncomingMessage): Promise<{ use
   if (!sessionId) return null;
 
   try {
-    const result = await pool.query(
-      `SELECT user_id, workspace_id, last_activity, created_at
-       FROM sessions WHERE id = $1`,
-      [sessionId]
-    );
-
-    const session = result.rows[0];
-    if (!session) return null;
-
-    const now = new Date();
-    const lastActivity = new Date(session.last_activity);
-    const createdAt = new Date(session.created_at);
-    const inactivityMs = now.getTime() - lastActivity.getTime();
-    const sessionAgeMs = now.getTime() - createdAt.getTime();
-
-    // Check absolute timeout (12 hours)
-    if (sessionAgeMs > ABSOLUTE_SESSION_TIMEOUT_MS) {
-      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
+    const validation = await validateAuthenticatedSession(sessionId, { updateActivity: true });
+    if (!validation.ok || !validation.session.workspaceId) {
       return null;
     }
 
-    // Check inactivity timeout (15 minutes)
-    if (inactivityMs > SESSION_TIMEOUT_MS) {
-      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId]);
-      return null;
-    }
-
-    // Update last activity
-    await pool.query(
-      'UPDATE sessions SET last_activity = $1 WHERE id = $2',
-      [now, sessionId]
-    );
-
-    return { userId: session.user_id, workspaceId: session.workspace_id };
+    return {
+      userId: validation.session.userId,
+      workspaceId: validation.session.workspaceId,
+    };
   } catch {
     return null;
   }
@@ -478,8 +453,8 @@ export function invalidateDocumentCache(docId: string): void {
 export function handleDocumentConversion(
   oldDocId: string,
   newDocId: string,
-  oldDocType: 'issue' | 'project',
-  newDocType: 'issue' | 'project'
+  oldDocType: ConversionDocumentType,
+  newDocType: ConversionDocumentType
 ): void {
   // Find all connections to this document (across all doc types)
   const connectionsToNotify: Array<{ ws: WebSocket; conn: { docName: string; awarenessClientId: number; userId: string; workspaceId: string } }> = [];

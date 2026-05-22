@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/isolated-env';
-import { login, createWikiDoc } from './fixtures/app';
+import { login } from './fixtures/app';
 
 // Helper to get editor text content without collaboration cursor labels
 async function getEditorTextWithoutCursor(page: import('@playwright/test').Page): Promise<string> {

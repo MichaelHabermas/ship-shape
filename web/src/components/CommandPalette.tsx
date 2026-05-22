@@ -6,6 +6,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 
 import { apiGetJson, apiPostJson } from '@/lib/api';
 import type { Document, DocumentSearchResponse } from '@/api/schemas';
+import type { SelectableDocumentType } from '@ship/shared';
 import type { Program } from '@/hooks/useProgramsQuery';
 
 interface SearchableDocument {
@@ -15,7 +16,6 @@ interface SearchableDocument {
   ticket_number?: number | null;
 }
 
-type ConvertibleDocumentType = 'wiki' | 'issue' | 'project' | 'sprint';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -26,7 +26,7 @@ interface CommandPaletteProps {
     type: string;
   };
   /** Handler for document type conversion */
-  onConvertDocument?: (newType: ConvertibleDocumentType) => void;
+  onConvertDocument?: (newType: SelectableDocumentType) => void;
 }
 
 export function CommandPalette({ open, onOpenChange, currentDocument, onConvertDocument }: CommandPaletteProps) {

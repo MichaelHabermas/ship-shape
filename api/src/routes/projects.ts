@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
-import type { ProjectProperties, WeekProperties } from '@ship/shared';
+import type { ProjectProperties, WeekProperties, InferredProjectStatus } from '@ship/shared';
 import { DEFAULT_PROJECT_PROPERTIES, computeICEScore } from '@ship/shared';
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, syncProgramAssociation } from '../utils/document-crud.js';
@@ -19,9 +19,6 @@ import { broadcastToUser } from '../collaboration/index.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 const router = Router();
-
-// Inferred project status type
-type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
 
 type ProjectRouteProperties = Partial<ProjectProperties> & {
   is_complete?: boolean | null;

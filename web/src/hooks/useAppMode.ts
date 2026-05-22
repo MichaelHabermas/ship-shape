@@ -10,15 +10,14 @@ export type Mode =
   | 'sprints'
   | 'team'
   | 'settings'
-  | 'dashboard'
-  | 'project-context';
+  | 'dashboard';
 
 function getActiveMode(
   pathname: string,
   currentDocumentType: string | null | undefined,
   currentDocumentProjectId: string | null | undefined
 ): Mode {
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/my-week')) return 'dashboard';
+  if (pathname.startsWith('/my-week')) return 'dashboard';
   if (pathname.startsWith('/documents/')) {
     if (currentDocumentType === 'wiki') return 'docs';
     if (currentDocumentType === 'issue') return 'issues';

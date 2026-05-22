@@ -28,6 +28,32 @@ describe('defineRoute', () => {
     expect(operation?.responses?.['200']).toBeDefined();
   });
 
+  it('returns the standard validation envelope for invalid params', async () => {
+    const app = express();
+    app.get('/test/:id', defineRoute({
+      method: 'get',
+      path: '/define-route-test/param-validation',
+      tags: ['Tests'],
+      summary: 'param validation test',
+      request: {
+        params: z.object({ id: z.string().uuid() }),
+      },
+      responses: {
+        200: { schema: z.object({ ok: z.literal(true) }).openapi('ParamValidationOk') },
+      },
+      handler: (_req, res) => {
+        res.json({ ok: true });
+      },
+    }));
+
+    const response = await request(app).get('/test/not-a-uuid');
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    expect(response.body.error.message).toContain('params validation failed');
+  });
+
   it('returns the standard validation envelope by default', async () => {
     const app = express();
     app.use(express.json());

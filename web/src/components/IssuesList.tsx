@@ -6,9 +6,9 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { SelectableList, RowRenderProps, UseSelectionReturn } from '@/components/SelectableList';
 import { BulkActionBar } from '@/components/BulkActionBar';
 import { DocumentListToolbar } from '@/components/DocumentListToolbar';
-import { Issue } from '@/contexts/IssuesContext';
+import { IssueListItem, Issue } from '@/contexts/IssuesContext';
 import { useBulkUpdateIssues, useIssuesQuery, useCreateIssue, useUpdateIssue, issueKeys, getProgramId, getProgramTitle, getProjectId, getProjectTitle, getSprintId, getSprintTitle } from '@/hooks/useIssuesQuery';
-import type { BelongsTo } from '@ship/shared';
+import { ISSUE_STATE_LABELS, ISSUE_PRIORITY_LABELS, type BelongsTo, type IssueState } from '@ship/shared';
 import { projectKeys, useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
@@ -30,7 +30,7 @@ import { useSelectionPersistenceOptional } from '@/contexts/SelectionPersistence
 import { InlineWeekSelector } from '@/components/InlineWeekSelector';
 
 // Re-export Issue type for convenience
-export type { Issue } from '@/contexts/IssuesContext';
+export type { IssueListItem, Issue } from '@/contexts/IssuesContext';
 
 // All available columns with metadata
 export const ALL_COLUMNS: ColumnDefinition[] = [
@@ -52,27 +52,12 @@ export const SORT_OPTIONS = [
   { value: 'title', label: 'Title' },
 ];
 
-export const STATE_LABELS: Record<string, string> = {
-  triage: 'Needs Triage',
-  backlog: 'Backlog',
-  todo: 'Todo',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  done: 'Done',
-  cancelled: 'Cancelled',
-};
+export const STATE_LABELS: Record<string, string> = ISSUE_STATE_LABELS;
 
 const SOURCE_STYLES: Record<string, string> = {
   internal: 'bg-blue-500/20 text-blue-300',
   external: 'bg-purple-500/20 text-purple-300',
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  urgent: 'Urgent',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-  none: 'No Priority',
+  action_items: 'bg-amber-500/20 text-amber-300',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -105,7 +90,7 @@ export const DEFAULT_FILTER_TABS: FilterTab[] = [
 
 export interface IssuesListProps {
   /** Issues to display. Optional when using locked filters (will self-fetch). */
-  issues?: Issue[];
+  issues?: IssueListItem[];
   /** Whether data is loading */
   loading?: boolean;
   /** Callback to update an issue */
@@ -358,7 +343,7 @@ export function IssuesList({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; selection: UseSelectionReturn } | null>(null);
 
   // Conversion state
-  const [convertingIssue, setConvertingIssue] = useState<Issue | null>(null);
+  const [convertingIssue, setConvertingIssue] = useState<IssueListItem | null>(null);
   const [isConverting, setIsConverting] = useState(false);
 
   // Backlog picker state
@@ -435,7 +420,7 @@ export function IssuesList({
 
       switch (type) {
         case 'state':
-          bulkUpdate.mutate({ ids: issueIds, action: 'update', updates: { state: actualValue as string } });
+          bulkUpdate.mutate({ ids: issueIds, action: 'update', updates: { state: actualValue as IssueState } });
           break;
         case 'sprint':
           bulkUpdate.mutate({ ids: issueIds, action: 'update', updates: { sprint_id: actualValue } });
@@ -602,7 +587,7 @@ export function IssuesList({
   }, [shouldSelfFetch, buildBelongsTo, createIssueMutation, onCreateIssue, navigate]);
 
   // Handler for adding an out-of-context issue to the current context (inline '+' button)
-  const handleAddIssueToContext = useCallback(async (issue: Issue) => {
+  const handleAddIssueToContext = useCallback(async (issue: IssueListItem) => {
     const existingBelongsTo = issue.belongs_to || [];
     const newBelongsTo = [...existingBelongsTo];
 
@@ -654,7 +639,7 @@ export function IssuesList({
     onStateFilterChange?.(newFilter);
   }, [onStateFilterChange, stateUrlParam, setSearchParams]);
 
-  const handleUpdateIssue = useCallback(async (id: string, updates: { state: string }) => {
+  const handleUpdateIssue = useCallback(async (id: string, updates: { state: IssueState }) => {
     if (onUpdateIssue) {
       await onUpdateIssue(id, updates);
     }
@@ -793,7 +778,7 @@ export function IssuesList({
       }
     });
 
-    bulkUpdate.mutate({ ids, action: 'update', updates: { state: status } }, {
+    bulkUpdate.mutate({ ids, action: 'update', updates: { state: status as IssueState } }, {
       onSuccess: () => {
         // Set up undo state
         setUndoWithTimeout({
@@ -892,7 +877,7 @@ export function IssuesList({
   }, [selectedIds, issues, projects, bulkUpdate, showToast, clearSelection, lockedProjectId, setUndoWithTimeout, executeUndo]);
 
   // Handle promote to project
-  const handlePromoteToProject = useCallback((issue: Issue) => {
+  const handlePromoteToProject = useCallback((issue: IssueListItem) => {
     setConvertingIssue(issue);
     setContextMenu(null);
   }, []);
@@ -984,7 +969,7 @@ export function IssuesList({
   }, [selectedIds]);
 
   // Context menu handler for SelectableList
-  const handleContextMenu = useCallback((e: React.MouseEvent, _item: Issue, selection: UseSelectionReturn) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, _item: IssueListItem, selection: UseSelectionReturn) => {
     selectionRef.current = selection;
     setContextMenu({ x: e.clientX, y: e.clientY, selection });
   }, []);
@@ -1019,10 +1004,10 @@ export function IssuesList({
     return () => window.removeEventListener('keydown', handler);
   }, [handleCreateIssue, canCreateIssue, executeUndo]);
 
-  // Handler for inline sprint assignment changes
+  // Handler for inline sprint assignment changes (bulk API accepts sprint_id)
   const handleInlineSprintChange = useCallback((issueId: string, sprintId: string | null) => {
-    updateIssueMutation.mutate(
-      { id: issueId, updates: { sprint_id: sprintId } as Partial<Issue> },
+    bulkUpdate.mutate(
+      { ids: [issueId], action: 'update', updates: { sprint_id: sprintId } },
       {
         onSuccess: () => {
           const sprintName = sprintId
@@ -1035,10 +1020,10 @@ export function IssuesList({
         },
       }
     );
-  }, [updateIssueMutation, availableSprints, showToast]);
+  }, [bulkUpdate, availableSprints, showToast]);
 
   // Render function for issue rows
-  const renderIssueRow = useCallback((issue: Issue, { isSelected }: RowRenderProps) => {
+  const renderIssueRow = useCallback((issue: IssueListItem, { isSelected }: RowRenderProps) => {
     const isOutOfContext = allowShowAllIssues && showAllIssues && !inContextIds.has(issue.id);
     return (
       <IssueRowContent
@@ -1337,7 +1322,7 @@ export function IssuesList({
  * IssueRowContent - Renders the content cells for an issue row
  */
 interface IssueRowContentProps {
-  issue: Issue;
+  issue: IssueListItem;
   isSelected: boolean;
   visibleColumns: Set<string>;
   sprints?: { id: string; name: string }[];
@@ -1512,13 +1497,16 @@ function StatusIcon({ state }: { state: string }) {
 export function PriorityBadge({ priority }: { priority: string }) {
   return (
     <span className={cn('text-sm', PRIORITY_COLORS[priority] || PRIORITY_COLORS.none)}>
-      {PRIORITY_LABELS[priority] || priority}
+      {ISSUE_PRIORITY_LABELS[priority as keyof typeof ISSUE_PRIORITY_LABELS] || priority}
     </span>
   );
 }
 
-function SourceBadge({ source }: { source: 'internal' | 'external' }) {
-  const label = source === 'internal' ? 'Internal' : 'External';
+function SourceBadge({ source }: { source: IssueListItem['source'] }) {
+  const label =
+    source === 'internal' ? 'Internal'
+    : source === 'action_items' ? 'Action Items'
+    : 'External';
   return (
     <span
       className={cn(

@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { publicFetchJson } from '@/lib/public-fetch';
-import type { ApiEnvelope, CsrfTokenResponse, SetupStatusData } from '@/api/schemas';
+import type { ApiResponse, CsrfTokenResponse, SetupStatusData } from '@/api/schemas';
 
 export function SetupPage() {
   const [name, setName] = useState('');
@@ -24,7 +24,7 @@ export function SetupPage() {
         const tokenData = await publicFetchJson<CsrfTokenResponse>('/api/csrf-token');
         setCsrfToken(tokenData.token);
 
-        const data = await publicFetchJson<ApiEnvelope<SetupStatusData>>('/api/setup/status');
+        const data = await publicFetchJson<ApiResponse<SetupStatusData>>('/api/setup/status');
 
         if (data.success && data.data?.needsSetup) {
           setNeedsSetup(true);
@@ -58,7 +58,7 @@ export function SetupPage() {
     setIsLoading(true);
 
     try {
-      const data = await publicFetchJson<ApiEnvelope<{ message?: string }>>('/api/setup/initialize', {
+      const data = await publicFetchJson<ApiResponse<{ message?: string }>>('/api/setup/initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

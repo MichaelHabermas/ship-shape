@@ -2,14 +2,27 @@
 
 This directory contains all infrastructure as code for deploying Ship to AWS.
 
+## Which Directory Does Deploy Use?
+
+`scripts/deploy.sh` picks the Terraform working directory by environment:
+
+| Environment | Terraform directory | EB application |
+|-------------|---------------------|----------------|
+| **prod** | **`terraform/` (root)** | `ship-api` |
+| dev | `terraform/environments/dev/` | `ship-api-dev` |
+| shadow | `terraform/environments/shadow/` | `ship-api-shadow` |
+
+**Production uses the root flat `*.tf` layout**, not `terraform/environments/prod/`. The modular `environments/prod/` tree is an alternate layout (dedicated VPC via shared modules) kept for reference or a future migration—it is **not** wired into `scripts/deploy.sh` today. For prod infrastructure changes that affect deploy, work in root `terraform/`.
+
 ## Directory Structure
 
 ```
 terraform/
 ├── *.tf                    # Root config (legacy flat structure, prod-only)
 ├── environments/
-│   ├── dev/                # Dev environment - uses shared VPC
-│   └── prod/               # Prod environment - creates dedicated VPC
+│   ├── dev/                # Dev environment - uses shared VPC (used by deploy.sh)
+│   ├── shadow/             # Shadow/UAT - modular layout (used by deploy.sh)
+│   └── prod/               # Alternate modular prod layout (NOT used by deploy.sh)
 ├── modules/                # Reusable Terraform modules
 │   ├── vpc/
 │   ├── aurora/
@@ -91,14 +104,14 @@ Prod creates its own VPC because:
 
 ## Quick Start
 
-### Using Environment Directories (Recommended)
+### Using Environment Directories (dev / shadow)
 
 ```bash
 # 1. Verify AWS credentials
 aws sts get-caller-identity
 
 # 2. Navigate to environment
-cd terraform/environments/dev   # or prod
+cd terraform/environments/dev   # or shadow
 
 # 3. Sync config from SSM (creates terraform.tfvars)
 ../../scripts/sync-terraform-config.sh dev
@@ -111,7 +124,11 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-### Using Root Directory (Legacy - Prod Only)
+### Using Root Directory (Production — used by deploy.sh)
+
+```bash
+# Production application deploy reads outputs from here (see scripts/deploy.sh).
+# terraform/environments/prod/ is an unused alternate; do not assume deploy.sh uses it.
 
 ```bash
 # 1. Verify AWS credentials (must have access to the team's AWS account)
@@ -131,7 +148,7 @@ terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-> **Note:** The root-level `*.tf` files are the original flat structure. New environments should use the `environments/` directories which leverage shared modules.
+> **Note:** Root `terraform/` is the **active production** layout. New non-prod environments (dev, shadow) use `environments/` with shared modules. `environments/prod/` mirrors a modular prod pattern but is not connected to deploy scripts unless you migrate intentionally.
 
 ## Infrastructure Components
 

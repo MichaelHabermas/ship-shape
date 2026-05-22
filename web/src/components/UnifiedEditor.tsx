@@ -6,7 +6,7 @@ import { WeeklyReviewSubNav } from '@/components/review/WeeklyReviewSubNav';
 import { useWeeklyReviewActions } from '@/hooks/useWeeklyReviewActions';
 import type { PanelDocument } from '@/components/sidebars/PropertiesPanel';
 import { DocumentTypeSelector, getMissingRequiredFields } from '@/components/sidebars/DocumentTypeSelector';
-import type { DocumentType as SelectableDocumentType } from '@/components/sidebars/DocumentTypeSelector';
+import type { SelectableDocumentType, ConversionDocumentType } from '@ship/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { PlanQualityBanner, RetroQualityBanner } from '@/components/PlanQualityBanner';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -18,8 +18,6 @@ import type {
   ProjectDocumentView,
   SprintDocumentView,
 } from '@ship/shared';
-
-export type DocumentType = EditorDocumentType | 'person';
 
 export type UnifiedDocument = UnifiedDocumentView;
 
@@ -52,7 +50,7 @@ interface ProjectSidebarData {
 
 interface SprintSidebarData {
   people?: Array<{ id: string; user_id: string; name: string }>;
-  existingSprints?: Array<{ owner?: { id: string; name: string; email: string } | null }>;
+  existingSprints?: Array<{ owner?: { id: string; name: string; email?: string } | null }>;
 }
 
 interface ProgramSidebarData {
@@ -83,13 +81,13 @@ interface UnifiedEditorProps {
   /** Handler for navigating to documents */
   onNavigateToDocument?: (docId: string) => void;
   /** Handler for document conversion events */
-  onDocumentConverted?: (newDocId: string, newDocType: 'issue' | 'project') => void;
+  onDocumentConverted?: (newDocId: string, newDocType: ConversionDocumentType) => void;
   /** Badge to show in header */
   headerBadge?: React.ReactNode;
   /** Whether to show the document type selector */
   showTypeSelector?: boolean;
   /** Handler for document type changes (if different from onUpdate) */
-  onTypeChange?: (newType: DocumentType) => Promise<void>;
+  onTypeChange?: (newType: SelectableDocumentType) => Promise<void>;
   /** Suffix displayed after the title in the header (e.g., author name) */
   titleSuffix?: string;
 }
@@ -170,7 +168,7 @@ export function UnifiedEditor({
       if (onTypeChange) {
         await onTypeChange(newType);
       } else {
-        await onUpdate({ document_type: newType as DocumentType });
+        await onUpdate({ document_type: newType });
       }
     } finally {
       setIsChangingType(false);
@@ -395,7 +393,7 @@ export function UnifiedEditor({
 /**
  * Get default placeholder text based on document type
  */
-function getDefaultPlaceholder(documentType: DocumentType): string {
+function getDefaultPlaceholder(documentType: EditorDocumentType): string {
   switch (documentType) {
     case 'wiki':
       return 'Start writing...';

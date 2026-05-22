@@ -20,6 +20,8 @@ import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/Tooltip';
+import type { IssueListItem } from '@/api/schemas';
+import type { IssueState } from '@ship/shared';
 
 interface ContextMenuEvent {
   x: number;
@@ -27,19 +29,9 @@ interface ContextMenuEvent {
   issueId: string;
 }
 
-interface Issue {
-  id: string;
-  title: string;
-  state: string;
-  priority: string;
-  ticket_number?: number;
-  assignee_name?: string | null;
-  assignee_archived?: boolean;
-}
-
 interface KanbanBoardProps {
-  issues: Issue[];
-  onUpdateIssue: (id: string, updates: { state: string }) => Promise<void>;
+  issues: IssueListItem[];
+  onUpdateIssue: (id: string, updates: { state: IssueState }) => Promise<void>;
   onIssueClick: (id: string) => void;
   // Selection props
   selectedIds?: Set<string>;
@@ -124,7 +116,7 @@ export function KanbanBoard({
     }
 
     if (targetColumn && targetColumn !== activeIssue.state) {
-      onUpdateIssue(activeIssue.id, { state: targetColumn });
+      onUpdateIssue(activeIssue.id, { state: targetColumn as IssueState });
     }
   };
 
@@ -171,7 +163,7 @@ function KanbanColumn({
   onContextMenu,
 }: {
   column: { id: string; title: string; color: string };
-  issues: Issue[];
+  issues: IssueListItem[];
   onIssueClick: (id: string) => void;
   selectedIds: Set<string>;
   onCheckboxClick?: (id: string, e: React.MouseEvent) => void;
@@ -235,7 +227,7 @@ function SortableIssueCard({
   onCheckboxClick,
   onContextMenu,
 }: {
-  issue: Issue;
+  issue: IssueListItem;
   onClick: () => void;
   isSelected?: boolean;
   onCheckboxClick?: (e: React.MouseEvent) => void;
@@ -300,7 +292,7 @@ function IssueCard({
   onCheckboxClick,
   onMenuClick,
 }: {
-  issue: Issue;
+  issue: IssueListItem;
   isDragging?: boolean;
   isSelected?: boolean;
   onCheckboxClick?: (e: React.MouseEvent) => void;

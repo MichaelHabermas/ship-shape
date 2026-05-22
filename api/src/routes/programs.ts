@@ -6,6 +6,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { formatWireDate } from '../utils/format-wire-date.js';
 
 const router = Router();
 
@@ -642,6 +643,11 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
     }
 
     const sprintStartDate = requireFirstRow(programCheck.rows).sprint_start_date;
+    const wireStartDate = formatWireDate(sprintStartDate);
+    if (!wireStartDate) {
+      res.status(500).json({ error: 'Workspace sprint start date is not configured' });
+      return;
+    }
 
     // Also filter sprints by visibility - join via document_associations
     // Include subqueries for weekly_plan and weekly_retro existence
@@ -700,7 +706,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
     });
 
     res.json({
-      workspace_sprint_start_date: sprintStartDate,
+      workspace_sprint_start_date: wireStartDate,
       weeks: sprints,
     });
   } catch (err) {

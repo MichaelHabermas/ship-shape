@@ -1,10 +1,40 @@
 // Document types
 
-// Document visibility for private/workspace documents
-export type DocumentVisibility = 'private' | 'workspace';
+import type {
+  AccountabilityType,
+  BelongsToType,
+  DocumentType,
+  DocumentVisibility,
+  IssuePriority,
+  IssueSource,
+  IssueState,
+} from '../enums/document-enums.js';
 
-// Association relationship types for belongs_to array
-export type BelongsToType = 'program' | 'project' | 'sprint' | 'parent';
+export {
+  DOCUMENT_TYPE_VALUES,
+  DOCUMENT_VISIBILITY_VALUES,
+  BELONGS_TO_TYPE_VALUES,
+  ISSUE_STATE_VALUES,
+  ISSUE_PRIORITY_VALUES,
+  ISSUE_SOURCE_VALUES,
+  ACCOUNTABILITY_TYPE_VALUES,
+  INFERRED_PROJECT_STATUS_VALUES,
+  ISSUE_STATE_OPTIONS,
+  ISSUE_STATE_LABELS,
+  ISSUE_PRIORITY_OPTIONS,
+  ISSUE_PRIORITY_OPTIONS_FULL,
+  ISSUE_PRIORITY_LABELS,
+  type DocumentType,
+  type DocumentVisibility,
+  type BelongsToType,
+  type IssueState,
+  type IssuePriority,
+  type IssueSource,
+  type AccountabilityType,
+  type InferredProjectStatus,
+  type SelectableDocumentType,
+  type ConversionDocumentType,
+} from '../enums/document-enums.js';
 
 // BelongsTo association entry - unified format for all document relationships
 export interface BelongsTo {
@@ -29,41 +59,6 @@ export interface CascadeWarning {
   incomplete_children: IncompleteChild[];
   confirm_action: string;
 }
-
-// Document type enum matching PostgreSQL enum
-export type DocumentType =
-  | 'wiki'
-  | 'issue'
-  | 'program'
-  | 'project'
-  | 'sprint'
-  | 'person'
-  | 'weekly_plan'
-  | 'weekly_retro'
-  | 'standup'
-  | 'weekly_review';
-
-// Issue states
-export type IssueState = 'triage' | 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
-
-// Issue priorities
-export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent' | 'none';
-
-// Issue source - provenance, never changes after creation
-export type IssueSource = 'internal' | 'external' | 'action_items';
-
-// Accountability types for auto-generated action_items issues
-export type AccountabilityType =
-  | 'standup'
-  | 'weekly_plan'
-  | 'weekly_retro'
-  | 'weekly_review'
-  | 'week_start'
-  | 'week_issues'
-  | 'project_plan'
-  | 'project_retro'
-  | 'changes_requested_plan'
-  | 'changes_requested_retro';
 
 // Sprint status - computed from dates, not stored
 export type WeekStatus = 'active' | 'upcoming' | 'completed';
@@ -94,8 +89,8 @@ export interface ProgramProperties {
   // RACI accountability fields
   owner_id?: string | null;        // R - Responsible (does the work)
   accountable_id?: string | null;  // A - Accountable (approver for hypotheses/reviews)
-  consulted_ids?: string[];        // C - Consulted (provide input, stubbed for now)
-  informed_ids?: string[];         // I - Informed (kept in loop, stubbed for now)
+  consulted_ids?: string[];        // C - Consulted (passive metadata for display)
+  informed_ids?: string[];         // I - Informed (passive metadata for display)
   [key: string]: unknown;
 }
 
@@ -110,8 +105,8 @@ export interface ProjectProperties {
   // RACI accountability fields
   owner_id?: string | null;        // R - Responsible (does the work)
   accountable_id?: string | null;  // A - Accountable (approver for hypotheses/reviews)
-  consulted_ids?: string[];        // C - Consulted (provide input, stubbed for now)
-  informed_ids?: string[];         // I - Informed (kept in loop, stubbed for now)
+  consulted_ids?: string[];        // C - Consulted (passive metadata for display)
+  informed_ids?: string[];         // I - Informed (passive metadata for display)
   // Visual identification
   color: string;
   emoji?: string | null;

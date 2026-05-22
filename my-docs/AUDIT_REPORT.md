@@ -171,6 +171,8 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 
 ## Category 4: Database Query Efficiency
 
+Severity rubric: **Critical** means a query pattern can corrupt, expose, or block core user data at normal scale; **High** means it materially delays a primary workflow or creates sustained database pressure; **Medium** means it is inefficient, fragile, or likely to become a bottleneck as data grows; **Low** means it is a localized cleanup or measurement limitation with little current user impact.
+
 **Methodology (Describe how you measured it (tools, commands, methodology))**
 
 - PostgreSQL `pg_stat_statements` was unavailable for this local server because it was not loaded via `shared_preload_libraries`, so query counts were measured with a temporary in-process API harness.
@@ -220,7 +222,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 - E2E tests were later run locally through the controlled background/polling runner shape, with Docker/Testcontainers enabled and Playwright Chromium installed.[^5-e2e-run]
 - Flaky test detection: both API and web suites were run 3× each; any test that changed pass/fail status across runs was flagged as flaky.
 - API code coverage was measured by temporarily installing `@vitest/coverage-v8@4.0.17` (matching the project's `vitest@4.0.17`) and running `pnpm --filter @ship/api exec vitest run --coverage` against `ship_test_audit`. The dependency was removed after measurement.
-- Web coverage was checked in `web/vitest.config.ts`; no coverage provider is configured.
+- Web coverage was measured by adding `@vitest/coverage-v8@4.1.7`, configuring the V8 provider in `web/vitest.config.ts`, and running `pnpm --filter @ship/web test:coverage`.
 
 **Baseline**
 
@@ -230,7 +232,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 | Pass / Fail / Flaky               | API unit: 451 / 0 / 0; Web unit: 138 / 13 / 0; E2E full run: 851 / 1 / 5 retry-flake signals, with 17 skipped            |
 | Suite runtime                     | API unit: 10.76s; Web unit: 1.05s                                                                                        |
 | Critical flows with zero coverage | None obvious by file inventory for document CRUD, auth, collaboration, issues, weeks, search, accessibility, or security |
-| Code coverage % (if measured)     | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured                              |
+| Code coverage % (if measured)     | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: 37.1% statements, 26.91% branches, 36.22% functions, 38.32% lines |
 
 **Findings** Identify the specific weaknesses or opportunities you found, and Rank the severity or impact of each finding.
 
@@ -238,7 +240,7 @@ Reduce the initial JavaScript bundle by making expensive features load only when
 2. **High:** The full E2E run has one final failure: `e2e/inline-comments.spec.ts:118` (`canceling a comment removes the highlight`). The canceled comment leaves `.comment-highlight` visible after cancel.
 3. **High:** API code coverage is 40% across the board. Route files for `programs.ts` (5%), `dashboard.ts` (2%), `weekly-plans.ts` (5%), and `comments.ts` (9%) have near-zero coverage despite being production endpoints.
 4. **Medium:** E2E retry logs show five flake signals that passed on retry: bulk selection strict locator ambiguity, feedback consolidation missing external row, `/my-week` stale-data visibility timeouts, project week navigation link timeout, and weekly accountability returning `null` where a person/document id was expected.[^5-e2e-run]
-5. **Medium:** Web has no coverage measurement configured. `web/vitest.config.ts` has no `coverage` block; adding `@vitest/coverage-v8` with a `provider: 'v8'` config would enable it.
+5. **Medium:** Web coverage is now measured, but remains low: 37.1% statements, 26.91% branches, 36.22% functions, and 38.32% lines.
 6. **Medium:** API test safety requires the sidecar benchmark database. `api/src/test/setup.ts` runs `TRUNCATE ... CASCADE` on `documents`, `users`, `workspaces`, `audit_logs`, and other tables. Running `pnpm test` from root will destroy local development data unless `DATABASE_URL` points to `ship_test_audit` or another disposable database.
 7. **Low:** No flaky tests detected across 3 repeated runs of both API and web suites.
 
@@ -249,7 +251,7 @@ Restore trust in the test system before expanding it.
 1. Fix the 13 failing web unit tests and the final E2E inline-comment cancellation failure so the normal test gates are green.
 2. Triage the five E2E retry-flake signals; either harden the selectors/waits or convert unstable assumptions into deterministic fixture setup.
 3. Add a hard safety guard to API test setup so destructive truncation only runs against an explicit disposable test database.
-4. Add web coverage reporting with `@vitest/coverage-v8`, but start with measurement only, not strict thresholds.
+4. Use the new web coverage report to target high-risk blind spots, but do not add strict thresholds until the intentionally covered surface is broader.
 5. Add three meaningful tests for high-risk, low-coverage behavior: workspace isolation, document association correctness, and weekly plan/comment/dashboard route behavior.
 6. Add a lightweight test-quality gate for fake confidence: no `.only`, no TODO-only tests, no conditional skips for missing seed data, and `test.fixme()` for intentionally unfinished tests.
 7. Use coverage to choose blind spots, not as the goal. Success is green tests plus regression coverage for real product risks.

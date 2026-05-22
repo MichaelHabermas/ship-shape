@@ -157,7 +157,7 @@ interface ProjectPanelProps {
 // Props for sprint panel
 interface SprintPanelProps {
   people?: Array<{ id: string; user_id: string; name: string }>;
-  existingSprints?: Array<{ owner?: { id: string; name: string; email: string } | null }>;
+  existingSprints?: Array<{ owner?: { id: string; name: string; email?: string } | null }>;
   /** Whether current user can approve (is accountable or workspace admin) */
   canApprove?: boolean;
   /** Map of user ID to name for displaying approver */

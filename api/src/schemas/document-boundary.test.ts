@@ -4,11 +4,26 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import {
+  ACCOUNTABILITY_TYPE_VALUES,
+  BELONGS_TO_TYPE_VALUES,
+  DOCUMENT_TYPE_VALUES,
+  DOCUMENT_VISIBILITY_VALUES,
+  INFERRED_PROJECT_STATUS_VALUES,
+  ISSUE_PRIORITY_OPTIONS,
+  ISSUE_PRIORITY_OPTIONS_FULL,
+  ISSUE_PRIORITY_VALUES,
+  ISSUE_SOURCE_VALUES,
+  ISSUE_STATE_OPTIONS,
+  ISSUE_STATE_VALUES,
+} from '@ship/shared';
+import {
   accountabilityTypeValues,
   belongsToTypeValues,
   createIssueRequestSchema,
   documentTypeValues,
   documentVisibilityValues,
+  inferredProjectStatusSchema,
+  inferredProjectStatusValues,
   issuePriorityValues,
   issuePropertiesSchema,
   issueSourceValues,
@@ -41,14 +56,6 @@ const sortValues = (values: readonly string[]) => [...values].sort();
 const parseQuotedValues = (source: string) =>
   Array.from(source.matchAll(/'([^']+)'/g), match => match[1]!);
 
-const parseSharedUnion = (typeName: string) => {
-  const match = sharedDocumentTypes.match(new RegExp(`export type ${typeName} =([\\s\\S]*?);`));
-
-  expect(match, `shared type ${typeName} should exist`).not.toBeNull();
-
-  return parseQuotedValues(match![1]!);
-};
-
 const parseDbDocumentTypes = () => {
   const match = dbSchema.match(/CREATE TYPE document_type AS ENUM \(([^)]+)\)/);
 
@@ -69,7 +76,7 @@ describe('document boundary contracts', () => {
   it('keeps document type values aligned across shared, DB, runtime, and OpenAPI', () => {
     const runtime = sortValues(documentTypeValues);
 
-    expect(sortValues(parseSharedUnion('DocumentType'))).toEqual(runtime);
+    expect(sortValues(DOCUMENT_TYPE_VALUES)).toEqual(runtime);
     expect(sortValues(parseDbDocumentTypes())).toEqual(runtime);
     expect(sortValues(DocumentTypeSchema.options)).toEqual(runtime);
   });
@@ -78,40 +85,46 @@ describe('document boundary contracts', () => {
     const contracts = [
       {
         name: 'DocumentVisibility',
-        shared: parseSharedUnion('DocumentVisibility'),
+        shared: DOCUMENT_VISIBILITY_VALUES,
         db: parseDbVisibilityValues(),
         runtime: documentVisibilityValues,
         openapi: DocumentVisibilitySchema.options,
       },
       {
         name: 'BelongsToType',
-        shared: parseSharedUnion('BelongsToType'),
+        shared: BELONGS_TO_TYPE_VALUES,
         runtime: belongsToTypeValues,
         openapi: BelongsToTypeSchema.options,
       },
       {
         name: 'IssueState',
-        shared: parseSharedUnion('IssueState'),
+        shared: ISSUE_STATE_VALUES,
         runtime: issueStateValues,
         openapi: IssueStateSchema.options,
       },
       {
         name: 'IssuePriority',
-        shared: parseSharedUnion('IssuePriority'),
+        shared: ISSUE_PRIORITY_VALUES,
         runtime: issuePriorityValues,
         openapi: IssuePrioritySchema.options,
       },
       {
         name: 'IssueSource',
-        shared: parseSharedUnion('IssueSource'),
+        shared: ISSUE_SOURCE_VALUES,
         runtime: issueSourceValues,
         openapi: IssueSourceSchema.options,
       },
       {
         name: 'AccountabilityType',
-        shared: parseSharedUnion('AccountabilityType'),
+        shared: ACCOUNTABILITY_TYPE_VALUES,
         runtime: accountabilityTypeValues,
         openapi: AccountabilityTypeSchema.options,
+      },
+      {
+        name: 'InferredProjectStatus',
+        shared: INFERRED_PROJECT_STATUS_VALUES,
+        runtime: inferredProjectStatusValues,
+        openapi: inferredProjectStatusSchema.options,
       },
     ];
 
@@ -124,6 +137,26 @@ describe('document boundary contracts', () => {
       if ('db' in contract) {
         expect(sortValues(contract.db), `${contract.name} DB values`).toEqual(runtime);
       }
+    }
+  });
+
+  it('keeps ISSUE_STATE_OPTIONS exhaustive and aligned with ISSUE_STATE_VALUES', () => {
+    const fromOptions = ISSUE_STATE_OPTIONS.map((option) => option.value);
+
+    expect(new Set(fromOptions).size).toBe(fromOptions.length);
+    expect(sortValues(fromOptions)).toEqual(sortValues(ISSUE_STATE_VALUES));
+  });
+
+  it('keeps ISSUE_PRIORITY UI options within ISSUE_PRIORITY_VALUES', () => {
+    const contextMenuValues = ISSUE_PRIORITY_OPTIONS.map((option) => option.value);
+    const sidebarValues = ISSUE_PRIORITY_OPTIONS_FULL.map((option) => option.value);
+
+    expect(new Set(contextMenuValues).size).toBe(contextMenuValues.length);
+    expect(new Set(sidebarValues).size).toBe(sidebarValues.length);
+    expect(sortValues(sidebarValues)).toEqual(sortValues(ISSUE_PRIORITY_VALUES));
+
+    for (const value of contextMenuValues) {
+      expect(ISSUE_PRIORITY_VALUES).toContain(value);
     }
   });
 

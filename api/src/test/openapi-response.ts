@@ -18,6 +18,8 @@ type ExpectedOpenApiResponse<TData> = {
   response: JsonResponse;
   openApiSchemaName: string;
   schema: z.ZodType<TData>;
+  /** When the OpenAPI response is an array of $ref items instead of a top-level $ref */
+  arrayItemSchemaName?: string;
 };
 
 function getRecordValue(value: unknown, key: string): unknown {
@@ -31,6 +33,7 @@ export function expectOpenApiResponse<TData>({
   response,
   openApiSchemaName,
   schema,
+  arrayItemSchemaName,
 }: ExpectedOpenApiResponse<TData>): TData {
   expect(response.status).toBe(status);
 
@@ -52,10 +55,18 @@ export function expectOpenApiResponse<TData>({
     responseSchema,
     `${method.toUpperCase()} ${path} ${status} must declare an application/json schema`
   ).toBeDefined();
-  expect(
-    responseSchema,
-    `${method.toUpperCase()} ${path} ${status} must use OpenAPI schema ${openApiSchemaName}`
-  ).toEqual({ $ref: `#/components/schemas/${openApiSchemaName}` });
+
+  if (arrayItemSchemaName) {
+    expect(responseSchema).toEqual({
+      type: 'array',
+      items: { $ref: `#/components/schemas/${arrayItemSchemaName}` },
+    });
+  } else {
+    expect(
+      responseSchema,
+      `${method.toUpperCase()} ${path} ${status} must use OpenAPI schema ${openApiSchemaName}`
+    ).toEqual({ $ref: `#/components/schemas/${openApiSchemaName}` });
+  }
 
   expect(response.headers['content-type']).toMatch(/application\/json/);
 

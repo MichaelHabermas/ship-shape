@@ -1,4 +1,5 @@
 // Shared types and utilities
+export * from './enums/document-enums.js';
 export * from './sprint-time.js';
 export * from './types/index.js';
 export * from './constants.js';

@@ -25,7 +25,7 @@ vi.mock('y-indexeddb', () => ({
 type StatusHandler = (event: { status: string }) => void;
 type CloseHandler = (event: CloseEvent | null) => void;
 
-let statusHandler: StatusHandler | null = null;
+let _statusHandler: StatusHandler | null = null;
 let closeHandler: CloseHandler | null = null;
 let mockWs: { addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn> } | null =
   null;
@@ -54,7 +54,7 @@ vi.mock('y-websocket', () => ({
       this.ws = mockWs;
     }
     on(event: string, handler: StatusHandler | CloseHandler) {
-      if (event === 'status') statusHandler = handler as StatusHandler;
+      if (event === 'status') _statusHandler = handler as StatusHandler;
       if (event === 'connection-close') closeHandler = handler as CloseHandler;
     }
   },
@@ -67,7 +67,7 @@ const DOC_ID = '11111111-1111-4111-8111-111111111111';
 describe('useCollabSession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    statusHandler = null;
+    _statusHandler = null;
     closeHandler = null;
     mockWs = null;
   });

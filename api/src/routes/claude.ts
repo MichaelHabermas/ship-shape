@@ -15,6 +15,13 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
+import {
+  getActor,
+  getDocumentAccessContext,
+  requireReadableDocument,
+  visibilityPredicate,
+  type DocumentActor,
+} from '../services/document-access.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
 const router = Router();
@@ -70,6 +77,7 @@ type ClaudeProjectContextRow = {
   project_id: string;
   project_name: string;
   project_plan: string | null;
+  project_content: unknown;
   ice_impact: string | null;
   ice_confidence: string | null;
   ice_ease: string | null;
@@ -80,6 +88,10 @@ type ClaudeProjectContextRow = {
   program_name: string | null;
   program_description: string | null;
   program_goals: string | null;
+  plan_validated: string | null;
+  monetary_impact_actual: string | null;
+  success_criteria: string | null;
+  key_learnings: string | null;
 };
 
 type ClaudeRetroSprintRow = {
@@ -101,15 +113,6 @@ type ClaudeRetroStandupRow = {
   content: unknown;
   author_name: string | null;
   created_at: Date;
-};
-
-type ClaudeRetroRow = {
-  id: string;
-  content: unknown;
-  plan_validated: string | null;
-  monetary_impact_actual: string | null;
-  success_criteria: string | null;
-  key_learnings: string | null;
 };
 
 function extractClaudeProgramFromRow(row: ClaudeSprintContextRow | ClaudeProjectContextRow) {
@@ -199,9 +202,10 @@ interface RetroIssueStats {
 router.get('/context', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { context_type, sprint_id, project_id } = req.query as unknown as ClaudeContextRequest;
-    const workspaceId = req.workspaceId;
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
-    if (!workspaceId) {
+    if (!actor.workspaceId) {
       res.status(401).json({ error: 'No workspace selected' });
       return;
     }
@@ -213,34 +217,45 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
 
     let context: Record<string, unknown> = {};
 
-    switch (context_type) {
-      case 'standup':
-        if (!sprint_id) {
-          sendLegacyError(res, 400, 'sprint_id is required for standup context');
-          return;
-        }
-        context = await getStandupContext(sprint_id, workspaceId);
-        break;
+    try {
+      switch (context_type) {
+        case 'standup':
+          if (!sprint_id) {
+            sendLegacyError(res, 400, 'sprint_id is required for standup context');
+            return;
+          }
+          await requireReadableDocument(pool, actor, sprint_id, 'sprint');
+          context = await getStandupContext(sprint_id, actor, isAdmin);
+          break;
 
-      case 'review':
-        if (!sprint_id) {
-          sendLegacyError(res, 400, 'sprint_id is required for review context');
-          return;
-        }
-        context = await getReviewContext(sprint_id, workspaceId);
-        break;
+        case 'review':
+          if (!sprint_id) {
+            sendLegacyError(res, 400, 'sprint_id is required for review context');
+            return;
+          }
+          await requireReadableDocument(pool, actor, sprint_id, 'sprint');
+          context = await getReviewContext(sprint_id, actor, isAdmin);
+          break;
 
-      case 'retro':
-        if (!project_id) {
-          sendLegacyError(res, 400, 'project_id is required for retro context');
-          return;
-        }
-        context = await getRetroContext(project_id, workspaceId);
-        break;
+        case 'retro':
+          if (!project_id) {
+            sendLegacyError(res, 400, 'project_id is required for retro context');
+            return;
+          }
+          await requireReadableDocument(pool, actor, project_id, 'project');
+          context = await getRetroContext(project_id, actor, isAdmin);
+          break;
 
-      default:
-        sendLegacyError(res, 400, 'Invalid context_type');
+        default:
+          sendLegacyError(res, 400, 'Invalid context_type');
+          return;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === 'DOCUMENT_NOT_READABLE') {
+        res.status(404).json({ error: 'Not found' });
         return;
+      }
+      throw error;
     }
 
     res.json(context);
@@ -252,7 +267,9 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
 /**
  * Get comprehensive context for standup entry
  */
-async function getStandupContext(sprintId: string, workspaceId: string) {
+async function getStandupContext(sprintId: string, actor: DocumentActor, isAdmin: boolean) {
+  const { workspaceId, userId } = actor;
+
   // Get sprint with program and project info via junction table
   const sprintResult = await pool.query<ClaudeSprintContextRow>(`
     SELECT
@@ -281,7 +298,8 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
     WHERE s.id = $1
       AND s.document_type = 'sprint'
       AND s.workspace_id = $2
-  `, [sprintId, workspaceId]);
+      AND ${visibilityPredicate('s', '$3', '$4')}
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   if (sprintResult.rows.length === 0) {
     throw new Error('Week not found');
@@ -307,9 +325,10 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
     LEFT JOIN users u ON (d.properties->>'author_id')::uuid = u.id
     WHERE d.document_type = 'standup'
       AND d.workspace_id = $2
+      AND ${visibilityPredicate('d', '$3', '$4')}
     ORDER BY d.created_at DESC
     LIMIT 5
-  `, [sprintId, workspaceId]);
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   // Get issues assigned to this sprint via junction table
   const issuesResult = await pool.query<ClaudeIssueRow>(`
@@ -323,6 +342,7 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
     JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
     WHERE d.document_type = 'issue'
       AND d.workspace_id = $2
+      AND ${visibilityPredicate('d', '$3', '$4')}
     ORDER BY
       CASE (d.properties->>'priority')
         WHEN 'high' THEN 1
@@ -330,7 +350,7 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
         WHEN 'low' THEN 3
         ELSE 4
       END
-  `, [sprintId, workspaceId]);
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   // Calculate issue stats
   const issueStats = {
@@ -357,7 +377,9 @@ async function getStandupContext(sprintId: string, workspaceId: string) {
 /**
  * Get comprehensive context for sprint review
  */
-async function getReviewContext(sprintId: string, workspaceId: string) {
+async function getReviewContext(sprintId: string, actor: DocumentActor, isAdmin: boolean) {
+  const { workspaceId, userId } = actor;
+
   // Get sprint with program and project info via junction table
   const sprintResult = await pool.query<ClaudeSprintContextRow>(`
     SELECT
@@ -386,7 +408,8 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
     WHERE s.id = $1
       AND s.document_type = 'sprint'
       AND s.workspace_id = $2
-  `, [sprintId, workspaceId]);
+      AND ${visibilityPredicate('s', '$3', '$4')}
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   if (sprintResult.rows.length === 0) {
     throw new Error('Week not found');
@@ -412,8 +435,9 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
     LEFT JOIN users u ON (d.properties->>'author_id')::uuid = u.id
     WHERE d.document_type = 'standup'
       AND d.workspace_id = $2
+      AND ${visibilityPredicate('d', '$3', '$4')}
     ORDER BY d.created_at DESC
-  `, [sprintId, workspaceId]);
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   // Get issues with scope change tracking via junction table
   const issuesResult = await pool.query<ClaudeIssueRow>(`
@@ -428,7 +452,8 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
     JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
     WHERE d.document_type = 'issue'
       AND d.workspace_id = $2
-  `, [sprintId, workspaceId]);
+      AND ${visibilityPredicate('d', '$3', '$4')}
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   // Calculate detailed issue stats
   const issueStats = {
@@ -451,8 +476,9 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
     JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'sprint'
     WHERE d.document_type = 'weekly_review'
       AND d.workspace_id = $2
+      AND ${visibilityPredicate('d', '$3', '$4')}
     LIMIT 1
-  `, [sprintId, workspaceId]);
+  `, [sprintId, workspaceId, userId, isAdmin]);
 
   const existingReview = reviewResult.rows[0] || null;
 
@@ -475,12 +501,15 @@ async function getReviewContext(sprintId: string, workspaceId: string) {
 /**
  * Get comprehensive context for project retrospective
  */
-async function getRetroContext(projectId: string, workspaceId: string) {
+async function getRetroContext(projectId: string, actor: DocumentActor, isAdmin: boolean) {
+  const { workspaceId, userId } = actor;
+
   // Get project with program info via junction table
   const projectResult = await pool.query<ClaudeProjectContextRow>(`
     SELECT
       proj.id as project_id,
       proj.title as project_name,
+      proj.content as project_content,
       proj.properties->>'plan' as project_plan,
       proj.properties->>'ice_impact' as ice_impact,
       proj.properties->>'ice_confidence' as ice_confidence,
@@ -488,6 +517,10 @@ async function getRetroContext(projectId: string, workspaceId: string) {
       proj.properties->>'monetary_impact' as monetary_impact_expected,
       proj.properties->>'status' as project_status,
       proj.created_at as project_created_at,
+      proj.properties->>'plan_validated' as plan_validated,
+      proj.properties->>'monetary_impact_actual' as monetary_impact_actual,
+      proj.properties->>'success_criteria' as success_criteria,
+      proj.properties->>'key_learnings' as key_learnings,
       da_prog.related_id as program_id,
       p.title as program_name,
       p.properties->>'description' as program_description,
@@ -498,7 +531,8 @@ async function getRetroContext(projectId: string, workspaceId: string) {
     WHERE proj.id = $1
       AND proj.document_type = 'project'
       AND proj.workspace_id = $2
-  `, [projectId, workspaceId]);
+      AND ${visibilityPredicate('proj', '$3', '$4')}
+  `, [projectId, workspaceId, userId, isAdmin]);
 
   if (projectResult.rows.length === 0) {
     throw new Error('Project not found');
@@ -515,15 +549,16 @@ async function getRetroContext(projectId: string, workspaceId: string) {
     SELECT
       d.id,
       d.title,
-      d.sprint_number,
+      d.properties->>'sprint_number' as sprint_number,
       d.properties->>'status' as status,
       d.properties->>'plan' as plan
     FROM documents d
     JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
     WHERE d.document_type = 'sprint'
       AND d.workspace_id = $2
-    ORDER BY d.sprint_number
-  `, [projectId, workspaceId]);
+      AND ${visibilityPredicate('d', '$3', '$4')}
+    ORDER BY (d.properties->>'sprint_number')::int
+  `, [projectId, workspaceId, userId, isAdmin]);
 
   // Get all sprint reviews for this project's sprints via junction table
   const sprintIds = sprintsResult.rows.map(s => s.id);
@@ -540,7 +575,8 @@ async function getRetroContext(projectId: string, workspaceId: string) {
       WHERE da.related_id = ANY($1)
         AND d.document_type = 'weekly_review'
         AND d.workspace_id = $2
-    `, [sprintIds, workspaceId]);
+        AND ${visibilityPredicate('d', '$3', '$4')}
+    `, [sprintIds, workspaceId, userId, isAdmin]);
     reviewsData = reviewsResult.rows;
   }
 
@@ -559,9 +595,10 @@ async function getRetroContext(projectId: string, workspaceId: string) {
       WHERE da.related_id = ANY($1)
         AND d.document_type = 'standup'
         AND d.workspace_id = $2
+        AND ${visibilityPredicate('d', '$3', '$4')}
       ORDER BY d.created_at DESC
       LIMIT 20
-    `, [sprintIds, workspaceId]);
+    `, [sprintIds, workspaceId, userId, isAdmin]);
     standupsData = standupsResult.rows;
   }
 
@@ -576,7 +613,8 @@ async function getRetroContext(projectId: string, workspaceId: string) {
     JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
     WHERE d.document_type = 'issue'
       AND d.workspace_id = $2
-  `, [projectId, workspaceId]);
+      AND ${visibilityPredicate('d', '$3', '$4')}
+  `, [projectId, workspaceId, userId, isAdmin]);
 
   // Calculate project-level stats
   const issueStats = {
@@ -586,23 +624,16 @@ async function getRetroContext(projectId: string, workspaceId: string) {
     cancelled: issuesResult.rows.filter(i => i.status === 'cancelled').length,
   };
 
-  // Get existing retro if any via junction table
-  const retroResult = await pool.query<ClaudeRetroRow>(`
-    SELECT
-      d.id,
-      d.content,
-      d.properties->>'plan_validated' as plan_validated,
-      d.properties->>'monetary_impact_actual' as monetary_impact_actual,
-      d.properties->>'success_criteria' as success_criteria,
-      d.properties->>'key_learnings' as key_learnings
-    FROM documents d
-    JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'project'
-    WHERE d.document_type = 'project_retro'
-      AND d.workspace_id = $2
-    LIMIT 1
-  `, [projectId, workspaceId]);
-
-  const existingRetro = retroResult.rows[0] || null;
+  const existingRetro = project.plan_validated != null
+    ? {
+        id: project.project_id,
+        content: project.project_content,
+        plan_validated: project.plan_validated,
+        monetary_impact_actual: project.monetary_impact_actual,
+        success_criteria: project.success_criteria,
+        key_learnings: project.key_learnings,
+      }
+    : null;
 
   // Calculate sprint outcomes
   const sprintOutcomes = sprintsResult.rows.map(sprint => {

@@ -3,7 +3,7 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
-import { extractText, TEMPLATE_HEADINGS } from '../utils/document-content.js';
+import { TEMPLATE_HEADINGS } from '../utils/document-content.js';
 import { extractPlanItemsFromContent } from '@ship/shared';
 import {
   getActor,

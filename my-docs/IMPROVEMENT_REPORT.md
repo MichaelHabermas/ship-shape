@@ -464,7 +464,7 @@ This is security/trust foundation work. It closes the known first-run race risk,
 | Web unit tests | 138 pass / 13 fail / flaky status not fully assessed                                        | 165 pass; flakiness not fully assessed | 2026-05-21    | Added `BacklinksPanel.test.tsx`; existing `CommentMark.test.ts` remains the inline-comment regression | Existing tests still pass                       |              |
 | E2E tests      | 869 listed / not executed                                                                   | 862 pass / 1 fail / 6 flaky                                  | 2026-05-20    | First full safe-run baseline captured; no app-behavior changes in the E2E runner work                                            | Meaningful tests catch real regressions         |              |
 | Suite runtime  | API unit: 10.76s; Web unit: 1.05s                                                           | API unit: 11.18s; Web unit: 1.24s; E2E: 6.6m                 | 2026-05-20    | Comparable unit runtime; first full safe-run E2E runtime captured                                                                | Document root cause if fixing flaky tests       |              |
-| Code coverage  | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured |                                                              |               |                                                                                                                                  | Risk-mitigating tests, not page-load assertions |              |
+| Code coverage  | API: 40.34% statements, 33.44% branches, 40.9% functions, 40.52% lines; Web: not configured | API unchanged; Web: 37.1% statements, 26.91% branches, 36.22% functions, 38.32% lines | 2026-05-22    | Added web V8 coverage measurement without strict thresholds                                                                       | Risk-mitigating tests, not page-load assertions |              |
 
 ### What Changed
 
@@ -767,3 +767,155 @@ Parallel review found two correctness issues in the Category 1 cast-reduction br
 - Added focused tests for unsupported document-type mapping, query param coercion/clamping, and approval-record JSONB parsing.
 
 Evidence: `pnpm type-check`; `pnpm --filter @ship/web exec vitest run src/lib/document-view-mapper.test.ts` (5/5); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/search.test.ts` (30/30); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/utils/__tests__/query-params.test.ts src/utils/__tests__/approval-workflow.test.ts` (7/7).
+
+---
+
+## Post-GFA Improvement Orchestration (2026-05-22)
+
+Wave 3 per `my-docs/post-gfa-orchestration-plan.md`. **Cat 8 excluded** per user scope. No git commits in this pass.
+
+### Authorization kernel
+
+- **`api/src/services/session-auth.ts`**: shared session validation (timeouts + membership revocation) for HTTP cookies and WebSocket upgrade.
+- **`api/src/services/governance-auth.ts`**: team allocation (admin-only) and week start/carryover authority (supervisor/accountable/admin/sprint owner).
+- **Visibility DRY**: `bootstrap-queries.ts` re-exports canonical filter; bootstrap wiki + search routes use `VISIBILITY_FILTER_SQL`.
+
+### Security fixes (discovery log targets)
+
+| Area | Change |
+|------|--------|
+| WebSocket membership | Upgrade uses `validateAuthenticatedSession` |
+| Claude `/context` | `requireReadableDocument` + visibility on joined rows; retro SQL fixed |
+| Team assign | Admin-only via `requireTeamAllocationAuthority` |
+| Week start/carryover | Governance authority after visibility |
+| Files DELETE | Uploader or admin |
+| Document convert | `invalidateDocumentCache` + `handleDocumentConversion` |
+| Issue `belongs_to` | `requireReferenceableDocument` before sync |
+| Admin debug user delete | Transaction-wrapped |
+| API token + super-admin | `superAdminMiddleware` blocks bearer tokens |
+
+### Maintainability and product
+
+- `useAiQuality`: single document fetch on mount
+- `listIssueChildren` repository slice; bootstrap issues via `listIssuesMetadata`
+- `/converted/list`: in-place conversion model
+- Accountability + RACI docs aligned with inference-only / passive metadata
+
+### Contract tests
+
+- `define-route.test.ts`: param validation 400 envelope
+- `feedback.test.ts`: `GET /api/feedback/:id` (401/404/200)
+- `standups.test.ts`: standalone `POST /api/standups`
+
+### Ops
+
+- `scripts/deploy.sh`: `--bootstrap-infra` / `DEPLOY_BOOTSTRAP_INFRA=1` required for terraform apply
+- `terraform/README.md`: prod uses root `terraform/`
+- `SECURITY.md`: Husky pre-commit reality + attestation stakeholder note
+- Inline comment cancel: Escape + mark removal fix
+
+### Verification
+
+- `pnpm type-check`: pass
+- API vitest (`ship_test_audit`): **535/535**
+- Web vitest: **174/174**
+- E2E authz lane: blocked by sandbox `get-port` / `uv_interface_addresses` in isolated fixture (`test-results/post-gfa-authz/`)
+
+### Deferred
+
+- defineRoute pilot on `documents.ts` / `issues.ts` / `auth.ts`
+- Full E2E baseline green (Cat 5 warning unchanged)
+- Cat 8 probe tool (separate track)
+
+### Tier 1 shared type consolidation + verification (2026-05-22)
+
+Parallel sub-agent audit of foundational type moves (regression grep, contract alignment, SOLID/DRY, GFA spec compliance, build gates). **No submission-ledger row** — internal refactor supporting Cat 1 drift prevention, not standalone AST counter credit.
+
+| Check | Result |
+|-------|--------|
+| `pnpm build:shared` | Pass |
+| `pnpm type-check` | Pass |
+| `document-boundary.test.ts` | 4/4 |
+| `ApiEnvelope` removed | Pass (0 hits) |
+| API `BelongsToEntry` domain duplicate | Pass (OpenAPI wire name only) |
+| Shadow conversion/selectable unions | Pass after follow-up fixes |
+| `IssuesList.STATE_LABELS` DRY | Pass — derives from `ISSUE_STATE_LABELS` |
+
+Follow-ups deferred to Tier 2: `ISSUE_PRIORITY_OPTIONS`, OpenAPI `BelongsToEntry` rename, web hooks → generated OpenAPI DTOs, `InferredProjectStatus` in boundary tests. See D051 in `DECISION_LOG.md`.
+
+### Tier 2 shared type consolidation + verification (2026-05-22)
+
+Parallel sub-agent audit of enum source migration, OpenAPI wire fixes, and web hook → `schemas.ts` aliases. **No submission-ledger row** — foundational drift prevention, not standalone Cat 1 credit.
+
+| Check | Result |
+|-------|--------|
+| `pnpm build:shared` | Pass |
+| `pnpm type-check` | Pass |
+| `document-boundary.test.ts` | 6/6 |
+| `openapi:check:strict` | 193/193 |
+| Enum values single source (`shared/src/enums/document-enums.ts`) | Pass |
+| Hook wire types via OpenAPI aliases | Pass (lists: `IssueListItem`, detail: `Issue`) |
+| ESLint `no-unused-vars` | 0 |
+
+**Verification fixes (same day):** inline sprint assignment → bulk API; bootstrap issue cache → `IssueListItem[]`; `ISSUE_PRIORITY_LABELS` DRY; `action_items` source badge.
+
+**Gaps found in audit (closed same day in hardening pass):** wire date format, program sprints `status` query param, filtered issue cache keys. See D052–D054 in `DECISION_LOG.md` and Tier 2 sections in `discovery-research-log.md`.
+
+### Tier 2 follow-up hardening (2026-05-22)
+
+Closed verification gaps from D053 and the multi-agent audit. **No submission-ledger row.**
+
+| Workstream | Result |
+|------------|--------|
+| `formatWireDate` + handler normalization | Pass |
+| `expectOpenApiResponse` (programs/weeks/projects lists) | 4/4 contract tests |
+| `issue-list-cache.ts` + normalized `issueKeys.list({})` | Pass |
+| OpenAPI nullable post-process + type gate | Pass (`UserReference \| null`, no `& unknown`) |
+| `optimistic-stubs.ts` + hook `apiClient` migration | Pass (`pnpm type-check`) |
+| E2E inline sprint → bulk API | 1/1 (`e2e/issues-inline-sprint.spec.ts`) |
+
+See D054 in `DECISION_LOG.md` and Tier 2 hardening sections in `discovery-research-log.md`.
+
+### Multi-agent verification pass (`specs-polish-1`, 2026-05-22)
+
+Five parallel reviewers (security/auth, OpenAPI contract, frontend cache, GFA compliance, code quality) audited staged Tier 2 hardening. **Verdict: SHIP WITH FIXES** — orchestrator applied D055 fixes. **No submission-ledger row.**
+
+| Reviewer focus | Key finding | Disposition |
+|----------------|-------------|-------------|
+| Security/auth | Staged diffs auth-neutral; pre-existing PATCH week status bypass + bulk sprint target visibility | Tracked open; not introduced here |
+| OpenAPI contract | Nullable refs + program/active-week dates correct; POST /weeks 201 drift | Fixed (D055) |
+| Frontend cache | Filter eviction missing on association changes | Fixed + unit tests (D055) |
+| GFA compliance | No ledger overclaim; createIssue priority drift | Fixed to `medium` |
+| Code quality | Same cache/date gaps confirmed | Fixed |
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | Pass |
+| API contract suite (programs/weeks/projects + format-wire-date) | 52/52 |
+| `issue-list-cache.test.ts` | 4/4 |
+| E2E / Playwright | Not re-run (browser binary missing in prior attempt) |
+
+Still open: full wire-date sweep on `projects.ts`, PATCH week governance, bulk sprint visibility check, defineRoute tail coverage.
+
+### Second multi-agent verification round (2026-05-22, D056)
+
+Six parallel reviewers re-audited the completed Tier 2 hardening pass. **Verdict: foundational layer sound after orchestrator fixes.** **No submission-ledger row.**
+
+| Reviewer focus | Key finding | Disposition |
+|----------------|-------------|-------------|
+| API wire/contract | UTC `formatWireDate` risk on pg DATE; POST /weeks schema subset | Fixed local calendar + date regex test; OpenAPI/handler mismatch open |
+| React Query cache | Bulk partial-failure reconciliation missing | Fixed `onSuccess` in `useBulkUpdateIssues` |
+| OpenAPI/apiClient | Nullable refs + migrations correct; body typing permissive | Pass; compile-time tail noted |
+| E2E/integration | False-positive assertion on locked sprint Plan tab | Fixed departure + target arrival |
+| GFA compliance | Aligned with Week 4 intent | Pass |
+| Security | No auth/CSRF regression from apiClient migration | Pass |
+
+| Gate | Result |
+|------|--------|
+| `pnpm type-check` | Pass |
+| API contract suite | 60/60 |
+| `issue-list-cache.test.ts` | 4/4 |
+| E2E `issues-inline-sprint.spec.ts` | 1/1 |
+| `openapi:check:strict` | 193/193 |
+
+Still open: POST /weeks create response vs `WeekResponseSchema`, PATCH week governance, bulk sprint target visibility.

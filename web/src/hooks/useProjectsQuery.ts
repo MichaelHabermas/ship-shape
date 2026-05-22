@@ -1,82 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPatch, apiDelete, readJson } from '@/lib/api';
-import { createApiStatusError } from '@/lib/api-error';
+import { apiClient, assertApiData, assertApiSuccess } from '@/api/client';
+import { createOptimisticProject } from '@/api/optimistic-stubs';
 import { computeICEScore } from '@ship/shared';
+import type {
+  Project,
+  ProjectIssueListItem,
+  ProjectWeekListItem,
+} from '@/api/schemas';
 
-// Inferred project status based on sprint relationships
-export type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
-
-export interface Project {
-  id: string;
-  title: string;
-  // ICE properties (null = not yet set)
-  impact: number | null;
-  confidence: number | null;
-  ease: number | null;
-  ice_score: number | null;
-  // Visual properties
-  color: string;
-  emoji: string | null;
-  // Associations
-  program_id: string | null;
-  // Owner info (R - Responsible)
-  owner: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  owner_id?: string | null;
-  // RACI fields
-  accountable_id?: string | null;  // A - Accountable (approver)
-  consulted_ids?: string[];        // C - Consulted
-  informed_ids?: string[];         // I - Informed
-  // Counts
-  sprint_count: number;
-  issue_count: number;
-  // Inferred status from sprint relationships
-  inferred_status: InferredProjectStatus;
-  // Timestamps
-  archived_at: string | null;
-  created_at: string;
-  updated_at: string;
-  // Completeness flags
-  is_complete: boolean | null;
-  missing_fields: string[];
-  // Design review tracking
-  has_design_review?: boolean | null;
-  design_review_notes?: string | null;
-  // Conversion tracking
-  converted_from_id?: string | null;
-}
-
-// Project issue type (subset of Issue for the list)
-export interface ProjectIssue {
-  id: string;
-  title: string;
-  ticket_number: number;
-  state: string;
-  priority: string;
-  assignee_id: string | null;
-  assignee_name: string | null;
-  created_at: string;
-  updated_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  cancelled_at: string | null;
-}
-
-// Project week type (subset of Week for the list)
-export interface ProjectWeek {
-  id: string;
-  name: string;
-  sprint_number: number;
-  start_date: string | null;
-  end_date: string | null;
-  status: 'planning' | 'active' | 'completed';
-  issue_count: number;
-  completed_count: number;
-  days_remaining: number | null;
-}
+export type { InferredProjectStatus } from '@ship/shared';
+export type { Project, ProjectIssueListItem, ProjectWeekListItem };
+export type ProjectIssue = ProjectIssueListItem;
+export type ProjectWeek = ProjectWeekListItem;
 
 // Query keys
 export const projectKeys = {
@@ -91,11 +26,8 @@ export const projectKeys = {
 
 // Fetch projects
 async function fetchProjects(): Promise<Project[]> {
-  const res = await apiGet('/api/projects');
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch projects', res.status);
-  }
-  return readJson<Project[]>(res);
+  const result = await apiClient.GET('/projects');
+  return assertApiData(result, 'Failed to fetch projects');
 }
 
 // Create project
@@ -115,28 +47,39 @@ interface CreateProjectData {
 }
 
 async function createProjectApi(data: CreateProjectData): Promise<Project> {
-  const res = await apiPost('/api/projects', data);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to create project', res.status);
-  }
-  return readJson<Project>(res);
+  const result = await apiClient.POST('/projects', {
+    body: {
+      title: data.title ?? 'Untitled',
+      impact: data.impact ?? null,
+      confidence: data.confidence ?? null,
+      ease: data.ease ?? null,
+      owner_id: data.owner_id ?? null,
+      accountable_id: data.accountable_id ?? null,
+      consulted_ids: data.consulted_ids ?? [],
+      informed_ids: data.informed_ids ?? [],
+      color: data.color ?? '#6366f1',
+      emoji: null,
+      program_id: data.program_id ?? null,
+      plan: data.plan ?? null,
+      target_date: data.target_date ?? null,
+    },
+  });
+  return assertApiData(result, 'Failed to create project');
 }
 
-// Update project
 async function updateProjectApi(id: string, updates: Partial<Project>): Promise<Project> {
-  const res = await apiPatch(`/api/projects/${id}`, updates);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to update project', res.status);
-  }
-  return readJson<Project>(res);
+  const result = await apiClient.PATCH('/projects/{id}', {
+    params: { path: { id } },
+    body: updates,
+  });
+  return assertApiData(result, 'Failed to update project');
 }
 
-// Delete project
 async function deleteProjectApi(id: string): Promise<void> {
-  const res = await apiDelete(`/api/projects/${id}`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to delete project', res.status);
-  }
+  const result = await apiClient.DELETE('/projects/{id}', {
+    params: { path: { id } },
+  });
+  assertApiSuccess(result, 'Failed to delete project');
 }
 
 // Hook to get projects
@@ -158,31 +101,7 @@ export function useCreateProject() {
       await queryClient.cancelQueries({ queryKey: projectKeys.lists() });
       const previousProjects = queryClient.getQueryData<Project[]>(projectKeys.lists());
 
-      // ICE values default to null (not yet set)
-      const impact = newProject.impact ?? null;
-      const confidence = newProject.confidence ?? null;
-      const ease = newProject.ease ?? null;
-
-      const optimisticProject: Project = {
-        id: `temp-${crypto.randomUUID()}`,
-        title: newProject.title ?? 'Untitled',
-        impact,
-        confidence,
-        ease,
-        ice_score: computeICEScore(impact, confidence, ease),
-        color: newProject.color ?? '#6366f1',
-        emoji: null,
-        program_id: newProject.program_id ?? null,
-        owner: null,
-        sprint_count: 0,
-        issue_count: 0,
-        inferred_status: 'backlog',
-        archived_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_complete: null,
-        missing_fields: [],
-      };
+      const optimisticProject = createOptimisticProject(newProject);
 
       queryClient.setQueryData<Project[]>(
         projectKeys.lists(),
@@ -346,11 +265,10 @@ export function useProjects() {
 
 // Fetch project issues
 async function fetchProjectIssues(projectId: string): Promise<ProjectIssue[]> {
-  const res = await apiGet(`/api/projects/${projectId}/issues`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch project issues', res.status);
-  }
-  return readJson<ProjectIssue[]>(res);
+  const result = await apiClient.GET('/projects/{id}/issues', {
+    params: { path: { id: projectId } },
+  });
+  return assertApiData(result, 'Failed to fetch project issues');
 }
 
 // Hook to get project issues
@@ -368,11 +286,10 @@ export function useProjectIssuesQuery(projectId: string | undefined) {
 
 // Fetch project weeks
 async function fetchProjectWeeks(projectId: string): Promise<ProjectWeek[]> {
-  const res = await apiGet(`/api/projects/${projectId}/weeks`);
-  if (!res.ok) {
-    throw createApiStatusError('Failed to fetch project weeks', res.status);
-  }
-  return readJson<ProjectWeek[]>(res);
+  const result = await apiClient.GET('/projects/{id}/weeks', {
+    params: { path: { id: projectId } },
+  });
+  return assertApiData(result, 'Failed to fetch project weeks');
 }
 
 // Hook to get project weeks

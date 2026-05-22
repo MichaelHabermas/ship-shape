@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useIssuesQuery, getSprintId, getProjectId, getProgramId } from '@/hooks/useIssuesQuery';
-import { Issue } from '@/contexts/IssuesContext';
+import { IssueListItem } from '@/contexts/IssuesContext';
 import { cn } from '@/lib/cn';
 import { apiPatch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -57,7 +57,7 @@ export function BacklogPickerModal({ isOpen, onClose, context, onIssuesAdded }: 
 
   // Filter issues: exclude ones already in context, and apply search
   const { availableIssues, alreadyInContext } = useMemo(() => {
-    const available: Issue[] = [];
+    const available: IssueListItem[] = [];
     const inContext: Set<string> = new Set();
 
     allIssues.forEach(issue => {

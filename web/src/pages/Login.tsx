@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 import { Icon } from '@/components/icons/uswds';
 import { publicFetchJson } from '@/lib/public-fetch';
 import type {
-  ApiEnvelope,
+  ApiResponse,
   AuthProviderLoginData,
   AuthProviderStatusData,
   SetupStatusData,
@@ -82,7 +82,7 @@ export function LoginPage() {
   useEffect(() => {
     async function checkSetup() {
       try {
-        const data = await publicFetchJson<ApiEnvelope<SetupStatusData>>('/api/setup/status');
+        const data = await publicFetchJson<ApiResponse<SetupStatusData>>('/api/setup/status');
 
         if (data.success && data.data?.needsSetup) {
           navigate('/setup', { replace: true });
@@ -97,7 +97,7 @@ export function LoginPage() {
 
     async function checkCaiaStatus() {
       try {
-        const data = await publicFetchJson<ApiEnvelope<AuthProviderStatusData>>('/api/auth/caia/status');
+        const data = await publicFetchJson<ApiResponse<AuthProviderStatusData>>('/api/auth/caia/status');
         if (data.success && data.data?.available) {
           setCaiaAvailable(true);
         }
@@ -117,7 +117,7 @@ export function LoginPage() {
     setIsCaiaLoading(true);
 
     try {
-      const data = await publicFetchJson<ApiEnvelope<AuthProviderLoginData>>('/api/auth/caia/login');
+      const data = await publicFetchJson<ApiResponse<AuthProviderLoginData>>('/api/auth/caia/login');
 
       if (data.success && data.data?.authorizationUrl) {
         // Redirect to CAIA for PIV authentication

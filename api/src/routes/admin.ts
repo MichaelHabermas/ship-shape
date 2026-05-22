@@ -1975,24 +1975,37 @@ router.delete('/debug/users/:id', async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Delete in order: sessions, workspace_memberships, user
-    await pool.query<EmptyRow>('DELETE FROM sessions WHERE user_id = $1', [id]);
-    await pool.query<EmptyRow>('DELETE FROM workspace_memberships WHERE user_id = $1', [id]);
-    await pool.query<EmptyRow>('DELETE FROM users WHERE id = $1', [id]);
+    const client = await pool.connect();
 
-    await logAuditEvent({
-      actorUserId,
-      action: 'user.delete',
-      resourceType: 'user',
-      resourceId: id,
-      details: { email: targetUser.email, name: targetUser.name },
-      req,
-    });
+    try {
+      await client.query<EmptyRow>('BEGIN');
 
-    res.json({
-      success: true,
-      data: { deletedUser: targetUser },
-    });
+      // Delete in order: sessions, workspace_memberships, user
+      await client.query<EmptyRow>('DELETE FROM sessions WHERE user_id = $1', [id]);
+      await client.query<EmptyRow>('DELETE FROM workspace_memberships WHERE user_id = $1', [id]);
+      await client.query<EmptyRow>('DELETE FROM users WHERE id = $1', [id]);
+
+      await client.query<EmptyRow>('COMMIT');
+
+      await logAuditEvent({
+        actorUserId,
+        action: 'user.delete',
+        resourceType: 'user',
+        resourceId: id,
+        details: { email: targetUser.email, name: targetUser.name },
+        req,
+      });
+
+      res.json({
+        success: true,
+        data: { deletedUser: targetUser },
+      });
+    } catch (err) {
+      await client.query<EmptyRow>('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({

@@ -1,29 +1,19 @@
 import { z } from 'zod';
-import type {
-  AccountabilityType,
-  BelongsTo,
-  DocumentType,
-  DocumentVisibility,
-  IssueProperties,
-  IssuePriority,
-  IssueSource,
-  IssueState,
-  WeekProperties,
+import {
+  ACCOUNTABILITY_TYPE_VALUES,
+  BELONGS_TO_TYPE_VALUES,
+  DOCUMENT_TYPE_VALUES,
+  DOCUMENT_VISIBILITY_VALUES,
+  INFERRED_PROJECT_STATUS_VALUES,
+  ISSUE_PRIORITY_VALUES,
+  ISSUE_SOURCE_VALUES,
+  ISSUE_STATE_VALUES,
+  type BelongsTo,
+  type IssueProperties,
+  type WeekProperties,
 } from '@ship/shared';
 
-export const documentTypeValues = [
-  'wiki',
-  'issue',
-  'program',
-  'project',
-  'sprint',
-  'person',
-  'weekly_plan',
-  'weekly_retro',
-  'standup',
-  'weekly_review',
-] as const satisfies readonly DocumentType[];
-
+export const documentTypeValues = DOCUMENT_TYPE_VALUES;
 export const documentTypeSchema = z.enum(documentTypeValues);
 
 export const uuidSchema = z.string().uuid();
@@ -34,20 +24,10 @@ export const issueTitleSchema = z.string().min(1).max(500);
 
 export const positiveHoursSchema = z.number().positive();
 
-export const documentVisibilityValues = [
-  'private',
-  'workspace',
-] as const satisfies readonly DocumentVisibility[];
-
+export const documentVisibilityValues = DOCUMENT_VISIBILITY_VALUES;
 export const documentVisibilitySchema = z.enum(documentVisibilityValues);
 
-export const belongsToTypeValues = [
-  'program',
-  'project',
-  'sprint',
-  'parent',
-] as const;
-
+export const belongsToTypeValues = BELONGS_TO_TYPE_VALUES;
 export const belongsToTypeSchema = z.enum(belongsToTypeValues);
 
 export const belongsToSchema = z.object({
@@ -55,50 +35,20 @@ export const belongsToSchema = z.object({
   type: belongsToTypeSchema,
 }) satisfies z.ZodType<Pick<BelongsTo, 'id' | 'type'>>;
 
-export const issueStateValues = [
-  'triage',
-  'backlog',
-  'todo',
-  'in_progress',
-  'in_review',
-  'done',
-  'cancelled',
-] as const satisfies readonly IssueState[];
-
+export const issueStateValues = ISSUE_STATE_VALUES;
 export const issueStateSchema = z.enum(issueStateValues);
 
-export const issuePriorityValues = [
-  'urgent',
-  'high',
-  'medium',
-  'low',
-  'none',
-] as const satisfies readonly IssuePriority[];
-
+export const issuePriorityValues = ISSUE_PRIORITY_VALUES;
 export const issuePrioritySchema = z.enum(issuePriorityValues);
 
-export const issueSourceValues = [
-  'internal',
-  'external',
-  'action_items',
-] as const satisfies readonly IssueSource[];
-
+export const issueSourceValues = ISSUE_SOURCE_VALUES;
 export const issueSourceSchema = z.enum(issueSourceValues);
 
-export const accountabilityTypeValues = [
-  'standup',
-  'weekly_plan',
-  'weekly_retro',
-  'weekly_review',
-  'week_start',
-  'week_issues',
-  'project_plan',
-  'project_retro',
-  'changes_requested_plan',
-  'changes_requested_retro',
-] as const satisfies readonly AccountabilityType[];
-
+export const accountabilityTypeValues = ACCOUNTABILITY_TYPE_VALUES;
 export const accountabilityTypeSchema = z.enum(accountabilityTypeValues);
+
+export const inferredProjectStatusValues = INFERRED_PROJECT_STATUS_VALUES;
+export const inferredProjectStatusSchema = z.enum(inferredProjectStatusValues);
 
 export const issuePropertiesSchema = z.object({
   state: issueStateSchema,

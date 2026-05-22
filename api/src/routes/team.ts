@@ -2,9 +2,11 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { getActor } from '../services/document-access.js';
+import { requireTeamAllocationAuthority } from '../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { hasContent } from '../utils/document-content.js';
-import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { sendInternalError } from '../utils/route-http.js';
 
 function parseMetricEstimate(estimate: string | number): number {
   if (typeof estimate === 'number') {
@@ -493,6 +495,13 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
 // Falls back to userId for backward compatibility
 router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const actor = getActor(req);
+    const auth = await requireTeamAllocationAuthority(actor);
+    if (!auth.authorized) {
+      res.status(403).json({ error: auth.error });
+      return;
+    }
+
     const { workspaceId } = getAuthenticatedRouteContext(req);
     // Support both projectId (new) and programId (legacy)
     const { personId, userId, projectId, programId, sprintNumber } = req.body;
@@ -681,6 +690,13 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
 // Falls back to userId for backward compatibility
 router.delete('/assign', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const actor = getActor(req);
+    const auth = await requireTeamAllocationAuthority(actor);
+    if (!auth.authorized) {
+      res.status(403).json({ error: auth.error });
+      return;
+    }
+
     const { userId: currentUserId, workspaceId } = getAuthenticatedRouteContext(req);
     const { personId, userId, sprintNumber } = req.body;
 

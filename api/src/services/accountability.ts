@@ -10,7 +10,7 @@
  * 6. Projects where user is owner without plan
  * 7. Completed projects without retro
  *
- * Creates action_items issues just-in-time when missing is detected.
+ * Returns inferred accountability gaps via checkMissingAccountability() — no issues are created.
  */
 
 import { pool } from '../db/client.js';

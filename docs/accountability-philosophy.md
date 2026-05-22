@@ -185,14 +185,11 @@ When a user has overdue accountability items (missed standups, unapproved hypoth
 
 This creates gentle but persistent pressure to complete accountability tasks.
 
-### Auto-Generated Issues
+### Inference-Only Detection
 
-For severely overdue items (7+ days), Ship can automatically create issues:
-- Assigned to the responsible party
-- Linked to the overdue week or project
-- Visible to the entire team
+Ship detects accountability gaps at login and in the accountability grid, but does not create issues automatically. Missing standups, unapproved hypotheses, and overdue retros surface as inferred action items with synthetic IDs — visible prompts that link directly to the document needing attention.
 
-This escalates accountability from "soft reminder" to "tracked work item."
+This keeps accountability visible without polluting the issue tracker with system-generated noise. Managers and owners decide when a gap warrants a real tracked issue.
 
 ### The Accountability Grid
 

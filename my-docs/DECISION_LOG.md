@@ -837,3 +837,133 @@ Consequences: Benchmark artifacts must record bypass state, base URL, duration, 
 Evidence: Before artifact `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json` was produced from isolated ref `7d31add` with only the bypass patch applied; after artifact `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json` was produced from the current built server. Both used `ship_dev`, built `node dist/index.js`, `http://127.0.0.1:3001`, 15s duration, 10/25/50 concurrency, 100 rps, and the same bypass token. Ledger now marks Category 3 proven.
 
 **Decision Gist**: Measure API latency, not limiter latency.
+
+## Post-GFA Authorization Kernel (2026-05-22)
+
+### D049: Shared Session Validation For HTTP And WebSocket
+
+Status: Accepted
+
+Decision: Extract `validateAuthenticatedSession()` into `api/src/services/session-auth.ts` and use it from `authMiddleware` (session cookie path) and collaboration WebSocket upgrade (`validateWebSocketSession`). The helper enforces absolute/inactivity timeouts **and** live `workspace_memberships` checks, deleting revoked sessions fail-closed.
+
+Why: Discovery log flagged WebSocket paths that reimplemented partial session checks without membership revocation. Duplicated timeout logic drifted from HTTP middleware.
+
+Alternatives considered: Periodic membership polling on open sockets only (more complex); trusting session cookie until timeout (rejected — fails closed requirement).
+
+Consequences: WebSocket upgrade rejects revoked members immediately. HTTP and WS share one timeout/membership policy. DB errors propagate to HTTP 500; WS catches and rejects upgrade.
+
+Evidence: `api/src/services/__tests__/session-auth.test.ts`; API suite 535/535 on `ship_test_audit`.
+
+**Decision Gist**: One session validator for HTTP and realtime.
+
+### D050: Governance Authority Module For Team And Week Mutations
+
+Status: Accepted
+
+Decision: Add `api/src/services/governance-auth.ts` with `requireTeamAllocationAuthority` (workspace admin) and `requireWeekLifecycleAuthority` (supervisor/accountable/admin/sprint owner via person doc). Wire `POST/DELETE /api/team/assign`, `POST /api/weeks/:id/start`, and `POST /api/weeks/:id/carryover`.
+
+Why: Visibility-only checks allowed any member who could see a sprint to start weeks or mutate allocations — bypassing the approval authority model.
+
+Alternatives considered: Inline checks per route (rejected — DRY); full declarative policy engine (deferred).
+
+Consequences: Sprint `owner_id` resolves through person document `user_id`, not raw user UUID in properties.
+
+Evidence: `api/src/services/__tests__/governance-auth.test.ts`; `weeks.test.ts` owner fixtures updated.
+
+**Decision Gist**: Lifecycle and allocation mutations require governance authority, not visibility alone.
+
+### D051: Tier 1 Shared Type Consolidation (`@ship/shared`)
+
+Status: Accepted
+
+Decision: Centralize Tier 1 cross-tier types and UI constants in `@ship/shared`: `InferredProjectStatus`, `ISSUE_STATE_OPTIONS`, `ISSUE_STATE_LABELS`, `SelectableDocumentType`, `ConversionDocumentType`, wire `ApiResponse`/`ApiError`, and domain `BelongsTo` (replacing API-local `BelongsToEntry`). Web/API import these directly; OpenAPI wire names (`BelongsToEntry`, `BelongsToResponse`) stay on the HTTP contract layer.
+
+Why: Duplicate unions and label arrays drifted between API routes, query hooks, sidebars, and list views. Foundational enums belong in one package with existing `document-boundary.test.ts` guardrails for core unions.
+
+Alternatives considered: OpenAPI-generated types as sole web wire source (Tier 2 — deferred); renaming OpenAPI `BelongsToEntry` now (would churn clients — deferred).
+
+Consequences: `pnpm build:shared` required after edits. Remaining intentional local subsets (`PanelDocumentType`, `UnifiedDocumentType`, `CurrentDocumentContext` local type) are UI-scoped, not duplicates of the same name. Tier 2 completed enum + hook wire consolidation (see D052).
+
+Evidence: Multi-agent verification pass 2026-05-22 — `pnpm type-check` green; `document-boundary.test.ts` 4/4; grep shows zero `ApiEnvelope` and zero API-domain `BelongsToEntry`.
+
+**Decision Gist**: Domain types and shared UI label tables live in `@ship/shared`; wire/OpenAPI names may differ intentionally.
+
+### D052: Tier 2 Type Consolidation (shared enum source + OpenAPI wire types)
+
+Status: Accepted
+
+Decision: (1) Move enum **value arrays** to `shared/src/enums/document-enums.ts` as the write-once source; `api/src/schemas/document-boundary.ts` becomes thin `z.enum()` wrappers importing those arrays (supersedes D051 for enum values only — hand-written interfaces like `IssueProperties` stay in shared). (2) Wire web query hooks through `web/src/api/schemas.ts` aliases of `components['schemas']` from generated OpenAPI. (3) Fix OpenAPI/runtime drift for program sprints wrapper, active weeks snake_case, and project issue/week list items before hook migration. (4) Centralize `ISSUE_PRIORITY_OPTIONS` / `ISSUE_PRIORITY_OPTIONS_FULL` in shared for sidebar and context menu.
+
+Why: Tier 1 removed duplicate unions but enum values still lived in boundary + regex tests; hook DTOs duplicated OpenAPI shapes and drifted (camelCase active weeks, flat program sprints array). Compile-time alignment on `openapi:generate` catches wire drift immediately.
+
+Alternatives considered: Generate shared from boundary codegen (rejected — shared cannot import API); keep hand-rolled hook types with partial migration (rejected — plan required spec fixes first).
+
+Consequences: List contexts use `IssueListItem`; detail/mutations use OpenAPI `Issue`. `InferredProjectStatus` is in boundary tests and OpenAPI projects/dashboard/programs schemas. `document-boundary.test.ts` adds exhaustiveness guards for issue state/priority UI options. Optimistic cache updates cast nullable OpenAPI fields where generator omits `| null` on nested refs.
+
+Evidence: 2026-05-22 gates — `pnpm build:shared`, `pnpm type-check`, `document-boundary.test.ts` 6/6, `openapi:check:strict` 193/193, zero `no-unused-vars` ESLint warnings.
+
+**Decision Gist**: Shared owns enum values; OpenAPI owns wire JSON shapes; hooks import from `schemas.ts`.
+
+### D053: Tier 2 verification fixes (sprint mutation + bootstrap cache + labels)
+
+Status: Accepted
+
+Decision: After multi-agent Tier 2 verification, fix four concrete regressions/gaps exposed by stricter typing: (1) inline sprint assignment in `IssuesList` must use bulk issue update API, not single-issue PATCH with `sprint_id`; (2) bootstrap issue cache seed uses `IssueListItem[]`; (3) list priority labels derive from `ISSUE_PRIORITY_LABELS` in shared; (4) `action_items` issue source gets distinct badge styling/label.
+
+Why: Tier 2 correctly split list vs detail issue types and aligned PATCH schema with API — which revealed that inline sprint had been sending an ignored field. Fixing preserves user-visible sprint assignment behavior without weakening boundary schemas.
+
+Alternatives considered: Add `sprint_id` to `updateIssueRequestSchema` (rejected — bulk path already exists and matches bulk toolbar UX); revert hook migration (rejected).
+
+Consequences: Document remaining OpenAPI/runtime gaps (`workspace_sprint_start_date` format, program sprints `status` query) in verification doc rather than blocking Tier 2 merge.
+
+Evidence: `pnpm type-check` green; `document-boundary.test.ts` 6/6; discovery-research-log Tier 2 verification sections.
+
+**Decision Gist**: Verification fixes close real UX bugs exposed by type consolidation; wire drift items stay explicitly deferred with contract-test recommendation.
+
+### D054: Tier 2 follow-up hardening (wire dates, contract tests, cache, nullable OpenAPI, apiClient)
+
+Status: Accepted
+
+Decision: Close Tier 2 verification gaps in one hardening pass: (1) normalize `workspace_sprint_start_date` to OpenAPI `DateSchema` via `formatWireDate`; (2) add `expectOpenApiResponse` contract tests for program sprints, active weeks, and project issue/week lists; (3) remove unimplemented program sprints `status` query from OpenAPI; (4) add `issue-list-cache.ts` so issue mutations update all filtered TanStack list caches; (5) post-process OpenAPI nullable `$ref` patterns before `openapi-typescript` and gate on zero `& unknown` in generated types; (6) add `optimistic-stubs.ts` and migrate issue/program/project hook reads/mutations to `apiClient`; (7) add E2E proof that inline week assignment hits `POST /api/issues/bulk`.
+
+Why: Tier 2 made drift visible; follow-up prevents regression at the wire boundary and restores optimistic UX on filtered issue views without weakening PATCH schemas.
+
+Alternatives considered: Relax OpenAPI to `DateTimeSchema` everywhere (rejected — active weeks/program sprints already document `YYYY-MM-DD`); keep single-cache mutations (rejected — filtered views are primary UX).
+
+Consequences: `pnpm openapi:generate` runs `check-openapi-types.mjs`. Issue list cache keys normalize `undefined` filters to `{}`. Component-level legacy mutations remain on `@/lib/api` until a later pass.
+
+Evidence: `pnpm type-check`; contract tests 4/4; `openapi:check:strict` 193/193; `e2e/issues-inline-sprint.spec.ts` 1/1; discovery-research-log Tier 2 hardening sections.
+
+**Decision Gist**: Wire fidelity + cache coherence + typed client migration are part of the Tier 2 foundation, not optional polish.
+
+### D055: Multi-agent verification fixes on `specs-polish-1` (cache eviction + wire dates)
+
+Status: Accepted
+
+Decision: After parallel security/OpenAPI/hooks/GFA/code-quality reviews of staged Tier 2 hardening, apply targeted correctness fixes: (1) filter-aware eviction in `issue-list-cache.ts` when `belongs_to` changes; (2) unit tests for cache membership; (3) `formatWireDate` rejects non-conforming strings and uses **local** calendar parts (pg DATE arrives as local-midnight `Date`); (4) `POST /weeks` 201 uses `formatWireDate` with fail-closed 500; (5) sprint optimistic stubs use `YYYY-MM-DD`; (6) `createIssueApi` keeps server-default `priority: 'medium'`.
+
+Why: Three independent reviewers flagged the same cache and wire-date gaps; fixing before merge avoids foundational regressions in filtered issue views and week create responses.
+
+Alternatives considered: Rely on `onSettled` invalidation only (rejected — wrong rows flash in filtered tabs); relax OpenAPI to datetime everywhere (deferred — project week lists still use `DateTimeSchema`).
+
+Consequences: Pre-existing auth gaps (PATCH week status bypass, bulk sprint target visibility) remain tracked in discovery log — not introduced by this branch. Submission ledger unchanged.
+
+Evidence: `issue-list-cache.test.ts` 4/4; `format-wire-date.test.ts`; focused API contract suite 52/52; `pnpm type-check`.
+
+**Decision Gist**: Filtered issue cache updates must re-evaluate list membership, not only patch rows in place.
+
+### D056: Second multi-agent verification round on Tier 2 hardening (orchestrator fixes)
+
+Status: Accepted
+
+Decision: Run six parallel reviewers (API wire/contract, React Query cache, OpenAPI/apiClient migration, E2E/integration, GFA source-of-truth compliance, security regression) on the completed Tier 2 hardening pass. Apply orchestrator fixes for confirmed gaps: (1) `formatWireDate` uses local calendar parts for pg DATE midnight values and strips space-separated datetimes; (2) `POST /weeks` create test asserts `YYYY-MM-DD` regex (full `WeekResponseSchema` contract deferred — handler returns a subset); (3) `useBulkUpdateIssues` reconciles server truth on `onSuccess` including partial `failed[]` entries; (4) E2E inline sprint spec asserts issue **leaves** sprint-locked Plan tab and **arrives** in target sprint (prior assertion expected wrong UI state).
+
+Why: Foundational wire/cache/E2E layers need adversarial review beyond first-pass gates; false-positive E2E would have masked product-correct behavior.
+
+Alternatives considered: Full `expectOpenApiResponse` on POST /weeks create (blocked — OpenAPI registers full `Week` schema but handler omits list-only fields); rely on invalidation-only for bulk partial failures (rejected — optimistic wrong state until refetch).
+
+Consequences: Document POST /weeks OpenAPI/handler shape mismatch as open tail. Pre-existing security items (PATCH week status bypass, bulk sprint target visibility) remain tracked, not introduced here. Submission ledger unchanged.
+
+Evidence: API contract suite 60/60; `issue-list-cache.test.ts` 4/4; `e2e/issues-inline-sprint.spec.ts` 1/1 (departure + arrival); `pnpm type-check`; `openapi:check:strict` 193/193.
+
+**Decision Gist**: Verification is not complete until E2E asserts product-correct outcomes, not convenient DOM states.

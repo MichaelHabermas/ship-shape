@@ -4,6 +4,8 @@ import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { IdRow, RelatedIdRow, PropertiesRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js'
+import { ActiveWeeksResponseSchema } from '../openapi/schemas/weeks.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
 
 describe('Sprints API', () => {
   const app = createApp()
@@ -16,6 +18,7 @@ describe('Sprints API', () => {
   let testWorkspaceId: string
   let testUserId: string
   let testProgramId: string
+  let testPersonId: string
 
   beforeAll(async () => {
     // Create test workspace
@@ -69,6 +72,14 @@ describe('Sprints API', () => {
     )
     testProgramId = requireFirstRow(programResult.rows).id
 
+    const personResult = await pool.query<IdRow>(
+      `INSERT INTO documents (workspace_id, document_type, title, visibility, properties)
+       VALUES ($1, 'person', 'Sprints Test Person', 'workspace', $2)
+       RETURNING id`,
+      [testWorkspaceId, JSON.stringify({ user_id: testUserId })]
+    )
+    testPersonId = requireFirstRow(personResult.rows).id
+
     // Create a project
     await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, parent_id)
@@ -120,6 +131,32 @@ describe('Sprints API', () => {
       const testSprint = res.body.weeks.find((s: { id: string }) => s.id === testSprintId)
       expect(testSprint).toBeDefined()
       expect(testSprint.name).toBe('Test Sprint for List')
+    })
+
+    it('matches OpenAPI ActiveWeeksResponse wire format', async () => {
+      await pool.query(
+        `UPDATE workspaces SET sprint_start_date = CURRENT_DATE WHERE id = $1`,
+        [testWorkspaceId]
+      )
+
+      const res = await request(app)
+        .get('/api/weeks')
+        .set('Cookie', sessionCookie)
+
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'ActiveWeeksResponse',
+        schema: ActiveWeeksResponseSchema,
+      })
+
+      expect(body.sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(body.sprint_end_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      for (const week of body.weeks) {
+        expect(week.workspace_sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      }
     })
 
     it('should filter sprints by program_id', async () => {
@@ -212,7 +249,7 @@ describe('Sprints API', () => {
       // Dates are computed on frontend from sprint_number + workspace.sprint_start_date
       expect(res.status).toBe(201)
       expect(res.body.sprint_number).toBe(2)
-      expect(res.body.workspace_sprint_start_date).toBeDefined()
+      expect(res.body.workspace_sprint_start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
 
     it('should create sprint with plan', async () => {
@@ -496,7 +533,7 @@ describe('Sprints API', () => {
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'sprint', 'Sprint to Start', 'workspace', $2, $3)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 50, status: 'planning' })]
+        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 50, status: 'planning', owner_id: testPersonId })]
       )
       const sprintId = requireFirstRow(sprintResult.rows).id
       // Create program association
@@ -538,7 +575,7 @@ describe('Sprints API', () => {
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'sprint', 'Already Active Sprint', 'workspace', $2, $3)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 51, status: 'active' })]
+        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 51, status: 'active', owner_id: testPersonId })]
       )
       const sprintId = requireFirstRow(sprintResult.rows).id
       // Create program association
@@ -580,7 +617,7 @@ describe('Sprints API', () => {
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'sprint', 'Source Sprint for Carryover', 'workspace', $2, $3)
          RETURNING id`,
-        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 100, status: 'completed' })]
+        [testWorkspaceId, testUserId, JSON.stringify({ sprint_number: 100, status: 'completed', owner_id: testPersonId })]
       )
       sourceSprintId = requireFirstRow(sourceResult.rows).id
       // Create program association for source sprint

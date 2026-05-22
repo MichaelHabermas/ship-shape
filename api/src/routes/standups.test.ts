@@ -3,6 +3,8 @@ import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
+import { StandupResponseSchema } from '../openapi/schemas/standups.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
 
 describe('Standups API', () => {
   const app = createApp()
@@ -136,6 +138,74 @@ describe('Standups API', () => {
       `DELETE FROM documents WHERE workspace_id = $1 AND document_type = 'standup'`,
       [testWorkspaceId]
     )
+  })
+
+  describe('POST /api/standups', () => {
+    const standupDate = '2026-05-22'
+
+    beforeEach(async () => {
+      await pool.query(
+        `DELETE FROM documents
+         WHERE workspace_id = $1
+           AND document_type = 'standup'
+           AND properties->>'date' = $2`,
+        [testWorkspaceId, standupDate]
+      )
+    })
+
+    it('creates a standalone standup and returns 201', async () => {
+      const response = await request(app)
+        .post('/api/standups')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ date: standupDate })
+
+      const standup = expectOpenApiResponse({
+        method: 'post',
+        path: '/standups',
+        status: 201,
+        response,
+        openApiSchemaName: 'Standup',
+        schema: StandupResponseSchema,
+      })
+      expect(standup.document_type).toBe('standup')
+      expect(standup.properties?.author_id).toBe(testUserId)
+      expect(standup.properties?.date).toBe(standupDate)
+    })
+
+    it('returns existing standup for the same date (idempotent 200)', async () => {
+      const firstResponse = await request(app)
+        .post('/api/standups')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ date: standupDate })
+
+      expect(firstResponse.status).toBe(201)
+
+      const secondResponse = await request(app)
+        .post('/api/standups')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ date: standupDate })
+
+      const standup = expectOpenApiResponse({
+        method: 'post',
+        path: '/standups',
+        status: 200,
+        response: secondResponse,
+        openApiSchemaName: 'Standup',
+        schema: StandupResponseSchema,
+      })
+      expect(standup.id).toBe(firstResponse.body.id)
+    })
+
+    it('returns 403 without auth (CSRF check first)', async () => {
+      const response = await request(app)
+        .post('/api/standups')
+        .send({ date: standupDate })
+
+      expect(response.status).toBe(403)
+    })
   })
 
   describe('POST /api/weeks/:id/standups', () => {

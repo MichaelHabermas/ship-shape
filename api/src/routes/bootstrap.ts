@@ -2,14 +2,14 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
-import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type IssueProperties, type ProjectProperties } from '@ship/shared';
+import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type InferredProjectStatus, type ProjectProperties } from '@ship/shared';
 import { getBelongsToAssociationsBatch } from '../utils/document-crud.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError } from '../utils/route-http.js';
 import { INFERRED_PROJECT_STATUS_SUBQUERY } from '../sql/bootstrap-queries.js';
 import { pickBootstrapDocumentProperties } from '../constants/bootstrap-document.js';
-import type { IssueMetadataRow } from '../db/documents-repository.js';
+import { listIssuesMetadata } from '../db/documents-repository.js';
 
 const router = Router();
 
@@ -68,11 +68,9 @@ type ProjectRow = {
   owner_email?: string | null;
   sprint_count?: string | number | null;
   issue_count?: string | number | null;
-  inferred_status?: 'active' | 'planned' | 'completed' | 'backlog' | 'archived' | null;
+  inferred_status?: InferredProjectStatus | null;
   converted_from_id?: string | null;
 };
-
-type IssueRow = IssueMetadataRow;
 
 function mapProgram(row: ProgramRow) {
   const props = row.properties || {};
@@ -180,7 +178,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       programsResult,
       projectsResult,
       issuesResult,
-      workspaceResult,
     ] = await Promise.all([
       pool.query('SELECT id, email, name, is_super_admin FROM users WHERE id = $1', [userId]),
       pool.query(
@@ -206,7 +203,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
            AND document_type = 'wiki'
            AND archived_at IS NULL
            AND deleted_at IS NULL
-           AND (visibility = 'workspace' OR created_by = $2 OR $3 = TRUE)
+           AND ${VISIBILITY_FILTER_SQL('documents', '$2', '$3')}
          ORDER BY position ASC, created_at ASC`,
         [workspaceId, userId, isAdmin]
       ),
@@ -249,34 +246,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
          ORDER BY ((COALESCE((d.properties->>'impact')::int, 3) * COALESCE((d.properties->>'confidence')::int, 3) * COALESCE((d.properties->>'ease')::int, 3))) DESC`,
         [workspaceId, userId, isAdmin]
       ),
-      pool.query<IssueRow>(
-        `SELECT d.id, d.title, d.properties, d.ticket_number,
-                d.created_at, d.updated_at, d.created_by,
-                d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
-                d.converted_from_id,
-                u.name as assignee_name,
-                CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived
-         FROM documents d
-         LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
-         LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
-           AND person_doc.document_type = 'person'
-           AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
-         WHERE d.workspace_id = $1 AND d.document_type = 'issue'
-           AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}
-           AND d.archived_at IS NULL
-           AND d.deleted_at IS NULL
-         ORDER BY
-           CASE d.properties->>'priority'
-             WHEN 'urgent' THEN 1
-             WHEN 'high' THEN 2
-             WHEN 'medium' THEN 3
-             WHEN 'low' THEN 4
-             ELSE 5
-           END,
-           d.updated_at DESC`,
-        [workspaceId, userId, isAdmin]
-      ),
-      pool.query('SELECT sprint_start_date FROM workspaces WHERE id = $1', [workspaceId]),
+      listIssuesMetadata(workspaceId, userId, isAdmin),
     ]);
 
     const user = userResult.rows[0];
@@ -292,9 +262,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       role: currentWorkspaceRow.role || 'admin',
     } : null;
 
-    const issueIds = issuesResult.rows.map(row => row.id);
+    const issueIds = issuesResult.map(row => row.id);
     const associationsMap = await getBelongsToAssociationsBatch(issueIds);
-    const issues = issuesResult.rows.map(row => mapIssueListItem(row, associationsMap.get(row.id) || []));
+    const issues = issuesResult.map(row => mapIssueListItem(row, associationsMap.get(row.id) || []));
 
     res.json({
       success: true,
