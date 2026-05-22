@@ -6,8 +6,16 @@ import { authMiddleware } from '../middleware/auth.js';
 import type { ProjectProperties, WeekProperties } from '@ship/shared';
 import { DEFAULT_PROJECT_PROPERTIES, computeICEScore } from '@ship/shared';
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
-import { logDocumentChange, getLatestDocumentFieldHistory, syncProgramAssociation } from '../utils/document-crud.js';
+import { logDocumentChange, syncProgramAssociation } from '../utils/document-crud.js';
+import {
+  applyChangedSinceApprovedOnEdit,
+  asApprovalRecord,
+  buildApprovedApprovalRecord,
+  checkProjectAccountableAuth,
+  resolveApprovedVersionId,
+} from '../utils/approval-workflow.js';
 import { broadcastToUser } from '../collaboration/index.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -514,8 +522,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const result = await pool.query<ProjectRow>(query, params);
     res.json(result.rows.map(extractProjectFromRow));
   } catch (err) {
-    console.error('List projects error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'List projects error:');
   }
 });
 
@@ -612,8 +619,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(extractProjectFromRow(row));
   } catch (err) {
-    console.error('Get project error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get project error:');
   }
 });
 
@@ -622,7 +628,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createProjectSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -689,8 +695,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       owner,
     });
   } catch (err) {
-    console.error('Create project error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create project error:');
   }
 });
 
@@ -707,7 +712,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const parsed = updateProjectSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -795,13 +800,16 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       newProps.plan = data.plan;
       propsChanged = true;
 
-      // If plan changed and was previously approved, transition to 'changed_since_approved'
-      if (data.plan !== currentProps.plan &&
-          currentProps.plan_approval?.state === 'approved') {
-        newProps.plan_approval = {
-          ...currentProps.plan_approval,
-          state: 'changed_since_approved',
-        };
+      if (data.plan !== currentProps.plan) {
+        Object.assign(
+          newProps,
+          applyChangedSinceApprovedOnEdit(
+            newProps,
+            'plan_approval',
+            asApprovalRecord(currentProps.plan_approval),
+            true,
+          ),
+        );
       }
     }
 
@@ -927,8 +935,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(extractProjectFromRow(result.rows[0]!));
   } catch (err) {
-    console.error('Update project error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update project error:');
   }
 });
 
@@ -969,8 +976,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.status(204).send();
   } catch (err) {
-    console.error('Delete project error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Delete project error:');
   }
 });
 
@@ -1068,8 +1074,7 @@ router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => 
       });
     }
   } catch (err) {
-    console.error('Get project retro error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get project retro error:');
   }
 });
 
@@ -1082,7 +1087,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
 
     const parsed = projectRetroSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1161,8 +1166,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       content: updatedRow.content || {},
     });
   } catch (err) {
-    console.error('Create project retro error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create project retro error:');
   }
 });
 
@@ -1277,8 +1281,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 
     res.json(issues);
   } catch (err) {
-    console.error('Get project issues error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get project issues error:');
   }
 });
 
@@ -1337,8 +1340,7 @@ router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => 
 
     res.json(result.rows.map(extractSprintFromRow));
   } catch (err) {
-    console.error('Get project weeks error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get project weeks error:');
   }
 });
 
@@ -1396,8 +1398,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
 
     res.json(result.rows.map(extractSprintFromRow));
   } catch (err) {
-    console.error('Get project sprints error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get project sprints error:');
   }
 });
 
@@ -1410,7 +1411,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
 
     const parsed = createProjectSprintSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1567,8 +1568,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
       confidence: properties.confidence ?? null,
     });
   } catch (err) {
-    console.error('Create project sprint error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create project sprint error:');
   }
 });
 
@@ -1581,7 +1581,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
 
     const parsed = projectRetroSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1627,12 +1627,15 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       next_steps !== undefined ||
       content !== undefined;
 
-    if (retroFieldsChanged && currentProps.retro_approval?.state === 'approved') {
-      newProps.retro_approval = {
-        ...currentProps.retro_approval,
-        state: 'changed_since_approved',
-      };
-    }
+    Object.assign(
+      newProps,
+      applyChangedSinceApprovedOnEdit(
+        newProps,
+        'retro_approval',
+        asApprovalRecord(currentProps.retro_approval),
+        retroFieldsChanged,
+      ),
+    );
 
     // Update project with retro properties and optional content
     const updates: string[] = ['properties = $1', 'updated_at = now()'];
@@ -1681,8 +1684,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       content: result.rows[0].content || {},
     });
   } catch (err) {
-    console.error('Update project retro error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update project retro error:');
   }
 });
 
@@ -1711,27 +1713,17 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 
     const project = projectResult.rows[0];
     const currentProps = project.properties || {};
-    const accountableId = currentProps.accountable_id;
-
-    // Check authorization: must be project's accountable_id OR workspace admin
-    if (accountableId !== userId && !isAdmin) {
-      res.status(403).json({ error: 'Only the project accountable person or admin can approve plans' });
+    const auth = checkProjectAccountableAuth(currentProps.accountable_id, userId, isAdmin, 'plans');
+    if (!auth.authorized) {
+      res.status(403).json({ error: auth.error });
       return;
     }
 
-    // Get the latest plan history entry for version tracking
-    const historyEntry = await getLatestDocumentFieldHistory(id as string, 'plan');
-    const versionId = historyEntry?.id || null;
-
-    // Update project properties with approval
+    const versionId = await resolveApprovedVersionId(id as string, 'plan');
+    const planApproval = buildApprovedApprovalRecord(userId, versionId);
     const newProps = {
       ...currentProps,
-      plan_approval: {
-        state: 'approved',
-        approved_by: userId,
-        approved_at: new Date().toISOString(),
-        approved_version_id: versionId,
-      },
+      plan_approval: planApproval,
     };
 
     await pool.query(
@@ -1745,8 +1737,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
       approval: newProps.plan_approval,
     });
   } catch (err) {
-    console.error('Approve project plan error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Approve project plan error:');
   }
 });
 
@@ -1775,27 +1766,17 @@ router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Resp
 
     const project = projectResult.rows[0];
     const currentProps = project.properties || {};
-    const accountableId = currentProps.accountable_id;
-
-    // Check authorization: must be project's accountable_id OR workspace admin
-    if (accountableId !== userId && !isAdmin) {
-      res.status(403).json({ error: 'Only the project accountable person or admin can approve retros' });
+    const auth = checkProjectAccountableAuth(currentProps.accountable_id, userId, isAdmin, 'retros');
+    if (!auth.authorized) {
+      res.status(403).json({ error: auth.error });
       return;
     }
 
-    // Get the latest retro content history entry for version tracking
-    const historyEntry = await getLatestDocumentFieldHistory(id as string, 'retro_content');
-    const versionId = historyEntry?.id || null;
-
-    // Update project properties with retro approval
+    const versionId = await resolveApprovedVersionId(id as string, 'retro_content');
+    const retroApproval = buildApprovedApprovalRecord(userId, versionId);
     const newProps = {
       ...currentProps,
-      retro_approval: {
-        state: 'approved',
-        approved_by: userId,
-        approved_at: new Date().toISOString(),
-        approved_version_id: versionId,
-      },
+      retro_approval: retroApproval,
     };
 
     await pool.query(
@@ -1809,8 +1790,7 @@ router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Resp
       approval: newProps.retro_approval,
     });
   } catch (err) {
-    console.error('Approve project retro error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Approve project retro error:');
   }
 });
 

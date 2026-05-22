@@ -13,6 +13,7 @@ import {
   getCAIACredentials,
   type CAIACredentials,
 } from './secrets-manager.js';
+import { isProduction, isRenderProduction } from '../config/runtime.js';
 
 /**
  * User information extracted from CAIA ID token
@@ -88,7 +89,7 @@ export async function isCAIAConfigured(): Promise<boolean> {
   }
 
   // In local dev or non-AWS deployments, do not require Secrets Manager.
-  if (process.env.NODE_ENV !== 'production' || process.env.ENVIRONMENT === 'render') {
+  if (!isProduction() || isRenderProduction()) {
     return false;
   }
 
@@ -161,7 +162,7 @@ async function fetchCredentials(): Promise<CAIACredentials> {
     return { issuer_url, client_id, client_secret };
   }
 
-  if (process.env.NODE_ENV !== 'production' || process.env.ENVIRONMENT === 'render') {
+  if (!isProduction() || isRenderProduction()) {
     throw new Error('CAIA not configured: set CAIA_ISSUER_URL, CAIA_CLIENT_ID, CAIA_CLIENT_SECRET');
   }
 

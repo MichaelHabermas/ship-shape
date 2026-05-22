@@ -10,6 +10,7 @@ import {
   requireAssociationAccess,
   visibilityPredicate,
 } from '../services/document-access.js';
+import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -66,7 +67,7 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
     // Filter by relationship type if provided
     if (typeParam) {
       if (!isValidRelationshipType(typeParam)) {
-        return res.status(400).json({ error: 'Invalid relationship type' });
+        return sendLegacyError(res, 400, 'Invalid relationship type');
       }
       query += ` AND da.relationship_type = $5`;
       params.push(typeParam);
@@ -78,8 +79,8 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
 
     return res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching associations:', error);
-    return res.status(500).json({ error: 'Failed to fetch associations' });
+    sendInternalError(res, error, 'Error fetching associations:', { error: 'Failed to fetch associations' });
+    return;
   }
 });
 
@@ -92,14 +93,14 @@ router.post('/:id/associations', authMiddleware, async (req: Request, res: Respo
     // Validate input
     const parseResult = createAssociationSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: 'Invalid input', details: parseResult.error.errors });
+      return sendValidationError(res, parseResult.error);
     }
 
     const { related_id, relationship_type, metadata } = parseResult.data;
 
     // Prevent self-reference
     if (id === related_id) {
-      return res.status(400).json({ error: 'Cannot create self-referencing association' });
+      return sendLegacyError(res, 400, 'Cannot create self-referencing association');
     }
 
     try {
@@ -121,8 +122,8 @@ router.post('/:id/associations', authMiddleware, async (req: Request, res: Respo
 
     return res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error creating association:', error);
-    return res.status(500).json({ error: 'Failed to create association' });
+    sendInternalError(res, error, 'Error creating association:', { error: 'Failed to create association' });
+    return;
   }
 });
 
@@ -153,7 +154,7 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
     // If type is specified, only delete that specific association type
     if (typeParam) {
       if (!isValidRelationshipType(typeParam)) {
-        return res.status(400).json({ error: 'Invalid relationship type' });
+        return sendLegacyError(res, 400, 'Invalid relationship type');
       }
       query += ` AND relationship_type = $3`;
       params.push(typeParam);
@@ -169,8 +170,8 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
 
     return res.json({ deleted: result.rows.length, associations: result.rows });
   } catch (error) {
-    console.error('Error deleting association:', error);
-    return res.status(500).json({ error: 'Failed to delete association' });
+    sendInternalError(res, error, 'Error deleting association:', { error: 'Failed to delete association' });
+    return;
   }
 });
 
@@ -210,7 +211,7 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
 
     if (typeParam) {
       if (!isValidRelationshipType(typeParam)) {
-        return res.status(400).json({ error: 'Invalid relationship type' });
+        return sendLegacyError(res, 400, 'Invalid relationship type');
       }
       query += ` AND da.relationship_type = $5`;
       params.push(typeParam);
@@ -222,8 +223,10 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
 
     return res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching reverse associations:', error);
-    return res.status(500).json({ error: 'Failed to fetch reverse associations' });
+    sendInternalError(res, error, 'Error fetching reverse associations:', {
+      error: 'Failed to fetch reverse associations',
+    });
+    return;
   }
 });
 
@@ -414,8 +417,8 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
       breadcrumbs
     });
   } catch (error) {
-    console.error('Error fetching document context:', error);
-    return res.status(500).json({ error: 'Failed to fetch document context' });
+    sendInternalError(res, error, 'Error fetching document context:', { error: 'Failed to fetch document context' });
+    return;
   }
 });
 

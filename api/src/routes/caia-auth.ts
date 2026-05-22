@@ -18,6 +18,7 @@ import {
   getAuthorizationUrl,
   handleCallback,
 } from '../services/caia.js';
+import { sendInternalError } from '../utils/route-http.js';
 import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
 import {
   generateSecureSessionId,
@@ -26,11 +27,9 @@ import {
 } from '../services/oauth-state.js';
 import { SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
+import { sessionCookieOptions } from '../config/session-cookies.js';
 
 const router: RouterType = Router();
-const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
-  ? 'none'
-  : 'strict';
 
 /**
  * Basic email format validation
@@ -83,8 +82,7 @@ router.get('/login', async (req: Request, res: Response): Promise<void> => {
       data: { authorizationUrl: url },
     });
   } catch (error) {
-    console.error('CAIA login initiation error:', error);
-    res.status(500).json({
+    sendInternalError(res, error, 'CAIA login initiation error:', {
       success: false,
       error: { code: 'CAIA_INIT_ERROR', message: 'Failed to initiate CAIA login' },
     });
@@ -304,13 +302,7 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
     });
 
     // Set session cookie (always secure - OAuth flow requires HTTPS anyway)
-    res.cookie('session_id', sessionId, {
-      httpOnly: true,
-      secure: true,
-      sameSite: sameSiteCookiePolicy,
-      maxAge: SESSION_TIMEOUT_MS,
-      path: '/',
-    });
+    res.cookie('session_id', sessionId, sessionCookieOptions({ secure: true }));
 
     // Get returnTo from query param (preserved through OAuth flow)
     const returnTo = req.query.returnTo;

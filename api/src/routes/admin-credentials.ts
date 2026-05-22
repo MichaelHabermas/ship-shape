@@ -21,6 +21,7 @@ import {
   getChangedFields,
   type CAIACredentials,
 } from '../services/secrets-manager.js';
+import { sendInternalError } from '../utils/route-http.js';
 
 const router: RouterType = Router();
 
@@ -575,7 +576,7 @@ router.post('/save', authMiddleware, superAdminMiddleware, async (req: Request, 
       req,
     });
 
-    res.status(500).json({
+    sendInternalError(res, err, '[AdminCredentials] Save failed:', {
       success: false,
       error: { message: `Failed to save credentials: ${errorMessage}` },
     });
@@ -629,7 +630,7 @@ router.post('/test-api', authMiddleware, superAdminMiddleware, async (req: Reque
       req,
     });
 
-    res.status(500).json({
+    sendInternalError(res, err, '[AdminCredentials] CAIA test failed:', {
       success: false,
       error: { message: `CAIA connection failed: ${errorMessage}` },
     });

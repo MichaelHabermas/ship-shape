@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { computeICEScore } from '@ship/shared';
-import { extractText } from '../utils/document-content.js';
+import { computeICEScore, extractPlanItemsFromContent } from '@ship/shared';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -260,8 +260,7 @@ router.get('/my-work', authMiddleware, async (req: Request, res: Response) => {
       days_remaining: daysRemaining,
     });
   } catch (err) {
-    console.error('Get my work error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get my work error:');
   }
 });
 
@@ -272,40 +271,11 @@ interface PlanItem {
   checked: boolean;
 }
 
-/**
- * Extract plan items (taskItems and listItems) from TipTap JSON content.
- * Returns text and checked state for each item.
- */
 function extractPlanItems(content: unknown): PlanItem[] {
-  if (!content || typeof content !== 'object') return [];
-  const doc = content as { content?: unknown[] };
-  if (!Array.isArray(doc.content)) return [];
-
-  const items: PlanItem[] = [];
-
-  function walkNodes(nodes: unknown[]) {
-    for (const node of nodes) {
-      if (!node || typeof node !== 'object') continue;
-      const n = node as { type?: string; attrs?: { checked?: boolean }; content?: unknown[] };
-
-      if (n.type === 'taskItem') {
-        const text = extractText(n).trim();
-        if (text) {
-          items.push({ text, checked: n.attrs?.checked ?? false });
-        }
-      } else if (n.type === 'listItem') {
-        const text = extractText(n).trim();
-        if (text) {
-          items.push({ text, checked: false });
-        }
-      } else if (Array.isArray(n.content)) {
-        walkNodes(n.content);
-      }
-    }
-  }
-
-  walkNodes(doc.content);
-  return items;
+  return extractPlanItemsFromContent(content, {
+    includeParagraphs: false,
+    withChecked: true,
+  });
 }
 
 /**
@@ -480,8 +450,7 @@ router.get('/my-focus', authMiddleware, async (req: Request, res: Response) => {
       projects,
     });
   } catch (err) {
-    console.error('Get my focus error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get my focus error:');
   }
 });
 
@@ -723,8 +692,7 @@ router.get('/my-week', authMiddleware, async (req: Request, res: Response) => {
       projects,
     });
   } catch (err) {
-    console.error('Get my-week error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get my-week error:');
   }
 });
 

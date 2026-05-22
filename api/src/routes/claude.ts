@@ -15,6 +15,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
 const router = Router();
 
@@ -68,7 +69,7 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
     }
 
     if (!context_type) {
-      res.status(400).json({ error: 'context_type is required' });
+      sendLegacyError(res, 400, 'context_type is required');
       return;
     }
 
@@ -77,7 +78,7 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
     switch (context_type) {
       case 'standup':
         if (!sprint_id) {
-          res.status(400).json({ error: 'sprint_id is required for standup context' });
+          sendLegacyError(res, 400, 'sprint_id is required for standup context');
           return;
         }
         context = await getStandupContext(sprint_id, workspaceId);
@@ -85,7 +86,7 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
 
       case 'review':
         if (!sprint_id) {
-          res.status(400).json({ error: 'sprint_id is required for review context' });
+          sendLegacyError(res, 400, 'sprint_id is required for review context');
           return;
         }
         context = await getReviewContext(sprint_id, workspaceId);
@@ -93,21 +94,20 @@ router.get('/context', authMiddleware, async (req: Request, res: Response) => {
 
       case 'retro':
         if (!project_id) {
-          res.status(400).json({ error: 'project_id is required for retro context' });
+          sendLegacyError(res, 400, 'project_id is required for retro context');
           return;
         }
         context = await getRetroContext(project_id, workspaceId);
         break;
 
       default:
-        res.status(400).json({ error: 'Invalid context_type' });
+        sendLegacyError(res, 400, 'Invalid context_type');
         return;
     }
 
     res.json(context);
   } catch (error) {
-    console.error('Error fetching Claude context:', error);
-    res.status(500).json({ error: 'Failed to fetch context' });
+    sendInternalError(res, error, 'Error fetching Claude context:', { error: 'Failed to fetch context' });
   }
 });
 

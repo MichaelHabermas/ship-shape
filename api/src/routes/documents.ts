@@ -23,6 +23,7 @@ import {
   requireReferenceableDocument,
   visibilityPredicate,
 } from '../services/document-access.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -236,8 +237,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(documents);
   } catch (err) {
-    console.error('List documents error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'List documents error:');
   }
 });
 
@@ -300,8 +300,7 @@ router.get('/converted/list', authMiddleware, async (req: Request, res: Response
 
     res.json(conversions);
   } catch (err) {
-    console.error('List converted documents error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'List converted documents error:');
   }
 });
 
@@ -456,8 +455,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       ...((doc.document_type === 'issue' || doc.document_type === 'wiki' || doc.document_type === 'sprint' || doc.document_type === 'project') && { belongs_to }),
     });
   } catch (err) {
-    console.error('Get document error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get document error:');
   }
 });
 
@@ -511,8 +509,7 @@ router.get('/:id/content', authMiddleware, async (req: Request, res: Response) =
       content: content || { type: 'doc', content: [] },
     });
   } catch (err) {
-    console.error('Get document content error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get document content error:');
   }
 });
 
@@ -595,8 +592,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
       content: updated.content,
     });
   } catch (err) {
-    console.error('Update document content error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update document content error:');
   }
 });
 
@@ -606,7 +602,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createDocumentSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -682,8 +678,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     res.status(201).json(newDoc);
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Create document error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create document error:');
   } finally {
     client.release();
   }
@@ -700,7 +695,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const parsed = updateDocumentSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1146,8 +1141,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    console.error('Update document error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update document error:');
   } finally {
     client.release();
   }
@@ -1185,8 +1179,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.status(204).send();
   } catch (err) {
-    console.error('Delete document error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Delete document error:');
   }
 });
 
@@ -1205,7 +1198,7 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
 
     const parsed = convertDocumentSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -1390,8 +1383,7 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
 
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Convert document error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Convert document error:');
   } finally {
     client.release();
   }
@@ -1557,8 +1549,7 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
 
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Undo conversion error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Undo conversion error:');
   } finally {
     client.release();
   }

@@ -6,7 +6,7 @@ import { z, registry } from '../registry.js';
 import { UuidSchema, DateTimeSchema } from './common.js';
 import { jsonResponse, successEnvelope, IdParamSchema } from './route-helpers.js';
 
-const FeedbackItemSchema = z.object({
+export const FeedbackItemSchema = z.object({
   id: UuidSchema,
   title: z.string(),
   state: z.string(),
@@ -41,6 +41,14 @@ export const FeedbackProgramPublicSchema = z.object({
 
 registry.register('FeedbackProgramPublic', FeedbackProgramPublicSchema);
 
+export const FeedbackIdParamsSchema = IdParamSchema.openapi('FeedbackIdParams');
+
+export const FeedbackLegacyErrorSchema = z.object({
+  error: z.string(),
+}).openapi('FeedbackLegacyError');
+
+registry.register('FeedbackLegacyError', FeedbackLegacyErrorSchema);
+
 registry.registerPath({
   method: 'post',
   path: '/feedback',
@@ -73,19 +81,6 @@ registry.registerPath({
   responses: {
     200: jsonResponse(FeedbackProgramPublicSchema, 'Program metadata'),
     404: { description: 'Program not found' },
-    500: { description: 'Internal server error' },
-  },
-});
-
-registry.registerPath({
-  method: 'get',
-  path: '/feedback/{id}',
-  tags: ['Feedback'],
-  summary: 'Get feedback by ID',
-  request: { params: IdParamSchema },
-  responses: {
-    200: jsonResponse(FeedbackItemSchema, 'Feedback details'),
-    404: { description: 'Feedback not found' },
     500: { description: 'Internal server error' },
   },
 });

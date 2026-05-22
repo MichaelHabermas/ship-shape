@@ -2,7 +2,13 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
-import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { defineRoute } from '../openapi/define-route.js';
+import {
+  FeedbackItemSchema,
+  FeedbackIdParamsSchema,
+  FeedbackLegacyErrorSchema,
+} from '../openapi/schemas/feedback.js';
 import { getActor, getDocumentAccessContext, visibilityPredicate } from '../services/document-access.js';
 
 type RouterType = ReturnType<typeof Router>;
@@ -72,7 +78,7 @@ publicFeedbackRouter.post('/', async (req: Request, res: Response) => {
   try {
     const parsed = createFeedbackSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -137,8 +143,7 @@ publicFeedbackRouter.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json({ ...extractFeedbackFromRow(result.rows[0], programPrefix), program_id });
   } catch (err) {
-    console.error('Create feedback error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create feedback error');
   }
 });
 
@@ -173,28 +178,36 @@ publicFeedbackRouter.get('/program/:programId', async (req: Request, res: Respon
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Get program for feedback error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get program for feedback error');
   }
 });
 
 // Get single feedback item
-router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { workspaceId, userId } = getAuthenticatedRouteContext(req);
-    const actor = getActor(req);
-    const { isAdmin } = await getDocumentAccessContext(actor);
-    const id = getRouteParam(req.params.id);
+router.get(
+  '/:id',
+  authMiddleware,
+  defineRoute({
+    method: 'get',
+    path: '/feedback/{id}',
+    tags: ['Feedback'],
+    summary: 'Get feedback by ID',
+    request: {
+      params: FeedbackIdParamsSchema,
+    },
+    responses: {
+      200: { schema: FeedbackItemSchema, description: 'Feedback details' },
+      404: { schema: FeedbackLegacyErrorSchema, description: 'Feedback not found' },
+    },
+    handler: async (req, res, { params }) => {
+      try {
+        const { id } = params!;
+        const userId = req.userId!;
+        const workspaceId = req.workspaceId!;
+        const actor = getActor(req);
+        const { isAdmin } = await getDocumentAccessContext(actor);
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      res.status(404).json({ error: 'Feedback not found' });
-      return;
-    }
-
-    const result = await pool.query(
-      `SELECT d.id, d.title, d.properties, d.ticket_number,
+        const result = await pool.query(
+          `SELECT d.id, d.title, d.properties, d.ticket_number,
               prog_da.related_id as program_id,
               d.content, d.created_at, d.updated_at, d.created_by,
               p.title as program_name,
@@ -212,20 +225,21 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
          AND d.archived_at IS NULL
          AND d.deleted_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
+          [id, workspaceId, userId, isAdmin]
+        );
 
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Feedback not found' });
-      return;
-    }
+        if (result.rows.length === 0) {
+          res.status(404).json({ error: 'Feedback not found' });
+          return;
+        }
 
-    res.json(extractFeedbackFromRow(result.rows[0]));
-  } catch (err) {
-    console.error('Get feedback error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+        res.json(extractFeedbackFromRow(result.rows[0]));
+      } catch (err) {
+        sendInternalError(res, err, 'Get feedback error');
+      }
+    },
+  })
+);
 
 // Note: Accept and reject actions are now handled via /api/issues/:id/accept and /api/issues/:id/reject
 

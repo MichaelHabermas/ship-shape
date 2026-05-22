@@ -202,3 +202,76 @@ export async function listIssuesMetadata(
   const result = await pool.query<IssueMetadataRow>(query, params);
   return result.rows;
 }
+
+export type IssueDetailRow = {
+  id: string;
+  title: string;
+  properties: Record<string, unknown> | null;
+  ticket_number: number | null;
+  content: unknown;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string;
+  started_at: Date | null;
+  completed_at: Date | null;
+  cancelled_at: Date | null;
+  reopened_at: Date | null;
+  converted_to_id: string | null;
+  converted_from_id: string | null;
+  assignee_name: string | null;
+  assignee_archived: boolean | null;
+  created_by_name: string | null;
+};
+
+const ISSUE_DETAIL_SELECT = `
+  SELECT d.id, d.title, d.properties, d.ticket_number,
+         d.content,
+         d.created_at, d.updated_at, d.created_by,
+         d.started_at, d.completed_at, d.cancelled_at, d.reopened_at,
+         d.converted_to_id, d.converted_from_id,
+         u.name as assignee_name,
+         CASE WHEN person_doc.archived_at IS NOT NULL THEN true ELSE false END as assignee_archived,
+         creator.name as created_by_name
+  FROM documents d
+  LEFT JOIN users u ON (d.properties->>'assignee_id')::uuid = u.id
+  LEFT JOIN documents person_doc ON person_doc.workspace_id = d.workspace_id
+    AND person_doc.document_type = 'person'
+    AND person_doc.properties->>'user_id' = d.properties->>'assignee_id'
+  LEFT JOIN users creator ON d.created_by = creator.id
+`;
+
+/**
+ * Issue detail projection — same SQL as GET /api/issues/:id.
+ */
+export async function getIssueDetailById(
+  id: string,
+  workspaceId: string,
+  userId: string,
+  isAdmin: boolean
+): Promise<IssueDetailRow | null> {
+  const result = await pool.query<IssueDetailRow>(
+    `${ISSUE_DETAIL_SELECT}
+     WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'issue'
+       AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
+    [id, workspaceId, userId, isAdmin]
+  );
+  return result.rows[0] ?? null;
+}
+
+/**
+ * Issue detail by ticket number — same projection as GET /api/issues/by-ticket/:number.
+ */
+export async function getIssueDetailByTicketNumber(
+  ticketNumber: number,
+  workspaceId: string,
+  userId: string,
+  isAdmin: boolean
+): Promise<IssueDetailRow | null> {
+  const result = await pool.query<IssueDetailRow>(
+    `${ISSUE_DETAIL_SELECT}
+     WHERE d.ticket_number = $1 AND d.workspace_id = $2 AND d.document_type = 'issue'
+       AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
+    [ticketNumber, workspaceId, userId, isAdmin]
+  );
+  return result.rows[0] ?? null;
+}

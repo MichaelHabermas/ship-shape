@@ -8,6 +8,7 @@ import {
   getReadableDocument,
   visibilityPredicate,
 } from '../services/document-access.js';
+import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -67,7 +68,7 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
     // Validate entity type
     const typeResult = entityTypeSchema.safeParse(entityType);
     if (!typeResult.success) {
-      res.status(400).json({ error: 'Invalid entity type. Must be program, project, or sprint.' });
+      sendLegacyError(res, 400, 'Invalid entity type. Must be program, project, or sprint.');
       return;
     }
 
@@ -223,7 +224,7 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
         break;
 
       default:
-        res.status(400).json({ error: 'Invalid entity type' });
+        sendLegacyError(res, 400, 'Invalid entity type');
         return;
     }
 
@@ -236,8 +237,7 @@ router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: R
       })),
     });
   } catch (error) {
-    console.error('Activity fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch activity data' });
+    sendInternalError(res, error, 'Activity fetch error:', { error: 'Failed to fetch activity data' });
   }
 });
 

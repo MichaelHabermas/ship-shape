@@ -5,6 +5,7 @@ import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visib
 import { authMiddleware } from '../middleware/auth.js';
 import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -208,8 +209,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const result = await pool.query<ProgramRow>(query, params);
     res.json(result.rows.map(extractProgramFromRow));
   } catch (err) {
-    console.error('List programs error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'List programs error:');
   }
 });
 
@@ -247,8 +247,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(extractProgramFromRow(requireFirstRow(result.rows)));
   } catch (err) {
-    console.error('Get program error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get program error:');
   }
 });
 
@@ -257,7 +256,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createProgramSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -301,8 +300,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       } : null
     });
   } catch (err) {
-    console.error('Create program error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Create program error:');
   }
 });
 
@@ -314,7 +312,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const parsed = updateProgramSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -418,8 +416,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.json(extractProgramFromRow(requireFirstRow(result.rows)));
   } catch (err) {
-    console.error('Update program error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update program error:');
   }
 });
 
@@ -459,8 +456,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     res.status(204).send();
   } catch (err) {
-    console.error('Delete program error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Delete program error:');
   }
 });
 
@@ -537,8 +533,7 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 
     res.json(issues);
   } catch (err) {
-    console.error('Get program issues error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get program issues error:');
   }
 });
 
@@ -618,8 +613,7 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
 
     res.json(projects);
   } catch (err) {
-    console.error('Get program projects error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get program projects error:');
   }
 });
 
@@ -711,8 +705,7 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
       weeks: sprints,
     });
   } catch (err) {
-    console.error('Get program sprints error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get program sprints error:');
   }
 });
 
@@ -812,8 +805,7 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
       conflicts,
     });
   } catch (err) {
-    console.error('Merge preview error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Merge preview error:');
   }
 });
 
@@ -831,7 +823,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
 
     const parsed = mergeProgramSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -989,8 +981,7 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
     res.json(extractProgramFromRow(requireFirstRow(result.rows)));
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Merge program error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Merge program error:');
   } finally {
     client.release();
   }

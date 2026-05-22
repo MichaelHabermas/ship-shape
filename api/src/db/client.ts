@@ -2,6 +2,7 @@ import pg from 'pg';
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { databaseSslOptions, isProduction } from '../config/runtime.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,12 +13,11 @@ config({ path: join(__dirname, '../../.env') });
 
 const { Pool } = pg;
 
-const isProduction = process.env.NODE_ENV === 'production';
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: databaseSslOptions(),
   // Production-ready pool configuration
-  max: isProduction ? 20 : 10, // Max connections (default is 10)
+  max: isProduction() ? 20 : 10, // Max connections (default is 10)
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   connectionTimeoutMillis: 2000, // Fail fast if can't connect in 2 seconds
   maxUses: 7500, // Recycle connections after 7500 queries to prevent memory leaks

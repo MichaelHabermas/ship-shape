@@ -5,6 +5,7 @@ import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visib
 import { checkMissingAccountability } from '../services/accountability.js';
 import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type IssueProperties, type ProjectProperties } from '@ship/shared';
 import { getBelongsToAssociationsBatch } from '../utils/document-crud.js';
+import { sendInternalError } from '../utils/route-http.js';
 
 const router = Router();
 
@@ -471,8 +472,10 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       },
     });
   } catch (error) {
-    console.error('Bootstrap error:', error);
-    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load bootstrap data' } });
+    sendInternalError(res, error, 'Bootstrap error', {
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to load bootstrap data' },
+    });
   }
 });
 

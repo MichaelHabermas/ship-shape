@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -61,8 +62,7 @@ router.get('/:id/backlinks', authMiddleware, async (req: Request, res: Response)
 
     res.json(backlinks);
   } catch (err) {
-    console.error('Get backlinks error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Get backlinks error:');
   }
 });
 
@@ -74,7 +74,7 @@ router.post('/:id/links', authMiddleware, async (req: Request, res: Response) =>
 
     const parsed = updateLinksSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
+      sendValidationError(res, parsed.error);
       return;
     }
 
@@ -145,8 +145,7 @@ router.post('/:id/links', authMiddleware, async (req: Request, res: Response) =>
       client.release();
     }
   } catch (err) {
-    console.error('Update links error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendInternalError(res, err, 'Update links error:');
   }
 });
 

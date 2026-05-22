@@ -9,6 +9,7 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { analyzePlan, analyzeRetro, isAiAvailable, checkRateLimit } from '../services/ai-analysis.js';
+import { sendLegacyError } from '../utils/route-http.js';
 
 type RouterType = ReturnType<typeof Router>;
 const router: RouterType = Router();
@@ -25,7 +26,7 @@ router.post('/analyze-plan', authMiddleware, async (req: Request, res: Response)
     const { content } = req.body;
 
     if (!content) {
-      res.status(400).json({ error: 'content is required' });
+      sendLegacyError(res, 400, 'content is required');
       return;
     }
 
@@ -50,12 +51,12 @@ router.post('/analyze-retro', authMiddleware, async (req: Request, res: Response
     const { retro_content, plan_content } = req.body;
 
     if (!retro_content) {
-      res.status(400).json({ error: 'retro_content is required' });
+      sendLegacyError(res, 400, 'retro_content is required');
       return;
     }
 
     if (!plan_content) {
-      res.status(400).json({ error: 'plan_content is required' });
+      sendLegacyError(res, 400, 'plan_content is required');
       return;
     }
 
