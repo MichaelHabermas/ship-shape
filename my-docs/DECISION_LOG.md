@@ -882,8 +882,40 @@ Why: Duplicate unions and label arrays drifted between API routes, query hooks, 
 
 Alternatives considered: OpenAPI-generated types as sole web wire source (Tier 2 — deferred); renaming OpenAPI `BelongsToEntry` now (would churn clients — deferred).
 
-Consequences: `pnpm build:shared` required after edits. Remaining intentional local subsets (`PanelDocumentType`, `UnifiedDocumentType`, `CurrentDocumentContext` local type) are UI-scoped, not duplicates of the same name. `ISSUE_PRIORITY_OPTIONS` consolidation is Tier 2 follow-up.
+Consequences: `pnpm build:shared` required after edits. Remaining intentional local subsets (`PanelDocumentType`, `UnifiedDocumentType`, `CurrentDocumentContext` local type) are UI-scoped, not duplicates of the same name. Tier 2 completed enum + hook wire consolidation (see D052).
 
 Evidence: Multi-agent verification pass 2026-05-22 — `pnpm type-check` green; `document-boundary.test.ts` 4/4; grep shows zero `ApiEnvelope` and zero API-domain `BelongsToEntry`.
 
 **Decision Gist**: Domain types and shared UI label tables live in `@ship/shared`; wire/OpenAPI names may differ intentionally.
+
+### D052: Tier 2 Type Consolidation (shared enum source + OpenAPI wire types)
+
+Status: Accepted
+
+Decision: (1) Move enum **value arrays** to `shared/src/enums/document-enums.ts` as the write-once source; `api/src/schemas/document-boundary.ts` becomes thin `z.enum()` wrappers importing those arrays (supersedes D051 for enum values only — hand-written interfaces like `IssueProperties` stay in shared). (2) Wire web query hooks through `web/src/api/schemas.ts` aliases of `components['schemas']` from generated OpenAPI. (3) Fix OpenAPI/runtime drift for program sprints wrapper, active weeks snake_case, and project issue/week list items before hook migration. (4) Centralize `ISSUE_PRIORITY_OPTIONS` / `ISSUE_PRIORITY_OPTIONS_FULL` in shared for sidebar and context menu.
+
+Why: Tier 1 removed duplicate unions but enum values still lived in boundary + regex tests; hook DTOs duplicated OpenAPI shapes and drifted (camelCase active weeks, flat program sprints array). Compile-time alignment on `openapi:generate` catches wire drift immediately.
+
+Alternatives considered: Generate shared from boundary codegen (rejected — shared cannot import API); keep hand-rolled hook types with partial migration (rejected — plan required spec fixes first).
+
+Consequences: List contexts use `IssueListItem`; detail/mutations use OpenAPI `Issue`. `InferredProjectStatus` is in boundary tests and OpenAPI projects/dashboard/programs schemas. `document-boundary.test.ts` adds exhaustiveness guards for issue state/priority UI options. Optimistic cache updates cast nullable OpenAPI fields where generator omits `| null` on nested refs.
+
+Evidence: 2026-05-22 gates — `pnpm build:shared`, `pnpm type-check`, `document-boundary.test.ts` 6/6, `openapi:check:strict` 193/193, zero `no-unused-vars` ESLint warnings.
+
+**Decision Gist**: Shared owns enum values; OpenAPI owns wire JSON shapes; hooks import from `schemas.ts`.
+
+### D053: Tier 2 verification fixes (sprint mutation + bootstrap cache + labels)
+
+Status: Accepted
+
+Decision: After multi-agent Tier 2 verification, fix four concrete regressions/gaps exposed by stricter typing: (1) inline sprint assignment in `IssuesList` must use bulk issue update API, not single-issue PATCH with `sprint_id`; (2) bootstrap issue cache seed uses `IssueListItem[]`; (3) list priority labels derive from `ISSUE_PRIORITY_LABELS` in shared; (4) `action_items` issue source gets distinct badge styling/label.
+
+Why: Tier 2 correctly split list vs detail issue types and aligned PATCH schema with API — which revealed that inline sprint had been sending an ignored field. Fixing preserves user-visible sprint assignment behavior without weakening boundary schemas.
+
+Alternatives considered: Add `sprint_id` to `updateIssueRequestSchema` (rejected — bulk path already exists and matches bulk toolbar UX); revert hook migration (rejected).
+
+Consequences: Document remaining OpenAPI/runtime gaps (`workspace_sprint_start_date` format, program sprints `status` query) in verification doc rather than blocking Tier 2 merge.
+
+Evidence: `pnpm type-check` green; `document-boundary.test.ts` 6/6; verification report `my-docs/tier2-shared-types-verification.md`.
+
+**Decision Gist**: Verification fixes close real UX bugs exposed by type consolidation; wire drift items stay explicitly deferred with contract-test recommendation.

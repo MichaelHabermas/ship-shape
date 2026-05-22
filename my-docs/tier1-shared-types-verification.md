@@ -61,18 +61,39 @@ All automated gates green after fixes.
 | `PanelDocumentType`, `UnifiedDocumentType`, `CurrentDocumentContext` local types | Different UI subsets, not same-name shadows |
 | `KanbanBoard` column config | Workflow subset + colors, not full state list |
 | OpenAPI `BelongsToEntry` rename | Wire contract churn |
-| Web hook DTOs → generated OpenAPI types | Tier 2 |
-| `ISSUE_PRIORITY_OPTIONS` centralization | Tier 2 |
-| `InferredProjectStatus` in boundary tests | Recommended follow-up |
+| Generate shared types from boundary codegen | Shared cannot import API — rejected in favor of shared-first const arrays |
+
+## Tier 2 completion (2026-05-22)
+
+**Verdict: PASS**
+
+| Gate | Result |
+|------|--------|
+| `pnpm build:shared` | PASS |
+| `pnpm type-check` | PASS |
+| `document-boundary.test.ts` (6 tests) | PASS |
+| `openapi:check:strict` | PASS (193/193) |
+| ESLint `no-unused-vars` | PASS (0 warnings) |
+
+Delivered:
+
+- `shared/src/enums/document-enums.ts` — schema-driven enum source + `ISSUE_PRIORITY_OPTIONS` / `ISSUE_PRIORITY_OPTIONS_FULL`
+- OpenAPI fixes: `ProgramSprintsResponse`, snake_case `ActiveWeeksResponse`, `ProjectIssueListItem`, `ProjectWeekListItem`, `inferredProjectStatusSchema` wired through projects/dashboard/programs
+- Web hooks migrated: `useProgramsQuery`, `useProjectsQuery`, `useIssuesQuery`, `useWeeksQuery` → `web/src/api/schemas.ts`
+- Priority UI: `IssueSidebar`, `contextMenuActions` import shared priority options
+- Boundary tests: import-based enum checks, `InferredProjectStatus` contract, issue state/priority exhaustiveness
+
+See D052 in `my-docs/DECISION_LOG.md`. Post-merge verification (multi-agent audit + four UX fixes): `my-docs/tier2-shared-types-verification.md`, D053.
 
 ## Galaxy-brained / 10x paths (discuss before building)
 
-1. **OpenAPI-as-wire-source (10x):** Delete hand-rolled `Issue`/`Project`/`Sprint` in hooks; alias `components['schemas']` — one contract, compile-time drift detection on every `openapi:generate`.
-2. **Schema-driven shared enums (100x idea):** Generate `shared/src/types/document.ts` union members from `document-boundary.ts` Zod const arrays — eliminates regex parse tests and human copy-paste forever.
-3. **Exhaustiveness CI guard:** Test that `ISSUE_STATE_OPTIONS` length === `IssueState` cardinality and every option value ∈ union (cheap, high leverage).
+1. **Generate shared from boundary** — only if shared/API dependency direction changes.
+2. **Full hook OpenAPI client migration** — replace remaining legacy `apiGet`/`readJson` paths with typed `apiClient`.
+3. **OpenAPI nullable ref fixes** — generator sometimes drops `| null` on nested refs; consider upstream fixes or shared response wrappers.
 
 ## Related docs
 
-- D051 in `my-docs/DECISION_LOG.md`
+- D051, D052, D053 in `my-docs/DECISION_LOG.md`
+- `my-docs/tier2-shared-types-verification.md` (verification audit + deferred gaps)
 - `my-docs/MEMORY.md` (Tier 1 import rule)
 - `my-docs/IMPROVEMENT_REPORT.md` (verification table)

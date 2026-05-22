@@ -2,6 +2,23 @@
 
 ---
 
+## Tier 2 Shared Types Verification (2026-05-22)
+
+Orchestrated parallel review after Tier 2 enum + OpenAPI wire consolidation. Gates green after targeted fixes.
+
+| Agent focus | Verdict | Action taken |
+|-------------|---------|--------------|
+| Contract / runtime vs OpenAPI | Partial fail (documented) | Enum layer pass; date drift on `workspace_sprint_start_date` logged for follow-up |
+| Web consumers | Partial fail → fixed | Inline sprint → bulk API; bootstrap `IssueListItem[]`; shared priority labels; `action_items` badge |
+| SOLID / DRY | Pass w/ follow-ups | Architecture sound; cache-key and stub-cast tail documented |
+| Build gates | Pass | type-check, boundary 6/6, OpenAPI 193/193 |
+
+**Galaxy-brained follow-ups:** `expectOpenApiResponse` on sprint/week list families; complete mutation `apiClient` migration; fix OpenAPI generator nullability; filtered issue cache coherence helper.
+
+Detail: `my-docs/tier2-shared-types-verification.md`.
+
+---
+
 ## Tier 1 Shared Types Verification (2026-05-22)
 
 Orchestrated parallel review of `@ship/shared` Tier 1 consolidation (types/constants moved out of API/web duplicates). Gates: build + type-check + boundary tests green.

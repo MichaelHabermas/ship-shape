@@ -842,3 +842,21 @@ Parallel sub-agent audit of foundational type moves (regression grep, contract a
 | `IssuesList.STATE_LABELS` DRY | Pass — derives from `ISSUE_STATE_LABELS` |
 
 Follow-ups deferred to Tier 2: `ISSUE_PRIORITY_OPTIONS`, OpenAPI `BelongsToEntry` rename, web hooks → generated OpenAPI DTOs, `InferredProjectStatus` in boundary tests. See D051 in `DECISION_LOG.md`.
+
+### Tier 2 shared type consolidation + verification (2026-05-22)
+
+Parallel sub-agent audit of enum source migration, OpenAPI wire fixes, and web hook → `schemas.ts` aliases. **No submission-ledger row** — foundational drift prevention, not standalone Cat 1 credit.
+
+| Check | Result |
+|-------|--------|
+| `pnpm build:shared` | Pass |
+| `pnpm type-check` | Pass |
+| `document-boundary.test.ts` | 6/6 |
+| `openapi:check:strict` | 193/193 |
+| Enum values single source (`shared/src/enums/document-enums.ts`) | Pass |
+| Hook wire types via OpenAPI aliases | Pass (lists: `IssueListItem`, detail: `Issue`) |
+| ESLint `no-unused-vars` | 0 |
+
+**Verification fixes (same day):** inline sprint assignment → bulk API; bootstrap issue cache → `IssueListItem[]`; `ISSUE_PRIORITY_LABELS` DRY; `action_items` source badge.
+
+**Deferred gaps:** `workspace_sprint_start_date` date-format vs OpenAPI; unimplemented program sprints `status` query; filtered issue cache key mismatch on optimistic updates. Full report: `my-docs/tier2-shared-types-verification.md`. See D052–D053 in `DECISION_LOG.md`.
