@@ -12,6 +12,7 @@ import {
   FeedbackProgramPublicSchema,
 } from '../openapi/schemas/feedback.js';
 import { getActor, getDocumentAccessContext, visibilityPredicate } from '../services/document-access.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 // Public routes - no auth/CSRF required
 export const publicFeedbackRouter: ExpressRouter = Router();
@@ -82,7 +83,7 @@ publicFeedbackRouter.post(
     validationError: (res, error) => sendValidationError(res, error.zodError),
     handler: async (_req: Request, res: Response, { body }) => {
       try {
-        const { title, program_id, submitter_email, content } = body!;
+        const { title, program_id, submitter_email, content } = body;
 
         // Verify public feedback is enabled for this workspace-visible program.
         const programResult = await pool.query(
@@ -171,7 +172,7 @@ publicFeedbackRouter.get(
     },
     handler: async (_req: Request, res: Response, { params }) => {
       try {
-        const { programId } = params!;
+        const { programId } = params;
 
         const result = await pool.query(
           `SELECT id, title as name, properties->>'prefix' as prefix, properties->>'color' as color
@@ -216,9 +217,8 @@ router.get(
     },
     handler: async (req, res, { params }) => {
       try {
-        const { id } = params!;
-        const userId = req.userId!;
-        const workspaceId = req.workspaceId!;
+        const { id } = params;
+        const { userId, workspaceId } = getAuthenticatedRouteContext(req);
         const actor = getActor(req);
         const { isAdmin } = await getDocumentAccessContext(actor);
 

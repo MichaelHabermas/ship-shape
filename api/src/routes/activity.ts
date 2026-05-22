@@ -8,6 +8,7 @@ import {
   getReadableDocument,
   visibilityPredicate,
 } from '../services/document-access.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 
 const router = Router();
@@ -61,7 +62,7 @@ const entityTypeSchema = z.enum(['program', 'project', 'sprint']);
 router.get('/:entityType/:entityId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.params;
-    const workspaceId = req.workspaceId!;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
 
     // Validate entity type

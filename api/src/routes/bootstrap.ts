@@ -6,6 +6,7 @@ import { checkMissingAccountability } from '../services/accountability.js';
 import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type IssueProperties, type ProjectProperties } from '@ship/shared';
 import { getBelongsToAssociationsBatch } from '../utils/document-crud.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
+import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError } from '../utils/route-http.js';
 
 const router = Router();
@@ -204,8 +205,7 @@ function toAccountabilityResponse(missingItems: Awaited<ReturnType<typeof checkM
 
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.userId!;
-    const workspaceId = req.workspaceId!;
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
     const inferredProjectStatusSubquery = `
       CASE
