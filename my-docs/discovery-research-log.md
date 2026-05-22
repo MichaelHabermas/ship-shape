@@ -20,6 +20,14 @@ Gates after fixes: API contract 60/60, `issue-list-cache.test.ts` 4/4, E2E 1/1, 
 
 **Galaxy-brained:** auto contract-test generator; align POST /weeks response to `WeekResponseSchema` or split create schema; OpenAPI 3.1 nullable migration.
 
+### Tier 2 open tail (low priority)
+
+| Item | Notes |
+|------|-------|
+| Component-level legacy mutations | `WeekReconciliation`, `CommandPalette`, `MergeProgramDialog`, `ProjectRetro` still use `@/lib/api` — core issue/program/project/week hooks migrated to `apiClient` |
+| `BootstrapProject` alias | Bootstrap project rows vs full `Project` OpenAPI type |
+| Auto contract-test generator | Emit vitest stubs for uncovered GET routes during `openapi:generate` |
+
 ---
 
 ## Tier 2 Shared Types Verification (2026-05-22)
@@ -35,7 +43,7 @@ Orchestrated parallel review after Tier 2 enum + OpenAPI wire consolidation. Gat
 
 **Galaxy-brained follow-ups:** auto contract-test generator on `openapi:generate`; migrate remaining component-level `@/lib/api` mutations; OpenAPI 3.1 nullable refs.
 
-Detail: `my-docs/tier2-shared-types-verification.md`. D054 documents the follow-up hardening pass (wire dates, contract tests, cache helper, nullable OpenAPI fix, apiClient migration, E2E).
+D054 documents the follow-up hardening pass (wire dates, contract tests, cache helper, nullable OpenAPI fix, apiClient migration, E2E). Open tail items live in **Tier 2 open tail** above.
 
 ---
 
@@ -1002,9 +1010,9 @@ Severity: Ledger
 
 Status: Resolved
 
-Completed the OpenAPI contract workstream from `runtime-openapi-validation-plan.md`: removed 8 stale operations, registered all 195 runtime routes (admin, setup, feedback, invites, CAIA/PIV, documents, team, weeks, workspaces, projects, issues), enabled `pnpm openapi:check:strict` in Husky pre-commit, expanded `expectOpenApiResponse` to auth/setup/workspaces/files/feedback/bootstrap families, and piloted `defineRoute` on setup routes.
+Completed the OpenAPI contract workstream (see `docs/openapi-contract.md`): removed 8 stale operations, registered all runtime routes (admin, setup, feedback, invites, CAIA/PIV, documents, team, weeks, workspaces, projects, issues), enabled `pnpm openapi:check:strict` in Husky pre-commit, expanded `expectOpenApiResponse` to auth/setup/workspaces/files/feedback/bootstrap families, and piloted `defineRoute` on setup routes (later expanded to standups + feedback).
 
-Evidence: `pnpm openapi:check:strict` → 195 runtime / 195 OpenAPI, 0 missing, 0 stale. `docs/openapi-contract.md`. D021 in the OpenAPI section of `DECISION_LOG.md`. Contract-focused vitest batch passes on `ship_test_audit`.
+Evidence: `pnpm openapi:check:strict` → 193 runtime / 193 OpenAPI, 0 missing, 0 stale (accountability grid v1/v2 removed after initial 195 count). `docs/openapi-contract.md`. D021 in the OpenAPI section of `DECISION_LOG.md`. Contract-focused vitest batch passes on `ship_test_audit`.
 
 Deferred 10x: production `OPENAPI_VALIDATE_RESPONSES`, broad `defineRoute` migration for files/auth.
 

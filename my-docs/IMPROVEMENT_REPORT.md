@@ -859,7 +859,7 @@ Parallel sub-agent audit of enum source migration, OpenAPI wire fixes, and web h
 
 **Verification fixes (same day):** inline sprint assignment → bulk API; bootstrap issue cache → `IssueListItem[]`; `ISSUE_PRIORITY_LABELS` DRY; `action_items` source badge.
 
-**Gaps found in audit (closed same day in hardening pass):** wire date format, program sprints `status` query param, filtered issue cache keys. See D052–D054 in `DECISION_LOG.md`; full report: `my-docs/tier2-shared-types-verification.md`.
+**Gaps found in audit (closed same day in hardening pass):** wire date format, program sprints `status` query param, filtered issue cache keys. See D052–D054 in `DECISION_LOG.md` and Tier 2 sections in `discovery-research-log.md`.
 
 ### Tier 2 follow-up hardening (2026-05-22)
 
@@ -874,7 +874,7 @@ Closed verification gaps from D053 and the multi-agent audit. **No submission-le
 | `optimistic-stubs.ts` + hook `apiClient` migration | Pass (`pnpm type-check`) |
 | E2E inline sprint → bulk API | 1/1 (`e2e/issues-inline-sprint.spec.ts`) |
 
-See D054 in `DECISION_LOG.md` and updated `my-docs/tier2-shared-types-verification.md`.
+See D054 in `DECISION_LOG.md` and Tier 2 hardening sections in `discovery-research-log.md`.
 
 ### Multi-agent verification pass (`specs-polish-1`, 2026-05-22)
 

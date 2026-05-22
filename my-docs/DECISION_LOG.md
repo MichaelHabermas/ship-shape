@@ -916,7 +916,7 @@ Alternatives considered: Add `sprint_id` to `updateIssueRequestSchema` (rejected
 
 Consequences: Document remaining OpenAPI/runtime gaps (`workspace_sprint_start_date` format, program sprints `status` query) in verification doc rather than blocking Tier 2 merge.
 
-Evidence: `pnpm type-check` green; `document-boundary.test.ts` 6/6; verification report `my-docs/tier2-shared-types-verification.md`.
+Evidence: `pnpm type-check` green; `document-boundary.test.ts` 6/6; discovery-research-log Tier 2 verification sections.
 
 **Decision Gist**: Verification fixes close real UX bugs exposed by type consolidation; wire drift items stay explicitly deferred with contract-test recommendation.
 
@@ -932,7 +932,7 @@ Alternatives considered: Relax OpenAPI to `DateTimeSchema` everywhere (rejected 
 
 Consequences: `pnpm openapi:generate` runs `check-openapi-types.mjs`. Issue list cache keys normalize `undefined` filters to `{}`. Component-level legacy mutations remain on `@/lib/api` until a later pass.
 
-Evidence: `pnpm type-check`; contract tests 4/4; `openapi:check:strict` 193/193; `e2e/issues-inline-sprint.spec.ts` 1/1; report `my-docs/tier2-shared-types-verification.md`.
+Evidence: `pnpm type-check`; contract tests 4/4; `openapi:check:strict` 193/193; `e2e/issues-inline-sprint.spec.ts` 1/1; discovery-research-log Tier 2 hardening sections.
 
 **Decision Gist**: Wire fidelity + cache coherence + typed client migration are part of the Tier 2 foundation, not optional polish.
 
