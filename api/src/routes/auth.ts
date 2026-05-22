@@ -14,6 +14,10 @@ function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
+  ? 'none'
+  : 'strict';
+
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
@@ -185,7 +189,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     res.cookie('session_id', sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict', // Strict for government applications
+      sameSite: sameSiteCookiePolicy,
       maxAge: SESSION_TIMEOUT_MS,
       path: '/',
     });
@@ -241,7 +245,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
     res.clearCookie('session_id', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: sameSiteCookiePolicy,
       path: '/',
     });
 

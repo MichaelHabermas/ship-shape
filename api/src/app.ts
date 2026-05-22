@@ -43,6 +43,9 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 }
 
 const sessionSecret = process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production';
+const sameSiteCookiePolicy = process.env.NODE_ENV === 'production' && process.env.ENVIRONMENT === 'render'
+  ? 'none'
+  : 'strict';
 
 function getHeaderValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -165,7 +168,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: sameSiteCookiePolicy,
       maxAge: 15 * 60 * 1000, // 15 minutes
     },
   }));
