@@ -432,7 +432,7 @@ export function renderDashboard(ledger) {
       .page { width:min(1180px, calc(100vw - 32px)); margin:0 auto; padding:20px 0 44px; }
       p,li,td,code { overflow-wrap:anywhere; }
       a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
-      .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.8fr); align-items:start; gap:14px; margin-bottom:14px; }
+      .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.8fr); align-items:stretch; gap:14px; margin-bottom:14px; }
       .hero-main,.hero-side,.panel,.card,.table-wrap,.callout { background:var(--paper); border:1px solid var(--line); }
       .hero-main { padding:18px 20px; min-height:0; display:flex; flex-direction:column; justify-content:space-between; }
       .hero-side,.panel,.callout { padding:14px; }
