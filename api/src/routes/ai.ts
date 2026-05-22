@@ -15,8 +15,9 @@ import { sendLegacyError } from '../utils/route-http.js';
 const router = Router();
 
 // GET /api/ai/status - Check if AI analysis is available
-router.get('/status', authMiddleware, (_req: Request, res: Response) => {
-  res.json({ available: isAiAvailable() });
+router.get('/status', authMiddleware, async (_req: Request, res: Response) => {
+  const available = await isAiAvailable();
+  res.json(available ? { available } : { available, error: 'ai_unavailable' });
 });
 
 // POST /api/ai/analyze-plan - Analyze weekly plan quality

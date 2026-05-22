@@ -145,13 +145,43 @@ function mapProject(row: ProjectRow) {
     accountable_id: props.accountable_id || null,
     consulted_ids: props.consulted_ids || [],
     informed_ids: props.informed_ids || [],
-    plan: props.plan || null,
-    plan_approval: props.plan_approval || null,
-    retro_approval: props.retro_approval || null,
     has_retro: props.has_retro ?? false,
     target_date: props.target_date || null,
     has_design_review: props.has_design_review ?? null,
-    design_review_notes: props.design_review_notes || null,
+  };
+}
+
+function pickDocumentProperties(properties: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!properties) return null;
+
+  const picked = {
+    state: properties.state,
+    priority: properties.priority,
+    estimate: properties.estimate,
+    assignee_id: properties.assignee_id,
+    source: properties.source,
+    prefix: properties.prefix,
+    color: properties.color,
+  };
+  const entries = Object.entries(picked).filter(([, value]) => value !== undefined);
+
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+function mapBootstrapDocument(row: DocumentListRow) {
+  return {
+    id: row.id,
+    workspace_id: row.workspace_id,
+    document_type: row.document_type,
+    title: row.title,
+    parent_id: row.parent_id,
+    position: row.position,
+    ticket_number: row.ticket_number,
+    properties: pickDocumentProperties(row.properties),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    created_by: row.created_by,
+    visibility: row.visibility,
   };
 }
 
@@ -433,7 +463,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
           role: w.role,
         })),
         pendingAccountabilityItems: [],
-        documents: documentsResult.rows,
+        documents: documentsResult.rows.map(mapBootstrapDocument),
         programs: programsResult.rows.map(mapProgram),
         projects: projectsResult.rows.map(mapProject),
         issues,

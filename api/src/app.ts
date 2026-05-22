@@ -76,6 +76,16 @@ function isCsrfError(err: unknown): boolean {
       || candidate.message?.toLowerCase().includes('csrf') === true);
 }
 
+function shouldBypassRateLimit(req: Request): boolean {
+  if (isProduction()) return false;
+  if (process.env.API_BENCHMARK_RATE_LIMIT_BYPASS !== '1') return false;
+
+  const token = process.env.API_BENCHMARK_RATE_LIMIT_BYPASS_TOKEN;
+  if (!token) return false;
+
+  return getHeaderValue(req.headers['x-benchmark-rate-limit-bypass']) === token;
+}
+
 // Rate limiting configurations
 // In test/dev environment, use much higher limits to avoid issues
 // Production limits: login=5/15min (failed only), api=100/min
@@ -89,6 +99,7 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Try again in 15 minutes.' },
   skipSuccessfulRequests: true, // Only count failed login attempts
+  skip: shouldBypassRateLimit,
 });
 
 // General API rate limit (100 req/min in prod, 1000 in dev)
@@ -98,6 +109,7 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please slow down.' },
+  skip: shouldBypassRateLimit,
 });
 
 

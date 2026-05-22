@@ -43,6 +43,21 @@ const BootstrapStandupStatusSchema = z.object({
   lastPosted: DateTimeSchema.nullable(),
 });
 
+const BootstrapProjectSchema = ProjectResponseSchema.omit({
+  plan: true,
+  plan_approval: true,
+  retro_approval: true,
+  design_review_notes: true,
+}).extend({
+  owner: z.object({
+    id: UuidSchema,
+    name: z.string().openapi({ description: 'User display name' }),
+    email: z.string().email().optional().openapi({ description: 'User email address' }),
+  }).nullable(),
+}).openapi('BootstrapProject');
+
+registry.register('BootstrapProject', BootstrapProjectSchema);
+
 export const BootstrapResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
@@ -52,7 +67,7 @@ export const BootstrapResponseSchema = z.object({
     pendingAccountabilityItems: z.array(z.unknown()),
     documents: z.array(BootstrapDocumentSchema),
     programs: z.array(ProgramResponseSchema),
-    projects: z.array(ProjectResponseSchema),
+    projects: z.array(BootstrapProjectSchema),
     issues: z.array(IssueListResponseSchema),
     standupStatus: BootstrapStandupStatusSchema,
     actionItems: AccountabilityActionItemsResponseSchema,

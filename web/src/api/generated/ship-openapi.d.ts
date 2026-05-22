@@ -6448,7 +6448,7 @@ export interface paths {
         };
         /**
          * Check AI analysis availability
-         * @description Returns whether the AI analysis service is available (Bedrock client initialized).
+         * @description Returns whether the AI analysis service is available. When Bedrock credentials cannot be loaded, returns { available: false, error: "ai_unavailable" }.
          */
         get: {
             parameters: {
@@ -6509,16 +6509,16 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Plan analysis result (or {error: "ai_unavailable"} if service is down) */
+                /** @description Plan analysis result or analysis error */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PlanAnalysisResult"];
+                        "application/json": components["schemas"]["PlanAnalysisResult"] | components["schemas"]["AiAnalysisError"];
                     };
                 };
-                /** @description Rate limit exceeded (max 10 per hour) */
+                /** @description Rate limit exceeded (max 120 per hour) */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -6568,16 +6568,16 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Retro analysis result (or {error: "ai_unavailable"} if service is down) */
+                /** @description Retro analysis result or analysis error */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RetroAnalysisResult"];
+                        "application/json": components["schemas"]["RetroAnalysisResult"] | components["schemas"]["AiAnalysisError"];
                     };
                 };
-                /** @description Rate limit exceeded (max 10 per hour) */
+                /** @description Rate limit exceeded (max 120 per hour) */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -10677,6 +10677,115 @@ export interface components {
             /** @description True if any item has days_overdue === 0 */
             has_due_today: boolean;
         };
+        BootstrapProject: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            title: string;
+            /**
+             * @description How much will this move the needle? (1-5, null = not set)
+             * @example 3
+             */
+            impact: number | null;
+            /**
+             * @description How certain are we this will achieve the impact? (1-5, null = not set)
+             * @example 3
+             */
+            confidence: number | null;
+            /**
+             * @description How easy is this to implement? (1-5, null = not set)
+             * @example 3
+             */
+            ease: number | null;
+            /** @description Computed ICE score (impact * confidence * ease) */
+            ice_score: number | null;
+            /** @example #6366f1 */
+            color: string;
+            emoji: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            program_id: string | null;
+            /**
+             * Format: uuid
+             * @description R - Responsible (does the work)
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            owner_id: string | null;
+            /**
+             * Format: uuid
+             * @description A - Accountable (approver)
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            accountable_id: string | null;
+            /** @description C - Consulted (provide input) */
+            consulted_ids: string[];
+            /** @description I - Informed (kept in loop) */
+            informed_ids: string[];
+            owner: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                /** @description User display name */
+                name: string;
+                /**
+                 * Format: email
+                 * @description User email address
+                 */
+                email?: string;
+            } | null;
+            /** @description Whether project has a retrospective document */
+            has_retro: boolean;
+            /** @description Whether design review has been completed */
+            has_design_review: boolean | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            target_date: string | null;
+            /**
+             * @description Status computed from sprint relationships
+             * @enum {string}
+             */
+            inferred_status: "active" | "planned" | "completed" | "backlog" | "archived";
+            sprint_count: number;
+            issue_count: number;
+            is_complete: boolean | null;
+            missing_fields: string[];
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            archived_at: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            converted_from_id: string | null;
+        };
         BootstrapResponse: {
             /** @enum {boolean} */
             success: true;
@@ -10771,7 +10880,7 @@ export interface components {
                     visibility: "private" | "workspace";
                 }[];
                 programs: components["schemas"]["Program"][];
-                projects: components["schemas"]["Project"][];
+                projects: components["schemas"]["BootstrapProject"][];
                 issues: components["schemas"]["IssueListItem"][];
                 standupStatus: {
                     due: boolean;
@@ -11506,6 +11615,14 @@ export interface components {
             workload_assessment: "light" | "moderate" | "heavy" | "excessive";
             workload_feedback: string;
         };
+        AiUnavailable: {
+            /** @enum {string} */
+            error: "ai_unavailable";
+        };
+        AiAnalysisError: {
+            /** @enum {string} */
+            error: "ai_unavailable" | "content_too_large" | "ai_parse_error";
+        };
         RetroItemAnalysis: {
             plan_item: string;
             addressed: boolean;
@@ -11518,7 +11635,13 @@ export interface components {
             suggestions: string[];
         };
         AiStatus: {
-            available: boolean;
+            /** @enum {boolean} */
+            available: true;
+        } | {
+            /** @enum {boolean} */
+            available: false;
+            /** @enum {string} */
+            error: "ai_unavailable";
         };
         SetupStatusData: {
             needsSetup: boolean;
