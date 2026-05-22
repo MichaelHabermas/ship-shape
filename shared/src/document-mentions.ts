@@ -27,6 +27,6 @@ export function extractDocumentMentionIds(content: unknown): string[] {
     }
   }
 
-  traverse(content as TipTapLikeNode);
+  traverse(content);
   return [...new Set(mentionIds)];
 }

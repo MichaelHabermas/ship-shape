@@ -1543,9 +1543,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        }[];
+                        "application/json": components["schemas"]["ProjectIssueListItem"][];
                     };
                 };
                 /** @description Project not found */
@@ -1590,9 +1588,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        }[];
+                        "application/json": components["schemas"]["ProjectWeekListItem"][];
                     };
                 };
                 /** @description Project not found */
@@ -1637,9 +1633,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        }[];
+                        "application/json": components["schemas"]["ProjectWeekListItem"][];
                     };
                 };
                 /** @description Project not found */
@@ -2061,7 +2055,8 @@ export interface paths {
                             id: string;
                             title: string;
                             ice_score: number | null;
-                            inferred_status: string;
+                            /** @enum {string} */
+                            inferred_status: "active" | "planned" | "completed" | "backlog" | "archived";
                             color: string;
                             emoji: string | null;
                             issue_count: number;
@@ -2115,19 +2110,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            /**
-                             * Format: uuid
-                             * @description UUID identifier
-                             * @example 550e8400-e29b-41d4-a716-446655440000
-                             */
-                            id: string;
-                            name: string;
-                            sprint_number: number;
-                            status: string;
-                            issue_count: number;
-                            completed_count: number;
-                        }[];
+                        "application/json": components["schemas"]["ProgramSprintsResponse"];
                     };
                 };
                 /** @description Program not found */
@@ -9536,6 +9519,103 @@ export interface components {
              */
             converted_from_id: string | null;
         };
+        ProjectIssueListItem: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            title: string;
+            ticket_number: number;
+            /**
+             * @description Issue workflow state
+             * @enum {string}
+             */
+            state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+            /**
+             * @description Issue priority level
+             * @enum {string}
+             */
+            priority: "urgent" | "high" | "medium" | "low" | "none";
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            assignee_id: string | null;
+            assignee_name: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            started_at: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            completed_at: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            cancelled_at: string | null;
+        };
+        ProjectWeekListItem: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            name: string;
+            sprint_number: number;
+            /** @enum {string} */
+            status: "planning" | "active" | "completed";
+            owner: components["schemas"]["UserReference"] & unknown;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            project_id: string | null;
+            project_name: string | null;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            program_id: string | null;
+            program_name: string | null;
+            program_prefix: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            workspace_sprint_start_date: string | null;
+            issue_count: number;
+            completed_count: number;
+            started_count: number;
+            plan: string | null;
+            success_criteria: string[] | null;
+            confidence: number | null;
+        };
         CreateProject: {
             /** @default Untitled */
             title: string;
@@ -9704,6 +9784,46 @@ export interface components {
             consulted_ids: string[];
             /** @description I - Informed */
             informed_ids: string[];
+        };
+        ProgramSprintListItem: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            name: string;
+            sprint_number: number;
+            /** @enum {string} */
+            status: "planning" | "active" | "completed";
+            owner: components["schemas"]["UserReference"] & unknown;
+            issue_count: number;
+            completed_count: number;
+            started_count: number;
+            total_estimate_hours: number;
+            has_plan: boolean;
+            has_retro: boolean;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            plan_created_at: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            retro_created_at: string | null;
+            plan: string | null;
+        };
+        ProgramSprintsResponse: {
+            /**
+             * @description ISO 8601 date string (YYYY-MM-DD)
+             * @example 2025-01-30
+             */
+            workspace_sprint_start_date: string;
+            weeks: components["schemas"]["ProgramSprintListItem"][];
         };
         CreateProgram: {
             /** @default Untitled */
@@ -9881,6 +10001,12 @@ export interface components {
              */
             accountable_id: string | null;
         };
+        ActiveWeekItem: components["schemas"]["Week"] & {
+            /** @description Days remaining in the current sprint window */
+            days_remaining: number;
+            owner_reports_to?: string | null;
+            review_rating?: number | null;
+        };
         CreateWeek: {
             /**
              * Format: uuid
@@ -9955,10 +10081,20 @@ export interface components {
             updated_at: string;
         };
         ActiveWeeksResponse: {
-            sprints: components["schemas"]["Week"][];
-            currentSprintNumber: number;
+            weeks: components["schemas"]["ActiveWeekItem"][];
+            current_sprint_number: number;
             /** @description Days remaining in current sprint */
-            daysRemaining: number;
+            days_remaining: number;
+            /**
+             * @description ISO 8601 date string (YYYY-MM-DD)
+             * @example 2025-01-30
+             */
+            sprint_start_date: string;
+            /**
+             * @description ISO 8601 date string (YYYY-MM-DD)
+             * @example 2025-01-30
+             */
+            sprint_end_date: string;
         };
         Standup: {
             /**
@@ -11175,7 +11311,8 @@ export interface components {
             sprint_id?: string | null;
             sprint_name?: string | null;
             ice_score?: number | null;
-            inferred_status?: string;
+            /** @enum {string} */
+            inferred_status?: "active" | "planned" | "completed" | "backlog" | "archived";
             sprint_number?: number;
             days_remaining?: number;
             program_name?: string | null;

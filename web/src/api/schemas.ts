@@ -9,6 +9,20 @@ export type StandupStatus = components['schemas']['StandupStatus'];
 export type MentionSearchResult = components['schemas']['MentionSearchResult'];
 export type DocumentSearchResponse = components['schemas']['DocumentSearchResponse'];
 
+export type IssueListItem = components['schemas']['IssueListItem'];
+export type Issue = components['schemas']['Issue'];
+export type Project = components['schemas']['Project'];
+export type ProjectIssueListItem = components['schemas']['ProjectIssueListItem'];
+export type ProjectWeekListItem = components['schemas']['ProjectWeekListItem'];
+export type Program = components['schemas']['Program'];
+export type UserReference = components['schemas']['UserReference'];
+export type BelongsToResponse = components['schemas']['BelongsToResponse'];
+export type Week = components['schemas']['Week'];
+export type ProgramSprintListItem = components['schemas']['ProgramSprintListItem'];
+export type ProgramSprintsResponse = components['schemas']['ProgramSprintsResponse'];
+export type ActiveWeekItem = components['schemas']['ActiveWeekItem'];
+export type ActiveWeeksResponse = components['schemas']['ActiveWeeksResponse'];
+
 export interface SetupStatusData {
   needsSetup: boolean;
 }

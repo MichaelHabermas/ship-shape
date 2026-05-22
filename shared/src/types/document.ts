@@ -1,10 +1,40 @@
 // Document types
 
-// Document visibility for private/workspace documents
-export type DocumentVisibility = 'private' | 'workspace';
+import type {
+  AccountabilityType,
+  BelongsToType,
+  DocumentType,
+  DocumentVisibility,
+  IssuePriority,
+  IssueSource,
+  IssueState,
+} from '../enums/document-enums.js';
 
-// Association relationship types for belongs_to array
-export type BelongsToType = 'program' | 'project' | 'sprint' | 'parent';
+export {
+  DOCUMENT_TYPE_VALUES,
+  DOCUMENT_VISIBILITY_VALUES,
+  BELONGS_TO_TYPE_VALUES,
+  ISSUE_STATE_VALUES,
+  ISSUE_PRIORITY_VALUES,
+  ISSUE_SOURCE_VALUES,
+  ACCOUNTABILITY_TYPE_VALUES,
+  INFERRED_PROJECT_STATUS_VALUES,
+  ISSUE_STATE_OPTIONS,
+  ISSUE_STATE_LABELS,
+  ISSUE_PRIORITY_OPTIONS,
+  ISSUE_PRIORITY_OPTIONS_FULL,
+  ISSUE_PRIORITY_LABELS,
+  type DocumentType,
+  type DocumentVisibility,
+  type BelongsToType,
+  type IssueState,
+  type IssuePriority,
+  type IssueSource,
+  type AccountabilityType,
+  type InferredProjectStatus,
+  type SelectableDocumentType,
+  type ConversionDocumentType,
+} from '../enums/document-enums.js';
 
 // BelongsTo association entry - unified format for all document relationships
 export interface BelongsTo {
@@ -29,63 +59,6 @@ export interface CascadeWarning {
   incomplete_children: IncompleteChild[];
   confirm_action: string;
 }
-
-// Document type enum matching PostgreSQL enum
-export type DocumentType =
-  | 'wiki'
-  | 'issue'
-  | 'program'
-  | 'project'
-  | 'sprint'
-  | 'person'
-  | 'weekly_plan'
-  | 'weekly_retro'
-  | 'standup'
-  | 'weekly_review';
-
-/** Document types selectable in the type picker UI. */
-export type SelectableDocumentType = Extract<DocumentType, 'wiki' | 'issue' | 'project' | 'sprint'>;
-
-/** Document types that support issue ↔ project conversion. */
-export type ConversionDocumentType = Extract<DocumentType, 'issue' | 'project'>;
-
-// Issue states
-export type IssueState = 'triage' | 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
-
-// Issue priorities
-export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent' | 'none';
-
-/** Issue state labels for UI selectors and context menus. */
-export const ISSUE_STATE_OPTIONS: { value: IssueState; label: string }[] = [
-  { value: 'triage', label: 'Needs Triage' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'todo', label: 'Todo' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'done', label: 'Done' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
-
-/** Map of issue state values to display labels (derived from ISSUE_STATE_OPTIONS). */
-export const ISSUE_STATE_LABELS: Record<IssueState, string> = Object.fromEntries(
-  ISSUE_STATE_OPTIONS.map((option) => [option.value, option.label])
-) as Record<IssueState, string>;
-
-// Issue source - provenance, never changes after creation
-export type IssueSource = 'internal' | 'external' | 'action_items';
-
-// Accountability types for auto-generated action_items issues
-export type AccountabilityType =
-  | 'standup'
-  | 'weekly_plan'
-  | 'weekly_retro'
-  | 'weekly_review'
-  | 'week_start'
-  | 'week_issues'
-  | 'project_plan'
-  | 'project_retro'
-  | 'changes_requested_plan'
-  | 'changes_requested_retro';
 
 // Sprint status - computed from dates, not stored
 export type WeekStatus = 'active' | 'upcoming' | 'completed';
@@ -123,9 +96,6 @@ export interface ProgramProperties {
 
 // ICE score type (1-5 scale for prioritization)
 export type ICEScore = 1 | 2 | 3 | 4 | 5;
-
-/** Project status inferred from sprint relationships (list/dashboard views). */
-export type InferredProjectStatus = 'active' | 'planned' | 'completed' | 'backlog' | 'archived';
 
 export interface ProjectProperties {
   // ICE prioritization scores (1-5 scale, null = not yet set)
