@@ -78,7 +78,7 @@ export function getNumber(value: unknown): number | null {
 }
 
 export function getStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value) ? value.filter((item: unknown): item is string => typeof item === 'string') : [];
 }
 
 export function getRecord(value: unknown): Record<string, unknown> | undefined {

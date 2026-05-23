@@ -77,7 +77,7 @@ function ActionItemRow({ item, onItemClick, isLoading }: { item: ActionItem; onI
     <button
       onClick={() => onItemClick(item)}
       disabled={isLoading}
-      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-border/50 transition-colors text-left disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-border/50 transition-colors text-left disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {/* Type icon */}
       <span className={cn(
@@ -192,15 +192,14 @@ export function ActionItemsModal({ open, onClose }: ActionItemsModalProps) {
                 )}
               </Dialog.Description>
             </div>
-            <button
-              onClick={onClose}
+            <Dialog.Close
               className="rounded-md p-1 text-muted hover:bg-border hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Close"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </Dialog.Close>
           </div>
 
           {/* Content */}

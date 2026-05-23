@@ -573,7 +573,7 @@
           "items": [
             {
               "label": "Initial entry chunk",
-              "value": "2025.10 KB -> 530.77 KB in latest dist artifact; -73.8%."
+              "value": "2025.10 KB -> 528.48 KB in latest dist artifact; -73.9%."
             },
             {
               "label": "After artifact",
@@ -666,21 +666,23 @@
           "id": "cat2-latest-bundle",
           "kind": "bundle_size_summary",
           "label": "Latest production bundle",
-          "recorded_at": "2026-05-22",
-          "artifact": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
+          "recorded_at": "2026-05-23",
+          "artifact": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
           "values": {
-            "total_js_css_kb": 2396.29,
-            "latest_js_bytes_from_artifact": 2328607,
-            "latest_css_bytes_from_artifact": 67678,
-            "initial_entry_chunk_name": "assets/index-CeOsbhgF.js",
-            "initial_entry_chunk_kb": 530.77,
-            "largest_reported_chunk_name": "assets/PropertyRow-DPbMYz5a.js",
-            "largest_reported_chunk_kb": 837.24,
-            "chunk_count_reported": 295
+            "total_js_css_kb": 2369.69,
+            "latest_js_bytes_from_artifact": 2303049,
+            "latest_css_bytes_from_artifact": 66639,
+            "initial_entry_chunk_name": "assets/index-C_5JJPag.js",
+            "initial_entry_chunk_kb": 528.48,
+            "largest_reported_chunk_name": "assets/PropertyRow-DksaYHMP.js",
+            "largest_reported_chunk_kb": 642.48,
+            "chunk_count_reported": 296,
+            "prior_closeout_total_js_css_kb": 2396.29,
+            "prior_closeout_largest_chunk_kb": 837.24
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json"
+          "source": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json"
         }
       ],
       "derived_metrics": [
@@ -690,9 +692,9 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2025.1,
-          "latest_value": 530.77,
-          "change_absolute": -1494.33,
-          "change_percent": -73.8,
+          "latest_value": 528.48,
+          "change_absolute": -1496.62,
+          "change_percent": -73.9,
           "threshold_percent": -20,
           "origin": "computed",
           "confidence": "artifact_backed"
@@ -703,9 +705,9 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2025.1,
-          "latest_value": 837.24,
-          "change_absolute": -1187.86,
-          "change_percent": -58.7,
+          "latest_value": 642.48,
+          "change_absolute": -1382.62,
+          "change_percent": -68.3,
           "origin": "computed",
           "confidence": "artifact_backed"
         },
@@ -715,9 +717,9 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2262.65,
-          "latest_value": 2396.29,
-          "change_absolute": 133.64,
-          "change_percent": 5.9,
+          "latest_value": 2369.69,
+          "change_absolute": 107.04,
+          "change_percent": 4.7,
           "origin": "computed",
           "confidence": "artifact_backed"
         }
@@ -729,7 +731,7 @@
           "metric_id": "cat2-initial-entry-chunk-reduction",
           "operator": "percent_decrease_at_least",
           "threshold": 20,
-          "actual": 73.8,
+          "actual": 73.9,
           "result": "pass"
         },
         {
@@ -779,7 +781,7 @@
           "type": "target_result",
           "target_id": "cat2-target-before-after-output",
           "result": "pass",
-          "notes": "Latest bundle-analysis HTML artifact exists under my-docs/evidence-runs/cat2-closeout/collectors/."
+          "notes": "Latest bundle-analysis HTML artifact exists under my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/."
         },
         {
           "id": "cat2-no-functionality-removal-documented",
@@ -792,14 +794,14 @@
         {
           "id": "cat2-clears-initial-entry-code-splitting-target",
           "status": "proven",
-          "statement": "Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.",
+          "statement": "Initial entry bundle decreased from 2025.10 KB to 528.48 KB, a 73.9% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.",
           "basis": [
             "cat2-initial-entry-chunk-reduction",
             "cat2-target-before-after-output",
             "cat2-build-web-command"
           ],
           "limits": [
-            "This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.29 KB in the latest artifact.",
+            "This does not claim total JS/CSS bundle reduction; total JS/CSS is 2369.69 KB in the latest artifact (still above the 2262.65 KB baseline, but improved vs the 2026-05-22 closeout 2396.29 KB after lazy lowlight).",
             "The claim is scoped to initial page-load/code-splitting improvement.",
             "Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features."
           ]
@@ -828,18 +830,18 @@
         {
           "id": "cat2-latest-bundle-stats",
           "type": "artifact",
-          "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
-          "description": "Latest closeout bundle stats artifact from dependency-free collector."
+          "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
+          "description": "Latest easy-wins bundle stats artifact from dependency-free collector."
         },
         {
           "id": "cat2-latest-bundle-analysis",
           "type": "artifact",
-          "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html",
+          "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html",
           "description": "Latest closeout bundle-analysis HTML artifact generated from web/dist."
         }
       ],
       "caveats": [
-        "Total JS/CSS increased in the latest artifact, so the proven claim is limited to initial entry/code-splitting reduction."
+        "Total JS/CSS remains above baseline; the proven claim is limited to initial entry/code-splitting reduction. Lazy lowlight (2026-05-23) reduced largest chunk and total JS/CSS vs the prior closeout artifact without changing the claim ID."
       ],
       "non_claims": [
         "Does not claim total bundle reduction.",
@@ -848,8 +850,8 @@
       "sources": [
         "my-docs/AUDIT_REPORT.md",
         "my-docs/IMPROVEMENT_REPORT.md",
-        "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
-        "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html"
+        "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
+        "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html"
       ]
     },
     {
@@ -1762,8 +1764,8 @@
           "values": {
             "request_count": 7,
             "total_queries": 33,
-            "response_bytes": 984044,
-            "elapsed_ms": 32
+            "response_bytes": 369567,
+            "elapsed_ms": 26
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
@@ -1778,8 +1780,8 @@
           "values": {
             "request_count": 1,
             "total_queries": 24,
-            "response_bytes": 984123,
-            "elapsed_ms": 17
+            "response_bytes": 369646,
+            "elapsed_ms": 15
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
@@ -1797,6 +1799,24 @@
             "projects_list_counts_ms": 0.774,
             "audit_logs_tagged_recent_ms": 2.75,
             "document_association_issue_project_ms": 0.643
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat4-search-content-after",
+          "kind": "query_count_flow",
+          "label": "Server-backed content search per request",
+          "recorded_at": "2026-05-23",
+          "artifact": "test-results/perf/query-count-api-easy-wins-20260523.json",
+          "values": {
+            "flow_name": "content_search_distribution",
+            "queries_per_request": 3,
+            "request_count_in_flow": 4,
+            "total_queries_in_flow": 12,
+            "baseline_search_content_queries": 0,
+            "note": "Client-side title filter (0 server queries) replaced by server FTS; documented as efficiency tradeoff, not a query-count reduction win."
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
@@ -1834,8 +1854,8 @@
           "kind": "absolute_change",
           "baseline_measurement_id": "cat4-docs-startup-before",
           "latest_measurement_id": "cat4-docs-startup-after",
-          "baseline_value": 984044,
-          "latest_value": 984123,
+          "baseline_value": 369567,
+          "latest_value": 369646,
           "change_absolute": 79,
           "origin": "computed",
           "confidence": "artifact_backed"
@@ -1957,6 +1977,7 @@
       ],
       "caveats": [
         "Bootstrap query-count proof is flow-level app-shell consolidation, not a row-level N+1 fix.",
+        "The before/after EXPLAIN artifact compares old fanout constituent SQL with current bootstrap constituent SQL on the current schema; it is not a historical-checkout EXPLAIN rerun.",
         "Does not claim 50% slowest-query improvement."
       ],
       "non_claims": [
@@ -1997,7 +2018,7 @@
             "api_branches_percent": 33.44,
             "api_functions_percent": 40.9,
             "api_lines_percent": 40.52,
-            "web": "not configured"
+            "web": "not configured at audit time; later measured at 37.1% statements after V8 coverage setup"
           }
         },
         "findings": [
@@ -2021,7 +2042,7 @@
             },
             {
               "label": "Coverage",
-              "value": "API around 40%; web coverage not configured."
+              "value": "API around 40%; web coverage later measured at 37.1% statements."
             }
           ]
         },
@@ -2251,7 +2272,7 @@
           ],
           "limits": [
             "Full E2E is green for the recorded lower-worker rerun, but retry artifact logs remain useful flake follow-up signals.",
-            "Does not claim web coverage tooling was added.",
+            "Does not claim coverage percentage improved or strict thresholds were enforced.",
             "The claim is the source target of three meaningful regressions plus current unit-suite pass evidence."
           ]
         }
@@ -2289,12 +2310,12 @@
           "id": "cat5-risk-comment-locations",
           "type": "methodology",
           "path": "my-docs/IMPROVEMENT_REPORT.md",
-          "description": "Counted risk comments live in web/src/components/editor/CommentMark.test.ts:15, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:301."
+          "description": "Counted risk comments live in web/src/components/editor/CommentMark.test.ts:27, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:302."
         }
       ],
       "caveats": [
         "Full E2E passed with retry artifact logs still recorded as flake follow-up context.",
-        "Web coverage tooling remains not configured."
+        "Web coverage is measured, but strict coverage thresholds remain intentionally unset."
       ],
       "non_claims": [
         "Does not claim zero retry artifacts under every worker count.",
@@ -2357,11 +2378,11 @@
           "items": [
             {
               "label": "Focused runtime E2E",
-              "value": "Historical focused run: 8 passed / 0 failed with named screenshots; current rerun blocked by Docker preflight."
+              "value": "Focused runtime refresh: 8 passed / 0 failed with named screenshots."
             },
             {
               "label": "Proven fixes",
-              "value": "CSRF JSON 403, Backlinks offline/stale status, and AI unavailable degraded mode are documented."
+              "value": "CSRF JSON 403, offline editor draft preservation, and AI unavailable degraded mode are documented."
             },
             {
               "label": "Third fix",
@@ -2442,7 +2463,7 @@
           "id": "cat6-runtime-e2e-closeout",
           "kind": "e2e_runtime_evidence",
           "label": "Focused runtime evidence E2E",
-          "recorded_at": "2026-05-21",
+          "recorded_at": "2026-05-23",
           "values": {
             "passed": 8,
             "failed": 0,
@@ -2478,8 +2499,8 @@
           "description": "At least one fix involves real user-facing data loss or confusion.",
           "operator": "manual_gate",
           "result": "pass",
-          "reason": "Backlinks offline/degraded state preserves stale data visibly instead of failing silently.",
-          "references": ["cat6-backlinks-offline-fix"]
+          "reason": "Offline editor evidence preserves typed draft content through network failure instead of losing user work.",
+          "references": ["cat6-offline-editor-preserves-draft"]
         },
         {
           "id": "cat6-target-runtime-screenshots",
@@ -2544,7 +2565,7 @@
         {
           "id": "cat6-runtime-error-handling-partial",
           "status": "proven",
-          "statement": "Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode.",
+          "statement": "Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode.",
           "basis": [
             "cat6-explicit-fix-proof-count",
             "cat6-target-runtime-screenshots",
@@ -2553,7 +2574,7 @@
           "limits": [
             "Does not count comments visibility or migration bootstrap as Category 6 proof.",
             "Does not claim process-level unhandled rejection handling is solved.",
-            "Current E2E rerun was blocked by Docker preflight; existing focused E2E and new AI screenshot are the artifact basis."
+            "Focused runtime E2E and the AI unavailable collector are the screenshot artifact basis."
           ]
         }
       ],
@@ -2564,39 +2585,44 @@
           "description": "Missing-CSRF probe returned JSON 403 instead of Express HTML/error output."
         },
         {
+          "id": "cat6-offline-editor-preserves-draft",
+          "type": "manual_observation",
+          "description": "Editor preserves typed draft content while offline and remains usable after reconnect."
+        },
+        {
           "id": "cat6-backlinks-offline-fix",
           "type": "manual_observation",
-          "description": "Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect."
+          "description": "Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect; treated as supporting improvement rather than one of the three screenshot-backed Cat 6 fixes."
         },
         {
           "id": "cat6-runtime-e2e-run",
           "type": "test_run",
-          "command": "E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts",
+          "command": "E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts",
           "result": "8 passed / 0 failed",
-          "description": "Focused runtime evidence E2E run."
+          "description": "Focused runtime evidence E2E run (2026-05-23 refresh)."
         },
         {
           "id": "cat6-runtime-screenshot-api-500",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
           "description": "API 500 fallback UI runtime screenshot."
         },
         {
           "id": "cat6-runtime-screenshot-offline",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
           "description": "Offline editor draft preservation runtime screenshot."
         },
         {
           "id": "cat6-runtime-screenshot-csrf",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
           "description": "CSRF JSON/editor usable runtime screenshot."
         },
         {
           "id": "cat6-runtime-screenshot-concurrent",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
           "description": "Concurrent API failure fallback runtime screenshot."
         },
         {
@@ -2619,8 +2645,7 @@
         }
       ],
       "caveats": [
-        "Process-level unhandled rejection handlers remain outside this Cat 6 closeout.",
-        "Current focused E2E rerun was blocked because Docker was not running; the historical focused E2E artifact plus new AI screenshot are retained as evidence."
+        "Process-level unhandled rejection handlers remain outside this Cat 6 closeout."
       ],
       "non_claims": [
         "Does not count comments authorization hardening as a Category 6 user-facing runtime proof.",
@@ -2644,13 +2669,13 @@
           "counts_toward_user_facing_confusion_or_data_loss": true
         },
         {
-          "id": "cat6-backlinks-offline-fix-record",
-          "title": "Backlinks offline/degraded state preserves context",
-          "repro_steps": "Open a document with backlinks context, then force the backlinks request/network path offline or failing.",
-          "before_behavior": "Backlinks failures were console-only and the UI could silently lose context.",
-          "after_behavior": "The UI preserves the last successful context and shows stale/offline/degraded status.",
-          "screenshot_path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
-          "user_impact": "Reduces user confusion and avoids apparent data/context loss while offline.",
+          "id": "cat6-offline-editor-preserves-draft-record",
+          "title": "Offline editor draft preservation",
+          "repro_steps": "Create a document, type content while online, force the browser offline, continue typing, then reconnect.",
+          "before_behavior": "Network failure could create user confusion about whether unsaved editor content survived.",
+          "after_behavior": "The editor remains usable while offline, preserves the typed draft, and remains usable after reconnect.",
+          "screenshot_path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
+          "user_impact": "Prevents apparent data loss during a realistic network disconnect while editing.",
           "counts_toward_user_facing_confusion_or_data_loss": true
         },
         {
@@ -2812,13 +2837,19 @@
           "id": "cat7-closeout-axe",
           "kind": "axe_closeout_by_page",
           "label": "Closeout axe scan for selected top pages",
-          "recorded_at": "2026-05-22",
+          "recorded_at": "2026-05-23",
           "tooling": {
             "command": "pnpm a11y:closeout -- --fail-on-serious"
           },
           "artifact": "test-results/a11y-closeout/axe-summary.json",
           "values": {
+            "/login": {
+              "violations": 0
+            },
             "/docs": {
+              "violations": 0
+            },
+            "/issues": {
               "violations": 0
             },
             "/documents/:id": {

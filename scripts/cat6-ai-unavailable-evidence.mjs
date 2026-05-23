@@ -32,7 +32,8 @@ async function firstWeeklyPlanPath(page) {
     return response.json();
   });
 
-  const document = bootstrap.documents?.find((doc) => doc.document_type === 'weekly_plan');
+  const documents = bootstrap.data?.documents ?? bootstrap.documents;
+  const document = documents?.find((doc) => doc.document_type === 'weekly_plan');
   if (document) return `/documents/${document.id}`;
 
   throw new Error('No weekly_plan document found in bootstrap data. Seed the local database or set CAT6_DOCUMENT_PATH=/documents/<id>.');
@@ -47,8 +48,12 @@ async function main() {
 
   try {
     await login(context);
-    await page.goto(`${baseUrl}/docs`, { waitUntil: 'networkidle' });
-    const documentPath = await firstWeeklyPlanPath(page);
+    const documentPath = process.env.CAT6_DOCUMENT_PATH
+      ? process.env.CAT6_DOCUMENT_PATH
+      : await (async () => {
+          await page.goto(`${baseUrl}/docs`, { waitUntil: 'domcontentloaded' });
+          return firstWeeklyPlanPath(page);
+        })();
 
     await page.route('**/api/ai/status', (route) => {
       route.fulfill({
@@ -65,7 +70,7 @@ async function main() {
       });
     });
 
-    await page.goto(`${baseUrl}${documentPath}`, { waitUntil: 'networkidle' });
+    await page.goto(`${baseUrl}${documentPath}`, { waitUntil: 'domcontentloaded' });
     await page.getByText('AI unavailable', { exact: true }).waitFor({
       state: 'visible',
       timeout: 10_000,

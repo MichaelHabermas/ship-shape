@@ -1,19 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiClient, assertApiData } from '@/api/client';
+import type { components } from '@/api/generated/ship-openapi';
 import { ContextMenu, ContextMenuItem } from '@/components/ui/ContextMenu';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
 const POLL_INTERVAL_MS = 5000;
 const ERROR_RETRY_MS = 15000;
 
-interface Backlink {
-  id: string;
-  document_type: string;
-  title: string;
-  display_id?: string;
-}
+type Backlink = components['schemas']['Backlink'];
 
 interface BacklinksPanelProps {
   documentId: string;
@@ -80,15 +76,15 @@ export function BacklinksPanel({ documentId }: BacklinksPanelProps) {
           setLoading(true);
         }
 
-        const response = await fetch(`${API_URL}/api/documents/${documentId}/backlinks`, {
-          credentials: 'include',
+        const response = await apiClient.GET('/documents/{id}/backlinks', {
+          params: { path: { id: documentId } },
         });
 
-        if (!response.ok) {
+        if (response.error) {
           throw new Error('Failed to fetch backlinks');
         }
 
-        const data = await response.json();
+        const data = assertApiData(response, 'Failed to fetch backlinks');
 
         if (!cancelled) {
           setBacklinks(data);

@@ -122,19 +122,24 @@ async function main() {
 
   const browser = await chromium.launch();
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  const page = await context.newPage();
+  const pages = [];
 
   try {
+    const loginScanPage = await context.newPage();
+    pages.push(await scanPage(loginScanPage, baseUrl, { name: 'login', path: '/login' }));
+    await loginScanPage.close();
+
+    const page = await context.newPage();
     await login(page, baseUrl);
     const documentPath = await firstDocumentPath(page, baseUrl);
     const targets = [
       { name: 'docs', path: '/docs' },
       { name: 'projects', path: '/projects' },
+      { name: 'issues', path: '/issues' },
       ...(documentPath ? [{ name: 'document', path: documentPath }] : []),
       { name: 'my-week', path: '/my-week' },
     ];
 
-    const pages = [];
     for (const target of targets) {
       pages.push(await scanPage(page, baseUrl, target));
     }

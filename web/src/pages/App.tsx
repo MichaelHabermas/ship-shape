@@ -40,7 +40,7 @@ export function AppLayout() {
   const [actionItemsModalOpen, setActionItemsModalOpen] = useState(false);
   const [actionItemsModalShownOnLoad, setActionItemsModalShownOnLoad] = useState(false);
 
-  const handleSessionTimeout = useCallback(() => {
+  const handleSessionTimeout = useCallback(async () => {
     const returnTo = encodeURIComponent(location.pathname + location.search + location.hash);
     window.location.href = `/login?expired=true&returnTo=${returnTo}`;
   }, [location]);

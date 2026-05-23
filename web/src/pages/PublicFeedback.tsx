@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { readJson } from '@/api/read-json';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const API_URL = typeof import.meta.env.VITE_API_URL === 'string' ? import.meta.env.VITE_API_URL : '';
 
 interface Program {
   id: string;
@@ -31,7 +32,7 @@ export function PublicFeedbackPage() {
     fetch(`${API_URL}/api/feedback/program/${programId}`)
       .then(res => {
         if (!res.ok) throw new Error('Program not found');
-        return res.json();
+        return readJson<Program>(res);
       })
       .then(data => {
         setProgram(data);

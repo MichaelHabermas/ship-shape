@@ -1,0 +1,233 @@
+{
+  "name": "bundle-stats",
+  "status": "passed",
+  "summary": "Measured 335 built files totaling 3484695 bytes, including 294 JS chunks and 2 CSS chunks.",
+  "data": {
+    "distDir": "web/dist",
+    "fileCount": 335,
+    "totalBytes": 3484695,
+    "totalGzipBytes": 747750,
+    "totalJsBytes": 2303049,
+    "totalCssBytes": 66639,
+    "jsChunkCount": 294,
+    "cssChunkCount": 2,
+    "byExtension": {
+      ".js": {
+        "files": 294,
+        "bytes": 2303049
+      },
+      ".css": {
+        "files": 2,
+        "bytes": 66639
+      },
+      ".xml": {
+        "files": 1,
+        "bytes": 367
+      },
+      ".png": {
+        "files": 31,
+        "bytes": 1065895
+      },
+      ".ico": {
+        "files": 2,
+        "bytes": 28972
+      },
+      ".svg": {
+        "files": 2,
+        "bytes": 13362
+      },
+      ".html": {
+        "files": 1,
+        "bytes": 4548
+      },
+      ".json": {
+        "files": 1,
+        "bytes": 1663
+      },
+      ".txt": {
+        "files": 1,
+        "bytes": 200
+      }
+    },
+    "largestAssets": [
+      {
+        "path": "web/dist/assets/PropertyRow-DksaYHMP.js",
+        "name": "PropertyRow-DksaYHMP.js",
+        "bytes": 642477,
+        "gzipBytes": 201422,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-C_5JJPag.js",
+        "name": "index-C_5JJPag.js",
+        "bytes": 528479,
+        "gzipBytes": 155333,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/emoji-picker-react.esm-B4Dv38G8.js",
+        "name": "emoji-picker-react.esm-B4Dv38G8.js",
+        "bytes": 309510,
+        "gzipBytes": 74967,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-1024.png",
+        "name": "logo-1024.png",
+        "bytes": 275505,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/assets/index-Bj-nkL36.js",
+        "name": "index-Bj-nkL36.js",
+        "bytes": 172222,
+        "gzipBytes": 52159,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/icons/blue/android-chrome-512x512.png",
+        "name": "android-chrome-512x512.png",
+        "bytes": 135090,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-512.png",
+        "name": "logo-512.png",
+        "bytes": 135090,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/assets/UnifiedDocumentPage-ByoNDx6y.js",
+        "name": "UnifiedDocumentPage-ByoNDx6y.js",
+        "bytes": 134227,
+        "gzipBytes": 36048,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/og-image.png",
+        "name": "og-image.png",
+        "bytes": 70180,
+        "gzipBytes": null,
+        "extension": ".png"
+      },
+      {
+        "path": "web/dist/icons/blue/logo-256.png",
+        "name": "logo-256.png",
+        "bytes": 65673,
+        "gzipBytes": null,
+        "extension": ".png"
+      }
+    ],
+    "topBuiltChunks": [
+      {
+        "path": "web/dist/assets/PropertyRow-DksaYHMP.js",
+        "name": "PropertyRow-DksaYHMP.js",
+        "bytes": 642477,
+        "gzipBytes": 201422,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-C_5JJPag.js",
+        "name": "index-C_5JJPag.js",
+        "bytes": 528479,
+        "gzipBytes": 155333,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/emoji-picker-react.esm-B4Dv38G8.js",
+        "name": "emoji-picker-react.esm-B4Dv38G8.js",
+        "bytes": 309510,
+        "gzipBytes": 74967,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-Bj-nkL36.js",
+        "name": "index-Bj-nkL36.js",
+        "bytes": 172222,
+        "gzipBytes": 52159,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/UnifiedDocumentPage-ByoNDx6y.js",
+        "name": "UnifiedDocumentPage-ByoNDx6y.js",
+        "bytes": 134227,
+        "gzipBytes": 36048,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-RzoK89i_.css",
+        "name": "index-RzoK89i_.css",
+        "bytes": 65229,
+        "gzipBytes": 12534,
+        "extension": ".css"
+      },
+      {
+        "path": "web/dist/assets/IssuesList-Zy-ZGZKP.js",
+        "name": "IssuesList-Zy-ZGZKP.js",
+        "bytes": 53784,
+        "gzipBytes": 15686,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/core.esm-C1z87-me.js",
+        "name": "core.esm-C1z87-me.js",
+        "bytes": 43698,
+        "gzipBytes": 14509,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/ReviewsPage-Dt6q-aw1.js",
+        "name": "ReviewsPage-Dt6q-aw1.js",
+        "bytes": 28410,
+        "gzipBytes": 7203,
+        "extension": ".js"
+      },
+      {
+        "path": "web/dist/assets/index-ByfH5Ds5.js",
+        "name": "index-ByfH5Ds5.js",
+        "bytes": 23084,
+        "gzipBytes": 9251,
+        "extension": ".js"
+      }
+    ],
+    "currentEntry": "assets/index-C_5JJPag.js",
+    "currentEntryAsset": {
+      "path": "web/dist/assets/index-C_5JJPag.js",
+      "name": "index-C_5JJPag.js",
+      "bytes": 528479,
+      "gzipBytes": 155333,
+      "extension": ".js"
+    },
+    "indexHtml": {
+      "path": "web/dist/index.html",
+      "name": "index.html",
+      "bytes": 4548,
+      "gzipBytes": 1164,
+      "extension": ".html"
+    },
+    "report": {
+      "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html",
+      "title": "Bundle Analysis"
+    }
+  },
+  "claims": [
+    {
+      "id": "bundle.dist-present",
+      "status": "met",
+      "statement": "web/dist exists and was measured."
+    },
+    {
+      "id": "bundle.index-html",
+      "status": "met",
+      "statement": "web/dist/index.html is present."
+    },
+    {
+      "id": "bundle.entry-js",
+      "status": "met",
+      "statement": "Current entry JS was found at web/dist/assets/index-C_5JJPag.js."
+    }
+  ]
+}
