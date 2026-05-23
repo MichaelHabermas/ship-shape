@@ -4,7 +4,7 @@ This document provides a comprehensive reference for all API endpoints in the Sh
 
 ## Authentication
 
-All endpoints (except login) require authentication via session cookie (`session_id`).
+Most endpoints require authentication via session cookie (`session_id`) or API token. Public routes include `/health`, `/api/csrf-token`, `/api/auth/login`, `/api/auth/caia/*`, `/api/auth/piv/*`, `/api/setup`, and `/api/feedback` (public submission).
 
 ### POST /api/auth/login
 
@@ -142,13 +142,13 @@ Search learning wiki documents by title, tag, or category. This endpoint returns
 }
 ```
 
-`/api/search/documents` exists only for title-only command-palette metadata search. The `/docs` UI searches documents by filtering loaded titles on the client. Ship does not provide full-text content search for documents.
+`/api/search/documents` is title-only metadata search for the command palette. `/api/search/content` is full-text search over TipTap body text and selected properties via `document_search_index`. `/api/search/learnings` is a specialized wiki filter for `Learning:*` documents.
 
 ---
 
 ## Documents
 
-Documents are the core data model. All content types (wiki, issue, program, project, sprint, person) are stored as documents with a `document_type` field.
+Documents are the core data model. All content types (wiki, issue, program, project, sprint, person, weekly_plan, weekly_retro, standup, weekly_review) are stored as documents with a `document_type` field.
 
 ### GET /api/documents
 
@@ -157,7 +157,7 @@ List documents with optional filters.
 **Authentication:** Required
 
 **Query Parameters:**
-- `type` - Filter by document_type (wiki, issue, program, project, sprint, person)
+- `type` - Filter by document_type (wiki, issue, program, project, sprint, person, weekly_plan, weekly_retro, standup, weekly_review)
 - `parent_id` - Filter by parent document (use "null" for root documents)
 
 **Response:**
@@ -213,7 +213,7 @@ Update a document.
 - `title`, `content`, `parent_id`, `position`, `visibility`, `document_type`
 - Issue fields: `state`, `priority`, `estimate`, `assignee_id`, `source`, `belongs_to`
 - Project fields: `impact`, `confidence`, `ease`, `color`, `owner_id`
-- Week fields: `start_date`, `end_date`, `sprint_status` (historical name), `goal`
+- Week fields: `start_date`, `end_date`, `sprint_status` (historical name), `plan`
 
 ### DELETE /api/documents/:id
 
@@ -531,9 +531,9 @@ Get weeks associated with a project.
 
 **Authentication:** Required
 
-### POST /api/projects/:id/weeks
+### POST /api/projects/:id/sprints
 
-Create a week under a project.
+Create a week under a project. (`GET /api/projects/:id/weeks` lists weeks; creation uses the `/sprints` path.)
 
 **Authentication:** Required
 
@@ -543,8 +543,7 @@ Create a week under a project.
   "title": "Untitled",
   "sprint_number": null,
   "owner_id": null,
-  "goal": null,
-  "hypothesis": null,
+  "plan": null,
   "success_criteria": [],
   "confidence": null
 }
@@ -626,21 +625,6 @@ Update a week.
 Delete a week.
 
 **Authentication:** Required
-
-### PATCH /api/weeks/:id/hypothesis
-
-Update week hypothesis.
-
-**Authentication:** Required
-
-**Request Body:**
-```json
-{
-  "hypothesis": "New hypothesis text",
-  "success_criteria": ["Criteria 1", "Criteria 2"],
-  "confidence": 75
-}
-```
 
 ### GET /api/weeks/:id/issues
 
@@ -891,7 +875,7 @@ Delete a file.
 
 Real-time document collaboration using Yjs CRDTs.
 
-### WebSocket /collaboration/:docType::docId
+### WebSocket /collaboration/:docType:docId
 
 Connect to real-time collaboration session.
 

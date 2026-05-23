@@ -21,12 +21,13 @@ export const SESSION_TIMEOUT_MS = 15 * 60 * 1000;      // 15 minutes
 export const ABSOLUTE_SESSION_TIMEOUT_MS = 12 * 60 * 60 * 1000;  // 12 hours
 ```
 
-**Session validation** (`api/src/middleware/auth.ts:148-180`):
+**Session validation** (`api/src/services/session-auth.ts:36-80`, used by `api/src/middleware/auth.ts:135`):
+- Shared `validateAuthenticatedSession()` for HTTP and WebSocket paths
 - Validates inactivity timeout against `last_activity`
 - Validates absolute timeout against `created_at`
-- Deletes expired sessions and returns `SESSION_EXPIRED` error
-- Updates `last_activity` on each request
-- Sliding cookie expiration (refreshes if >60s since last activity)
+- Deletes expired sessions and returns structured failure reasons
+- Updates `last_activity` when `updateActivity: true`
+- Enforces workspace membership revocation (fail-closed)
 
 ### Password Authentication
 
@@ -132,26 +133,45 @@ const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 // ... query with VISIBILITY_FILTER_SQL('d', '$2', '$3') ...
 ```
 
-**Real-time visibility enforcement** (`api/src/collaboration/index.ts:551-596`):
+**Real-time visibility enforcement** (`api/src/collaboration/index.ts:489-534`):
 - When document visibility changes to `private`, non-authorized WebSocket connections are closed with code `4403`
 - `handleVisibilityChange()` exported for routes to call after visibility updates
 
 ## 3. CSRF Protection
 
-Session cookies are configured with strong CSRF protection:
+Mutating API routes use `csrf-sync` (`api/src/app.ts:54-67`):
 
-**Cookie settings** (`api/src/routes/auth.ts:182-188`):
 ```typescript
-res.cookie('session_id', sessionId, {
-  httpOnly: true,           // Prevents JavaScript access
-  secure: process.env.NODE_ENV === 'production',  // HTTPS only in prod
-  sameSite: 'strict',       // Prevents cross-site requests
-  maxAge: SESSION_TIMEOUT_MS,
-  path: '/',
+import { csrfSync } from 'csrf-sync';
+
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+  getTokenFromRequest: (req) => req.headers['x-csrf-token'] ?? '',
 });
+
+// Skip CSRF for Bearer token auth (not auto-attached by browsers)
+const conditionalCsrf = (req, res, next) => {
+  if (req.headers.authorization?.startsWith('Bearer ')) return next();
+  return csrfSynchronisedProtection(req, res, next);
+};
 ```
 
-**Note**: CAIA OAuth always uses `secure: true` since OAuth requires HTTPS (`caia-auth.ts:284-290`).
+Clients fetch a token from `GET /api/csrf-token` and send it as `X-CSRF-Token` on mutating requests.
+
+**Session cookie settings** (`api/src/config/session-cookies.ts`, used by `api/src/routes/auth.ts:185`):
+
+```typescript
+export function sessionCookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: isProduction(),
+    sameSite: sessionSameSitePolicy(), // 'none' on Render production, 'strict' locally
+    maxAge: SESSION_TIMEOUT_MS,
+    path: '/',
+  };
+}
+```
+
+**Note**: CAIA OAuth always uses `secure: true` since OAuth requires HTTPS (`caia-auth.ts`).
 
 ## 4. Rate Limiting
 
@@ -286,16 +306,6 @@ comply opensource --hook --staged --exclude e2e --skip-trivy
 
 **Important**: Never bypass hooks with `git commit --no-verify`. Fix issues instead.
 
-## 9. CI Security Checks
-
-GitHub Actions runs security checks on every PR (from CLAUDE.md):
-
-**Required status checks**:
-- `secrets-scan`: Runs gitleaks on full commit history
-- `attestation-check`: Verifies ATTESTATION.md exists and is recent
-
-PRs cannot merge without passing these checks.
-
 ## Security Quick Reference
 
 | Area | Implementation | File:Line |
@@ -305,7 +315,7 @@ PRs cannot merge without passing these checks.
 | Password hashing | bcrypt | `api/src/routes/auth.ts:76` |
 | Session ID generation | crypto.randomBytes(32) | `api/src/routes/auth.ts:13-15` |
 | API token hashing | SHA-256 | `api/src/middleware/auth.ts:20-22` |
-| Cookie protection | httpOnly, secure, sameSite:strict | `api/src/routes/auth.ts:182-188` |
+| Cookie protection | httpOnly, secure, conditional SameSite | `api/src/config/session-cookies.ts` |
 | WS connection limit | 30/min per IP | `api/src/collaboration/index.ts:19-20` |
 | WS message limit | 50/sec per connection | `api/src/collaboration/index.ts:22-23` |
 | Input validation | Zod schemas | All route files |

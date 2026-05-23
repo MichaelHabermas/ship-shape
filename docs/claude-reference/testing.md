@@ -20,7 +20,7 @@ Setup files:
 pnpm test              # Run API unit tests (vitest)
 ```
 
-Requires PostgreSQL running locally. Tests share a single database connection via `api/src/db/client.js` but clean up via `beforeAll` in setup.
+Requires PostgreSQL running locally. Tests share a single database connection via `api/src/db/client.ts` but clean up via `beforeAll` in setup.
 
 ### E2E Tests - USE THE SKILL
 
@@ -111,14 +111,24 @@ Memory per worker: ~500MB (150MB Postgres + 100MB API + 50MB Preview + 200MB Bro
 
 ### Unit Tests (Shared Database)
 
-Unit tests share one database but clean tables in `beforeAll`:
+Unit tests share one database but clean tables in `beforeAll` via `TRUNCATE CASCADE` (guarded to refuse non-test databases):
 
 ```typescript
-// api/src/test/setup.ts:11-23
+// api/src/test/setup.ts:7-30
 beforeAll(async () => {
-  await pool.query('DELETE FROM workspace_invites WHERE 1=1')
-  await pool.query('DELETE FROM sessions WHERE 1=1')
-  // ... clean all tables in FK order
+  process.env.NODE_ENV = 'test';
+
+  const databaseName = (process.env.DATABASE_URL || '').split('/').pop()?.split('?')[0] || '';
+  if (!/(^|[_-])(test|audit)([_-]|$)/i.test(databaseName) && process.env.ALLOW_DESTRUCTIVE_TEST_DB !== 'true') {
+    throw new Error('Refusing to truncate non-test database');
+  }
+
+  await pool.query(`TRUNCATE TABLE
+    workspace_invites, sessions, files, document_links, document_history,
+    comments, document_associations, document_snapshots, sprint_iterations,
+    issue_iterations, documents, audit_logs, workspace_memberships,
+    users, workspaces
+    CASCADE`);
 })
 ```
 

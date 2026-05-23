@@ -81,12 +81,12 @@ sequenceDiagram
     participant WS as WebSocket Server
     participant DB as PostgreSQL
 
-    C1->>WS: Connect /collaboration/doc:uuid
+    C1->>WS: Connect /collaboration/wiki:uuid
     WS->>DB: Validate Session
     WS->>DB: Load yjs_state
     WS-->>C1: Sync Step 1
 
-    C2->>WS: Connect /collaboration/doc:uuid
+    C2->>WS: Connect /collaboration/wiki:uuid
     WS-->>C2: Sync Step 1
 
     C1->>WS: Edit (Yjs update)
@@ -107,8 +107,6 @@ erDiagram
         jsonb properties
         uuid workspace_id FK
         uuid parent_id FK
-        uuid project_id FK
-        uuid program_id FK
         string visibility
     }
 
@@ -118,9 +116,9 @@ erDiagram
 
     document_associations {
         uuid id PK
-        uuid source_document_id FK
-        uuid target_document_id FK
-        string relationship_type
+        uuid document_id FK
+        uuid related_id FK
+        relationship_type relationship_type
     }
 ```
 

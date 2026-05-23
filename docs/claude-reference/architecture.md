@@ -23,7 +23,7 @@ ship/
 │   │   ├── routes/         # REST endpoints (documents, issues, weeks, etc.)
 │   │   ├── db/             # PostgreSQL client + schema
 │   │   ├── collaboration/  # WebSocket + Yjs handlers
-│   │   ├── middleware/     # Auth, CSRF, visibility checks
+│   │   ├── middleware/     # Auth and visibility checks (auth.ts, visibility.ts)
 │   │   └── index.ts        # Entry point
 │
 ├── web/                    # React frontend
@@ -57,11 +57,10 @@ The central architectural pattern: **everything is a document with properties**.
 All content lives in a single `documents` table with a `document_type` discriminator:
 
 ```sql
--- api/src/db/schema.sql:83-87
--- Note: document_type enum uses 'sprint' for historical compatibility
+-- api/src/db/schema.sql (see shared/src/enums/document-enums.ts for source of truth)
 CREATE TYPE document_type AS ENUM (
-  'wiki', 'issue', 'program', 'project', 'sprint',
-  'person', 'sprint_plan', 'sprint_retro'
+  'wiki', 'issue', 'program', 'project', 'sprint', 'person',
+  'weekly_plan', 'weekly_retro', 'standup', 'weekly_review'
 );
 ```
 
@@ -71,8 +70,12 @@ CREATE TYPE document_type AS ENUM (
 | `issue` | Work items (tasks/bugs) | state, priority, assignee_id, ticket_number |
 | `program` | Long-lived product/initiative | color, emoji |
 | `project` | Time-bounded deliverable | impact, confidence, ease (ICE scores), owner_id |
-| `sprint` | Week container (historical DB name for "week") | sprint_number, owner_id |
+| `sprint` | Week container (historical DB name for "week") | sprint_number, owner_id, plan |
 | `person` | User profile document | email, role, capacity_hours |
+| `weekly_plan` | Week planning document | sprint_id, author_id |
+| `weekly_retro` | Week retrospective | sprint_id, author_id |
+| `standup` | Daily standup entry | author_id, posted_at |
+| `weekly_review` | Week review/demo | plan_validated, key_learnings |
 
 ### Document Schema
 
@@ -202,26 +205,7 @@ export function setupCollaboration(server: Server) {
 
 ### Client Implementation
 
-```typescript
-// web/src/components/Editor.tsx:197-329 (simplified)
-useEffect(() => {
-  // 1. Load from IndexedDB first (instant)
-  const indexeddbProvider = new IndexeddbPersistence(`ship-${roomPrefix}-${documentId}`, ydoc);
-
-  // 2. Connect WebSocket after cache loads
-  waitForCache.then(() => {
-    wsProvider = new WebsocketProvider(wsUrl, `${roomPrefix}:${documentId}`, ydoc);
-
-    // Track sync status
-    wsProvider.on('status', (event) => {
-      setSyncStatus(event.status === 'connected' ? 'synced' : 'disconnected');
-    });
-
-    // Setup awareness for presence
-    wsProvider.awareness.setLocalStateField('user', { name: userName, color });
-  });
-}, [documentId]);
-```
+Collaboration setup lives in `web/src/hooks/useCollabSession.ts` (IndexedDB cache first, then WebSocket via `WebsocketProvider`, awareness for presence). `Editor.tsx` consumes this hook rather than embedding provider wiring inline.
 
 ### Room Naming Convention
 
@@ -393,6 +377,7 @@ const RATE_LIMIT = {
 | Database Schema | `api/src/db/schema.sql` |
 | API Entry | `api/src/index.ts` |
 | Collaboration Server | `api/src/collaboration/index.ts` |
+| Collaboration Client | `web/src/hooks/useCollabSession.ts` |
 | Editor Component | `web/src/components/Editor.tsx` |
 | Query Client | `web/src/lib/queryClient.ts` |
 | Type Definitions | `shared/src/types/document.ts` |

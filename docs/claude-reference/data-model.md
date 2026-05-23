@@ -70,22 +70,18 @@ CREATE TABLE documents (
 
 ### Document Type Enum
 
-```sql
--- Note: 'sprint' types retained for historical compatibility
--- User-facing terminology: Sprint → Week
-CREATE TYPE document_type AS ENUM (
-  'wiki',          -- Documentation content
-  'issue',         -- Work items with state/priority
-  'program',       -- Product/initiative container
-  'project',       -- Time-bounded deliverable
-  'sprint',        -- Week document (historical name)
-  'person',        -- User profile page
-  'sprint_plan',   -- Week planning document (historical name)
-  'sprint_retro',  -- Week retrospective (historical name)
-  'standup',       -- Daily standup entry
-  'sprint_review'  -- Week review/demo (historical name)
-);
-```
+<!-- docs:generated start id="document-type-enum" source="shared/src/enums/document-enums.ts" -->
+- `wiki`
+- `issue`
+- `program`
+- `project`
+- `sprint`
+- `person`
+- `weekly_plan`
+- `weekly_retro`
+- `standup`
+- `weekly_review`
+<!-- docs:generated end id="document-type-enum" -->
 
 ### Type-Specific Properties (JSONB)
 
@@ -96,20 +92,23 @@ Properties are stored as schema-less JSONB, with structure enforced at the appli
 | `issue` | `state`, `priority`, `assignee_id`, `source`, `rejection_reason`, `feedback_status`, `estimate_hours`, `claude_metadata` |
 | `program` | `prefix` (e.g., "AUTH"), `color`, `emoji` |
 | `project` | `prefix`, `color`, `emoji` |
-| `sprint` | `sprint_number` (historical field), `owner_id`, `goal` |
+| `sprint` | `sprint_number` (historical field), `owner_id`, `plan`, `success_criteria`, `confidence` |
 | `person` | `user_id` (links to users.id), `email`, `capacity_hours`, `skills` |
 | `standup` | `author_id`, `posted_at` |
-| `sprint_review` | `hypothesis_validated`, `key_learnings` (week review properties) |
+| `weekly_plan` | `sprint_id`, `author_id`, plan approval fields |
+| `weekly_retro` | `sprint_id`, `author_id`, retro content |
+| `weekly_review` | `plan_validated`, `key_learnings` (week review properties) |
 
 ### Issue States
 
-Issues have a `state` property with 4 required states:
-- `backlog` - Not yet planned
-- `todo` - Planned for current week
-- `in_progress` - Actively being worked
-- `done` - Completed
-
-Additional states: `cancelled`, custom states per workspace.
+Issues have a `state` property. Valid values (from `ISSUE_STATE_VALUES` in `shared/src/enums/document-enums.ts`):
+- `triage`
+- `backlog`
+- `todo`
+- `in_progress`
+- `in_review`
+- `done`
+- `cancelled`
 
 ### Key Indexes
 
@@ -417,11 +416,11 @@ Schema changes are managed via numbered migration files in `api/src/db/migration
 - Each migration runs in a transaction with rollback on failure
 - **Never modify schema.sql directly for existing tables** - use migrations
 
-**Current migrations (27 files):**
-- 001-006: Initial properties, person decoupling, history, visibility
-- 007-013: Archived/deleted, emoji, feedback, oauth, PIV support
-- 014-016: API tokens, sprint iterations, history automation
-- 017-022: Standup/sprint_review types, document conversion, associations
+**Current migrations (45 files):**
+- 001-013: Initial properties, person decoupling, history, visibility, oauth, PIV support
+- 014-022: API tokens, sprint iterations, associations, document conversion
+- 023-033: Snapshots, issue iterations, goal→plan renames, sprint→week terminology
+- 034-040: Weekly accountability, comments, search index, access guards
 
 ---
 

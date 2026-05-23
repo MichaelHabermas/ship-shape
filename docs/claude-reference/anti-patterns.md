@@ -13,10 +13,8 @@ console.log('Clicked sidebar button');
 
 ### Examples in codebase
 
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/issues.ts:283` - `console.error('List issues error:', err);`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/standups.ts:108` - `console.error('Get standup status error:', err);`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/associations.ts:85` - `console.error('Error fetching associations:', error);`
-- `/Users/jonesshaw/Documents/code/ship/e2e/debug-create.spec.ts:26-58` - Multiple `console.log()` statements in test files
+- `api/src/routes/issues.ts` and other routes — use `sendInternalError()` from `api/src/utils/route-http.ts` instead of raw `console.error`
+- `e2e/debug-create.spec.ts:26-58` - Multiple `console.log()` statements in test files
 
 ### Why it's problematic
 
@@ -28,17 +26,13 @@ console.log('Clicked sidebar button');
 
 ### What to do instead
 
-Use a structured logger with consistent format:
+Use `sendInternalError()` so errors are logged consistently and responses stay uniform:
 
 ```typescript
-import { logger } from '../utils/logger';
+import { sendInternalError } from '../utils/route-http.js';
 
 // Instead of: console.error('List issues error:', err);
-logger.error('Failed to list issues', {
-  error: err.message,
-  userId: req.userId,
-  workspaceId: req.workspaceId,
-});
+sendInternalError(res, err, 'List issues error:', { error: 'Failed to list issues' });
 ```
 
 ---
@@ -158,16 +152,16 @@ pnpm test:e2e e2e/some-test.spec.ts
 
 ### What to do instead
 
-**Always use the `/e2e-test-runner` skill:**
+**Prefer the `/e2e-test-runner` skill; if unavailable, use `pnpm test:e2e:run`:**
 
 ```bash
-# The skill handles:
+# The skill or pnpm test:e2e:run handles:
 # - Background execution
 # - Progress polling via test-results/summary.json
 # - --last-failed for iterative fixing
 ```
 
-See `.claude/rules/testing.md` for full details on the E2E test runner skill.
+See `e2e/AGENTS.md` for full details on the E2E workflow.
 
 ---
 
@@ -318,7 +312,7 @@ interface ClaudeContextRequest {
 - `/Users/jonesshaw/Documents/code/ship/api/src/routes/claude.ts:21-48` - Multiple interfaces
 - `/Users/jonesshaw/Documents/code/ship/api/src/routes/weeks.ts:265` - `ActionItem` interface
 - `/Users/jonesshaw/Documents/code/ship/api/src/routes/backlinks.ts:158` - `Request` interface
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/issues.ts:105` - `BelongsToEntry` interface
+- `api/src/routes/issues.ts:105` - `BelongsTo` is in `shared/src/types/document.ts`; do not reintroduce local `BelongsToEntry`
 - `/Users/jonesshaw/Documents/code/ship/api/src/routes/caia-auth.ts:381` - `PendingInvite` interface
 
 ### Why it's problematic
@@ -467,10 +461,10 @@ Follow the transaction pattern used in:
 
 | Anti-Pattern | Detection | Fix |
 |--------------|-----------|-----|
-| Console logging | `grep -r "console\."` | Use structured logger |
+| Console logging | `grep -r "console\."` | Use `sendInternalError()` |
 | Empty tests | `scripts/check-empty-tests.sh` | Use `test.fixme()` |
 | Type assertions to `any` | `grep -r "as any"` | Create proper types |
-| Direct E2E execution | Running `pnpm test:e2e` | Use `/e2e-test-runner` |
+| Direct E2E execution | Running `pnpm test:e2e` | Use `/e2e-test-runner` or `pnpm test:e2e:run` |
 | Modifying schema.sql | Editing `schema.sql` | Create migration file |
 | --no-verify | Git history | Never use it |
 | Inconsistent errors | Review route responses | Use error helper |

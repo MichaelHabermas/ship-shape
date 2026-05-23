@@ -8,10 +8,25 @@ Terminology and concepts used throughout the Ship codebase.
 The architectural pattern where all content types (wikis, issues, projects, weeks, etc.) are stored in a single `documents` table with a `document_type` discriminator. Follows Notion's paradigm where the difference between content types is properties, not structure.
 
 ### Document Type
-The `document_type` enum that categorizes documents: `wiki`, `issue`, `program`, `project`, `sprint` (week), `person`, `standup`, `sprint_review` (week review), `sprint_retro` (week retro), `sprint_plan` (week plan). Note: `sprint` types retained for historical database compatibility.
+The `document_type` enum that categorizes documents:
+
+<!-- docs:generated start id="document-type-enum" source="shared/src/enums/document-enums.ts" -->
+- **wiki**
+- **issue**
+- **program**
+- **project**
+- **sprint**
+- **person**
+- **weekly_plan**
+- **weekly_retro**
+- **standup**
+- **weekly_review**
+<!-- docs:generated end id="document-type-enum" -->
+
+Note: `sprint` is the historical database name for week containers. Weekly accountability docs use `weekly_plan`, `weekly_retro`, and `weekly_review` (replacing legacy sprint terminology).
 
 ### Properties (JSONB)
-Type-specific metadata stored in a JSONB column on documents. Each document type has different properties (e.g., issues have `state`, `priority`, `assignee_id`; weeks have `sprint_number` (historical field name), `goal`).
+Type-specific metadata stored in a JSONB column on documents. Each document type has different properties (e.g., issues have `state`, `priority`, `assignee_id`; weeks have `sprint_number` (historical field name), `plan`).
 
 ### 4-Panel Layout
 The standard editor layout: Icon Rail (48px) → Contextual Sidebar (224px) → Main Content (flex-1) → Properties Sidebar (256px). All four panels are always visible.
@@ -181,16 +196,16 @@ Playwright marker for unimplemented tests. Prevents silent passing of empty test
 Derived 7-day time window computed from workspace start date. Not a container you assign things to -- weeks are inferred time periods. Database document type is `'sprint'` (historical DB name retained for compatibility). Uses `sprint_number` field (historical name) and computed dates.
 
 ### Weekly Plan
-Document declaring intent for the week -- what you plan to accomplish and why. Plans are the unit of intent. Written before the week starts. Database document type is `'sprint_plan'` (historical name). Issues are a trailing indicator (what was done); the plan is the leading indicator (what to do).
+Document declaring intent for the week -- what you plan to accomplish and why. Plans are the unit of intent. Written before the week starts. Database document type is `'weekly_plan'` (replacing legacy `sprint_plan` naming). Issues are a trailing indicator (what was done); the plan is the leading indicator (what to do).
 
 ### Standup
 Daily status update document. Tracks what was done, what's planned, blockers.
 
 ### Week Review
-Document for end-of-week demonstration and stakeholder feedback. Database document type is `'sprint_review'` (historical name).
+Document for end-of-week demonstration and stakeholder feedback. Database document type is `'weekly_review'` (replacing legacy `sprint_review` naming).
 
 ### Weekly Retro (Retrospective)
-Document for team reflection. What went well, what to improve, plan vs. reality. Database document type is `'sprint_retro'` (historical name).
+Document for team reflection. What went well, what to improve, plan vs. reality. Database document type is `'weekly_retro'` (replacing legacy `sprint_retro` naming).
 
 ### ICE Score
 Project prioritization metric: Impact x Confidence x Ease. Stored in project properties.
