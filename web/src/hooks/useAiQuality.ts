@@ -94,7 +94,7 @@ export function useAiQuality<TAnalysis extends BaseAnalysis>({
       .then(async (doc) => {
         if (cancelled || !doc) return;
         if (doc.content && typeof doc.content === 'object') {
-          documentContentRef.current = doc.content as Record<string, unknown>;
+          documentContentRef.current = doc.content;
         }
         setDocumentLoaded(true);
         const persisted = getPersistedAnalysis<TAnalysis>(doc);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ProjectCombobox, Project } from '@/components/ProjectCombobox';
@@ -58,7 +58,7 @@ interface ProgramGroup {
   users: User[];
 }
 
-export function TeamModePage() {
+export function TeamModePage(): ReactElement {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [data, setData] = useState<TeamGridData | null>(null);

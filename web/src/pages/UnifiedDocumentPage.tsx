@@ -251,7 +251,7 @@ export function UnifiedDocumentPage() {
     },
     onError: (_err, _variables, context) => {
       // Rollback to the previous value on error
-      if (context?.previousDocument && context?.documentId) {
+      if (context?.previousDocument && context.documentId) {
         queryClient.setQueryData(['document', context.documentId], context.previousDocument);
       }
     },

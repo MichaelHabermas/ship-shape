@@ -16,7 +16,7 @@ export interface SessionTimeoutState {
   showWarning: boolean;
   timeRemaining: number | null;
   warningType: WarningType | null;
-  resetTimer: () => void;
+  resetTimer: () => Promise<void>;
   lastActivity: number;
 }
 
@@ -26,7 +26,7 @@ interface SessionInfo {
   lastActivity: string;
 }
 
-export function useSessionTimeout(onTimeout: () => void): SessionTimeoutState {
+export function useSessionTimeout(onTimeout: () => Promise<void>): SessionTimeoutState {
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
