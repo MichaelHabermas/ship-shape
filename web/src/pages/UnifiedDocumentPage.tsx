@@ -39,7 +39,7 @@ export function UnifiedDocumentPage() {
   const navigate = useNavigate();
 
   // Parse wildcard path into tab and nested path
-  // Example: /documents/abc/sprints/xyz -> wildcardPath = "sprints/xyz" -> tab = "sprints", nestedPath = "xyz"
+  // Example: /documents/abc/weeks/xyz -> wildcardPath = "weeks/xyz" -> tab = "weeks", nestedPath = "xyz"
   const pathSegments = wildcardPath ? wildcardPath.split('/').filter(Boolean) : [];
   const urlTab = pathSegments[0] || undefined;
   const nestedPath = pathSegments.length > 1 ? pathSegments.slice(1).join('/') : undefined;

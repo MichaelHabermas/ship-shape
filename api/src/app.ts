@@ -76,6 +76,12 @@ function isCsrfError(err: unknown): boolean {
       || candidate.message?.toLowerCase().includes('csrf') === true);
 }
 
+function isBodyParserSyntaxError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const candidate = err as { type?: string; status?: number; body?: unknown };
+  return candidate.status === 400 && candidate.type === 'entity.parse.failed';
+}
+
 function shouldBypassRateLimit(req: Request): boolean {
   if (isProduction()) return false;
   if (process.env.API_BENCHMARK_RATE_LIMIT_BYPASS !== '1') return false;
@@ -271,6 +277,11 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   });
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (isBodyParserSyntaxError(err)) {
+      res.status(400).json({ error: 'Malformed JSON request body' });
+      return;
+    }
+
     if (!isCsrfError(err)) {
       next(err);
       return;
