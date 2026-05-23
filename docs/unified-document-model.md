@@ -73,8 +73,11 @@ The `document_type` field describes **what kind** of document it is:
 | `sprint`       | Week container (historical DB name) | Week number, relationship associations, contains week's work |
 | `weekly_plan`  | Weekly planning doc        | Child of week, required before week starts       |
 | `weekly_retro` | Weekly retrospective       | Child of week, required after week ends          |
+| `weekly_review` | Week review document      | Child of week, manager/accountability review     |
+| `standup`      | Daily standup notes        | Child of week/person workflow                    |
 | `person`       | User profile page          | `properties.user_id` links to auth user, capacity, skills |
-| `view`         | Saved filter/query         | Query, filters, display options (future)         |
+
+Full enum values are defined in `shared/src/enums/document-enums.ts` (source of truth).
 
 ## Document Location
 
@@ -298,16 +301,19 @@ document.properties = {
 
 ### Workflow States
 
-Issues have a `state` property with **4 required states** that every workspace has:
+Issues have a `state` property. Built-in states (see `ISSUE_STATE_VALUES` in `@ship/shared`):
 
 | State | Description |
 |-------|-------------|
+| `triage` | Needs triage |
 | `backlog` | Not yet planned |
 | `todo` | Planned for current week |
 | `in_progress` | Actively being worked |
+| `in_review` | In review |
 | `done` | Completed |
+| `cancelled` | Cancelled |
 
-Workspaces can add **custom states** beyond these 4 (stored in workspace settings). States are string values in properties, not foreign keys to a separate table.
+States are string values in `properties`, not foreign keys to a separate table.
 
 ### Computed Properties (Roll-ups)
 
@@ -323,12 +329,12 @@ No precomputation or caching - compute when rendering. Optimize later if needed.
 
 ## Ticket Numbers
 
-Issues get **program-prefixed sequential numbers**:
+Issues get **workspace-scoped sequential display IDs**:
 
-- Format: `{PROGRAM_PREFIX}-{NUMBER}` (e.g., AUTH-42, PAYMENTS-15)
-- Counter is per-program
-- Program has a `prefix` property (e.g., "AUTH", "PAY")
-- Meaningful for communication: "Can you look at AUTH-42?"
+- Format: `#${ticket_number}` (e.g., `#42`, `#123`)
+- `ticket_number` auto-increments per workspace
+- API exposes this as `display_id` on issue responses
+- Program prefixes (e.g., AUTH-42) were removed in migration 007b
 
 ## Sync Architecture
 
@@ -365,7 +371,12 @@ Client (IndexedDB)          Server (PostgreSQL)
 
 ### Search
 
-`/api/search/documents` exists only for title-only command-palette metadata search. `/docs` search is client-side title filtering over the loaded document list. Ship does not provide full-text content search for documents.
+Ship has two deliberate search contracts (see [Application Architecture](./application-architecture.md#rest-api-design)):
+
+- `/api/search/documents` — title-only metadata search for the command palette
+- `/api/search/content` — server-backed full-content search for `/docs`, backed by the rebuildable `document_search_index` table
+
+`documents.content`, selected `properties`, and collaboration Yjs state remain source of truth; the index is derived state.
 
 ## Configuration
 
@@ -378,9 +389,7 @@ States are **string values** stored directly in document properties, not foreign
 document.properties.state = "in_progress";
 ```
 
-**4 built-in states:** `backlog`, `todo`, `in_progress`, `done`
-
-Workspaces can define **additional custom states** (stored in workspace settings JSONB). This keeps the data model simple while allowing customization.
+**4 built-in states (legacy shorthand):** `backlog`, `todo`, `in_progress`, `done` — see full `ISSUE_STATE_VALUES` in `@ship/shared` for the complete set including `triage`, `in_review`, and `cancelled`.
 
 ### Labels (Future)
 
@@ -426,9 +435,10 @@ interface FileAttachment {
 
 **Offline behavior:**
 
-- Edits queued locally, merged on reconnect via CRDT
-- Presence/cursors only work when online
-- List updates apply on reconnect
+- **Editor rich text:** Yjs + IndexedDB tolerate offline editing; changes merge on reconnect via CRDT
+- **Metadata writes:** Require network; optimistic updates roll back on failure
+- **Presence/cursors:** Online only
+- **List updates:** Apply on reconnect
 
 ## User Offboarding
 
@@ -495,13 +505,14 @@ Modes are **different lenses on the same data** for different personas:
 
 ## Current Reality vs Target Architecture
 
-> **Migration Pending:** The current database schema uses explicit columns (`state`, `priority`, `assignee_id`, etc.) instead of a `properties` JSONB column. This works but requires schema migrations for new property types. The target architecture described in this doc (pure JSONB properties) enables custom properties without migrations. Migration is planned.
+Type-specific fields live in the `properties JSONB` column (migration 001). Legacy explicit columns were consolidated; program/project/week membership uses `document_associations`, not legacy FK columns on `documents`.
 
-| Aspect | Current Implementation | Target (This Doc) |
-|--------|----------------------|-------------------|
-| Properties | Explicit columns | JSONB column |
-| States | TEXT column | String in properties |
-| Custom props | Not supported | Any key in properties |
+| Aspect | Implementation |
+|--------|----------------|
+| Properties | JSONB column (`properties`) |
+| States | String in `properties.state` |
+| Associations | `document_associations` junction table |
+| Hierarchy | `parent_id` on `documents` |
 
 ---
 

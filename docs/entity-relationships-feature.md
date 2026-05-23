@@ -22,9 +22,9 @@ Program (Vision + Goals)
 
 | Entity | Required Fields for "Complete" |
 |--------|------------------------------|
-| Program | Vision, Goals |
-| Project | Hypothesis, Success Criteria |
-| Week | Goal, Date Range, At least 1 linked issue |
+| Program | Vision, Goals (informational — not enforced by `checkDocumentCompleteness`) |
+| Project | Plan, Success Criteria |
+| Week (sprint) | At least 1 linked issue |
 | Issue | Nothing required (inbox → triage model) |
 | Wiki | Standalone (linked via @mentions, not hierarchy) |
 
@@ -98,13 +98,13 @@ Documents missing critical fields are flagged but not blocked from saving.
 - **Banner**: Yellow warning at top of document listing missing fields
 - **Badge**: Orange indicator in sidebar and document lists
 
-**Completeness Rules:**
+**Completeness Rules** (from `shared/src/content-extract.ts` → `checkDocumentCompleteness`):
 ```javascript
 // Project is complete if:
-properties.hypothesis && properties.success_criteria
+properties.plan && properties.success_criteria
 
-// Week is complete if:
-properties.goal && properties.start_date && properties.end_date && linked_issues.length > 0
+// Week (sprint) is complete if:
+linkedIssuesCount > 0
 ```
 
 ### 6. Standup Auto-Linking
@@ -155,9 +155,8 @@ No schema migrations required. All new data stored in existing `properties` JSON
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| `ActivityChart` | `web/src/components/ActivityChart.tsx` | Reusable activity visualization |
-| `IncompleteBanner` | `web/src/components/IncompleteBanner.tsx` | Warning banner for incomplete docs |
-| Slash commands | TipTap extensions | `/hypothesis`, `/criteria`, `/vision`, `/goals` |
+| Completeness badges | `web/src/pages/Projects.tsx`, `web/src/components/week/WeekTimeline.tsx` | Orange indicator when `is_complete === false` |
+| Slash commands | `web/src/components/editor/SlashCommands.tsx` | `/plan`, `/criteria`, `/vision`, `/goals` |
 
 ## Related
 

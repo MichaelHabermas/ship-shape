@@ -76,7 +76,7 @@ cd api && npx tsx src/db/migrate.ts
 ### Deploy API to Shadow
 
 ```bash
-./scripts/deploy-api.sh shadow
+./scripts/deploy.sh shadow
 ```
 
 ### Deploy Frontend to Shadow

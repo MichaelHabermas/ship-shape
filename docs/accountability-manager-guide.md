@@ -12,6 +12,8 @@ The accountability grid provides a bird's-eye view of your team's pending accoun
 
 Navigate to **Teams** > **Accountability** to see the grid view.
 
+For a heatmap of team standups, plans, and retros, open **Status Overview** in the Teams sidebar (route: `/team/status`).
+
 ### What You See
 
 The grid shows each team member as a row with columns for:

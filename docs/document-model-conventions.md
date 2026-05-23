@@ -122,7 +122,7 @@ Ship uses two distinct patterns for document relationships. Understanding when t
 
 | Pattern | Column/Table | Relationship | Use Case |
 |---------|--------------|--------------|----------|
-| **parent_id** | `parent_id` column | 1:1 containment | Wiki children, sprint_plan → sprint |
+| **parent_id** | `parent_id` column | 1:1 containment | Wiki children, weekly_plan → sprint |
 | **document_associations** | Junction table | Many-to-many organizational | program, project, sprint memberships |
 
 **parent_id (Hierarchy):** Used when a document is *contained within* another document. The child cannot exist without the parent. Examples:
@@ -142,7 +142,7 @@ CREATE TABLE document_associations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   related_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  relationship_type TEXT NOT NULL,  -- 'program' | 'project' | 'sprint'
+  relationship_type relationship_type NOT NULL,  -- ENUM: 'program' | 'project' | 'sprint' | 'parent'
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE (document_id, related_id, relationship_type)
 );
@@ -398,14 +398,12 @@ Issues maintain **both** project and sprint associations:
 
 ## Ticket Numbers
 
-Issues get **program-prefixed sequential numbers**:
+Issues get **workspace-scoped sequential display IDs**:
 
-- Format: `{PREFIX}-{NUMBER}` (e.g., AUTH-42, PAY-15)
-- Counter is per-program
-- Program has a `prefix` property (e.g., "AUTH")
-- Numbers are for human reference, UUIDs are canonical IDs
-
-**Why prefixes:** "Can you look at AUTH-42?" is more meaningful than "#42" when you have multiple programs.
+- Format: `#${ticket_number}` (e.g., `#42`, `#123`)
+- `ticket_number` auto-increments per workspace
+- API exposes this as `display_id` on issue responses
+- Program prefixes were removed in migration 007b; UUIDs remain canonical IDs
 
 ## Estimation Philosophy
 
@@ -482,15 +480,15 @@ Every document editor view follows the same 4-panel layout. This is the canonica
 └──────┴────────────────┴─────────────────────────────────┴────────────────┘
 ```
 
-| Panel | Width | Contents | Always Visible |
-|-------|-------|----------|----------------|
-| **Icon Rail** | 48px | Mode icons (Docs, Issues, Projects, Team), Settings, User avatar | Yes |
-| **Contextual Sidebar** | 224px | List of items for active mode (documents, issues, projects) with + button | Yes |
-| **Main Content** | flex-1 | Header (back, badge, title, sync status, presence) + Editor (title input + TipTap body) | Yes |
-| **Properties Sidebar** | 256px | Type-specific properties (status, assignee, color, etc.) | Yes |
+| Panel | Width | Contents | Default |
+|-------|-------|----------|---------|
+| **Icon Rail** | 48px | Mode icons (Dashboard, Docs, Programs, Projects, Teams), Settings, User avatar | Visible |
+| **Contextual Sidebar** | 224px | List of items for active mode with + button | Collapsible |
+| **Main Content** | flex-1 | Header + Editor (title input + TipTap body) | Visible |
+| **Properties Sidebar** | 256px | Type-specific properties | Collapsible |
 
 **Key rules:**
-- All four panels are **always visible** when viewing/editing a document
+- Four-panel layout is the default document editing shell; left and right sidebars can collapse
 - Contextual sidebar shows items from the **current mode** (not the document type being edited)
 - Properties sidebar content varies by document type (via `sidebar` prop on Editor)
 - Header shows sync status and connected users for real-time collaboration
@@ -707,7 +705,7 @@ Document types differ by:
 - **Sidebar content** (issue has status/priority, project has color picker)
 - **Header badge** (issue shows ticket number, project shows prefix)
 - **Placeholder text** (as above)
-- **Room prefix** for collaboration (`doc:`, `issue:`, `project:`)
+- **Room name** for collaboration: `{document_type}:{document_id}` (e.g., `wiki:uuid`, `issue:uuid`). Legacy `doc:` prefix is accepted for wiki documents only (see `shared/src/collab-protocol.ts`).
 
 They do NOT differ by title handling. Keep it simple.
 
@@ -847,7 +845,7 @@ Use `side="right"` for icons in the left rail, `side="bottom"` for icons in head
 5. **Week documents explicit**: One per program per week window
 6. **Properties schema-less**: JSON blob, TypeScript enforcement
 7. **Roll-ups on-demand**: Compute client-side when rendering
-8. **Ticket numbers**: Program-prefixed (AUTH-42), counter per program
+8. **Ticket numbers**: Workspace-scoped `#N` display IDs (`display_id` on issues)
 9. **Modes as use cases**: Different personas, same underlying data
 10. **Denormalized snapshots**: For offline display performance
 

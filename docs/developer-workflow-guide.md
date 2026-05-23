@@ -121,9 +121,10 @@ The intended workflow:
 4. Retro is discoverable from the week view
 
 ### Known Issues
-- [ ] **MISSING**: `weekly_retro` document type doesn't exist
-- [ ] **MISSING**: No UI to create retro from week
-- [ ] **MISSING**: No template for retrospective format
+- [ ] **UI gap**: No UI to create retro from week
+- [ ] **UI gap**: No template for retrospective format
+
+Note: `weekly_retro` is a valid `document_type` in the unified model; the workflow UI is not wired yet.
 
 ---
 
@@ -143,9 +144,10 @@ The intended workflow:
 4. Plan is visible from week view header
 
 ### Known Issues
-- [ ] **MISSING**: `weekly_plan` document type doesn't exist
-- [ ] **MISSING**: No UI to create plan from week
+- [ ] **UI gap**: No UI to create plan from week
 - [ ] Week has `goal` field but it's just a text field, not a full document
+
+Note: `weekly_plan` is a valid `document_type` in the unified model; the workflow UI is not wired yet.
 
 ---
 
@@ -194,7 +196,7 @@ The intended workflow:
 1. **Tab switching** - Can't switch between Issues/Weeks tabs in Program view
 2. **Issue-to-week** - "+" button fails with 400 error
 3. **Week goal save** - Save button fails with 400 error
-4. **Missing features** - No weekly_plan or weekly_retro document types
+4. **Missing UI** - `weekly_plan` and `weekly_retro` document types exist; week workflow UI is not wired
 
 ---
 

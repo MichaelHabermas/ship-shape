@@ -1,5 +1,7 @@
 # @fpki/auth-client SDK - DCR Integration Analysis
 
+> **HISTORICAL DISCLAIMER:** This document records FPKI/OAuth DCR research that was **not implemented** in Ship. Production PIV authentication uses **CAIA** (`api/src/routes/caia-auth.ts`), not `@fpki/auth-client`. Treat the analysis below as background only.
+
 ## Overview
 
 This document analyzes the @fpki/auth-client SDK's Dynamic Client Registration (DCR) exports and how they work together to enable RFC 7591 OAuth client registration with PIV card authentication.
