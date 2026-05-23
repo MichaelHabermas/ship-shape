@@ -41,10 +41,13 @@ scripts/
 └── init-database.sh         - Initialize database schema
 
 docs/
-├── INFRASTRUCTURE.md        - Architecture overview
 ├── DEPLOYMENT.md            - Complete deployment guide
 ├── DEPLOYMENT_CHECKLIST.md  - Quick reference checklist
-└── INFRASTRUCTURE_SUMMARY.md - This file
+└── shadow-env-testing.md    - Shadow UAT guide
+
+INFRASTRUCTURE.md            - Architecture overview (repo root)
+INFRASTRUCTURE_README.md     - Quick start (repo root)
+INFRASTRUCTURE_SUMMARY.md    - This file (repo root)
 ```
 
 ## Architecture Components
@@ -307,7 +310,7 @@ Apply: `cd terraform && terraform apply`
 
 ### Frontend Not Loading
 - Wait for CloudFront invalidation (1-2 min)
-- Check S3 bucket contents: `aws s3 ls s3://ship-frontend-dev/`
+- Check S3 bucket contents: `aws s3 ls s3://$(cd terraform && terraform output -raw s3_bucket_name)/`
 - Check CloudFront distribution status
 
 ## Next Steps
