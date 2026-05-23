@@ -130,6 +130,9 @@
       .sort-button[data-dir="desc"]::after { content:"↓"; }
       .artifact-link { margin-top:5px; }
       .path { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:12px; }
+      .table-wrap td .path { display:block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; word-break:normal; }
+      .source-links { display:grid; gap:2px; align-content:start; }
+      .source-links .path { line-height:1.15; }
       .non-claim-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
       .non-claim-card { padding:12px; border:1px solid var(--line); background:#fbf8f0; }
       .non-claim-card h3 { margin-bottom:7px; font-size:14px; }
@@ -150,6 +153,10 @@
       th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
       th { color:var(--muted); font-size:11px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
       tr:last-child td { border-bottom:0; }
+      .evidence-summary-table { table-layout:fixed; }
+      .evidence-summary-table th:nth-child(1),.evidence-summary-table td:nth-child(1) { width:110px; }
+      .evidence-summary-table th:nth-child(2),.evidence-summary-table td:nth-child(2) { width:76px; }
+      .evidence-summary-table th:nth-child(5),.evidence-summary-table td:nth-child(5) { width:160px; }
       .discoveries-table { min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
       .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
@@ -178,13 +185,13 @@
               <span class="rail-meta">Type Safety</span>
               <span class="rail-detail">H · -53.4%</span>
             </button>
-            <button class="rail-cell rail-medium" type="button" data-category-id="cat-2-bundle-size" data-meta-overview="-73.8%" data-detail-overview="M · -73.8%" data-meta-evidence="4 art" data-detail-evidence="M · 4 artifacts" data-meta-cross-examine="16 pts" data-detail-cross-examine="M · 16 pts" data-meta-claim-diff="diff" data-detail-claim-diff="M · before -&gt; after" data-meta-targets="4/4" data-detail-targets="M · 4/4 gates" data-meta-rubric="8 rub" data-detail-rubric="M · 8 rubric" data-meta-boundaries="3 lim" data-detail-boundaries="M · 3 limits" data-meta-discoveries="0 find" data-detail-discoveries="M · 0 findings" aria-label="Jump to Cat 2: Bundle Size">
+            <button class="rail-cell rail-medium" type="button" data-category-id="cat-2-bundle-size" data-meta-overview="-73.9%" data-detail-overview="M · -73.9%" data-meta-evidence="4 art" data-detail-evidence="M · 4 artifacts" data-meta-cross-examine="16 pts" data-detail-cross-examine="M · 16 pts" data-meta-claim-diff="diff" data-detail-claim-diff="M · before -&gt; after" data-meta-targets="4/4" data-detail-targets="M · 4/4 gates" data-meta-rubric="8 rub" data-detail-rubric="M · 8 rubric" data-meta-boundaries="3 lim" data-detail-boundaries="M · 3 limits" data-meta-discoveries="0 find" data-detail-discoveries="M · 0 findings" aria-label="Jump to Cat 2: Bundle Size">
               <span class="rail-number">2</span>
               <span class="rail-load">M</span>
-              <span class="rail-delta">-73.8%</span>
+              <span class="rail-delta">-73.9%</span>
               <span class="rail-title">Cat 2 · Bundle</span>
               <span class="rail-meta">Bundle Size</span>
-              <span class="rail-detail">M · -73.8%</span>
+              <span class="rail-detail">M · -73.9%</span>
             </button>
             <button class="rail-cell rail-high" type="button" data-category-id="cat-3-api-response-time" data-meta-overview="3/3" data-detail-overview="H · 3/3" data-meta-evidence="3 art" data-detail-evidence="H · 3 artifacts" data-meta-cross-examine="28 pts" data-detail-cross-examine="H · 28 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="3/3" data-detail-targets="H · 3/3 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="8 lim" data-detail-boundaries="H · 8 limits" data-meta-discoveries="3 find" data-detail-discoveries="H · 3 findings" aria-label="Jump to Cat 3: API Response Time">
               <span class="rail-number">3</span>
@@ -210,7 +217,7 @@
               <span class="rail-meta">Test Coverage and Quality</span>
               <span class="rail-detail">H · 5/5</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-6-runtime-error-handling" data-meta-overview="6/6" data-detail-overview="H · 6/6" data-meta-evidence="5 art" data-detail-evidence="H · 5 artifacts" data-meta-cross-examine="29 pts" data-detail-cross-examine="H · 29 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="6/6" data-detail-targets="H · 6/6 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="5 lim" data-detail-boundaries="H · 5 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 6: Runtime Error and Edge Case Handling">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-6-runtime-error-handling" data-meta-overview="6/6" data-detail-overview="H · 6/6" data-meta-evidence="5 art" data-detail-evidence="H · 5 artifacts" data-meta-cross-examine="27 pts" data-detail-cross-examine="H · 27 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="6/6" data-detail-targets="H · 6/6 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="4 lim" data-detail-boundaries="H · 4 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 6: Runtime Error and Edge Case Handling">
               <span class="rail-number">6</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">6/6</span>
@@ -320,7 +327,7 @@
         <article id="overview-cat-2-bundle-size" class="score-card" data-ledger-id="cat-2-bundle-size">
           <header><span class="cat-id">Cat 2</span><span class="badge proven">proven</span></header>
           <h3>Bundle Size</h3>
-          <p>2025.1 -&gt; 530.77 (decreased 73.8%)</p>
+          <p>2025.1 -&gt; 528.48 (decreased 73.9%)</p>
           <div class="score-foot">
 
     <div class="defense-load defense-load-medium">
@@ -385,7 +392,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>29 pts · 1 claim · 5 boundaries · 5 artifacts · 6 gates · 3 manual</small>
+      <small>27 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 3 manual</small>
 
     </div>
             <span>6/6 acceptance pass; all gates clear</span>
@@ -574,7 +581,7 @@
 
                   <li>
                     <strong>Initial entry chunk</strong>
-                    <span>2025.10 KB -&gt; 530.77 KB in latest dist artifact; -73.8%.</span>
+                    <span>2025.10 KB -&gt; 528.48 KB in latest dist artifact; -73.9%.</span>
                   </li>
                   <li>
                     <strong>After artifact</strong>
@@ -591,7 +598,7 @@
 
                   <li data-ledger-id="cat2-target-initial-entry-20-percent">
                     <strong>Target Initial Entry 20 Percent <span class="badge proven">proven</span></strong>
-                    <span>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 530.77 (decreased 73.8%); threshold 20; actual 73.8</span>
+                    <span>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 528.48 (decreased 73.9%); threshold 20; actual 73.9</span>
                   </li>
                   <li data-ledger-id="cat2-target-before-after-output">
                     <strong>Target Before After Output <span class="badge proven">proven</span></strong>
@@ -607,7 +614,7 @@
 
                   <li data-ledger-id="cat2-clears-initial-entry-code-splitting-target">
                     <strong>Clears Initial Entry Code Splitting Target <span class="badge proven">proven</span></strong>
-                    <span>Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.29 KB in the latest artifact. The claim is scoped to initial page-load/code-splitting improvement. Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features.</span>
+                    <span>Initial entry bundle decreased from 2025.10 KB to 528.48 KB, a 73.9% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. This does not claim total JS/CSS bundle reduction; total JS/CSS is 2369.69 KB in the latest artifact (still above the 2262.65 KB baseline, but improved vs the 2026-05-22 closeout 2396.29 KB after lazy lowlight). The claim is scoped to initial page-load/code-splitting improvement. Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -632,15 +639,15 @@
         </li>
         <li data-ledger-id="cat2-latest-bundle-stats">
           <strong>Latest Bundle Stats <span class="subtle">artifact</span></strong>
-          <span>Latest closeout bundle stats artifact from dependency-free collector.</span>
-          <small>Path: my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json</small>
-          <div class="artifact-link"><a class="path" href="evidence-runs/cat2-closeout/collectors/bundle-stats.json" title="my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+          <span>Latest easy-wins bundle stats artifact from dependency-free collector.</span>
+          <small>Path: my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json</small>
+          <div class="artifact-link"><a class="path" href="evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json" title="my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat2-latest-bundle-analysis">
           <strong>Latest Bundle Analysis <span class="subtle">artifact</span></strong>
           <span>Latest closeout bundle-analysis HTML artifact generated from web/dist.</span>
-          <small>Path: my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html</small>
-          <div class="artifact-link"><a class="path" href="evidence-runs/cat2-closeout/collectors/bundle-analysis.html" title="my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+          <small>Path: my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html</small>
+          <div class="artifact-link"><a class="path" href="evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html" title="my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-3-api-response-time" class="panel span-12" data-ledger-id="cat-3-api-response-time">
@@ -1050,33 +1057,33 @@
         </li>
         <li data-ledger-id="cat6-runtime-e2e-run">
           <strong>Runtime E2E Run <span class="subtle">test_run</span></strong>
-          <span>Focused runtime evidence E2E run.</span>
-          <small>Command: E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts | Result: 8 passed / 0 failed</small>
+          <span>Focused runtime evidence E2E run (2026-05-23 refresh).</span>
+          <small>Command: E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts | Result: 8 passed / 0 failed</small>
 
         </li>
         <li data-ledger-id="cat6-runtime-screenshot-api-500">
           <strong>Runtime Screenshot Api 500 <span class="subtle">screenshot</span></strong>
           <span>API 500 fallback UI runtime screenshot.</span>
-          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png</small>
-          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+          <small>Path: test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" title="test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat6-runtime-screenshot-offline">
           <strong>Runtime Screenshot Offline <span class="subtle">screenshot</span></strong>
           <span>Offline editor draft preservation runtime screenshot.</span>
-          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png</small>
-          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+          <small>Path: test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png" title="test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat6-runtime-screenshot-csrf">
           <strong>Runtime Screenshot CSRF <span class="subtle">screenshot</span></strong>
           <span>CSRF JSON/editor usable runtime screenshot.</span>
-          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png</small>
-          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+          <small>Path: test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png" title="test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat6-runtime-screenshot-concurrent">
           <strong>Runtime Screenshot Concurrent <span class="subtle">screenshot</span></strong>
           <span>Concurrent API failure fallback runtime screenshot.</span>
-          <small>Path: test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png</small>
-          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+          <small>Path: test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png" title="test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat6-ai-unavailable-fix">
           <strong>Ai Unavailable Fix <span class="subtle">manual_observation</span></strong>
@@ -1371,62 +1378,62 @@
           <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/baseline-before/summary.json" title="my-docs/evidence/security-audit/runs/baseline-before/summary.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li></ul>
         </article></div>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="evidence-summary-table"><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>
         <tr data-ledger-id="cat-1-type-safety">
           <td>Cat 1. Type Safety</td>
           <td><span class="badge proven">proven</span></td>
           <td>Eliminate at least 25% of counted type-safety syntax violations. passes. 1340 -&gt; 625 (decreased 53.4%); threshold 25; actual 53.4.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat1-total-counted-syntax-reduction-at-least-25-percent">PASS Total Counted Syntax Reduction At Least 25 Percent</span> <span class="test-chip pass" title="cat1-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat1-tests-still-pass-documented">PASS Tests Still Pass Documented</span> <span class="test-chip pass" title="cat1-meaningful-types-documented">PASS Meaningful Types Documented</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></div></td>
         </tr>
         <tr data-ledger-id="cat-2-bundle-size">
           <td>Cat 2. Bundle Size</td>
           <td><span class="badge proven">proven</span></td>
-          <td>Reduce initial page-load bundle by at least 20% through code splitting. passes. 2025.1 -&gt; 530.77 (decreased 73.8%); threshold 20; actual 73.8.</td>
+          <td>Reduce initial page-load bundle by at least 20% through code splitting. passes. 2025.1 -&gt; 528.48 (decreased 73.9%); threshold 20; actual 73.9.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat2-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat2-initial-entry-bundle-reduced-at-least-20-percent">PASS Initial Entry Bundle Reduced At Least 20 Percent</span> <span class="test-chip pass" title="cat2-before-after-bundle-analysis-output-present">PASS Before After Bundle Analysis Output Present</span> <span class="test-chip pass" title="cat2-no-functionality-removal-documented">PASS No Functionality Removal Documented</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="evidence-runs/cat2-closeout/collectors/bundle-stats.json" title="my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json" target="_blank" rel="noopener noreferrer">.../cat2-closeout/collectors/bundle-stats.json</a><br><a class="path" href="evidence-runs/cat2-closeout/collectors/bundle-analysis.html" title="my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html" target="_blank" rel="noopener noreferrer">.../cat2-closeout/collectors/bundle-analysis.html</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json" title="my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json" target="_blank" rel="noopener noreferrer">.../cat2-easy-wins-20260523/collectors/bundle-stats.json</a><a class="path" href="evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html" title="my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html" target="_blank" rel="noopener noreferrer">.../cat2-easy-wins-20260523/collectors/bundle-analysis.html</a></div></td>
         </tr>
         <tr data-ledger-id="cat-3-api-response-time">
           <td>Cat 3. API Response Time</td>
           <td><span class="badge proven">proven</span></td>
           <td>At least two endpoints show 20% P95 reduction under identical benchmark conditions. passes. threshold 2; actual 2.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat3-two-endpoints-clear-20-percent-p95">PASS Two Endpoints Clear 20 Percent P95</span> <span class="test-chip pass" title="cat3-before-after-comparable">PASS Before After Comparable</span> <span class="test-chip pass" title="cat3-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a><br><a class="path" href="../scripts/seed-audit-load.mjs" title="scripts/seed-audit-load.mjs" target="_blank" rel="noopener noreferrer">scripts/seed-audit-load.mjs</a><br><a class="path" href="evidence/artifacts/cat3-large-fixture-current.json" title="my-docs/evidence/artifacts/cat3-large-fixture-current.json" target="_blank" rel="noopener noreferrer">.../evidence/artifacts/cat3-large-fixture-current.json</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a><a class="path" href="../scripts/seed-audit-load.mjs" title="scripts/seed-audit-load.mjs" target="_blank" rel="noopener noreferrer">scripts/seed-audit-load.mjs</a><a class="path" href="evidence/artifacts/cat3-large-fixture-current.json" title="my-docs/evidence/artifacts/cat3-large-fixture-current.json" target="_blank" rel="noopener noreferrer">.../evidence/artifacts/cat3-large-fixture-current.json</a></div></td>
         </tr>
         <tr data-ledger-id="cat-4-database-query-efficiency">
           <td>Cat 4. Database Query Efficiency</td>
           <td><span class="badge proven">proven</span></td>
           <td>Reduce total query count by at least 20% on at least one user flow. passes. 33 -&gt; 24 (decreased 27.3%); threshold 20; actual 27.3.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat4-audit-five-flows-present">PASS Audit Five Flows Present</span> <span class="test-chip pass" title="cat4-one-flow-query-count-reduced-at-least-20-percent">PASS One Flow Query Count Reduced At Least 20 Percent</span> <span class="test-chip pass" title="cat4-before-after-explain-analyze-present">PASS Before After Explain Analyze Present</span> <span class="test-chip pass" title="cat4-inefficiency-and-fix-documented">PASS Inefficiency And Fix Documented</span> <span class="test-chip pass" title="cat4-no-n-plus-one-overclaim">PASS No N Plus One Overclaim</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md" target="_blank" rel="noopener noreferrer">my-docs/DECISION_LOG.md</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md" target="_blank" rel="noopener noreferrer">my-docs/DECISION_LOG.md</a></div></td>
         </tr>
         <tr data-ledger-id="cat-5-test-coverage-quality">
           <td>Cat 5. Test Coverage and Quality</td>
           <td><span class="badge proven">proven</span></td>
           <td>Add at least three meaningful regression tests for previously weak critical paths. passes. 3 / 3 required; threshold 3; actual 3.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat5-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat5-three-meaningful-regression-tests-present">PASS Three Meaningful Regression Tests Present</span> <span class="test-chip pass" title="cat5-risk-comments-documented">PASS Risk Comments Documented</span> <span class="test-chip pass" title="cat5-current-unit-suites-pass">PASS Current Unit Suites Pass</span> <span class="test-chip pass" title="cat5-full-e2e-baseline-green">PASS Full E2E Baseline Green</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a></div></td>
         </tr>
         <tr data-ledger-id="cat-6-runtime-error-handling">
           <td>Cat 6. Runtime Error and Edge Case Handling</td>
           <td><span class="badge proven">proven</span></td>
           <td>Three error-handling gaps have fix-specific reproduction, before/after behavior, and screenshot/recording evidence. passes. 3 / 3 required; threshold 3; actual 3.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat6-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat6-focused-runtime-e2e-passes">PASS Focused Runtime E2E Passes</span> <span class="test-chip pass" title="cat6-screenshots-present">PASS Screenshots Present</span> <span class="test-chip pass" title="cat6-three-error-handling-fixes-documented">PASS Three Error Handling Fixes Documented</span> <span class="test-chip pass" title="cat6-user-facing-data-loss-or-confusion-fix-present">PASS User Facing Data Loss Or Confusion Fix Present</span> <span class="test-chip pass" title="cat6-each-fix-has-before-after-and-screenshot">PASS Each Fix Has Before After And Screenshot</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></div></td>
         </tr>
         <tr data-ledger-id="cat-7-accessibility">
           <td>Cat 7. Accessibility Compliance</td>
           <td><span class="badge proven">proven</span></td>
           <td>Selected closeout pages have zero axe violations. passes. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week..</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat7-top3-axe-violations-zero">PASS Top3 Axe Violations Zero</span> <span class="test-chip pass" title="cat7-lighthouse-rerun-not-required-for-claimed-path">PASS Lighthouse Rerun Not Required For Claimed Path</span> <span class="test-chip pass" title="cat7-top3-page-selection-source-backed">PASS Top3 Page Selection Source Backed</span> <span class="test-chip pass" title="cat7-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
-          <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></td>
+          <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></div></td>
         </tr>
         <tr data-ledger-id="cat-8-security-audit">
           <td>Cat 8. Security Audit</td>
           <td><span class="badge proven">proven</span></td>
           <td>Runnable single-command security probe exists and produces a structured report. passes. threshold true; actual true.</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat8-probe-tool-runnable">PASS Probe Tool Runnable</span> <span class="test-chip pass" title="cat8-four-attack-surfaces-covered">PASS Four Attack Surfaces Covered</span> <span class="test-chip pass" title="cat8-manual-review-complete">PASS Manual Review Complete</span> <span class="test-chip pass" title="cat8-two-verified-vulnerability-fixes">PASS Two Verified Vulnerability Fixes</span></div></td>
-          <td><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" target="_blank" rel="noopener noreferrer">my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</a><br><a class="path" href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" title="my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" target="_blank" rel="noopener noreferrer">my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt</a><br><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/latest.json</a><br><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md" target="_blank" rel="noopener noreferrer">my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md" target="_blank" rel="noopener noreferrer">my-docs/DECISION_LOG.md</a></td>
+          <td><div class="source-links"><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" target="_blank" rel="noopener noreferrer">my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</a><a class="path" href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" title="my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" target="_blank" rel="noopener noreferrer">my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt</a><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/latest.json</a><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md" target="_blank" rel="noopener noreferrer">my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md" target="_blank" rel="noopener noreferrer">my-docs/DECISION_LOG.md</a></div></td>
         </tr></tbody></table></div>
       </section>
 
@@ -1502,7 +1509,7 @@
           <dl class="cross-list">
             <div>
               <dt>Claim</dt>
-              <dd>Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.</dd>
+              <dd>Initial entry bundle decreased from 2025.10 KB to 528.48 KB, a 73.9% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.</dd>
             </div>
             <div>
               <dt>Attack</dt>
@@ -1510,7 +1517,7 @@
             </div>
             <div>
               <dt>Defense</dt>
-              <dd>4/4 acceptance gates pass. Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. Boundary: Does not claim total bundle reduction.</dd>
+              <dd>4/4 acceptance gates pass. Initial entry bundle decreased from 2025.10 KB to 528.48 KB, a 73.9% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. Boundary: Does not claim total bundle reduction.</dd>
             </div>
             <div>
               <dt>Source Gate</dt>
@@ -1518,7 +1525,7 @@
             </div>
             <div>
               <dt>Proof Hook</dt>
-              <dd>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 530.77 (decreased 73.8%); threshold 20; actual 73.8</dd>
+              <dd>Reduce initial page-load bundle by at least 20% through code splitting. 2025.1 -&gt; 528.48 (decreased 73.9%); threshold 20; actual 73.9</dd>
             </div>
             <div>
               <dt>Reproduce</dt>
@@ -1673,7 +1680,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>29 pts · 1 claim · 5 boundaries · 5 artifacts · 6 gates · 3 manual</small>
+      <small>27 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 3 manual</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>
@@ -1702,11 +1709,11 @@
             </div>
             <div>
               <dt>Reproduce</dt>
-              <dd><code>E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts</code> <span>Result: 8 passed / 0 failed</span></dd>
+              <dd><code>E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts</code> <span>Result: 8 passed / 0 failed</span></dd>
             </div>
             <div>
               <dt>Artifact</dt>
-              <dd><a class="path" href="../test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" title="test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" target="_blank" rel="noopener noreferrer">.../playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png</a> <span>API 500 fallback UI runtime screenshot.</span></dd>
+              <dd><a class="path" href="../test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" title="test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png" target="_blank" rel="noopener noreferrer">.../playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png</a> <span>API 500 fallback UI runtime screenshot.</span></dd>
             </div>
           </dl>
         </article>
@@ -1851,11 +1858,11 @@
             </section>
             <section>
               <h3>After</h3>
-              <p>Initial entry chunk: 2025.10 KB -&gt; 530.77 KB in latest dist artifact; -73.8%. After artifact: cat2-closeout bundle stats and HTML analysis are present. Claim boundary: Total JS/CSS increased, so the completion claim is code splitting / initial page load, not total bundle reduction.</p>
+              <p>Initial entry chunk: 2025.10 KB -&gt; 528.48 KB in latest dist artifact; -73.9%. After artifact: cat2-closeout bundle stats and HTML analysis are present. Claim boundary: Total JS/CSS increased, so the completion claim is code splitting / initial page load, not total bundle reduction.</p>
             </section>
             <section>
               <h3>Reviewer Meaning</h3>
-              <p>Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. Boundary: Does not claim total bundle reduction.</p>
+              <p>Initial entry bundle decreased from 2025.10 KB to 528.48 KB, a 73.9% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present. Boundary: Does not claim total bundle reduction.</p>
             </section>
           </div>
         </article>
@@ -2035,7 +2042,7 @@
             <td>Reduce initial page-load bundle by at least 20% through code splitting.</td>
             <td>percent_decrease_at_least</td>
             <td>20</td>
-            <td>73.8</td>
+            <td>73.9</td>
             <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat2-target-before-after-output" data-ledger-id="cat2-target-before-after-output">

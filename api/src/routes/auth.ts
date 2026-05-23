@@ -9,6 +9,12 @@ import { sessionClearCookieOptions, sessionCookieOptions } from '../config/sessi
 
 const router = Router();
 
+interface WorkspaceMembershipRow {
+  id: string;
+  name: string;
+  role: string;
+}
+
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -92,7 +98,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Get user's workspaces
-    const workspacesResult = await pool.query(
+    const workspacesResult = await pool.query<WorkspaceMembershipRow>(
       `SELECT w.id, w.name, wm.role
        FROM workspaces w
        JOIN workspace_memberships wm ON w.id = wm.workspace_id
@@ -116,7 +122,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     // If no valid last workspace, use first available
     if (!workspaceId && workspaces.length > 0) {
-      workspaceId = workspaces[0].id;
+      workspaceId = workspaces[0]?.id ?? null;
     }
 
     // Super-admins can log in even without workspace membership
@@ -269,7 +275,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     }
 
     // Get user's workspaces
-    const workspacesResult = await pool.query(
+    const workspacesResult = await pool.query<WorkspaceMembershipRow>(
       `SELECT w.id, w.name, wm.role
        FROM workspaces w
        JOIN workspace_memberships wm ON w.id = wm.workspace_id

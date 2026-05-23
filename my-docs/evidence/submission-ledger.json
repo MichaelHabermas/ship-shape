@@ -573,7 +573,7 @@
           "items": [
             {
               "label": "Initial entry chunk",
-              "value": "2025.10 KB -> 530.77 KB in latest dist artifact; -73.8%."
+              "value": "2025.10 KB -> 528.48 KB in latest dist artifact; -73.9%."
             },
             {
               "label": "After artifact",
@@ -666,21 +666,23 @@
           "id": "cat2-latest-bundle",
           "kind": "bundle_size_summary",
           "label": "Latest production bundle",
-          "recorded_at": "2026-05-22",
-          "artifact": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
+          "recorded_at": "2026-05-23",
+          "artifact": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
           "values": {
-            "total_js_css_kb": 2396.29,
-            "latest_js_bytes_from_artifact": 2328607,
-            "latest_css_bytes_from_artifact": 67678,
-            "initial_entry_chunk_name": "assets/index-CeOsbhgF.js",
-            "initial_entry_chunk_kb": 530.77,
-            "largest_reported_chunk_name": "assets/PropertyRow-DPbMYz5a.js",
-            "largest_reported_chunk_kb": 837.24,
-            "chunk_count_reported": 295
+            "total_js_css_kb": 2369.69,
+            "latest_js_bytes_from_artifact": 2303049,
+            "latest_css_bytes_from_artifact": 66639,
+            "initial_entry_chunk_name": "assets/index-C_5JJPag.js",
+            "initial_entry_chunk_kb": 528.48,
+            "largest_reported_chunk_name": "assets/PropertyRow-DksaYHMP.js",
+            "largest_reported_chunk_kb": 642.48,
+            "chunk_count_reported": 296,
+            "prior_closeout_total_js_css_kb": 2396.29,
+            "prior_closeout_largest_chunk_kb": 837.24
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json"
+          "source": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json"
         }
       ],
       "derived_metrics": [
@@ -690,9 +692,9 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2025.1,
-          "latest_value": 530.77,
-          "change_absolute": -1494.33,
-          "change_percent": -73.8,
+          "latest_value": 528.48,
+          "change_absolute": -1496.62,
+          "change_percent": -73.9,
           "threshold_percent": -20,
           "origin": "computed",
           "confidence": "artifact_backed"
@@ -703,9 +705,9 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2025.1,
-          "latest_value": 837.24,
-          "change_absolute": -1187.86,
-          "change_percent": -58.7,
+          "latest_value": 642.48,
+          "change_absolute": -1382.62,
+          "change_percent": -68.3,
           "origin": "computed",
           "confidence": "artifact_backed"
         },
@@ -715,9 +717,9 @@
           "baseline_measurement_id": "cat2-baseline-bundle",
           "latest_measurement_id": "cat2-latest-bundle",
           "baseline_value": 2262.65,
-          "latest_value": 2396.29,
-          "change_absolute": 133.64,
-          "change_percent": 5.9,
+          "latest_value": 2369.69,
+          "change_absolute": 107.04,
+          "change_percent": 4.7,
           "origin": "computed",
           "confidence": "artifact_backed"
         }
@@ -729,7 +731,7 @@
           "metric_id": "cat2-initial-entry-chunk-reduction",
           "operator": "percent_decrease_at_least",
           "threshold": 20,
-          "actual": 73.8,
+          "actual": 73.9,
           "result": "pass"
         },
         {
@@ -779,7 +781,7 @@
           "type": "target_result",
           "target_id": "cat2-target-before-after-output",
           "result": "pass",
-          "notes": "Latest bundle-analysis HTML artifact exists under my-docs/evidence-runs/cat2-closeout/collectors/."
+          "notes": "Latest bundle-analysis HTML artifact exists under my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/."
         },
         {
           "id": "cat2-no-functionality-removal-documented",
@@ -792,14 +794,14 @@
         {
           "id": "cat2-clears-initial-entry-code-splitting-target",
           "status": "proven",
-          "statement": "Initial entry bundle decreased from 2025.10 KB to 530.77 KB, a 73.8% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.",
+          "statement": "Initial entry bundle decreased from 2025.10 KB to 528.48 KB, a 73.9% reduction, clearing the 20% code-splitting target with before/after bundle-analysis output present.",
           "basis": [
             "cat2-initial-entry-chunk-reduction",
             "cat2-target-before-after-output",
             "cat2-build-web-command"
           ],
           "limits": [
-            "This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.29 KB in the latest artifact.",
+            "This does not claim total JS/CSS bundle reduction; total JS/CSS is 2369.69 KB in the latest artifact (still above the 2262.65 KB baseline, but improved vs the 2026-05-22 closeout 2396.29 KB after lazy lowlight).",
             "The claim is scoped to initial page-load/code-splitting improvement.",
             "Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features."
           ]
@@ -828,18 +830,18 @@
         {
           "id": "cat2-latest-bundle-stats",
           "type": "artifact",
-          "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
-          "description": "Latest closeout bundle stats artifact from dependency-free collector."
+          "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
+          "description": "Latest easy-wins bundle stats artifact from dependency-free collector."
         },
         {
           "id": "cat2-latest-bundle-analysis",
           "type": "artifact",
-          "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html",
+          "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html",
           "description": "Latest closeout bundle-analysis HTML artifact generated from web/dist."
         }
       ],
       "caveats": [
-        "Total JS/CSS increased in the latest artifact, so the proven claim is limited to initial entry/code-splitting reduction."
+        "Total JS/CSS remains above baseline; the proven claim is limited to initial entry/code-splitting reduction. Lazy lowlight (2026-05-23) reduced largest chunk and total JS/CSS vs the prior closeout artifact without changing the claim ID."
       ],
       "non_claims": [
         "Does not claim total bundle reduction.",
@@ -848,8 +850,8 @@
       "sources": [
         "my-docs/AUDIT_REPORT.md",
         "my-docs/IMPROVEMENT_REPORT.md",
-        "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
-        "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html"
+        "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
+        "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html"
       ]
     },
     {
@@ -1801,6 +1803,24 @@
           "origin": "report_extracted",
           "confidence": "artifact_backed",
           "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat4-search-content-after",
+          "kind": "query_count_flow",
+          "label": "Server-backed content search per request",
+          "recorded_at": "2026-05-23",
+          "artifact": "test-results/perf/query-count-api-easy-wins-20260523.json",
+          "values": {
+            "flow_name": "content_search_distribution",
+            "queries_per_request": 3,
+            "request_count_in_flow": 4,
+            "total_queries_in_flow": 12,
+            "baseline_search_content_queries": 0,
+            "note": "Client-side title filter (0 server queries) replaced by server FTS; documented as efficiency tradeoff, not a query-count reduction win."
+          },
+          "origin": "report_extracted",
+          "confidence": "artifact_backed",
+          "source": "my-docs/IMPROVEMENT_REPORT.md"
         }
       ],
       "derived_metrics": [
@@ -2572,32 +2592,32 @@
         {
           "id": "cat6-runtime-e2e-run",
           "type": "test_run",
-          "command": "E2E_RESULTS_DIR=test-results/category-6-runtime-evidence-final2 PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts",
+          "command": "E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts",
           "result": "8 passed / 0 failed",
-          "description": "Focused runtime evidence E2E run."
+          "description": "Focused runtime evidence E2E run (2026-05-23 refresh)."
         },
         {
           "id": "cat6-runtime-screenshot-api-500",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
           "description": "API 500 fallback UI runtime screenshot."
         },
         {
           "id": "cat6-runtime-screenshot-offline",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
           "description": "Offline editor draft preservation runtime screenshot."
         },
         {
           "id": "cat6-runtime-screenshot-csrf",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
           "description": "CSRF JSON/editor usable runtime screenshot."
         },
         {
           "id": "cat6-runtime-screenshot-concurrent",
           "type": "screenshot",
-          "path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
+          "path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
           "description": "Concurrent API failure fallback runtime screenshot."
         },
         {
@@ -2620,8 +2640,7 @@
         }
       ],
       "caveats": [
-        "Process-level unhandled rejection handlers remain outside this Cat 6 closeout.",
-        "Current focused E2E rerun was blocked because Docker was not running; the historical focused E2E artifact plus new AI screenshot are retained as evidence."
+        "Process-level unhandled rejection handlers remain outside this Cat 6 closeout."
       ],
       "non_claims": [
         "Does not count comments authorization hardening as a Category 6 user-facing runtime proof.",
@@ -2813,13 +2832,19 @@
           "id": "cat7-closeout-axe",
           "kind": "axe_closeout_by_page",
           "label": "Closeout axe scan for selected top pages",
-          "recorded_at": "2026-05-22",
+          "recorded_at": "2026-05-23",
           "tooling": {
             "command": "pnpm a11y:closeout -- --fail-on-serious"
           },
           "artifact": "test-results/a11y-closeout/axe-summary.json",
           "values": {
+            "/login": {
+              "violations": 0
+            },
             "/docs": {
+              "violations": 0
+            },
+            "/issues": {
               "violations": 0
             },
             "/documents/:id": {

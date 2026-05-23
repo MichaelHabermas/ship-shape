@@ -299,7 +299,9 @@ function evidenceRows(categories) {
             )} ${escapeHtml(humanizeId(test.id))}</span>`
         )
         .join(' ');
-      const sourceSummary = category.sources.map((source) => linkedPath(source)).join('<br>');
+      const sourceSummary = `<div class="source-links">${category.sources
+        .map((source) => linkedPath(source))
+        .join('')}</div>`;
       return `
         <tr data-ledger-id="${escapeHtml(category.id)}">
           <td>Cat ${category.number}. ${escapeHtml(category.title)}</td>
@@ -861,6 +863,9 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .sort-button[data-dir="desc"]::after { content:"↓"; }
       .artifact-link { margin-top:5px; }
       .path { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:12px; }
+      .table-wrap td .path { display:block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; word-break:normal; }
+      .source-links { display:grid; gap:2px; align-content:start; }
+      .source-links .path { line-height:1.15; }
       .non-claim-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
       .non-claim-card { padding:12px; border:1px solid var(--line); background:#fbf8f0; }
       .non-claim-card h3 { margin-bottom:7px; font-size:14px; }
@@ -881,6 +886,10 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
       th { color:var(--muted); font-size:11px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
       tr:last-child td { border-bottom:0; }
+      .evidence-summary-table { table-layout:fixed; }
+      .evidence-summary-table th:nth-child(1),.evidence-summary-table td:nth-child(1) { width:110px; }
+      .evidence-summary-table th:nth-child(2),.evidence-summary-table td:nth-child(2) { width:76px; }
+      .evidence-summary-table th:nth-child(5),.evidence-summary-table td:nth-child(5) { width:160px; }
       .discoveries-table { min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
       .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
@@ -942,7 +951,7 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
 
       <section id="panel-evidence" class="tab-panel" role="tabpanel" aria-labelledby="tab-evidence" tabindex="0" hidden>
         <div class="section-grid">${categorySections(categories)}</div>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>${evidenceRows(categories)}</tbody></table></div>
+        <div class="table-wrap"><table class="evidence-summary-table"><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>${evidenceRows(categories)}</tbody></table></div>
       </section>
 
       <section id="panel-cross-examine" class="tab-panel" role="tabpanel" aria-labelledby="tab-cross-examine" tabindex="0" hidden>

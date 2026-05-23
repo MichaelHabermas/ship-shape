@@ -90,7 +90,7 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
           fetchReview();
         } else {
           const data = await readJson<LegacyErrorResponse>(res).catch(() => ({}));
-          showToast(data.error || 'Failed to save week review', 'error');
+          showToast('error' in data && data.error ? data.error : 'Failed to save week review', 'error');
         }
       } else {
         // PATCH to update existing review
@@ -105,7 +105,7 @@ export function WeekReview({ sprintId }: WeekReviewProps) {
           showToast('You can only edit reviews you created', 'error');
         } else {
           const data = await readJson<LegacyErrorResponse>(res).catch(() => ({}));
-          showToast(data.error || 'Failed to update week review', 'error');
+          showToast('error' in data && data.error ? data.error : 'Failed to update week review', 'error');
         }
       }
     } catch (err) {

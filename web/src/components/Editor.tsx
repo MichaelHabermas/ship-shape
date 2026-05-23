@@ -8,8 +8,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import { ResizableImage } from './editor/ResizableImage';
 import Dropcursor from '@tiptap/extension-dropcursor';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { common, createLowlight } from 'lowlight';
+import type { AnyExtension } from '@tiptap/core';
+import { createCodeBlockLowlightExtension } from './editor/lowlight-setup';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
@@ -42,9 +42,6 @@ import { useCommentsQuery, useCreateComment, useUpdateComment } from '@/hooks/us
 import type { ConversionDocumentType } from '@ship/shared';
 import { BubbleMenu } from '@tiptap/react';
 import 'tippy.js/dist/tippy.css';
-
-// Create lowlight instance with common languages
-const lowlight = createLowlight(common);
 
 interface EditorProps {
   documentId: string;
@@ -273,6 +270,19 @@ export function Editor({
   const createComment = useCreateComment(documentId);
   const updateComment = useUpdateComment(documentId);
   const [pendingCommentId, setPendingCommentId] = useState<string | null>(null);
+  const [codeBlockExtension, setCodeBlockExtension] = useState<AnyExtension | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void createCodeBlockLowlightExtension().then((extension) => {
+      if (!cancelled) {
+        setCodeBlockExtension(extension);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Handle adding a new comment (called from keyboard shortcut, bubble menu, context menu)
   const handleAddComment = useCallback((commentId: string) => {
@@ -286,12 +296,7 @@ export function Editor({
       dropcursor: false,
       codeBlock: false, // Disable default code block to use CodeBlockLowlight
     }),
-    CodeBlockLowlight.configure({
-      lowlight,
-      HTMLAttributes: {
-        class: 'code-block-lowlight',
-      },
-    }),
+    ...(codeBlockExtension ? [codeBlockExtension] : []),
     Placeholder.configure({ placeholder }),
     Collaboration.configure({ document: ydoc }),
     Link.configure({
@@ -365,7 +370,7 @@ export function Editor({
         class: 'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[300px]',
       },
     },
-  }, [provider, documentType]);
+  }, [provider, documentType, codeBlockExtension]);
 
   // Refs for stable comment callbacks (avoid re-render loops)
   const commentsRef = useRef(comments);
@@ -482,7 +487,7 @@ export function Editor({
       // POST to update links (uses target_ids for API compatibility)
       // Use apiPost to handle CSRF token automatically
       apiPost(`/api/documents/${documentId}/links`, { target_ids: targetIds })
-        .catch(err => {
+        .catch((err: unknown) => {
           console.error('[LinkSync] POST error:', err);
         });
     };

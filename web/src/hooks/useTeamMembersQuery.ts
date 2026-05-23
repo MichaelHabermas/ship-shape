@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiGetJson } from '@/lib/api';
+import { apiClient, assertApiData } from '@/api/client';
+import type { components } from '@/api/generated/ship-openapi';
 
 export interface TeamMember {
   id: string;
@@ -10,27 +11,36 @@ export interface TeamMember {
   isArchived?: boolean;
 }
 
-// Query keys
 export const teamMemberKeys = {
   all: ['teamMembers'] as const,
   lists: () => [...teamMemberKeys.all, 'list'] as const,
 };
 
-// Fetch team members (includes pending users with isPending flag)
-async function fetchTeamMembers(): Promise<TeamMember[]> {
-  return apiGetJson<TeamMember[]>('/api/team/people', 'Failed to fetch team members');
+function mapPersonToTeamMember(person: components['schemas']['Person']): TeamMember {
+  return {
+    id: person.personId,
+    user_id: person.id,
+    name: person.name,
+    email: person.email ?? undefined,
+    isPending: person.isPending,
+    isArchived: person.isArchived,
+  };
 }
 
-// Hook to get team members with TanStack Query (supports offline via cache)
+async function fetchTeamMembers(): Promise<TeamMember[]> {
+  const response = await apiClient.GET('/team/people');
+  const people = assertApiData(response, 'Failed to fetch team members');
+  return people.map(mapPersonToTeamMember);
+}
+
 export function useTeamMembersQuery() {
   return useQuery({
     queryKey: teamMemberKeys.lists(),
     queryFn: fetchTeamMembers,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 }
 
-// Assignable member type (guaranteed to have user_id)
 export interface AssignableMember {
   id: string;
   user_id: string;
@@ -38,13 +48,12 @@ export interface AssignableMember {
   email?: string;
 }
 
-// Hook to get only assignable members (filters out pending users who can't be assigned)
 export function useAssignableMembersQuery() {
   const query = useTeamMembersQuery();
   return {
     ...query,
-    data: query.data?.filter((m): m is TeamMember & { user_id: string } =>
-      !m.isPending && m.user_id !== null
+    data: query.data?.filter((member): member is TeamMember & { user_id: string } =>
+      !member.isPending && member.user_id !== null
     ),
   };
 }

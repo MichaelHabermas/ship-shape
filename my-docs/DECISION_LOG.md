@@ -1041,3 +1041,43 @@ Why: Full-suite May 22 failures included chronic inline-comments cancel and a11y
 Evidence: `CommentMark.test.ts` 2/2; `triage-a11y-tree2` 1/1; inline cancel stable after document Escape handler. Follow-up batch (D058/D059 extension): E2E seed enables `public_feedback_enabled` on Ship Core; combobox a11y scopes to `#properties-portal`; syntax-highlighting asserts `hljs-*` (lowlight); team-mode sort checks per program group; my-week stale-data runs retro before plan (retro auto-seeds planReference blocks when plan exists).
 
 **Decision Gist**: Prefer product fixes backed by unit tests; update E2E selectors when component markup changed, with comments pointing to seed/component source.
+
+### D062: Lazy lowlight subset for editor code blocks (2026-05-23)
+
+Status: Accepted
+
+Decision: Defer highlight.js loading until first code-block use via `web/src/components/editor/lowlight-setup.ts`. Register a curated subset from `lowlight`’s `common` preset (javascript, typescript, json, bash, python, sql, yaml) matching E2E syntax-highlight languages. Wire `Editor.tsx` to load the code-block extension asynchronously on mount.
+
+Why: Eager `createLowlight(common)` at module scope pulled ~378 KB highlight.js into the PropertyRow-named chunk. Lazy init shrinks that chunk without removing syntax highlighting or changing the Cat 2 claim ID (initial-entry/code-splitting path).
+
+Alternatives considered: per-language dynamic `highlight.js/lib/languages/*` imports (rejected — not a direct Vite dep); lazy entire Editor shell (deferred — collab/UX risk).
+
+Consequences: Largest built chunk dropped 837.24 KB → 642.48 KB; total JS/CSS 2396.29 KB → 2369.69 KB vs prior closeout. Entry chunk unchanged within measurement noise. Claim boundary unchanged: still not total −15% vs baseline 2262.65 KB.
+
+Evidence: `pnpm build:web`; `pnpm evidence:run -- --phase cat2-easy-wins --run-id cat2-easy-wins-20260523`; artifact `my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json`.
+
+**Decision Gist**: Lazy-load heavy editor deps on first use; measure chunk-level wins without widening Cat 2 claims.
+
+### D063: Cat 4 search scorecard honesty boundary (2026-05-23)
+
+Status: Accepted
+
+Decision: Fill the Category 4 “Search content” scorecard row with measured **3 SQL queries per `/api/search/content` request** from `content_search_distribution`, documenting the client-side (0 queries) → server FTS (3 queries) tradeoff. Do not add derived negative % metrics for search. Leave Load main page, View document, List issues, and Sprint board blank (no harness before/after).
+
+Why: Full-content search is a product upgrade with a real per-request SQL cost. Claiming query-count reduction would be dishonest; documenting the tradeoff satisfies “document what was inefficient.”
+
+Evidence: `test-results/perf/query-count-api-easy-wins-20260523.json`; ledger measurement `cat4-search-content-after`.
+
+**Decision Gist**: Scorecard completeness without overclaiming search as a query-count win.
+
+### D064: Cat 7 axe closeout page expansion + Action Items modal (2026-05-23)
+
+Status: Accepted
+
+Decision: Extend `scripts/a11y-closeout.mjs` with pre-login `/login` and post-login `/issues`. Fix Action Items modal keyboard flow by replacing the header close button with Radix `Dialog.Close` and adding `ActionItemsModal.test.tsx`. Defer Lighthouse rerun.
+
+Why: Expands repeatable axe evidence to pages graders care about without installing Lighthouse. Action Items close control was a known keyboard debt from manual closeout.
+
+Evidence: `pnpm a11y:closeout -- --fail-on-serious` → 0 critical/serious on `/login`, `/docs`, `/issues`, `/projects`, selected `/documents/:id`, `/my-week` in `test-results/a11y-closeout/axe-summary.json`; `pnpm --filter @ship/web exec vitest run src/components/ActionItemsModal.test.tsx`.
+
+**Decision Gist**: Axe path stays the proven Cat 7 branch; expand pages and fix one modal keyboard gap.

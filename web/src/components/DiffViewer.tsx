@@ -74,7 +74,7 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
     // Handle paragraph nodes - add newline after
     if (node.type === 'paragraph') {
       const childContent = Array.isArray(node.content)
-        ? node.content.map((child) => extractText(child as Record<string, unknown>)).join('')
+        ? node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('')
         : '';
       return childContent + '\n';
     }
@@ -82,7 +82,7 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
     // Handle heading nodes - add newline after
     if (node.type === 'heading') {
       const childContent = Array.isArray(node.content)
-        ? node.content.map((child) => extractText(child as Record<string, unknown>)).join('')
+        ? node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('')
         : '';
       return childContent + '\n';
     }
@@ -90,7 +90,7 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
     // Handle bulletList and orderedList
     if (node.type === 'bulletList' || node.type === 'orderedList') {
       const items = Array.isArray(node.content)
-        ? node.content.map((child) => extractText(child as Record<string, unknown>)).join('')
+        ? node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('')
         : '';
       return items;
     }
@@ -98,7 +98,7 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
     // Handle listItem
     if (node.type === 'listItem') {
       const childContent = Array.isArray(node.content)
-        ? node.content.map((child) => extractText(child as Record<string, unknown>)).join('')
+        ? node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('')
         : '';
       return '• ' + childContent;
     }
@@ -106,7 +106,7 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
     // Handle blockquote
     if (node.type === 'blockquote') {
       const childContent = Array.isArray(node.content)
-        ? node.content.map((child) => extractText(child as Record<string, unknown>)).join('')
+        ? node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('')
         : '';
       return '> ' + childContent;
     }
@@ -114,7 +114,7 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
     // Handle codeBlock
     if (node.type === 'codeBlock') {
       const childContent = Array.isArray(node.content)
-        ? node.content.map((child) => extractText(child as Record<string, unknown>)).join('')
+        ? node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('')
         : '';
       return '```\n' + childContent + '```\n';
     }
@@ -126,12 +126,12 @@ export function tipTapToPlainText(content: Record<string, unknown> | null | unde
 
     // Handle doc node (root)
     if (node.type === 'doc' && Array.isArray(node.content)) {
-      return node.content.map((child) => extractText(child as Record<string, unknown>)).join('');
+      return node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('');
     }
 
     // Handle any other node with content
     if (Array.isArray(node.content)) {
-      return node.content.map((child) => extractText(child as Record<string, unknown>)).join('');
+      return node.content.map((child: unknown) => extractText(child as Record<string, unknown>)).join('');
     }
 
     return '';
