@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T02:49:17.888Z",
+  "run": {
+    "id": "before-file-headers",
+    "startedAt": "2026-05-23T02:49:17.725Z",
+    "finishedAt": "2026-05-23T02:49:17.888Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "wsUrl": "ws://localhost:3000"
+  },
+  "summary": {
+    "status": "warn",
+    "attackSurfacesMeasured": 1,
+    "findings": 1,
+    "findingsBySeverity": {
+      "medium": 1
+    },
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "failed": 1
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "websocketValidation": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "inputSanitization": {
+      "status": "fail",
+      "findings": [
+        "cat8-input-file-serve-headers"
+      ],
+      "probes": [
+        "input-file-serve-headers"
+      ]
+    },
+    "dependencyCves": {
+      "status": "not_measured",
+      "findings": []
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "not_measured"
+    },
+    "secrets": {
+      "status": "not_measured"
+    },
+    "rateLimits": {
+      "status": "not_measured"
+    },
+    "verboseErrors": {
+      "status": "not_measured"
+    }
+  },
+  "findings": [
+    {
+      "id": "cat8-input-file-serve-headers",
+      "probeId": "input-file-serve-headers",
+      "title": "Uploaded HTML was served inline without nosniff protection",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "file-upload",
+      "affected": {
+        "endpoint": "/api/files/:id/serve"
+      },
+      "evidence": {
+        "reproduction": [
+          "Upload text/html content through local file upload.",
+          "GET /api/files/:id/serve and inspect response headers."
+        ]
+      },
+      "expected": "User uploads are served as attachments with X-Content-Type-Options: nosniff.",
+      "observed": "Content-Disposition=inline; filename=\"_security-probe_before-file-headers_-probe.html\", X-Content-Type-Options=nosniff.",
+      "fixCandidate": "Serve local uploads as attachments, sanitize filenames, and set X-Content-Type-Options: nosniff.",
+      "safeToAutoFix": false
+    }
+  ],
+  "probes": [
+    {
+      "id": "input-file-serve-headers",
+      "name": "Served uploads use safe download headers",
+      "status": "failed",
+      "durationMs": 11,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-input-file-serve-headers"
+      ]
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/before-file-headers/report.json",
+    "attackSurfacesMeasured": 1,
+    "manualReviewComplete": false,
+    "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
+  }
+}

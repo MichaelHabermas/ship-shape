@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T02:49:15.402Z",
+  "run": {
+    "id": "before-ws-unknown",
+    "startedAt": "2026-05-23T02:49:15.114Z",
+    "finishedAt": "2026-05-23T02:49:15.402Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "wsUrl": "ws://localhost:3000"
+  },
+  "summary": {
+    "status": "pass",
+    "attackSurfacesMeasured": 1,
+    "findings": 0,
+    "findingsBySeverity": {},
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "passed": 1
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "websocketValidation": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "websocket-unknown-message-type"
+      ]
+    },
+    "inputSanitization": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "dependencyCves": {
+      "status": "not_measured",
+      "findings": []
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "not_measured"
+    },
+    "secrets": {
+      "status": "not_measured"
+    },
+    "rateLimits": {
+      "status": "not_measured"
+    },
+    "verboseErrors": {
+      "status": "not_measured"
+    }
+  },
+  "findings": [],
+  "probes": [
+    {
+      "id": "websocket-unknown-message-type",
+      "name": "Unknown WebSocket message type rejected deterministically",
+      "status": "passed",
+      "durationMs": 17,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "closeCode": 635
+      }
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/before-ws-unknown/report.json",
+    "attackSurfacesMeasured": 1,
+    "manualReviewComplete": false,
+    "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
+  }
+}

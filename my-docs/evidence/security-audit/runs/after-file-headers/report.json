@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T02:50:24.479Z",
+  "run": {
+    "id": "after-file-headers",
+    "startedAt": "2026-05-23T02:50:24.147Z",
+    "finishedAt": "2026-05-23T02:50:24.479Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "wsUrl": "ws://localhost:3000"
+  },
+  "summary": {
+    "status": "pass",
+    "attackSurfacesMeasured": 1,
+    "findings": 0,
+    "findingsBySeverity": {},
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "skipped": 1
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "websocketValidation": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "inputSanitization": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "input-file-serve-headers"
+      ]
+    },
+    "dependencyCves": {
+      "status": "not_measured",
+      "findings": []
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "not_measured"
+    },
+    "secrets": {
+      "status": "not_measured"
+    },
+    "rateLimits": {
+      "status": "not_measured"
+    },
+    "verboseErrors": {
+      "status": "not_measured"
+    }
+  },
+  "findings": [],
+  "probes": [
+    {
+      "id": "input-file-serve-headers",
+      "name": "Served uploads use safe download headers",
+      "status": "skipped",
+      "durationMs": 7,
+      "targetSafe": true,
+      "skipReason": "local upload returned HTTP 400",
+      "findingIds": []
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/after-file-headers/report.json",
+    "attackSurfacesMeasured": 1,
+    "manualReviewComplete": false,
+    "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
+  }
+}

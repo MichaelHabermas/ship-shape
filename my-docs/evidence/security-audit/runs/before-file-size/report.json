@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T02:49:15.398Z",
+  "run": {
+    "id": "before-file-size",
+    "startedAt": "2026-05-23T02:49:15.144Z",
+    "finishedAt": "2026-05-23T02:49:15.398Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "wsUrl": "ws://localhost:3000"
+  },
+  "summary": {
+    "status": "warn",
+    "attackSurfacesMeasured": 1,
+    "findings": 1,
+    "findingsBySeverity": {
+      "medium": 1
+    },
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "failed": 1
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "websocketValidation": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "inputSanitization": {
+      "status": "fail",
+      "findings": [
+        "cat8-input-file-size-mismatch"
+      ],
+      "probes": [
+        "input-file-upload-size-mismatch"
+      ]
+    },
+    "dependencyCves": {
+      "status": "not_measured",
+      "findings": []
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "not_measured"
+    },
+    "secrets": {
+      "status": "not_measured"
+    },
+    "rateLimits": {
+      "status": "not_measured"
+    },
+    "verboseErrors": {
+      "status": "not_measured"
+    }
+  },
+  "findings": [
+    {
+      "id": "cat8-input-file-size-mismatch",
+      "probeId": "input-file-upload-size-mismatch",
+      "title": "Local file upload accepted bytes that did not match declared size",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "file-upload",
+      "affected": {
+        "endpoint": "/api/files/:id/local-upload"
+      },
+      "evidence": {
+        "reproduction": [
+          "Create pending upload with sizeBytes 2048.",
+          "POST a much shorter body to /api/files/:id/local-upload."
+        ]
+      },
+      "expected": "Local upload rejects body length that differs from pending file size_bytes.",
+      "observed": "Upload returned HTTP 200.",
+      "fixCandidate": "Compare received buffer length with file.size_bytes before writing local upload.",
+      "safeToAutoFix": false
+    }
+  ],
+  "probes": [
+    {
+      "id": "input-file-upload-size-mismatch",
+      "name": "Local upload size mismatch rejected",
+      "status": "failed",
+      "durationMs": 15,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-input-file-size-mismatch"
+      ]
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/before-file-size/report.json",
+    "attackSurfacesMeasured": 1,
+    "manualReviewComplete": false,
+    "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
+  }
+}
