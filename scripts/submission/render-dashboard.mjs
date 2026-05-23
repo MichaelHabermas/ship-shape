@@ -168,19 +168,6 @@ function overviewSignal(category) {
   return importantSentence(category.primaryClaim?.statement || category.proofSummary || category.source_requirement.statement);
 }
 
-function reviewerSentence(category) {
-  const claim = category.primaryClaim || category.claims?.[0];
-  const base = claim?.statement || overviewSignal(category);
-  const boundary = category.non_claims?.[0] || category.caveats?.[0] || '';
-  const prefix = `Cat ${category.number} is ${statusLabel(category.status)}`;
-  if (boundary) return `${prefix}: ${base} ${boundary}`;
-  return `${prefix}: ${base}`;
-}
-
-function reviewerSentenceMarkup(category) {
-  return `<p class="reviewer-sentence">${escapeHtml(reviewerSentence(category))}</p>`;
-}
-
 function metricCards(categories) {
   return categories
     .map((category) => {
@@ -189,7 +176,6 @@ function metricCards(categories) {
         <article id="overview-${escapeHtml(category.id)}" class="score-card" data-ledger-id="${escapeHtml(category.id)}">
           <header><span class="cat-id">Cat ${category.number}</span>${badge(category.status)}</header>
           <h3>${escapeHtml(category.title)}</h3>
-          ${reviewerSentenceMarkup(category)}
           <p>${escapeHtml(overviewSignal(category))}</p>
           <div class="score-foot">
             ${defenseLoadReceipt(category)}
@@ -490,7 +476,6 @@ function claimDiffCards(categories) {
             </div>
             ${badge(category.status)}
           </div>
-          ${reviewerSentenceMarkup(category)}
           <div class="diff-lanes">
             <section>
               <h3>Before</h3>
@@ -558,7 +543,6 @@ function crossExamineCards(categories) {
             <div>
               <p class="eyebrow">Cross-Examine Cat ${category.number}</p>
               <h2>${escapeHtml(category.title)}</h2>
-              ${reviewerSentenceMarkup(category)}
               ${defenseLoadReceipt(category, 'full')}
             </div>
             ${badge(category.status)}
@@ -611,7 +595,6 @@ function categorySections(categories) {
             ${badge(category.status)}
           </div>
           <p>${escapeHtml(category.source_requirement.statement)} ${repoLink(category.source_requirement.source, 'Source')}</p>
-          ${reviewerSentenceMarkup(category)}
           ${summaryCards(category)}
           <h3>Targets</h3>
           <ul class="check-list">
@@ -817,7 +800,6 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .score-card { min-height:155px; padding:12px; border:1px solid var(--line); background:var(--paper); display:flex; flex-direction:column; gap:8px; }
       .score-card header,.section-heading { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; }
       .score-card p { margin-bottom:0; font-size:13px; }
-      .reviewer-sentence { padding:8px 9px; border-left:3px solid var(--dark); background:#fbf8f0; color:#242420; font-size:13px; font-weight:850; line-height:1.3; }
       .score-foot { display:grid; gap:5px; margin-top:auto; padding-top:8px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; font-weight:700; }
       .blocker-link { color:var(--open-ink); font-weight:850; text-decoration:none; }
       .blocker-link:hover { text-decoration:underline; }
@@ -832,7 +814,6 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .diff-card { padding:13px; border:1px solid var(--line); background:var(--paper); }
       .diff-head { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
       .diff-head h2 { margin-bottom:0; font-size:19px; }
-      .diff-card .reviewer-sentence { margin-bottom:10px; }
       .diff-lanes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
       .diff-lanes section { padding:10px; border:1px solid var(--line); background:#fbf8f0; }
       .diff-lanes h3 { margin-bottom:6px; color:var(--muted); font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
@@ -889,7 +870,6 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .cross-card { padding:13px; border:1px solid var(--line); background:var(--paper); }
       .cross-card-head { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
       .cross-card-head h2 { margin-bottom:0; font-size:19px; }
-      .cross-card-head .reviewer-sentence { margin-top:7px; max-width:520px; }
       .cross-card-head .defense-load { margin-top:7px; max-width:430px; }
       .cross-list { display:grid; gap:7px; margin:0; }
       .cross-list div { padding:8px 9px; border:1px solid var(--line); background:#fbf8f0; }

@@ -194,7 +194,7 @@
               <span class="rail-meta">API Response Time</span>
               <span class="rail-detail">H · 3/3</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-4-database-query-efficiency" data-meta-overview="-27.3%" data-detail-overview="H · -27.3%" data-meta-evidence="4 art" data-detail-evidence="H · 4 artifacts" data-meta-cross-examine="19 pts" data-detail-cross-examine="H · 19 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="5/5" data-detail-targets="H · 5/5 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="4 lim" data-detail-boundaries="H · 4 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 4: Database Query Efficiency">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-4-database-query-efficiency" data-meta-overview="-27.3%" data-detail-overview="H · -27.3%" data-meta-evidence="4 art" data-detail-evidence="H · 4 artifacts" data-meta-cross-examine="21 pts" data-detail-cross-examine="H · 21 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="5/5" data-detail-targets="H · 5/5 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="5 lim" data-detail-boundaries="H · 5 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 4: Database Query Efficiency">
               <span class="rail-number">4</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">-27.3%</span>
@@ -355,7 +355,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>19 pts · 1 claim · 4 boundaries · 4 artifacts · 5 gates</small>
+      <small>21 pts · 1 claim · 5 boundaries · 4 artifacts · 5 gates</small>
 
     </div>
             <span>5/5 acceptance pass; all gates clear</span>
@@ -885,7 +885,7 @@
                   </li>
                   <li>
                     <strong>Coverage</strong>
-                    <span>API around 40%; web coverage not configured.</span>
+                    <span>API around 40%; web coverage later measured at 37.1% statements.</span>
                   </li>
           </ul>
         </div>
@@ -928,7 +928,7 @@
 
                   <li data-ledger-id="cat5-three-meaningful-regressions">
                     <strong>Three Meaningful Regressions <span class="badge proven">proven</span></strong>
-                    <span>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility. Full E2E is green for the recorded lower-worker rerun, but retry artifact logs remain useful flake follow-up signals. Does not claim web coverage tooling was added. The claim is the source target of three meaningful regressions plus current unit-suite pass evidence.</span>
+                    <span>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility. Full E2E is green for the recorded lower-worker rerun, but retry artifact logs remain useful flake follow-up signals. Does not claim coverage percentage improved or strict thresholds were enforced. The claim is the source target of three meaningful regressions plus current unit-suite pass evidence.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -959,7 +959,7 @@
         </li>
         <li data-ledger-id="cat5-risk-comment-locations">
           <strong>Risk Comment Locations <span class="subtle">methodology</span></strong>
-          <span>Counted risk comments live in web/src/components/editor/CommentMark.test.ts:15, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:301.</span>
+          <span>Counted risk comments live in web/src/components/editor/CommentMark.test.ts:27, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:302.</span>
           <small>Path: my-docs/IMPROVEMENT_REPORT.md</small>
           <div class="artifact-link"><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">Open artifact</a></div>
         </li></ul>
@@ -1583,7 +1583,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>19 pts · 1 claim · 4 boundaries · 4 artifacts · 5 gates</small>
+      <small>21 pts · 1 claim · 5 boundaries · 4 artifacts · 5 gates</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>
@@ -1661,7 +1661,7 @@
             </div>
             <div>
               <dt>Artifact</dt>
-              <dd><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a> <span>Counted risk comments live in web/src/components/editor/CommentMark.test.ts:15, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:301.</span></dd>
+              <dd><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a> <span>Counted risk comments live in web/src/components/editor/CommentMark.test.ts:27, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:302.</span></dd>
             </div>
           </dl>
         </article>
@@ -1916,7 +1916,7 @@
           <div class="diff-lanes">
             <section>
               <h3>Before</h3>
-              <p>Total tests: 1471 executable tests across 115 files. Baseline unit pass/fail: API 451/0/0; web 138/13/0. Coverage: API around 40%; web coverage not configured.</p>
+              <p>Total tests: 1471 executable tests across 115 files. Baseline unit pass/fail: API 451/0/0; web 138/13/0. Coverage: API around 40%; web coverage later measured at 37.1% statements.</p>
             </section>
             <section>
               <h3>After</h3>
