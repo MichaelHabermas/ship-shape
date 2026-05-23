@@ -32,7 +32,7 @@ cd ..
 
 # 6. Deploy application (frequent, 5-8 min)
 ./scripts/deploy-api.sh
-./scripts/deploy-frontend.sh
+./scripts/deploy-frontend.sh dev   # or prod
 ```
 
 ## Documentation
@@ -261,7 +261,7 @@ aws rds describe-db-clusters --db-cluster-identifier ship-aurora
 
 ### Frontend Not Loading
 1. Wait for CloudFront invalidation (1-2 minutes)
-2. Check S3 contents: `aws s3 ls s3://ship-frontend-dev/`
+2. Check S3 contents: `aws s3 ls s3://$(cd terraform && terraform output -raw s3_bucket_name)/`
 3. Check CloudFront distribution status
 
 ## Disaster Recovery

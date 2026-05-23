@@ -89,7 +89,7 @@ PostgreSQL must be running. Tests use real database integration.
 
 **Never run `pnpm test:e2e` directly in Claude Code.** The output from 600+ tests crashes the context.
 
-Use the `/e2e-test-runner` skill instead, which handles background execution and progress tracking.
+Use the `/e2e-test-runner` skill instead (fallback: `pnpm test:e2e:run`), which handles background execution and progress tracking.
 
 ### How do I debug a failing E2E test?
 

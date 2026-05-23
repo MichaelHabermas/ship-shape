@@ -40,27 +40,26 @@ ship/
 ├── api/                    # Express backend
 │   ├── src/
 │   │   ├── routes/         # REST endpoints
-│   │   ├── db/             # Database client + schema
+│   │   ├── db/             # Database client + migrations
 │   │   ├── collaboration/  # WebSocket + Yjs handlers
 │   │   ├── middleware/     # Auth, etc.
-│   │   └── index.ts        # Entry point
+│   │   ├── app.ts          # Express app factory
+│   │   └── index.ts        # Entry point (bootstrap + server)
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── web/                    # React frontend
 │   ├── src/
-│   │   ├── components/     # UI components
+│   │   ├── components/     # UI components (Editor, UnifiedEditor, sidebars)
 │   │   ├── pages/          # Route pages
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── stores/         # Zustand stores
-│   │   ├── db/             # IndexedDB access
+│   │   ├── hooks/          # TanStack Query hooks
+│   │   ├── lib/            # Query client, utilities
 │   │   └── main.tsx        # Entry point
 │   ├── package.json
 │   └── vite.config.ts
 │
 ├── shared/                 # Shared code
-│   ├── types/              # TypeScript types
-│   └── constants/          # Shared constants
+│   └── src/                # Types, enums, collab protocol, content extractors
 │
 ├── package.json            # Workspace root
 ├── pnpm-workspace.yaml
@@ -74,24 +73,15 @@ ship/
 Single Express process handles both REST and WebSocket:
 
 ```typescript
-// api/src/index.ts
-import express from "express";
+// api/src/index.ts — bootstrap, then createApp from app.ts
 import { createServer } from "http";
-import { WebSocketServer } from "ws";
+import { createApp } from "./app.js";
+import { setupCollaboration } from "./collaboration/index.js";
 
-const app = express();
+const app = createApp(CORS_ORIGIN);
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
-
-// REST routes
-app.use("/api/documents", documentsRouter);
-app.use("/api/programs", programsRouter);
-app.use("/api/auth", authRouter);
-
-// WebSocket for real-time
-wss.on("connection", handleConnection);
-
-server.listen(3000);
+setupCollaboration(server);
+server.listen(PORT);
 ```
 
 ### Database Access (pg)
@@ -99,33 +89,15 @@ server.listen(3000);
 Direct SQL queries for maximum simplicity:
 
 ```typescript
-// api/src/db/pool.ts
+// api/src/db/client.ts
 import { Pool } from "pg";
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// api/src/db/documents.ts
-import { pool } from "./pool";
-
-export async function getDocument(id: string) {
-  const result = await pool.query(
-    "SELECT * FROM documents WHERE id = $1",
-    [id]
-  );
-  return result.rows[0];
-}
-
-export async function createDocument(doc: NewDocument) {
-  const result = await pool.query(
-    `INSERT INTO documents (workspace_id, document_type, title, content, properties)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING *`,
-    [doc.workspace_id, doc.document_type, doc.title, doc.content, doc.properties]
-  );
-  return result.rows[0];
-}
+// api/src/db/documents-repository.ts
+import { pool } from "./client.js";
 ```
 
 ### REST API Design
@@ -214,16 +186,7 @@ export const queryPersister: Persister = {
 };
 ```
 
-**Zustand** for UI-only state (unchanged):
-
-```typescript
-// Minimal UI state - does not need offline persistence
-const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: true,
-  currentMode: "programs",
-  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-}));
-```
+UI state lives in React context and component state; server state uses TanStack Query only.
 
 ### Caching Strategy
 
@@ -277,7 +240,7 @@ Document lists and metadata use TanStack Query with IndexedDB persistence:
 │  IndexedDB Persister                │  y-indexeddb          │
 │  (cache persists across sessions)   │  (doc persists)       │
 │  ↕                                  │  ↕                    │
-│  REST API (/api/*)                  │  WebSocket (/collab)  │
+│  REST API (/api/*)                  │  WebSocket (/collaboration)  │
 ├─────────────────────────────────────────────────────────────┤
 │                    PostgreSQL (source of truth)              │
 └─────────────────────────────────────────────────────────────┘
@@ -542,15 +505,11 @@ web/src/components/
 ├── ui/                    # shadcn/ui components (copied)
 │   ├── button.tsx
 │   ├── dialog.tsx
-│   ├── dropdown-menu.tsx
 │   └── ...
-├── documents/             # Feature components
-│   ├── DocumentList.tsx
-│   ├── DocumentEditor.tsx
-│   └── ...
-└── layout/                # Layout components
-    ├── Sidebar.tsx
-    └── Header.tsx
+├── Editor.tsx             # Shared TipTap/Yjs editor
+├── UnifiedEditor.tsx      # 4-panel document editor shell
+├── sidebars/              # Contextual sidebars per document type
+└── layout/                # App shell components
 ```
 
 ### Styling
@@ -665,7 +624,7 @@ For complex migrations, use a simple runner:
 
 ```typescript
 // api/src/db/migrate.ts
-import { pool } from "./pool";
+import { pool } from "./client.js";
 import fs from "fs";
 import path from "path";
 
@@ -692,19 +651,14 @@ async function migrate() {
 
 ### Local Setup
 
+See [README](../README.md). Quick start:
+
 ```bash
-# Install dependencies
 pnpm install
-
-# Start database
-docker compose -f docker-compose.local.yml up -d postgres
-
-# Run migrations
-pnpm db:migrate
-
-# Start dev servers (parallel)
 pnpm dev
 ```
+
+`pnpm dev` creates `api/.env.local` if needed, creates the local PostgreSQL database, runs migrations/seeds on fresh databases, finds open API/web ports, and starts both servers. PostgreSQL must be running locally (not Docker) for normal development.
 
 ### Dev Server Ports
 
@@ -801,7 +755,7 @@ This enables:
 5. **Deployment**: Single container (EB or ECS) + S3/CloudFront
 6. **Real-time**: WebSocket on same Express process
 7. **Auth**: PIV + password fallback
-8. **State management**: TanStack Query + light Zustand
+8. **State management**: TanStack Query (no Zustand)
 9. **Offline model**: Superseded by 2025-01-15 decision; current metadata/list mutations do not queue offline
 10. **Collab editing**: Superseded by 2025-01-15 decision; editor content uses Yjs/y-indexeddb for offline-tolerant content caching
 

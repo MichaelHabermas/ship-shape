@@ -82,49 +82,35 @@ export default router;
 
 ## Database Transaction Pattern
 
-From `api/src/routes/issues.ts:513-582`:
+From `api/src/routes/backlinks.ts:113-148`:
 
 ```typescript
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
-  const client = await pool.connect();
+const client = await pool.connect();
+try {
+  await client.query('BEGIN');
 
-  try {
-    await client.query('BEGIN');
+  await client.query(
+    'DELETE FROM document_links WHERE source_id = $1',
+    [id]
+  );
 
-    // Check if issue exists and user has access
-    const issueResult = await client.query(
-      'SELECT * FROM documents WHERE id = $1 AND document_type = $2',
-      [req.params.id, 'issue']
-    );
-
-    if (issueResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      res.status(404).json({ error: 'Issue not found' });
-      return;
-    }
-
-    // Delete associations first (foreign key constraint)
+  if (target_ids.length > 0) {
     await client.query(
-      'DELETE FROM document_associations WHERE source_document_id = $1 OR target_document_id = $1',
-      [req.params.id]
+      `INSERT INTO document_links (source_id, target_id)
+       VALUES ($1, $2)
+       ON CONFLICT (source_id, target_id) DO NOTHING`,
+      [id, target_ids[0]]
     );
-
-    // Delete the document
-    await client.query(
-      'DELETE FROM documents WHERE id = $1',
-      [req.params.id]
-    );
-
-    await client.query('COMMIT');
-    res.status(204).send();
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error deleting issue:', error);
-    res.status(500).json({ error: 'Failed to delete issue' });
-  } finally {
-    client.release();
   }
-});
+
+  await client.query('COMMIT');
+  res.json({ success: true });
+} catch (err) {
+  await client.query('ROLLBACK');
+  throw err;
+} finally {
+  client.release();
+}
 ```
 
 ## TanStack Query Hook Pattern
@@ -133,63 +119,38 @@ From `web/src/hooks/useIssuesQuery.ts`:
 
 ```typescript
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { apiClient, assertApiData } from '@/api/client';
+import { issueKeys, type IssueFilters } from '@/hooks/issue-keys';
 
-// Query key factory
-export const issueKeys = {
-  all: ['issues'] as const,
-  lists: () => [...issueKeys.all, 'list'] as const,
-  list: (filters: IssueFilters) => [...issueKeys.lists(), filters] as const,
-  details: () => [...issueKeys.all, 'detail'] as const,
-  detail: (id: string) => [...issueKeys.details(), id] as const,
-};
+async function fetchIssues(filters?: IssueFilters) {
+  const result = await apiClient.GET('/issues', {
+    params: {
+      query: {
+        ...(filters?.programId ? { program_id: filters.programId } : {}),
+        ...(filters?.projectId ? { project_id: filters.projectId } : {}),
+      },
+    },
+  });
+  return assertApiData(result, 'Failed to fetch issues');
+}
 
-// Query hook
 export function useIssuesQuery(filters: IssueFilters = {}) {
   return useQuery({
     queryKey: issueKeys.list(filters),
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters.projectId) params.set('project_id', filters.projectId);
-      if (filters.state) params.set('state', filters.state);
-
-      const response = await api.get(`/api/issues?${params}`);
-      return response.data;
-    },
-    staleTime: 30 * 1000, // 30 seconds
+    queryFn: () => fetchIssues(filters),
+    staleTime: 30 * 1000,
   });
 }
 
-// Mutation with optimistic update
 export function useCreateIssue() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateIssueInput) => {
-      const response = await api.post('/api/issues', data);
-      return response.data;
-    },
-    onMutate: async (newIssue) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: issueKeys.lists() });
-
-      // Snapshot previous value
-      const previousIssues = queryClient.getQueryData(issueKeys.lists());
-
-      // Optimistically update
-      queryClient.setQueryData(issueKeys.lists(), (old: Issue[] = []) => [
-        { ...newIssue, id: 'temp-' + Date.now() },
-        ...old,
-      ]);
-
-      return { previousIssues };
-    },
-    onError: (err, newIssue, context) => {
-      // Rollback on error
-      queryClient.setQueryData(issueKeys.lists(), context?.previousIssues);
+    mutationFn: async (data: CreateIssueData) => {
+      const result = await apiClient.POST('/issues', { body: data });
+      return assertApiData(result, 'Failed to create issue');
     },
     onSettled: () => {
-      // Refetch after mutation
       queryClient.invalidateQueries({ queryKey: issueKeys.lists() });
     },
   });
@@ -201,58 +162,43 @@ export function useCreateIssue() {
 From `web/src/contexts/WorkspaceContext.tsx`:
 
 ```typescript
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '@/lib/api';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { api, Workspace } from '@/lib/api';
 
 interface WorkspaceContextType {
-  workspace: Workspace | null;
-  workspaces: Workspace[];
-  loading: boolean;
-  switchWorkspace: (id: string) => Promise<void>;
+  currentWorkspace: Workspace | null;
+  workspaces: WorkspaceWithRole[];
+  isWorkspaceAdmin: boolean;
+  switchWorkspace: (workspaceId: string) => Promise<boolean>;
+  refreshWorkspaces: () => Promise<void>;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [workspaces, setWorkspaces] = useState<WorkspaceWithRole[]>([]);
 
-  useEffect(() => {
-    async function loadWorkspaces() {
-      try {
-        const [current, all] = await Promise.all([
-          api.get('/api/workspaces/current'),
-          api.get('/api/workspaces'),
-        ]);
-        setWorkspace(current.data);
-        setWorkspaces(all.data);
-      } catch (error) {
-        console.error('Failed to load workspaces:', error);
-      } finally {
-        setLoading(false);
-      }
+  const switchWorkspace = useCallback(async (workspaceId: string) => {
+    const response = await api.workspaces.switch(workspaceId);
+    if (response.success && response.data) {
+      setCurrentWorkspace(response.data.workspace);
+      return true;
     }
-    loadWorkspaces();
+    return false;
   }, []);
 
-  const switchWorkspace = async (id: string) => {
-    await api.post(`/api/workspaces/${id}/switch`);
-    window.location.reload(); // Full reload to reset all state
-  };
-
   return (
-    <WorkspaceContext.Provider value={{ workspace, workspaces, loading, switchWorkspace }}>
+    <WorkspaceContext.Provider value={{ currentWorkspace, workspaces, switchWorkspace, /* ... */ }}>
       {children}
     </WorkspaceContext.Provider>
   );
 }
 
-// Typed hook with error if used outside provider
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
-  if (context === undefined) {
-    throw new Error('useWorkspace must be used within a WorkspaceProvider');
+  if (!context) {
+    throw new Error('useWorkspace must be used within WorkspaceProvider');
   }
   return context;
 }
@@ -351,27 +297,23 @@ From `api/src/db/migrations/020_document_associations.sql`:
 -- Create the associations table
 CREATE TABLE IF NOT EXISTS document_associations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source_document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    target_document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    relationship_type VARCHAR(50) NOT NULL,
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    related_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    relationship_type relationship_type NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    metadata JSONB DEFAULT '{}',
 
-    -- Prevent duplicate associations
     CONSTRAINT unique_association
-        UNIQUE (source_document_id, target_document_id, relationship_type),
+        UNIQUE (document_id, related_id, relationship_type),
 
-    -- Prevent self-references
     CONSTRAINT no_self_reference
-        CHECK (source_document_id != target_document_id)
+        CHECK (document_id != related_id)
 );
 
--- Indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_assoc_source
-    ON document_associations(source_document_id);
-CREATE INDEX IF NOT EXISTS idx_assoc_target
-    ON document_associations(target_document_id);
-CREATE INDEX IF NOT EXISTS idx_assoc_type
-    ON document_associations(relationship_type);
+CREATE INDEX IF NOT EXISTS idx_document_associations_document_id
+    ON document_associations(document_id);
+CREATE INDEX IF NOT EXISTS idx_document_associations_related_id
+    ON document_associations(related_id);
 
 COMMENT ON TABLE document_associations IS
     'Flexible document relationships replacing fixed FK columns';
@@ -432,68 +374,37 @@ test('can create issue', async ({ page }) => {
 
 ## Yjs Collaboration Setup
 
-From `web/src/components/Editor.tsx`:
+From `web/src/hooks/useCollabSession.ts`:
 
 ```typescript
-import { useEditor } from '@tiptap/react';
-import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
-import { WebsocketProvider } from 'y-websocket';
-import { IndexeddbPersistence } from 'y-indexeddb';
+import { useMemo } from 'react';
 import * as Y from 'yjs';
+import { buildCollaborationRoomName, COLLAB_CLOSE_CODE_CONTENT_UPDATE } from '@ship/shared';
+import { useCollabSession } from '@/hooks/useCollabSession';
 
-function Editor({ documentId, documentType }: EditorProps) {
-  // Create Y.Doc keyed by documentId to prevent cross-contamination
+function Editor({ documentId, documentType, userName, userColor }: EditorProps) {
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
 
-  // IndexedDB persistence (loads before WebSocket)
-  useEffect(() => {
-    const persistence = new IndexeddbPersistence(`ship-${documentId}`, ydoc);
+  const { provider, syncStatus } = useCollabSession({
+    documentId,
+    documentType,
+    userName,
+    userColor,
+    ydoc,
+    onBack: () => navigate(-1),
+  });
 
-    persistence.on('synced', () => {
-      console.log('[Editor] IndexedDB synced');
-    });
-
-    return () => persistence.destroy();
-  }, [ydoc, documentId]);
-
-  // WebSocket provider
-  useEffect(() => {
-    const wsUrl = `${import.meta.env.VITE_WS_URL}/collaboration`;
-    const roomName = `${documentType}:${documentId}`;
-
-    const provider = new WebsocketProvider(wsUrl, roomName, ydoc, {
-      connect: true,
-    });
-
-    provider.on('status', ({ status }) => {
-      setSyncStatus(status === 'connected' ? 'synced' : 'connecting');
-    });
-
-    // Handle special close codes
-    provider.on('connection-close', (event) => {
-      if (event.code === 4403) {
-        // Access revoked
-        navigate('/documents');
-      } else if (event.code === 4100) {
-        // Document converted
-        const { newDocId, newDocType } = JSON.parse(event.reason);
-        navigate(`/${newDocType}s/${newDocId}`);
-      }
-    });
-
-    return () => provider.destroy();
-  }, [ydoc, documentId, documentType]);
+  // IndexedDB key: ship-{documentType}-{documentId}
+  // WebSocket URL: VITE_API_URL with http→ws swap + '/collaboration'
+  // Room name: buildCollaborationRoomName(documentType, documentId)
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: false }), // Disable history for Yjs
+      StarterKit.configure({ history: false }),
       Collaboration.configure({ document: ydoc }),
-      CollaborationCursor.configure({
-        provider,
-        user: { name: currentUser.name, color: currentUser.color },
-      }),
-      // ... other extensions
+      ...(provider
+        ? [CollaborationCursor.configure({ provider, user: { name: userName, color: userColor } })]
+        : []),
     ],
   });
 

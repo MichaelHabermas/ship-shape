@@ -184,19 +184,23 @@ Load:
 - `docs/application-architecture.md`
 - `docs/shadow-env-testing.md`
 - `scripts/deploy.sh`
-- `scripts/deploy-frontend.sh`
+- `scripts/deploy-web.sh`
 
 Useful commands:
 
 ```bash
 ./scripts/deploy.sh prod
-./scripts/deploy-frontend.sh prod
+./scripts/deploy-web.sh prod
+./scripts/deploy.sh shadow      # AWS UAT
+./scripts/deploy-web.sh shadow  # AWS UAT frontend
 ```
 
 Verify production with browser, not only curl:
 
-- API health: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
-- Web: `https://ship.awsdev.treasury.gov`
+- Render API: `https://ship-shape-api.onrender.com/health`
+- Render Web: `https://ship-shape-web.onrender.com`
+- AWS prod API: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
+- AWS prod Web: `https://ship.awsdev.treasury.gov`
 
 ### `security`
 
@@ -227,3 +231,4 @@ Rules:
 
 - Do not update docs from memory when the code is easy to inspect.
 - Prefer correcting specific stale claims over broad rewrites.
+- After editing curated docs, run `pnpm docs:check:strict` (and `pnpm docs:facts:render` if `document-enums.ts` changed).

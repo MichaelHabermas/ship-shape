@@ -2,6 +2,28 @@
 
 ---
 
+## Documentation Sync Pass — Final (2026-05-22)
+
+Scope: Phases 0–8 across `docs/`, `AGENTS.md`, `.claude/`, `scripts/doc-sync/`, one code fix (`Editor.tsx` person-mention nav), and my-docs reconciliation.
+
+### What changed
+- Added `scripts/doc-sync/` path + enum drift gates (`pnpm docs:check`, `docs:check:strict`, `docs:facts:render`)
+- Synced data model docs to `weekly_*` enums, JSONB properties, `#N` ticket IDs, `document_associations` ER
+- Propagated dual search contract (`/api/search/documents` vs `/api/search/content`)
+- Fixed agent routing, deploy docs (Render primary, AWS optional), security.md (CSRF, no phantom CI gates)
+- Collab docs point to `useCollabSession.ts`; FPKI doc marked historical
+- Person mention navigation: `/team/{id}` in code and docs
+
+### Evidence
+- `pnpm docs:check:strict` | pass (0 path rot, 0 enum drift on curated manifest)
+- `pnpm type-check` | pass
+- `pnpm openapi:check:strict` | pass (193/193)
+
+### Claim boundary
+**No submission-ledger row** — documentation alignment only; category status and measurements unchanged.
+
+---
+
 ## Code Simplification Orchestration (2026-05-21)
 
 Multi-agent SOLID/DRY pass per `my-docs/code-simplification-orchestration-plan.md`. **No git commits** unless user requests.

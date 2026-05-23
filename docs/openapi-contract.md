@@ -25,9 +25,18 @@ Use `expectOpenApiResponse` from `api/src/test/openapi-response.ts` in integrati
 
 ## Typed route wrapper (pilot)
 
-`defineRoute` in `api/src/openapi/define-route.ts` registers OpenAPI and parses request inputs. Pilot: `api/src/routes/setup.ts`. Import side effects for generation: `api/src/openapi/index.ts` loads setup routes so `openapi:generate` includes defineRoute registrations.
+`defineRoute` in `api/src/openapi/define-route.ts` registers OpenAPI and parses request inputs. Pilot routes: `api/src/routes/setup.ts`, `api/src/routes/standups.ts`, and `api/src/routes/feedback.ts`. Import side effects for generation: `api/src/openapi/index.ts` loads these routes so `openapi:generate` includes defineRoute registrations.
 
 Production response validation remains deferred.
+
+## Search endpoints
+
+Two search contracts are registered separately:
+
+- `GET /search/documents` — title-only metadata for command palette
+- `GET /search/content` — full TipTap content search for `/docs` (uses rebuildable `document_search_index`)
+
+See [Application Architecture](./application-architecture.md) for index semantics and visibility rules.
 
 ## Verification note (2026-05-21)
 

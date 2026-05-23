@@ -357,15 +357,15 @@ Available extensions:
 
 ### Yjs Integration
 
-The Editor component creates a Y.Doc per document for CRDT-based collaboration:
+Collaboration transport lives in `web/src/hooks/useCollabSession.ts`. `Editor.tsx` creates a Y.Doc per document and delegates WebSocket/IndexedDB setup to the hook:
 
 ```typescript
-// web/src/components/Editor.tsx:130-134
-// CRITICAL: Create a new Y.Doc for each documentId using useMemo
-// This ensures the Y.Doc is atomically recreated when documentId changes,
-// preventing race conditions where the WebSocket provider might use a stale Y.Doc
+// web/src/components/Editor.tsx
 const ydoc = useMemo(() => new Y.Doc(), [documentId]);
+const { provider, syncStatus } = useCollabSession({ documentId, documentType, userName, userColor, ydoc });
 ```
+
+Room names use `{documentType}:{documentId}` (see `shared/src/collab-protocol.ts`).
 
 Server-side Yjs handling:
 
@@ -408,16 +408,7 @@ export default defineConfig({
 
 Test file naming: `*.test.ts` (e.g., `documents.test.ts`)
 
-Test setup cleans database before all tests:
-
-```typescript
-// api/src/test/setup.ts
-beforeAll(async () => {
-  process.env.NODE_ENV = 'test';
-  await pool.query('DELETE FROM documents WHERE 1=1');
-  // ... clean other tables
-});
-```
+Test setup cleans database before all tests via `TRUNCATE CASCADE` (see `api/src/test/setup.ts`):
 
 ### Unit Test Structure
 
@@ -526,4 +517,4 @@ async function getWorkerPort(workerIndex: number): Promise<number> {
 }
 ```
 
-**Important:** Always use the `/e2e-test-runner` skill when running E2E tests. Never run `pnpm test:e2e` directly.
+**Important:** Use the `/e2e-test-runner` skill when running E2E tests; if unavailable, use `pnpm test:e2e:run`. Never run `pnpm test:e2e` directly.

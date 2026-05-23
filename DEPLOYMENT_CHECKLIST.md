@@ -13,7 +13,7 @@ Quick reference for the optional AWS deployment path. The current public/demo de
 - [ ] Create EB environment: See DEPLOYMENT.md for full `eb create` command (10-15 min)
 - [ ] Initialize database: `./scripts/init-database.sh` (2-3 min)
 - [ ] Deploy API: `./scripts/deploy-api.sh` (3-5 min)
-- [ ] Deploy frontend: `./scripts/deploy-frontend.sh` (2-3 min)
+- [ ] Deploy frontend: `./scripts/deploy-frontend.sh dev` (or `prod`)
 
 **Total setup time:** ~30-45 minutes
 
@@ -21,19 +21,23 @@ Quick reference for the optional AWS deployment path. The current public/demo de
 
 ### Deploy API Changes
 ```bash
-./scripts/deploy-api.sh
+./scripts/deploy-api.sh              # legacy EB script (set EB_* env vars)
+./scripts/deploy.sh dev              # or shadow|prod
 ```
 **Time:** 3-5 minutes
 
 ### Deploy Frontend Changes
 ```bash
-./scripts/deploy-frontend.sh
+./scripts/deploy-frontend.sh dev   # or prod
+./scripts/deploy-web.sh shadow     # shadow UAT (dev|shadow|prod)
 ```
 **Time:** 2-3 minutes
 
 ### Deploy Both
 ```bash
-./scripts/deploy-api.sh && ./scripts/deploy-frontend.sh
+./scripts/deploy-api.sh && ./scripts/deploy-frontend.sh dev
+# AWS shadow (API + frontend):
+./scripts/deploy.sh shadow && ./scripts/deploy-web.sh shadow
 ```
 **Time:** 5-8 minutes
 

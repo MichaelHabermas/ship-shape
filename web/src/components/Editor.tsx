@@ -260,7 +260,7 @@ export function Editor({
       onNavigate: (type, id) => {
         // Navigate to the mentioned entity
         if (type === 'person') {
-          onNavigateToDocument?.(`/people/${id}`);
+          onNavigateToDocument?.(`/team/${id}`);
         } else {
           onNavigateToDocument?.(id);
         }

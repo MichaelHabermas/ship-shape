@@ -80,6 +80,8 @@ export AWS_REGION="us-east-1"           # Your AWS region
 ./scripts/deploy-api.sh
 ```
 
+For environment-aware API deploys (dev, shadow, prod), use `./scripts/deploy.sh <dev|shadow|prod>` instead. Shadow UAT uses `./scripts/deploy.sh shadow` plus `./scripts/deploy-web.sh shadow` for the frontend.
+
 The script automatically:
 1. Builds the shared TypeScript package
 2. Builds the API package, including the migration runner and database files
@@ -108,7 +110,7 @@ This script:
 Deploy the React frontend:
 
 ```bash
-./scripts/deploy-frontend.sh
+./scripts/deploy-frontend.sh dev   # or prod
 ```
 
 This script:

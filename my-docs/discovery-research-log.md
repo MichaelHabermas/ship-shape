@@ -2,6 +2,26 @@
 
 ---
 
+## Documentation Sync — Full Pass (2026-05-22)
+
+Orchestrated eight-phase doc-sync per attached plan. Baseline: ~80 drift rows from parallel audit (Critical/Warning/Info). Tooling: `scripts/doc-sync/` with `pnpm docs:check:strict`.
+
+| Phase | Scope | Disposition |
+|-------|-------|-------------|
+| 0 | doc-sync scripts + package.json | **Fixed** |
+| 1 | unified-document-model, conventions, diagrams ER | **Fixed** |
+| 2 | search contract propagation | **Fixed** |
+| 3 | CLAUDE.md, context-manifest, E2E fallbacks | **Fixed** |
+| 4 | claude-reference data model + generated enums | **Fixed** |
+| 5 | collab/editor docs + Editor `/team/` mention nav | **Fixed** |
+| 6 | deploy/local dev + D057 | **Fixed** |
+| 7 | security, FPKI disclaimer, testing, entity-relationships | **Fixed** |
+| 8 | MEMORY/IMPROVEMENT/AUDIT supersession + gates | **Fixed** |
+
+Gates: `pnpm docs:check:strict` pass; `pnpm type-check`; `pnpm openapi:check:strict`. Submission ledger unchanged (doc-only sync).
+
+---
+
 ## Tier 2 Hardening — Second Multi-Agent Verification (2026-05-22)
 
 Orchestrator ran six parallel reviewers (API contract, React Query cache, OpenAPI/apiClient, E2E/integration, GFA compliance, security) on the completed D054 hardening pass. **Verdict: ship with orchestrator fixes (D056).**

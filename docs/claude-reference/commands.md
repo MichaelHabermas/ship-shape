@@ -78,19 +78,18 @@ Seeds the database with test data.
 
 ### `pnpm test`
 Runs API unit tests via Vitest.
-- **Requires:** PostgreSQL running locally
-- Uses testcontainers for isolated database
+- **Requires:** PostgreSQL running locally (uses `DATABASE_URL` from `api/.env.local`; not Testcontainers)
 
-### `/e2e-test-runner` (REQUIRED for E2E)
-**ALWAYS use this skill for E2E tests.** Never run `pnpm test:e2e` directly.
+### `/e2e-test-runner` (preferred for E2E)
+**Use this skill for E2E tests when available.** If unavailable, use `pnpm test:e2e:run`. Never run bare `pnpm test:e2e` (it exits with guidance).
 
-Why: Direct execution causes output explosion (600+ tests crash Claude Code). The skill handles:
+Why: Direct Playwright runs can flood agent output. The skill or `pnpm test:e2e:run` handles:
 - Background execution
 - Progress polling via `test-results/summary.json`
 - `--last-failed` flag for iterative fixing
 
 ### `pnpm test:e2e` (DO NOT USE DIRECTLY)
-Runs Playwright E2E tests. Use `/e2e-test-runner` instead.
+Prints guidance and exits. Use `/e2e-test-runner` or `pnpm test:e2e:run` instead.
 
 ### `pnpm test:e2e:ui`
 Opens Playwright UI for interactive test debugging.
@@ -160,7 +159,7 @@ Initializes a git worktree for parallel development.
 
 **What it does:**
 1. Generates unique port offsets based on worktree path hash
-2. Creates `api/.env.local` and `web/.env.local`
+2. Creates `api/.env.local` if missing (see `scripts/dev.sh`)
 3. Creates worktree-specific database
 4. Installs dependencies if needed
 5. Builds shared package
@@ -233,7 +232,7 @@ Removes all build artifacts and node_modules across all packages.
 |------|---------|
 | Start development | `pnpm dev` |
 | Run unit tests | `pnpm test` |
-| Run E2E tests | Use `/e2e-test-runner` skill |
+| Run E2E tests | `/e2e-test-runner` skill or `pnpm test:e2e:run` |
 | Type check all | `pnpm type-check` |
 | Build everything | `pnpm build` |
 | Deploy API | `./scripts/deploy.sh <env>` |

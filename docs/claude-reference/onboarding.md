@@ -9,7 +9,7 @@ Welcome to Ship - a collaborative project management application with real-time 
 | Tool | Version | Purpose |
 |------|---------|---------|
 | **Node.js** | 20+ | Runtime for API and build tools |
-| **pnpm** | 8+ | Package manager (monorepo workspaces) |
+| **pnpm** | 9+ | Package manager (monorepo workspaces) |
 | **PostgreSQL** | 14+ | Database (local installation, not Docker) |
 
 ### Environment Setup
@@ -87,11 +87,11 @@ ship/
 │   │   ├── components/     # UI components
 │   │   ├── pages/          # Route pages
 │   │   ├── hooks/          # Custom hooks
-│   │   └── stores/         # Zustand stores
 │   └── package.json
 │
 ├── shared/                 # Shared TypeScript types
-│   └── types/
+│   └── src/
+│       └── types/
 │
 └── package.json            # Workspace root
 ```
@@ -136,12 +136,12 @@ All four panels are always visible when editing a document.
    ```typescript
    // api/src/routes/my-resource.ts
    import { Router } from 'express';
-   import { pool } from '../db/pool';
-   import { requireAuth } from '../middleware/auth';
+   import { pool } from '../db/client';
+   import { authMiddleware } from '../middleware/auth';
 
    const router = Router();
 
-   router.get('/', requireAuth, async (req, res) => {
+   router.get('/', authMiddleware, async (req, res) => {
      const { workspaceId } = req.session;
      const result = await pool.query(
        'SELECT * FROM documents WHERE workspace_id = $1',
@@ -172,7 +172,7 @@ All four panels are always visible when editing a document.
    ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'my_new_type';
    ```
 
-3. **Add TypeScript types** in `shared/types/`:
+3. **Add TypeScript types** in `shared/src/types/`:
    ```typescript
    export interface MyNewTypeProperties {
      custom_field: string;
@@ -261,7 +261,7 @@ pnpm test             # Run API unit tests via vitest
 
 ### Running E2E Tests
 
-**Always use the `/e2e-test-runner` skill** - never run `pnpm test:e2e` directly. The skill handles:
+**Always use the `/e2e-test-runner` skill** — if unavailable, use `pnpm test:e2e:run`. Never run `pnpm test:e2e` directly. The skill and fallback handle:
 - Background execution (prevents output explosion)
 - Progress tracking via `test-results/summary.json`
 - Iterative fixing with `--last-failed`
@@ -312,7 +312,7 @@ grep -r "useQuery" web/src/hooks/
 ### Key Patterns to Follow
 
 1. **REST endpoints**: Follow patterns in `api/src/routes/documents.ts`
-2. **React hooks**: Follow patterns in `web/src/hooks/useDocuments.ts`
+2. **React hooks**: Follow patterns in `web/src/hooks/useDocumentsQuery.ts`
 3. **Components**: Follow patterns in `web/src/components/Editor.tsx`
 4. **Migrations**: Follow patterns in `api/src/db/migrations/`
 
@@ -331,7 +331,7 @@ Run `/ship-philosophy-reviewer` to audit changes against Ship's core philosophy:
 Ship uses raw SQL via `pg` (no ORM):
 
 ```typescript
-import { pool } from '../db/pool';
+import { pool } from '../db/client';
 
 // Query
 const result = await pool.query(
@@ -352,8 +352,8 @@ await pool.query(
 Session-based auth with 15-minute timeout:
 
 ```typescript
-// In routes, use requireAuth middleware
-router.get('/protected', requireAuth, async (req, res) => {
+// In routes, use authMiddleware
+router.get('/protected', authMiddleware, async (req, res) => {
   const { userId, workspaceId } = req.session;
   // ...
 });
@@ -362,16 +362,16 @@ router.get('/protected', requireAuth, async (req, res) => {
 ### Frontend State
 
 - **Server state**: TanStack Query with IndexedDB persistence
-- **UI state**: Zustand stores
+- **UI state**: React context and component state
 - **Editor content**: Yjs CRDTs via y-indexeddb
 
 ### Real-Time Collaboration
 
-WebSocket connection at `/collaboration/{docType}:{docId}`:
+WebSocket connection at `/collaboration/{documentType}:{docId}`:
 
 ```typescript
-// Yjs document sync
-const wsProvider = new WebsocketProvider(wsUrl, `doc:${documentId}`, ydoc);
+// Room name uses document_type (legacy "doc:" accepted for wiki only)
+const wsProvider = new WebsocketProvider(wsUrl, `${documentType}:${documentId}`, ydoc);
 ```
 
 ## Troubleshooting
