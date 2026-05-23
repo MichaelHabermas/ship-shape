@@ -9,6 +9,7 @@
 | E2E | Playwright | `playwright.config.ts` | `e2e/*.spec.ts` |
 
 Setup files:
+
 - API: `api/src/test/setup.ts` - cleans database before tests
 - Web: `web/src/test/setup.ts` - imports `@testing-library/jest-dom`
 
@@ -35,6 +36,7 @@ pnpm test:e2e
 ```
 
 The skill handles:
+
 - Running tests in background
 - Progress polling via `test-results/summary.json`
 - `--last-failed` for iterative fixing
@@ -323,15 +325,19 @@ Pre-commit hook `scripts/check-empty-tests.sh` catches these.
 Running `pnpm test:e2e` directly outputs 600+ test results, crashing Claude Code.
 
 **Always use `/e2e-test-runner` skill** which:
+
 1. Runs tests in background
 2. Polls `test-results/summary.json` for progress
 3. Shows concise pass/fail summary
 
 Local note from the May 20, 2026 run: this checkout referenced `/e2e-test-runner`, but the skill was not present under `.agents/skills` or `.claude/skills`. For environments where the skill is unavailable, use the repo-local fallback `pnpm test:e2e:run`. It preserves the same background/polling behavior, captures output in `${E2E_RESULTS_DIR:-test-results}/e2e-run.log`, archives prior progress files, stores Playwright output under `${E2E_RESULTS_DIR:-test-results}/playwright`, and accepts Playwright flags such as `-- --last-failed`. Docker must be running because the E2E fixture uses Testcontainers to start PostgreSQL per worker. On fresh machines or after a Playwright version bump, run `pnpm test:e2e:setup` first.
 
+**Agent / Cursor sandbox gotcha (May 22, 2026):** If E2E shows `0 passed` and every failure is `browserType.launch: Executable doesn't exist` under a `cursor-sandbox-cache/.../playwright/` path, the suite never reached the app — Chromium was not installed in the sandbox cache. Fix: run `pnpm test:e2e:setup`, then rerun E2E with unrestricted permissions (not the default agent sandbox). Validate with `pnpm test:e2e:smoke` before a full `pnpm test:e2e:run`. Root `pnpm test` runs API unit tests only; point API Vitest at a disposable DB: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`.
+
 ### Memory Issues with Parallel Workers
 
 Each worker needs ~500MB. System calculates safe worker count based on:
+
 - Available memory (keep 2GB free)
 - CPU cores (no more workers than cores)
 
@@ -377,6 +383,7 @@ See `e2e/progress-reporter.ts` for implementation.
 ## CI Configuration
 
 In CI (`process.env.CI`):
+
 - 4 workers (CI runners have good resources)
 - 2 retries on failure
 - GitHub reporter for annotations

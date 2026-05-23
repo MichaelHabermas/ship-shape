@@ -91,6 +91,8 @@ PostgreSQL must be running. Tests use real database integration.
 
 Use the `/e2e-test-runner` skill instead (fallback: `pnpm test:e2e:run`), which handles background execution and progress tracking.
 
+On fresh machines, after Playwright version bumps, or when agent sandboxes report `browserType.launch: Executable doesn't exist`, run `pnpm test:e2e:setup` first and rerun with full permissions. Smoke-gate with `pnpm test:e2e:smoke` before a full suite.
+
 ### How do I debug a failing E2E test?
 
 1. Check error logs: `cat test-results/errors/*.log`
@@ -137,6 +139,7 @@ Add to `slashCommands` array in `web/src/components/editor/SlashCommands.tsx` (l
 ### How does real-time collaboration work?
 
 Ship uses Yjs CRDTs synced over WebSockets:
+
 - Client creates Y.Doc per document
 - IndexedDB loads cached content first
 - WebSocket syncs with server
@@ -237,6 +240,7 @@ Use `getVisibilityContext()` and `VISIBILITY_FILTER_SQL` from `api/src/middlewar
 ### Why did my commit get rejected?
 
 Pre-commit hooks run:
+
 1. **gitleaks** - Scans for secrets
 2. **AI analysis** - Scans for sensitive info
 3. **Empty test check** - Catches TODO-only tests

@@ -7,11 +7,13 @@ Things that might trip you up when working on Ship. Each gotcha includes specifi
 Deleting parent documents cascades to children. This is intentional but can surprise you.
 
 **Affected tables:**
+
 - `documents.parent_id` - deleting a parent wiki deletes all child pages
 - `document_associations` - deleting either document removes the association
 - `workspace_memberships` - deleting workspace or user removes membership
 
 **Key locations:**
+
 - `api/src/db/schema.sql:119` - `parent_id UUID REFERENCES documents(id) ON DELETE CASCADE`
 - `api/src/db/migrations/020_document_associations.sql:17-18` - Both `document_id` and `related_id` cascade
 
@@ -27,6 +29,7 @@ Sessions have **two** independent timeouts - missing either one logs users out.
 | Absolute | 12 hours | Since session creation |
 
 **Key locations:**
+
 - `shared/src/constants.ts:28` - `SESSION_TIMEOUT_MS = 15 * 60 * 1000`
 - `shared/src/constants.ts:31` - `ABSOLUTE_SESSION_TIMEOUT_MS = 12 * 60 * 60 * 1000`
 - `api/src/middleware/auth.ts:154-169` - Both timeouts checked
@@ -39,11 +42,13 @@ Sessions have **two** independent timeouts - missing either one logs users out.
 Documents use `parent_id` for hierarchy and `document_associations` for program, project, and week membership.
 
 **Hierarchy column:**
+
 ```sql
 parent_id UUID REFERENCES documents(id) ON DELETE CASCADE
 ```
 
 **Membership junction table:**
+
 ```sql
 -- api/src/db/migrations/020_document_associations.sql
 document_associations(document_id, related_id, relationship_type)
@@ -56,6 +61,7 @@ document_associations(document_id, related_id, relationship_type)
 Newer routes use structured `{ success, data, error }` format. Older routes use plain `{ error: string }`.
 
 **New format (auth, admin, workspaces, invites):**
+
 ```typescript
 // api/src/routes/auth.ts:22-28
 res.status(400).json({
@@ -68,6 +74,7 @@ res.status(400).json({
 ```
 
 **Old format (standups, team, search):**
+
 ```typescript
 // api/src/routes/standups.ts:45
 res.status(404).json({ error: 'Workspace not found' });
@@ -77,6 +84,7 @@ res.status(500).json({ error: 'Internal server error' });
 ```
 
 **Key locations:**
+
 - `shared/src/types/api.ts:2-12` - Canonical `ApiResponse` type
 - Routes using old format: `standups.ts`, `team.ts`, `search.ts`
 - Routes using new format: `auth.ts`, `admin.ts`, `workspaces.ts`, `invites.ts`, `api-tokens.ts`
@@ -88,6 +96,7 @@ res.status(500).json({ error: 'Internal server error' });
 Tests with only TODO comments pass with no warning. This is a major footgun.
 
 **Bad (silently passes):**
+
 ```typescript
 test('my test', async ({ page }) => {
   // TODO: implement this
@@ -95,6 +104,7 @@ test('my test', async ({ page }) => {
 ```
 
 **Good (properly skipped):**
+
 ```typescript
 test.fixme('my test', async ({ page }) => {
   // TODO: implement this
@@ -102,6 +112,7 @@ test.fixme('my test', async ({ page }) => {
 ```
 
 **Key locations:**
+
 - `scripts/check-empty-tests.sh` - Pre-commit hook catches these
 - `.husky/pre-commit:1-3` - Hook runs on every commit
 
@@ -112,18 +123,23 @@ test.fixme('my test', async ({ page }) => {
 Never run `pnpm test:e2e` directly (it exits with guidance and can flood agent output).
 
 **Instead:** Use the `/e2e-test-runner` skill; if unavailable, use `pnpm test:e2e:run`. The skill/runner:
+
 - Runs tests in background
 - Polls `test-results/summary.json` for progress
 - Supports `--last-failed` for iterative fixing
 
 **Key locations:**
+
 - `.claude/CLAUDE.md:55-58` - Documents this requirement
+
+**Sandbox false failures:** Agent sandboxes may lack Playwright browsers. Symptom: `0 passed`, every test fails with `browserType.launch: Executable doesn't exist` under `cursor-sandbox-cache/.../playwright/`. Run `pnpm test:e2e:setup`, rerun with full permissions, and smoke-gate with `pnpm test:e2e:smoke` before a full suite.
 
 ## 7. Yjs State - Binary Buffer Manipulation
 
 `yjs_state` is stored as `BYTEA` (binary). Converting incorrectly corrupts collaborative state.
 
 **Correct pattern:**
+
 ```typescript
 // api/src/collaboration/index.ts:129-131
 await pool.query(
@@ -133,6 +149,7 @@ await pool.query(
 ```
 
 **Key locations:**
+
 - `api/src/db/schema.sql` - Column definition (`yjs_state BYTEA`)
 - `api/src/collaboration/index.ts:318-320` - Loading from DB
 - `api/src/routes/documents.ts:405-407` - Setting to NULL clears state
@@ -144,11 +161,13 @@ await pool.query(
 Multiple worktrees need different ports to run simultaneously.
 
 **Port allocation:**
+
 - API base: 3000, Web base: 5173
 - Script finds first available port starting from base
 - Worktree-init calculates offset from branch name hash
 
 **Key locations:**
+
 - `scripts/dev.sh:65-92` - Port finding logic
 - `scripts/worktree-init.sh:17-27` - Deterministic port offset from branch name
 
@@ -159,6 +178,7 @@ Multiple worktrees need different ports to run simultaneously.
 Schema changes for existing tables MUST go in migration files, not schema.sql.
 
 **Migration files location:**
+
 ```
 api/src/db/migrations/
 ├── 001_properties_jsonb.sql
@@ -168,6 +188,7 @@ api/src/db/migrations/
 ```
 
 **Key locations:**
+
 - `api/src/db/migrate.ts:46` - Creates `schema_migrations` tracking table
 - `api/src/db/migrate.ts:53` - Queries applied migrations
 - `api/src/db/migrate.ts:76-91` - Runs each migration in transaction
@@ -179,11 +200,13 @@ api/src/db/migrations/
 Not all types are in `shared/src/types/`. Some domain types are defined locally in route files.
 
 **Types in route files:**
+
 - `api/src/routes/dashboard.ts:11-21` - `Urgency` type, `WorkItem` interface
 - `api/src/routes/caia-auth.ts:381` - `interface PendingInvite`
 - `api/src/routes/claude.ts:21-43` - Multiple stat interfaces
 
 **Types in shared:**
+
 - `shared/src/types/api.ts` - `ApiResponse`, `ApiError`, `PaginationParams`
 - `shared/src/types/document.ts` - Document types, `BelongsTo` (replaces legacy API-local `BelongsToEntry`)
 - `shared/src/types/user.ts` - User types
