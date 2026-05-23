@@ -520,7 +520,7 @@ test.describe('Tables', () => {
     if (hasResizeHandle) {
       // Get initial column width
       const firstCell = table.locator('td, th').first();
-      const initialWidth = await firstCell.evaluate(el => el.offsetWidth);
+      const initialWidth = await firstCell.evaluate(el => (el as HTMLElement).offsetWidth);
 
       // Try to drag resize handle
       await resizeHandle.hover();
@@ -530,7 +530,7 @@ test.describe('Tables', () => {
       await page.waitForTimeout(300);
 
       // Verify width changed
-      const newWidth = await firstCell.evaluate(el => el.offsetWidth);
+      const newWidth = await firstCell.evaluate(el => (el as HTMLElement).offsetWidth);
       expect(newWidth).not.toBe(initialWidth);
     }
   });

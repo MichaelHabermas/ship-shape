@@ -280,7 +280,7 @@ test.describe('Images', () => {
       // Check if our upload queue database exists and has entries
       try {
         const databases = await indexedDB.databases();
-        const uploadDb = databases.find(db => db.name?.includes('upload') || db.name?.includes('queue'));
+        const uploadDb = databases.find((db: { name?: string }) => db.name?.includes('upload') || db.name?.includes('queue'));
         if (!uploadDb) return 0;
 
         return new Promise<number>((resolve) => {

@@ -49,7 +49,7 @@ test.describe('Drag Handle - Block Reordering', () => {
         .map(p => {
           // Clone the paragraph and remove collaboration cursor elements
           const clone = p.cloneNode(true) as HTMLElement
-          clone.querySelectorAll('.collaboration-cursor__label, .collaboration-cursor__caret').forEach(el => el.remove())
+          clone.querySelectorAll('.collaboration-cursor__label, .collaboration-cursor__caret').forEach((el: Element) => el.remove())
           return clone.textContent || ''
         })
         .filter(text => text.trim() !== '') // Filter out empty paragraphs
