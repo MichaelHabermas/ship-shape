@@ -236,7 +236,7 @@ export type IssueDetailRow = IssueExtractRow & {
 function issuePropertiesFromRow(
   properties: IssueProperties | Record<string, unknown> | null | undefined
 ): Partial<IssueProperties> {
-  return (properties ?? {}) as Partial<IssueProperties>;
+  return (properties ?? {});
 }
 
 /** Map issue SQL projection to API issue shape (without belongs_to). */

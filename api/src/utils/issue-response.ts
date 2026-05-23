@@ -4,7 +4,7 @@ import type { IssueMetadataRow } from '../db/documents-repository.js';
 export type IssueListRow = IssueMetadataRow;
 
 export function mapIssueListItem(row: IssueMetadataRow, belongsTo: BelongsTo[] = []) {
-  const props: Partial<IssueProperties> = (row.properties ?? {}) as Partial<IssueProperties>;
+  const props: Partial<IssueProperties> = (row.properties ?? {});
   return {
     id: row.id,
     title: row.title,

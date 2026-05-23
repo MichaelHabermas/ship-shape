@@ -908,13 +908,13 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Broadcast celebration when plan is added
     if (data.plan && data.plan.trim() !== '') {
-      broadcastToUser(userId, 'accountability:updated', { type: 'project_plan', targetId: id as string });
+      broadcastToUser(userId, 'accountability:updated', { type: 'project_plan', targetId: id });
     }
 
     // Log plan changes to document_history for approval workflow tracking
     if (data.plan !== undefined && data.plan !== currentProps.plan) {
       await logDocumentChange(
-        id as string,
+        id,
         'plan',
         currentProps.plan || null,
         data.plan || null,
