@@ -64,7 +64,7 @@ Second focused pass per `my-docs/code-simplification-orchestration-plan.md` **Wa
 | W6 | DocumentTreeItem full consolidation | Done |
 | W7 | Micro cleanups | Done |
 
-Gates: `pnpm type-check` green; OpenAPI strict 193/193; bootstrap + sprint-time + accountability + ai-analysis guard API tests 20/20; web PlanQualityBanner + quiet-fetch 5/5; `pnpm perf:explain` smoke pass; `pnpm submission:validate` + `pnpm submission:render` + `pnpm submission:check` (Cat 8 still open by instruction). Post-audit fix (2026-05-22): restored `hasUsableBedrockClient()` guard in `callBedrock` (Wave 1 regression vs D044); added `api/src/services/__tests__/ai-analysis.test.ts`; `clearQuietCsrfToken()` wired into `clearCsrfToken()`. Thermo-nuclear follow-ups remain: bootstrap SQL catalog mirrors route (single builder deferred); visibility filter third copy; `useAiQuality` duplicate GET on mount. D046 documents DocumentTreeItem variant + sidebar adapter.
+Gates: `pnpm type-check` green; OpenAPI strict 193/193; bootstrap + sprint-time + accountability + ai-analysis guard API tests 20/20; web PlanQualityBanner + quiet-fetch 5/5; `pnpm perf:explain` smoke pass; `pnpm submission:validate` + `pnpm submission:render` + `pnpm submission:check` (Cat 8 now proven via the security-audit closeout). Post-audit fix (2026-05-22): restored `hasUsableBedrockClient()` guard in `callBedrock` (Wave 1 regression vs D044); added `api/src/services/__tests__/ai-analysis.test.ts`; `clearQuietCsrfToken()` wired into `clearCsrfToken()`. Thermo-nuclear follow-ups remain: bootstrap SQL catalog mirrors route (single builder deferred); visibility filter third copy; `useAiQuality` duplicate GET on mount. D046 documents DocumentTreeItem variant + sidebar adapter.
 
 ### Lint unsafe-* cleanup (L1–L8, 2026-05-22)
 
@@ -766,12 +766,12 @@ Category 3 remains **partial**. `/api/dashboard/my-week` has follow-up measureme
 | Category 2 Bundle Size | `proven` | proven; required acceptance gates pass. |
 | Category 3 API Response Time | `proven` | proven; required acceptance gates pass. |
 | Category 4 Database Query Efficiency | `proven` | proven; required acceptance gates pass. |
-| Category 5 Test Coverage and Quality | `proven` | proven with warning cat5-e2e-baseline-not-green. |
+| Category 5 Test Coverage and Quality | `proven` | proven; required acceptance gates pass. |
 | Category 6 Runtime Error and Edge Case Handling | `proven` | proven; required acceptance gates pass. |
 | Category 7 Accessibility Compliance | `proven` | proven; required acceptance gates pass. |
-| Category 8 Security Audit | `open` | open; failing acceptance cat8-probe-tool-runnable, cat8-four-attack-surfaces-covered, cat8-manual-review-complete, cat8-two-verified-vulnerability-fixes. |
+| Category 8 Security Audit | `proven` | proven; required acceptance gates pass. |
 
-Gate snapshot: 7 proven, 0 partial, 1 open/fill.
+Gate snapshot: 8 proven, 0 partial, 0 open/fill.
 <!-- ledger:generated end id="submission-current-truth" -->
 
 ### Operating Rule
@@ -846,7 +846,7 @@ Wave 3 per `my-docs/post-gfa-orchestration-plan.md`. **Cat 8 excluded** per user
 ### Deferred
 
 - defineRoute pilot on `documents.ts` / `issues.ts` / `auth.ts`
-- Full E2E baseline green (Cat 5 warning unchanged)
+- Full E2E baseline green (resolved later in Cat 5 E2E closeout)
 - Cat 8 probe tool (separate track)
 
 ### Tier 1 shared type consolidation + verification (2026-05-22)
