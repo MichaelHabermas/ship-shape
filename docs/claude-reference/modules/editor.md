@@ -13,14 +13,13 @@ TipTap-based rich text editor with Yjs collaborative editing. Every document typ
 
 ```
 Editor.tsx
+├── useCollabSession() hook (IndexedDB + WebSocket transport)
 ├── TipTap useEditor() hook
 ├── Yjs Y.Doc (per documentId)
-├── WebsocketProvider (y-websocket)
-├── IndexeddbPersistence (y-indexeddb, offline cache)
 └── Extensions (see below)
 ```
 
-**Critical Pattern**: Y.Doc is created in `useMemo` keyed by `documentId`. This prevents cross-document contamination when switching documents.
+**Critical Pattern**: Y.Doc is created in `useMemo` keyed by `documentId`. Collaboration transport lives in `useCollabSession`, keeping TipTap setup separate from WebSocket/IndexedDB lifecycle.
 
 ## TipTap Extensions
 
@@ -60,16 +59,25 @@ Includes: Document, Paragraph, Text, Bold, Italic, Strike, Blockquote, Horizonta
 
 ### Client-Side Setup
 
+Collaboration transport is owned by `web/src/hooks/useCollabSession.ts`:
+
 ```typescript
 // Y.Doc created per documentId (critical for isolation)
 const ydoc = useMemo(() => new Y.Doc(), [documentId]);
 
-// IndexedDB persistence for offline cache (loads before WebSocket)
-const indexeddbProvider = new IndexeddbPersistence(`ship-${roomPrefix}-${documentId}`, ydoc);
-
-// WebSocket provider connects AFTER cache loads
-const wsProvider = new WebsocketProvider(wsUrl, `${roomPrefix}:${documentId}`, ydoc);
+const { provider, syncStatus, connectedUsers } = useCollabSession({
+  documentId,
+  documentType,   // preferred — builds room name as {documentType}:{documentId}
+  roomPrefix,     // legacy fallback when documentType omitted
+  userName,
+  userColor: color,
+  ydoc,
+  onBack,
+  onDocumentConverted,
+});
 ```
+
+IndexedDB key: `ship-{documentType}-{documentId}`. WebSocket URL is derived from `VITE_API_URL`.
 
 ### Collaboration Extensions
 
@@ -83,12 +91,14 @@ CollaborationCursor.configure({
 
 ### Room Naming Convention
 
-Format: `{roomPrefix}:{documentId}`
+Format: `{documentType}:{documentId}` via `buildCollaborationRoomName()`
 
 Examples:
 - `wiki:550e8400-e29b-41d4-a716-446655440000`
 - `issue:550e8400-e29b-41d4-a716-446655440000`
 - `program:550e8400-e29b-41d4-a716-446655440000`
+
+Legacy `doc:` prefix is accepted for wiki documents only.
 
 ### Server-Side (API)
 
@@ -129,7 +139,7 @@ Triggered by typing `/`. Commands registered in `SlashCommands.tsx`:
 | Toggle | collapsible, details | Create toggle block |
 | Table | grid | Insert 3x3 table |
 | Table of Contents | toc, outline | Insert auto-updating TOC |
-| Hypothesis | hypo, theory | Insert Hypothesis heading |
+| Plan | plan, hypo, theory | Insert Plan block (syncs to `properties.plan`) |
 | Success Criteria | criteria, acceptance | Insert Success Criteria heading |
 
 ### Document-Type Specific Commands
@@ -206,24 +216,30 @@ Executables and scripts are blocked (security):
 
 ```typescript
 interface EditorProps {
-  documentId: string;           // Document UUID
-  userName: string;             // Current user name (for cursors)
-  userColor?: string;           // Cursor color
-  initialTitle?: string;        // Document title
+  documentId: string;
+  userName: string;
+  userColor?: string;
+  initialTitle?: string;
+  titleReadOnly?: boolean;
   onTitleChange?: (title: string) => void;
-  onBack?: () => void;          // Back navigation handler
-  backLabel?: string;           // Back button tooltip
-  roomPrefix?: string;          // Collaboration room prefix (default: 'doc')
-  placeholder?: string;         // Editor placeholder text
+  onBack?: () => void;
+  backLabel?: string;
+  roomPrefix?: string;          // Legacy fallback for room naming
+  placeholder?: string;
   headerBadge?: React.ReactNode;
   breadcrumbs?: React.ReactNode;
-  sidebar?: React.ReactNode;    // Properties sidebar content
+  sidebar?: React.ReactNode;
   onCreateSubDocument?: () => Promise<{ id: string; title: string } | null>;
-  onNavigateToDocument?: (id: string) => void;
+  onNavigateToDocument?: (path: string) => void;
   onDelete?: () => void;
   secondaryHeader?: React.ReactNode;
-  documentType?: string;        // For filtering slash commands
+  documentType?: string;        // Preferred for room naming and slash command filtering
   onDocumentConverted?: (newDocId: string, newDocType: 'issue' | 'project') => void;
+  onPlanChange?: (plan: string) => void;
+  contentBanner?: React.ReactNode;
+  onContentChange?: (content: Record<string, unknown>) => void;
+  aiScoringAnalysis?: { planAnalysis?: unknown; retroAnalysis?: unknown } | null;
+  titleSuffix?: string;
 }
 ```
 
@@ -258,6 +274,7 @@ WebSocket close codes for special conditions:
 |------|---------|--------|
 | 4403 | Access revoked | Shows alert, navigates back |
 | 4100 | Document converted | Calls `onDocumentConverted` with new doc info |
+| 4101 | Content updated via API | Clears IndexedDB cache, reconnects |
 
 ## CSS Classes
 

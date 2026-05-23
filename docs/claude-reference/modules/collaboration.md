@@ -16,7 +16,7 @@ Ship uses Yjs (a CRDT implementation) for conflict-free real-time collaboration.
 
 ### Server
 
-**File:** `/Users/jonesshaw/Documents/code/ship/api/src/collaboration/index.ts`
+**File:** `api/src/collaboration/index.ts`
 
 The collaboration server:
 1. Handles WebSocket upgrade requests at `/collaboration/:room`
@@ -35,49 +35,60 @@ const conns = new Map<WebSocket, { docName, awarenessClientId, userId, workspace
 
 ### Client
 
-**File:** `/Users/jonesshaw/Documents/code/ship/web/src/components/Editor.tsx`
+**File:** `web/src/hooks/useCollabSession.ts`
 
-The Editor component uses:
-- `@tiptap/extension-collaboration` - Yjs integration with TipTap
-- `@tiptap/extension-collaboration-cursor` - Show other users' cursors
-- `y-websocket` - WebSocket provider for Yjs sync
-- `y-indexeddb` - Local persistence for offline/instant loading
+The `useCollabSession` hook (used by `Editor.tsx`) owns transport only:
+- `@tiptap/extension-collaboration` / `@tiptap/extension-collaboration-cursor` — configured in `Editor.tsx`
+- `y-websocket` — WebSocket provider for Yjs sync
+- `y-indexeddb` — Local persistence for offline-tolerant loading
 
 **Connection setup:**
 ```typescript
-// IndexedDB for local caching (loads first for instant display)
-const indexeddbProvider = new IndexeddbPersistence(`ship-${roomPrefix}-${documentId}`, ydoc);
+// IndexedDB key: ship-{documentType}-{documentId}
+const cacheKey = `ship-${documentType}-${documentId}`;
+const indexeddbProvider = new IndexeddbPersistence(cacheKey, ydoc);
 
-// WebSocket for real-time sync (connects after cache loads)
-const wsProvider = new WebsocketProvider(wsUrl, `${roomPrefix}:${documentId}`, ydoc);
+// WebSocket URL derived from VITE_API_URL (falls back to same host)
+const apiUrl = import.meta.env.VITE_API_URL ?? '';
+const wsUrl = apiUrl
+  ? apiUrl.replace(/^http/, 'ws') + '/collaboration'
+  : `${wsProtocol}//${window.location.host}/collaboration`;
 
-// TipTap extension configuration
-Collaboration.configure({ document: ydoc })
-CollaborationCursor.configure({ provider: wsProvider, user: { name, color } })
+// Room name: {documentType}:{documentId} (legacy "doc:" accepted for wiki only)
+const roomName = buildCollaborationRoomName(documentType, documentId);
+const wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc);
 ```
+
+When the browser is offline or the WebSocket drops, IndexedDB cache keeps the editor usable; sync status shows **Cached** until the connection restores.
 
 ## WebSocket Protocol
 
 ### Connection URL
 
 ```
-/collaboration/:docType::docId
+/collaboration/:docType:docId
 
 Examples:
-  /collaboration/doc:550e8400-e29b-41d4-a716-446655440000
+  /collaboration/wiki:550e8400-e29b-41d4-a716-446655440000
   /collaboration/issue:7c9e6679-7425-40de-944b-e07fc1f90ae7
   /collaboration/program:a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 ```
 
-**Room name format:** `{docType}:{uuid}` where docType is `doc`, `issue`, `program`, `project`, or `sprint` (historical name for weeks).
+**Room name format:** `{document_type}:{uuid}` where document_type is `wiki`, `issue`, `program`, `project`, or `sprint` (historical name for weeks). Legacy `doc:` prefix is accepted for wiki documents only.
 
 ### Message Types
 
-Two message types (defined as constants):
+Three message types (defined in `shared/src/collab-protocol.ts`):
 ```typescript
-const messageSync = 0;      // Yjs sync protocol messages
-const messageAwareness = 1; // Cursor positions, user presence
+const messageSync = 0;           // Yjs sync protocol messages
+const messageAwareness = 1;      // Cursor positions, user presence
+const messageClearCache = 3;     // Server tells client to clear stale IndexedDB cache
 ```
+
+**Clear-cache protocol (type 3):**
+- Sent when REST API updates document content while clients are connected
+- Client clears local Yjs fragment and IndexedDB entry, then reconnects for fresh state
+- Paired with WebSocket close code `4101` on active connections
 
 **Sync Protocol Flow:**
 1. Client connects, server sends `syncStep1` (state vector)
@@ -95,7 +106,7 @@ const messageAwareness = 1; // Cursor positions, user presence
 ```
 Client                                    Server
    |                                         |
-   |--- HTTP Upgrade /collaboration/doc:id --|
+   |--- HTTP Upgrade /collaboration/wiki:id --|
    |                                         |
    |<-- [Auth check: validate session] ------|
    |<-- [Access check: document visibility] -|
@@ -316,6 +327,7 @@ Called when a document is converted (issue to project or vice versa):
 |------|---------|---------------|
 | 4403 | Access revoked | Show alert, navigate away |
 | 4100 | Document converted | Redirect to new document |
+| 4101 | Content updated via API | Clear IndexedDB cache, reconnect |
 
 ## Sync Status Indicators
 
