@@ -967,3 +967,19 @@ Consequences: Document POST /weeks OpenAPI/handler shape mismatch as open tail. 
 Evidence: API contract suite 60/60; `issue-list-cache.test.ts` 4/4; `e2e/issues-inline-sprint.spec.ts` 1/1 (departure + arrival); `pnpm type-check`; `openapi:check:strict` 193/193.
 
 **Decision Gist**: Verification is not complete until E2E asserts product-correct outcomes, not convenient DOM states.
+
+### D057: Documentation Sync Policy (Phases 3 and 6)
+
+Status: Accepted
+
+Decision: Agent-facing and architecture docs must reflect current repo reality: local dev via `pnpm dev` (local PostgreSQL, not Docker-first); schema changes via numbered migrations only (never edit `api/src/db/schema.sql` for existing tables); Render via `render.yaml` is the primary public/demo deploy path; optional AWS scripts (`deploy.sh`, `deploy-web.sh`) remain documented for Treasury infrastructure.
+
+Why: Doc-sync Phases 3 and 6 found stale paths (pool.ts, Zustand, legacy program_id columns), wrong deploy entrypoints, and missing E2E fallbacks that mislead agents and developers.
+
+Alternatives considered: Rewrite all docs from scratch (rejected — minimum targeted sync); delete AWS docs (rejected — still needed for optional gov path).
+
+Consequences: CLAUDE.md, context-manifest, claude-reference, application-architecture, and deploy guides stay aligned with code on each doc-sync pass. New doc claims require codebase verification first.
+
+Evidence: `render.yaml`; `scripts/dev.sh`; `AGENTS.md`; `api/src/db/client.ts`; `shared/src/enums/document-enums.ts`; doc-sync Phase 3/6 fix list.
+
+**Decision Gist**: Docs describe what the repo is today — `pnpm dev`, migrations-only schema changes, Render primary.

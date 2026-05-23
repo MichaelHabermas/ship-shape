@@ -1,5 +1,7 @@
 # Audit Report
 
+> **Supersession note (2026-05-22 doc-sync):** This report preserves **2026-05-19 baseline measurements** as historical audit evidence. Several narrative findings about search (client-only `/docs`, unmounted `/api/search/documents`) were **superseded by later implementation** — see `IMPROVEMENT_REPORT.md`, `MEMORY.md` (search contracts), and current `docs/application-architecture.md`. Do not treat stale search rows below as current product truth.
+
 ---
 
 ## Executive Summary

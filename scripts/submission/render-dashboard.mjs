@@ -605,8 +605,15 @@ export function renderDashboard(ledger) {
         }
         if (shouldFocus) tab.focus();
       }
+      function clearHash() {
+        if (!location.hash) return;
+        history.replaceState(null, '', location.pathname + location.search);
+      }
       for (const tab of tabs) {
-        tab.addEventListener('click', () => activateTab(tab, false));
+        tab.addEventListener('click', () => {
+          clearHash();
+          activateTab(tab, false);
+        });
         tab.addEventListener('keydown', (event) => {
           const currentIndex = tabs.indexOf(tab);
           let nextIndex = currentIndex;
@@ -616,6 +623,7 @@ export function renderDashboard(ledger) {
           if (event.key === 'End') nextIndex = tabs.length - 1;
           if (nextIndex !== currentIndex) {
             event.preventDefault();
+            clearHash();
             activateTab(tabs[nextIndex]);
           }
         });
