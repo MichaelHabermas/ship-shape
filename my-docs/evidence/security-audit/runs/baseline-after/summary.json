@@ -1,0 +1,17 @@
+{
+  "metadataVulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0
+  },
+  "highOrCriticalCount": 0,
+  "highOrCriticalAdvisoryRows": 0,
+  "totalAdvisoryRows": 0,
+  "uniqueCveIds": [],
+  "uniqueCveCount": 0,
+  "highCriticalAdvisories": [],
+  "allAdvisories": [],
+  "totalDependencies": 1055
+}

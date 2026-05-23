@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+  "generatedAt": "2026-05-23T19:37:23.530Z",
+  "explanation": {
+    "empty_findings_mean": "An empty findings list means the probe ran against the live app and reported zero confirmed issues for that surface. It does NOT mean we skipped the check.",
+    "baseline_code": {
+      "branch": "BASELINE",
+      "commit": "072818cf77a54e1a796dd4b878e8564d8af3f1e7",
+      "live_probe": "runs/baseline-before-probe/report.json",
+      "dependency_audit": "runs/baseline-before/summary.json"
+    },
+    "current_code": {
+      "branch": "master",
+      "live_probe": "latest.json",
+      "dependency_audit": "runs/baseline-after/summary.json"
+    }
+  },
+  "table": [
+    {
+      "metric": "Security probe tool",
+      "baseline": "Yes — pnpm security:probe on BASELINE clone",
+      "current": "Yes — pnpm security:probe",
+      "evidence": {
+        "baseline": "runs/baseline-before-probe/report.json",
+        "current": "latest.json"
+      }
+    },
+    {
+      "metric": "Auth/session vulnerabilities found",
+      "baseline": [
+        {
+          "id": "cat8-auth-unauthenticated-api",
+          "severity": "high",
+          "title": "Protected API route allowed unauthenticated access",
+          "probe_id": "auth-session-unauthenticated-api"
+        },
+        {
+          "id": "cat8-auth-api-token-super-admin",
+          "severity": "high",
+          "title": "API token could access a super-admin route",
+          "probe_id": "auth-session-api-token-super-admin-boundary"
+        }
+      ],
+      "current": []
+    },
+    {
+      "metric": "WebSocket validation failures",
+      "baseline": [
+        {
+          "id": "cat8-ws-events-malformed-message",
+          "severity": "medium",
+          "title": "Events WebSocket did not reject malformed message",
+          "probe_id": "websocket-events-malformed-message"
+        },
+        {
+          "id": "cat8-ws-events-unknown-message-type",
+          "severity": "medium",
+          "title": "Events WebSocket did not reject unknown message type",
+          "probe_id": "websocket-events-unknown-message-type"
+        },
+        {
+          "id": "cat8-ws-malformed-frame",
+          "severity": "high",
+          "title": "Malformed WebSocket message was not handled safely",
+          "probe_id": "websocket-malformed-frame"
+        }
+      ],
+      "current": []
+    },
+    {
+      "metric": "Input sanitization failures",
+      "baseline": [
+        {
+          "id": "cat8-input-file-size-mismatch",
+          "severity": "medium",
+          "title": "Local file upload accepted bytes that did not match declared size",
+          "probe_id": "input-file-upload-size-mismatch"
+        },
+        {
+          "id": "cat8-input-file-serve-headers",
+          "severity": "medium",
+          "title": "Uploaded HTML was served inline without nosniff protection",
+          "probe_id": "input-file-serve-headers"
+        }
+      ],
+      "current": []
+    },
+    {
+      "metric": "High/Critical CVEs in dependencies",
+      "baseline": {
+        "count": 33,
+        "unique_cve_count": 65,
+        "list": [
+          {
+            "module": "@hono/node-server",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-29087"
+            ],
+            "titles": [
+              "@hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware"
+            ],
+            "application_features": [
+              "OpenAPI / Swagger dev tooling (transitive)"
+            ]
+          },
+          {
+            "module": "express-rate-limit",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-30827"
+            ],
+            "titles": [
+              "express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network"
+            ],
+            "application_features": [
+              "API and login rate limiting"
+            ]
+          },
+          {
+            "module": "fast-uri",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-6321",
+              "CVE-2026-6322"
+            ],
+            "titles": [
+              "fast-uri vulnerable to path traversal via percent-encoded dot segments",
+              "fast-uri vulnerable to host confusion via percent-encoded authority delimiters"
+            ],
+            "application_features": [
+              "URI parsing in dev tooling (transitive)"
+            ]
+          },
+          {
+            "module": "fast-xml-parser",
+            "severity": "critical",
+            "cves": [
+              "CVE-2026-25896",
+              "CVE-2026-26278",
+              "CVE-2026-33036"
+            ],
+            "titles": [
+              "fast-xml-parser has an entity encoding bypass via regex injection in DOCTYPE entity names",
+              "fast-xml-parser affected by DoS through entity expansion in DOCTYPE (no expansion limit)",
+              "fast-xml-parser affected by numeric entity expansion bypassing all entity expansion limits (incomplete fix for CVE-2026-26278)"
+            ],
+            "application_features": [
+              "AWS SDK / XML config parsing (transitive)"
+            ]
+          },
+          {
+            "module": "flatted",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-32141",
+              "CVE-2026-33228"
+            ],
+            "titles": [
+              "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+              "Prototype Pollution via parse() in NodeJS flatted"
+            ],
+            "application_features": [
+              "ESLint cache serialization"
+            ]
+          },
+          {
+            "module": "hono",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-29045"
+            ],
+            "titles": [
+              "Hono vulnerable to arbitrary file access via serveStatic vulnerability "
+            ],
+            "application_features": [
+              "OpenAPI / Swagger dev tooling (transitive)"
+            ]
+          },
+          {
+            "module": "lodash",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-4800"
+            ],
+            "titles": [
+              "lodash vulnerable to Code Injection via `_.template` imports key names"
+            ],
+            "application_features": [
+              "Tooling and test helpers (transitive)"
+            ]
+          },
+          {
+            "module": "minimatch",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-26996",
+              "CVE-2026-27903",
+              "CVE-2026-27904"
+            ],
+            "titles": [
+              "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+              "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+              "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions"
+            ],
+            "application_features": [
+              "Build/lint glob matching (ESLint, Vite, Vitest)"
+            ]
+          },
+          {
+            "module": "path-to-regexp",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-4867",
+              "CVE-2026-4926"
+            ],
+            "titles": [
+              "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
+              "path-to-regexp vulnerable to Denial of Service via sequential optional groups"
+            ],
+            "application_features": [
+              "Express route matching (all REST routes)"
+            ]
+          },
+          {
+            "module": "picomatch",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-33671"
+            ],
+            "titles": [
+              "Picomatch has a ReDoS vulnerability via extglob quantifiers"
+            ],
+            "application_features": [
+              "File glob matching in dev tooling"
+            ]
+          },
+          {
+            "module": "protobufjs",
+            "severity": "critical",
+            "cves": [
+              "CVE-2026-41242",
+              "CVE-2026-44289",
+              "CVE-2026-44290",
+              "CVE-2026-44291",
+              "CVE-2026-44293"
+            ],
+            "titles": [
+              "Arbitrary code execution in protobufjs",
+              "protobuf.js: Code injection through bytes field defaults in generated toObject code",
+              "protobuf.js: Code generation gadget after prototype pollution",
+              "protobuf.js: Process-wide denial of service through unsafe option paths",
+              "protobuf.js: Denial of service through unbounded protobuf recursion"
+            ],
+            "application_features": [
+              "Testcontainers / Docker API client chain (dev & E2E)"
+            ]
+          },
+          {
+            "module": "rollup",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-27606"
+            ],
+            "titles": [
+              "Rollup 4 has Arbitrary File Write via Path Traversal"
+            ],
+            "application_features": [
+              "Web production bundle (Vite → Rollup)"
+            ]
+          },
+          {
+            "module": "svgo",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-29074"
+            ],
+            "titles": [
+              "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)"
+            ],
+            "application_features": [
+              "SVG icon pipeline (vite-plugin-svgr)"
+            ]
+          },
+          {
+            "module": "undici",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-1526",
+              "CVE-2026-1528",
+              "CVE-2026-2229"
+            ],
+            "titles": [
+              "Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
+              "Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
+              "Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation"
+            ],
+            "application_features": [
+              "Node HTTP client (transitive; Playwright/Testcontainers chain)"
+            ]
+          },
+          {
+            "module": "vite",
+            "severity": "high",
+            "cves": [
+              "CVE-2026-39363"
+            ],
+            "titles": [
+              "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket"
+            ],
+            "application_features": [
+              "Web dev server (pnpm dev:web)",
+              "Production web build (pnpm build:web)"
+            ]
+          }
+        ]
+      },
+      "current": {
+        "count": 0,
+        "unique_cve_count": 0,
+        "list": []
+      }
+    },
+    {
+      "metric": "CORS/CSP misconfiguration",
+      "baseline": {
+        "status": "passed",
+        "details": {
+          "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+          "accessControlAllowOrigin": "http://localhost:5173"
+        }
+      },
+      "current": {
+        "status": "passed",
+        "details": {
+          "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+          "accessControlAllowOrigin": "http://localhost:5173"
+        }
+      }
+    },
+    {
+      "metric": "Secrets exposure risk",
+      "baseline": {
+        "status": "passed",
+        "details": {
+          "inspected": [
+            "api/src/config/ssm.ts",
+            "api/src/services/secrets-manager.ts",
+            "web/src/api/client.ts",
+            "web/src/pages/Login.tsx"
+          ],
+          "suspiciousClientEnvUsage": []
+        }
+      },
+      "current": {
+        "status": "passed",
+        "details": {
+          "inspected": [
+            "api/src/config/ssm.ts",
+            "api/src/services/secrets-manager.ts",
+            "web/src/api/client.ts",
+            "web/src/pages/Login.tsx"
+          ],
+          "suspiciousClientEnvUsage": []
+        }
+      }
+    },
+    {
+      "metric": "Rate limiting absent on endpoints",
+      "baseline": [],
+      "current": []
+    },
+    {
+      "metric": "Verbose error leakage",
+      "baseline": {
+        "status": "needs_review",
+        "details": {}
+      },
+      "current": {
+        "status": "passed",
+        "details": {}
+      }
+    }
+  ]
+}

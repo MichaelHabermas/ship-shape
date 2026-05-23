@@ -1,0 +1,717 @@
+{
+  "version": 1,
+  "updated_at": "2026-05-23",
+  "items": [
+    {
+      "area": "Cat 8",
+      "type": "Discovery",
+      "title": "Probe could overclaim skipped surfaces",
+      "note": "Skipped-only surfaces counted as measured.",
+      "status": "Fixed",
+      "evidence": "scripts/security-probe/lib/report.mjs",
+      "impact": 4
+    },
+    {
+      "area": "Cat 8",
+      "type": "Discovery",
+      "title": "Audit parse failure could pass",
+      "note": "Dependency evidence needed error status on unreadable audit output.",
+      "status": "Fixed",
+      "evidence": "scripts/security-probe/probes/dependency-cves.mjs",
+      "impact": 4
+    },
+    {
+      "area": "Cat 8",
+      "type": "Decision",
+      "title": "Probe writes are local-only by default",
+      "note": "Remote write and stress probes require explicit opt-in.",
+      "status": "Fixed",
+      "evidence": "scripts/security-probe/lib/probe-selection.mjs",
+      "impact": 3
+    },
+    {
+      "area": "Cat 8",
+      "type": "Vulnerability",
+      "title": "Events socket silently accepted bad messages",
+      "note": "Malformed and unknown event messages needed deterministic close behavior.",
+      "status": "Fixed",
+      "evidence": "api/src/collaboration/index.ts",
+      "impact": 5
+    },
+    {
+      "area": "Cat 8",
+      "type": "Discovery",
+      "title": "Raw WS parser could false-pass",
+      "note": "Close frames needed real frame parsing and close-code validation.",
+      "status": "Fixed",
+      "evidence": "scripts/security-probe/lib/ws-raw.mjs",
+      "impact": 4
+    },
+    {
+      "area": "Cat 8",
+      "type": "Discovery",
+      "title": "Input probes were too narrow",
+      "note": "Issue and comment payloads were added before final claim.",
+      "status": "Fixed",
+      "evidence": "scripts/security-probe/probes/input-sanitization.mjs",
+      "impact": 4
+    },
+    {
+      "area": "Cat 8",
+      "type": "Decision",
+      "title": "API token blast radius was not the fix",
+      "note": "Existing middleware already denied super-admin token escalation.",
+      "status": "Rejected",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "Cat 8",
+      "type": "Decision",
+      "title": "Association leak was not the fix",
+      "note": "Current reference paths already validated workspace boundaries.",
+      "status": "Rejected",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "Cat 8",
+      "type": "Vulnerability",
+      "title": "Upload size mismatch was real",
+      "note": "Local uploads accepted bodies that did not match declared size.",
+      "status": "Fixed",
+      "evidence": "api/src/routes/files.ts",
+      "impact": 5
+    },
+    {
+      "area": "Cat 8",
+      "type": "Vulnerability",
+      "title": "Uploaded HTML served inline",
+      "note": "Serving switched to attachment while retaining nosniff.",
+      "status": "Fixed",
+      "evidence": "api/src/routes/files.ts",
+      "impact": 5
+    },
+    {
+      "area": "Cat 8",
+      "type": "Vulnerability",
+      "title": "Verbose JSON errors leaked internals",
+      "note": "Malformed JSON now returns generic 400 JSON.",
+      "status": "Fixed",
+      "evidence": "api/src/app.ts",
+      "impact": 4
+    },
+    {
+      "area": "Cat 8",
+      "type": "Proof",
+      "title": "Final security probe is clean",
+      "note": "25/25 probes passed across 4 surfaces.",
+      "status": "Proven",
+      "evidence": "my-docs/evidence/security-audit/latest.json",
+      "impact": 5
+    },
+    {
+      "area": "Cat 5",
+      "type": "Discovery",
+      "title": "E2E baseline evidence was stale",
+      "note": "Fresh run reduced old 23/128 failures to 4 blockers.",
+      "status": "Fixed",
+      "evidence": "test-results/cat5-last-failed/summary.json",
+      "impact": 5
+    },
+    {
+      "area": "Cat 5",
+      "type": "Bug",
+      "title": "Upload E2E violated new size rule",
+      "note": "Test declared 100 bytes but uploaded a smaller PNG.",
+      "status": "Fixed",
+      "evidence": "e2e/file-upload-api.spec.ts",
+      "impact": 4
+    },
+    {
+      "area": "Cat 5",
+      "type": "Bug",
+      "title": "Program week route was wrong",
+      "note": "Timeline used dead /sprints path instead of the Weeks tab route.",
+      "status": "Fixed",
+      "evidence": "web/src/components/document-tabs/ProgramWeeksTab.tsx",
+      "impact": 5
+    },
+    {
+      "area": "Cat 5",
+      "type": "Bug",
+      "title": "Project link selector was too broad",
+      "note": "Properties link collided with document-list link.",
+      "status": "Fixed",
+      "evidence": "e2e/project-weeks.spec.ts",
+      "impact": 4
+    },
+    {
+      "area": "Cat 5",
+      "type": "Proof",
+      "title": "Full E2E passed",
+      "note": "872/872 passed with lower worker count.",
+      "status": "Proven",
+      "evidence": "test-results/cat5-full-green-check/summary.json",
+      "impact": 5
+    },
+    {
+      "area": "Cat 5",
+      "type": "Constraint",
+      "title": "Retry artifacts still matter",
+      "note": "Green run kept retry logs as flake follow-up context.",
+      "status": "Watch",
+      "evidence": "test-results/cat5-full-green-check/errors",
+      "impact": 3
+    },
+    {
+      "area": "Cat 5",
+      "type": "Decision",
+      "title": "Do not count selector cleanup as a regression",
+      "note": "Tree selector repair was test trust, not one of the three Cat 5 tests.",
+      "status": "Proven",
+      "evidence": "my-docs/evidence/submission-ledger.json",
+      "impact": 3
+    },
+    {
+      "area": "Cat 3",
+      "type": "Discovery",
+      "title": "Rate limits polluted benchmark truth",
+      "note": "Before/after proof needed a non-prod benchmark bypass.",
+      "status": "Proven",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Cat 3",
+      "type": "Decision",
+      "title": "Benchmark before and after under identical conditions",
+      "note": "Historical ref reran with the same bypass patch.",
+      "status": "Proven",
+      "evidence": "my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json",
+      "impact": 5
+    },
+    {
+      "area": "Cat 3",
+      "type": "Discovery",
+      "title": "Bootstrap critical path was too heavy",
+      "note": "Inferred accountability and standup status moved off app-shell load.",
+      "status": "Fixed",
+      "evidence": "api/src/sql/bootstrap-queries.ts",
+      "impact": 5
+    },
+    {
+      "area": "Cat 4",
+      "type": "Decision",
+      "title": "Use flow-level query counts",
+      "note": "Category proof needed measured workflows, not just endpoint claims.",
+      "status": "Proven",
+      "evidence": "scripts/query-count-api.mjs",
+      "impact": 4
+    },
+    {
+      "area": "Cat 4",
+      "type": "Discovery",
+      "title": "SQL clarity supports query proof",
+      "note": "Shared catalogs made measured routes easier to verify.",
+      "status": "Proven",
+      "evidence": "api/src/sql/bootstrap-queries.ts",
+      "impact": 3
+    },
+    {
+      "area": "Cat 6",
+      "type": "Bug",
+      "title": "AI guard regressed during refactor",
+      "note": "Bedrock client guard had to be restored centrally.",
+      "status": "Fixed",
+      "evidence": "api/src/services/__tests__/ai-analysis.test.ts",
+      "impact": 5
+    },
+    {
+      "area": "Cat 6",
+      "type": "Decision",
+      "title": "Quiet fetch must preserve auth behavior",
+      "note": "CSRF cache clears on logout to avoid stale-session bugs.",
+      "status": "Fixed",
+      "evidence": "web/src/lib/quiet-fetch.ts",
+      "impact": 4
+    },
+    {
+      "area": "Cat 7",
+      "type": "Bug",
+      "title": "A11y tree selector drifted",
+      "note": "Test updated to current DocumentTreeItem markup.",
+      "status": "Fixed",
+      "evidence": "e2e/accessibility-remediation.spec.ts",
+      "impact": 4
+    },
+    {
+      "area": "Cat 7",
+      "type": "Proof",
+      "title": "Axe closeout is route-based",
+      "note": "Closeout checks /docs, selected document, /projects, and /my-week.",
+      "status": "Proven",
+      "evidence": "my-docs/evidence/submission-ledger.json",
+      "impact": 3
+    },
+    {
+      "area": "Docs",
+      "type": "Decision",
+      "title": "Ledger is the claim source",
+      "note": "Dashboard and improvement report render from structured ledger truth.",
+      "status": "Fixed",
+      "evidence": "my-docs/DECISION_LOG.md",
+      "impact": 5
+    },
+    {
+      "area": "Docs",
+      "type": "Constraint",
+      "title": "Narrative docs can drift",
+      "note": "Reviewer-facing status must come from generated artifacts.",
+      "status": "Watch",
+      "evidence": "scripts/submission/render-dashboard.mjs",
+      "impact": 3
+    },
+    {
+      "area": "Type Safety",
+      "type": "Discovery",
+      "title": "Boundary parsers reduce unsafe sprawl",
+      "note": "JSON helpers cut lint noise without changing AST any count.",
+      "status": "Deferred",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 2
+    },
+    {
+      "area": "Architecture",
+      "type": "Decision",
+      "title": "Preserve unified document model",
+      "note": "Relationships stay in document_associations unless redesign is explicit.",
+      "status": "Fixed",
+      "evidence": "AGENTS.md",
+      "impact": 2
+    },
+    {
+      "area": "Architecture",
+      "type": "Bug",
+      "title": "Inline comment cancel needed product fix",
+      "note": "Escape and exact mark removal both mattered.",
+      "status": "Fixed",
+      "evidence": "web/src/components/editor/CommentMark.test.ts",
+      "impact": 3
+    },
+    {
+      "area": "Testing",
+      "type": "Constraint",
+      "title": "Codex sandbox misreports E2E",
+      "note": "Playwright needs the repo runner with full permissions.",
+      "status": "Watch",
+      "evidence": "docs/claude-reference/testing.md",
+      "impact": 5
+    },
+    {
+      "area": "Testing",
+      "type": "Decision",
+      "title": "Use focused reruns before full proof",
+      "note": "Former failures and flake cases were verified before final full run.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "Security",
+      "type": "Future",
+      "title": "Policy-as-code auth oracle is bigger than Cat 8",
+      "note": "Useful, but too broad for the closeout lane.",
+      "status": "Deferred",
+      "evidence": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+      "impact": 2
+    },
+    {
+      "area": "Security",
+      "type": "Future",
+      "title": "Scoped API tokens are product direction",
+      "note": "Route audiences and expirations are deferred past Cat 8.",
+      "status": "Deferred",
+      "evidence": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+      "impact": 2
+    },
+    {
+      "area": "DevEx",
+      "type": "Decision",
+      "title": "Suggested ledger update is advisory",
+      "note": "Probe can draft evidence, but cannot mutate submission claims.",
+      "status": "Fixed",
+      "evidence": "my-docs/evidence/security-audit/security-findings-ledger.md",
+      "impact": 3
+    },
+    {
+      "area": "Process",
+      "type": "Constraint",
+      "title": "Do not overclaim old hardening",
+      "note": "Submission claims need probe-backed or measurement-backed evidence.",
+      "status": "Fixed",
+      "evidence": "my-docs/MEMORY.md",
+      "impact": 4
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "First-time setup could mint multiple super admins",
+      "note": "Unlocked check-then-create flow allowed concurrent bootstrap winners.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Private document comments bypassed visibility",
+      "note": "Workspace member could read, create, and resolve comments on hidden documents.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Related document metadata could leak through context",
+      "note": "Associations and context needed visibility filters on joined documents.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "WebSocket auth ignored membership revocation",
+      "note": "Realtime session validation missed the REST workspace-membership check.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "API tokens were delegated credentials",
+      "note": "Token model behaved like full bearer delegation, not scoped tool access.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Super-admin API token route reach was probed",
+      "note": "Token blast-radius risk was confirmed as a target and then denied by middleware.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Issue associations accepted foreign workspace targets",
+      "note": "belongs_to could create impossible cross-workspace graph edges before guards.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "File auth was workspace-wide instead of attachment-aware",
+      "note": "File metadata/download/delete needed tighter document or uploader authority semantics.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Public feedback accepted private program ids",
+      "note": "Unauthenticated feedback could target any known program id before gating.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Claude context could bypass private visibility",
+      "note": "AI context helpers needed shared readable-document enforcement.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Activity exposed private entity existence",
+      "note": "Activity metadata could reveal hidden entity shape through related endpoints.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Security",
+      "type": "Vulnerability",
+      "title": "Dashboard allocations could leak private work metadata",
+      "note": "Allocation views needed a product decision on whether assignment grants visibility.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Governance",
+      "type": "Vulnerability",
+      "title": "Team allocation writes were member-wide",
+      "note": "Any workspace member could mutate allocation planning state before authority guards.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Governance",
+      "type": "Vulnerability",
+      "title": "Week lifecycle mutations used visibility as authority",
+      "note": "Start and carryover could bypass the stricter approval authority model.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Governance",
+      "type": "Bug",
+      "title": "Debug user delete was non-transactional",
+      "note": "Cleanup could partially deprovision users after deleting sessions and memberships.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Architecture",
+      "type": "Bug",
+      "title": "Document identity had competing models",
+      "note": "Yjs rooms, browser cache, conversion, and persistence needed one document identity boundary.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Architecture",
+      "type": "Bug",
+      "title": "Conversion advertised realtime redirect without notifying",
+      "note": "Document conversion route needed to tell collaborators about replacement state.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Architecture",
+      "type": "Bug",
+      "title": "Converted-documents list used legacy model",
+      "note": "Current conversion properties were invisible to the old list query.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Contracts",
+      "type": "Bug",
+      "title": "Comments OpenAPI doubled the api prefix",
+      "note": "Generated clients would call /api/api comments routes before schema cleanup.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Contracts",
+      "type": "Bug",
+      "title": "OpenAPI advertised search that runtime lacked",
+      "note": "Contract claimed full document search before route capability existed.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Contracts",
+      "type": "Discovery",
+      "title": "OpenAPI looked comprehensive while missing live route families",
+      "note": "Route parity needed generated checks instead of trusting artifact size.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Contracts",
+      "type": "Bug",
+      "title": "defineRoute error schema drift remained",
+      "note": "Some legacy 400 responses still differed from the documented wrapper shape.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "Infra",
+      "type": "Bug",
+      "title": "Migration runner could fake green on numbered failures",
+      "note": "already-exists recovery had to be scoped to schema bootstrap only.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Infra",
+      "type": "Bug",
+      "title": "Shadow DB restore scripts could report success after failure",
+      "note": "Destructive restore pipelines masked psql errors with || true.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Infra",
+      "type": "Decision",
+      "title": "Deploy script must not auto-apply Terraform",
+      "note": "Application deploy and infrastructure mutation were split behind explicit opt-in.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Infra",
+      "type": "Decision",
+      "title": "Production Terraform had competing roots",
+      "note": "Root and environment Terraform paths needed one source of truth.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Docs",
+      "type": "Decision",
+      "title": "Security docs overstated CI gates",
+      "note": "Repo policy claimed required GitHub Actions gates that were not tracked.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Docs",
+      "type": "Decision",
+      "title": "Accountability auto-issue docs were overclaiming",
+      "note": "Docs now describe inference-only behavior instead of tracked auto-issues.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Docs",
+      "type": "Decision",
+      "title": "RACI comments needed passive-metadata wording",
+      "note": "Consulted/informed fields were exposed but not workflow authority.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Build",
+      "type": "Bug",
+      "title": "Production API bundle included tests",
+      "note": "Compiled test files leaked into deploy artifact until build excludes tightened.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Build",
+      "type": "Bug",
+      "title": "Tracked deploy artifacts bypassed ignore rules",
+      "note": "Deploy zips, plans, and dev bundles were tracked despite ignore intent.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Build",
+      "type": "Decision",
+      "title": "Route-level lazy loading was the real bundle lever",
+      "note": "Entry chunk needed page-level splits, not just existing nested lazy imports.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "DevEx",
+      "type": "Bug",
+      "title": "API coverage gate was only a changed-file heuristic",
+      "note": "The script name sounded repo-wide but only checked staged UI fetches.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "DevEx",
+      "type": "Bug",
+      "title": "Root lint was a no-op placeholder",
+      "note": "Green lint output did not mean the repo had been linted.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "Testing",
+      "type": "Bug",
+      "title": "API test setup could erase real data",
+      "note": "Database safety depended on disposable test DB discipline.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 5
+    },
+    {
+      "area": "Testing",
+      "type": "Decision",
+      "title": "Compare broad E2E failures against clean master",
+      "note": "Dependency branches should not overclaim existing suite debt as regressions.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Product",
+      "type": "Bug",
+      "title": "AI rate-limit message understated executable limit",
+      "note": "User-facing 10/hour text diverged from a 120/hour service constant.",
+      "status": "Watch",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 3
+    },
+    {
+      "area": "Product",
+      "type": "Bug",
+      "title": "Claude retro queried an impossible document shape",
+      "note": "Retro context looked rich but searched for data the document model could not represent.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Process",
+      "type": "Decision",
+      "title": "Safe patch overrides beat framework-major migrations",
+      "note": "Patched transitives were handled narrowly; major upgrades became separate work.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    },
+    {
+      "area": "Process",
+      "type": "Decision",
+      "title": "Open findings must keep their status",
+      "note": "High-impact discoveries can appear in the table without being claimed fixed.",
+      "status": "Fixed",
+      "evidence": "my-docs/discovery-research-log.md",
+      "impact": 4
+    }
+  ]
+}

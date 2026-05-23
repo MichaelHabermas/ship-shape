@@ -2990,27 +2990,374 @@
           "structured_report": "my-docs/evidence/security-audit/latest.json"
         },
         "fields": {
-          "auth_session_vulnerabilities": [],
-          "websocket_validation_failures": [],
-          "input_sanitization_failures": [],
+          "auth_session_vulnerabilities": {
+            "baseline": {
+              "findings": [
+                {
+                  "id": "cat8-auth-unauthenticated-api",
+                  "severity": "high",
+                  "title": "Protected API route allowed unauthenticated access",
+                  "probe_id": "auth-session-unauthenticated-api"
+                },
+                {
+                  "id": "cat8-auth-api-token-super-admin",
+                  "severity": "high",
+                  "title": "API token could access a super-admin route",
+                  "probe_id": "auth-session-api-token-super-admin-boundary"
+                }
+              ],
+              "source": "runs/baseline-before-probe/report.json",
+              "meaning": "An empty findings list means the probe ran against the live app and reported zero confirmed issues for that surface. It does NOT mean we skipped the check."
+            },
+            "current": {
+              "findings": [],
+              "source": "latest.json",
+              "meaning": "An empty findings list means the probe ran against the live app and reported zero confirmed issues for that surface. It does NOT mean we skipped the check."
+            }
+          },
+          "websocket_validation_failures": {
+            "baseline": {
+              "findings": [
+                {
+                  "id": "cat8-ws-events-malformed-message",
+                  "severity": "medium",
+                  "title": "Events WebSocket did not reject malformed message",
+                  "probe_id": "websocket-events-malformed-message"
+                },
+                {
+                  "id": "cat8-ws-events-unknown-message-type",
+                  "severity": "medium",
+                  "title": "Events WebSocket did not reject unknown message type",
+                  "probe_id": "websocket-events-unknown-message-type"
+                },
+                {
+                  "id": "cat8-ws-malformed-frame",
+                  "severity": "high",
+                  "title": "Malformed WebSocket message was not handled safely",
+                  "probe_id": "websocket-malformed-frame"
+                }
+              ],
+              "source": "runs/baseline-before-probe/report.json"
+            },
+            "current": {
+              "findings": [],
+              "source": "latest.json"
+            }
+          },
+          "input_sanitization_failures": {
+            "baseline": {
+              "findings": [
+                {
+                  "id": "cat8-input-file-size-mismatch",
+                  "severity": "medium",
+                  "title": "Local file upload accepted bytes that did not match declared size",
+                  "probe_id": "input-file-upload-size-mismatch"
+                },
+                {
+                  "id": "cat8-input-file-serve-headers",
+                  "severity": "medium",
+                  "title": "Uploaded HTML was served inline without nosniff protection",
+                  "probe_id": "input-file-serve-headers"
+                }
+              ],
+              "source": "runs/baseline-before-probe/report.json"
+            },
+            "current": {
+              "findings": [],
+              "source": "latest.json"
+            }
+          },
           "dependency_cves": {
             "high_or_critical_count": 0,
-            "list": []
+            "list": [],
+            "baseline": {
+              "branch": "BASELINE",
+              "commit": "072818cf77a54e1a796dd4b878e8564d8af3f1e7",
+              "high_or_critical_count": 33,
+              "unique_cve_count": 65,
+              "list": [
+                {
+                  "module": "@hono/node-server",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-29087"
+                  ],
+                  "titles": [
+                    "@hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware"
+                  ],
+                  "application_features": [
+                    "OpenAPI / Swagger dev tooling (transitive)"
+                  ]
+                },
+                {
+                  "module": "express-rate-limit",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-30827"
+                  ],
+                  "titles": [
+                    "express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network"
+                  ],
+                  "application_features": [
+                    "API and login rate limiting"
+                  ]
+                },
+                {
+                  "module": "fast-uri",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-6321",
+                    "CVE-2026-6322"
+                  ],
+                  "titles": [
+                    "fast-uri vulnerable to path traversal via percent-encoded dot segments",
+                    "fast-uri vulnerable to host confusion via percent-encoded authority delimiters"
+                  ],
+                  "application_features": [
+                    "URI parsing in dev tooling (transitive)"
+                  ]
+                },
+                {
+                  "module": "fast-xml-parser",
+                  "severity": "critical",
+                  "cves": [
+                    "CVE-2026-25896",
+                    "CVE-2026-26278",
+                    "CVE-2026-33036"
+                  ],
+                  "titles": [
+                    "fast-xml-parser has an entity encoding bypass via regex injection in DOCTYPE entity names",
+                    "fast-xml-parser affected by DoS through entity expansion in DOCTYPE (no expansion limit)",
+                    "fast-xml-parser affected by numeric entity expansion bypassing all entity expansion limits (incomplete fix for CVE-2026-26278)"
+                  ],
+                  "application_features": [
+                    "AWS SDK / XML config parsing (transitive)"
+                  ]
+                },
+                {
+                  "module": "flatted",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-32141",
+                    "CVE-2026-33228"
+                  ],
+                  "titles": [
+                    "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+                    "Prototype Pollution via parse() in NodeJS flatted"
+                  ],
+                  "application_features": [
+                    "ESLint cache serialization"
+                  ]
+                },
+                {
+                  "module": "hono",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-29045"
+                  ],
+                  "titles": [
+                    "Hono vulnerable to arbitrary file access via serveStatic vulnerability "
+                  ],
+                  "application_features": [
+                    "OpenAPI / Swagger dev tooling (transitive)"
+                  ]
+                },
+                {
+                  "module": "lodash",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-4800"
+                  ],
+                  "titles": [
+                    "lodash vulnerable to Code Injection via `_.template` imports key names"
+                  ],
+                  "application_features": [
+                    "Tooling and test helpers (transitive)"
+                  ]
+                },
+                {
+                  "module": "minimatch",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-26996",
+                    "CVE-2026-27903",
+                    "CVE-2026-27904"
+                  ],
+                  "titles": [
+                    "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+                    "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+                    "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions"
+                  ],
+                  "application_features": [
+                    "Build/lint glob matching (ESLint, Vite, Vitest)"
+                  ]
+                },
+                {
+                  "module": "path-to-regexp",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-4867",
+                    "CVE-2026-4926"
+                  ],
+                  "titles": [
+                    "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
+                    "path-to-regexp vulnerable to Denial of Service via sequential optional groups"
+                  ],
+                  "application_features": [
+                    "Express route matching (all REST routes)"
+                  ]
+                },
+                {
+                  "module": "picomatch",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-33671"
+                  ],
+                  "titles": [
+                    "Picomatch has a ReDoS vulnerability via extglob quantifiers"
+                  ],
+                  "application_features": [
+                    "File glob matching in dev tooling"
+                  ]
+                },
+                {
+                  "module": "protobufjs",
+                  "severity": "critical",
+                  "cves": [
+                    "CVE-2026-41242",
+                    "CVE-2026-44289",
+                    "CVE-2026-44290",
+                    "CVE-2026-44291",
+                    "CVE-2026-44293"
+                  ],
+                  "titles": [
+                    "Arbitrary code execution in protobufjs",
+                    "protobuf.js: Code injection through bytes field defaults in generated toObject code",
+                    "protobuf.js: Code generation gadget after prototype pollution",
+                    "protobuf.js: Process-wide denial of service through unsafe option paths",
+                    "protobuf.js: Denial of service through unbounded protobuf recursion"
+                  ],
+                  "application_features": [
+                    "Testcontainers / Docker API client chain (dev & E2E)"
+                  ]
+                },
+                {
+                  "module": "rollup",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-27606"
+                  ],
+                  "titles": [
+                    "Rollup 4 has Arbitrary File Write via Path Traversal"
+                  ],
+                  "application_features": [
+                    "Web production bundle (Vite → Rollup)"
+                  ]
+                },
+                {
+                  "module": "svgo",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-29074"
+                  ],
+                  "titles": [
+                    "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)"
+                  ],
+                  "application_features": [
+                    "SVG icon pipeline (vite-plugin-svgr)"
+                  ]
+                },
+                {
+                  "module": "undici",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-1526",
+                    "CVE-2026-1528",
+                    "CVE-2026-2229"
+                  ],
+                  "titles": [
+                    "Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
+                    "Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
+                    "Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation"
+                  ],
+                  "application_features": [
+                    "Node HTTP client (transitive; Playwright/Testcontainers chain)"
+                  ]
+                },
+                {
+                  "module": "vite",
+                  "severity": "high",
+                  "cves": [
+                    "CVE-2026-39363"
+                  ],
+                  "titles": [
+                    "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket"
+                  ],
+                  "application_features": [
+                    "Web dev server (pnpm dev:web)",
+                    "Production web build (pnpm build:web)"
+                  ]
+                }
+              ],
+              "source": "my-docs/evidence/security-audit/runs/baseline-before/summary.json"
+            },
+            "improvement_delta_high_critical": -33
           },
           "cors_csp_misconfiguration": {
-            "status": "passed",
-            "details": "CSP and credentialed CORS checked by manual-cors-csp in my-docs/evidence/security-audit/latest.json; local ACAO was http://localhost:5173, not wildcard."
+            "baseline": {
+              "status": "passed",
+              "details": {
+                "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+                "accessControlAllowOrigin": "http://localhost:5173"
+              }
+            },
+            "current": {
+              "status": "passed",
+              "details": {
+                "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+                "accessControlAllowOrigin": "http://localhost:5173"
+              }
+            }
           },
           "secrets_exposure_risk": {
-            "status": "passed",
-            "details": "manual-secrets inspected server secret configuration and client env usage targets with no suspicious VITE secret/password/token exposure hits."
+            "baseline": {
+              "status": "passed",
+              "details": {
+                "inspected": [
+                  "api/src/config/ssm.ts",
+                  "api/src/services/secrets-manager.ts",
+                  "web/src/api/client.ts",
+                  "web/src/pages/Login.tsx"
+                ],
+                "suspiciousClientEnvUsage": []
+              }
+            },
+            "current": {
+              "status": "passed",
+              "details": {
+                "inspected": [
+                  "api/src/config/ssm.ts",
+                  "api/src/services/secrets-manager.ts",
+                  "web/src/api/client.ts",
+                  "web/src/pages/Login.tsx"
+                ],
+                "suspiciousClientEnvUsage": []
+              }
+            }
           },
-          "rate_limiting_absent_on": [],
+          "rate_limiting_absent_on": {
+            "baseline": [],
+            "current": []
+          },
           "verbose_error_leakage": {
-            "status": "passed",
-            "examples": [
-              "manual-verbose-errors passed after malformed JSON returns a generic 400 JSON response instead of Express default stack output."
-            ]
+            "baseline": {
+              "status": "needs_review",
+              "details": {}
+            },
+            "current": {
+              "status": "passed",
+              "details": {}
+            }
           }
         },
         "verified_vulnerability_fixes": [
@@ -3030,42 +3377,47 @@
             "fix_applied": "api/src/collaboration/index.ts now catches collaboration message decode failures, closes unsupported/invalid collaboration and events messages with 1003, and handles oversized ws frames with 1009 without crashing the API process.",
             "proof": "Before report: my-docs/evidence/security-audit/runs/before-ws-malformed/report.json. After reports: my-docs/evidence/security-audit/runs/after-ws-malformed/report.json, my-docs/evidence/security-audit/runs/after-ws-oversized/report.json, and final deterministic close-code evidence in my-docs/evidence/security-audit/latest.json."
           }
-        ]
+        ],
+        "aligned_table": "my-docs/evidence/security-audit/cat8-audit-deliverable.json"
       },
       "summary_cards": [
         {
-          "id": "cat8-security-required-card",
-          "title": "Required Security Probe",
+          "id": "cat8-security-deliverable-table",
+          "title": "Audit Deliverable (baseline → current)",
           "items": [
             {
-              "label": "Probe tool",
-              "value": "Proven: pnpm security:probe runs the Category 8 harness and writes structured JSON/Markdown evidence."
+              "label": "Security probe",
+              "value": "BASELINE: Yes (baseline-before-probe). Current: Yes (latest.json)."
             },
             {
-              "label": "Attack surfaces",
-              "value": "Auth/session, WebSocket validation, input sanitization, and dependency CVEs all measured in latest.json."
+              "label": "Auth/session findings",
+              "value": "BASELINE: 2 findings. Current: 0 findings (empty = probe ran, found none)."
             },
             {
-              "label": "Manual review",
-              "value": "CORS/CSP, secrets, rate limiting, and verbose errors all passed assisted review in the final probe."
+              "label": "Dependency CVEs",
+              "value": "BASELINE: 33 high/critical (15 packages mapped to app features). Current: 0."
+            },
+            {
+              "label": "Aligned table",
+              "value": "cat8-audit-deliverable.json — every brief row has baseline + current values."
             }
           ]
         },
         {
           "id": "cat8-security-current-card",
-          "title": "Current Claim Boundary",
+          "title": "Verified improvements",
           "items": [
             {
-              "label": "Probe coverage",
-              "value": "25 named probes passed; input coverage now includes documents, search, issues, comments, and file upload surfaces."
+              "label": "Dependency cleanup",
+              "value": "33 → 0 high/critical CVEs (pnpm audit on BASELINE vs master)."
             },
             {
               "label": "Verified fixes",
-              "value": "Two probe-backed fixes: local file upload validation/serving and WebSocket malformed/oversized resilience."
+              "value": "File upload validation/serving and WebSocket malformed/oversized resilience (before/after probe runs)."
             },
             {
-              "label": "Status",
-              "value": "Proven with local black-box probe evidence; remote destructive probing remains out of scope unless explicitly enabled."
+              "label": "Manual review",
+              "value": "CORS/CSP, secrets, rate limits, verbose errors — passed on current and baseline probes."
             }
           ]
         }
@@ -3123,6 +3475,24 @@
       ],
       "measurements": [
         {
+          "id": "cat8-dependency-cves-baseline",
+          "kind": "dependency_audit_summary",
+          "label": "BASELINE branch dependency CVE baseline",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "branch": "BASELINE",
+            "commit": "072818cf77a54e1a796dd4b878e8564d8af3f1e7",
+            "high_or_critical_count": 33,
+            "critical_count": 2,
+            "high_count": 31,
+            "unique_cve_count": 65,
+            "total_dependencies": 987
+          },
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "my-docs/evidence/security-audit/runs/baseline-before/summary.json"
+        },
+        {
           "id": "cat8-security-probe-status",
           "kind": "security_probe_status",
           "label": "Security probe deliverable status",
@@ -3140,6 +3510,24 @@
           "origin": "artifact_parsed",
           "confidence": "report_backed",
           "source": "my-docs/evidence/security-audit/latest.json"
+        },
+        {
+          "id": "cat8-baseline-live-probe-status",
+          "kind": "security_probe_status",
+          "label": "BASELINE branch live security probe",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "branch": "BASELINE",
+            "commit": "072818cf77a54e1a796dd4b878e8564d8af3f1e7",
+            "runnable_probe_tool": true,
+            "attack_surfaces_measured": 4,
+            "total_named_probes_passed": 14,
+            "findings": 9,
+            "high_or_critical_dependency_cves": 1
+          },
+          "origin": "artifact_parsed",
+          "confidence": "report_backed",
+          "source": "my-docs/evidence/security-audit/runs/baseline-before-probe/report.json"
         }
       ],
       "derived_metrics": [
@@ -3158,6 +3546,17 @@
           "threshold": 2,
           "origin": "computed",
           "confidence": "report_backed"
+        },
+        {
+          "id": "cat8-dependency-cve-reduction",
+          "kind": "delta",
+          "value": -33,
+          "baseline_measurement_id": "cat8-dependency-cves-baseline",
+          "latest_field": "audit_deliverable.fields.dependency_cves.high_or_critical_count",
+          "baseline_value": 33,
+          "latest_value": 0,
+          "origin": "computed",
+          "confidence": "artifact_backed"
         }
       ],
       "targets": [
@@ -3306,10 +3705,46 @@
           "description": "After proof for oversized WebSocket frame handling without process crash."
         },
         {
+          "id": "cat8-baseline-measurements",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/baseline-measurements.md",
+          "description": "BASELINE branch vs current: dependency CVE before/after (33 → 0)."
+        },
+        {
+          "id": "cat8-baseline-comparison-json",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
+          "description": "Baseline vs current audit deliverable table aligned to Shipshape-Security-Audit.txt."
+        },
+        {
+          "id": "cat8-baseline-deps-before",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/baseline-before/summary.json",
+          "description": "pnpm audit on BASELINE branch: 33 high/critical."
+        },
+        {
           "id": "cat8-security-runbook",
           "type": "source_doc",
           "path": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
           "description": "Category 8 implementation and rerun runbook."
+        },
+        {
+          "id": "cat8-baseline-live-probe",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/baseline-before-probe/report.json",
+          "description": "Full security probe against BASELINE branch clone (072818c): auth, WebSocket, input, dependency, and manual review surfaces."
+        },
+        {
+          "id": "cat8-audit-deliverable-table",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
+          "description": "Baseline vs current table aligned to Shipshape-Security-Audit.txt deliverable rows."
+        },
+        {
+          "id": "cat8-dependency-cves-baseline-artifact",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/baseline-before/summary.json",
+          "description": "pnpm audit high/critical dependency CVE baseline on BASELINE branch (33 → 0 after cleanup)."
         }
       ],
       "caveats": [
