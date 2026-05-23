@@ -54,7 +54,7 @@ interface EditorProps {
 ```typescript
 const wsProvider = new WebsocketProvider(
   wsUrl,
-  `${roomPrefix}:${documentId}`,  // e.g., "doc:abc123" or "issue:xyz789"
+  `${documentType}:${documentId}`,  // e.g., "wiki:abc123" or "issue:xyz789"
   ydoc
 );
 ```
@@ -77,29 +77,23 @@ const wsProvider = new WebsocketProvider(
 
 ### Usage Examples
 
-**Document Editor (simple):**
+**Document Editor (via UnifiedDocumentPage):**
 ```typescript
-<Editor
-  documentId={document.id}
-  userName={user.name}
-  initialTitle={document.title}
-  onTitleChange={handleTitleChange}
-  onBack={() => navigate('/docs')}
+// web/src/pages/UnifiedDocumentPage.tsx — /documents/:id
+<UnifiedEditor
+  document={document}
+  sidebarData={sidebarData}
+  onUpdate={handleUpdate}
 />
 ```
 
-**Issue Editor (with sidebar and badge):**
+**Issue Editor (same route, type-specific sidebar):**
 ```typescript
-<Editor
-  documentId={issue.id}
-  userName={user.name}
-  initialTitle={issue.title}
-  onTitleChange={handleTitleChange}
-  onBack={() => navigate('/issues')}
-  roomPrefix="issue"
-  placeholder="Add a description..."
-  headerBadge={<span>#{issue.ticket_number}</span>}
-  sidebar={<IssuePropertiesSidebar issue={issue} />}
+// Also rendered by UnifiedDocumentPage when document_type === 'issue'
+<UnifiedEditor
+  document={issue}
+  sidebarData={{ /* issue properties */ }}
+  onUpdate={handleUpdate}
 />
 ```
 
@@ -119,5 +113,5 @@ When adding a new document type that needs collaborative editing:
 ## Related Files
 
 - `web/src/components/Editor.tsx` - Shared editor component
-- `web/src/pages/DocumentEditor.tsx` - Document usage
-- `web/src/pages/IssueEditor.tsx` - Issue usage with sidebar
+- `web/src/components/UnifiedEditor.tsx` - Type-specific wrapper with sidebars
+- `web/src/pages/UnifiedDocumentPage.tsx` - Unified `/documents/:id` route
