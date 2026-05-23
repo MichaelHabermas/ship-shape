@@ -407,7 +407,17 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'program', $2, $3, $4)
        RETURNING id`,
-      [workspaceId, prog.name, JSON.stringify({ color: prog.color }), userId]
+      [
+        workspaceId,
+        prog.name,
+        JSON.stringify({
+          color: prog.color,
+          prefix: prog.key,
+          // Public feedback E2E (feedback-consolidation.spec.ts) requires an enabled program.
+          ...(prog.key === 'SHIP' ? { public_feedback_enabled: true } : {}),
+        }),
+        userId,
+      ]
     );
     programIds[prog.key] = result.rows[0].id;
   }

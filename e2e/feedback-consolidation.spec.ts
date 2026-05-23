@@ -98,11 +98,12 @@ test.describe('Public Feedback Form', () => {
     await page.goto('about:blank');
     await page.context().clearCookies();
 
-    // Navigate to public feedback form
+    // Navigate to public feedback form (Ship Core seed has public_feedback_enabled)
     await page.goto(`/feedback/${programId}`);
 
-    // Should show form, not login redirect
-    await expect(page.locator('input[name="title"], input[placeholder*="title" i]').first()).toBeVisible({ timeout: 10000 });
+    // Should show form, not login redirect or "Program not found"
+    await expect(page.getByRole('heading', { name: 'Submit Feedback' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByLabel('Title')).toBeVisible();
   });
 
   test('submitting creates issue with source=external, state=triage', async ({ page }) => {

@@ -11,6 +11,18 @@ function createEditor(content: string): Editor {
 }
 
 describe('CommentMark', () => {
+  it('removes the full highlighted range for a single comment mark', () => {
+    const editor = createEditor('<p>comment that gets canceled</p>');
+    editor.commands.setTextSelection({ from: 1, to: 26 });
+    editor.commands.setComment('pending-1');
+
+    editor.commands.unsetComment('pending-1');
+
+    expect(editor.getHTML()).not.toContain('comment-highlight');
+    expect(editor.getHTML()).not.toContain('data-comment-id="pending-1"');
+    editor.destroy();
+  });
+
   it('removes only the comment mark matching the requested commentId', () => {
     // Risk: canceling one inline comment must not remove overlapping comment highlights.
     const editor = createEditor(

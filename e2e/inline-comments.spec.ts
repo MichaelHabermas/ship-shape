@@ -124,6 +124,8 @@ test.describe('Inline Comments', () => {
 
     const commentInput = page.getByRole('textbox', { name: 'Write a comment...' })
     await expect(commentInput).toBeVisible({ timeout: 3000 })
+    // Ensure pending input has focus so Escape reliably reaches cancel handlers under load.
+    await commentInput.focus()
 
     // Press Escape to cancel
     await page.keyboard.press('Escape')

@@ -425,6 +425,22 @@ export function Editor({
     return () => clearTimeout(timer);
   }, [editor, comments, pendingCommentId]);
 
+  // Pending inline comments: capture Escape at document level so cancel works even when
+  // focus is outside the ProseMirror view (Playwright/E2E and bubble-menu flows).
+  useEffect(() => {
+    if (!editor || pendingCommentId === null) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      editor.commands.unsetComment(pendingCommentId);
+      setPendingCommentId(null);
+      event.preventDefault();
+    };
+
+    document.addEventListener('keydown', handleEscape, true);
+    return () => document.removeEventListener('keydown', handleEscape, true);
+  }, [editor, pendingCommentId]);
+
   // Sync AI scoring data into the AIScoringDisplay extension storage
   useEffect(() => {
     if (!editor) return;

@@ -249,18 +249,22 @@ test.describe('Team Mode (Phase 7)', () => {
       // Wait for grid to load
       await expect(page.getByText('Team Member', { exact: true })).toBeVisible({ timeout: 10000 })
 
-      // Get all user names in the left column (under Team Member)
-      // Users should be sorted A-Z within their groups
-      const userNames = await page.locator('.flex.items-center.gap-2').filter({ hasText: /^[A-Z].*$/ }).allTextContents()
+      // Each program group is a div containing a header button plus person rows (.h-12).
+      const groupContainers = page.locator('.sticky.left-0 > div').filter({
+        has: page.locator('.flex.h-12'),
+      })
+      const groupCount = await groupContainers.count()
+      expect(groupCount).toBeGreaterThan(0)
 
-      // Filter to just get names (exclude program headers)
-      const names = userNames.filter(name => !name.includes('Unassigned') && name.length > 2)
+      for (let g = 0; g < groupCount; g++) {
+        const names = await groupContainers.nth(g).locator('.flex.h-12 .truncate.text-sm').allTextContents()
+        const cleaned = names
+          .map(name => name.replace(/\s*\(archived\).*$/i, '').replace(/\s*\(pending\).*$/i, '').trim())
+          .filter(name => name.length > 1)
 
-      expect(names.length).toBeGreaterThan(0)
-      for (let i = 1; i < names.length; i++) {
-        const prevName = names[i - 1].replace(/^[A-Z]\s*/, '')
-        const currName = names[i].replace(/^[A-Z]\s*/, '')
-        expect(prevName.localeCompare(currName)).toBeLessThanOrEqual(0)
+        for (let i = 1; i < cleaned.length; i++) {
+          expect(cleaned[i - 1].localeCompare(cleaned[i])).toBeLessThanOrEqual(0)
+        }
       }
     })
 

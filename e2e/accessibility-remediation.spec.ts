@@ -147,14 +147,16 @@ test.describe('Phase 1: Critical Violations', () => {
       await page.goto('/issues')
       await page.waitForLoadState('networkidle')
 
-      // Open an issue to see comboboxes in properties sidebar
-      const issueLink = page.locator('a[href*="/documents/"]').first()
-      await expect(issueLink).toBeVisible({ timeout: 5000 })
-      await issueLink.click()
-      await page.waitForLoadState('networkidle')
+      // Open an issue document (rows navigate via onClick — no anchor in tbody).
+      await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 15000 })
+      await page.locator('table tbody tr').first().click()
+      await expect(page).toHaveURL(/\/documents\/[a-f0-9-]+/, { timeout: 10000 })
 
-      // MUST have at least one combobox (status, assignee, etc.)
-      const combobox = page.locator('[aria-haspopup="listbox"], [role="combobox"]').first()
+      const propertiesPanel = page.locator('#properties-portal, aside[aria-label="Document properties"]')
+      await expect(propertiesPanel).toBeVisible({ timeout: 5000 })
+
+      // MUST have at least one combobox in the properties sidebar (status, assignee, etc.)
+      const combobox = propertiesPanel.locator('[aria-haspopup="listbox"], [role="combobox"]').first()
       await expect(combobox).toBeVisible({ timeout: 5000 })
 
       // MUST have aria-controls pointing to the listbox
@@ -165,13 +167,11 @@ test.describe('Phase 1: Critical Violations', () => {
       const ariaExpanded = await combobox.getAttribute('aria-expanded')
       expect(ariaExpanded).not.toBeNull()
 
-      // Click to open and verify listbox appears
+      // Click to open and verify listbox appears (Radix popover portal)
       await combobox.click()
-      await page.waitForTimeout(300)
 
-      // The controlled listbox MUST exist when expanded
       const listbox = page.locator(`#${ariaControls}, [role="listbox"]`)
-      await expect(listbox).toBeVisible({ timeout: 2000 })
+      await expect(listbox).toBeVisible({ timeout: 5000 })
 
       // Close by pressing Escape
       await page.keyboard.press('Escape')
@@ -927,16 +927,16 @@ test.describe('Phase 2: Serious Violations', () => {
       // Sidebar tree MUST exist
       const sidebar = page.locator('#sidebar-content, aside[aria-label="Document list"]')
       await expect(sidebar).toBeVisible({ timeout: 5000 })
-      const sidebarTree = sidebar.locator('[role="tree"][aria-label*="documents"]').first()
+      const sidebarTree = sidebar.locator('[role="tree"][aria-label*="documents" i]').first()
       await expect(sidebarTree).toBeVisible({ timeout: 5000 })
 
-      // Find a document that has children (indicated by aria-expanded attribute)
-      const expandableNode = sidebarTree.locator('li[data-tree-item]:has([role="treeitem"][aria-expanded])').first()
+      // DocumentTreeItem renders li[data-testid="doc-item"] (not legacy data-tree-item).
+      const expandableNode = sidebarTree.locator('li[data-testid="doc-item"]:has([role="treeitem"][aria-expanded])').first()
       const expandableItem = expandableNode.locator('[role="treeitem"][aria-expanded]').first()
       const hasExpandable = await expandableNode.count() > 0
 
-      // Seed data must provide nested documents for this test
-      expect(hasExpandable, 'Seed data should provide nested documents. Run: pnpm db:seed').toBe(true)
+      // E2E isolated-env seed creates Welcome → Getting Started / Advanced Topics (see isolated-env.ts).
+      expect(hasExpandable, 'E2E seed should provide nested wiki documents (Welcome to Ship children)').toBe(true)
 
       // Expand to find a nested document
       const isExpanded = await expandableItem.getAttribute('aria-expanded')
@@ -960,7 +960,7 @@ test.describe('Phase 2: Serious Violations', () => {
 
       // CRITICAL: Tree MUST auto-expand to show this document
       // Use the sidebar tree specifically to avoid conflicts with main content tree
-      const refreshedSidebarTree = page.locator('[role="tree"][aria-label*="documents"]').first()
+      const refreshedSidebarTree = page.locator('[role="tree"][aria-label*="documents" i]').first()
       const currentDocInTree = refreshedSidebarTree.locator(`a[href="${childHref}"]`)
       await expect(currentDocInTree).toBeVisible({ timeout: 3000 })
 

@@ -90,7 +90,10 @@ export const CommentMark = Mark.create<CommentMarkOptions, CommentMarkStorage>({
 
             node.marks.forEach((mark) => {
               if (mark.type.name === this.name && mark.attrs.commentId === commentId) {
-                tr.removeMark(pos, pos + node.nodeSize, mark);
+                const textLength = node.text?.length ?? 0;
+                if (textLength === 0) return;
+                // Text leaf nodeSize is 1 in the tree; use text length for doc positions.
+                tr.removeMark(pos, pos + textLength, mark);
                 modified = true;
               }
             });

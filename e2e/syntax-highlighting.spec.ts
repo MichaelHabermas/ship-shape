@@ -109,9 +109,9 @@ test.describe('Syntax Highlighting - Code Blocks', () => {
     const codeBlock = page.locator('.ProseMirror pre code')
     await expect(codeBlock).toBeVisible()
 
-    // Check that syntax highlighting spans exist (Prism.js wraps tokens in spans)
+    // Check that syntax highlighting spans exist (lowlight/highlight.js uses hljs-* classes)
     const hasHighlighting = await codeBlock.evaluate(el => {
-      const spans = el.querySelectorAll('span[class*="token"]')
+      const spans = el.querySelectorAll('span[class*="hljs-"], span[class*="token"]')
       return spans.length > 0
     })
 

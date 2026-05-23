@@ -999,3 +999,15 @@ Consequences: Document every test assertion change inline with the product/API r
 Evidence: `test-results/triage-fixes-batch3` — backlinks + session-timeout + weekly plan/retro query specs green; allocation grid fixes verified in follow-up run `triage-fixes-batch4`.
 
 **Decision Gist**: Test changes need a traceable why — helper restore, selector strategy aligned with unit tests, or API SQL correctness — not silent edits.
+
+### D059: Inline comment cancel + docs tree E2E alignment (2026-05-23)
+
+Status: Accepted
+
+Decision: Fix product cancel path (`CommentMark.unsetComment` mark range uses text length, not leaf `nodeSize`; document-level Escape while `pendingCommentId` is set in `Editor.tsx`) and align a11y tree E2E with `DocumentTreeItem` markup (`data-testid="doc-item"`, case-insensitive tree aria-label). E2E cancel test focuses pending input before Escape — documents timing, not weaker assertion.
+
+Why: Full-suite May 22 failures included chronic inline-comments cancel and a11y tree auto-expand. Root cause for cancel was incomplete mark removal plus Escape not reaching handlers when focus left the editor; tree test used removed `data-tree-item` selector.
+
+Evidence: `CommentMark.test.ts` 2/2; `triage-a11y-tree2` 1/1; inline cancel stable after document Escape handler. Follow-up batch (D058/D059 extension): E2E seed enables `public_feedback_enabled` on Ship Core; combobox a11y scopes to `#properties-portal`; syntax-highlighting asserts `hljs-*` (lowlight); team-mode sort checks per program group; my-week stale-data runs retro before plan (retro auto-seeds planReference blocks when plan exists).
+
+**Decision Gist**: Prefer product fixes backed by unit tests; update E2E selectors when component markup changed, with comments pointing to seed/component source.
