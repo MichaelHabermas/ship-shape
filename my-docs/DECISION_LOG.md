@@ -983,3 +983,19 @@ Consequences: CLAUDE.md, context-manifest, claude-reference, application-archite
 Evidence: `render.yaml`; `scripts/dev.sh`; `AGENTS.md`; `api/src/db/client.ts`; `shared/src/enums/document-enums.ts`; doc-sync Phase 3/6 fix list.
 
 **Decision Gist**: Docs describe what the repo is today — `pnpm dev`, migrations-only schema changes, Render primary.
+
+### D058: E2E triage after May 22 full-suite regression (2026-05-23)
+
+Status: Accepted
+
+Decision: Fix three root causes surfaced by the first valid full E2E run after the Playwright sandbox trap: (1) restore backlinks spec helper usage (`createWikiDoc` replaces removed local `createNewDocument` from PR #4 — test-only, documented in spec header); (2) session-timeout ARIA E2E asserts via role/text instead of `#radix-:…` CSS ids (matches `SessionTimeoutModal.test.tsx` approach); (3) repair weekly-plan SQL in `getProjectAllocationGrid` and list filters — cast JSONB ids to `uuid` for node-pg params and qualify ambiguous `properties` columns in JOIN selects.
+
+Why: May 20 baseline was ~862 pass / 1 fail; May 22 valid run was 828 pass / 23 fail. Clusters were not random product regressions: backlinks were a partial refactor, session-timeout selectors were invalid for Radix ids, allocation-grid routes 500'd with `text = uuid` and ambiguous column errors.
+
+Alternatives considered: Skip failing specs (rejected — several are hard test/API bugs); revert PR #4 backlinks refactor entirely (rejected — shared fixtures are correct, four call sites were missed).
+
+Consequences: Document every test assertion change inline with the product/API reason. Remaining full-suite failures (inline-comments highlight, a11y tree selector, flakes) stay tracked separately.
+
+Evidence: `test-results/triage-fixes-batch3` — backlinks + session-timeout + weekly plan/retro query specs green; allocation grid fixes verified in follow-up run `triage-fixes-batch4`.
+
+**Decision Gist**: Test changes need a traceable why — helper restore, selector strategy aligned with unit tests, or API SQL correctness — not silent edits.

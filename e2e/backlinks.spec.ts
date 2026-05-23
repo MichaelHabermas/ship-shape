@@ -6,6 +6,11 @@ import { login, createWikiDoc, setDocumentTitle } from './fixtures/app'
  * Backlinks E2E Tests
  *
  * Tests backlink panel display, creation, removal, and navigation.
+ *
+ * Test helper note (2026-05-23): PR #4 (18c25dd) moved login/doc creation to
+ * `e2e/fixtures/app.ts` but left four tests calling removed local
+ * `createNewDocument`. Those tests now use `createWikiDoc` (same behavior:
+ * creates a wiki doc and returns its URL) — not a product behavior change.
  */
 
 test.describe('Backlinks', () => {
@@ -152,7 +157,7 @@ test.describe('Backlinks', () => {
 
   test('backlinks show correct document info', async ({ page }) => {
     // Create Document X
-    const docXUrl = await createNewDocument(page)
+    const docXUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Target Document')
 
     // Create Document Y that mentions X
@@ -207,11 +212,11 @@ test.describe('Backlinks', () => {
     })
 
     // Create Document M (will be mentioned)
-    const docMUrl = await createNewDocument(page)
+    const docMUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Mentioned Doc')
 
     // Create Document N (will mention Document M)
-    const docNUrl = await createNewDocument(page)
+    const docNUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Source Doc')
 
     const editor = page.locator('.ProseMirror')
@@ -264,7 +269,7 @@ test.describe('Backlinks', () => {
 
   test('backlinks update in real-time', async ({ page, browser }) => {
     // Create Document P (will be mentioned)
-    const docPUrl = await createNewDocument(page)
+    const docPUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Real-time Doc')
 
     // Open second browser context for Document Q
@@ -372,7 +377,7 @@ test.describe('Backlinks', () => {
 
   test('backlinks count updates correctly', async ({ page }) => {
     // Create Document Z (will be mentioned)
-    const docZUrl = await createNewDocument(page)
+    const docZUrl = await createWikiDoc(page)
     await setDocumentTitle(page, 'Popular Doc')
 
     // Create two documents that mention Document Z

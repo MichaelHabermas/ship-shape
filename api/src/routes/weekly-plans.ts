@@ -426,18 +426,19 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         AND d.archived_at IS NULL
         AND d.deleted_at IS NULL
         AND ${visibilityPredicate('d', '$2', '$3')}
-        AND (p.properties->>'user_id' = $2 OR $3 = TRUE)
+        AND ((p.properties->>'user_id')::uuid = $2::uuid OR $3 = TRUE)
     `;
     const params: (string | number | boolean)[] = [workspaceId, actor.userId, isAdmin];
     let paramIndex = 4;
 
     if (person_id) {
-      query += ` AND (d.properties->>'person_id') = $${paramIndex++}`;
+      // Cast JSONB text to uuid — node-pg sends UUID params as uuid type (text = uuid fails).
+      query += ` AND (d.properties->>'person_id')::uuid = $${paramIndex++}::uuid`;
       params.push(person_id as string);
     }
 
     if (project_id) {
-      query += ` AND (d.properties->>'project_id') = $${paramIndex++}`;
+      query += ` AND (d.properties->>'project_id')::uuid = $${paramIndex++}::uuid`;
       params.push(project_id as string);
     }
 
@@ -563,7 +564,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
          AND d.archived_at IS NULL
          AND d.deleted_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}
-         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
       [id, workspaceId, actor.userId, isAdmin]
     );
 
@@ -794,18 +795,19 @@ weeklyRetrosRouter.get('/', authMiddleware, async (req: Request, res: Response) 
         AND d.archived_at IS NULL
         AND d.deleted_at IS NULL
         AND ${visibilityPredicate('d', '$2', '$3')}
-        AND (p.properties->>'user_id' = $2 OR $3 = TRUE)
+        AND ((p.properties->>'user_id')::uuid = $2::uuid OR $3 = TRUE)
     `;
     const params: (string | number | boolean)[] = [workspaceId, actor.userId, isAdmin];
     let paramIndex = 4;
 
     if (person_id) {
-      query += ` AND (d.properties->>'person_id') = $${paramIndex++}`;
+      // Cast JSONB text to uuid — node-pg sends UUID params as uuid type (text = uuid fails).
+      query += ` AND (d.properties->>'person_id')::uuid = $${paramIndex++}::uuid`;
       params.push(person_id as string);
     }
 
     if (project_id) {
-      query += ` AND (d.properties->>'project_id') = $${paramIndex++}`;
+      query += ` AND (d.properties->>'project_id')::uuid = $${paramIndex++}::uuid`;
       params.push(project_id as string);
     }
 
@@ -929,7 +931,7 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
          AND d.archived_at IS NULL
          AND d.deleted_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}
-         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
       [id, workspaceId, actor.userId, isAdmin]
     );
 
@@ -964,6 +966,8 @@ weeklyRetrosRouter.get('/:id', authMiddleware, async (req: Request, res: Respons
  */
 async function getProjectAllocationGrid(req: Request, res: Response) {
   try {
+    // JSONB property filters must cast to uuid (node-pg sends UUID params as uuid type).
+    // Plan/retro status queries must qualify d.properties — JOIN makes bare properties ambiguous.
     const { projectId } = req.params;
     const { workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
@@ -1011,7 +1015,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
          AND p.deleted_at IS NULL
          AND p.archived_at IS NULL
          AND ${visibilityPredicate('p', '$3', '$4')}
-         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
       [workspaceId, projectId, actor.userId, isAdmin]
     );
 
@@ -1033,12 +1037,12 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
 
     // Get all weekly plans for this project (include content to check if "done")
     const plansResult = await pool.query<WeeklyDocStatusRow>(
-      `SELECT (properties->>'person_id') as person_id, (properties->>'week_number')::int as week_number, id, content
+      `SELECT (d.properties->>'person_id') as person_id, (d.properties->>'week_number')::int as week_number, d.id, d.content
        FROM documents d
        JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
        WHERE d.workspace_id = $1
          AND d.document_type = 'weekly_plan'
-         AND (d.properties->>'project_id') = $2
+         AND (d.properties->>'project_id')::uuid = $2
          AND d.deleted_at IS NULL
          AND d.archived_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}
@@ -1047,18 +1051,18 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
          AND p.deleted_at IS NULL
          AND p.archived_at IS NULL
          AND ${visibilityPredicate('p', '$3', '$4')}
-         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
       [workspaceId, projectId, actor.userId, isAdmin]
     );
 
     // Get all weekly retros for this project (include content to check if "done")
     const retrosResult = await pool.query<WeeklyDocStatusRow>(
-      `SELECT (properties->>'person_id') as person_id, (properties->>'week_number')::int as week_number, id, content
+      `SELECT (d.properties->>'person_id') as person_id, (d.properties->>'week_number')::int as week_number, d.id, d.content
        FROM documents d
        JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
        WHERE d.workspace_id = $1
          AND d.document_type = 'weekly_retro'
-         AND (d.properties->>'project_id') = $2
+         AND (d.properties->>'project_id')::uuid = $2
          AND d.deleted_at IS NULL
          AND d.archived_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}
@@ -1067,7 +1071,7 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
          AND p.deleted_at IS NULL
          AND p.archived_at IS NULL
          AND ${visibilityPredicate('p', '$3', '$4')}
-         AND (p.properties->>'user_id' = $3 OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
       [workspaceId, projectId, actor.userId, isAdmin]
     );
 
