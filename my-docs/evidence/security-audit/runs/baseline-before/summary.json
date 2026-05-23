@@ -1,0 +1,959 @@
+{
+  "metadataVulnerabilities": {
+    "info": 0,
+    "low": 4,
+    "moderate": 40,
+    "high": 31,
+    "critical": 2
+  },
+  "highOrCriticalCount": 33,
+  "highOrCriticalAdvisoryRows": 28,
+  "totalAdvisoryRows": 70,
+  "uniqueCveIds": [
+    "CVE-2025-13465",
+    "CVE-2026-2391",
+    "CVE-2026-2327",
+    "CVE-2026-26996",
+    "CVE-2026-27606",
+    "CVE-2026-27903",
+    "CVE-2026-27904",
+    "CVE-2026-25896",
+    "CVE-2026-26278",
+    "CVE-2025-69873",
+    "CVE-2026-29086",
+    "CVE-2026-29085",
+    "CVE-2026-29045",
+    "CVE-2026-29074",
+    "CVE-2026-27942",
+    "CVE-2026-29087",
+    "CVE-2026-30827",
+    "CVE-2026-32141",
+    "CVE-2026-1528",
+    "CVE-2026-1525",
+    "CVE-2026-1526",
+    "CVE-2026-2229",
+    "CVE-2026-1527",
+    "CVE-2026-2581",
+    "CVE-2026-33036",
+    "CVE-2026-33228",
+    "CVE-2026-4867",
+    "CVE-2026-33750",
+    "CVE-2026-33672",
+    "CVE-2026-33671",
+    "CVE-2026-33532",
+    "CVE-2026-4926",
+    "CVE-2026-4923",
+    "CVE-2026-4800",
+    "CVE-2026-2950",
+    "CVE-2026-39365",
+    "CVE-2026-39363",
+    "CVE-2026-39410",
+    "CVE-2026-39408",
+    "CVE-2026-39407",
+    "CVE-2026-39406",
+    "CVE-2026-33349",
+    "CVE-2026-41305",
+    "CVE-2026-39409",
+    "CVE-2026-41242",
+    "CVE-2026-6321",
+    "CVE-2026-6322",
+    "CVE-2026-41650",
+    "CVE-2026-44458",
+    "CVE-2026-44293",
+    "CVE-2026-42338",
+    "CVE-2026-44294",
+    "CVE-2026-44292",
+    "CVE-2026-44291",
+    "CVE-2026-44290",
+    "CVE-2026-44289",
+    "CVE-2026-44288",
+    "CVE-2026-44459",
+    "CVE-2026-44457",
+    "CVE-2026-44456",
+    "CVE-2026-44455",
+    "CVE-2026-45736",
+    "CVE-2026-45740",
+    "CVE-2026-41907",
+    "CVE-2026-8723"
+  ],
+  "uniqueCveCount": 65,
+  "highCriticalAdvisories": [
+    {
+      "module": "minimatch",
+      "severity": "high",
+      "title": "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+      "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26",
+      "cves": [
+        "CVE-2026-26996"
+      ]
+    },
+    {
+      "module": "rollup",
+      "severity": "high",
+      "title": "Rollup 4 has Arbitrary File Write via Path Traversal",
+      "url": "https://github.com/advisories/GHSA-mw96-cpmx-2vgc",
+      "cves": [
+        "CVE-2026-27606"
+      ]
+    },
+    {
+      "module": "minimatch",
+      "severity": "high",
+      "title": "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+      "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj",
+      "cves": [
+        "CVE-2026-27903"
+      ]
+    },
+    {
+      "module": "minimatch",
+      "severity": "high",
+      "title": "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+      "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74",
+      "cves": [
+        "CVE-2026-27904"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "critical",
+      "title": "fast-xml-parser has an entity encoding bypass via regex injection in DOCTYPE entity names",
+      "url": "https://github.com/advisories/GHSA-m7jm-9gc2-mpf2",
+      "cves": [
+        "CVE-2026-25896"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "high",
+      "title": "fast-xml-parser affected by DoS through entity expansion in DOCTYPE (no expansion limit)",
+      "url": "https://github.com/advisories/GHSA-jmr7-xgp7-cmfj",
+      "cves": [
+        "CVE-2026-26278"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "high",
+      "title": "Hono vulnerable to arbitrary file access via serveStatic vulnerability ",
+      "url": "https://github.com/advisories/GHSA-q5qw-h33p-qvwr",
+      "cves": [
+        "CVE-2026-29045"
+      ]
+    },
+    {
+      "module": "svgo",
+      "severity": "high",
+      "title": "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)",
+      "url": "https://github.com/advisories/GHSA-xpqw-6gx7-v673",
+      "cves": [
+        "CVE-2026-29074"
+      ]
+    },
+    {
+      "module": "@hono/node-server",
+      "severity": "high",
+      "title": "@hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware",
+      "url": "https://github.com/advisories/GHSA-wc8c-qw6v-h7f6",
+      "cves": [
+        "CVE-2026-29087"
+      ]
+    },
+    {
+      "module": "express-rate-limit",
+      "severity": "high",
+      "title": "express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network",
+      "url": "https://github.com/advisories/GHSA-46wh-pxpv-q5gq",
+      "cves": [
+        "CVE-2026-30827"
+      ]
+    },
+    {
+      "module": "flatted",
+      "severity": "high",
+      "title": "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+      "url": "https://github.com/advisories/GHSA-25h7-pfq9-p65f",
+      "cves": [
+        "CVE-2026-32141"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "high",
+      "title": "Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
+      "url": "https://github.com/advisories/GHSA-f269-vfmq-vjvj",
+      "cves": [
+        "CVE-2026-1528"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "high",
+      "title": "Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
+      "url": "https://github.com/advisories/GHSA-vrm6-8vpv-qv8q",
+      "cves": [
+        "CVE-2026-1526"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "high",
+      "title": "Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation",
+      "url": "https://github.com/advisories/GHSA-v9p9-hfj2-hcw8",
+      "cves": [
+        "CVE-2026-2229"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "high",
+      "title": "fast-xml-parser affected by numeric entity expansion bypassing all entity expansion limits (incomplete fix for CVE-2026-26278)",
+      "url": "https://github.com/advisories/GHSA-8gc5-j5rx-235r",
+      "cves": [
+        "CVE-2026-33036"
+      ]
+    },
+    {
+      "module": "flatted",
+      "severity": "high",
+      "title": "Prototype Pollution via parse() in NodeJS flatted",
+      "url": "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh",
+      "cves": [
+        "CVE-2026-33228"
+      ]
+    },
+    {
+      "module": "path-to-regexp",
+      "severity": "high",
+      "title": "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
+      "url": "https://github.com/advisories/GHSA-37ch-88jc-xwx2",
+      "cves": [
+        "CVE-2026-4867"
+      ]
+    },
+    {
+      "module": "picomatch",
+      "severity": "high",
+      "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+      "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj",
+      "cves": [
+        "CVE-2026-33671"
+      ]
+    },
+    {
+      "module": "path-to-regexp",
+      "severity": "high",
+      "title": "path-to-regexp vulnerable to Denial of Service via sequential optional groups",
+      "url": "https://github.com/advisories/GHSA-j3q9-mxjg-w52f",
+      "cves": [
+        "CVE-2026-4926"
+      ]
+    },
+    {
+      "module": "lodash",
+      "severity": "high",
+      "title": "lodash vulnerable to Code Injection via `_.template` imports key names",
+      "url": "https://github.com/advisories/GHSA-r5fr-rjxr-66jc",
+      "cves": [
+        "CVE-2026-4800"
+      ]
+    },
+    {
+      "module": "vite",
+      "severity": "high",
+      "title": "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket",
+      "url": "https://github.com/advisories/GHSA-p9ff-h696-f583",
+      "cves": [
+        "CVE-2026-39363"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "critical",
+      "title": "Arbitrary code execution in protobufjs",
+      "url": "https://github.com/advisories/GHSA-xq3m-2v4x-88gg",
+      "cves": [
+        "CVE-2026-41242"
+      ]
+    },
+    {
+      "module": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to path traversal via percent-encoded dot segments",
+      "url": "https://github.com/advisories/GHSA-q3j6-qgpj-74h6",
+      "cves": [
+        "CVE-2026-6321"
+      ]
+    },
+    {
+      "module": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via percent-encoded authority delimiters",
+      "url": "https://github.com/advisories/GHSA-v39h-62p7-jpjc",
+      "cves": [
+        "CVE-2026-6322"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Code injection through bytes field defaults in generated toObject code",
+      "url": "https://github.com/advisories/GHSA-66ff-xgx4-vchm",
+      "cves": [
+        "CVE-2026-44293"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Code generation gadget after prototype pollution",
+      "url": "https://github.com/advisories/GHSA-75px-5xx7-5xc7",
+      "cves": [
+        "CVE-2026-44291"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Process-wide denial of service through unsafe option paths",
+      "url": "https://github.com/advisories/GHSA-jvwf-75h9-cwgg",
+      "cves": [
+        "CVE-2026-44290"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Denial of service through unbounded protobuf recursion",
+      "url": "https://github.com/advisories/GHSA-685m-2w69-288q",
+      "cves": [
+        "CVE-2026-44289"
+      ]
+    }
+  ],
+  "allAdvisories": [
+    {
+      "module": "lodash",
+      "severity": "moderate",
+      "title": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+      "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+      "cves": [
+        "CVE-2025-13465"
+      ]
+    },
+    {
+      "module": "qs",
+      "severity": "low",
+      "title": "qs's arrayLimit bypass in comma parsing allows denial of service",
+      "url": "https://github.com/advisories/GHSA-w7fw-mjwx-w883",
+      "cves": [
+        "CVE-2026-2391"
+      ]
+    },
+    {
+      "module": "markdown-it",
+      "severity": "moderate",
+      "title": "markdown-it is has a Regular Expression Denial of Service (ReDoS)",
+      "url": "https://github.com/advisories/GHSA-38c4-r59v-3vqw",
+      "cves": [
+        "CVE-2026-2327"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "low",
+      "title": "Hono added timing comparison hardening in basicAuth and bearerAuth",
+      "url": "https://github.com/advisories/GHSA-gq3j-xvxp-8hrf",
+      "cves": []
+    },
+    {
+      "module": "minimatch",
+      "severity": "high",
+      "title": "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+      "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26",
+      "cves": [
+        "CVE-2026-26996"
+      ]
+    },
+    {
+      "module": "rollup",
+      "severity": "high",
+      "title": "Rollup 4 has Arbitrary File Write via Path Traversal",
+      "url": "https://github.com/advisories/GHSA-mw96-cpmx-2vgc",
+      "cves": [
+        "CVE-2026-27606"
+      ]
+    },
+    {
+      "module": "minimatch",
+      "severity": "high",
+      "title": "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+      "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj",
+      "cves": [
+        "CVE-2026-27903"
+      ]
+    },
+    {
+      "module": "minimatch",
+      "severity": "high",
+      "title": "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+      "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74",
+      "cves": [
+        "CVE-2026-27904"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "critical",
+      "title": "fast-xml-parser has an entity encoding bypass via regex injection in DOCTYPE entity names",
+      "url": "https://github.com/advisories/GHSA-m7jm-9gc2-mpf2",
+      "cves": [
+        "CVE-2026-25896"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "high",
+      "title": "fast-xml-parser affected by DoS through entity expansion in DOCTYPE (no expansion limit)",
+      "url": "https://github.com/advisories/GHSA-jmr7-xgp7-cmfj",
+      "cves": [
+        "CVE-2026-26278"
+      ]
+    },
+    {
+      "module": "ajv",
+      "severity": "moderate",
+      "title": "ajv has ReDoS when using `$data` option",
+      "url": "https://github.com/advisories/GHSA-2g4f-4pwh-qvx6",
+      "cves": [
+        "CVE-2025-69873"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono Vulnerable to Cookie Attribute Injection via Unsanitized domain and path in setCookie()",
+      "url": "https://github.com/advisories/GHSA-5pq2-9x2x-5p6w",
+      "cves": [
+        "CVE-2026-29086"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono Vulnerable to SSE Control Field Injection via CR/LF in writeSSE()",
+      "url": "https://github.com/advisories/GHSA-p6xx-57qc-3wxr",
+      "cves": [
+        "CVE-2026-29085"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "high",
+      "title": "Hono vulnerable to arbitrary file access via serveStatic vulnerability ",
+      "url": "https://github.com/advisories/GHSA-q5qw-h33p-qvwr",
+      "cves": [
+        "CVE-2026-29045"
+      ]
+    },
+    {
+      "module": "svgo",
+      "severity": "high",
+      "title": "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)",
+      "url": "https://github.com/advisories/GHSA-xpqw-6gx7-v673",
+      "cves": [
+        "CVE-2026-29074"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "low",
+      "title": "fast-xml-parser has stack overflow in XMLBuilder with preserveOrder",
+      "url": "https://github.com/advisories/GHSA-fj3w-jwp8-x2g3",
+      "cves": [
+        "CVE-2026-27942"
+      ]
+    },
+    {
+      "module": "@hono/node-server",
+      "severity": "high",
+      "title": "@hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware",
+      "url": "https://github.com/advisories/GHSA-wc8c-qw6v-h7f6",
+      "cves": [
+        "CVE-2026-29087"
+      ]
+    },
+    {
+      "module": "express-rate-limit",
+      "severity": "high",
+      "title": "express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network",
+      "url": "https://github.com/advisories/GHSA-46wh-pxpv-q5gq",
+      "cves": [
+        "CVE-2026-30827"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono vulnerable to Prototype Pollution possible through __proto__ key allowed in parseBody({ dot: true })",
+      "url": "https://github.com/advisories/GHSA-v8w9-8mx6-g223",
+      "cves": []
+    },
+    {
+      "module": "flatted",
+      "severity": "high",
+      "title": "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+      "url": "https://github.com/advisories/GHSA-25h7-pfq9-p65f",
+      "cves": [
+        "CVE-2026-32141"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "high",
+      "title": "Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
+      "url": "https://github.com/advisories/GHSA-f269-vfmq-vjvj",
+      "cves": [
+        "CVE-2026-1528"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "moderate",
+      "title": "Undici has an HTTP Request/Response Smuggling issue",
+      "url": "https://github.com/advisories/GHSA-2mjp-6q6p-2qxm",
+      "cves": [
+        "CVE-2026-1525"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "high",
+      "title": "Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
+      "url": "https://github.com/advisories/GHSA-vrm6-8vpv-qv8q",
+      "cves": [
+        "CVE-2026-1526"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "high",
+      "title": "Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation",
+      "url": "https://github.com/advisories/GHSA-v9p9-hfj2-hcw8",
+      "cves": [
+        "CVE-2026-2229"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "moderate",
+      "title": "Undici has CRLF Injection in undici via `upgrade` option",
+      "url": "https://github.com/advisories/GHSA-4992-7rv2-5pvq",
+      "cves": [
+        "CVE-2026-1527"
+      ]
+    },
+    {
+      "module": "undici",
+      "severity": "moderate",
+      "title": "Undici has Unbounded Memory Consumption in its DeduplicationHandler via Response Buffering that leads to DoS",
+      "url": "https://github.com/advisories/GHSA-phc3-fgpg-7m6h",
+      "cves": [
+        "CVE-2026-2581"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "high",
+      "title": "fast-xml-parser affected by numeric entity expansion bypassing all entity expansion limits (incomplete fix for CVE-2026-26278)",
+      "url": "https://github.com/advisories/GHSA-8gc5-j5rx-235r",
+      "cves": [
+        "CVE-2026-33036"
+      ]
+    },
+    {
+      "module": "flatted",
+      "severity": "high",
+      "title": "Prototype Pollution via parse() in NodeJS flatted",
+      "url": "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh",
+      "cves": [
+        "CVE-2026-33228"
+      ]
+    },
+    {
+      "module": "path-to-regexp",
+      "severity": "high",
+      "title": "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
+      "url": "https://github.com/advisories/GHSA-37ch-88jc-xwx2",
+      "cves": [
+        "CVE-2026-4867"
+      ]
+    },
+    {
+      "module": "brace-expansion",
+      "severity": "moderate",
+      "title": "brace-expansion: Zero-step sequence causes process hang and memory exhaustion",
+      "url": "https://github.com/advisories/GHSA-f886-m6hf-6m8v",
+      "cves": [
+        "CVE-2026-33750"
+      ]
+    },
+    {
+      "module": "picomatch",
+      "severity": "moderate",
+      "title": "Picomatch: Method Injection in POSIX Character Classes causes incorrect Glob Matching",
+      "url": "https://github.com/advisories/GHSA-3v7f-55p6-f55p",
+      "cves": [
+        "CVE-2026-33672"
+      ]
+    },
+    {
+      "module": "picomatch",
+      "severity": "high",
+      "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+      "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj",
+      "cves": [
+        "CVE-2026-33671"
+      ]
+    },
+    {
+      "module": "yaml",
+      "severity": "moderate",
+      "title": "yaml is vulnerable to Stack Overflow via deeply nested YAML collections",
+      "url": "https://github.com/advisories/GHSA-48c2-rrv3-qjmp",
+      "cves": [
+        "CVE-2026-33532"
+      ]
+    },
+    {
+      "module": "path-to-regexp",
+      "severity": "high",
+      "title": "path-to-regexp vulnerable to Denial of Service via sequential optional groups",
+      "url": "https://github.com/advisories/GHSA-j3q9-mxjg-w52f",
+      "cves": [
+        "CVE-2026-4926"
+      ]
+    },
+    {
+      "module": "path-to-regexp",
+      "severity": "moderate",
+      "title": "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple wildcards",
+      "url": "https://github.com/advisories/GHSA-27v5-c462-wpq7",
+      "cves": [
+        "CVE-2026-4923"
+      ]
+    },
+    {
+      "module": "lodash",
+      "severity": "high",
+      "title": "lodash vulnerable to Code Injection via `_.template` imports key names",
+      "url": "https://github.com/advisories/GHSA-r5fr-rjxr-66jc",
+      "cves": [
+        "CVE-2026-4800"
+      ]
+    },
+    {
+      "module": "lodash",
+      "severity": "moderate",
+      "title": "lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`",
+      "url": "https://github.com/advisories/GHSA-f23m-r3pf-42rh",
+      "cves": [
+        "CVE-2026-2950"
+      ]
+    },
+    {
+      "module": "vite",
+      "severity": "moderate",
+      "title": "Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling",
+      "url": "https://github.com/advisories/GHSA-4w7w-66w2-5vf9",
+      "cves": [
+        "CVE-2026-39365"
+      ]
+    },
+    {
+      "module": "vite",
+      "severity": "high",
+      "title": "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket",
+      "url": "https://github.com/advisories/GHSA-p9ff-h696-f583",
+      "cves": [
+        "CVE-2026-39363"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono missing validation of cookie name on write path in setCookie()",
+      "url": "https://github.com/advisories/GHSA-26pp-8wgv-hjvm",
+      "cves": []
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono: Non-breaking space prefix bypass in cookie name handling in getCookie()",
+      "url": "https://github.com/advisories/GHSA-r5rp-j6wh-rvv4",
+      "cves": [
+        "CVE-2026-39410"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono: Path traversal in toSSG() allows writing files outside the output directory",
+      "url": "https://github.com/advisories/GHSA-xf4j-xp2r-rqqx",
+      "cves": [
+        "CVE-2026-39408"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono: Middleware bypass via repeated slashes in serveStatic",
+      "url": "https://github.com/advisories/GHSA-wmmm-f939-6g9c",
+      "cves": [
+        "CVE-2026-39407"
+      ]
+    },
+    {
+      "module": "@hono/node-server",
+      "severity": "moderate",
+      "title": "@hono/node-server: Middleware bypass via repeated slashes in serveStatic",
+      "url": "https://github.com/advisories/GHSA-92pp-h63x-v22m",
+      "cves": [
+        "CVE-2026-39406"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "moderate",
+      "title": "Entity Expansion Limits Bypassed When Set to Zero Due to JavaScript Falsy Evaluation in fast-xml-parser",
+      "url": "https://github.com/advisories/GHSA-jp2q-39xq-3w4g",
+      "cves": [
+        "CVE-2026-33349"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "hono Improperly Handles JSX Attribute Names Allows HTML Injection in hono/jsx SSR",
+      "url": "https://github.com/advisories/GHSA-458j-xx4x-4375",
+      "cves": []
+    },
+    {
+      "module": "postcss",
+      "severity": "moderate",
+      "title": "PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+      "url": "https://github.com/advisories/GHSA-qx2v-qp2m-jg93",
+      "cves": [
+        "CVE-2026-41305"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono has incorrect IP matching in ipRestriction() for IPv4-mapped IPv6 addresses",
+      "url": "https://github.com/advisories/GHSA-xpcf-pg52-r92g",
+      "cves": [
+        "CVE-2026-39409"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "critical",
+      "title": "Arbitrary code execution in protobufjs",
+      "url": "https://github.com/advisories/GHSA-xq3m-2v4x-88gg",
+      "cves": [
+        "CVE-2026-41242"
+      ]
+    },
+    {
+      "module": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to path traversal via percent-encoded dot segments",
+      "url": "https://github.com/advisories/GHSA-q3j6-qgpj-74h6",
+      "cves": [
+        "CVE-2026-6321"
+      ]
+    },
+    {
+      "module": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via percent-encoded authority delimiters",
+      "url": "https://github.com/advisories/GHSA-v39h-62p7-jpjc",
+      "cves": [
+        "CVE-2026-6322"
+      ]
+    },
+    {
+      "module": "fast-xml-parser",
+      "severity": "moderate",
+      "title": "fast-xml-parser XMLBuilder: XML Comment and CDATA Injection via Unescaped Delimiters",
+      "url": "https://github.com/advisories/GHSA-gh4j-gqv2-49f6",
+      "cves": [
+        "CVE-2026-41650"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono has CSS Declaration Injection via Style Object Values in JSX SSR",
+      "url": "https://github.com/advisories/GHSA-qp7p-654g-cw7p",
+      "cves": [
+        "CVE-2026-44458"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Code injection through bytes field defaults in generated toObject code",
+      "url": "https://github.com/advisories/GHSA-66ff-xgx4-vchm",
+      "cves": [
+        "CVE-2026-44293"
+      ]
+    },
+    {
+      "module": "ip-address",
+      "severity": "moderate",
+      "title": "ip-address has XSS in Address6 HTML-emitting methods",
+      "url": "https://github.com/advisories/GHSA-v2v4-37r5-5v8g",
+      "cves": [
+        "CVE-2026-42338"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "moderate",
+      "title": "protobuf.js: Denial of service from crafted field names in generated code",
+      "url": "https://github.com/advisories/GHSA-2pr8-phx7-x9h3",
+      "cves": [
+        "CVE-2026-44294"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "moderate",
+      "title": "protobuf.js: Prototype injection in generated message constructors",
+      "url": "https://github.com/advisories/GHSA-fx83-v9x8-x52w",
+      "cves": [
+        "CVE-2026-44292"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Code generation gadget after prototype pollution",
+      "url": "https://github.com/advisories/GHSA-75px-5xx7-5xc7",
+      "cves": [
+        "CVE-2026-44291"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Process-wide denial of service through unsafe option paths",
+      "url": "https://github.com/advisories/GHSA-jvwf-75h9-cwgg",
+      "cves": [
+        "CVE-2026-44290"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "high",
+      "title": "protobuf.js: Denial of service through unbounded protobuf recursion",
+      "url": "https://github.com/advisories/GHSA-685m-2w69-288q",
+      "cves": [
+        "CVE-2026-44289"
+      ]
+    },
+    {
+      "module": "@protobufjs/utf8",
+      "severity": "moderate",
+      "title": "protobufjs has overlong UTF-8 decoding",
+      "url": "https://github.com/advisories/GHSA-q6x5-8v7m-xcrf",
+      "cves": [
+        "CVE-2026-44288"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "moderate",
+      "title": "protobufjs has overlong UTF-8 decoding",
+      "url": "https://github.com/advisories/GHSA-q6x5-8v7m-xcrf",
+      "cves": [
+        "CVE-2026-44288"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "low",
+      "title": "Hono has improper validation of NumericDate claims (exp, nbf, iat) in JWT verify()",
+      "url": "https://github.com/advisories/GHSA-hm8q-7f3q-5f36",
+      "cves": [
+        "CVE-2026-44459"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono's Cache Middleware ignores Vary: Authorization / Vary: Cookie leading to cross-user cache leakage",
+      "url": "https://github.com/advisories/GHSA-p77w-8qqv-26rm",
+      "cves": [
+        "CVE-2026-44457"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "Hono: bodyLimit() can be bypassed for chunked / unknown-length requests",
+      "url": "https://github.com/advisories/GHSA-9vqf-7f2p-gf9v",
+      "cves": [
+        "CVE-2026-44456"
+      ]
+    },
+    {
+      "module": "hono",
+      "severity": "moderate",
+      "title": "hono/jsx has Unvalidated JSX Tag Names that May Allow HTML Injection",
+      "url": "https://github.com/advisories/GHSA-69xw-7hcm-h432",
+      "cves": [
+        "CVE-2026-44455"
+      ]
+    },
+    {
+      "module": "ws",
+      "severity": "moderate",
+      "title": "ws: Uninitialized memory disclosure",
+      "url": "https://github.com/advisories/GHSA-58qx-3vcg-4xpx",
+      "cves": [
+        "CVE-2026-45736"
+      ]
+    },
+    {
+      "module": "protobufjs",
+      "severity": "moderate",
+      "title": "protobufjs: Denial of Service via unbounded recursive JSON descriptor expansion",
+      "url": "https://github.com/advisories/GHSA-jggg-4jg4-v7c6",
+      "cves": [
+        "CVE-2026-45740"
+      ]
+    },
+    {
+      "module": "uuid",
+      "severity": "moderate",
+      "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+      "cves": [
+        "CVE-2026-41907"
+      ]
+    },
+    {
+      "module": "qs",
+      "severity": "moderate",
+      "title": "qs has a remotely triggerable DoS: qs.stringify crashes with TypeError on null/undefined entries in comma-format arrays when encodeValuesOnly is set",
+      "url": "https://github.com/advisories/GHSA-q8mj-m7cp-5q26",
+      "cves": [
+        "CVE-2026-8723"
+      ]
+    }
+  ],
+  "totalDependencies": 987
+}

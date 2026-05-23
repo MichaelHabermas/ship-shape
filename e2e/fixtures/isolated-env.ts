@@ -14,7 +14,7 @@
  * This eliminates flakiness from shared database state.
  */
 
-import { test as base } from '@playwright/test';
+import { test as base, type WorkerInfo } from '@playwright/test';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { spawn, ChildProcess } from 'child_process';
 import { Pool } from 'pg';
@@ -75,7 +75,6 @@ type WorkerFixtures = {
 };
 
 type TestFixtures = {
-  apiServer: { url: string; process: ChildProcess };
   dbPool: Pool;
 };
 
@@ -95,7 +94,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   // PostgreSQL container - one per worker, starts fresh for each test run
   // CRITICAL: Use try-finally to ensure container cleanup even on errors
   dbContainer: [
-    async ({}, use, workerInfo) => {
+    async ({}, use: (container: StartedPostgreSqlContainer) => Promise<void>, workerInfo: WorkerInfo) => {
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       if (debug) console.log(`${workerTag} Starting PostgreSQL container...`);
@@ -140,7 +139,11 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   // API server - one per worker
   // CRITICAL: Use try-finally to ensure process cleanup even on errors
   apiServer: [
-    async ({ dbContainer }, use, workerInfo) => {
+    async (
+      { dbContainer }: { dbContainer: StartedPostgreSqlContainer },
+      use,
+      workerInfo: WorkerInfo,
+    ) => {
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       // Use worker-specific port range to avoid collisions between parallel workers
@@ -195,7 +198,11 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   // vite preview = 30-50MB per instance (simple static file server)
   // CRITICAL: Use try-finally to ensure process cleanup even on errors
   webServer: [
-    async ({ apiServer }, use, workerInfo) => {
+    async (
+      { apiServer }: { apiServer: WorkerFixtures['apiServer'] },
+      use,
+      workerInfo: WorkerInfo,
+    ) => {
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       // Use worker-specific port range (separate from API port)
@@ -258,7 +265,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(webServer.url);
   },
 
-  dbPool: async ({ dbContainer }, use) => {
+  dbPool: async ({ dbContainer }: { dbContainer: StartedPostgreSqlContainer }, use) => {
     const pool = new Pool({ connectionString: dbContainer.getConnectionUri() });
     try {
       await use(pool);
@@ -784,7 +791,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
   ];
 
   for (let i = 0; i < additionalWikiDocs.length; i++) {
-    const doc = additionalWikiDocs[i]!;
+    const doc = additionalWikiDocs[i];
     const contentJson = {
       type: 'doc',
       content: [{ type: 'paragraph', content: [{ type: 'text', text: doc.content }] }],
@@ -821,4 +828,5 @@ async function waitForServer(url: string, timeout: number): Promise<void> {
 }
 
 // Re-export expect for convenience
-export { expect, Page, APIRequestContext } from '@playwright/test';
+export { expect } from '@playwright/test';
+export type { Page, APIRequestContext } from '@playwright/test';

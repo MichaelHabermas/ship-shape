@@ -81,6 +81,19 @@
       .test-chip.pass { color:var(--proven-ink); border-color:#b6d6b2; background:var(--proven-bg); }
       .test-chip.warn { color:var(--partial-ink); border-color:#e2c77f; background:var(--partial-bg); }
       .test-chip.fail { color:var(--open-ink); border-color:#e0aaa4; background:var(--open-bg); }
+      .discoveries-table .test-chip { min-width:70px; justify-content:center; white-space:nowrap; }
+      .disc-area { display:inline-flex; align-items:center; min-height:22px; padding:3px 7px; border:1px solid var(--line); background:#fbf8f0; font-size:11px; font-weight:850; white-space:nowrap; }
+      .disc-index { color:var(--muted); font-size:11px; font-weight:850; white-space:nowrap; }
+      .impact-pill { display:inline-flex; align-items:center; justify-content:center; width:24px; min-height:22px; border:1px solid var(--line); background:#fbf8f0; font-size:11px; font-weight:900; }
+      .impact-5 { color:var(--open-ink); border-color:#e0aaa4; background:var(--open-bg); }
+      .impact-4 { color:var(--partial-ink); border-color:#e2c77f; background:var(--partial-bg); }
+      .discovery-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
+      .discovery-head p { max-width:760px; margin-bottom:0; font-size:13px; }
+      .sort-button { appearance:none; display:inline-flex; align-items:center; gap:4px; padding:0; border:0; background:transparent; color:inherit; font:inherit; font-size:inherit; font-weight:inherit; letter-spacing:inherit; line-height:inherit; text-align:left; text-transform:inherit; cursor:pointer; }
+      .sort-button:hover { color:var(--dark); }
+      .sort-button::after { content:""; opacity:.65; font-size:10px; }
+      .sort-button[data-dir="asc"]::after { content:"↑"; }
+      .sort-button[data-dir="desc"]::after { content:"↓"; }
       .artifact-link { margin-top:5px; }
       .path { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:12px; }
       .non-claim-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
@@ -93,6 +106,12 @@
       th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
       th { color:var(--muted); font-size:11px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
       tr:last-child td { border-bottom:0; }
+      .discoveries-table { min-width:1060px; }
+      .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
+      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:82px; }
+      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:126px; }
+      .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
@@ -161,6 +180,7 @@
         <button class="tab" id="tab-targets" role="tab" aria-selected="false" aria-controls="panel-targets" tabindex="-1" data-tab="targets">Targets</button>
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
+        <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
       </nav>
 
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
@@ -998,39 +1018,43 @@
           </div>
           <p>Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof. <a href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">Source</a></p>
 
-        <div class="summary-card" data-ledger-id="cat8-security-required-card">
-          <h3>Required Security Probe</h3>
+        <div class="summary-card" data-ledger-id="cat8-security-deliverable-table">
+          <h3>Audit Deliverable (baseline → current)</h3>
           <ul class="check-list">
 
                   <li>
-                    <strong>Probe tool</strong>
-                    <span>Proven: pnpm security:probe runs the Category 8 harness and writes structured JSON/Markdown evidence.</span>
+                    <strong>Security probe</strong>
+                    <span>BASELINE: Yes (baseline-before-probe). Current: Yes (latest.json).</span>
                   </li>
                   <li>
-                    <strong>Attack surfaces</strong>
-                    <span>Auth/session, WebSocket validation, input sanitization, and dependency CVEs all measured in latest.json.</span>
+                    <strong>Auth/session findings</strong>
+                    <span>BASELINE: 2 findings. Current: 0 findings (empty = probe ran, found none).</span>
                   </li>
                   <li>
-                    <strong>Manual review</strong>
-                    <span>CORS/CSP, secrets, rate limiting, and verbose errors all passed assisted review in the final probe.</span>
+                    <strong>Dependency CVEs</strong>
+                    <span>BASELINE: 33 high/critical (15 packages mapped to app features). Current: 0.</span>
+                  </li>
+                  <li>
+                    <strong>Aligned table</strong>
+                    <span>cat8-audit-deliverable.json — every brief row has baseline + current values.</span>
                   </li>
           </ul>
         </div>
         <div class="summary-card" data-ledger-id="cat8-security-current-card">
-          <h3>Current Claim Boundary</h3>
+          <h3>Verified improvements</h3>
           <ul class="check-list">
 
                   <li>
-                    <strong>Probe coverage</strong>
-                    <span>25 named probes passed; input coverage now includes documents, search, issues, comments, and file upload surfaces.</span>
+                    <strong>Dependency cleanup</strong>
+                    <span>33 → 0 high/critical CVEs (pnpm audit on BASELINE vs master).</span>
                   </li>
                   <li>
                     <strong>Verified fixes</strong>
-                    <span>Two probe-backed fixes: local file upload validation/serving and WebSocket malformed/oversized resilience.</span>
+                    <span>File upload validation/serving and WebSocket malformed/oversized resilience (before/after probe runs).</span>
                   </li>
                   <li>
-                    <strong>Status</strong>
-                    <span>Proven with local black-box probe evidence; remote destructive probing remains out of scope unless explicitly enabled.</span>
+                    <strong>Manual review</strong>
+                    <span>CORS/CSP, secrets, rate limits, verbose errors — passed on current and baseline probes.</span>
                   </li>
           </ul>
         </div>
@@ -1124,11 +1148,47 @@
           <small>Path: my-docs/evidence/security-audit/runs/after-ws-oversized/report.json</small>
           <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-ws-oversized/report.json" title="my-docs/evidence/security-audit/runs/after-ws-oversized/report.json">Open artifact</a></div>
         </li>
+        <li data-ledger-id="cat8-baseline-measurements">
+          <strong>Baseline Measurements <span class="subtle">artifact</span></strong>
+          <span>BASELINE branch vs current: dependency CVE before/after (33 → 0).</span>
+          <small>Path: my-docs/evidence/security-audit/baseline-measurements.md</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/baseline-measurements.md" title="my-docs/evidence/security-audit/baseline-measurements.md">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-baseline-comparison-json">
+          <strong>Baseline Comparison Json <span class="subtle">artifact</span></strong>
+          <span>Baseline vs current audit deliverable table aligned to Shipshape-Security-Audit.txt.</span>
+          <small>Path: my-docs/evidence/security-audit/cat8-audit-deliverable.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/cat8-audit-deliverable.json" title="my-docs/evidence/security-audit/cat8-audit-deliverable.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-baseline-deps-before">
+          <strong>Baseline Deps Before <span class="subtle">artifact</span></strong>
+          <span>pnpm audit on BASELINE branch: 33 high/critical.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/baseline-before/summary.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/baseline-before/summary.json" title="my-docs/evidence/security-audit/runs/baseline-before/summary.json">Open artifact</a></div>
+        </li>
         <li data-ledger-id="cat8-security-runbook">
           <strong>Security Runbook <span class="subtle">source_doc</span></strong>
           <span>Category 8 implementation and rerun runbook.</span>
           <small>Path: my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</small>
           <div class="artifact-link"><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-baseline-live-probe">
+          <strong>Baseline Live Probe <span class="subtle">artifact</span></strong>
+          <span>Full security probe against BASELINE branch clone (072818c): auth, WebSocket, input, dependency, and manual review surfaces.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/baseline-before-probe/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/baseline-before-probe/report.json" title="my-docs/evidence/security-audit/runs/baseline-before-probe/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-audit-deliverable-table">
+          <strong>Audit Deliverable Table <span class="subtle">artifact</span></strong>
+          <span>Baseline vs current table aligned to Shipshape-Security-Audit.txt deliverable rows.</span>
+          <small>Path: my-docs/evidence/security-audit/cat8-audit-deliverable.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/cat8-audit-deliverable.json" title="my-docs/evidence/security-audit/cat8-audit-deliverable.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-dependency-cves-baseline-artifact">
+          <strong>Dependency Cves Baseline Artifact <span class="subtle">artifact</span></strong>
+          <span>pnpm audit high/critical dependency CVE baseline on BASELINE branch (33 → 0 after cleanup).</span>
+          <small>Path: my-docs/evidence/security-audit/runs/baseline-before/summary.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/baseline-before/summary.json" title="my-docs/evidence/security-audit/runs/baseline-before/summary.json">Open artifact</a></div>
         </li></ul>
         </article></div>
         <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>
@@ -1898,6 +1958,810 @@
         </article>
       </section>
 
+      <section id="panel-discoveries" class="tab-panel" role="tabpanel" aria-labelledby="tab-discoveries" tabindex="0" hidden>
+        <article class="panel">
+          <div class="discovery-head">
+            <div>
+              <p class="eyebrow">Short Research Log</p>
+              <h2>Discoveries</h2>
+              <p>Short list of findings, decisions, fixes, and follow-up signals. Full log: <a href="discovery-research-log.md">discovery-research-log.md</a>.</p>
+            </div>
+            <div class="chip-list"><span class="test-chip pass">Fixed 55</span> <span class="test-chip fail">Rejected 2</span> <span class="test-chip pass">Proven 8</span> <span class="test-chip warn">Watch 11</span> <span class="test-chip warn">Deferred 3</span></div>
+          </div>
+          <div class="table-wrap"><table class="discoveries-table"><thead><tr><th><button class="sort-button" type="button" data-sort="index">#</button></th><th><button class="sort-button" type="button" data-sort="impact">Impact</button></th><th><button class="sort-button" type="button" data-sort="area">Area</button></th><th><button class="sort-button" type="button" data-sort="type">Type</button></th><th>Discovery</th><th>Consequence</th><th><button class="sort-button" type="button" data-sort="status">Status</button></th><th>Evidence</th></tr></thead><tbody>
+        <tr data-index="1" data-impact="4" data-area="Cat 8" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">01</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Discovery</td>
+          <td><strong>Probe could overclaim skipped surfaces</strong></td>
+          <td>Skipped-only surfaces counted as measured.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../scripts/security-probe/lib/report.mjs" title="scripts/security-probe/lib/report.mjs">.../security-probe/lib/report.mjs</a></td>
+        </tr>
+        <tr data-index="2" data-impact="4" data-area="Cat 8" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">02</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Discovery</td>
+          <td><strong>Audit parse failure could pass</strong></td>
+          <td>Dependency evidence needed error status on unreadable audit output.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../scripts/security-probe/probes/dependency-cves.mjs" title="scripts/security-probe/probes/dependency-cves.mjs">.../security-probe/probes/dependency-cves.mjs</a></td>
+        </tr>
+        <tr data-index="3" data-impact="3" data-area="Cat 8" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">03</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Decision</td>
+          <td><strong>Probe writes are local-only by default</strong></td>
+          <td>Remote write and stress probes require explicit opt-in.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../scripts/security-probe/lib/probe-selection.mjs" title="scripts/security-probe/lib/probe-selection.mjs">.../security-probe/lib/probe-selection.mjs</a></td>
+        </tr>
+        <tr data-index="4" data-impact="5" data-area="Cat 8" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">04</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Events socket silently accepted bad messages</strong></td>
+          <td>Malformed and unknown event messages needed deterministic close behavior.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../api/src/collaboration/index.ts" title="api/src/collaboration/index.ts">.../src/collaboration/index.ts</a></td>
+        </tr>
+        <tr data-index="5" data-impact="4" data-area="Cat 8" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">05</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Discovery</td>
+          <td><strong>Raw WS parser could false-pass</strong></td>
+          <td>Close frames needed real frame parsing and close-code validation.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../scripts/security-probe/lib/ws-raw.mjs" title="scripts/security-probe/lib/ws-raw.mjs">.../security-probe/lib/ws-raw.mjs</a></td>
+        </tr>
+        <tr data-index="6" data-impact="4" data-area="Cat 8" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">06</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Discovery</td>
+          <td><strong>Input probes were too narrow</strong></td>
+          <td>Issue and comment payloads were added before final claim.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../scripts/security-probe/probes/input-sanitization.mjs" title="scripts/security-probe/probes/input-sanitization.mjs">.../security-probe/probes/input-sanitization.mjs</a></td>
+        </tr>
+        <tr data-index="7" data-impact="3" data-area="Cat 8" data-type="Decision" data-status="Rejected">
+          <td class="disc-index">07</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Decision</td>
+          <td><strong>API token blast radius was not the fix</strong></td>
+          <td>Existing middleware already denied super-admin token escalation.</td>
+          <td><span class="test-chip fail">Rejected</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="8" data-impact="3" data-area="Cat 8" data-type="Decision" data-status="Rejected">
+          <td class="disc-index">08</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Decision</td>
+          <td><strong>Association leak was not the fix</strong></td>
+          <td>Current reference paths already validated workspace boundaries.</td>
+          <td><span class="test-chip fail">Rejected</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="9" data-impact="5" data-area="Cat 8" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">09</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Upload size mismatch was real</strong></td>
+          <td>Local uploads accepted bodies that did not match declared size.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../api/src/routes/files.ts" title="api/src/routes/files.ts">.../src/routes/files.ts</a></td>
+        </tr>
+        <tr data-index="10" data-impact="5" data-area="Cat 8" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">10</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Uploaded HTML served inline</strong></td>
+          <td>Serving switched to attachment while retaining nosniff.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../api/src/routes/files.ts" title="api/src/routes/files.ts">.../src/routes/files.ts</a></td>
+        </tr>
+        <tr data-index="11" data-impact="4" data-area="Cat 8" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">11</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Verbose JSON errors leaked internals</strong></td>
+          <td>Malformed JSON now returns generic 400 JSON.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../api/src/app.ts" title="api/src/app.ts">api/src/app.ts</a></td>
+        </tr>
+        <tr data-index="12" data-impact="5" data-area="Cat 8" data-type="Proof" data-status="Proven">
+          <td class="disc-index">12</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 8</span></td>
+          <td>Proof</td>
+          <td><strong>Final security probe is clean</strong></td>
+          <td>25/25 probes passed across 4 surfaces.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json">.../evidence/security-audit/latest.json</a></td>
+        </tr>
+        <tr data-index="13" data-impact="5" data-area="Cat 5" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">13</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Discovery</td>
+          <td><strong>E2E baseline evidence was stale</strong></td>
+          <td>Fresh run reduced old 23/128 failures to 4 blockers.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../test-results/cat5-last-failed/summary.json" title="test-results/cat5-last-failed/summary.json">test-results/cat5-last-failed/summary.json</a></td>
+        </tr>
+        <tr data-index="14" data-impact="4" data-area="Cat 5" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">14</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Bug</td>
+          <td><strong>Upload E2E violated new size rule</strong></td>
+          <td>Test declared 100 bytes but uploaded a smaller PNG.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../e2e/file-upload-api.spec.ts" title="e2e/file-upload-api.spec.ts">e2e/file-upload-api.spec.ts</a></td>
+        </tr>
+        <tr data-index="15" data-impact="5" data-area="Cat 5" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">15</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Bug</td>
+          <td><strong>Program week route was wrong</strong></td>
+          <td>Timeline used dead /sprints path instead of the Weeks tab route.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../web/src/components/document-tabs/ProgramWeeksTab.tsx" title="web/src/components/document-tabs/ProgramWeeksTab.tsx">.../components/document-tabs/ProgramWeeksTab.tsx</a></td>
+        </tr>
+        <tr data-index="16" data-impact="4" data-area="Cat 5" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">16</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Bug</td>
+          <td><strong>Project link selector was too broad</strong></td>
+          <td>Properties link collided with document-list link.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../e2e/project-weeks.spec.ts" title="e2e/project-weeks.spec.ts">e2e/project-weeks.spec.ts</a></td>
+        </tr>
+        <tr data-index="17" data-impact="5" data-area="Cat 5" data-type="Proof" data-status="Proven">
+          <td class="disc-index">17</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Proof</td>
+          <td><strong>Full E2E passed</strong></td>
+          <td>872/872 passed with lower worker count.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="../test-results/cat5-full-green-check/summary.json" title="test-results/cat5-full-green-check/summary.json">test-results/cat5-full-green-check/summary.json</a></td>
+        </tr>
+        <tr data-index="18" data-impact="3" data-area="Cat 5" data-type="Constraint" data-status="Watch">
+          <td class="disc-index">18</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Constraint</td>
+          <td><strong>Retry artifacts still matter</strong></td>
+          <td>Green run kept retry logs as flake follow-up context.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="../test-results/cat5-full-green-check/errors" title="test-results/cat5-full-green-check/errors">test-results/cat5-full-green-check/errors</a></td>
+        </tr>
+        <tr data-index="19" data-impact="3" data-area="Cat 5" data-type="Decision" data-status="Proven">
+          <td class="disc-index">19</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 5</span></td>
+          <td>Decision</td>
+          <td><strong>Do not count selector cleanup as a regression</strong></td>
+          <td>Tree selector repair was test trust, not one of the three Cat 5 tests.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="evidence/submission-ledger.json" title="my-docs/evidence/submission-ledger.json">my-docs/evidence/submission-ledger.json</a></td>
+        </tr>
+        <tr data-index="20" data-impact="5" data-area="Cat 3" data-type="Discovery" data-status="Proven">
+          <td class="disc-index">20</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 3</span></td>
+          <td>Discovery</td>
+          <td><strong>Rate limits polluted benchmark truth</strong></td>
+          <td>Before/after proof needed a non-prod benchmark bypass.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="21" data-impact="5" data-area="Cat 3" data-type="Decision" data-status="Proven">
+          <td class="disc-index">21</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 3</span></td>
+          <td>Decision</td>
+          <td><strong>Benchmark before and after under identical conditions</strong></td>
+          <td>Historical ref reran with the same bypass patch.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="evidence/artifacts/cat3-before-7d31add-bypass.json" title="my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json">.../evidence/artifacts/cat3-before-7d31add-bypass.json</a></td>
+        </tr>
+        <tr data-index="22" data-impact="5" data-area="Cat 3" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">22</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 3</span></td>
+          <td>Discovery</td>
+          <td><strong>Bootstrap critical path was too heavy</strong></td>
+          <td>Inferred accountability and standup status moved off app-shell load.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../api/src/sql/bootstrap-queries.ts" title="api/src/sql/bootstrap-queries.ts">.../src/sql/bootstrap-queries.ts</a></td>
+        </tr>
+        <tr data-index="23" data-impact="4" data-area="Cat 4" data-type="Decision" data-status="Proven">
+          <td class="disc-index">23</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 4</span></td>
+          <td>Decision</td>
+          <td><strong>Use flow-level query counts</strong></td>
+          <td>Category proof needed measured workflows, not just endpoint claims.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="../scripts/query-count-api.mjs" title="scripts/query-count-api.mjs">scripts/query-count-api.mjs</a></td>
+        </tr>
+        <tr data-index="24" data-impact="3" data-area="Cat 4" data-type="Discovery" data-status="Proven">
+          <td class="disc-index">24</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 4</span></td>
+          <td>Discovery</td>
+          <td><strong>SQL clarity supports query proof</strong></td>
+          <td>Shared catalogs made measured routes easier to verify.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="../api/src/sql/bootstrap-queries.ts" title="api/src/sql/bootstrap-queries.ts">.../src/sql/bootstrap-queries.ts</a></td>
+        </tr>
+        <tr data-index="25" data-impact="5" data-area="Cat 6" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">25</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Cat 6</span></td>
+          <td>Bug</td>
+          <td><strong>AI guard regressed during refactor</strong></td>
+          <td>Bedrock client guard had to be restored centrally.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../api/src/services/__tests__/ai-analysis.test.ts" title="api/src/services/__tests__/ai-analysis.test.ts">.../services/__tests__/ai-analysis.test.ts</a></td>
+        </tr>
+        <tr data-index="26" data-impact="4" data-area="Cat 6" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">26</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 6</span></td>
+          <td>Decision</td>
+          <td><strong>Quiet fetch must preserve auth behavior</strong></td>
+          <td>CSRF cache clears on logout to avoid stale-session bugs.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../web/src/lib/quiet-fetch.ts" title="web/src/lib/quiet-fetch.ts">.../src/lib/quiet-fetch.ts</a></td>
+        </tr>
+        <tr data-index="27" data-impact="4" data-area="Cat 7" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">27</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Cat 7</span></td>
+          <td>Bug</td>
+          <td><strong>A11y tree selector drifted</strong></td>
+          <td>Test updated to current DocumentTreeItem markup.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../e2e/accessibility-remediation.spec.ts" title="e2e/accessibility-remediation.spec.ts">e2e/accessibility-remediation.spec.ts</a></td>
+        </tr>
+        <tr data-index="28" data-impact="3" data-area="Cat 7" data-type="Proof" data-status="Proven">
+          <td class="disc-index">28</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Cat 7</span></td>
+          <td>Proof</td>
+          <td><strong>Axe closeout is route-based</strong></td>
+          <td>Closeout checks /docs, selected document, /projects, and /my-week.</td>
+          <td><span class="test-chip pass">Proven</span></td>
+          <td><a class="path" href="evidence/submission-ledger.json" title="my-docs/evidence/submission-ledger.json">my-docs/evidence/submission-ledger.json</a></td>
+        </tr>
+        <tr data-index="29" data-impact="5" data-area="Docs" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">29</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Docs</span></td>
+          <td>Decision</td>
+          <td><strong>Ledger is the claim source</strong></td>
+          <td>Dashboard and improvement report render from structured ledger truth.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">my-docs/DECISION_LOG.md</a></td>
+        </tr>
+        <tr data-index="30" data-impact="3" data-area="Docs" data-type="Constraint" data-status="Watch">
+          <td class="disc-index">30</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Docs</span></td>
+          <td>Constraint</td>
+          <td><strong>Narrative docs can drift</strong></td>
+          <td>Reviewer-facing status must come from generated artifacts.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="../scripts/submission/render-dashboard.mjs" title="scripts/submission/render-dashboard.mjs">scripts/submission/render-dashboard.mjs</a></td>
+        </tr>
+        <tr data-index="31" data-impact="2" data-area="Type Safety" data-type="Discovery" data-status="Deferred">
+          <td class="disc-index">31</td>
+          <td><span class="impact-pill impact-2">2</span></td>
+          <td><span class="disc-area">Type Safety</span></td>
+          <td>Discovery</td>
+          <td><strong>Boundary parsers reduce unsafe sprawl</strong></td>
+          <td>JSON helpers cut lint noise without changing AST any count.</td>
+          <td><span class="test-chip warn">Deferred</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="32" data-impact="2" data-area="Architecture" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">32</td>
+          <td><span class="impact-pill impact-2">2</span></td>
+          <td><span class="disc-area">Architecture</span></td>
+          <td>Decision</td>
+          <td><strong>Preserve unified document model</strong></td>
+          <td>Relationships stay in document_associations unless redesign is explicit.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../AGENTS.md" title="AGENTS.md">AGENTS.md</a></td>
+        </tr>
+        <tr data-index="33" data-impact="3" data-area="Architecture" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">33</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Architecture</span></td>
+          <td>Bug</td>
+          <td><strong>Inline comment cancel needed product fix</strong></td>
+          <td>Escape and exact mark removal both mattered.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="../web/src/components/editor/CommentMark.test.ts" title="web/src/components/editor/CommentMark.test.ts">.../components/editor/CommentMark.test.ts</a></td>
+        </tr>
+        <tr data-index="34" data-impact="5" data-area="Testing" data-type="Constraint" data-status="Watch">
+          <td class="disc-index">34</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Testing</span></td>
+          <td>Constraint</td>
+          <td><strong>Codex sandbox misreports E2E</strong></td>
+          <td>Playwright needs the repo runner with full permissions.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="../docs/claude-reference/testing.md" title="docs/claude-reference/testing.md">docs/claude-reference/testing.md</a></td>
+        </tr>
+        <tr data-index="35" data-impact="3" data-area="Testing" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">35</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Testing</span></td>
+          <td>Decision</td>
+          <td><strong>Use focused reruns before full proof</strong></td>
+          <td>Former failures and flake cases were verified before final full run.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="36" data-impact="2" data-area="Security" data-type="Future" data-status="Deferred">
+          <td class="disc-index">36</td>
+          <td><span class="impact-pill impact-2">2</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Future</td>
+          <td><strong>Policy-as-code auth oracle is bigger than Cat 8</strong></td>
+          <td>Useful, but too broad for the closeout lane.</td>
+          <td><span class="test-chip warn">Deferred</span></td>
+          <td><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md">my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</a></td>
+        </tr>
+        <tr data-index="37" data-impact="2" data-area="Security" data-type="Future" data-status="Deferred">
+          <td class="disc-index">37</td>
+          <td><span class="impact-pill impact-2">2</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Future</td>
+          <td><strong>Scoped API tokens are product direction</strong></td>
+          <td>Route audiences and expirations are deferred past Cat 8.</td>
+          <td><span class="test-chip warn">Deferred</span></td>
+          <td><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md">my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</a></td>
+        </tr>
+        <tr data-index="38" data-impact="3" data-area="DevEx" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">38</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">DevEx</span></td>
+          <td>Decision</td>
+          <td><strong>Suggested ledger update is advisory</strong></td>
+          <td>Probe can draft evidence, but cannot mutate submission claims.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings-ledger.md" title="my-docs/evidence/security-audit/security-findings-ledger.md">.../evidence/security-audit/security-findings-ledger.md</a></td>
+        </tr>
+        <tr data-index="39" data-impact="4" data-area="Process" data-type="Constraint" data-status="Fixed">
+          <td class="disc-index">39</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Process</span></td>
+          <td>Constraint</td>
+          <td><strong>Do not overclaim old hardening</strong></td>
+          <td>Submission claims need probe-backed or measurement-backed evidence.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a></td>
+        </tr>
+        <tr data-index="40" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Watch">
+          <td class="disc-index">40</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>First-time setup could mint multiple super admins</strong></td>
+          <td>Unlocked check-then-create flow allowed concurrent bootstrap winners.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="41" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">41</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Private document comments bypassed visibility</strong></td>
+          <td>Workspace member could read, create, and resolve comments on hidden documents.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="42" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">42</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Related document metadata could leak through context</strong></td>
+          <td>Associations and context needed visibility filters on joined documents.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="43" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">43</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>WebSocket auth ignored membership revocation</strong></td>
+          <td>Realtime session validation missed the REST workspace-membership check.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="44" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">44</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>API tokens were delegated credentials</strong></td>
+          <td>Token model behaved like full bearer delegation, not scoped tool access.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="45" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">45</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Super-admin API token route reach was probed</strong></td>
+          <td>Token blast-radius risk was confirmed as a target and then denied by middleware.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="46" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">46</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Issue associations accepted foreign workspace targets</strong></td>
+          <td>belongs_to could create impossible cross-workspace graph edges before guards.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="47" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Watch">
+          <td class="disc-index">47</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>File auth was workspace-wide instead of attachment-aware</strong></td>
+          <td>File metadata/download/delete needed tighter document or uploader authority semantics.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="48" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">48</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Public feedback accepted private program ids</strong></td>
+          <td>Unauthenticated feedback could target any known program id before gating.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="49" data-impact="5" data-area="Security" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">49</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Claude context could bypass private visibility</strong></td>
+          <td>AI context helpers needed shared readable-document enforcement.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="50" data-impact="4" data-area="Security" data-type="Vulnerability" data-status="Watch">
+          <td class="disc-index">50</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Activity exposed private entity existence</strong></td>
+          <td>Activity metadata could reveal hidden entity shape through related endpoints.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="51" data-impact="4" data-area="Security" data-type="Vulnerability" data-status="Watch">
+          <td class="disc-index">51</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Security</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Dashboard allocations could leak private work metadata</strong></td>
+          <td>Allocation views needed a product decision on whether assignment grants visibility.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="52" data-impact="5" data-area="Governance" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">52</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Governance</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Team allocation writes were member-wide</strong></td>
+          <td>Any workspace member could mutate allocation planning state before authority guards.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="53" data-impact="5" data-area="Governance" data-type="Vulnerability" data-status="Fixed">
+          <td class="disc-index">53</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Governance</span></td>
+          <td>Vulnerability</td>
+          <td><strong>Week lifecycle mutations used visibility as authority</strong></td>
+          <td>Start and carryover could bypass the stricter approval authority model.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="54" data-impact="5" data-area="Governance" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">54</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Governance</span></td>
+          <td>Bug</td>
+          <td><strong>Debug user delete was non-transactional</strong></td>
+          <td>Cleanup could partially deprovision users after deleting sessions and memberships.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="55" data-impact="5" data-area="Architecture" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">55</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Architecture</span></td>
+          <td>Bug</td>
+          <td><strong>Document identity had competing models</strong></td>
+          <td>Yjs rooms, browser cache, conversion, and persistence needed one document identity boundary.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="56" data-impact="4" data-area="Architecture" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">56</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Architecture</span></td>
+          <td>Bug</td>
+          <td><strong>Conversion advertised realtime redirect without notifying</strong></td>
+          <td>Document conversion route needed to tell collaborators about replacement state.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="57" data-impact="4" data-area="Architecture" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">57</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Architecture</span></td>
+          <td>Bug</td>
+          <td><strong>Converted-documents list used legacy model</strong></td>
+          <td>Current conversion properties were invisible to the old list query.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="58" data-impact="4" data-area="Contracts" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">58</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Contracts</span></td>
+          <td>Bug</td>
+          <td><strong>Comments OpenAPI doubled the api prefix</strong></td>
+          <td>Generated clients would call /api/api comments routes before schema cleanup.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="59" data-impact="4" data-area="Contracts" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">59</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Contracts</span></td>
+          <td>Bug</td>
+          <td><strong>OpenAPI advertised search that runtime lacked</strong></td>
+          <td>Contract claimed full document search before route capability existed.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="60" data-impact="4" data-area="Contracts" data-type="Discovery" data-status="Fixed">
+          <td class="disc-index">60</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Contracts</span></td>
+          <td>Discovery</td>
+          <td><strong>OpenAPI looked comprehensive while missing live route families</strong></td>
+          <td>Route parity needed generated checks instead of trusting artifact size.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="61" data-impact="3" data-area="Contracts" data-type="Bug" data-status="Watch">
+          <td class="disc-index">61</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Contracts</span></td>
+          <td>Bug</td>
+          <td><strong>defineRoute error schema drift remained</strong></td>
+          <td>Some legacy 400 responses still differed from the documented wrapper shape.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="62" data-impact="5" data-area="Infra" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">62</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Infra</span></td>
+          <td>Bug</td>
+          <td><strong>Migration runner could fake green on numbered failures</strong></td>
+          <td>already-exists recovery had to be scoped to schema bootstrap only.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="63" data-impact="5" data-area="Infra" data-type="Bug" data-status="Watch">
+          <td class="disc-index">63</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Infra</span></td>
+          <td>Bug</td>
+          <td><strong>Shadow DB restore scripts could report success after failure</strong></td>
+          <td>Destructive restore pipelines masked psql errors with || true.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="64" data-impact="5" data-area="Infra" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">64</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Infra</span></td>
+          <td>Decision</td>
+          <td><strong>Deploy script must not auto-apply Terraform</strong></td>
+          <td>Application deploy and infrastructure mutation were split behind explicit opt-in.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="65" data-impact="5" data-area="Infra" data-type="Decision" data-status="Watch">
+          <td class="disc-index">65</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Infra</span></td>
+          <td>Decision</td>
+          <td><strong>Production Terraform had competing roots</strong></td>
+          <td>Root and environment Terraform paths needed one source of truth.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="66" data-impact="5" data-area="Docs" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">66</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Docs</span></td>
+          <td>Decision</td>
+          <td><strong>Security docs overstated CI gates</strong></td>
+          <td>Repo policy claimed required GitHub Actions gates that were not tracked.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="67" data-impact="4" data-area="Docs" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">67</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Docs</span></td>
+          <td>Decision</td>
+          <td><strong>Accountability auto-issue docs were overclaiming</strong></td>
+          <td>Docs now describe inference-only behavior instead of tracked auto-issues.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="68" data-impact="4" data-area="Docs" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">68</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Docs</span></td>
+          <td>Decision</td>
+          <td><strong>RACI comments needed passive-metadata wording</strong></td>
+          <td>Consulted/informed fields were exposed but not workflow authority.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="69" data-impact="4" data-area="Build" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">69</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Build</span></td>
+          <td>Bug</td>
+          <td><strong>Production API bundle included tests</strong></td>
+          <td>Compiled test files leaked into deploy artifact until build excludes tightened.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="70" data-impact="4" data-area="Build" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">70</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Build</span></td>
+          <td>Bug</td>
+          <td><strong>Tracked deploy artifacts bypassed ignore rules</strong></td>
+          <td>Deploy zips, plans, and dev bundles were tracked despite ignore intent.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="71" data-impact="4" data-area="Build" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">71</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Build</span></td>
+          <td>Decision</td>
+          <td><strong>Route-level lazy loading was the real bundle lever</strong></td>
+          <td>Entry chunk needed page-level splits, not just existing nested lazy imports.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="72" data-impact="3" data-area="DevEx" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">72</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">DevEx</span></td>
+          <td>Bug</td>
+          <td><strong>API coverage gate was only a changed-file heuristic</strong></td>
+          <td>The script name sounded repo-wide but only checked staged UI fetches.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="73" data-impact="3" data-area="DevEx" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">73</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">DevEx</span></td>
+          <td>Bug</td>
+          <td><strong>Root lint was a no-op placeholder</strong></td>
+          <td>Green lint output did not mean the repo had been linted.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="74" data-impact="5" data-area="Testing" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">74</td>
+          <td><span class="impact-pill impact-5">5</span></td>
+          <td><span class="disc-area">Testing</span></td>
+          <td>Bug</td>
+          <td><strong>API test setup could erase real data</strong></td>
+          <td>Database safety depended on disposable test DB discipline.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="75" data-impact="4" data-area="Testing" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">75</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Testing</span></td>
+          <td>Decision</td>
+          <td><strong>Compare broad E2E failures against clean master</strong></td>
+          <td>Dependency branches should not overclaim existing suite debt as regressions.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="76" data-impact="3" data-area="Product" data-type="Bug" data-status="Watch">
+          <td class="disc-index">76</td>
+          <td><span class="impact-pill impact-3">3</span></td>
+          <td><span class="disc-area">Product</span></td>
+          <td>Bug</td>
+          <td><strong>AI rate-limit message understated executable limit</strong></td>
+          <td>User-facing 10/hour text diverged from a 120/hour service constant.</td>
+          <td><span class="test-chip warn">Watch</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="77" data-impact="4" data-area="Product" data-type="Bug" data-status="Fixed">
+          <td class="disc-index">77</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Product</span></td>
+          <td>Bug</td>
+          <td><strong>Claude retro queried an impossible document shape</strong></td>
+          <td>Retro context looked rich but searched for data the document model could not represent.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="78" data-impact="4" data-area="Process" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">78</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Process</span></td>
+          <td>Decision</td>
+          <td><strong>Safe patch overrides beat framework-major migrations</strong></td>
+          <td>Patched transitives were handled narrowly; major upgrades became separate work.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr>
+        <tr data-index="79" data-impact="4" data-area="Process" data-type="Decision" data-status="Fixed">
+          <td class="disc-index">79</td>
+          <td><span class="impact-pill impact-4">4</span></td>
+          <td><span class="disc-area">Process</span></td>
+          <td>Decision</td>
+          <td><strong>Open findings must keep their status</strong></td>
+          <td>High-impact discoveries can appear in the table without being claimed fixed.</td>
+          <td><span class="test-chip pass">Fixed</span></td>
+          <td><a class="path" href="discovery-research-log.md" title="my-docs/discovery-research-log.md">my-docs/discovery-research-log.md</a></td>
+        </tr></tbody></table></div>
+        </article>
+      </section>
+
       <footer class="footer">
         Generated from <code>my-docs/evidence/submission-ledger.json</code> using <code>pnpm submission:render-dashboard</code>. Validate with <code>pnpm submission:validate</code>.
       </footer>
@@ -1972,6 +2836,65 @@
       window.addEventListener('hashchange', activateHashTarget);
       activateStoredTab();
       activateHashTarget();
+
+      const discoveryTable = document.querySelector('.discoveries-table');
+      const discoveryRows = discoveryTable ? Array.from(discoveryTable.querySelectorAll('tbody tr')) : [];
+      const sortButtons = Array.from(document.querySelectorAll('.sort-button'));
+      const discoverySortStorageKey = 'ship-submission-dashboard-discovery-sort';
+      let discoverySort = { key: 'impact', dir: 'desc' };
+      function loadDiscoverySort() {
+        let savedSort = null;
+        try {
+          savedSort = JSON.parse(localStorage.getItem(discoverySortStorageKey) || 'null');
+        } catch {}
+        if (!savedSort || typeof savedSort !== 'object') return;
+        const keys = new Set(sortButtons.map((button) => button.dataset.sort));
+        if (!keys.has(savedSort.key)) return;
+        if (savedSort.dir !== 'asc' && savedSort.dir !== 'desc') return;
+        discoverySort = { key: savedSort.key, dir: savedSort.dir };
+      }
+      function saveDiscoverySort() {
+        try {
+          localStorage.setItem(discoverySortStorageKey, JSON.stringify(discoverySort));
+        } catch {}
+      }
+      function discoveryValue(row, key) {
+        if (key === 'index' || key === 'impact') return Number(row.dataset[key] || 0);
+        return row.dataset[key] || '';
+      }
+      function applyDiscoveryControls() {
+        const tbody = discoveryTable?.querySelector('tbody');
+        if (!tbody) return;
+        const rows = [...discoveryRows].sort((a, b) => {
+          const left = discoveryValue(a, discoverySort.key);
+          const right = discoveryValue(b, discoverySort.key);
+          const result =
+            typeof left === 'number' && typeof right === 'number'
+              ? left - right
+              : String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+          return discoverySort.dir === 'asc' ? result : -result;
+        });
+        for (const row of rows) {
+          row.hidden = false;
+          tbody.appendChild(row);
+        }
+        for (const button of sortButtons) {
+          button.dataset.dir = button.dataset.sort === discoverySort.key ? discoverySort.dir : '';
+        }
+      }
+      for (const button of sortButtons) {
+        button.addEventListener('click', () => {
+          const key = button.dataset.sort;
+          discoverySort = {
+            key,
+            dir: discoverySort.key === key && discoverySort.dir === 'desc' ? 'asc' : 'desc',
+          };
+          saveDiscoverySort();
+          applyDiscoveryControls();
+        });
+      }
+      loadDiscoverySort();
+      applyDiscoveryControls();
     </script>
   </body>
 </html>

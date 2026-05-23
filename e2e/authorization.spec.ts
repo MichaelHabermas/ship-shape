@@ -48,7 +48,7 @@ async function seedWorkspaceBoundaryCase(dbPool: Pool) {
      WHERE email = 'dev@ship.local'`
   )
 
-  const devUser = users.rows.find(user => user.email === 'dev@ship.local')
+  const devUser = users.rows.find((user: { email: string }) => user.email === 'dev@ship.local')
   expect(devUser).toBeTruthy()
 
   const ownedWorkspace = await dbPool.query(
@@ -292,7 +292,9 @@ test.describe('Authorization - Cross-Workspace Isolation', () => {
        WHERE id = ANY($1)`,
       [[boundary.ownedIssueId, boundary.foreignIssueId]]
     )
-    const stateById = Object.fromEntries(states.rows.map(row => [row.id, row.state]))
+    const stateById = Object.fromEntries(
+      states.rows.map((row: { id: string; state: string }) => [row.id, row.state])
+    )
     expect(stateById[boundary.ownedIssueId]).toBe('in_progress')
     expect(stateById[boundary.foreignIssueId]).toBe('todo')
   })

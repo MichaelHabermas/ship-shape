@@ -1,0 +1,752 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T02:49:30.442Z",
+  "run": {
+    "id": "baseline-before-probe",
+    "startedAt": "2026-05-23T19:19:46.434Z",
+    "finishedAt": "2026-05-23T02:49:30.442Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape-baseline-measurement",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "wsUrl": "ws://localhost:3000"
+  },
+  "summary": {
+    "status": "warn",
+    "attackSurfacesMeasured": 4,
+    "findings": 9,
+    "findingsBySeverity": {
+      "high": 3,
+      "medium": 5,
+      "critical": 1
+    },
+    "highOrCriticalDependencyCves": 1,
+    "probesByStatus": {
+      "failed": 9,
+      "passed": 14
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "fail",
+      "findings": [
+        "cat8-auth-unauthenticated-api",
+        "cat8-auth-api-token-super-admin"
+      ],
+      "probes": [
+        "auth-session-unauthenticated-api",
+        "auth-session-invalid-bearer",
+        "auth-session-cookie-flags",
+        "auth-session-cookie-shape-expiry",
+        "auth-session-csrf-mutating-request",
+        "auth-session-api-token-super-admin-boundary"
+      ]
+    },
+    "websocketValidation": {
+      "status": "fail",
+      "findings": [
+        "cat8-ws-events-malformed-message",
+        "cat8-ws-events-unknown-message-type",
+        "cat8-ws-malformed-frame"
+      ],
+      "probes": [
+        "websocket-no-cookie-denied",
+        "websocket-nonexistent-doc-denied",
+        "websocket-events-malformed-message",
+        "websocket-events-unknown-message-type",
+        "websocket-malformed-frame"
+      ]
+    },
+    "inputSanitization": {
+      "status": "fail",
+      "findings": [
+        "cat8-input-file-size-mismatch",
+        "cat8-input-file-serve-headers"
+      ],
+      "probes": [
+        "input-stored-xss-document-title",
+        "input-search-payloads",
+        "input-long-field-validation",
+        "input-issue-payloads",
+        "input-comment-payloads",
+        "input-file-upload-size-mismatch",
+        "input-file-serve-headers"
+      ]
+    },
+    "dependencyCves": {
+      "status": "fail",
+      "findings": [
+        "cat8-dependency-high-critical-cves"
+      ],
+      "probes": [
+        "dependency-pnpm-audit"
+      ]
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "passed",
+      "details": {
+        "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+        "accessControlAllowOrigin": "http://localhost:5173"
+      }
+    },
+    "secrets": {
+      "status": "passed",
+      "details": {
+        "inspected": [
+          "api/src/config/ssm.ts",
+          "api/src/services/secrets-manager.ts",
+          "web/src/api/client.ts",
+          "web/src/pages/Login.tsx"
+        ],
+        "suspiciousClientEnvUsage": []
+      }
+    },
+    "rateLimits": {
+      "status": "passed",
+      "details": {
+        "apiLimiter": true,
+        "loginLimiter": true,
+        "websocketConnectionLimiter": true,
+        "websocketMessageLimiter": true
+      }
+    },
+    "verboseErrors": {
+      "status": "needs_review",
+      "details": {}
+    }
+  },
+  "findings": [
+    {
+      "id": "cat8-auth-unauthenticated-api",
+      "probeId": "auth-session-unauthenticated-api",
+      "title": "Protected API route allowed unauthenticated access",
+      "severity": "high",
+      "confidence": "confirmed",
+      "category": "auth-session",
+      "affected": {},
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe auth-session-unauthenticated-api"
+        ]
+      },
+      "expected": "Protected API routes return 401 without a session or bearer token.",
+      "observed": "1 protected route(s) did not return 401.",
+      "fixCandidate": "Ensure protected routes mount authMiddleware before handlers.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-auth-api-token-super-admin",
+      "probeId": "auth-session-api-token-super-admin-boundary",
+      "title": "API token could access a super-admin route",
+      "severity": "high",
+      "confidence": "confirmed",
+      "category": "authorization",
+      "affected": {
+        "endpoint": "/api/admin/credentials/status"
+      },
+      "evidence": {
+        "reproduction": [
+          "Log in as seeded admin.",
+          "Create an API token.",
+          "GET /api/admin/credentials/status with Authorization: Bearer <token>."
+        ]
+      },
+      "expected": "Bearer API tokens are denied from super-admin-only routes.",
+      "observed": "Super-admin route returned HTTP 200 for a bearer token.",
+      "fixCandidate": "Reject req.isApiToken inside superAdminMiddleware unless scoped token support exists.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-input-file-size-mismatch",
+      "probeId": "input-file-upload-size-mismatch",
+      "title": "Local file upload accepted bytes that did not match declared size",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "file-upload",
+      "affected": {
+        "endpoint": "/api/files/:id/local-upload"
+      },
+      "evidence": {
+        "reproduction": [
+          "Create pending upload with sizeBytes 2048.",
+          "POST a much shorter body to /api/files/:id/local-upload."
+        ]
+      },
+      "expected": "Local upload rejects body length that differs from pending file size_bytes.",
+      "observed": "Upload returned HTTP 200.",
+      "fixCandidate": "Compare received buffer length with file.size_bytes before writing local upload.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-input-file-serve-headers",
+      "probeId": "input-file-serve-headers",
+      "title": "Uploaded HTML was served inline without nosniff protection",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "file-upload",
+      "affected": {
+        "endpoint": "/api/files/:id/serve"
+      },
+      "evidence": {
+        "reproduction": [
+          "Upload text/html content through local file upload.",
+          "GET /api/files/:id/serve and inspect response headers."
+        ]
+      },
+      "expected": "User uploads are served as attachments with X-Content-Type-Options: nosniff.",
+      "observed": "Content-Disposition=inline; filename=\"_security-probe_baseline-input_-probe.html\", X-Content-Type-Options=nosniff.",
+      "fixCandidate": "Serve local uploads as attachments, sanitize filenames, and set X-Content-Type-Options: nosniff.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-dependency-high-critical-cves",
+      "probeId": "dependency-pnpm-audit",
+      "title": "High or critical dependency CVEs found",
+      "severity": "critical",
+      "confidence": "confirmed",
+      "category": "dependency",
+      "affected": {
+        "packageName": "minimatch, minimatch, rollup, minimatch, minimatch, minimatch, minimatch, fast-xml-parser, fast-xml-parser, hono, svgo, @hono/node-server, express-rate-limit, flatted, undici, undici, undici, fast-xml-parser, flatted, path-to-regexp, picomatch, picomatch, path-to-regexp, lodash, vite, protobufjs, fast-uri, fast-uri, protobufjs, protobufjs, protobufjs, protobufjs"
+      },
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe dependency-pnpm-audit"
+        ],
+        "advisories": [
+          {
+            "name": "minimatch",
+            "severity": "high",
+            "title": "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+            "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26"
+          },
+          {
+            "name": "minimatch",
+            "severity": "high",
+            "title": "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
+            "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26"
+          },
+          {
+            "name": "rollup",
+            "severity": "high",
+            "title": "Rollup 4 has Arbitrary File Write via Path Traversal",
+            "url": "https://github.com/advisories/GHSA-mw96-cpmx-2vgc"
+          },
+          {
+            "name": "minimatch",
+            "severity": "high",
+            "title": "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+            "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj"
+          },
+          {
+            "name": "minimatch",
+            "severity": "high",
+            "title": "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
+            "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj"
+          },
+          {
+            "name": "minimatch",
+            "severity": "high",
+            "title": "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+            "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74"
+          },
+          {
+            "name": "minimatch",
+            "severity": "high",
+            "title": "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
+            "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74"
+          },
+          {
+            "name": "fast-xml-parser",
+            "severity": "critical",
+            "title": "fast-xml-parser has an entity encoding bypass via regex injection in DOCTYPE entity names",
+            "url": "https://github.com/advisories/GHSA-m7jm-9gc2-mpf2"
+          },
+          {
+            "name": "fast-xml-parser",
+            "severity": "high",
+            "title": "fast-xml-parser affected by DoS through entity expansion in DOCTYPE (no expansion limit)",
+            "url": "https://github.com/advisories/GHSA-jmr7-xgp7-cmfj"
+          },
+          {
+            "name": "hono",
+            "severity": "high",
+            "title": "Hono vulnerable to arbitrary file access via serveStatic vulnerability ",
+            "url": "https://github.com/advisories/GHSA-q5qw-h33p-qvwr"
+          },
+          {
+            "name": "svgo",
+            "severity": "high",
+            "title": "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)",
+            "url": "https://github.com/advisories/GHSA-xpqw-6gx7-v673"
+          },
+          {
+            "name": "@hono/node-server",
+            "severity": "high",
+            "title": "@hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware",
+            "url": "https://github.com/advisories/GHSA-wc8c-qw6v-h7f6"
+          },
+          {
+            "name": "express-rate-limit",
+            "severity": "high",
+            "title": "express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network",
+            "url": "https://github.com/advisories/GHSA-46wh-pxpv-q5gq"
+          },
+          {
+            "name": "flatted",
+            "severity": "high",
+            "title": "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
+            "url": "https://github.com/advisories/GHSA-25h7-pfq9-p65f"
+          },
+          {
+            "name": "undici",
+            "severity": "high",
+            "title": "Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
+            "url": "https://github.com/advisories/GHSA-f269-vfmq-vjvj"
+          },
+          {
+            "name": "undici",
+            "severity": "high",
+            "title": "Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
+            "url": "https://github.com/advisories/GHSA-vrm6-8vpv-qv8q"
+          },
+          {
+            "name": "undici",
+            "severity": "high",
+            "title": "Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation",
+            "url": "https://github.com/advisories/GHSA-v9p9-hfj2-hcw8"
+          },
+          {
+            "name": "fast-xml-parser",
+            "severity": "high",
+            "title": "fast-xml-parser affected by numeric entity expansion bypassing all entity expansion limits (incomplete fix for CVE-2026-26278)",
+            "url": "https://github.com/advisories/GHSA-8gc5-j5rx-235r"
+          },
+          {
+            "name": "flatted",
+            "severity": "high",
+            "title": "Prototype Pollution via parse() in NodeJS flatted",
+            "url": "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh"
+          },
+          {
+            "name": "path-to-regexp",
+            "severity": "high",
+            "title": "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
+            "url": "https://github.com/advisories/GHSA-37ch-88jc-xwx2"
+          },
+          {
+            "name": "picomatch",
+            "severity": "high",
+            "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+            "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj"
+          },
+          {
+            "name": "picomatch",
+            "severity": "high",
+            "title": "Picomatch has a ReDoS vulnerability via extglob quantifiers",
+            "url": "https://github.com/advisories/GHSA-c2c7-rcm5-vvqj"
+          },
+          {
+            "name": "path-to-regexp",
+            "severity": "high",
+            "title": "path-to-regexp vulnerable to Denial of Service via sequential optional groups",
+            "url": "https://github.com/advisories/GHSA-j3q9-mxjg-w52f"
+          },
+          {
+            "name": "lodash",
+            "severity": "high",
+            "title": "lodash vulnerable to Code Injection via `_.template` imports key names",
+            "url": "https://github.com/advisories/GHSA-r5fr-rjxr-66jc"
+          },
+          {
+            "name": "vite",
+            "severity": "high",
+            "title": "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket",
+            "url": "https://github.com/advisories/GHSA-p9ff-h696-f583"
+          },
+          {
+            "name": "protobufjs",
+            "severity": "critical",
+            "title": "Arbitrary code execution in protobufjs",
+            "url": "https://github.com/advisories/GHSA-xq3m-2v4x-88gg"
+          },
+          {
+            "name": "fast-uri",
+            "severity": "high",
+            "title": "fast-uri vulnerable to path traversal via percent-encoded dot segments",
+            "url": "https://github.com/advisories/GHSA-q3j6-qgpj-74h6"
+          },
+          {
+            "name": "fast-uri",
+            "severity": "high",
+            "title": "fast-uri vulnerable to host confusion via percent-encoded authority delimiters",
+            "url": "https://github.com/advisories/GHSA-v39h-62p7-jpjc"
+          },
+          {
+            "name": "protobufjs",
+            "severity": "high",
+            "title": "protobuf.js: Code injection through bytes field defaults in generated toObject code",
+            "url": "https://github.com/advisories/GHSA-66ff-xgx4-vchm"
+          },
+          {
+            "name": "protobufjs",
+            "severity": "high",
+            "title": "protobuf.js: Code generation gadget after prototype pollution",
+            "url": "https://github.com/advisories/GHSA-75px-5xx7-5xc7"
+          },
+          {
+            "name": "protobufjs",
+            "severity": "high",
+            "title": "protobuf.js: Process-wide denial of service through unsafe option paths",
+            "url": "https://github.com/advisories/GHSA-jvwf-75h9-cwgg"
+          },
+          {
+            "name": "protobufjs",
+            "severity": "high",
+            "title": "protobuf.js: Denial of service through unbounded protobuf recursion",
+            "url": "https://github.com/advisories/GHSA-685m-2w69-288q"
+          }
+        ]
+      },
+      "expected": "No high/critical CVEs, or each is listed with reachability and feature mapping.",
+      "observed": "32 high/critical advisory item(s) parsed from pnpm audit.",
+      "fixCandidate": "Upgrade, override, remove, or document reachability for affected packages.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-manual-verbose-error-leakage",
+      "probeId": "manual-verbose-errors",
+      "title": "Malformed request leaked verbose internals",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "configuration",
+      "affected": {},
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe manual-verbose-errors"
+        ]
+      },
+      "expected": "Malformed requests do not expose stack traces, SQL, filesystem paths, or secrets.",
+      "observed": "Response matched verbose leakage pattern.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-ws-events-malformed-message",
+      "probeId": "websocket-events-malformed-message",
+      "title": "Events WebSocket did not reject malformed message",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "websocket",
+      "affected": {
+        "endpoint": "/events"
+      },
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe websocket-events-malformed-message"
+        ]
+      },
+      "expected": "Malformed authenticated events messages close with 1003.",
+      "observed": "WebSocket result {\"upgraded\":true,\"closeCode\":null,\"dataAfterPayload\":true,\"status\":101}.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-ws-events-unknown-message-type",
+      "probeId": "websocket-events-unknown-message-type",
+      "title": "Events WebSocket did not reject unknown message type",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "websocket",
+      "affected": {
+        "endpoint": "/events"
+      },
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe websocket-events-unknown-message-type"
+        ]
+      },
+      "expected": "Unknown authenticated events messages close with 1003.",
+      "observed": "WebSocket result {\"upgraded\":true,\"closeCode\":null,\"dataAfterPayload\":true,\"status\":101}.",
+      "safeToAutoFix": false
+    },
+    {
+      "id": "cat8-ws-malformed-frame",
+      "probeId": "websocket-malformed-frame",
+      "title": "Malformed WebSocket message was not handled safely",
+      "severity": "high",
+      "confidence": "confirmed",
+      "category": "websocket",
+      "affected": {
+        "endpoint": "/collaboration/wiki:<docId>"
+      },
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe websocket-malformed-frame"
+        ]
+      },
+      "expected": "Malformed binary messages are rejected or dropped and /health remains available.",
+      "observed": "WebSocket result {\"upgraded\":true,\"closeCode\":null,\"dataAfterPayload\":true}, health HTTP 200.",
+      "fixCandidate": "Wrap collaboration message decoding in try/catch and close with a protocol/policy code.",
+      "safeToAutoFix": false
+    }
+  ],
+  "probes": [
+    {
+      "id": "auth-session-unauthenticated-api",
+      "name": "Unauthenticated protected API access rejected",
+      "status": "failed",
+      "durationMs": 4,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-auth-unauthenticated-api"
+      ]
+    },
+    {
+      "id": "auth-session-invalid-bearer",
+      "name": "Invalid bearer token rejected",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-cookie-flags",
+      "name": "Session cookie has hardened local flags",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "setCookie": "[redacted]"
+      }
+    },
+    {
+      "id": "auth-session-cookie-shape-expiry",
+      "name": "Session cookie has strong shape and browser expiry",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "sessionIdLength": 64,
+        "hasExpiry": true
+      }
+    },
+    {
+      "id": "auth-session-csrf-mutating-request",
+      "name": "CSRF blocks mutating cookie request without token",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-api-token-super-admin-boundary",
+      "name": "API tokens cannot access super-admin routes",
+      "status": "failed",
+      "durationMs": 2030,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-auth-api-token-super-admin"
+      ]
+    },
+    {
+      "id": "input-stored-xss-document-title",
+      "name": "Stored XSS payload remains inert in JSON API response",
+      "status": "passed",
+      "durationMs": 8,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-search-payloads",
+      "name": "Search payloads do not leak internals",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-long-field-validation",
+      "name": "Excessively long document title rejected",
+      "status": "passed",
+      "durationMs": 4,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-issue-payloads",
+      "name": "Issue payloads remain inert and validation bounded",
+      "status": "passed",
+      "durationMs": 26,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-comment-payloads",
+      "name": "Comment payloads remain inert and validation bounded",
+      "status": "passed",
+      "durationMs": 17,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-file-upload-size-mismatch",
+      "name": "Local upload size mismatch rejected",
+      "status": "failed",
+      "durationMs": 11,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-input-file-size-mismatch"
+      ]
+    },
+    {
+      "id": "input-file-serve-headers",
+      "name": "Served uploads use safe download headers",
+      "status": "failed",
+      "durationMs": 23,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-input-file-serve-headers"
+      ]
+    },
+    {
+      "id": "dependency-pnpm-audit",
+      "name": "pnpm audit high/critical CVE check",
+      "status": "failed",
+      "durationMs": 945,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-dependency-high-critical-cves"
+      ]
+    },
+    {
+      "id": "manual-cors-csp",
+      "name": "Assisted CORS/CSP review",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+        "accessControlAllowOrigin": "http://localhost:5173"
+      }
+    },
+    {
+      "id": "manual-secrets",
+      "name": "Assisted secret exposure review",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "inspected": [
+          "api/src/config/ssm.ts",
+          "api/src/services/secrets-manager.ts",
+          "web/src/api/client.ts",
+          "web/src/pages/Login.tsx"
+        ],
+        "suspiciousClientEnvUsage": []
+      }
+    },
+    {
+      "id": "manual-rate-limits",
+      "name": "Assisted rate limit review",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "apiLimiter": true,
+        "loginLimiter": true,
+        "websocketConnectionLimiter": true,
+        "websocketMessageLimiter": true
+      }
+    },
+    {
+      "id": "manual-verbose-errors",
+      "name": "Assisted verbose error leakage review",
+      "status": "failed",
+      "durationMs": 3,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-manual-verbose-error-leakage"
+      ]
+    },
+    {
+      "id": "websocket-no-cookie-denied",
+      "name": "Unauthenticated collaboration upgrade rejected",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "websocket-nonexistent-doc-denied",
+      "name": "Nonexistent collaboration document rejected",
+      "status": "passed",
+      "durationMs": 3,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "websocket-events-malformed-message",
+      "name": "Malformed events WebSocket message rejected",
+      "status": "failed",
+      "durationMs": 1501,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-ws-events-malformed-message"
+      ]
+    },
+    {
+      "id": "websocket-events-unknown-message-type",
+      "name": "Unknown events WebSocket message rejected",
+      "status": "failed",
+      "durationMs": 1500,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-ws-events-unknown-message-type"
+      ]
+    },
+    {
+      "id": "websocket-malformed-frame",
+      "name": "Malformed WebSocket message does not crash server",
+      "status": "failed",
+      "durationMs": 1512,
+      "targetSafe": true,
+      "findingIds": [
+        "cat8-ws-malformed-frame"
+      ]
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/baseline-before-probe/report.json",
+    "attackSurfacesMeasured": 4,
+    "manualReviewComplete": true,
+    "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
+  },
+  "mergedFrom": [
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-auth/runs/baseline-auth/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-input/runs/baseline-input/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-dependency/runs/baseline-dependency/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-manual/runs/baseline-manual/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-safe/runs/baseline-ws-safe/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-safe2/runs/baseline-ws-safe2/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-events/runs/baseline-ws-events/report.json",
+    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-events2/runs/baseline-ws-events2/report.json",
+    "my-docs/evidence/security-audit/runs/before-ws-malformed/report.json"
+  ]
+}

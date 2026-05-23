@@ -9,6 +9,8 @@
 | Artifact | Role |
 | --- | --- |
 | `my-docs/evidence/security-audit/latest.json` | Automated probe pass/fail (perimeter controls) |
+| `my-docs/evidence/security-audit/README.md` | **Index — where every Category 8 file lives** |
+| `my-docs/evidence/security-audit/baseline-measurements.md` | Dependency CVE before (33) / after (0) |
 | `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md` | How to run probes; **verified fixes** with before/after run IDs |
 | **`security-findings-ledger.md` (this file)** | **Open and deferred security findings** with full evidence; move entries to *Verified fixes* in the runbook when closed |
 | `my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt` | Original Category 8 requirements brief |

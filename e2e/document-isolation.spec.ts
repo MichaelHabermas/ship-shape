@@ -8,7 +8,7 @@ async function getEditorTextWithoutCursor(page: import('@playwright/test').Page)
     if (!editor) return '';
     const clone = editor.cloneNode(true) as HTMLElement;
     // Remove collaboration cursor elements
-    clone.querySelectorAll('.collaboration-cursor__label, .collaboration-cursor__caret').forEach(el => el.remove());
+    clone.querySelectorAll('.collaboration-cursor__label, .collaboration-cursor__caret').forEach((el: Element) => el.remove());
     return clone.textContent || '';
   });
 }

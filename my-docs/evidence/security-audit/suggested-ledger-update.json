@@ -1,7 +1,0 @@
-{
-  "category": "cat-8-security-audit",
-  "structuredReport": "my-docs/evidence/security-audit/runs/cat8-final/report.json",
-  "attackSurfacesMeasured": 4,
-  "manualReviewComplete": true,
-  "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
-}

@@ -32,6 +32,14 @@ Final closeout run:
 pnpm security:probe -- --run-id cat8-final
 ```
 
+Retroactive dependency CVE baselines:
+
+```bash
+pnpm security:baseline:deps
+```
+
+Before: **33** (BASELINE branch). After: **0**. Files: `runs/baseline-before/`, `runs/baseline-after/`. Index: `README.md` in this folder.
+
 Result: 4/4 required attack surfaces measured, 25/25 probes passed, 0 findings.
 
 Covered surfaces:

@@ -153,7 +153,7 @@ export function SidebarDocumentTreeItem({
             {VISIBILITY_OPTIONS.map((opt) => (
               <ContextMenuItem
                 key={opt.value}
-                onClick={() => handleChangeVisibility(opt.value as 'private' | 'workspace')}
+                onClick={() => handleChangeVisibility(opt.value)}
               >
                 {opt.value === 'private' && <LockIcon className="h-3.5 w-3.5 mr-2" />}
                 {opt.value === 'workspace' && <GlobeIcon className="h-3.5 w-3.5 mr-2" />}

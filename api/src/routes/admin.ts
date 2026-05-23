@@ -1697,7 +1697,7 @@ router.get('/debug/users', async (req: Request, res: Response): Promise<void> =>
     }>> = {};
 
     for (const m of membershipsResult.rows) {
-      const userId = m.user_id as string;
+      const userId = m.user_id;
       if (!membershipsByUser[userId]) {
         membershipsByUser[userId] = [];
       }
@@ -1712,7 +1712,7 @@ router.get('/debug/users', async (req: Request, res: Response): Promise<void> =>
     // Identify potential duplicates (same email_lower)
     const emailCounts: Record<string, number> = {};
     for (const u of usersResult.rows) {
-      const emailLower = u.email_lower as string;
+      const emailLower = u.email_lower;
       emailCounts[emailLower] = (emailCounts[emailLower] ?? 0) + 1;
     }
 
@@ -1730,7 +1730,7 @@ router.get('/debug/users', async (req: Request, res: Response): Promise<void> =>
       membershipCount: toNumber(row.membership_count),
       sessionCount: toNumber(row.session_count),
       memberships: membershipsByUser[row.id] || [],
-      isDuplicate: (emailCounts[row.email_lower as string] ?? 0) > 1,
+      isDuplicate: (emailCounts[row.email_lower] ?? 0) > 1,
     }));
 
     // Summary stats

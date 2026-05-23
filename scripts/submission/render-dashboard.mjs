@@ -4,13 +4,16 @@ import { fileURLToPath } from 'node:url';
 import {
   dashboardPath,
   escapeHtml,
+  readJson,
   readLedger,
   repoRelative,
+  repoRoot,
   sentenceList,
   statusClass,
   statusLabel,
   writeText,
 } from './ledger-utils.mjs';
+import { resolve } from 'node:path';
 import {
   buildLedgerModel,
   dashboardHref,
@@ -20,6 +23,7 @@ import {
 } from './ledger-projections.mjs';
 
 const validateLedgerScript = fileURLToPath(new URL('./validate-ledger.mjs', import.meta.url));
+export const discoveriesPath = resolve(repoRoot, 'my-docs/evidence/discoveries.json');
 
 function badge(status) {
   return `<span class="badge ${statusClass(status)}">${escapeHtml(statusLabel(status))}</span>`;
@@ -176,6 +180,46 @@ function evidenceRows(categories) {
         </tr>`;
     })
     .join('');
+}
+
+function discoveryStatusClass(status) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'fixed' || normalized === 'proven') return 'pass';
+  if (normalized === 'watch' || normalized === 'deferred') return 'warn';
+  if (normalized === 'rejected') return 'fail';
+  return '';
+}
+
+function discoveryRows(discoveries) {
+  return (discoveries.items || [])
+    .map((item, index) => {
+      const statusClassName = discoveryStatusClass(item.status);
+      const impact = Number.isFinite(Number(item.impact)) ? Number(item.impact) : 3;
+      return `
+        <tr data-index="${index + 1}" data-impact="${impact}" data-area="${escapeHtml(item.area)}" data-type="${escapeHtml(
+          item.type
+        )}" data-status="${escapeHtml(item.status)}">
+          <td class="disc-index">${String(index + 1).padStart(2, '0')}</td>
+          <td><span class="impact-pill impact-${impact}">${impact}</span></td>
+          <td><span class="disc-area">${escapeHtml(item.area)}</span></td>
+          <td>${escapeHtml(item.type)}</td>
+          <td><strong>${escapeHtml(item.title)}</strong></td>
+          <td>${escapeHtml(item.note)}</td>
+          <td><span class="test-chip ${escapeHtml(statusClassName)}">${escapeHtml(item.status)}</span></td>
+          <td>${linkedPath(item.evidence, shortPath(item.evidence))}</td>
+        </tr>`;
+    })
+    .join('');
+}
+
+function discoverySummary(discoveries) {
+  const counts = new Map();
+  for (const item of discoveries.items || []) {
+    counts.set(item.status, (counts.get(item.status) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([status, count]) => `<span class="test-chip ${escapeHtml(discoveryStatusClass(status))}">${escapeHtml(status)} ${count}</span>`)
+    .join(' ');
 }
 
 function targetRows(categories) {
@@ -411,7 +455,7 @@ function verdictStrip(categories) {
     </div>`;
 }
 
-export function renderDashboard(ledger) {
+export function renderDashboard(ledger, discoveries = { items: [] }) {
   const model = buildLedgerModel(ledger);
   const categories = model.categories;
   const failedTests = model.failuresAndWarnings.filter((item) => item.result === 'fail');
@@ -500,6 +544,19 @@ export function renderDashboard(ledger) {
       .test-chip.pass { color:var(--proven-ink); border-color:#b6d6b2; background:var(--proven-bg); }
       .test-chip.warn { color:var(--partial-ink); border-color:#e2c77f; background:var(--partial-bg); }
       .test-chip.fail { color:var(--open-ink); border-color:#e0aaa4; background:var(--open-bg); }
+      .discoveries-table .test-chip { min-width:70px; justify-content:center; white-space:nowrap; }
+      .disc-area { display:inline-flex; align-items:center; min-height:22px; padding:3px 7px; border:1px solid var(--line); background:#fbf8f0; font-size:11px; font-weight:850; white-space:nowrap; }
+      .disc-index { color:var(--muted); font-size:11px; font-weight:850; white-space:nowrap; }
+      .impact-pill { display:inline-flex; align-items:center; justify-content:center; width:24px; min-height:22px; border:1px solid var(--line); background:#fbf8f0; font-size:11px; font-weight:900; }
+      .impact-5 { color:var(--open-ink); border-color:#e0aaa4; background:var(--open-bg); }
+      .impact-4 { color:var(--partial-ink); border-color:#e2c77f; background:var(--partial-bg); }
+      .discovery-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
+      .discovery-head p { max-width:760px; margin-bottom:0; font-size:13px; }
+      .sort-button { appearance:none; display:inline-flex; align-items:center; gap:4px; padding:0; border:0; background:transparent; color:inherit; font:inherit; font-size:inherit; font-weight:inherit; letter-spacing:inherit; line-height:inherit; text-align:left; text-transform:inherit; cursor:pointer; }
+      .sort-button:hover { color:var(--dark); }
+      .sort-button::after { content:""; opacity:.65; font-size:10px; }
+      .sort-button[data-dir="asc"]::after { content:"↑"; }
+      .sort-button[data-dir="desc"]::after { content:"↓"; }
       .artifact-link { margin-top:5px; }
       .path { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:12px; }
       .non-claim-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
@@ -512,6 +569,12 @@ export function renderDashboard(ledger) {
       th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
       th { color:var(--muted); font-size:11px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
       tr:last-child td { border-bottom:0; }
+      .discoveries-table { min-width:1060px; }
+      .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
+      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:82px; }
+      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:126px; }
+      .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
@@ -551,6 +614,7 @@ export function renderDashboard(ledger) {
         <button class="tab" id="tab-targets" role="tab" aria-selected="false" aria-controls="panel-targets" tabindex="-1" data-tab="targets">Targets</button>
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
+        <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
       </nav>
 
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
@@ -576,6 +640,20 @@ export function renderDashboard(ledger) {
         <article class="panel">
           <h2>Explicit Non-Claims</h2>
           <div class="non-claim-grid">${nonClaimItems(categories)}</div>
+        </article>
+      </section>
+
+      <section id="panel-discoveries" class="tab-panel" role="tabpanel" aria-labelledby="tab-discoveries" tabindex="0" hidden>
+        <article class="panel">
+          <div class="discovery-head">
+            <div>
+              <p class="eyebrow">Short Research Log</p>
+              <h2>Discoveries</h2>
+              <p>Short list of findings, decisions, fixes, and follow-up signals. Full log: ${repoLink('my-docs/discovery-research-log.md', 'discovery-research-log.md')}.</p>
+            </div>
+            <div class="chip-list">${discoverySummary(discoveries)}</div>
+          </div>
+          <div class="table-wrap"><table class="discoveries-table"><thead><tr><th><button class="sort-button" type="button" data-sort="index">#</button></th><th><button class="sort-button" type="button" data-sort="impact">Impact</button></th><th><button class="sort-button" type="button" data-sort="area">Area</button></th><th><button class="sort-button" type="button" data-sort="type">Type</button></th><th>Discovery</th><th>Consequence</th><th><button class="sort-button" type="button" data-sort="status">Status</button></th><th>Evidence</th></tr></thead><tbody>${discoveryRows(discoveries)}</tbody></table></div>
         </article>
       </section>
 
@@ -653,6 +731,65 @@ export function renderDashboard(ledger) {
       window.addEventListener('hashchange', activateHashTarget);
       activateStoredTab();
       activateHashTarget();
+
+      const discoveryTable = document.querySelector('.discoveries-table');
+      const discoveryRows = discoveryTable ? Array.from(discoveryTable.querySelectorAll('tbody tr')) : [];
+      const sortButtons = Array.from(document.querySelectorAll('.sort-button'));
+      const discoverySortStorageKey = 'ship-submission-dashboard-discovery-sort';
+      let discoverySort = { key: 'impact', dir: 'desc' };
+      function loadDiscoverySort() {
+        let savedSort = null;
+        try {
+          savedSort = JSON.parse(localStorage.getItem(discoverySortStorageKey) || 'null');
+        } catch {}
+        if (!savedSort || typeof savedSort !== 'object') return;
+        const keys = new Set(sortButtons.map((button) => button.dataset.sort));
+        if (!keys.has(savedSort.key)) return;
+        if (savedSort.dir !== 'asc' && savedSort.dir !== 'desc') return;
+        discoverySort = { key: savedSort.key, dir: savedSort.dir };
+      }
+      function saveDiscoverySort() {
+        try {
+          localStorage.setItem(discoverySortStorageKey, JSON.stringify(discoverySort));
+        } catch {}
+      }
+      function discoveryValue(row, key) {
+        if (key === 'index' || key === 'impact') return Number(row.dataset[key] || 0);
+        return row.dataset[key] || '';
+      }
+      function applyDiscoveryControls() {
+        const tbody = discoveryTable?.querySelector('tbody');
+        if (!tbody) return;
+        const rows = [...discoveryRows].sort((a, b) => {
+          const left = discoveryValue(a, discoverySort.key);
+          const right = discoveryValue(b, discoverySort.key);
+          const result =
+            typeof left === 'number' && typeof right === 'number'
+              ? left - right
+              : String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+          return discoverySort.dir === 'asc' ? result : -result;
+        });
+        for (const row of rows) {
+          row.hidden = false;
+          tbody.appendChild(row);
+        }
+        for (const button of sortButtons) {
+          button.dataset.dir = button.dataset.sort === discoverySort.key ? discoverySort.dir : '';
+        }
+      }
+      for (const button of sortButtons) {
+        button.addEventListener('click', () => {
+          const key = button.dataset.sort;
+          discoverySort = {
+            key,
+            dir: discoverySort.key === key && discoverySort.dir === 'desc' ? 'asc' : 'desc',
+          };
+          saveDiscoverySort();
+          applyDiscoveryControls();
+        });
+      }
+      loadDiscoverySort();
+      applyDiscoveryControls();
     </script>
   </body>
 </html>`;
@@ -661,6 +798,7 @@ export function renderDashboard(ledger) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   execFileSync(process.execPath, [validateLedgerScript], { stdio: 'inherit' });
   const ledger = await readLedger();
-  await writeText(dashboardPath, renderDashboard(ledger));
+  const discoveries = await readJson(discoveriesPath);
+  await writeText(dashboardPath, renderDashboard(ledger, discoveries));
   console.log(`Dashboard written to ${repoRelative(dashboardPath)}`);
 }

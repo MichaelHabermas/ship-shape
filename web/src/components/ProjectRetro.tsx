@@ -102,7 +102,7 @@ export function ProjectRetro({ projectId }: ProjectRetroProps) {
           setIsDirty(false);
           showToast('Project retrospective saved', 'success');
         } else {
-          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({} as LegacyErrorResponse));
+          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({}));
           showToast(data.error || 'Failed to save project retrospective', 'error');
         }
       } else {
@@ -117,7 +117,7 @@ export function ProjectRetro({ projectId }: ProjectRetroProps) {
           setIsDirty(false);
           showToast('Project retrospective updated', 'success');
         } else {
-          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({} as LegacyErrorResponse));
+          const data = await readJson<LegacyErrorResponse>(res).catch(() => ({}));
           showToast(data.error || 'Failed to update project retrospective', 'error');
         }
       }
