@@ -19,6 +19,16 @@ describe('Files API', () => {
   let testUserId: string;
   let testFileId: string;
 
+  async function createUpload(filename: string, mimeType: string, sizeBytes: number) {
+    const res = await request(app)
+      .post('/api/files/upload')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({ filename, mimeType, sizeBytes });
+    expect(res.status).toBe(200);
+    return { fileId: res.body.fileId as string, uploadUrl: res.body.uploadUrl as string };
+  }
+
   beforeAll(async () => {
     // Create test workspace
     const workspaceResult = await pool.query(
@@ -139,6 +149,57 @@ describe('Files API', () => {
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('error');
     expect(res.body.error).toContain('not allowed');
+  });
+
+  it('POST /api/files/:id/local-upload rejects bytes that do not match declared size', async () => {
+    const { fileId, uploadUrl } = await createUpload('size-check.html', 'text/html', 2048);
+
+    const res = await request(app)
+      .post(uploadUrl)
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .set('Content-Type', 'text/html')
+      .send('<h1>short</h1>');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('size');
+
+    const dbResult = await pool.query('SELECT status FROM files WHERE id = $1', [fileId]);
+    expect(dbResult.rows[0].status).toBe('pending');
+  });
+
+  it('GET /api/files/:id/serve downloads uploaded HTML with nosniff', async () => {
+    const body = '<h1>cat8</h1>';
+    const { fileId, uploadUrl } = await createUpload('safe-download.html', 'text/html', Buffer.byteLength(body));
+
+    const uploadRes = await request(app)
+      .post(uploadUrl)
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .set('Content-Type', 'text/html')
+      .send(body);
+    expect(uploadRes.status).toBe(200);
+
+    const serveRes = await request(app)
+      .get(`/api/files/${fileId}/serve`)
+      .set('Cookie', sessionCookie);
+
+    expect(serveRes.status).toBe(200);
+    expect(serveRes.headers['content-disposition']).toContain('attachment');
+    expect(serveRes.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('returns a generic 400 for malformed JSON bodies', async () => {
+    const res = await request(app)
+      .post('/api/files/upload')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .set('Content-Type', 'application/json')
+      .send('{"broken":');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Malformed JSON request body' });
+    expect(res.text).not.toMatch(/stack|node_modules|\/Users\/|DATABASE_URL/i);
   });
 
   it('POST /api/files/:id/confirm updates file status and returns CDN URL', async () => {

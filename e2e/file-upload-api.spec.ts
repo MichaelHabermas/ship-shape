@@ -89,6 +89,11 @@ test.describe('File Upload API', () => {
     // Get CSRF token
     const csrfToken = await getCsrfToken(page, API_URL);
 
+    const pngBuffer = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+      'base64'
+    );
+
     // Step 1: Request presigned URL
     const uploadResponse = await page.request.post(`${API_URL}/api/files/upload`, {
       headers: {
@@ -97,7 +102,7 @@ test.describe('File Upload API', () => {
       data: {
         filename: 'confirm-test.png',
         mimeType: 'image/png',
-        sizeBytes: 100,
+        sizeBytes: pngBuffer.byteLength,
       },
     });
     expect(uploadResponse.ok()).toBeTruthy();
@@ -107,12 +112,6 @@ test.describe('File Upload API', () => {
     // Step 2: Upload file data (to local endpoint in dev)
     const isLocalUpload = uploadUrl.startsWith('/api/files/');
     if (isLocalUpload) {
-      // Create a minimal PNG buffer for local upload
-      const pngBuffer = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
-        'base64'
-      );
-
       const localUploadResponse = await page.request.post(`${API_URL}${uploadUrl}`, {
         headers: {
           'Content-Type': 'image/png',

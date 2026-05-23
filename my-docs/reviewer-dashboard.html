@@ -118,7 +118,7 @@
                 <strong>Claim-ready</strong>
                 <span>Safe to lead with.</span>
               </div>
-              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 3</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 5</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span></div>
+              <div class="cat-chip-row"><span class="cat-chip">Cat 1</span><span class="cat-chip">Cat 2</span><span class="cat-chip">Cat 3</span><span class="cat-chip">Cat 4</span><span class="cat-chip">Cat 5</span><span class="cat-chip">Cat 6</span><span class="cat-chip">Cat 7</span><span class="cat-chip">Cat 8</span></div>
             </div>
             <div class="verdict-row">
               <div>
@@ -139,31 +139,19 @@
                 <strong>Not ready</strong>
                 <span>Placeholder lane.</span>
               </div>
-              <div class="cat-chip-row"><span class="cat-chip">Cat 8</span></div>
+              <div class="cat-chip-row"><span class="verdict-empty">None</span></div>
             </div>
     </div>
         </div>
         <aside class="hero-side" aria-label="Current review status">
           <p class="eyebrow">Reviewer Gate Snapshot</p>
           <div class="mini-grid">
-            <div class="mini"><strong>7</strong><span>proven</span></div>
+            <div class="mini"><strong>8</strong><span>proven</span></div>
             <div class="mini"><strong>0</strong><span>partial</span></div>
-            <div class="mini"><strong>1</strong><span>open/fill</span></div>
+            <div class="mini"><strong>0</strong><span>open/fill</span></div>
           </div>
-          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge open">open</span> <strong>Cat 8</strong></div></div>
-          <ul class="gate-list">
-        <li data-ledger-id="cat8-probe-tool-runnable">
-          <span class="gate-cat">Cat 8</span>
-          <strong title="cat8-probe-tool-runnable, cat8-four-attack-surfaces-covered, cat8-manual-review-complete, cat8-two-verified-vulnerability-fixes">Security Audit proof gaps (4)</strong>
-          <span class="badge open">open</span>
-          <span>Runnable single-command security probe exists and produces a structured report Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs 2 more in Targets.</span>
-        </li>
-        <li data-ledger-id="cat5-e2e-baseline-not-green">
-          <span class="gate-cat">Cat 5</span>
-          <strong title="cat5-e2e-baseline-not-green">E2E Baseline Not Green</strong>
-          <span class="badge partial">partial</span>
-          <span>Full E2E baseline still had failing/flaky evidence; this does not invalidate the three meaningful regression-test target.</span>
-        </li></ul>
+          <div class="score-grid"><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 1</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 2</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 3</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 4</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 5</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 6</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 7</strong></div><div class="status-dot"><span class="badge proven">proven</span> <strong>Cat 8</strong></div></div>
+          <p>No failing or warning acceptance tests in the current ledger.</p>
         </aside>
       </section>
 
@@ -219,8 +207,8 @@
           <h3>Test Coverage and Quality</h3>
           <p>3 / 3 required</p>
           <div class="score-foot">
-            <span>4/5 acceptance pass; 1 open/warn gate</span>
-            <a class="blocker-link" href="#category-cat-5-test-coverage-quality">Missing: E2E Baseline Not Green</a>
+            <span>5/5 acceptance pass; all gates clear</span>
+
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-6-runtime-error-handling">
@@ -242,12 +230,12 @@
           </div>
         </article>
         <article class="score-card" data-ledger-id="cat-8-security-audit">
-          <header><span class="cat-id">Cat 8</span><span class="badge open">open</span></header>
+          <header><span class="cat-id">Cat 8</span><span class="badge proven">proven</span></header>
           <h3>Security Audit</h3>
-          <p>Runnable single-command security probe exists and produces a structured report.</p>
+          <p>Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence</p>
           <div class="score-foot">
-            <span>0/4 acceptance pass; 4 open/warn gates</span>
-            <a class="blocker-link" href="#target-cat8-target-runnable-probe">Missing: Runnable single-command security probe exists and produces a structured report</a>
+            <span>4/4 acceptance pass; all gates clear</span>
+
           </div>
         </article></div></div>
         </div>
@@ -711,11 +699,11 @@
                   </li>
                   <li>
                     <strong>Current unit suites</strong>
-                    <span>API 36 files / 509 tests passing; web 21 files / 168 tests passing.</span>
+                    <span>API 46 files / 554 tests passing; web 22 files / 172 tests passing.</span>
                   </li>
                   <li>
                     <strong>Known caveat</strong>
-                    <span>Full E2E baseline was not green; focused E2E tree-selector rerun passed.</span>
+                    <span>Full E2E rerun passed 872/872 with retry artifacts recorded.</span>
                   </li>
           </ul>
         </div>
@@ -740,27 +728,33 @@
 
                   <li data-ledger-id="cat5-three-meaningful-regressions">
                     <strong>Three Meaningful Regressions <span class="badge proven">proven</span></strong>
-                    <span>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility. Does not claim the full E2E suite is green. Does not claim web coverage tooling was added. The claim is the source target of three meaningful regressions plus current unit-suite pass evidence.</span>
+                    <span>Category 5 clears the improvement target through three meaningful regression tests: overlapping comment mark removal, project issue filtering, and private document comment visibility. Full E2E is green for the recorded lower-worker rerun, but retry artifact logs remain useful flake follow-up signals. Does not claim web coverage tooling was added. The claim is the source target of three meaningful regressions plus current unit-suite pass evidence.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
           <ul class="check-list">
         <li data-ledger-id="cat5-api-suite-pass">
           <strong>Api Suite Pass <span class="subtle">test_run</span></strong>
-          <span>Latest full API suite pass recorded in the improvement report after the meaningful `as` cast reduction pass.</span>
-          <small>Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test | Result: 36 files passed / 509 tests passed</small>
+          <span>Latest full API suite pass recorded during Cat 5 E2E closeout.</span>
+          <small>Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test | Result: 46 files passed / 554 tests passed</small>
 
         </li>
         <li data-ledger-id="cat5-web-suite-pass">
           <strong>Web Suite Pass <span class="subtle">test_run</span></strong>
-          <span>Latest full web suite pass recorded in the improvement report after the meaningful `as` cast reduction pass.</span>
-          <small>Command: pnpm --filter @ship/web test | Result: 21 files passed / 168 tests passed</small>
+          <span>Latest full web suite pass recorded during Cat 5 E2E closeout.</span>
+          <small>Command: pnpm --filter @ship/web test | Result: 22 files passed / 172 tests passed</small>
 
         </li>
         <li data-ledger-id="cat5-focused-e2e-pass">
           <strong>Focused E2E Pass <span class="subtle">test_run</span></strong>
           <span>Focused E2E rerun for stale tree selector proof.</span>
           <small>Command: E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;navigating to nested document auto-expands tree ancestors&quot; | Result: 1 passed / 0 failed</small>
+
+        </li>
+        <li data-ledger-id="cat5-full-e2e-pass">
+          <strong>Full E2E Pass <span class="subtle">test_run</span></strong>
+          <span>Full E2E rerun after fixing upload-byte-count, program week nested-route, and project sidebar-link selector failures. Retry artifact logs remain recorded for follow-up, but Playwright exited 0.</span>
+          <small>Command: PLAYWRIGHT_WORKERS=2 E2E_RESULTS_DIR=test-results/cat5-full-green-check pnpm test:e2e:run | Result: 872 passed / 0 failed</small>
 
         </li>
         <li data-ledger-id="cat5-risk-comment-locations">
@@ -1000,7 +994,7 @@
               <p class="eyebrow">Category 8</p>
               <h2>Security Audit</h2>
             </div>
-            <span class="badge open">open</span>
+            <span class="badge proven">proven</span>
           </div>
           <p>Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof. <a href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">Source</a></p>
 
@@ -1010,15 +1004,15 @@
 
                   <li>
                     <strong>Probe tool</strong>
-                    <span>Open: single-command runnable probe not yet evidenced.</span>
+                    <span>Proven: pnpm security:probe runs the Category 8 harness and writes structured JSON/Markdown evidence.</span>
                   </li>
                   <li>
                     <strong>Attack surfaces</strong>
-                    <span>Auth/session, WebSocket validation, input sanitization, dependency CVEs.</span>
+                    <span>Auth/session, WebSocket validation, input sanitization, and dependency CVEs all measured in latest.json.</span>
                   </li>
                   <li>
                     <strong>Manual review</strong>
-                    <span>CORS/CSP, secrets, rate limiting, verbose errors.</span>
+                    <span>CORS/CSP, secrets, rate limiting, and verbose errors all passed assisted review in the final probe.</span>
                   </li>
           </ul>
         </div>
@@ -1027,16 +1021,16 @@
           <ul class="check-list">
 
                   <li>
-                    <strong>Dependency cleanup</strong>
-                    <span>Useful security hygiene exists, but not a full Category 8 probe.</span>
+                    <strong>Probe coverage</strong>
+                    <span>25 named probes passed; input coverage now includes documents, search, issues, comments, and file upload surfaces.</span>
                   </li>
                   <li>
-                    <strong>Known fixes</strong>
-                    <span>Setup race and authz hardening are documented elsewhere, but not packaged as two verified probe-driven Cat 8 fixes.</span>
+                    <strong>Verified fixes</strong>
+                    <span>Two probe-backed fixes: local file upload validation/serving and WebSocket malformed/oversized resilience.</span>
                   </li>
                   <li>
                     <strong>Status</strong>
-                    <span>Open until probe/report/fix proof exists.</span>
+                    <span>Proven with local black-box probe evidence; remote destructive probing remains out of scope unless explicitly enabled.</span>
                   </li>
           </ul>
         </div>
@@ -1044,28 +1038,28 @@
           <ul class="check-list">
 
                   <li data-ledger-id="cat8-target-runnable-probe">
-                    <strong>Target Runnable Probe <span class="badge open">open</span></strong>
-                    <span>Runnable single-command security probe exists and produces a structured report. threshold true; actual false</span>
+                    <strong>Target Runnable Probe <span class="badge proven">proven</span></strong>
+                    <span>Runnable single-command security probe exists and produces a structured report. threshold true; actual true</span>
                   </li>
                   <li data-ledger-id="cat8-target-four-attack-surfaces">
-                    <strong>Target Four Attack Surfaces <span class="badge open">open</span></strong>
-                    <span>Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs. 0 / 4 required; threshold 4; actual 0</span>
+                    <strong>Target Four Attack Surfaces <span class="badge proven">proven</span></strong>
+                    <span>Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs. 4 / 4 required; threshold 4; actual 4</span>
                   </li>
                   <li data-ledger-id="cat8-target-manual-review">
-                    <strong>Target Manual Review <span class="badge open">open</span></strong>
-                    <span>Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete. Manual review fields are placeholders only.</span>
+                    <strong>Target Manual Review <span class="badge proven">proven</span></strong>
+                    <span>Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete. manual-cors-csp, manual-secrets, manual-rate-limits, and manual-verbose-errors all passed in latest security report.</span>
                   </li>
                   <li data-ledger-id="cat8-target-two-verified-fixes">
-                    <strong>Target Two Verified Fixes <span class="badge open">open</span></strong>
-                    <span>At least two verified vulnerabilities have before/after proof. 0 / 2 required; threshold 2; actual 0</span>
+                    <strong>Target Two Verified Fixes <span class="badge proven">proven</span></strong>
+                    <span>At least two verified vulnerabilities have before/after proof. 2 / 2 required; threshold 2; actual 2</span>
                   </li>
           </ul>
           <h3>Claims</h3>
           <ul class="check-list">
 
-                  <li data-ledger-id="cat8-security-audit-open">
-                    <strong>Security Audit Open <span class="badge open">open</span></strong>
-                    <span>Security 8 is represented as a required lane, but no runnable probe/report and no two verified probe-driven vulnerability fixes are evidenced yet. Dependency cleanup and authz hardening are useful context, but they do not substitute for the required security probe deliverable. No high/critical CVE count is claimed from this ledger entry. No CORS/CSP/secrets/rate-limit/error-review completion is claimed.</span>
+                  <li data-ledger-id="cat8-security-audit-proven">
+                    <strong>Security Audit Proven <span class="badge proven">proven</span></strong>
+                    <span>Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence. Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled. Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field. The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories. Manual review is assisted and evidence-backed; it is not a formal third-party penetration test.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -1076,11 +1070,65 @@
           <small>Path: my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</small>
           <div class="artifact-link"><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">Open artifact</a></div>
         </li>
-        <li data-ledger-id="cat8-dependency-cleanup-context">
-          <strong>Dependency Cleanup Context <span class="subtle">source_doc</span></strong>
-          <span>Dependency cleanup decision records zero-advisory audit context, but it is not a full Security 8 probe.</span>
-          <small>Path: my-docs/DECISION_LOG.md</small>
-          <div class="artifact-link"><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">Open artifact</a></div>
+        <li data-ledger-id="cat8-security-probe-final-report">
+          <strong>Security Probe Final Report <span class="subtle">artifact</span></strong>
+          <span>Final full security probe report: 4/4 attack surfaces measured, 25/25 probes passed, 0 findings.</span>
+          <small>Path: my-docs/evidence/security-audit/latest.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-final-markdown">
+          <strong>Security Probe Final Markdown <span class="subtle">artifact</span></strong>
+          <span>Human-readable final security probe report.</span>
+          <small>Path: my-docs/evidence/security-audit/latest.md</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/latest.md" title="my-docs/evidence/security-audit/latest.md">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-before-file-size">
+          <strong>Before File Size <span class="subtle">artifact</span></strong>
+          <span>Before proof for local upload declared-size mismatch acceptance.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/before-file-size/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/before-file-size/report.json" title="my-docs/evidence/security-audit/runs/before-file-size/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-file-size">
+          <strong>After File Size <span class="subtle">artifact</span></strong>
+          <span>After proof for local upload declared-size mismatch rejection.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/after-file-size/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-file-size/report.json" title="my-docs/evidence/security-audit/runs/after-file-size/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-before-file-headers">
+          <strong>Before File Headers <span class="subtle">artifact</span></strong>
+          <span>Before proof for unsafe inline uploaded HTML serving headers.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/before-file-headers/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/before-file-headers/report.json" title="my-docs/evidence/security-audit/runs/before-file-headers/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-file-headers">
+          <strong>After File Headers <span class="subtle">artifact</span></strong>
+          <span>After proof for attachment/nosniff uploaded file serving headers.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/after-file-headers-2/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-file-headers-2/report.json" title="my-docs/evidence/security-audit/runs/after-file-headers-2/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-before-ws-malformed">
+          <strong>Before Ws Malformed <span class="subtle">artifact</span></strong>
+          <span>Before proof for unsafe malformed WebSocket frame handling.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/before-ws-malformed/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/before-ws-malformed/report.json" title="my-docs/evidence/security-audit/runs/before-ws-malformed/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-ws-malformed">
+          <strong>After Ws Malformed <span class="subtle">artifact</span></strong>
+          <span>After proof for malformed WebSocket frame handling.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/after-ws-malformed/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-ws-malformed/report.json" title="my-docs/evidence/security-audit/runs/after-ws-malformed/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-ws-oversized">
+          <strong>After Ws Oversized <span class="subtle">artifact</span></strong>
+          <span>After proof for oversized WebSocket frame handling without process crash.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/after-ws-oversized/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-ws-oversized/report.json" title="my-docs/evidence/security-audit/runs/after-ws-oversized/report.json">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-runbook">
+          <strong>Security Runbook <span class="subtle">source_doc</span></strong>
+          <span>Category 8 implementation and rerun runbook.</span>
+          <small>Path: my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</small>
+          <div class="artifact-link"><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md">Open artifact</a></div>
         </li></ul>
         </article></div>
         <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>
@@ -1116,7 +1164,7 @@
           <td>Cat 5. Test Coverage and Quality</td>
           <td><span class="badge proven">proven</span></td>
           <td>Add at least three meaningful regression tests for previously weak critical paths. passes. 3 / 3 required; threshold 3; actual 3.</td>
-          <td><div class="chip-list"><span class="test-chip pass" title="cat5-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat5-three-meaningful-regression-tests-present">PASS Three Meaningful Regression Tests Present</span> <span class="test-chip pass" title="cat5-risk-comments-documented">PASS Risk Comments Documented</span> <span class="test-chip pass" title="cat5-current-unit-suites-pass">PASS Current Unit Suites Pass</span> <span class="test-chip warn" title="cat5-e2e-baseline-not-green">WARN E2E Baseline Not Green</span></div></td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat5-audit-required-fields-present">PASS Audit Required Fields Present</span> <span class="test-chip pass" title="cat5-three-meaningful-regression-tests-present">PASS Three Meaningful Regression Tests Present</span> <span class="test-chip pass" title="cat5-risk-comments-documented">PASS Risk Comments Documented</span> <span class="test-chip pass" title="cat5-current-unit-suites-pass">PASS Current Unit Suites Pass</span> <span class="test-chip pass" title="cat5-full-e2e-baseline-green">PASS Full E2E Baseline Green</span></div></td>
           <td><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md">my-docs/AUDIT_REPORT.md</a><br><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md">my-docs/IMPROVEMENT_REPORT.md</a></td>
         </tr>
         <tr data-ledger-id="cat-6-runtime-error-handling">
@@ -1135,10 +1183,10 @@
         </tr>
         <tr data-ledger-id="cat-8-security-audit">
           <td>Cat 8. Security Audit</td>
-          <td><span class="badge open">open</span></td>
-          <td>Runnable single-command security probe exists and produces a structured report. does not pass. threshold true; actual false.</td>
-          <td><div class="chip-list"><span class="test-chip fail" title="cat8-probe-tool-runnable">FAIL Probe Tool Runnable</span> <span class="test-chip fail" title="cat8-four-attack-surfaces-covered">FAIL Four Attack Surfaces Covered</span> <span class="test-chip fail" title="cat8-manual-review-complete">FAIL Manual Review Complete</span> <span class="test-chip fail" title="cat8-two-verified-vulnerability-fixes">FAIL Two Verified Vulnerability Fixes</span></div></td>
-          <td><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">my-docs/DECISION_LOG.md</a></td>
+          <td><span class="badge proven">proven</span></td>
+          <td>Runnable single-command security probe exists and produces a structured report. passes. threshold true; actual true.</td>
+          <td><div class="chip-list"><span class="test-chip pass" title="cat8-probe-tool-runnable">PASS Probe Tool Runnable</span> <span class="test-chip pass" title="cat8-four-attack-surfaces-covered">PASS Four Attack Surfaces Covered</span> <span class="test-chip pass" title="cat8-manual-review-complete">PASS Manual Review Complete</span> <span class="test-chip pass" title="cat8-two-verified-vulnerability-fixes">PASS Two Verified Vulnerability Fixes</span></div></td>
+          <td><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</a><br><a class="path" href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" title="my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt">my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt</a><br><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json">.../evidence/security-audit/latest.json</a><br><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md">my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</a><br><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md">my-docs/MEMORY.md</a><br><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md">my-docs/DECISION_LOG.md</a></td>
         </tr></tbody></table></div>
       </section>
 
@@ -1339,8 +1387,8 @@
             <td>Runnable single-command security probe exists and produces a structured report.</td>
             <td>boolean_true</td>
             <td>true</td>
-            <td>false</td>
-            <td><span class="badge open">open</span></td>
+            <td>true</td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat8-target-four-attack-surfaces" data-ledger-id="cat8-target-four-attack-surfaces">
             <td>Cat 8</td>
@@ -1348,8 +1396,8 @@
             <td>Probe covers auth/session, WebSocket validation, input sanitization, and dependency CVEs.</td>
             <td>count_at_least</td>
             <td>4</td>
-            <td>0</td>
-            <td><span class="badge open">open</span></td>
+            <td>4</td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat8-target-manual-review" data-ledger-id="cat8-target-manual-review">
             <td>Cat 8</td>
@@ -1358,7 +1406,7 @@
             <td>manual_gate</td>
             <td>N/A</td>
             <td>N/A</td>
-            <td><span class="badge open">open</span></td>
+            <td><span class="badge proven">proven</span></td>
           </tr>
           <tr id="target-cat8-target-two-verified-fixes" data-ledger-id="cat8-target-two-verified-fixes">
             <td>Cat 8</td>
@@ -1366,8 +1414,8 @@
             <td>At least two verified vulnerabilities have before/after proof.</td>
             <td>count_at_least</td>
             <td>2</td>
-            <td>0</td>
-            <td><span class="badge open">open</span></td>
+            <td>2</td>
+            <td><span class="badge proven">proven</span></td>
           </tr></tbody></table></div>
       </section>
 
@@ -1748,49 +1796,49 @@
             <td>Cat 8</td>
             <td><span title="cat8-audit-probe-tool-runnable">Audit Probe Tool Runnable</span></td>
             <td>audit</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.probe_tool.command">audit_deliverable.probe_tool.command</span></td>
           </tr>
           <tr data-ledger-id="cat8-audit-auth-session-surface">
             <td>Cat 8</td>
             <td><span title="cat8-audit-auth-session-surface">Audit Auth Session Surface</span></td>
             <td>audit</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.fields.auth_session_vulnerabilities">audit_deliverable.fields.auth_session_vulnerabilities</span></td>
           </tr>
           <tr data-ledger-id="cat8-audit-websocket-validation-surface">
             <td>Cat 8</td>
             <td><span title="cat8-audit-websocket-validation-surface">Audit Websocket Validation Surface</span></td>
             <td>audit</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.fields.websocket_validation_failures">audit_deliverable.fields.websocket_validation_failures</span></td>
           </tr>
           <tr data-ledger-id="cat8-audit-input-sanitization-surface">
             <td>Cat 8</td>
             <td><span title="cat8-audit-input-sanitization-surface">Audit Input Sanitization Surface</span></td>
             <td>audit</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.fields.input_sanitization_failures">audit_deliverable.fields.input_sanitization_failures</span></td>
           </tr>
           <tr data-ledger-id="cat8-audit-dependency-cves">
             <td>Cat 8</td>
             <td><span title="cat8-audit-dependency-cves">Audit Dependency Cves</span></td>
             <td>audit</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.fields.dependency_cves">audit_deliverable.fields.dependency_cves</span></td>
           </tr>
           <tr data-ledger-id="cat8-audit-manual-review-fields">
             <td>Cat 8</td>
             <td><span title="cat8-audit-manual-review-fields">Audit Manual Review Fields</span></td>
             <td>audit</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage">audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage</span></td>
           </tr>
           <tr data-ledger-id="cat8-improvement-two-verified-fixes">
             <td>Cat 8</td>
             <td><span title="cat8-improvement-two-verified-fixes">Improvement Two Verified Fixes</span></td>
             <td>improvement</td>
-            <td>missing</td>
+            <td>present</td>
             <td><span class="path" title="audit_deliverable.verified_vulnerability_fixes">audit_deliverable.verified_vulnerability_fixes</span></td>
           </tr></tbody></table></div>
       </section>
@@ -1826,7 +1874,7 @@
         <article class="non-claim-card" data-ledger-id="cat-5-test-coverage-quality">
           <h3>Cat 5: Test Coverage and Quality</h3>
           <ul>
-            <li>Does not claim all flaky E2E behavior is fixed.</li><li>Does not claim code coverage percentage improved.</li><li>Does not count stale selector cleanup as one of the three meaningful regression tests.</li>
+            <li>Does not claim zero retry artifacts under every worker count.</li><li>Does not claim code coverage percentage improved.</li><li>Does not count stale selector cleanup as one of the three meaningful regression tests.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-6-runtime-error-handling">
@@ -1844,7 +1892,7 @@
         <article class="non-claim-card" data-ledger-id="cat-8-security-audit">
           <h3>Cat 8: Security Audit</h3>
           <ul>
-            <li>Does not claim Security 8 completion.</li><li>Does not claim dependency cleanup alone satisfies Security 8.</li><li>Does not claim manual CORS/CSP/secrets/rate-limit/error review is complete.</li>
+            <li>Does not claim remote production penetration testing.</li><li>Does not claim capability-scoped API tokens beyond the verified super-admin route denial check.</li><li>Does not claim future dependency advisories will remain zero without rerunning pnpm security:probe.</li>
           </ul>
         </article></div>
         </article>

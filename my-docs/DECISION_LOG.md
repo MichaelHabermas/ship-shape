@@ -732,7 +732,7 @@ Why: `IMPROVEMENT_REPORT.md` is useful history, but prose ledgers drift and can 
 
 Consequences: Evidence-changing work should update only the affected ledger categories, keep unproven claims as `partial`, `open`, `needs_fill_in`, or `not_measured`, then run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`. `pnpm submission:render` validates first and then regenerates `my-docs/reviewer-dashboard.html` plus the generated ledger block in `IMPROVEMENT_REPORT.md`. The validator blocks `proven` categories with failing required acceptance tests or incomplete required rubric items; `pnpm submission:check` blocks stale generated outputs.
 
-Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render-markdown`, `submission:render`, `submission:check`, `submission:test`, and `submission:validate:strict`; `pnpm submission:validate` currently reports Cats 1 and 5 passing, Cat 5 with warning `cat5-e2e-baseline-not-green`, and Cats 2, 3, 4, 6, 7, and 8 carrying honest open gates.
+Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render-markdown`, `submission:render`, `submission:check`, `submission:test`, and `submission:validate:strict`; `pnpm submission:validate` reports category pass/fail/warn status from `my-docs/evidence/submission-ledger.json`.
 
 **Decision Gist**: Reviewer claims are ledger-first; prose reports are context, not the claim authority.
 
@@ -999,6 +999,36 @@ Consequences: Document every test assertion change inline with the product/API r
 Evidence: `test-results/triage-fixes-batch3` — backlinks + session-timeout + weekly plan/retro query specs green; allocation grid fixes verified in follow-up run `triage-fixes-batch4`.
 
 **Decision Gist**: Test changes need a traceable why — helper restore, selector strategy aligned with unit tests, or API SQL correctness — not silent edits.
+
+### D060: Category 8 security probe as black-box closeout harness (2026-05-23)
+
+Status: Accepted
+
+Decision: Close Category 8 with a repo-aware `pnpm security:probe` harness rather than static notes. The runner discovers local ports, logs in with seeded dev credentials, runs modular probes for auth/session, WebSocket validation, input sanitization, dependency CVEs, and assisted manual review, then writes immutable JSON/Markdown reports plus stable `latest.*` artifacts. The probe suggests ledger updates but never edits the ledger itself.
+
+Why: The Category 8 source brief asks for runnable attack evidence, manual review, and two verified fixes. A single command makes that reproducible for graders and prevents overclaiming old hardening as security-audit proof.
+
+Alternatives considered: static audit writeup only (rejected — not runnable); broad policy-as-code authorization oracle (deferred — powerful but too large for Cat 8); capability-scoped API token redesign (deferred — correct product direction but not required once token boundary probe passed).
+
+Consequences: Security evidence now lives under `my-docs/evidence/security-audit/`. Local mode may create run-tagged records; remote write/stress probing is opt-in. Category 8 ledger truth is generated from probe-backed paths, not memory.
+
+Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured, 25/25 probes passed, 0 findings. Before/after proof covers file upload validation/headers and WebSocket malformed/unknown/oversized frame resilience across collaboration and event sockets.
+
+**Decision Gist**: Category 8 proof is a runnable black-box harness plus before/after reports, not a narrative-only audit.
+
+### D061: Category 5 full E2E warning resolved with route-consistency fixes (2026-05-22)
+
+Status: Accepted
+
+Decision: Treat the Cat 5 E2E warning as resolvable only with a fresh full Playwright run, not by deleting the known caveat. The stale warning was replaced after fixing the current final failures and recording `PLAYWRIGHT_WORKERS=2 E2E_RESULTS_DIR=test-results/cat5-full-green-check pnpm test:e2e:run` at 872 passed / 0 failed.
+
+Why: The old evidence mixed stale failure counts with real current failures. The current failure set was concrete: upload test byte-count drift after stricter local upload validation, program week nested navigation using `/sprints` instead of the actual `weeks` tab route, and broad project-link locators colliding with the document list.
+
+Consequences: Program week timeline selection now stays inside the active Weeks tab route (`/documents/:programId/weeks/:weekId`). Cat 5 ledger truth now claims a green recorded full E2E run with retry artifact logs retained as flake follow-up context, not zero-flake proof.
+
+Evidence: `test-results/cat5-final-failures` 4/4 focused final failures passed; `test-results/cat5-flaky-check` 4/4 retry-flake cases passed; `test-results/cat5-full-green-check/summary.json` records 872 passed / 0 failed; `pnpm type-check`, web 172/172, and API 554/554 passed.
+
+**Decision Gist**: Remove Cat 5’s E2E warning only after a fresh full-suite green run, and keep retry artifacts visible.
 
 ### D059: Inline comment cancel + docs tree E2E alignment (2026-05-23)
 

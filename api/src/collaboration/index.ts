@@ -288,42 +288,48 @@ function getAwareness(docName: string, doc: Y.Doc): awarenessProtocol.Awareness 
 }
 
 function handleMessage(ws: WebSocket, message: Uint8Array, docName: string, doc: Y.Doc, aw: awarenessProtocol.Awareness) {
-  const decoder = decoding.createDecoder(message);
-  const messageType = decoding.readVarUint(decoder);
+  try {
+    const decoder = decoding.createDecoder(message);
+    const messageType = decoding.readVarUint(decoder);
 
-  switch (messageType) {
-    case messageSync: {
-      const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, messageSync);
-      // Pass ws as origin so broadcast excludes the sender
-      syncProtocol.readSyncMessage(decoder, encoder, doc, ws);
+    switch (messageType) {
+      case messageSync: {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageSync);
+        // Pass ws as origin so broadcast excludes the sender
+        syncProtocol.readSyncMessage(decoder, encoder, doc, ws);
 
-      if (encoding.length(encoder) > 1) {
-        ws.send(encoding.toUint8Array(encoder));
-      }
-      break;
-    }
-    case messageAwareness: {
-      const awarenessData = decoding.readVarUint8Array(decoder);
-
-      // Extract the actual client's awarenessClientId from the update
-      // This is critical for proper cleanup on disconnect - the server was
-      // previously storing doc.clientID (server's ID) instead of the client's
-      // actual awareness clientID, causing stale states on page refresh.
-      // Format: [numStates, ...for each: clientId, clock, stateJson]
-      const conn = conns.get(ws);
-      if (conn) {
-        const updateDecoder = decoding.createDecoder(awarenessData);
-        const numStates = decoding.readVarUint(updateDecoder);
-        if (numStates > 0) {
-          const clientId = decoding.readVarUint(updateDecoder);
-          conn.awarenessClientId = clientId;
+        if (encoding.length(encoder) > 1) {
+          ws.send(encoding.toUint8Array(encoder));
         }
+        break;
       }
+      case messageAwareness: {
+        const awarenessData = decoding.readVarUint8Array(decoder);
 
-      awarenessProtocol.applyAwarenessUpdate(aw, awarenessData, ws);
-      break;
+        // Extract the actual client's awarenessClientId from the update
+        // This is critical for proper cleanup on disconnect - the server was
+        // previously storing doc.clientID (server's ID) instead of the client's
+        // actual awareness clientID, causing stale states on page refresh.
+        // Format: [numStates, ...for each: clientId, clock, stateJson]
+        const conn = conns.get(ws);
+        if (conn) {
+          const updateDecoder = decoding.createDecoder(awarenessData);
+          const numStates = decoding.readVarUint(updateDecoder);
+          if (numStates > 0) {
+            const clientId = decoding.readVarUint(updateDecoder);
+            conn.awarenessClientId = clientId;
+          }
+        }
+
+        awarenessProtocol.applyAwarenessUpdate(aw, awarenessData, ws);
+        break;
+      }
+      default:
+        ws.close(1003, 'Unsupported message type');
     }
+  } catch {
+    ws.close(1003, 'Invalid collaboration message');
   }
 }
 
@@ -562,6 +568,17 @@ export function broadcastToUser(userId: string, eventType: string, data?: Record
 // DDoS protection: Max WebSocket message size (10MB, matches REST API limit)
 const MAX_WS_MESSAGE_SIZE = 10 * 1024 * 1024;
 
+function closeOversizedOrErroredSocket(ws: WebSocket, scope: string): void {
+  ws.on('error', (error: Error & { code?: string }) => {
+    if (error.code !== 'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH') {
+      console.warn(`[${scope}] WebSocket error:`, error.message);
+    }
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CLOSING) {
+      ws.close(1009, 'Message too large');
+    }
+  });
+}
+
 export function setupCollaboration(server: Server) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
   const eventsWss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
@@ -655,6 +672,8 @@ export function setupCollaboration(server: Server) {
   });
 
   wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, docName: string, sessionData: { userId: string; workspaceId: string }) => {
+    closeOversizedOrErroredSocket(ws, 'Collaboration');
+
     const doc = await getOrCreateDoc(docName);
     const aw = getAwareness(docName, doc);
 
@@ -761,6 +780,8 @@ export function setupCollaboration(server: Server) {
 
   // Handle events WebSocket connections (for real-time notifications)
   eventsWss.on('connection', (ws: WebSocket, sessionData: { userId: string; workspaceId: string }) => {
+    closeOversizedOrErroredSocket(ws, 'Events');
+
     eventConns.set(ws, { userId: sessionData.userId, workspaceId: sessionData.workspaceId });
     console.log(`[Events] User ${sessionData.userId} connected (${eventConns.size} total connections)`);
 
@@ -789,9 +810,11 @@ export function setupCollaboration(server: Server) {
         const message = JSON.parse(data.toString());
         if (message.type === 'ping') {
           ws.send(JSON.stringify({ type: 'pong' }));
+          return;
         }
+        ws.close(1003, 'Unsupported event message');
       } catch {
-        // Ignore invalid messages
+        ws.close(1003, 'Invalid event message');
       }
     });
 

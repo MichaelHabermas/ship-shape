@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T02:54:18.888Z",
+  "run": {
+    "id": "after-token-boundary",
+    "startedAt": "2026-05-23T02:54:18.615Z",
+    "finishedAt": "2026-05-23T02:54:18.888Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://localhost:3000",
+    "webUrl": "http://localhost:5173",
+    "wsUrl": "ws://localhost:3000"
+  },
+  "summary": {
+    "status": "pass",
+    "attackSurfacesMeasured": 1,
+    "findings": 0,
+    "findingsBySeverity": {},
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "passed": 1
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "auth-session-api-token-super-admin-boundary"
+      ]
+    },
+    "websocketValidation": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "inputSanitization": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "dependencyCves": {
+      "status": "not_measured",
+      "findings": []
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "not_measured"
+    },
+    "secrets": {
+      "status": "not_measured"
+    },
+    "rateLimits": {
+      "status": "not_measured"
+    },
+    "verboseErrors": {
+      "status": "not_measured"
+    }
+  },
+  "findings": [],
+  "probes": [
+    {
+      "id": "auth-session-api-token-super-admin-boundary",
+      "name": "API tokens cannot access super-admin routes",
+      "status": "passed",
+      "durationMs": 8,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/after-token-boundary/report.json",
+    "attackSurfacesMeasured": 1,
+    "manualReviewComplete": false,
+    "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
+  }
+}

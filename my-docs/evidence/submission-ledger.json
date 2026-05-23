@@ -1964,11 +1964,11 @@
             },
             {
               "label": "Current unit suites",
-              "value": "API 36 files / 509 tests passing; web 21 files / 168 tests passing."
+              "value": "API 46 files / 554 tests passing; web 22 files / 172 tests passing."
             },
             {
               "label": "Known caveat",
-              "value": "Full E2E baseline was not green; focused E2E tree-selector rerun passed."
+              "value": "Full E2E rerun passed 872/872 with retry artifacts recorded."
             }
           ]
         }
@@ -2050,10 +2050,10 @@
           "label": "Latest API and web unit suites",
           "recorded_at": "2026-05-22",
           "values": {
-            "api_files_passed": 36,
-            "api_tests_passed": 509,
-            "web_files_passed": 21,
-            "web_tests_passed": 168
+            "api_files_passed": 46,
+            "api_tests_passed": 554,
+            "web_files_passed": 22,
+            "web_tests_passed": 172
           },
           "origin": "artifact_parsed",
           "confidence": "artifact_backed",
@@ -2072,6 +2072,23 @@
           "origin": "report_extracted",
           "confidence": "report_backed",
           "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat5-full-e2e-green-run",
+          "kind": "test_suite_summary",
+          "label": "Full E2E green rerun",
+          "recorded_at": "2026-05-22",
+          "values": {
+            "passed": 872,
+            "failed": 0,
+            "pending": 0,
+            "command": "PLAYWRIGHT_WORKERS=2 E2E_RESULTS_DIR=test-results/cat5-full-green-check pnpm test:e2e:run",
+            "results_dir": "test-results/cat5-full-green-check",
+            "retry_artifact_logs": 5
+          },
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "test-results/cat5-full-green-check/summary.json"
         }
       ],
       "derived_metrics": [
@@ -2148,10 +2165,13 @@
           "result": "pass"
         },
         {
-          "id": "cat5-e2e-baseline-not-green",
-          "type": "known_caveat",
-          "result": "warn",
-          "reason": "Full E2E baseline still had failing/flaky evidence; this does not invalidate the three meaningful regression-test target."
+          "id": "cat5-full-e2e-baseline-green",
+          "type": "test_run",
+          "result": "pass",
+          "references": [
+            "cat5-full-e2e-green-run"
+          ],
+          "reason": "Full E2E rerun passed 872/872 with no final failures."
         }
       ],
       "claims": [
@@ -2162,10 +2182,11 @@
           "basis": [
             "cat5-meaningful-regression-count",
             "cat5-target-risk-comments",
-            "cat5-latest-unit-suites"
+            "cat5-latest-unit-suites",
+            "cat5-full-e2e-green-run"
           ],
           "limits": [
-            "Does not claim the full E2E suite is green.",
+            "Full E2E is green for the recorded lower-worker rerun, but retry artifact logs remain useful flake follow-up signals.",
             "Does not claim web coverage tooling was added.",
             "The claim is the source target of three meaningful regressions plus current unit-suite pass evidence."
           ]
@@ -2176,15 +2197,15 @@
           "id": "cat5-api-suite-pass",
           "type": "test_run",
           "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test",
-          "result": "36 files passed / 509 tests passed",
-          "description": "Latest full API suite pass recorded in the improvement report after the meaningful `as` cast reduction pass."
+          "result": "46 files passed / 554 tests passed",
+          "description": "Latest full API suite pass recorded during Cat 5 E2E closeout."
         },
         {
           "id": "cat5-web-suite-pass",
           "type": "test_run",
           "command": "pnpm --filter @ship/web test",
-          "result": "21 files passed / 168 tests passed",
-          "description": "Latest full web suite pass recorded in the improvement report after the meaningful `as` cast reduction pass."
+          "result": "22 files passed / 172 tests passed",
+          "description": "Latest full web suite pass recorded during Cat 5 E2E closeout."
         },
         {
           "id": "cat5-focused-e2e-pass",
@@ -2194,6 +2215,13 @@
           "description": "Focused E2E rerun for stale tree selector proof."
         },
         {
+          "id": "cat5-full-e2e-pass",
+          "type": "test_run",
+          "command": "PLAYWRIGHT_WORKERS=2 E2E_RESULTS_DIR=test-results/cat5-full-green-check pnpm test:e2e:run",
+          "result": "872 passed / 0 failed",
+          "description": "Full E2E rerun after fixing upload-byte-count, program week nested-route, and project sidebar-link selector failures. Retry artifact logs remain recorded for follow-up, but Playwright exited 0."
+        },
+        {
           "id": "cat5-risk-comment-locations",
           "type": "methodology",
           "path": "my-docs/IMPROVEMENT_REPORT.md",
@@ -2201,11 +2229,11 @@
         }
       ],
       "caveats": [
-        "Full E2E baseline remained non-green and is recorded as warning context.",
+        "Full E2E passed with retry artifact logs still recorded as flake follow-up context.",
         "Web coverage tooling remains not configured."
       ],
       "non_claims": [
-        "Does not claim all flaky E2E behavior is fixed.",
+        "Does not claim zero retry artifacts under every worker count.",
         "Does not claim code coverage percentage improved.",
         "Does not count stale selector cleanup as one of the three meaningful regression tests."
       ],
@@ -2949,7 +2977,7 @@
       "id": "cat-8-security-audit",
       "number": 8,
       "title": "Security Audit",
-      "status": "open",
+      "status": "proven",
       "source_requirement": {
         "statement": "Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof.",
         "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt"
@@ -2957,48 +2985,50 @@
       "audit_deliverable": {
         "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
         "probe_tool": {
-          "command": "Needs fill-in: single-command security probe not yet present",
-          "fresh_instance_runbook": "Needs fill-in: grader-run runbook not yet present",
-          "structured_report": "Needs fill-in: structured security report path not yet present"
+          "command": "pnpm security:probe",
+          "fresh_instance_runbook": "Run pnpm dev against a seeded local instance, then run pnpm security:probe. Optional focused forms: pnpm security:probe -- --quick and pnpm security:probe -- --probe <probe-id>.",
+          "structured_report": "my-docs/evidence/security-audit/latest.json"
         },
         "fields": {
           "auth_session_vulnerabilities": [],
           "websocket_validation_failures": [],
           "input_sanitization_failures": [],
           "dependency_cves": {
-            "high_or_critical_count": null,
+            "high_or_critical_count": 0,
             "list": []
           },
           "cors_csp_misconfiguration": {
-            "status": "needs_fill_in",
-            "details": ""
+            "status": "passed",
+            "details": "CSP and credentialed CORS checked by manual-cors-csp in my-docs/evidence/security-audit/latest.json; local ACAO was http://localhost:5173, not wildcard."
           },
           "secrets_exposure_risk": {
-            "status": "needs_fill_in",
-            "details": ""
+            "status": "passed",
+            "details": "manual-secrets inspected server secret configuration and client env usage targets with no suspicious VITE secret/password/token exposure hits."
           },
           "rate_limiting_absent_on": [],
           "verbose_error_leakage": {
-            "status": "needs_fill_in",
-            "examples": []
+            "status": "passed",
+            "examples": [
+              "manual-verbose-errors passed after malformed JSON returns a generic 400 JSON response instead of Express default stack output."
+            ]
           }
         },
         "verified_vulnerability_fixes": [
           {
             "slot": 1,
-            "status": "needs_fill_in",
-            "vulnerability_class": "",
-            "reproduction_steps": "",
-            "fix_applied": "",
-            "proof": ""
+            "status": "verified",
+            "vulnerability_class": "Local file upload validation and browser-executable inline serving",
+            "reproduction_steps": "Before: run pnpm security:probe -- --probe input-file-upload-size-mismatch --run-id before-file-size and pnpm security:probe -- --probe input-file-serve-headers --run-id before-file-headers. The first accepted mismatched bytes; the second served uploaded HTML with inline Content-Disposition.",
+            "fix_applied": "api/src/routes/files.ts now rejects local-upload bodies whose byte length differs from files.size_bytes and serves user uploads as attachments with sanitized filenames while retaining X-Content-Type-Options: nosniff.",
+            "proof": "Before reports: my-docs/evidence/security-audit/runs/before-file-size/report.json and my-docs/evidence/security-audit/runs/before-file-headers/report.json. After reports: my-docs/evidence/security-audit/runs/after-file-size/report.json and my-docs/evidence/security-audit/runs/after-file-headers-2/report.json. Final full report: my-docs/evidence/security-audit/latest.json."
           },
           {
             "slot": 2,
-            "status": "needs_fill_in",
-            "vulnerability_class": "",
-            "reproduction_steps": "",
-            "fix_applied": "",
-            "proof": ""
+            "status": "verified",
+            "vulnerability_class": "WebSocket malformed/oversized frame resilience",
+            "reproduction_steps": "Before: run pnpm security:probe -- --probe websocket-malformed-frame --run-id before-ws-malformed. The probe reported unsafe malformed-frame handling; the first full probe attempt also exposed an unhandled ws oversized-frame error in the dev server log.",
+            "fix_applied": "api/src/collaboration/index.ts now catches collaboration message decode failures, closes unsupported/invalid collaboration and events messages with 1003, and handles oversized ws frames with 1009 without crashing the API process.",
+            "proof": "Before report: my-docs/evidence/security-audit/runs/before-ws-malformed/report.json. After reports: my-docs/evidence/security-audit/runs/after-ws-malformed/report.json, my-docs/evidence/security-audit/runs/after-ws-oversized/report.json, and final deterministic close-code evidence in my-docs/evidence/security-audit/latest.json."
           }
         ]
       },
@@ -3009,15 +3039,15 @@
           "items": [
             {
               "label": "Probe tool",
-              "value": "Open: single-command runnable probe not yet evidenced."
+              "value": "Proven: pnpm security:probe runs the Category 8 harness and writes structured JSON/Markdown evidence."
             },
             {
               "label": "Attack surfaces",
-              "value": "Auth/session, WebSocket validation, input sanitization, dependency CVEs."
+              "value": "Auth/session, WebSocket validation, input sanitization, and dependency CVEs all measured in latest.json."
             },
             {
               "label": "Manual review",
-              "value": "CORS/CSP, secrets, rate limiting, verbose errors."
+              "value": "CORS/CSP, secrets, rate limiting, and verbose errors all passed assisted review in the final probe."
             }
           ]
         },
@@ -3026,16 +3056,16 @@
           "title": "Current Claim Boundary",
           "items": [
             {
-              "label": "Dependency cleanup",
-              "value": "Useful security hygiene exists, but not a full Category 8 probe."
+              "label": "Probe coverage",
+              "value": "25 named probes passed; input coverage now includes documents, search, issues, comments, and file upload surfaces."
             },
             {
-              "label": "Known fixes",
-              "value": "Setup race and authz hardening are documented elsewhere, but not packaged as two verified probe-driven Cat 8 fixes."
+              "label": "Verified fixes",
+              "value": "Two probe-backed fixes: local file upload validation/serving and WebSocket malformed/oversized resilience."
             },
             {
               "label": "Status",
-              "value": "Open until probe/report/fix proof exists."
+              "value": "Proven with local black-box probe evidence; remote destructive probing remains out of scope unless explicitly enabled."
             }
           ]
         }
@@ -3045,49 +3075,49 @@
           "id": "cat8-audit-probe-tool-runnable",
           "phase": "audit",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.probe_tool.command"
         },
         {
           "id": "cat8-audit-auth-session-surface",
           "phase": "audit",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.fields.auth_session_vulnerabilities"
         },
         {
           "id": "cat8-audit-websocket-validation-surface",
           "phase": "audit",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.fields.websocket_validation_failures"
         },
         {
           "id": "cat8-audit-input-sanitization-surface",
           "phase": "audit",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.fields.input_sanitization_failures"
         },
         {
           "id": "cat8-audit-dependency-cves",
           "phase": "audit",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.fields.dependency_cves"
         },
         {
           "id": "cat8-audit-manual-review-fields",
           "phase": "audit",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.fields.cors_csp_misconfiguration, secrets_exposure_risk, rate_limiting_absent_on, verbose_error_leakage"
         },
         {
           "id": "cat8-improvement-two-verified-fixes",
           "phase": "improvement",
           "required": true,
-          "status": "missing",
+          "status": "present",
           "location": "audit_deliverable.verified_vulnerability_fixes"
         }
       ],
@@ -3096,36 +3126,38 @@
           "id": "cat8-security-probe-status",
           "kind": "security_probe_status",
           "label": "Security probe deliverable status",
-          "recorded_at": "2026-05-22",
+          "recorded_at": "2026-05-23",
           "values": {
-            "runnable_probe_tool": false,
-            "structured_report_present": false,
-            "attack_surfaces_measured": 0,
+            "runnable_probe_tool": true,
+            "structured_report_present": true,
+            "attack_surfaces_measured": 4,
             "required_attack_surfaces": 4,
-            "verified_vulnerability_fixes": 0,
-            "required_verified_vulnerability_fixes": 2
+            "verified_vulnerability_fixes": 2,
+            "required_verified_vulnerability_fixes": 2,
+            "high_or_critical_dependency_cves": 0,
+            "total_named_probes_passed": 25
           },
-          "origin": "manual_entry",
-          "confidence": "manual",
-          "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt"
+          "origin": "artifact_parsed",
+          "confidence": "report_backed",
+          "source": "my-docs/evidence/security-audit/latest.json"
         }
       ],
       "derived_metrics": [
         {
           "id": "cat8-required-attack-surface-coverage",
           "kind": "count",
-          "value": 0,
+          "value": 4,
           "threshold": 4,
           "origin": "computed",
-          "confidence": "manual"
+          "confidence": "report_backed"
         },
         {
           "id": "cat8-verified-vulnerability-fix-count",
           "kind": "count",
-          "value": 0,
+          "value": 2,
           "threshold": 2,
           "origin": "computed",
-          "confidence": "manual"
+          "confidence": "report_backed"
         }
       ],
       "targets": [
@@ -3135,8 +3167,8 @@
           "metric_id": "cat8-security-probe-status",
           "operator": "boolean_true",
           "threshold": true,
-          "actual": false,
-          "result": "fail"
+          "actual": true,
+          "result": "pass"
         },
         {
           "id": "cat8-target-four-attack-surfaces",
@@ -3144,17 +3176,17 @@
           "metric_id": "cat8-required-attack-surface-coverage",
           "operator": "count_at_least",
           "threshold": 4,
-          "actual": 0,
-          "result": "fail"
+          "actual": 4,
+          "result": "pass"
         },
         {
           "id": "cat8-target-manual-review",
           "description": "Manual CORS/CSP, secrets, rate-limit, and verbose-error review is complete.",
           "operator": "manual_gate",
-          "result": "fail",
-          "reason": "Manual review fields are placeholders only.",
+          "result": "pass",
+          "reason": "manual-cors-csp, manual-secrets, manual-rate-limits, and manual-verbose-errors all passed in latest security report.",
           "references": [
-            "cat8-security-brief"
+            "cat8-security-probe-final-report"
           ]
         },
         {
@@ -3163,8 +3195,8 @@
           "metric_id": "cat8-verified-vulnerability-fix-count",
           "operator": "count_at_least",
           "threshold": 2,
-          "actual": 0,
-          "result": "fail"
+          "actual": 2,
+          "result": "pass"
         }
       ],
       "acceptance_tests": [
@@ -3172,41 +3204,43 @@
           "id": "cat8-probe-tool-runnable",
           "type": "target_result",
           "target_id": "cat8-target-runnable-probe",
-          "result": "fail"
+          "result": "pass"
         },
         {
           "id": "cat8-four-attack-surfaces-covered",
           "type": "target_result",
           "target_id": "cat8-target-four-attack-surfaces",
-          "result": "fail"
+          "result": "pass"
         },
         {
           "id": "cat8-manual-review-complete",
           "type": "target_result",
           "target_id": "cat8-target-manual-review",
-          "result": "fail"
+          "result": "pass"
         },
         {
           "id": "cat8-two-verified-vulnerability-fixes",
           "type": "target_result",
           "target_id": "cat8-target-two-verified-fixes",
-          "result": "fail"
+          "result": "pass"
         }
       ],
       "claims": [
         {
-          "id": "cat8-security-audit-open",
-          "status": "open",
-          "statement": "Security 8 is represented as a required lane, but no runnable probe/report and no two verified probe-driven vulnerability fixes are evidenced yet.",
+          "id": "cat8-security-audit-proven",
+          "status": "proven",
+          "statement": "Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence.",
           "basis": [
             "cat8-security-probe-status",
-            "cat8-target-runnable-probe",
-            "cat8-target-two-verified-fixes"
+            "cat8-target-four-attack-surfaces",
+            "cat8-target-two-verified-fixes",
+            "cat8-security-probe-final-report"
           ],
           "limits": [
-            "Dependency cleanup and authz hardening are useful context, but they do not substitute for the required security probe deliverable.",
-            "No high/critical CVE count is claimed from this ledger entry.",
-            "No CORS/CSP/secrets/rate-limit/error-review completion is claimed."
+            "Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled.",
+            "Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field.",
+            "The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories.",
+            "Manual review is assisted and evidence-backed; it is not a formal third-party penetration test."
           ]
         }
       ],
@@ -3218,23 +3252,82 @@
           "description": "Category 8 source brief defining required probe/manual review/fix proof."
         },
         {
-          "id": "cat8-dependency-cleanup-context",
+          "id": "cat8-security-probe-final-report",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/latest.json",
+          "description": "Final full security probe report: 4/4 attack surfaces measured, 25/25 probes passed, 0 findings."
+        },
+        {
+          "id": "cat8-security-probe-final-markdown",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/latest.md",
+          "description": "Human-readable final security probe report."
+        },
+        {
+          "id": "cat8-before-file-size",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/before-file-size/report.json",
+          "description": "Before proof for local upload declared-size mismatch acceptance."
+        },
+        {
+          "id": "cat8-after-file-size",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/after-file-size/report.json",
+          "description": "After proof for local upload declared-size mismatch rejection."
+        },
+        {
+          "id": "cat8-before-file-headers",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/before-file-headers/report.json",
+          "description": "Before proof for unsafe inline uploaded HTML serving headers."
+        },
+        {
+          "id": "cat8-after-file-headers",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/after-file-headers-2/report.json",
+          "description": "After proof for attachment/nosniff uploaded file serving headers."
+        },
+        {
+          "id": "cat8-before-ws-malformed",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/before-ws-malformed/report.json",
+          "description": "Before proof for unsafe malformed WebSocket frame handling."
+        },
+        {
+          "id": "cat8-after-ws-malformed",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/after-ws-malformed/report.json",
+          "description": "After proof for malformed WebSocket frame handling."
+        },
+        {
+          "id": "cat8-after-ws-oversized",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/after-ws-oversized/report.json",
+          "description": "After proof for oversized WebSocket frame handling without process crash."
+        },
+        {
+          "id": "cat8-security-runbook",
           "type": "source_doc",
-          "path": "my-docs/DECISION_LOG.md",
-          "description": "Dependency cleanup decision records zero-advisory audit context, but it is not a full Security 8 probe."
+          "path": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+          "description": "Category 8 implementation and rerun runbook."
         }
       ],
       "caveats": [
-        "This pass does not build the security probe tool.",
-        "Security fixes elsewhere remain context until packaged with probe output and before/after vulnerability proof."
+        "Remote/deployed destructive probing remains out of scope by default; remote mode requires explicit --allow-write and --allow-stress.",
+        "Created local probe records are retained unless a future run uses cleanup support.",
+        "Input sanitization probes sample the major current user-facing write/read surfaces and should be extended when new fields are introduced.",
+        "This is black-box plus assisted review evidence, not a formal external penetration test."
       ],
       "non_claims": [
-        "Does not claim Security 8 completion.",
-        "Does not claim dependency cleanup alone satisfies Security 8.",
-        "Does not claim manual CORS/CSP/secrets/rate-limit/error review is complete."
+        "Does not claim remote production penetration testing.",
+        "Does not claim capability-scoped API tokens beyond the verified super-admin route denial check.",
+        "Does not claim future dependency advisories will remain zero without rerunning pnpm security:probe."
       ],
       "sources": [
         "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+        "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt",
+        "my-docs/evidence/security-audit/latest.json",
+        "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
         "my-docs/MEMORY.md",
         "my-docs/DECISION_LOG.md"
       ]

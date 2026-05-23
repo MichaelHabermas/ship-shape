@@ -132,6 +132,8 @@ Places where a small, focused change creates outsized value.
 - Category 7 official closeout top three are `/docs`, first real `/documents/:id`, and `/projects`; `/my-week` is supporting evidence only. `pnpm a11y:closeout -- --fail-on-serious` now scans all four.
 - Category 6 AI/Bedrock unavailable behavior should degrade explicitly with `ai_unavailable` JSON and visible quality-banner copy while preserving editor content and any previous analysis. Screenshot rail: `node scripts/cat6-ai-unavailable-evidence.mjs` writes `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`; it requires an existing weekly plan or `CAT6_DOCUMENT_PATH=/documents/<id>` and must not create evidence data implicitly.
 - Cat 3 benchmark trap: the standard `pnpm benchmark:api` matrix can trigger rate limiting and return fast non-2xx rows. Exclude any benchmark artifact with non-2xx responses from P95 proof rather than treating low latency as improvement.
+- Category 8 closeout is probe-first: `pnpm security:probe` is the canonical runnable evidence, and `my-docs/evidence/security-audit/latest.json` is the stable report path. Do not count old hardening as Cat 8 fixes unless it has named before/after probe reports. The probe may suggest ledger updates, but only the ledger owns submission claims.
+- Post–Cat 8 open security findings: **`my-docs/evidence/security-audit/security-findings-ledger.md` only** (SS-FIND-001…034, all discovered 2026-05-22 in one deep authorization session; not remediated yet). Do not create `findings-ledger.md` (removed duplicate). Ledger ≠ probe pass/fail — update status + before/after evidence when fixing.
 
 ## Sharp Edges
 

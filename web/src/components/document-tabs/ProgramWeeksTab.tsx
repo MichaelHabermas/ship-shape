@@ -25,13 +25,13 @@ export default function ProgramSprintsTab({ documentId, nestedPath }: DocumentTa
   // Handle sprint selection from timeline
   const handleSelectSprint = useCallback((_sprintNumber: number, sprint: Sprint | null) => {
     if (sprint) {
-      navigate(`/documents/${documentId}/sprints/${sprint.id}`);
+      navigate(`/documents/${documentId}/weeks/${sprint.id}`);
     }
   }, [documentId, navigate]);
 
   // Handle sprint open (double-click or direct navigation)
   const handleOpenSprint = useCallback((sprintId: string) => {
-    navigate(`/documents/${documentId}/sprints/${sprintId}`);
+    navigate(`/documents/${documentId}/weeks/${sprintId}`);
   }, [documentId, navigate]);
 
   if (loading) {
@@ -68,7 +68,7 @@ export default function ProgramSprintsTab({ documentId, nestedPath }: DocumentTa
           <WeekDetailView
             sprintId={selectedSprintId}
             programId={documentId}
-            onBack={() => navigate(`/documents/${documentId}/sprints`)}
+            onBack={() => navigate(`/documents/${documentId}/weeks`)}
           />
         ) : (
           <EmptySprintState
@@ -125,4 +125,3 @@ function EmptySprintState({
     </div>
   );
 }
-

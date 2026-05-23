@@ -1275,3 +1275,55 @@ Final artifacts:
 - After: `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json`
 
 Result: `/api/bootstrap` clears the 20% P95 target at 10/25/50 concurrency after removing inferred accountability and standup-status work from the bootstrap critical path. `/api/dashboard/my-week` also clears the 20% P95 target across the same matrix in the clean repeat after-run. Category 3 is now proven in the ledger. Rate-limited or watcher-restarted benchmark runs remain excluded.
+
+---
+
+## Category 8 security audit closeout (2026-05-23)
+
+Implemented `scripts/security-probe/` and root commands:
+
+- `pnpm security:probe`
+- `pnpm security:probe -- --quick`
+- `pnpm security:probe -- --probe <probe-id>`
+- `pnpm security:probe:test`
+
+Final report: `my-docs/evidence/security-audit/runs/cat8-final/report.json` and stable copy `my-docs/evidence/security-audit/latest.json`.
+
+Final result after multi-agent verification tightening: 4/4 surfaces measured, 25/25 probes passed, 0 findings. Covered auth/session, WebSocket validation, input sanitization, dependency CVEs, and assisted CORS/CSP/secrets/rate-limit/verbose-error review.
+
+Rejected initial candidates:
+
+- API token super-admin blast radius: already denied by existing middleware; final probe `auth-session-api-token-super-admin-boundary` passes.
+- Cross-workspace association leak: current issue/document reference paths already validate workspace/referenceability; not used as a Cat 8 fix.
+
+Verified fixes:
+
+- File upload validation and serving headers. Before reports `runs/before-file-size/report.json` and `runs/before-file-headers/report.json` found local upload size mismatch acceptance and inline uploaded HTML serving. `api/src/routes/files.ts` now rejects body length mismatches and serves uploads as attachments with sanitized filenames while retaining `X-Content-Type-Options: nosniff`. After reports `runs/after-file-size/report.json` and `runs/after-file-headers-2/report.json` pass. Route regression tests now cover mismatch rejection, attachment/nosniff serving, and malformed JSON response hygiene.
+- WebSocket malformed/oversized frame resilience. Before report `runs/before-ws-malformed/report.json` found unsafe malformed-frame handling; the first full probe attempt also surfaced an unhandled `WS_ERR_UNSUPPORTED_MESSAGE_LENGTH` crash from an oversized frame. `api/src/collaboration/index.ts` now catches decode failures, closes unsupported/invalid collaboration and events messages with `1003`, and handles oversized frames with `1009` without crashing. After reports `runs/after-ws-malformed/report.json`, `runs/after-ws-oversized/report.json`, and final `latest.json` deterministic close-code checks pass.
+
+Additional hardening: malformed JSON now returns generic 400 JSON from `api/src/app.ts` instead of Express default verbose error output. Probe `manual-verbose-errors` passes in the final full run.
+
+Multi-agent verification follow-up fixed overclaiming traps: skipped-only surfaces no longer count as measured, remote mode centrally skips write/stress probes, dependency audit parse/command failures are errors, boolean CLI flags accept `--flag=true`, `/events` WebSocket bad messages are rejected, auth probes include session token shape/browser expiry, input probes include issue and comment payloads, and stale Cat 8 summary cards were corrected.
+
+Ledger: only Category 8 was changed in `my-docs/evidence/submission-ledger.json`; generated docs should come from `pnpm submission:render`.
+
+---
+
+## Category 5 E2E baseline closeout (2026-05-22)
+
+Fresh full E2E rerun before fixes: `E2E_RESULTS_DIR=test-results/cat5-last-failed pnpm test:e2e:run -- --last-failed` had no reusable last-failed state in that result dir, so it ran the full suite. Result: 821 passed / 4 failed / 47 skipped, plus 4 retry-flake artifacts. This replaced stale 23-failure and 128-failure evidence with a concrete current failure set.
+
+Final-failure root causes fixed:
+
+- `e2e/file-upload-api.spec.ts`: declared `sizeBytes: 100` while uploading a smaller PNG buffer; Cat 8 upload-size validation correctly rejected it. Test now declares `pngBuffer.byteLength`.
+- `web/src/components/document-tabs/ProgramWeeksTab.tsx`: week timeline navigation used dead `/documents/:id/sprints/:sprintId` nested routes; the tab system only recognizes `weeks`, so the page redirected to Overview and no selected card appeared. Navigation now uses `/documents/:id/weeks/:sprintId`.
+- `e2e/project-weeks.spec.ts`: project-link assertions used broad `a:has-text(...)` locators that matched both the document list and properties sidebar. Tests now scope to `getByLabel('Document properties')`.
+
+Verification:
+
+- Focused final failures: `E2E_RESULTS_DIR=test-results/cat5-final-failures pnpm test:e2e:run e2e/file-upload-api.spec.ts e2e/program-mode-week-ux.spec.ts e2e/project-weeks.spec.ts -- -g "confirms upload and returns CDN URL|clicking sprint card selects it in the chart|clicking cell opens weekly plan document with context|project link in Properties sidebar navigates back to project"` → 4/4 passed.
+- Retry-flake check: `E2E_RESULTS_DIR=test-results/cat5-flaky-check pnpm test:e2e:run e2e/mentions.spec.ts e2e/my-week-stale-data.spec.ts e2e/team-mode.spec.ts e2e/weekly-accountability.spec.ts -- -g "should sync mentions between collaborators|retro edits are visible on /my-week after navigating back|clicking program header collapses the group|Allocation grid shows person with assigned issues and plan/retro status"` → 4/4 passed.
+- Full E2E green proof: `PLAYWRIGHT_WORKERS=2 E2E_RESULTS_DIR=test-results/cat5-full-green-check pnpm test:e2e:run` → 872 passed / 0 failed / exit 0. The run still wrote 5 retry artifact logs, so the ledger claim is green full-suite evidence with retry artifacts retained as flake follow-up context, not zero-flake proof.
+- Unit gates: `pnpm type-check` passed; `pnpm --filter @ship/web test` passed 22 files / 172 tests; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm test` passed 46 files / 554 tests.
+
+Ledger: Category 5 warning gate was replaced with `cat5-full-e2e-baseline-green`; generated docs should come from `pnpm submission:render`.

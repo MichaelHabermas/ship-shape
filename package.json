@@ -57,6 +57,8 @@
     "perf:query-count-api": "node ./scripts/query-count-api.mjs",
     "perf:explain": "pnpm --filter @ship/api exec tsx ../scripts/explain-performance.ts",
     "a11y:closeout": "node ./scripts/a11y-closeout.mjs",
+    "security:probe": "node ./scripts/security-probe/run.mjs",
+    "security:probe:test": "node --test ./scripts/security-probe/*.test.mjs",
     "submission:validate": "node ./scripts/submission/validate-ledger.mjs",
     "submission:validate:strict": "node ./scripts/submission/validate-ledger.mjs --fail-on-acceptance-fail",
     "submission:render-dashboard": "node ./scripts/submission/render-dashboard.mjs",

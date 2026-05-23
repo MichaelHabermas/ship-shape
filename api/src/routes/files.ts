@@ -4,7 +4,7 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { mkdir, writeFile, unlink } from 'fs/promises';
-import { join, dirname } from 'path';
+import { basename, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authMiddleware } from '../middleware/auth.js';
 import { getActor, getDocumentAccessContext } from '../services/document-access.js';
@@ -83,6 +83,10 @@ function isAllowedFile(filename: string, _mimeType: string): boolean {
   // Check extension against blocklist (allow everything except dangerous types)
   const ext = filename.toLowerCase().slice(filename.lastIndexOf('.'));
   return !BLOCKED_EXTENSIONS.has(ext);
+}
+
+function safeAttachmentFilename(filename: string): string {
+  return basename(filename).replace(/[\r\n"]/g, '_').trim() || 'download';
 }
 
 // POST /api/files/upload - Get presigned URL for upload
@@ -194,6 +198,11 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
       return;
     }
 
+    if (buffer.length !== Number(file.size_bytes)) {
+      sendLegacyError(res, 400, 'Uploaded file size does not match declared size');
+      return;
+    }
+
     // Ensure uploads directory exists
     const filePath = join(UPLOADS_DIR, file.s3_key);
     await mkdir(dirname(filePath), { recursive: true });
@@ -301,9 +310,10 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
     const file = fileResult.rows[0];
     const filePath = join(UPLOADS_DIR, file.s3_key);
 
-    // Set content type and serve file
-    res.setHeader('Content-Type', file.mime_type);
-    res.setHeader('Content-Disposition', `inline; filename="${file.filename}"`);
+    // Serve user uploads as downloads to avoid browser execution of uploaded content.
+    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeAttachmentFilename(file.filename)}"`);
     res.sendFile(filePath);
   } catch (error) {
     sendInternalError(res, error, 'Error serving file:', { error: 'Failed to serve file' });

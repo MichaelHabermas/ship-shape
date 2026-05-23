@@ -8,10 +8,18 @@ build
 .turbo
 *.tsbuildinfo
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# Environment files (keep committed examples)
+.env*
+!.env.example
+!**/.env.example
+
+# Test coverage reports
+coverage/
+**/coverage/
+
+# Tool caches
+.eslintcache
+**/.eslintcache
 
 # Logs
 logs
@@ -26,6 +34,7 @@ Thumbs.db
 # IDE
 .vscode
 .idea
+.cursor/
 *.swp
 *.swo
 
@@ -51,6 +60,9 @@ evidence/
 !scripts/evidence/**
 !my-docs/evidence/
 !my-docs/evidence/**
+# Iterative security probe scratch runs (canonical before/after/cat8-final runs stay tracked)
+my-docs/evidence/security-audit/runs/debug-*/
+my-docs/evidence/security-audit/runs/verify-*/
 *.png
 
 # Playwright test artifacts

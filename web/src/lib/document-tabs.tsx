@@ -33,7 +33,7 @@ export interface DocumentResponse extends Record<string, unknown> {
 export interface DocumentTabProps {
   documentId: string;
   document: DocumentResponse;
-  /** Nested path segments after the tab, e.g., for /documents/:id/sprints/:sprintId, nestedPath would be the sprintId */
+  /** Nested path segments after the tab, e.g., for /documents/:id/weeks/:weekId, nestedPath would be the weekId */
   nestedPath?: string;
 }
 
