@@ -217,7 +217,7 @@
               <span class="rail-meta">Test Coverage and Quality</span>
               <span class="rail-detail">H · 5/5</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-6-runtime-error-handling" data-meta-overview="6/6" data-detail-overview="H · 6/6" data-meta-evidence="5 art" data-detail-evidence="H · 5 artifacts" data-meta-cross-examine="27 pts" data-detail-cross-examine="H · 27 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="6/6" data-detail-targets="H · 6/6 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="4 lim" data-detail-boundaries="H · 4 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 6: Runtime Error and Edge Case Handling">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-6-runtime-error-handling" data-meta-overview="6/6" data-detail-overview="H · 6/6" data-meta-evidence="5 art" data-detail-evidence="H · 5 artifacts" data-meta-cross-examine="29 pts" data-detail-cross-examine="H · 29 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="6/6" data-detail-targets="H · 6/6 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="4 lim" data-detail-boundaries="H · 4 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 6: Runtime Error and Edge Case Handling">
               <span class="rail-number">6</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">6/6</span>
@@ -392,7 +392,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>27 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 3 manual</small>
+      <small>29 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 4 manual</small>
 
     </div>
             <span>6/6 acceptance pass; all gates clear</span>
@@ -1005,11 +1005,11 @@
 
                   <li>
                     <strong>Focused runtime E2E</strong>
-                    <span>Historical focused run: 8 passed / 0 failed with named screenshots; current rerun blocked by Docker preflight.</span>
+                    <span>Focused runtime refresh: 8 passed / 0 failed with named screenshots.</span>
                   </li>
                   <li>
                     <strong>Proven fixes</strong>
-                    <span>CSRF JSON 403, Backlinks offline/stale status, and AI unavailable degraded mode are documented.</span>
+                    <span>CSRF JSON 403, offline editor draft preservation, and AI unavailable degraded mode are documented.</span>
                   </li>
                   <li>
                     <strong>Third fix</strong>
@@ -1026,7 +1026,7 @@
                   </li>
                   <li data-ledger-id="cat6-target-user-facing-confusion-fix">
                     <strong>Target User Facing Confusion Fix <span class="badge proven">proven</span></strong>
-                    <span>At least one fix involves real user-facing data loss or confusion. Backlinks offline/degraded state preserves stale data visibly instead of failing silently.</span>
+                    <span>At least one fix involves real user-facing data loss or confusion. Offline editor evidence preserves typed draft content through network failure instead of losing user work.</span>
                   </li>
                   <li data-ledger-id="cat6-target-runtime-screenshots">
                     <strong>Target Runtime Screenshots <span class="badge proven">proven</span></strong>
@@ -1038,7 +1038,7 @@
 
                   <li data-ledger-id="cat6-runtime-error-handling-partial">
                     <strong>Runtime Error Handling Partial <span class="badge proven">proven</span></strong>
-                    <span>Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode. Does not count comments visibility or migration bootstrap as Category 6 proof. Does not claim process-level unhandled rejection handling is solved. Current E2E rerun was blocked by Docker preflight; existing focused E2E and new AI screenshot are the artifact basis.</span>
+                    <span>Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode. Does not count comments visibility or migration bootstrap as Category 6 proof. Does not claim process-level unhandled rejection handling is solved. Focused runtime E2E and the AI unavailable collector are the screenshot artifact basis.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -1049,9 +1049,15 @@
 
 
         </li>
+        <li data-ledger-id="cat6-offline-editor-preserves-draft">
+          <strong>Offline Editor Preserves Draft <span class="subtle">manual_observation</span></strong>
+          <span>Editor preserves typed draft content while offline and remains usable after reconnect.</span>
+
+
+        </li>
         <li data-ledger-id="cat6-backlinks-offline-fix">
           <strong>Backlinks Offline Fix <span class="subtle">manual_observation</span></strong>
-          <span>Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect.</span>
+          <span>Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect; treated as supporting improvement rather than one of the three screenshot-backed Cat 6 fixes.</span>
 
 
         </li>
@@ -1680,7 +1686,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>27 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 3 manual</small>
+      <small>29 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 4 manual</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>
@@ -1689,7 +1695,7 @@
           <dl class="cross-list">
             <div>
               <dt>Claim</dt>
-              <dd>Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode.</dd>
+              <dd>Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode.</dd>
             </div>
             <div>
               <dt>Attack</dt>
@@ -1697,7 +1703,7 @@
             </div>
             <div>
               <dt>Defense</dt>
-              <dd>6/6 acceptance gates pass. Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode. Boundary: Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</dd>
+              <dd>6/6 acceptance gates pass. Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode. Boundary: Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</dd>
             </div>
             <div>
               <dt>Source Gate</dt>
@@ -1950,11 +1956,11 @@
             </section>
             <section>
               <h3>After</h3>
-              <p>Focused runtime E2E: Historical focused run: 8 passed / 0 failed with named screenshots; current rerun blocked by Docker preflight. Proven fixes: CSRF JSON 403, Backlinks offline/stale status, and AI unavailable degraded mode are documented. Third fix: AI/Bedrock unavailable path returns controlled JSON and visible degraded UI without clearing editor content.</p>
+              <p>Focused runtime E2E: Focused runtime refresh: 8 passed / 0 failed with named screenshots. Proven fixes: CSRF JSON 403, offline editor draft preservation, and AI unavailable degraded mode are documented. Third fix: AI/Bedrock unavailable path returns controlled JSON and visible degraded UI without clearing editor content.</p>
             </section>
             <section>
               <h3>Reviewer Meaning</h3>
-              <p>Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode. Boundary: Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</p>
+              <p>Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode. Boundary: Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</p>
             </section>
           </div>
         </article>

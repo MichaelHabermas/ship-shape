@@ -581,6 +581,7 @@ This is security/trust foundation work. It closes the known first-run race risk,
 - Session activity writes are now throttled server-side: authenticated requests still validate inactivity against stored `last_activity`, but only update `last_activity` and refresh the cookie after the 60-second activity threshold.
 - Backlinks now preserve the last successful result during fetch failures, show a visible offline/stale status with `role="status"` and `aria-live="polite"`, pause polling while offline, retry immediately when the browser returns online, and avoid repeated console-error spam.
 - `e2e/error-handling.spec.ts` now captures named Category 6 runtime screenshots for API 500 fallback UI, offline editor draft preservation, CSRF JSON/editor usability, and concurrent API failure fallback UI. These tests also assert the intercepted failure path occurred, the editor remained usable where relevant, and no uncaught browser `pageerror` was emitted.
+- The screenshot-backed user-facing data-loss/confusion proof is the offline editor draft-preservation scenario; the Backlinks offline/stale-status work remains supporting runtime-error evidence, not the counted screenshot-backed fix.
 - AI/Bedrock unavailable handling now returns controlled `ai_unavailable` JSON from status/analysis endpoints when provider credentials cannot resolve, and the plan/retro quality banners show a concise degraded state without clearing existing editor content or persisted analysis.
 
 ### Evidence

@@ -2378,11 +2378,11 @@
           "items": [
             {
               "label": "Focused runtime E2E",
-              "value": "Historical focused run: 8 passed / 0 failed with named screenshots; current rerun blocked by Docker preflight."
+              "value": "Focused runtime refresh: 8 passed / 0 failed with named screenshots."
             },
             {
               "label": "Proven fixes",
-              "value": "CSRF JSON 403, Backlinks offline/stale status, and AI unavailable degraded mode are documented."
+              "value": "CSRF JSON 403, offline editor draft preservation, and AI unavailable degraded mode are documented."
             },
             {
               "label": "Third fix",
@@ -2463,7 +2463,7 @@
           "id": "cat6-runtime-e2e-closeout",
           "kind": "e2e_runtime_evidence",
           "label": "Focused runtime evidence E2E",
-          "recorded_at": "2026-05-21",
+          "recorded_at": "2026-05-23",
           "values": {
             "passed": 8,
             "failed": 0,
@@ -2499,8 +2499,8 @@
           "description": "At least one fix involves real user-facing data loss or confusion.",
           "operator": "manual_gate",
           "result": "pass",
-          "reason": "Backlinks offline/degraded state preserves stale data visibly instead of failing silently.",
-          "references": ["cat6-backlinks-offline-fix"]
+          "reason": "Offline editor evidence preserves typed draft content through network failure instead of losing user work.",
+          "references": ["cat6-offline-editor-preserves-draft"]
         },
         {
           "id": "cat6-target-runtime-screenshots",
@@ -2565,7 +2565,7 @@
         {
           "id": "cat6-runtime-error-handling-partial",
           "status": "proven",
-          "statement": "Category 6 now has three documented error-handling fixes: CSRF JSON errors, Backlinks offline/degraded state, and AI unavailable degraded mode.",
+          "statement": "Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode.",
           "basis": [
             "cat6-explicit-fix-proof-count",
             "cat6-target-runtime-screenshots",
@@ -2574,7 +2574,7 @@
           "limits": [
             "Does not count comments visibility or migration bootstrap as Category 6 proof.",
             "Does not claim process-level unhandled rejection handling is solved.",
-            "Current E2E rerun was blocked by Docker preflight; existing focused E2E and new AI screenshot are the artifact basis."
+            "Focused runtime E2E and the AI unavailable collector are the screenshot artifact basis."
           ]
         }
       ],
@@ -2585,9 +2585,14 @@
           "description": "Missing-CSRF probe returned JSON 403 instead of Express HTML/error output."
         },
         {
+          "id": "cat6-offline-editor-preserves-draft",
+          "type": "manual_observation",
+          "description": "Editor preserves typed draft content while offline and remains usable after reconnect."
+        },
+        {
           "id": "cat6-backlinks-offline-fix",
           "type": "manual_observation",
-          "description": "Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect."
+          "description": "Backlinks preserve saved result during offline failure, show explicit stale/offline status, and recover on reconnect; treated as supporting improvement rather than one of the three screenshot-backed Cat 6 fixes."
         },
         {
           "id": "cat6-runtime-e2e-run",
@@ -2664,13 +2669,13 @@
           "counts_toward_user_facing_confusion_or_data_loss": true
         },
         {
-          "id": "cat6-backlinks-offline-fix-record",
-          "title": "Backlinks offline/degraded state preserves context",
-          "repro_steps": "Open a document with backlinks context, then force the backlinks request/network path offline or failing.",
-          "before_behavior": "Backlinks failures were console-only and the UI could silently lose context.",
-          "after_behavior": "The UI preserves the last successful context and shows stale/offline/degraded status.",
-          "screenshot_path": "test-results/category-6-runtime-evidence-final2/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
-          "user_impact": "Reduces user confusion and avoids apparent data/context loss while offline.",
+          "id": "cat6-offline-editor-preserves-draft-record",
+          "title": "Offline editor draft preservation",
+          "repro_steps": "Create a document, type content while online, force the browser offline, continue typing, then reconnect.",
+          "before_behavior": "Network failure could create user confusion about whether unsaved editor content survived.",
+          "after_behavior": "The editor remains usable while offline, preserves the typed draft, and remains usable after reconnect.",
+          "screenshot_path": "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
+          "user_impact": "Prevents apparent data loss during a realistic network disconnect while editing.",
           "counts_toward_user_facing_confusion_or_data_loss": true
         },
         {
