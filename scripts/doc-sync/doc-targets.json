@@ -1,0 +1,15 @@
+{
+  "include": [
+    "AGENTS.md",
+    "docs/context-manifest.md",
+    "docs/unified-document-model.md",
+    "docs/document-model-conventions.md",
+    "docs/application-architecture.md",
+    "docs/openapi-contract.md",
+    "docs/claude-reference/**/*.md"
+  ],
+  "exclude": [
+    "docs/solutions/**",
+    "docs/pr-evidence/**"
+  ]
+}
