@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `docs/unified-document-model.md` - Core data model, sync architecture, document types
 - `docs/application-architecture.md` - Tech stack decisions, deployment, testing strategy
 - `docs/document-model-conventions.md` - Terminology, what becomes a document vs config
-- `docs/sprint-documentation-philosophy.md` - Sprint workflow and required documentation
+- `docs/week-documentation-philosophy.md` - Week workflow and required documentation
 
 When in doubt about implementation approach, check these docs first.
 
@@ -53,7 +53,7 @@ pnpm test             # Runs api unit tests via vitest
 
 ## E2E Testing
 
-**ALWAYS use `/e2e-test-runner` when running E2E tests.** Never run `pnpm test:e2e` directly - it causes output explosion (600+ tests crash Claude Code). The skill handles background execution, progress polling via `test-results/summary.json`, and `--last-failed` for iterative fixing.
+**Use `/e2e-test-runner` when running E2E tests**; if unavailable, use `pnpm test:e2e:run`. Never run `pnpm test:e2e` directly — it causes output explosion (600+ tests crash Claude Code). The skill and fallback handle background execution, progress polling via `test-results/summary.json`, and `--last-failed` for iterative fixing.
 
 **Empty test footgun:** Tests with only TODO comments pass silently. Use `test.fixme()` for unimplemented tests. Pre-commit hook (`scripts/check-empty-tests.sh`) catches these.
 
@@ -75,7 +75,7 @@ pnpm test             # Runs api unit tests via vitest
 - `web/` - React + Vite frontend with TipTap editor
 - `shared/` - TypeScript types shared between packages
 
-**Unified Document Model**: Everything is stored in a single `documents` table with a `document_type` field (wiki, issue, program, project, sprint, person). This follows Notion's paradigm where the difference between content types is properties, not structure.
+**Unified Document Model**: Everything is stored in a single `documents` table with a `document_type` field (wiki, issue, program, project, sprint, person, weekly_plan, weekly_retro, standup, weekly_review). This follows Notion's paradigm where the difference between content types is properties, not structure.
 
 **Real-time Collaboration**: TipTap editor uses Yjs CRDTs synced via WebSocket at `/collaboration/{docType}:{docId}`. The collaboration server (`api/src/collaboration/index.ts`) handles sync protocol and persists Yjs state to PostgreSQL.
 
@@ -85,7 +85,7 @@ pnpm test             # Runs api unit tests via vitest
 
 **New document titles**: All document types use `"Untitled"` as the default title. No variations like "Untitled Issue" or "Untitled Project". The shared Editor component expects this exact string to show placeholder styling. See `docs/document-model-conventions.md` for details.
 
-**Document associations**: Documents reference other documents via the `document_associations` junction table (relationship types: `parent`, `project`, `sprint`, `program`). Legacy columns `program_id` and `project_id` still exist; `sprint_id` was dropped by migration 027.
+**Document associations**: Documents reference other documents via the `document_associations` junction table (relationship types: `parent`, `project`, `sprint`, `program`).
 
 **Editor content**: All document types use the same TipTap JSON content structure stored in `content` column, with Yjs binary state in `yjs_state` for conflict-free collaboration.
 
@@ -119,18 +119,23 @@ Local dev uses `.env.local` for DB connection.
 
 ## Deployment
 
-**Just run the scripts.** Use `/workflows:deploy` for the full workflow, or run manually:
+**Primary path: Render** via `render.yaml` (public/demo deployments).
+
+**Optional AWS path:** Use `/workflows:deploy` or run manually when targeting Treasury infrastructure:
 
 ```bash
-./scripts/deploy.sh prod           # Backend → Elastic Beanstalk
-./scripts/deploy-frontend.sh prod  # Frontend → S3/CloudFront
+./scripts/deploy.sh prod           # API → Elastic Beanstalk (dev|shadow|prod)
+./scripts/deploy-web.sh prod       # Frontend → S3/CloudFront (dev|shadow|prod)
+./scripts/deploy-frontend.sh dev   # Legacy frontend script (dev|prod only)
 ```
 
 **After deploy, verify with browser** (curl can't catch JS errors). Health checks:
-- Prod API: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
-- Prod Web: `https://ship.awsdev.treasury.gov`
+- Render API: `https://ship-shape-api.onrender.com/health`
+- Render Web: `https://ship-shape-web.onrender.com`
+- AWS prod API: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
+- AWS prod Web: `https://ship.awsdev.treasury.gov`
 
-**Shadow (UAT):** Deploy to shadow from `feat/unified-document-model-v2` before merging to master.
+**Shadow (UAT):** `./scripts/deploy.sh shadow` and `./scripts/deploy-web.sh shadow` for AWS shadow environment testing.
 
 ## Philosophy Enforcement
 
