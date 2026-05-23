@@ -43,7 +43,7 @@ function resultBadge(result) {
 function repoLink(path, label = path) {
   const href = dashboardHref(path);
   if (!href) return code(path);
-  return `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
 }
 
 function humanizeId(id) {
@@ -67,7 +67,7 @@ function shortPath(path) {
 function linkedPath(path, label = shortPath(path)) {
   const href = dashboardHref(path);
   if (!href) return `<span class="path" title="${escapeHtml(path)}">${escapeHtml(label || path)}</span>`;
-  return `<a class="path" href="${escapeHtml(href)}" title="${escapeHtml(path)}">${escapeHtml(label || path)}</a>`;
+  return `<a class="path" href="${escapeHtml(href)}" title="${escapeHtml(path)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label || path)}</a>`;
 }
 
 function importantSentence(text) {
