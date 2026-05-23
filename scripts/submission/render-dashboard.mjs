@@ -81,6 +81,53 @@ function categoryGateLine(category) {
   return `${category.passedTests.length}/${category.acceptance_tests.length} acceptance pass; ${result}`;
 }
 
+function claimDensity(category) {
+  const evidence = category.evidence || [];
+  const claimCount = (category.claims || []).length;
+  const boundaryCount = (category.caveats || []).length + (category.non_claims || []).length;
+  const gateCount = (category.acceptance_tests || []).length;
+  const artifactCount = evidence.filter((item) => item.path).length;
+  const manualCount = evidence.filter((item) => item.type === 'manual_observation').length;
+  const score =
+    claimCount * 2 +
+    boundaryCount * 2 +
+    artifactCount +
+    gateCount +
+    manualCount * 2;
+  const level = score >= 18 ? 'high' : score >= 12 ? 'medium' : 'low';
+  return {
+    artifactCount,
+    boundaryCount,
+    claimCount,
+    gateCount,
+    level,
+    manualCount,
+    score,
+    text: `${level[0].toUpperCase()}${level.slice(1)} defense load`,
+  };
+}
+
+function defenseLoadReceipt(category, mode = 'compact') {
+  const density = claimDensity(category);
+  const details = `${density.score} pts · ${density.claimCount} claim${density.claimCount === 1 ? '' : 's'} · ${
+    density.boundaryCount
+  } boundaries · ${density.artifactCount} artifacts · ${density.gateCount} gates${
+    density.manualCount > 0 ? ` · ${density.manualCount} manual` : ''
+  }`;
+  const meaning =
+    density.level === 'high'
+      ? 'Proven, but review the boundary language and artifact chain before repeating the claim.'
+      : density.level === 'medium'
+        ? 'Proven, with enough supporting structure that the boundary should be checked.'
+        : 'Proven with a comparatively simple evidence path.';
+  return `
+    <div class="defense-load defense-load-${escapeHtml(density.level)}">
+      <span>${escapeHtml(density.text)}</span>
+      <small>${escapeHtml(details)}</small>
+      ${mode === 'full' ? `<em>${escapeHtml(meaning)}</em>` : ''}
+    </div>`;
+}
+
 function firstProblem(category) {
   const test = [...category.failedTests, ...category.warningTests][0];
   if (!test) return null;
@@ -121,16 +168,31 @@ function overviewSignal(category) {
   return importantSentence(category.primaryClaim?.statement || category.proofSummary || category.source_requirement.statement);
 }
 
+function reviewerSentence(category) {
+  const claim = category.primaryClaim || category.claims?.[0];
+  const base = claim?.statement || overviewSignal(category);
+  const boundary = category.non_claims?.[0] || category.caveats?.[0] || '';
+  const prefix = `Cat ${category.number} is ${statusLabel(category.status)}`;
+  if (boundary) return `${prefix}: ${base} ${boundary}`;
+  return `${prefix}: ${base}`;
+}
+
+function reviewerSentenceMarkup(category) {
+  return `<p class="reviewer-sentence">${escapeHtml(reviewerSentence(category))}</p>`;
+}
+
 function metricCards(categories) {
   return categories
     .map((category) => {
       const problem = firstProblem(category);
       return `
-        <article class="score-card" data-ledger-id="${escapeHtml(category.id)}">
+        <article id="overview-${escapeHtml(category.id)}" class="score-card" data-ledger-id="${escapeHtml(category.id)}">
           <header><span class="cat-id">Cat ${category.number}</span>${badge(category.status)}</header>
           <h3>${escapeHtml(category.title)}</h3>
+          ${reviewerSentenceMarkup(category)}
           <p>${escapeHtml(overviewSignal(category))}</p>
           <div class="score-foot">
+            ${defenseLoadReceipt(category)}
             <span>${escapeHtml(categoryGateLine(category))}</span>
             ${
               problem
@@ -141,6 +203,88 @@ function metricCards(categories) {
         </article>`;
     })
     .join('');
+}
+
+function discoveryCountForCategory(discoveries, category) {
+  const catLabel = `cat ${category.number}`;
+  const title = String(category.title || '').toLowerCase();
+  return (discoveries.items || []).filter((item) => {
+    const area = String(item.area || '').toLowerCase();
+    return area === catLabel || area === title;
+  }).length;
+}
+
+function railMetaLabels(category, discoveries) {
+  const density = claimDensity(category);
+  const metric = category.primaryTarget?.metric_id
+    ? (category.derived_metrics || []).find((item) => item.id === category.primaryTarget.metric_id)
+    : null;
+  const delta =
+    metric?.kind === 'percent_change' && typeof metric.change_percent === 'number'
+      ? `${metric.change_percent <= 0 ? '-' : '+'}${formatValue(Math.abs(metric.change_percent))}%`
+      : `${category.passedTests.length}/${category.acceptance_tests.length}`;
+  const artifactCount = (category.evidence || []).filter((item) => item.path).length;
+  const boundaryCount = (category.caveats || []).length + (category.non_claims || []).length;
+  const discoveryCount = discoveryCountForCategory(discoveries, category);
+  const load = density.level[0].toUpperCase();
+  return {
+    overview: { compact: delta, detail: `${load} · ${delta}` },
+    evidence: { compact: `${artifactCount} art`, detail: `${load} · ${artifactCount} artifacts` },
+    crossExamine: { compact: `${density.score} pts`, detail: `${load} · ${density.score} pts` },
+    claimDiff: { compact: 'diff', detail: `${load} · before -> after` },
+    targets: { compact: `${category.passedTests.length}/${category.acceptance_tests.length}`, detail: `${load} · ${category.passedTests.length}/${category.acceptance_tests.length} gates` },
+    rubric: { compact: `${category.rubric_items.length} rub`, detail: `${load} · ${category.rubric_items.length} rubric` },
+    boundaries: { compact: `${boundaryCount} lim`, detail: `${load} · ${boundaryCount} limits` },
+    discoveries: { compact: `${discoveryCount} find`, detail: `${load} · ${discoveryCount} findings` },
+  };
+}
+
+function categoryRail(categories, discoveries) {
+  return `
+    <aside class="category-rail" aria-label="Category navigation">
+      ${categories
+        .map((category) => {
+          const density = claimDensity(category);
+          const meta = railMetaLabels(category, discoveries);
+          const shortTitle = category.title
+            .replace('Database Query Efficiency', 'Database')
+            .replace('Test Coverage and Quality', 'Tests')
+            .replace('Runtime Error and Edge Case Handling', 'Runtime')
+            .replace('Accessibility Compliance', 'A11y')
+            .replace('Security Audit', 'Security')
+            .replace('API Response Time', 'API')
+            .replace('Bundle Size', 'Bundle')
+            .replace('Type Safety', 'Types');
+          return `
+            <button class="rail-cell rail-${escapeHtml(density.level)}" type="button" data-category-id="${escapeHtml(
+              category.id
+            )}" data-meta-overview="${escapeHtml(meta.overview.compact)}" data-detail-overview="${escapeHtml(
+              meta.overview.detail
+            )}" data-meta-evidence="${escapeHtml(meta.evidence.compact)}" data-detail-evidence="${escapeHtml(
+              meta.evidence.detail
+            )}" data-meta-cross-examine="${escapeHtml(meta.crossExamine.compact)}" data-detail-cross-examine="${escapeHtml(
+              meta.crossExamine.detail
+            )}" data-meta-claim-diff="${escapeHtml(meta.claimDiff.compact)}" data-detail-claim-diff="${escapeHtml(
+              meta.claimDiff.detail
+            )}" data-meta-targets="${escapeHtml(meta.targets.compact)}" data-detail-targets="${escapeHtml(
+              meta.targets.detail
+            )}" data-meta-rubric="${escapeHtml(meta.rubric.compact)}" data-detail-rubric="${escapeHtml(
+              meta.rubric.detail
+            )}" data-meta-boundaries="${escapeHtml(meta.boundaries.compact)}" data-detail-boundaries="${escapeHtml(
+              meta.boundaries.detail
+            )}" data-meta-discoveries="${escapeHtml(meta.discoveries.compact)}" data-detail-discoveries="${escapeHtml(
+              meta.discoveries.detail
+            )}" aria-label="Jump to Cat ${category.number}: ${escapeHtml(category.title)}">
+              <span class="rail-number">${category.number}</span>
+              <span class="rail-load">${escapeHtml(density.level[0].toUpperCase())}</span>
+              <span class="rail-delta">${escapeHtml(meta.overview.compact)}</span>
+              <span class="rail-title">Cat ${category.number} · ${escapeHtml(shortTitle)}</span>
+              <span class="rail-meta">${escapeHtml(category.title)}</span>
+              <span class="rail-detail">${escapeHtml(meta.overview.detail)}</span>
+            </button>`;
+        })
+        .join('')}
+    </aside>`;
 }
 
 function categoryOption(category) {
@@ -314,6 +458,146 @@ function summaryCards(category) {
     .join('');
 }
 
+function findSummaryCard(category, title) {
+  return (category.summary_cards || []).find((card) => String(card.title || '').toLowerCase() === title);
+}
+
+function summaryCardSentence(card) {
+  if (!card?.items?.length) return '';
+  return card.items.map((item) => `${item.label}: ${item.value}`).join(' ');
+}
+
+function reviewerMeaning(category) {
+  const claim = category.primaryClaim || category.claims?.[0];
+  const nonClaim = category.non_claims?.[0];
+  const caveat = category.caveats?.[0];
+  if (nonClaim) return `${claim?.statement || overviewSignal(category)} Boundary: ${nonClaim}`;
+  if (caveat) return `${claim?.statement || overviewSignal(category)} Caveat: ${caveat}`;
+  return claim?.statement || category.proofSummary || overviewSignal(category);
+}
+
+function claimDiffCards(categories) {
+  return categories
+    .map((category) => {
+      const baseline = findSummaryCard(category, 'audit baseline');
+      const closeout = findSummaryCard(category, 'closeout proof');
+      return `
+        <article class="diff-card" data-ledger-id="${escapeHtml(category.id)}">
+          <div class="diff-head">
+            <div>
+              <p class="eyebrow">Cat ${category.number} Diff</p>
+              <h2>${escapeHtml(category.title)}</h2>
+            </div>
+            ${badge(category.status)}
+          </div>
+          ${reviewerSentenceMarkup(category)}
+          <div class="diff-lanes">
+            <section>
+              <h3>Before</h3>
+              <p>${escapeHtml(summaryCardSentence(baseline) || category.source_requirement.statement)}</p>
+            </section>
+            <section>
+              <h3>After</h3>
+              <p>${escapeHtml(summaryCardSentence(closeout) || category.proofSummary || overviewSignal(category))}</p>
+            </section>
+            <section>
+              <h3>Reviewer Meaning</h3>
+              <p>${escapeHtml(reviewerMeaning(category))}</p>
+            </section>
+          </div>
+        </article>`;
+    })
+    .join('');
+}
+
+function firstCommandEvidence(category) {
+  return (category.evidence || []).find((item) => item.command) || null;
+}
+
+function firstArtifactEvidence(category) {
+  return (category.evidence || []).find((item) => item.path) || null;
+}
+
+function attackLine(category) {
+  const caveat = category.caveats?.[0];
+  const nonClaim = category.non_claims?.[0];
+  if (category.status !== 'proven') return 'What proof is still missing before this can be claimed?';
+  if (nonClaim) return `Does this overreach into the non-claim: ${nonClaim.replace(/\.$/, '')}?`;
+  if (caveat) return `Does this caveat weaken the claim: ${caveat.replace(/\.$/, '')}?`;
+  return 'What would a reviewer challenge first?';
+}
+
+function defenseLine(category) {
+  const claim = category.primaryClaim || category.claims?.[0];
+  const tests = category.acceptance_tests || [];
+  const passedCount = tests.filter((test) => test.result === 'pass').length;
+  const caveat = category.caveats?.[0];
+  const nonClaim = category.non_claims?.[0];
+  const scope = nonClaim || caveat;
+  const gate = tests.length ? `${passedCount}/${tests.length} acceptance gates pass` : 'No acceptance gates recorded';
+  if (!claim) return `${gate}; use the source requirement and evidence list before making a stronger claim.`;
+  return `${gate}. ${claim.statement}${scope ? ` Boundary: ${scope}` : ''}`;
+}
+
+function sourceRequirementLine(category) {
+  return `${category.source_requirement.statement} Source: ${category.source_requirement.source}`;
+}
+
+function crossExamineCards(categories) {
+  return categories
+    .map((category) => {
+      const claim = category.primaryClaim || category.claims?.[0];
+      const artifact = firstArtifactEvidence(category);
+      const command = firstCommandEvidence(category);
+      const proof = category.primaryTarget
+        ? `${category.primaryTarget.description} ${renderTargetOutcome(category, category.primaryTarget)}`
+        : category.proofSummary || overviewSignal(category);
+      return `
+        <article class="cross-card" data-ledger-id="${escapeHtml(category.id)}">
+          <div class="cross-card-head">
+            <div>
+              <p class="eyebrow">Cross-Examine Cat ${category.number}</p>
+              <h2>${escapeHtml(category.title)}</h2>
+              ${reviewerSentenceMarkup(category)}
+              ${defenseLoadReceipt(category, 'full')}
+            </div>
+            ${badge(category.status)}
+          </div>
+          <dl class="cross-list">
+            <div>
+              <dt>Claim</dt>
+              <dd>${escapeHtml(claim?.statement || overviewSignal(category))}</dd>
+            </div>
+            <div>
+              <dt>Attack</dt>
+              <dd>${escapeHtml(attackLine(category))}</dd>
+            </div>
+            <div>
+              <dt>Defense</dt>
+              <dd>${escapeHtml(defenseLine(category))}</dd>
+            </div>
+            <div>
+              <dt>Source Gate</dt>
+              <dd>${escapeHtml(sourceRequirementLine(category))}</dd>
+            </div>
+            <div>
+              <dt>Proof Hook</dt>
+              <dd>${escapeHtml(proof)}</dd>
+            </div>
+            <div>
+              <dt>Reproduce</dt>
+              <dd>${command ? `${code(command.command)} <span>${escapeHtml(command.result ? `Result: ${command.result}` : command.description || '')}</span>` : '<span>No command evidence recorded.</span>'}</dd>
+            </div>
+            <div>
+              <dt>Artifact</dt>
+              <dd>${artifact ? `${linkedPath(artifact.path, shortPath(artifact.path))} <span>${escapeHtml(artifact.description || '')}</span>` : '<span>No artifact path recorded.</span>'}</dd>
+            </div>
+          </dl>
+        </article>`;
+    })
+    .join('');
+}
+
 function categorySections(categories) {
   return categories
     .map(
@@ -327,6 +611,7 @@ function categorySections(categories) {
             ${badge(category.status)}
           </div>
           <p>${escapeHtml(category.source_requirement.statement)} ${repoLink(category.source_requirement.source, 'Source')}</p>
+          ${reviewerSentenceMarkup(category)}
           ${summaryCards(category)}
           <h3>Targets</h3>
           <ul class="check-list">
@@ -473,7 +758,9 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       :root { --bg:#f6f4ef; --paper:#fffdf8; --ink:#151515; --muted:#66635d; --line:#d8d1c3; --dark:#20201d; --proven-bg:#e7f2e5; --proven-ink:#24542a; --partial-bg:#fff3cf; --partial-ink:#73500b; --open-bg:#f7dedc; --open-ink:#7d2f28; --fill-bg:#e9edf3; --fill-ink:#38475d; }
       * { box-sizing: border-box; }
       body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.45; }
-      .page { width:min(1180px, calc(100vw - 32px)); margin:0 auto; padding:20px 0 44px; }
+      .page { width:min(1260px, calc(100vw - 32px)); margin:0 auto; padding:20px 0 44px; }
+      .dashboard-shell { display:grid; grid-template-columns:74px minmax(0,1fr); gap:14px; align-items:start; }
+      .dashboard-content { min-width:0; }
       p,li,td,code { overflow-wrap:anywhere; }
       a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
       .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.8fr); align-items:stretch; gap:14px; margin-bottom:14px; }
@@ -505,6 +792,23 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .tab:hover { border-color:var(--dark); }
       .tab:focus-visible { border-color:var(--dark); outline:2px solid var(--dark); outline-offset:2px; }
       .tab[aria-selected="true"] { background:var(--dark); border-color:var(--dark); color:#fffdf8; }
+      .category-rail { position:sticky; top:8px; z-index:11; display:grid; gap:6px; padding:8px; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border:1px solid var(--line); }
+      .rail-cell { appearance:none; position:relative; display:grid; grid-template-columns:1fr 1fr; gap:4px 6px; align-items:center; min-height:66px; width:56px; padding:7px 8px; border:1px solid var(--line); background:var(--paper); color:var(--dark); font:inherit; cursor:pointer; text-align:left; transition:width .16s ease, border-color .16s ease, box-shadow .16s ease; }
+      .rail-cell:hover { width:230px; z-index:12; border-color:var(--dark); box-shadow:0 8px 20px rgba(32,32,29,.12); }
+      .rail-cell:hover { grid-template-columns:minmax(0,1fr); }
+      .rail-cell:focus-visible { outline:2px solid var(--dark); outline-offset:2px; }
+      .rail-number { grid-column:1; font-size:15px; font-weight:950; line-height:1; }
+      .rail-load { grid-column:2; color:var(--muted); font-size:11px; font-weight:950; line-height:1; text-align:right; white-space:nowrap; }
+      .rail-delta { grid-column:1 / -1; display:block; min-width:0; color:var(--muted); font-size:10px; font-weight:850; line-height:1; text-align:left; white-space:nowrap; }
+      .rail-title,.rail-meta,.rail-detail { grid-column:1 / -1; display:none; min-width:0; white-space:normal; overflow:visible; text-overflow:clip; }
+      .rail-title { font-size:13px; font-weight:950; line-height:1.15; }
+      .rail-meta { color:#34342f; font-size:12px; font-weight:800; line-height:1.2; }
+      .rail-detail { color:var(--muted); font-size:11px; font-weight:750; line-height:1.2; }
+      .rail-cell:hover .rail-title,.rail-cell:hover .rail-meta,.rail-cell:hover .rail-detail { display:block; }
+      .rail-cell:hover .rail-number,.rail-cell:hover .rail-load,.rail-cell:hover .rail-delta { display:none; }
+      .rail-low { border-left:4px solid #b6d6b2; }
+      .rail-medium { border-left:4px solid #e2c77f; }
+      .rail-high { border-left:4px solid #e0aaa4; }
       .tab-panel { display:none; }
       .tab-panel.active { display:block; }
       .section-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
@@ -513,9 +817,26 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .score-card { min-height:155px; padding:12px; border:1px solid var(--line); background:var(--paper); display:flex; flex-direction:column; gap:8px; }
       .score-card header,.section-heading { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; }
       .score-card p { margin-bottom:0; font-size:13px; }
+      .reviewer-sentence { padding:8px 9px; border-left:3px solid var(--dark); background:#fbf8f0; color:#242420; font-size:13px; font-weight:850; line-height:1.3; }
       .score-foot { display:grid; gap:5px; margin-top:auto; padding-top:8px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; font-weight:700; }
       .blocker-link { color:var(--open-ink); font-weight:850; text-decoration:none; }
       .blocker-link:hover { text-decoration:underline; }
+      .defense-load { display:grid; gap:3px; padding:6px 7px; border:1px solid var(--line); background:#fbf8f0; color:var(--muted); font-size:11px; line-height:1.25; }
+      .defense-load span { color:var(--dark); font-weight:900; text-transform:capitalize; }
+      .defense-load small { color:var(--muted); font-size:11px; font-weight:750; }
+      .defense-load em { color:#34342f; font-size:12px; font-style:normal; font-weight:650; }
+      .defense-load-low { border-color:#b6d6b2; background:var(--proven-bg); }
+      .defense-load-medium { border-color:#e2c77f; background:var(--partial-bg); }
+      .defense-load-high { border-color:#e0aaa4; background:var(--open-bg); }
+      .diff-grid { display:grid; gap:10px; }
+      .diff-card { padding:13px; border:1px solid var(--line); background:var(--paper); }
+      .diff-head { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+      .diff-head h2 { margin-bottom:0; font-size:19px; }
+      .diff-card .reviewer-sentence { margin-bottom:10px; }
+      .diff-lanes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+      .diff-lanes section { padding:10px; border:1px solid var(--line); background:#fbf8f0; }
+      .diff-lanes h3 { margin-bottom:6px; color:var(--muted); font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+      .diff-lanes p { margin-bottom:0; color:#2d2d29; font-size:13px; }
       tr:target { outline:2px solid var(--dark); outline-offset:-2px; background:#fff8df; }
       .cat-id { color:var(--muted); font-size:12px; font-weight:850; letter-spacing:.06em; text-transform:uppercase; }
       .hero-side .score-grid { grid-template-columns:repeat(4,minmax(0,1fr)); margin:9px 0 0; }
@@ -564,6 +885,17 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .non-claim-card h3 { margin-bottom:7px; font-size:14px; }
       .non-claim-card ul { margin:0; padding-left:18px; color:var(--muted); font-size:13px; }
       .non-claim-card li + li { margin-top:4px; }
+      .cross-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+      .cross-card { padding:13px; border:1px solid var(--line); background:var(--paper); }
+      .cross-card-head { display:flex; gap:8px; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+      .cross-card-head h2 { margin-bottom:0; font-size:19px; }
+      .cross-card-head .reviewer-sentence { margin-top:7px; max-width:520px; }
+      .cross-card-head .defense-load { margin-top:7px; max-width:430px; }
+      .cross-list { display:grid; gap:7px; margin:0; }
+      .cross-list div { padding:8px 9px; border:1px solid var(--line); background:#fbf8f0; }
+      .cross-list dt { margin-bottom:3px; color:var(--muted); font-size:10px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+      .cross-list dd { margin:0; color:#2d2d29; font-size:13px; }
+      .cross-list dd span { display:block; margin-top:4px; color:var(--muted); }
       .table-wrap { overflow-x:auto; }
       table { width:100%; min-width:760px; border-collapse:collapse; font-size:13px; }
       th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
@@ -579,12 +911,15 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
       @media (max-width: 1100px) { .score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width: 960px) { .hero,.section-grid,.mini-grid,.non-claim-grid { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
+      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title,.rail-meta { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
       @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
     </style>
   </head>
   <body>
     <main class="page">
+      <div class="dashboard-shell">
+      ${categoryRail(categories, discoveries)}
+      <div class="dashboard-content">
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-main">
           <div>
@@ -611,6 +946,8 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       <nav class="tabs" role="tablist" aria-label="Dashboard sections">
         <button class="tab" id="tab-overview" role="tab" aria-selected="true" aria-controls="panel-overview" tabindex="0" data-tab="overview">Overview</button>
         <button class="tab" id="tab-evidence" role="tab" aria-selected="false" aria-controls="panel-evidence" tabindex="-1" data-tab="evidence">Evidence</button>
+        <button class="tab" id="tab-cross-examine" role="tab" aria-selected="false" aria-controls="panel-cross-examine" tabindex="-1" data-tab="cross-examine">Cross-Examine</button>
+        <button class="tab" id="tab-claim-diff" role="tab" aria-selected="false" aria-controls="panel-claim-diff" tabindex="-1" data-tab="claim-diff">Claim Diff</button>
         <button class="tab" id="tab-targets" role="tab" aria-selected="false" aria-controls="panel-targets" tabindex="-1" data-tab="targets">Targets</button>
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
@@ -626,6 +963,32 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       <section id="panel-evidence" class="tab-panel" role="tabpanel" aria-labelledby="tab-evidence" tabindex="0" hidden>
         <div class="section-grid">${categorySections(categories)}</div>
         <div class="table-wrap"><table><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>${evidenceRows(categories)}</tbody></table></div>
+      </section>
+
+      <section id="panel-cross-examine" class="tab-panel" role="tabpanel" aria-labelledby="tab-cross-examine" tabindex="0" hidden>
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Reviewer Defense Packets</p>
+              <h2>Cross-Examine</h2>
+            </div>
+            <span class="subtle">Claim -> attack -> defense -> proof</span>
+          </div>
+          <div class="cross-grid">${crossExamineCards(categories)}</div>
+        </article>
+      </section>
+
+      <section id="panel-claim-diff" class="tab-panel" role="tabpanel" aria-labelledby="tab-claim-diff" tabindex="0" hidden>
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Before / After / Meaning</p>
+              <h2>Claim Diff</h2>
+            </div>
+            <span class="subtle">Derived from baseline and closeout cards</span>
+          </div>
+          <div class="diff-grid">${claimDiffCards(categories)}</div>
+        </article>
       </section>
 
       <section id="panel-targets" class="tab-panel" role="tabpanel" aria-labelledby="tab-targets" tabindex="0" hidden>
@@ -660,11 +1023,28 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       <footer class="footer">
         Generated from ${code('my-docs/evidence/submission-ledger.json')} using ${code('pnpm submission:render-dashboard')}. Validate with ${code('pnpm submission:validate')}.
       </footer>
+      </div>
+      </div>
     </main>
     <script>
       const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
       const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+      const railCells = Array.from(document.querySelectorAll('.rail-cell'));
       const activeTabStorageKey = 'ship-submission-dashboard-active-tab';
+      function syncRailMeta(tabName) {
+        const key = \`meta\${tabName
+          .split('-')
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join('')}\`;
+        for (const cell of railCells) {
+          const value = cell.dataset[key] || cell.dataset.metaOverview || '';
+          const detailValue = cell.dataset[key.replace('meta', 'detail')] || cell.dataset.detailOverview || value;
+          const compact = cell.querySelector('.rail-delta');
+          const detail = cell.querySelector('.rail-detail');
+          if (compact) compact.textContent = value;
+          if (detail) detail.textContent = detailValue;
+        }
+      }
       function activateTab(tab, shouldFocus = true, shouldStore = true) {
         const target = tab.dataset.tab;
         for (const current of tabs) {
@@ -681,6 +1061,7 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
             localStorage.setItem(activeTabStorageKey, target);
           } catch {}
         }
+        syncRailMeta(target);
         if (shouldFocus) tab.focus();
       }
       function clearHash() {
@@ -731,6 +1112,28 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       window.addEventListener('hashchange', activateHashTarget);
       activateStoredTab();
       activateHashTarget();
+      function scrollToDashboardTarget(target) {
+        const stickyOffset = (document.querySelector('.tabs')?.getBoundingClientRect().height || 0) + 24;
+        const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset;
+        window.scrollTo({
+          top,
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        });
+      }
+      function jumpToCategory(categoryId) {
+        const activePanel = panels.find((panel) => panel.classList.contains('active'));
+        const activeTab = tabs.find((tab) => tab.getAttribute('aria-selected') === 'true')?.dataset.tab || '';
+        if (new Set(['targets', 'rubric', 'discoveries']).has(activeTab)) return;
+        const escapedId = CSS.escape(categoryId);
+        const target =
+          activePanel?.querySelector(\`[data-ledger-id="\${escapedId}"]\`) ||
+          document.querySelector(\`[data-ledger-id="\${escapedId}"]\`);
+        if (!target) return;
+        scrollToDashboardTarget(target);
+      }
+      for (const cell of railCells) {
+        cell.addEventListener('click', () => jumpToCategory(cell.dataset.categoryId));
+      }
 
       const discoveryTable = document.querySelector('.discoveries-table');
       const discoveryRows = discoveryTable ? Array.from(discoveryTable.querySelectorAll('tbody tr')) : [];

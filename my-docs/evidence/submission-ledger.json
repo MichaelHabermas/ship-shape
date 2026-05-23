@@ -54,27 +54,32 @@
           {
             "rank": 1,
             "path": "api/src/routes/weeks.ts",
-            "count": 85
+            "count": 85,
+            "why_problematic": "High-risk route boundary code mixed request input, JSONB document properties, database rows, and API responses, so unsafe casts or non-null assertions could become runtime contract bugs."
           },
           {
             "rank": 2,
             "path": "api/src/routes/projects.ts",
-            "count": 51
+            "count": 51,
+            "why_problematic": "Project route code shaped document-backed project responses from loosely typed PostgreSQL rows and properties, making route/API drift hard for TypeScript to catch."
           },
           {
             "rank": 3,
             "path": "api/src/routes/issues.ts",
-            "count": 49
+            "count": 49,
+            "why_problematic": "Issue routes sit on the core issue/document boundary and previously relied on casts around request bodies, associations, properties, and list/detail response shaping."
           },
           {
             "rank": 4,
             "path": "web/src/pages/UnifiedDocumentPage.tsx",
-            "count": 37
+            "count": 37,
+            "why_problematic": "The unified document page bridges routed document types, editor state, and API responses; loose typing here can misroute editor views or hide document-shape mismatches."
           },
           {
             "rank": 5,
             "path": "api/src/db/seed.ts",
-            "count": 35
+            "count": 35,
+            "why_problematic": "Seed data drives local audit/test scenarios; dense non-null assertions can mask invalid fixture assumptions and make evidence setup brittle."
           }
         ],
         "notes": [
@@ -162,12 +167,7 @@
           "label": "Baseline AST counts",
           "recorded_at": "2026-05-19",
           "scope": {
-            "roots": [
-              "api/src",
-              "web/src",
-              "shared/src",
-              "e2e"
-            ],
+            "roots": ["api/src", "web/src", "shared/src", "e2e"],
             "production_excludes_tests": true
           },
           "values": {
@@ -190,27 +190,99 @@
           "label": "Latest AST counts",
           "recorded_at": "2026-05-22",
           "scope": {
-            "roots": [
-              "api/src",
-              "web/src",
-              "shared/src",
-              "e2e"
-            ],
+            "roots": ["api/src", "web/src", "shared/src", "e2e"],
             "production_excludes_tests": true
           },
           "values": {
-            "any_total": 91,
+            "any_total": 76,
             "any_production": 1,
-            "type_assertions_total": 460,
-            "type_assertions_production": 346,
-            "non_null_assertions_total": 71,
-            "non_null_assertions_production": 35,
+            "type_assertions_total": 479,
+            "type_assertions_production": 372,
+            "non_null_assertions_total": 69,
+            "non_null_assertions_production": 36,
             "ts_suppressions_total": 1,
             "ts_suppressions_production": 0
+          },
+          "package_breakdown": {
+            "api/src": {
+              "any": 68,
+              "type_assertions": 185,
+              "non_null_assertions": 47,
+              "ts_suppressions": 0,
+              "counted_total": 300
+            },
+            "web/src": {
+              "any": 4,
+              "type_assertions": 243,
+              "non_null_assertions": 4,
+              "ts_suppressions": 1,
+              "counted_total": 252
+            },
+            "shared/src": {
+              "any": 0,
+              "type_assertions": 21,
+              "non_null_assertions": 0,
+              "ts_suppressions": 0,
+              "counted_total": 21
+            },
+            "e2e": {
+              "any": 4,
+              "type_assertions": 30,
+              "non_null_assertions": 18,
+              "ts_suppressions": 0,
+              "counted_total": 52
+            }
           },
           "origin": "artifact_parsed",
           "confidence": "artifact_backed",
           "source": "pnpm type-safety:counts"
+        },
+        {
+          "id": "cat1-latest-implicit-any-report",
+          "kind": "typescript_compiler_and_inferred_any_report",
+          "label": "Latest implicit any and untyped parameter report",
+          "recorded_at": "2026-05-23",
+          "scope": {
+            "configs": [
+              "api/tsconfig.json",
+              "web/tsconfig.json",
+              "shared/tsconfig.json",
+              "e2e/tsconfig.json"
+            ],
+            "command": "pnpm type-safety:report"
+          },
+          "values": {
+            "tsc_implicit_any_total": 0,
+            "tsc_implicit_any_production": 0,
+            "unannotated_params_inferred_any_total": 47,
+            "unannotated_params_inferred_any_production": 47,
+            "unannotated_params_inferred_any_by_package": {
+              "api/src": 36,
+              "web/src": 11,
+              "shared/src": 0
+            }
+          },
+          "top_files": [
+            {
+              "path": "api/src/db/scripts/orphan-diagnostic.ts",
+              "count": 8
+            },
+            {
+              "path": "web/src/components/DiffViewer.tsx",
+              "count": 8
+            },
+            {
+              "path": "api/src/routes/auth.ts",
+              "count": 5
+            },
+            {
+              "path": "api/src/routes/associations.ts",
+              "count": 4
+            }
+          ],
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "pnpm type-safety:report"
         }
       ],
       "derived_metrics": [
@@ -221,9 +293,9 @@
           "baseline_measurement_id": "cat1-baseline-ast-counts",
           "latest_measurement_id": "cat1-latest-ast-counts",
           "baseline_value": 1340,
-          "latest_value": 623,
-          "change_absolute": -717,
-          "change_percent": -53.5,
+          "latest_value": 625,
+          "change_absolute": -715,
+          "change_percent": -53.4,
           "threshold_percent": -25,
           "origin": "computed",
           "confidence": "artifact_backed"
@@ -235,9 +307,9 @@
           "baseline_measurement_id": "cat1-baseline-ast-counts",
           "latest_measurement_id": "cat1-latest-ast-counts",
           "baseline_value": 923,
-          "latest_value": 382,
-          "change_absolute": -541,
-          "change_percent": -58.6,
+          "latest_value": 409,
+          "change_absolute": -514,
+          "change_percent": -55.7,
           "origin": "computed",
           "confidence": "artifact_backed"
         },
@@ -261,7 +333,7 @@
           "type": "percent_decrease_at_least",
           "metric": "cat1-total-counted-syntax-reduction",
           "threshold_percent": 25,
-          "actual_percent_decrease": 53.5,
+          "actual_percent_decrease": 53.4,
           "result": "pass",
           "target_id": "cat1-target-total-counted-syntax-25-percent"
         },
@@ -282,19 +354,14 @@
         {
           "id": "cat1-tests-still-pass-documented",
           "type": "evidence_required",
-          "evidence_ids": [
-            "cat1-api-tests",
-            "cat1-web-tests"
-          ],
+          "evidence_ids": ["cat1-api-tests", "cat1-web-tests"],
           "result": "pass",
           "target_id": "cat1-target-tests-still-pass"
         },
         {
           "id": "cat1-meaningful-types-documented",
           "type": "evidence_required",
-          "evidence_ids": [
-            "cat1-meaningful-boundary-narrowing"
-          ],
+          "evidence_ids": ["cat1-meaningful-boundary-narrowing"],
           "result": "pass",
           "target_id": "cat1-target-meaningful-types"
         }
@@ -303,14 +370,13 @@
         {
           "id": "cat1-clears-total-25-percent-counted-syntax-reduction",
           "status": "proven",
-          "statement": "Total counted type-safety syntax decreased from 1340 to 623, a 53.5% reduction, clearing the 25% source requirement.",
-          "basis": [
-            "cat1-total-counted-syntax-reduction"
-          ],
+          "statement": "Total counted type-safety syntax decreased from 1340 to 625, a 53.4% reduction, clearing the 25% source requirement.",
+          "basis": ["cat1-total-counted-syntax-reduction"],
           "limits": [
             "This is a syntax-count denominator, not a semantic type-risk score.",
-            "Production counted syntax decreased 58.6%, which is useful context but separate from the total-count source gate.",
-            "Production any usage decreased from 94 to 1; production non-null assertions decreased from 325 to 35 after the authenticated-route context sweep."
+            "Production counted syntax decreased 55.7%, which is useful context but separate from the total-count source gate.",
+            "Production any usage decreased from 94 to 1; production non-null assertions decreased from 325 to 36 after the authenticated-route context sweep.",
+            "`pnpm type-safety:report` shows 0 tsc implicit-any diagnostics, but 47 production unannotated parameters still infer to any from any-typed parents; this is residual follow-up work and not part of the official syntax-count reduction claim."
           ]
         }
       ],
@@ -347,15 +413,24 @@
           "type": "methodology",
           "path": "my-docs/IMPROVEMENT_REPORT.md",
           "description": "Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, typed client/server contracts, API query coercion, approval JSONB guards, API status errors, and API-response-to-editor mappers rather than replacing any with unknown."
+        },
+        {
+          "id": "cat1-implicit-any-report",
+          "type": "command",
+          "command": "pnpm type-safety:report",
+          "result": "0 tsc implicit-any diagnostics; 47 production unannotated params inferred as any",
+          "description": "Full report covers source-text items beyond the audit deliverable table: compiler implicit-any diagnostics and untyped parameters that infer to any from any-typed parents."
         }
       ],
       "caveats": [
         "ESLint warning counts are useful as a worklist but are not the official before/after denominator.",
-        "Replacing any with unknown without meaningful narrowing is not counted as a real improvement."
+        "Replacing any with unknown without meaningful narrowing is not counted as a real improvement.",
+        "Untyped parameters inferred as any are measured by `pnpm type-safety:report` and remain follow-up work; the official closeout claim is the source-required 25% reduction in counted type-safety syntax plus passing tests."
       ],
       "non_claims": [
         "Does not claim production counted syntax alone clears the 25% threshold.",
-        "Does not claim all syntax categories carry equal semantic risk."
+        "Does not claim all syntax categories carry equal semantic risk.",
+        "Does not claim every untyped callback parameter has been eliminated."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
@@ -387,11 +462,15 @@
           "items": [
             {
               "label": "Latest counted syntax",
-              "value": "623 total counted syntax nodes; 382 production counted syntax nodes."
+              "value": "625 total counted syntax nodes; 409 production counted syntax nodes."
             },
             {
               "label": "Primary reduction",
-              "value": "1340 -> 623, -717 / -53.5%."
+              "value": "1340 -> 625, -715 / -53.4%."
+            },
+            {
+              "label": "Implicit any",
+              "value": "0 tsc implicit-any diagnostics; 47 production unannotated params still infer to any and are documented as follow-up."
             },
             {
               "label": "Tests",
@@ -407,7 +486,7 @@
           "metric_id": "cat1-total-counted-syntax-reduction",
           "operator": "percent_decrease_at_least",
           "threshold": 25,
-          "actual": 53.5,
+          "actual": 53.4,
           "result": "pass"
         },
         {
@@ -416,10 +495,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Recorded API and web suite pass evidence exists.",
-          "references": [
-            "cat1-api-tests",
-            "cat1-web-tests"
-          ]
+          "references": ["cat1-api-tests", "cat1-web-tests"]
         },
         {
           "id": "cat1-target-meaningful-types",
@@ -427,9 +503,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Improvement report documents shared boundary schemas and typed route/client contracts.",
-          "references": [
-            "cat1-meaningful-boundary-narrowing"
-          ]
+          "references": ["cat1-meaningful-boundary-narrowing"]
         }
       ]
     },
@@ -592,19 +666,21 @@
           "id": "cat2-latest-bundle",
           "kind": "bundle_size_summary",
           "label": "Latest production bundle",
-          "recorded_at": "2026-05-21",
-          "artifact": "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json",
+          "recorded_at": "2026-05-22",
+          "artifact": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
           "values": {
-            "total_js_css_kb": 2337.76,
-            "latest_js_bytes_from_artifact": 2259735,
-            "latest_css_bytes_from_artifact": 66564,
-            "initial_entry_chunk_kb": 517.82,
-            "largest_reported_chunk_kb": 817.62,
+            "total_js_css_kb": 2396.29,
+            "latest_js_bytes_from_artifact": 2328607,
+            "latest_css_bytes_from_artifact": 67678,
+            "initial_entry_chunk_name": "assets/index-CeOsbhgF.js",
+            "initial_entry_chunk_kb": 530.77,
+            "largest_reported_chunk_name": "assets/PropertyRow-DPbMYz5a.js",
+            "largest_reported_chunk_kb": 837.24,
             "chunk_count_reported": 295
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json"
         }
       ],
       "derived_metrics": [
@@ -676,9 +752,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Changes lazy-load features/routes and remove confirmed unused dependency instead of deleting product capability.",
-          "references": [
-            "cat2-build-web-command"
-          ]
+          "references": ["cat2-build-web-command"]
         }
       ],
       "acceptance_tests": [
@@ -725,7 +799,7 @@
             "cat2-build-web-command"
           ],
           "limits": [
-            "This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.22 KB in the latest artifact.",
+            "This does not claim total JS/CSS bundle reduction; total JS/CSS increased to 2396.29 KB in the latest artifact.",
             "The claim is scoped to initial page-load/code-splitting improvement.",
             "Functionality was preserved through lazy loading and removal of confirmed unused dependency, not deletion of product features."
           ]
@@ -754,12 +828,6 @@
         {
           "id": "cat2-latest-bundle-stats",
           "type": "artifact",
-          "path": "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json",
-          "description": "Latest evidence-run bundle stats artifact."
-        },
-        {
-          "id": "cat2-latest-bundle-stats-closeout",
-          "type": "artifact",
           "path": "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
           "description": "Latest closeout bundle stats artifact from dependency-free collector."
         },
@@ -780,7 +848,8 @@
       "sources": [
         "my-docs/AUDIT_REPORT.md",
         "my-docs/IMPROVEMENT_REPORT.md",
-        "my-docs/evidence-runs/codex-final-review/collectors/bundle-stats.json"
+        "my-docs/evidence-runs/cat2-closeout/collectors/bundle-stats.json",
+        "my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html"
       ]
     },
     {
@@ -795,20 +864,22 @@
       "audit_deliverable": {
         "source": "my-docs/AUDIT_REPORT.md",
         "seed_data_scale": {
-          "documents_total": 517,
-          "issues": 104,
-          "users": 20,
+          "documents_total": 3847,
+          "wiki_documents": 1008,
+          "issues": 226,
+          "users": 40,
           "sprints": 35,
-          "note": "Audit-scale data was topped up beyond normal seed volume."
+          "projects": 45,
+          "programs": 13,
+          "weekly_plans": 832,
+          "weekly_retros": 827,
+          "standups": 806,
+          "note": "The reproducible audit-load fixture is now the official large local benchmark profile; current-code large-fixture benchmark evidence is supporting only until a matching before run is captured."
         },
         "methodology": {
           "tooling": "Custom Node HTTP harness with authenticated session cookies.",
           "duration_seconds": 15,
-          "connections": [
-            10,
-            25,
-            50
-          ],
+          "connections": [10, 25, 50],
           "selected_endpoint_count": 5,
           "search_note": "Search was investigated but excluded from Category 3 benchmark rows because visible Docs search was client-side title filtering at audit time and the documented /api/search/documents route was not mounted."
         },
@@ -971,11 +1042,7 @@
             "database": "ship_dev",
             "api_base_url": "http://127.0.0.1:3001",
             "duration_ms": 15000,
-            "connections": [
-              10,
-              25,
-              50
-            ],
+            "connections": [10, 25, 50],
             "rate_per_second": 100,
             "rate_limit_bypass": true,
             "server_mode": "built node dist/index.js",
@@ -1113,11 +1180,7 @@
             "database": "ship_dev",
             "api_base_url": "http://127.0.0.1:3001",
             "duration_ms": 15000,
-            "connections": [
-              10,
-              25,
-              50
-            ],
+            "connections": [10, 25, 50],
             "rate_per_second": 100,
             "rate_limit_bypass": true,
             "server_mode": "built node dist/index.js",
@@ -1427,22 +1490,37 @@
           "id": "cat3-bootstrap-critical-path-split",
           "type": "manual_observation",
           "description": "Bootstrap keeps response shape but no longer computes inferred accountability or standup status on the app-shell critical path; dedicated stale-seeded queries fetch those values."
+        },
+        {
+          "id": "cat3-my-week-serialized-route-work",
+          "type": "manual_observation",
+          "description": "My Week latency was reduced by collapsing workspace/person lookup, fetching weekly plan/current retro/previous retro in one document query, and running standup plus allocation reads in parallel after week dates are known."
+        },
+        {
+          "id": "cat3-large-fixture-current-benchmark",
+          "type": "artifact",
+          "path": "my-docs/evidence/artifacts/cat3-large-fixture-current.json",
+          "description": "Current-code benchmark against the official large fixture: 3847 active documents, 1008 wiki documents, 226 issues, 40 users, 35 sprints, 45 projects, 13 programs, and 2400 weekly/standup artifacts. All 15 Cat 3 benchmark rows completed with 0 failures and 0 non-2xx responses."
         }
       ],
       "caveats": [
         "The benchmark intentionally bypasses API rate limiting in non-production to measure endpoint latency rather than limiter behavior.",
         "The before benchmark was produced from isolated ref 7d31add with only the benchmark bypass patch applied.",
+        "The large-fixture current benchmark is supporting evidence only until the same fixture is benchmarked against the before ref.",
         "Category 8 remains excluded and open; this Category 3 evidence does not claim security completion."
       ],
       "non_claims": [
         "Does not claim rate limiting was weakened in production.",
         "Does not claim every measured endpoint improved.",
+        "Does not claim the large-fixture current benchmark is before/after proof by itself.",
         "Does not claim payload-byte reduction alone is equivalent to P95 latency improvement."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
         "my-docs/IMPROVEMENT_REPORT.md",
-        "my-docs/MEMORY.md"
+        "my-docs/MEMORY.md",
+        "scripts/seed-audit-load.mjs",
+        "my-docs/evidence/artifacts/cat3-large-fixture-current.json"
       ],
       "summary_cards": [
         {
@@ -1502,18 +1580,17 @@
           "threshold": true,
           "actual": true,
           "result": "pass",
-          "references": [
-            "cat3-before-after-benchmark-bypass-built-server"
-          ]
+          "references": ["cat3-before-after-benchmark-bypass-built-server"]
         },
         {
           "id": "cat3-target-root-cause-documented",
           "description": "Root cause of each bottleneck is documented.",
           "operator": "manual_gate",
           "result": "pass",
-          "reason": "Report records payload/serialization and benchmark/rate-limit findings.",
+          "reason": "Report records serialized My Week route work and non-critical bootstrap critical-path work as the two claimed endpoint bottlenecks.",
           "references": [
-            "cat3-benchmark-command"
+            "cat3-my-week-serialized-route-work",
+            "cat3-bootstrap-critical-path-split"
           ]
         }
       ]
@@ -1780,9 +1857,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Latest EXPLAIN artifact includes explicit old protected-docs fanout and current bootstrap constituent query sections.",
-          "references": [
-            "cat4-before-after-explain-artifact"
-          ]
+          "references": ["cat4-before-after-explain-artifact"]
         },
         {
           "id": "cat4-target-inefficiency-documented",
@@ -1790,9 +1865,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Docs identify fanout/repeated requests and bootstrap consolidation.",
-          "references": [
-            "cat4-query-count-command"
-          ]
+          "references": ["cat4-query-count-command"]
         }
       ],
       "acceptance_tests": [
@@ -1800,9 +1873,7 @@
           "id": "cat4-audit-five-flows-present",
           "type": "rubric_items_present",
           "result": "pass",
-          "references": [
-            "cat4-audit-five-common-flows"
-          ]
+          "references": ["cat4-audit-five-common-flows"]
         },
         {
           "id": "cat4-one-flow-query-count-reduced-at-least-20-percent",
@@ -2117,9 +2188,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Ledger references the three risk-comment locations.",
-          "references": [
-            "cat5-risk-comment-locations"
-          ]
+          "references": ["cat5-risk-comment-locations"]
         },
         {
           "id": "cat5-target-current-unit-suites-pass",
@@ -2127,10 +2196,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Improvement report records full API and web suite passes.",
-          "references": [
-            "cat5-api-suite-pass",
-            "cat5-web-suite-pass"
-          ]
+          "references": ["cat5-api-suite-pass", "cat5-web-suite-pass"]
         }
       ],
       "acceptance_tests": [
@@ -2168,9 +2234,7 @@
           "id": "cat5-full-e2e-baseline-green",
           "type": "test_run",
           "result": "pass",
-          "references": [
-            "cat5-full-e2e-green-run"
-          ],
+          "references": ["cat5-full-e2e-green-run"],
           "reason": "Full E2E rerun passed 872/872 with no final failures."
         }
       ],
@@ -2237,10 +2301,7 @@
         "Does not claim code coverage percentage improved.",
         "Does not count stale selector cleanup as one of the three meaningful regression tests."
       ],
-      "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md"
-      ]
+      "sources": ["my-docs/AUDIT_REPORT.md", "my-docs/IMPROVEMENT_REPORT.md"]
     },
     {
       "id": "cat-6-runtime-error-handling",
@@ -2418,9 +2479,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "Backlinks offline/degraded state preserves stale data visibly instead of failing silently.",
-          "references": [
-            "cat6-backlinks-offline-fix"
-          ]
+          "references": ["cat6-backlinks-offline-fix"]
         },
         {
           "id": "cat6-target-runtime-screenshots",
@@ -2454,9 +2513,7 @@
           "id": "cat6-focused-runtime-e2e-passes",
           "type": "measurement_check",
           "result": "pass",
-          "references": [
-            "cat6-runtime-e2e-closeout"
-          ]
+          "references": ["cat6-runtime-e2e-closeout"]
         },
         {
           "id": "cat6-screenshots-present",
@@ -2803,11 +2860,7 @@
           "id": "cat7-top3-axe-violations-zero",
           "type": "all_selected_pages_have_zero_axe_violations",
           "measurement_id": "cat7-closeout-axe",
-          "selected_pages": [
-            "/docs",
-            "/documents/:id",
-            "/projects"
-          ],
+          "selected_pages": ["/docs", "/documents/:id", "/projects"],
           "result": "pass",
           "target_id": "cat7-target-selected-axe-zero"
         },
@@ -2822,11 +2875,7 @@
           "id": "cat7-top3-page-selection-source-backed",
           "type": "source_alignment_check",
           "requirement": "3 most important pages",
-          "selected_pages": [
-            "/docs",
-            "/documents/:id",
-            "/projects"
-          ],
+          "selected_pages": ["/docs", "/documents/:id", "/projects"],
           "result": "pass",
           "reason": "Official top-three now uses source-backed core document and project/planning pages; /my-week remains additional evidence.",
           "target_id": "cat7-target-source-backed-top3"
@@ -2956,9 +3005,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "/docs and /documents/:id are the lowest Lighthouse/core document surfaces; /projects is the source-backed planning surface with baseline serious contrast objections. /my-week is retained only as supporting evidence.",
-          "references": [
-            "cat7-axe-summary-artifact"
-          ]
+          "references": ["cat7-axe-summary-artifact"]
         },
         {
           "id": "cat7-target-audit-fields",
@@ -3079,9 +3126,7 @@
                 {
                   "module": "@hono/node-server",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-29087"
-                  ],
+                  "cves": ["CVE-2026-29087"],
                   "titles": [
                     "@hono/node-server has authorization bypass for protected static paths via encoded slashes in Serve Static Middleware"
                   ],
@@ -3092,23 +3137,16 @@
                 {
                   "module": "express-rate-limit",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-30827"
-                  ],
+                  "cves": ["CVE-2026-30827"],
                   "titles": [
                     "express-rate-limit: IPv4-mapped IPv6 addresses bypass per-client rate limiting on servers with dual-stack network"
                   ],
-                  "application_features": [
-                    "API and login rate limiting"
-                  ]
+                  "application_features": ["API and login rate limiting"]
                 },
                 {
                   "module": "fast-uri",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-6321",
-                    "CVE-2026-6322"
-                  ],
+                  "cves": ["CVE-2026-6321", "CVE-2026-6322"],
                   "titles": [
                     "fast-uri vulnerable to path traversal via percent-encoded dot segments",
                     "fast-uri vulnerable to host confusion via percent-encoded authority delimiters"
@@ -3137,24 +3175,17 @@
                 {
                   "module": "flatted",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-32141",
-                    "CVE-2026-33228"
-                  ],
+                  "cves": ["CVE-2026-32141", "CVE-2026-33228"],
                   "titles": [
                     "flatted vulnerable to unbounded recursion DoS in parse() revive phase",
                     "Prototype Pollution via parse() in NodeJS flatted"
                   ],
-                  "application_features": [
-                    "ESLint cache serialization"
-                  ]
+                  "application_features": ["ESLint cache serialization"]
                 },
                 {
                   "module": "hono",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-29045"
-                  ],
+                  "cves": ["CVE-2026-29045"],
                   "titles": [
                     "Hono vulnerable to arbitrary file access via serveStatic vulnerability "
                   ],
@@ -3165,9 +3196,7 @@
                 {
                   "module": "lodash",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-4800"
-                  ],
+                  "cves": ["CVE-2026-4800"],
                   "titles": [
                     "lodash vulnerable to Code Injection via `_.template` imports key names"
                   ],
@@ -3195,10 +3224,7 @@
                 {
                   "module": "path-to-regexp",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-4867",
-                    "CVE-2026-4926"
-                  ],
+                  "cves": ["CVE-2026-4867", "CVE-2026-4926"],
                   "titles": [
                     "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple route parameters",
                     "path-to-regexp vulnerable to Denial of Service via sequential optional groups"
@@ -3210,15 +3236,11 @@
                 {
                   "module": "picomatch",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-33671"
-                  ],
+                  "cves": ["CVE-2026-33671"],
                   "titles": [
                     "Picomatch has a ReDoS vulnerability via extglob quantifiers"
                   ],
-                  "application_features": [
-                    "File glob matching in dev tooling"
-                  ]
+                  "application_features": ["File glob matching in dev tooling"]
                 },
                 {
                   "module": "protobufjs",
@@ -3244,9 +3266,7 @@
                 {
                   "module": "rollup",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-27606"
-                  ],
+                  "cves": ["CVE-2026-27606"],
                   "titles": [
                     "Rollup 4 has Arbitrary File Write via Path Traversal"
                   ],
@@ -3257,9 +3277,7 @@
                 {
                   "module": "svgo",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-29074"
-                  ],
+                  "cves": ["CVE-2026-29074"],
                   "titles": [
                     "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)"
                   ],
@@ -3270,11 +3288,7 @@
                 {
                   "module": "undici",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-1526",
-                    "CVE-2026-1528",
-                    "CVE-2026-2229"
-                  ],
+                  "cves": ["CVE-2026-1526", "CVE-2026-1528", "CVE-2026-2229"],
                   "titles": [
                     "Undici: Malicious WebSocket 64-bit length overflows parser and crashes the client",
                     "Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression",
@@ -3287,9 +3301,7 @@
                 {
                   "module": "vite",
                   "severity": "high",
-                  "cves": [
-                    "CVE-2026-39363"
-                  ],
+                  "cves": ["CVE-2026-39363"],
                   "titles": [
                     "Vite Vulnerable to Arbitrary File Read via Vite Dev Server WebSocket"
                   ],
@@ -3584,9 +3596,7 @@
           "operator": "manual_gate",
           "result": "pass",
           "reason": "manual-cors-csp, manual-secrets, manual-rate-limits, and manual-verbose-errors all passed in latest security report.",
-          "references": [
-            "cat8-security-probe-final-report"
-          ]
+          "references": ["cat8-security-probe-final-report"]
         },
         {
           "id": "cat8-target-two-verified-fixes",
