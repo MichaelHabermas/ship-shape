@@ -17,7 +17,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import * as Y from 'yjs';
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ResilientSection } from '@/components/ui/ResilientSection';
 import { cn } from '@/lib/cn';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ScrollFade } from '@/components/ui/ScrollFade';
@@ -739,9 +739,7 @@ export function Editor({
                 setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
               }}
             >
-              <ErrorBoundary>
-                <EditorContent editor={editor} />
-              </ErrorBoundary>
+              <EditorContent editor={editor} />
             </div>
             {editor && !editor.isDestroyed && (
               <BubbleMenu
@@ -819,7 +817,14 @@ export function Editor({
             {/* Sidebar content */}
             <ScrollFade className="flex-1">
               <div className="pb-20">
-                {sidebar}
+                <ResilientSection
+                  name={`properties-sidebar-${documentType ?? 'document'}`}
+                  fallbackTitle="Properties unavailable"
+                  fallbackDescription="The document editor is still usable while this sidebar recovers."
+                  resetKeys={[documentId, documentType]}
+                >
+                  {sidebar}
+                </ResilientSection>
               </div>
             </ScrollFade>
           </div>

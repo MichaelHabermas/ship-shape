@@ -1081,3 +1081,17 @@ Why: Expands repeatable axe evidence to pages graders care about without install
 Evidence: `pnpm a11y:closeout -- --fail-on-serious` → 0 critical/serious on `/login`, `/docs`, `/issues`, `/projects`, selected `/documents/:id`, `/my-week` in `test-results/a11y-closeout/axe-summary.json`; `pnpm --filter @ship/web exec vitest run src/components/ActionItemsModal.test.tsx`.
 
 **Decision Gist**: Axe path stays the proven Cat 7 branch; expand pages and fix one modal keyboard gap.
+
+### D065: Cat 6 process lifecycle and targeted boundary hardening (2026-05-23)
+
+Status: Accepted
+
+Decision: Add Cat 6 operational runtime hardening without changing the counted three-fix proof. Centralize API shutdown handling in `api/src/runtime/shutdown.ts`, move signal/fatal process ownership to `api/src/index.ts`, expose `closeDatabasePool()`, and make collaboration setup return a cleanup function that removes the upgrade listener, closes WebSocket servers with a terminate fallback, awaits final Yjs persistence, and flushes pending saves. On the frontend, make `ErrorBoundary` a named reusable primitive, reset the route boundary on navigation, and use recoverable `ResilientSection` wrappers around volatile optional surfaces while keeping the TipTap/Yjs editor core outside a small fallback boundary.
+
+Why: The audit called out missing process-level fatal handlers and partial error-boundary coverage. Those are real operational risks, but they should not be counted as a fourth user-facing Cat 6 fix unless they have the same before/after repro and screenshot burden as the original source requirement.
+
+Consequences: `SIGTERM`/`SIGINT` now attempt bounded graceful shutdown and exit 0 unless a fatal event arrives during shutdown; `unhandledRejection`/`uncaughtException` log fatal context, attempt shutdown, and exit 1. Optional sidebar/AI/backlink render failures can degrade locally without replacing the editor. A test-only boundary route is included only in `VITE_APP_ENV=test_e2e` builds for deterministic Playwright screenshot evidence.
+
+Evidence: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts` 7/7; `pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx` 6/6; `E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep "error boundary"` 1/1; full Cat 6 runtime file 9/9.
+
+**Decision Gist**: Treat process fatal handlers and targeted render boundaries as Cat 6 hardening, not a new counted fix.

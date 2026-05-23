@@ -1337,7 +1337,7 @@ Parallel harvest across Categories 1–4, 6–7 (Cat 5 skipped; Lighthouse defer
 - **Cat 1:** Web/API typing batch — inferred-any params 47→30; production `any` still 1. Hooks migrated to `apiClient.GET` + `assertApiData`; route row types on auth/associations.
 - **Cat 2:** Lazy lowlight via `lowlight-setup.ts` — largest chunk 837.24→642.48 KB; total JS/CSS 2396.29→2369.69 KB. Evidence: `my-docs/evidence-runs/cat2-easy-wins-20260523/`.
 - **Cat 4:** Search content scorecard filled — 3 SQL queries per `/api/search/content` request (`test-results/perf/query-count-api-easy-wins-20260523.json`); documented 0→3 tradeoff, not a reduction claim.
-- **Cat 6:** Fresh `error-handling.spec.ts` 8/8 (`test-results/category-6-runtime-easy-wins/`); AI screenshot refreshed; collector reads `bootstrap.data.documents` and skips `/docs` when `CAT6_DOCUMENT_PATH` is set.
+- **Cat 6:** Fresh `error-handling.spec.ts` 9/9 (`test-results/category-6-runtime-easy-wins/`); AI screenshot refreshed; collector reads `bootstrap.data.documents` and skips `/docs` when `CAT6_DOCUMENT_PATH` is set. Follow-up hardening added API process fatal handlers, bounded/awaited collaboration shutdown, and named frontend boundary islands; this remains operational hardening, not a fourth counted fix.
 - **Cat 7:** Axe closeout expanded to `/login` + `/issues` (0 critical/serious on six pages); Action Items modal `Dialog.Close` + Vitest regression.
 
 Validation: `pnpm submission:validate`, `pnpm submission:render`, `pnpm submission:check`.

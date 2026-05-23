@@ -184,7 +184,7 @@ export function AppLayout() {
             />
 
             <main id="main-content" className="flex flex-1 flex-col overflow-hidden" role="main" tabIndex={-1}>
-              <ErrorBoundary>
+              <ErrorBoundary resetKeys={[location.pathname, location.search]}>
                 <Outlet />
               </ErrorBoundary>
             </main>

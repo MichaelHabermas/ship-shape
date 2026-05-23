@@ -9,6 +9,7 @@ import { DocumentTypeSelector, getMissingRequiredFields } from '@/components/sid
 import type { SelectableDocumentType, ConversionDocumentType } from '@ship/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { PlanQualityBanner, RetroQualityBanner } from '@/components/PlanQualityBanner';
+import { ResilientSection } from '@/components/ui/ResilientSection';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Person } from '@/components/PersonCombobox';
 import type {
@@ -349,10 +350,28 @@ export function UnifiedEditor({
 
   const qualityBanner = useMemo(() => {
     if (document.document_type === 'weekly_plan') {
-      return <PlanQualityBanner documentId={document.id} editorContent={editorContent} onAnalysisChange={handlePlanAnalysisChange} />;
+      return (
+        <ResilientSection
+          name="plan-quality-banner"
+          fallbackTitle="AI quality check unavailable"
+          fallbackDescription="Your plan content is still available while this optional check recovers."
+          resetKeys={[document.id, document.document_type]}
+        >
+          <PlanQualityBanner documentId={document.id} editorContent={editorContent} onAnalysisChange={handlePlanAnalysisChange} />
+        </ResilientSection>
+      );
     }
     if (document.document_type === 'weekly_retro') {
-      return <RetroQualityBanner documentId={document.id} editorContent={editorContent} planContent={null} onAnalysisChange={handleRetroAnalysisChange} />;
+      return (
+        <ResilientSection
+          name="retro-quality-banner"
+          fallbackTitle="AI quality check unavailable"
+          fallbackDescription="Your retro content is still available while this optional check recovers."
+          resetKeys={[document.id, document.document_type]}
+        >
+          <RetroQualityBanner documentId={document.id} editorContent={editorContent} planContent={null} onAnalysisChange={handleRetroAnalysisChange} />
+        </ResilientSection>
+      );
     }
     return undefined;
   }, [document.id, document.document_type, editorContent, handlePlanAnalysisChange, handleRetroAnalysisChange]);

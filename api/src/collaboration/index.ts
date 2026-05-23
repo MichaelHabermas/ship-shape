@@ -47,8 +47,7 @@ const messageTimestamps = new Map<WebSocket, number[]>();
 const rateLimitViolations = new Map<WebSocket, number>();
 const RATE_LIMIT_VIOLATION_THRESHOLD = 50; // Close connection after 50 violations
 
-// Clean up old connection attempts periodically
-setInterval(() => {
+function cleanupOldConnectionAttempts(): void {
   const now = Date.now();
   connectionAttempts.forEach((timestamps, ip) => {
     const valid = timestamps.filter(t => now - t < RATE_LIMIT.CONNECTION_WINDOW_MS);
@@ -58,7 +57,7 @@ setInterval(() => {
       connectionAttempts.set(ip, valid);
     }
   });
-}, 30_000);
+}
 
 // Check if IP is rate limited for new connections
 function isConnectionRateLimited(ip: string): boolean {
@@ -115,76 +114,90 @@ function parseDocId(docName: string): string {
 // Track last content history log time per document to avoid excessive logging
 const contentHistoryLastLogged = new Map<string, number>();
 const CONTENT_HISTORY_MIN_INTERVAL_MS = 60_000; // Log at most once per minute per document
+const docEvictionTimers = new Map<string, NodeJS.Timeout>();
+const finalPersistSaves = new Set<Promise<void>>();
+let collaborationShuttingDown = false;
 
-async function persistDocument(docName: string, doc: Y.Doc) {
+async function persistDocumentStrict(docName: string, doc: Y.Doc) {
   const state = Y.encodeStateAsUpdate(doc);
   const docId = parseDocId(docName);
 
-  try {
-    // Convert Yjs to TipTap JSON to extract hypothesis/criteria and keep content in sync
-    const fragment = doc.getXmlFragment('default');
-    const content = yjsToJson(fragment);
+  // Convert Yjs to TipTap JSON to extract hypothesis/criteria and keep content in sync
+  const fragment = doc.getXmlFragment('default');
+  const content = yjsToJson(fragment);
 
-    // Extract hypothesis, success criteria, vision, and goals from content
-    const hypothesis = extractHypothesisFromContent(content);
-    const successCriteria = extractSuccessCriteriaFromContent(content);
-    const vision = extractVisionFromContent(content);
-    const goals = extractGoalsFromContent(content);
+  // Extract hypothesis, success criteria, vision, and goals from content
+  const hypothesis = extractHypothesisFromContent(content);
+  const successCriteria = extractSuccessCriteriaFromContent(content);
+  const vision = extractVisionFromContent(content);
+  const goals = extractGoalsFromContent(content);
 
-    // Get existing properties, document_type, and content to check for changes
-    const existingResult = await pool.query(
-      'SELECT properties, document_type, content, created_by FROM documents WHERE id = $1',
-      [docId]
-    );
-    const existingProps = existingResult.rows[0]?.properties || {};
-    const documentType = existingResult.rows[0]?.document_type;
-    const existingContent = existingResult.rows[0]?.content;
-    const createdBy = existingResult.rows[0]?.created_by;
+  // Get existing properties, document_type, and content to check for changes
+  const existingResult = await pool.query(
+    'SELECT properties, document_type, content, created_by FROM documents WHERE id = $1',
+    [docId]
+  );
+  const existingProps = existingResult.rows[0]?.properties || {};
+  const documentType = existingResult.rows[0]?.document_type;
+  const existingContent = existingResult.rows[0]?.content;
+  const createdBy = existingResult.rows[0]?.created_by;
 
-    // For weekly_plan and weekly_retro documents, log content history when content changes
-    // This provides full version history for accountability audit trails
-    if ((documentType === 'weekly_plan' || documentType === 'weekly_retro') && createdBy) {
-      const newContentStr = JSON.stringify(content);
-      const oldContentStr = existingContent ? JSON.stringify(existingContent) : null;
+  // For weekly_plan and weekly_retro documents, log content history when content changes
+  // This provides full version history for accountability audit trails
+  if ((documentType === 'weekly_plan' || documentType === 'weekly_retro') && createdBy) {
+    const newContentStr = JSON.stringify(content);
+    const oldContentStr = existingContent ? JSON.stringify(existingContent) : null;
 
-      // Only log if content actually changed and enough time has passed since last log
-      if (newContentStr !== oldContentStr) {
-        const now = Date.now();
-        const lastLogged = contentHistoryLastLogged.get(docId) || 0;
+    // Only log if content actually changed and enough time has passed since last log
+    if (newContentStr !== oldContentStr) {
+      const now = Date.now();
+      const lastLogged = contentHistoryLastLogged.get(docId) || 0;
 
-        if (now - lastLogged >= CONTENT_HISTORY_MIN_INTERVAL_MS) {
-          // Log content change to document_history
-          await pool.query(
-            `INSERT INTO document_history (document_id, field, old_value, new_value, changed_by)
-             VALUES ($1, 'content', $2, $3, $4)`,
-            [docId, oldContentStr, newContentStr, createdBy]
-          );
-          contentHistoryLastLogged.set(docId, now);
-        }
+      if (now - lastLogged >= CONTENT_HISTORY_MIN_INTERVAL_MS) {
+        // Log content change to document_history
+        await pool.query(
+          `INSERT INTO document_history (document_id, field, old_value, new_value, changed_by)
+           VALUES ($1, 'content', $2, $3, $4)`,
+          [docId, oldContentStr, newContentStr, createdBy]
+        );
+        contentHistoryLastLogged.set(docId, now);
       }
     }
+  }
 
-    // Update properties with extracted values (null clears the property)
-    // Note: 'plan' is the canonical field name (renamed from 'hypothesis' in migration 032)
-    const updatedProps = {
-      ...existingProps,
-      plan: hypothesis,
-      success_criteria: successCriteria,
-      vision: vision,
-      goals: goals,
-    };
+  // Update properties with extracted values (null clears the property)
+  // Note: 'plan' is the canonical field name (renamed from 'hypothesis' in migration 032)
+  const updatedProps = {
+    ...existingProps,
+    plan: hypothesis,
+    success_criteria: successCriteria,
+    vision: vision,
+    goals: goals,
+  };
 
-    // Persist yjs_state, content (JSON backup), and updated properties
-    // The content column is kept in sync with yjs_state to serve as a fallback
-    // and to support API reads that don't go through the collaboration server
-    await pool.query(
-      `UPDATE documents SET yjs_state = $1, content = $2, properties = $3, updated_at = now() WHERE id = $4`,
-      [Buffer.from(state), JSON.stringify(content), JSON.stringify(updatedProps), docId]
-    );
-    await upsertDocumentSearchIndex(docId);
+  // Persist yjs_state, content (JSON backup), and updated properties
+  // The content column is kept in sync with yjs_state to serve as a fallback
+  // and to support API reads that don't go through the collaboration server
+  await pool.query(
+    `UPDATE documents SET yjs_state = $1, content = $2, properties = $3, updated_at = now() WHERE id = $4`,
+    [Buffer.from(state), JSON.stringify(content), JSON.stringify(updatedProps), docId]
+  );
+  await upsertDocumentSearchIndex(docId);
+}
+
+async function persistDocument(docName: string, doc: Y.Doc) {
+  try {
+    await persistDocumentStrict(docName, doc);
   } catch (err) {
     console.error('Failed to persist document:', err);
   }
+}
+
+function trackFinalPersist(save: Promise<void>): void {
+  finalPersistSaves.add(save);
+  save.finally(() => {
+    finalPersistSaves.delete(save);
+  }).catch(() => undefined);
 }
 
 function schedulePersist(docName: string, doc: Y.Doc) {
@@ -195,6 +208,17 @@ function schedulePersist(docName: string, doc: Y.Doc) {
     persistDocument(docName, doc);
     pendingSaves.delete(docName);
   }, 2000));
+}
+
+async function flushPendingSaves(): Promise<void> {
+  const saves: Promise<void>[] = [];
+  pendingSaves.forEach((pendingSave, docName) => {
+    clearTimeout(pendingSave);
+    pendingSaves.delete(docName);
+    const doc = docs.get(docName);
+    if (doc) saves.push(persistDocumentStrict(docName, doc));
+  });
+  await Promise.all(saves);
 }
 
 // Track which docs were loaded fresh from JSON (not from yjs_state)
@@ -579,11 +603,45 @@ function closeOversizedOrErroredSocket(ws: WebSocket, scope: string): void {
   });
 }
 
-export function setupCollaboration(server: Server) {
+function closeWebSocketServer(wss: WebSocketServer, forceAfterMs = 1000): Promise<void> {
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN || client.readyState === WebSocket.CLOSING) {
+      client.close(1001, 'Server shutting down');
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const forceClose = setTimeout(() => {
+      for (const client of wss.clients) {
+        if (client.readyState !== WebSocket.CLOSED) {
+          client.terminate();
+        }
+      }
+    }, forceAfterMs);
+
+    wss.close((err?: Error) => {
+      clearTimeout(forceClose);
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+export function setupCollaboration(server: Server): () => Promise<void> {
+  collaborationShuttingDown = false;
+  const connectionAttemptCleanupInterval = setInterval(cleanupOldConnectionAttempts, 30_000);
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
   const eventsWss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
 
-  server.on('upgrade', async (request, socket, head) => {
+  const handleUpgrade = async (request: IncomingMessage, socket: import('net').Socket, head: Buffer) => {
+    if (collaborationShuttingDown) {
+      socket.destroy();
+      return;
+    }
+
     const url = new URL(request.url || '', `http://${request.headers.host}`);
 
     // Handle /events WebSocket for real-time notifications
@@ -669,7 +727,9 @@ export function setupCollaboration(server: Server) {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request, docName, sessionData);
     });
-  });
+  };
+
+  server.on('upgrade', handleUpgrade);
 
   wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, docName: string, sessionData: { userId: string; workspaceId: string }) => {
     closeOversizedOrErroredSocket(ws, 'Collaboration');
@@ -759,12 +819,17 @@ export function setupCollaboration(server: Server) {
         const pending = pendingSaves.get(docName);
         if (pending) {
           clearTimeout(pending);
-          persistDocument(docName, doc);
           pendingSaves.delete(docName);
+          const save = persistDocumentStrict(docName, doc);
+          trackFinalPersist(save);
+          void save.catch((err) => {
+            console.error('Failed to persist document during connection close:', err);
+          });
         }
 
         // Keep doc in memory for a bit in case of quick reconnect
-        setTimeout(() => {
+        if (collaborationShuttingDown) return;
+        const evictionTimer = setTimeout(() => {
           let stillNoConnections = true;
           conns.forEach((c) => {
             if (c.docName === docName) stillNoConnections = false;
@@ -773,7 +838,9 @@ export function setupCollaboration(server: Server) {
             docs.delete(docName);
             awareness.delete(docName);
           }
+          docEvictionTimers.delete(docName);
         }, 30000);
+        docEvictionTimers.set(docName, evictionTimer);
       }
     });
   });
@@ -828,4 +895,38 @@ export function setupCollaboration(server: Server) {
 
   console.log('Yjs collaboration server attached');
   console.log('Events WebSocket server attached');
+
+  return async () => {
+    collaborationShuttingDown = true;
+    server.off('upgrade', handleUpgrade);
+    clearInterval(connectionAttemptCleanupInterval);
+    await Promise.allSettled([
+      closeWebSocketServer(wss),
+      closeWebSocketServer(eventsWss),
+    ]);
+    const finalResults = await Promise.allSettled(finalPersistSaves);
+    let flushError: unknown;
+    try {
+      await flushPendingSaves();
+    } catch (err) {
+      flushError = err;
+    }
+
+    docEvictionTimers.forEach((timer) => clearTimeout(timer));
+    docEvictionTimers.clear();
+
+    connectionAttempts.clear();
+    messageTimestamps.clear();
+    rateLimitViolations.clear();
+    conns.clear();
+    eventConns.clear();
+    docs.clear();
+    awareness.clear();
+    freshFromJsonDocs.clear();
+    contentHistoryLastLogged.clear();
+
+    const finalFailure = finalResults.find((result) => result.status === 'rejected');
+    if (finalFailure?.status === 'rejected') throw finalFailure.reason;
+    if (flushError) throw flushError;
+  };
 }

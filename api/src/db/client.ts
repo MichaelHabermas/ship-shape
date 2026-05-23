@@ -25,19 +25,8 @@ const pool = new Pool({
   statement_timeout: 30000, // 30 seconds max query duration
 });
 
-// Graceful shutdown - close pool connections on process termination
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing database pool...');
+export async function closeDatabasePool(): Promise<void> {
   await pool.end();
-  console.log('Database pool closed');
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, closing database pool...');
-  await pool.end();
-  console.log('Database pool closed');
-  process.exit(0);
-});
+}
 
 export { pool };
