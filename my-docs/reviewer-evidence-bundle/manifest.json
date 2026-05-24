@@ -4,8 +4,8 @@
   "generator": "scripts/submission/evidence-bundle-utils.mjs",
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
-    "branch": "security-improvements-2",
-    "commit": "92f79f7164b81f21d5cdfdebe55d2808c67b5004",
+    "branch": "master",
+    "commit": "49ae2085a66abb7515970d44443ca768ae2bfa4f",
     "dirtyWorktree": true
   },
   "security": {
