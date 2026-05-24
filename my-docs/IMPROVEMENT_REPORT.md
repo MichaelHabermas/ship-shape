@@ -2,6 +2,25 @@
 
 ---
 
+## Reviewer Packet Simplification (2026-05-24)
+
+Scope: reviewer-facing evidence packaging only. This pass changes the generated submission dashboard into a reviewer-first packet without changing Category 1-8 measurements or source claims.
+
+### What changed
+
+- Reframed `my-docs/reviewer-dashboard.html` as a generated reviewer packet: Summary, Evidence, Security, and Appendix.
+- Added a grading-packet projection so the first screen maps each category to source gate, baseline, improvement proof, artifact/command, caveat, and verdict.
+- Moved internal proof machinery (`Targets`, `Rubric`, `Boundaries`, `Discoveries`, cross-examine/claim-diff views) out of top-level navigation and into Evidence or Appendix.
+- Reordered Category 8 so verified fixes and runnable probe proof precede raw deliverable/probe tables.
+- Fixed security manual-review rendering so object-shaped details do not appear as `[object Object]`.
+- Replaced stale `runs/cat8-final/` references with stable `latest.*` / existing-run wording.
+
+### Claim boundary
+
+No Category 1-8 claim changed. The ledger remains the claim source of truth; this pass makes the same evidence easier and safer for reviewers to consume.
+
+---
+
 ## Document Mutation Core Pass (2026-05-24)
 
 Scope: architecture hardening only. This pass introduced a reason-coded `DocumentPolicy` and a document mutation boundary, then migrated the generic create/update/content/delete/convert document routes through it. A follow-up multi-agent review found correctness/security gaps in the new boundary and the pre-existing delete route semantics; those were fixed before closeout.
@@ -102,7 +121,7 @@ Multi-agent verification (security API review, probe/CI audit, SOT alignment, th
 - `pnpm type-check` | pass
 
 ### Claim boundary
-Cat 8 **proven** metrics remain 4 required surfaces / historical `cat8-final`; v2 CI is an extension artifact, not a Cat 8 rubric change.
+Cat 8 **proven** metrics remain the 4 required perimeter surfaces; v2 CI is an extension artifact, not a Cat 8 rubric change.
 
 ---
 
@@ -943,7 +962,7 @@ Extended probe harness from perimeter-only (Cat 8 closeout) to **probe v2**:
 - `lib/fixtures.mjs` for runtime weekly-plan/person setup; `lib/registry.mjs` modular probe groups.
 - Abuse probes for public-feedback rate limit; auth-session member audit/impersonation controls.
 
-Baseline on unfixed main: `runs/probe-v2-baseline-unfixed/` — 10 findings, 10 known-open, matches SS-FIND Phase 1–2 backlog. Historical `cat8-final` artifact unchanged.
+Baseline on unfixed main: `runs/probe-v2-baseline-unfixed/` — 10 findings, 10 known-open, matches SS-FIND Phase 1–2 backlog. Historical perimeter closeout remains a separate scope concept.
 
 ## Type Safety Correctness Review Follow-up (2026-05-22)
 
@@ -1123,3 +1142,92 @@ Added a repo-local activation contract check for agent-readable docs. **No submi
 | Research/archive routing | Added `docs/archive/README.md`, `docs/research/README.md`; moved FPKI DCR background to `docs/research/` |
 
 Verification: `pnpm docs:check:activation`; `pnpm docs:check:strict`.
+
+---
+
+## Security architecture closure wave (2026-05-24)
+
+Implemented the 10X security core from the closure plan: `Principal` + reason-coded `Capability` authorization, setup-token gating, scoped/admin-created API tokens with `legacy:full` compatibility, graph-aware document metadata filtering, document-bound file authorization, S3 confirm verification, dangerous multi-extension filename rejection, WebSocket authorization parity/revalidation/budgets, collaboration history actor attribution, CAIA return/issuer hardening, and Zod request validation for AI routes.
+
+Submission impact is Category 8 only. The ledger now references the fresh security probe CI run conservatively; it does not claim all historical SS-FIND backlog rows are closed. Findings `SS-FIND-007`, `008`, `010`, and `029` were marked fixed through the security findings CLI after probe verification, then findings output was regenerated.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (193/193)
+- Focused API/security Vitest: pass
+- Files/issues focused Vitest after migration: pass
+- `pnpm security:probe:test`: pass
+- `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201 pnpm security:probe:ci`: probe passed with 5/5 surfaces, 40/40 probes, 0 findings; generated findings ledger became stale after recorded verifications and was repaired with `pnpm security:findings:render` + `pnpm security:findings:check`
+
+Decision: D077.
+
+---
+
+## Security identity/token/file closeout wave (2026-05-24)
+
+Closed the next proof-backed security cluster after the central capability layer: setup bootstrap disclosure/race, API-token scope/minting authority, invite metadata/session strength, and file confirm/filename hardening. Also added the additive typed document command route so sensitive document mutations have a named command boundary without breaking legacy PATCH.
+
+Findings closed through the CLI after focused evidence: `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033`. Remaining graph/realtime/browser/input rows stay open until mapped proof exists.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `pnpm security:probe:test`: pass
+- `SECURITY_PROBE_API_PORT=3102 SECURITY_PROBE_WEB_PORT=5202 pnpm security:probe:ci`: probe passed with 5/5 surfaces, 40/40 probes, 0 findings; generated findings ledger became stale after recorded verifications and was repaired with `pnpm security:findings:render` + `pnpm security:findings:check`
+- Focused API/security Vitest on workspaces/setup/api-tokens/files/openapi-contract/capabilities: pass, 51/51
+- `pnpm security:findings:render`: pass
+- `pnpm security:findings:check`: pass
+
+Decision: D078.
+
+---
+
+## Security graph and realtime closure wave (2026-05-24)
+
+Closed the next two security waves from the roadmap: graph metadata visibility and realtime parity. The work adds a small graph visibility helper, removes public association metadata echoes, makes context/current-program selection self-contained, filters bootstrap/program aggregate counts by actor visibility, and applies sprint visibility inside accountability inference. Team grid and parent-close warning leaks now have focused regression coverage.
+
+Realtime hardening now treats collaboration persistence as its own capability, carries the editing principal through scheduled/final Yjs persistence, rejects new distinct rooms when the Y.Doc cache is full, and exposes small test hooks for cache/revalidation proof without changing the WebSocket protocol.
+
+Findings closed through the CLI after focused tests: `SS-FIND-006`, `009`, `011`, `015`, `022`, `024`, `027`, and `030`.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `pnpm security:probe:test`: pass (32/32)
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 595 tests
+
+Decision: D079, D080.
+
+Correctness follow-up: Parallel review found and fixed hidden graph leaks in bootstrap projects and team assignment/project surfaces, tightened accountability allocation inference to visible, non-archived graph nodes, cleaned Y.Doc eviction side state, and corrected final close-triggered collaboration persistence to use the last editor principal. Added regression coverage for the newly found graph leaks.
+
+Additional verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 600 tests
+- `pnpm security:probe:test`: pass (32/32)
+- `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-150803`, 5/5 surfaces, 40 probes, 0 findings
+
+---
+
+## Security tail closure: external config, AI validation, session anomaly, policy proof (2026-05-24)
+
+Completed the remaining security waves with narrow structural fixes: production OpenAPI auth-gated by default, SSRF-safe CAIA issuer validation, safe relative CAIA return paths, central cookie-auth Origin/Referer proof preserved, AI request contracts aligned to string content, and risk-based session anomaly handling across HTTP plus WebSocket upgrade validation.
+
+Added the first hand-written policy proof matrix for the final SS-FIND rows. Findings closed through the CLI after mapped proof: `SS-FIND-017`, `019`, `020`, `023`, `031`, and `034`.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 54 files / 611 tests
+- `pnpm --filter @ship/web test`: pass, 24 files / 179 tests
+- `pnpm security:probe:test`: pass, 33 tests
+- `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-153908`, 5/5 surfaces, 40 probes, 0 findings
+
+Wave 10 simplification result: no broad deletion was safe or useful in this pass. `workspaceAdminMiddleware`/`workspaceAccessMiddleware` remain live in workspace routes, and legacy document/file/session modules still feed the capability system. The simplification landed as one clearer policy matrix and no new parallel authorization framework.
+
+Correctness follow-up: Review found and fixed two foundational tail gaps before handoff. Malformed CAIA issuer URLs now fail closed, CAIA discovery and later OAuth calls use an SSRF-safe custom fetch with redirect rejection, invite-accept sessions store binding data, and missing legacy session binding refreshes on successful validation.

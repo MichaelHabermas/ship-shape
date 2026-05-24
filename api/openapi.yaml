@@ -398,6 +398,137 @@ components:
             - standup
             - weekly_review
           description: Type of document
+    TipTapDocument:
+      type: object
+      properties:
+        type:
+          type: string
+        content:
+          type: array
+          items:
+            nullable: true
+      required:
+        - type
+        - content
+    DocumentCommand:
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - set_governance
+            properties:
+              type: object
+              additionalProperties:
+                nullable: true
+          required:
+            - type
+            - properties
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - set_raci
+            properties:
+              type: object
+              additionalProperties:
+                nullable: true
+          required:
+            - type
+            - properties
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - set_workflow_status
+            status:
+              type: string
+              enum:
+                - planning
+                - active
+                - completed
+          required:
+            - type
+            - status
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - set_visibility
+            visibility:
+              type: string
+              enum:
+                - private
+                - workspace
+              description: Document visibility scope
+          required:
+            - type
+            - visibility
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - set_parent
+            parent_id:
+              type: string
+              nullable: true
+              format: uuid
+              description: UUID identifier
+              example: 550e8400-e29b-41d4-a716-446655440000
+          required:
+            - type
+            - parent_id
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - set_associations
+            belongs_to:
+              type: array
+              items:
+                $ref: "#/components/schemas/BelongsToEntry"
+          required:
+            - type
+            - belongs_to
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - edit_content
+            content:
+              $ref: "#/components/schemas/TipTapDocument"
+          required:
+            - type
+            - content
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - convert
+            target_type:
+              type: string
+              enum:
+                - issue
+                - project
+          required:
+            - type
+            - target_type
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - delete
+          required:
+            - type
     IssueState:
       type: string
       enum:
@@ -5440,6 +5571,9 @@ components:
         name:
           type: string
           minLength: 1
+        setup_token:
+          type: string
+          minLength: 1
       required:
         - email
         - password
@@ -5488,20 +5622,12 @@ components:
         id:
           type: string
           format: uuid
-        email:
-          type: string
-          format: email
         role:
           type: string
           enum:
             - admin
             - member
-        workspaceId:
-          type: string
-          format: uuid
         workspaceName:
-          type: string
-        invitedBy:
           type: string
         expiresAt:
           type: string
@@ -5514,11 +5640,8 @@ components:
           type: boolean
       required:
         - id
-        - email
         - role
-        - workspaceId
         - workspaceName
-        - invitedBy
         - expiresAt
         - userExists
         - alreadyMember
@@ -6099,6 +6222,51 @@ paths:
       responses:
         204:
           description: Document deleted
+        404:
+          description: Document not found
+  /documents/{id}/commands:
+    post:
+      tags:
+        - Documents
+      summary: Run a typed document command
+      description: Additive command boundary for sensitive document mutations. Legacy PATCH remains supported for compatibility.
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentCommand"
+      responses:
+        200:
+          description: Command completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  nullable: true
+        204:
+          description: Document deleted
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        403:
+          description: Capability denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         404:
           description: Document not found
   /documents/{id}/content:

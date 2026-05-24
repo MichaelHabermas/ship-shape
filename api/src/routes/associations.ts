@@ -37,6 +37,50 @@ function isValidRelationshipType(value: unknown): value is RelationshipType {
   return typeof value === 'string' && validTypes.includes(value as RelationshipType);
 }
 
+type AssociationRow = {
+  id: string;
+  document_id: string;
+  related_id: string;
+  relationship_type: RelationshipType;
+  created_at: Date | string;
+  related_title?: string | null;
+  related_document_type?: string | null;
+};
+
+type ReverseAssociationRow = {
+  id: string;
+  document_id: string;
+  related_id: string;
+  relationship_type: RelationshipType;
+  created_at: Date | string;
+  document_title?: string | null;
+  document_document_type?: string | null;
+};
+
+function toAssociationResponse(row: AssociationRow) {
+  return {
+    id: row.id,
+    document_id: row.document_id,
+    related_id: row.related_id,
+    relationship_type: row.relationship_type,
+    created_at: row.created_at,
+    ...(row.related_title !== undefined ? { related_title: row.related_title } : {}),
+    ...(row.related_document_type !== undefined ? { related_document_type: row.related_document_type } : {}),
+  };
+}
+
+function toReverseAssociationResponse(row: ReverseAssociationRow) {
+  return {
+    id: row.id,
+    document_id: row.document_id,
+    related_id: row.related_id,
+    relationship_type: row.relationship_type,
+    created_at: row.created_at,
+    document_title: row.document_title ?? null,
+    document_document_type: row.document_document_type ?? null,
+  };
+}
+
 // GET /api/documents/:id/associations - List all associations for a document
 router.get('/:id/associations', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -58,7 +102,6 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
         da.related_id,
         da.relationship_type,
         da.created_at,
-        da.metadata,
         d.title as related_title,
         d.document_type as related_document_type
       FROM document_associations da
@@ -82,9 +125,9 @@ router.get('/:id/associations', authMiddleware, async (req: Request, res: Respon
 
     query += ` ORDER BY da.created_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<AssociationRow>(query, params);
 
-    return res.json(result.rows);
+    return res.json(result.rows.map(toAssociationResponse));
   } catch (error) {
     sendInternalError(res, error, 'Error fetching associations:', { error: 'Failed to fetch associations' });
     return;
@@ -123,11 +166,11 @@ router.post('/:id/associations', authMiddleware, async (req: Request, res: Respo
        ON CONFLICT (document_id, related_id, relationship_type) DO UPDATE SET
          metadata = COALESCE($4, document_associations.metadata),
          created_at = document_associations.created_at
-       RETURNING *`,
+       RETURNING id, document_id, related_id, relationship_type, created_at`,
       [id, related_id, relationship_type, metadata || {}]
     );
 
-    return res.status(201).json(result.rows[0]);
+    return res.status(201).json(toAssociationResponse(result.rows[0]));
   } catch (error) {
     sendInternalError(res, error, 'Error creating association:', { error: 'Failed to create association' });
     return;
@@ -167,7 +210,7 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
       params.push(typeParam);
     }
 
-    query += ` RETURNING *`;
+    query += ` RETURNING id, document_id, related_id, relationship_type, created_at`;
 
     const result = await pool.query(query, params);
 
@@ -175,7 +218,7 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
       return res.status(404).json({ error: 'Association not found' });
     }
 
-    return res.json({ deleted: result.rows.length, associations: result.rows });
+    return res.json({ deleted: result.rows.length, associations: result.rows.map(toAssociationResponse) });
   } catch (error) {
     sendInternalError(res, error, 'Error deleting association:', { error: 'Failed to delete association' });
     return;
@@ -203,7 +246,6 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
         da.related_id,
         da.relationship_type,
         da.created_at,
-        da.metadata,
         d.title as document_title,
         d.document_type as document_document_type
       FROM document_associations da
@@ -226,9 +268,9 @@ router.get('/:id/reverse-associations', authMiddleware, async (req: Request, res
 
     query += ` ORDER BY da.created_at DESC`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<ReverseAssociationRow>(query, params);
 
-    return res.json(result.rows);
+    return res.json(result.rows.map(toReverseAssociationResponse));
   } catch (error) {
     sendInternalError(res, error, 'Error fetching reverse associations:', {
       error: 'Failed to fetch reverse associations',
@@ -253,7 +295,7 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
     // Programs are stored as documents with document_type = 'program', not a separate table
     const currentDoc = await pool.query(
       `SELECT d.id, d.title, d.document_type, d.ticket_number,
-              prog_da.related_id as program_id,
+              prog.id as program_id,
               prog.title as program_name,
               prog.properties->>'color' as program_color
        FROM documents d
@@ -265,7 +307,11 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
         AND prog.archived_at IS NULL
         AND prog.deleted_at IS NULL
         AND ${visibilityPredicate('prog', '$3', '$4')}
-       WHERE d.id = $1`,
+       WHERE d.id = $1
+         AND d.workspace_id = $2
+         AND d.archived_at IS NULL
+         AND d.deleted_at IS NULL
+         AND ${visibilityPredicate('d', '$3', '$4')}`,
       [id, actor.workspaceId, actor.userId, isAdmin]
     );
 

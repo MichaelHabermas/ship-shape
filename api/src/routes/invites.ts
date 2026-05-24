@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
@@ -8,6 +8,10 @@ import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 
 const router = Router();
+
+function generateSecureSessionId(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 // GET /api/invites/:token - Validate invite token
 router.get('/:token', async (req: Request, res: Response): Promise<void> => {
@@ -90,11 +94,8 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
       success: true,
       data: {
         id: invite.id,
-        email: invite.email,
         role: invite.role,
-        workspaceId: invite.workspace_id,
         workspaceName: invite.workspace_name,
-        invitedBy: invite.invited_by_name,
         expiresAt: invite.expires_at,
         userExists,
         alreadyMember,
@@ -223,13 +224,21 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
     await linkUserToWorkspaceViaInvite(user, invite);
 
     // Create session
-    const sessionId = uuidv4();
+    const sessionId = generateSecureSessionId();
     const expiresAt = new Date(Date.now() + SESSION_TIMEOUT_MS);
 
     await pool.query(
-      `INSERT INTO sessions (id, user_id, workspace_id, expires_at, last_activity)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [sessionId, user.id, invite.workspace_id, expiresAt, new Date()]
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at, last_activity, user_agent, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        sessionId,
+        user.id,
+        invite.workspace_id,
+        expiresAt,
+        new Date(),
+        req.get('user-agent') || 'unknown',
+        req.ip || req.socket.remoteAddress || 'unknown',
+      ]
     );
 
     await logAuditEvent({

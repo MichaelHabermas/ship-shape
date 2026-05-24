@@ -23,7 +23,6 @@ import {
 } from './ledger-projections.mjs';
 import {
   buildSecurityTabHtml,
-  buildSecurityView,
   renderSecurityClientBundle,
   securityDashboardStyles,
 } from './security-dashboard/index.mjs';
@@ -163,11 +162,23 @@ function blockerHref(category, problem) {
   return `#category-${category.id}`;
 }
 
+function overviewMetricText(category, metric) {
+  if (
+    category.id === 'cat-2-bundle-size' &&
+    metric?.kind === 'percent_change' &&
+    typeof metric.baseline_value === 'number' &&
+    typeof metric.latest_value === 'number'
+  ) {
+    return `Initial bundle size ${Math.round(metric.baseline_value)} to ${Math.round(metric.latest_value)}`;
+  }
+  return renderMetricSentence(metric);
+}
+
 function overviewSignal(category) {
   const metric = category.primaryTarget?.metric_id
     ? (category.derived_metrics || []).find((item) => item.id === category.primaryTarget.metric_id)
     : null;
-  const metricText = renderMetricSentence(metric);
+  const metricText = overviewMetricText(category, metric);
   if (category.status === 'proven' && metricText) return metricText;
 
   const failedOrWarn = [...category.failedTests, ...category.warningTests];
@@ -243,13 +254,12 @@ function railMetaLabels(category, discoveries, securityMeta = null) {
   };
 }
 
-function categoryRail(categories, discoveries, securityMeta = null) {
+function categoryRail(categories, discoveries) {
   return `
     <aside class="category-rail" aria-label="Category navigation">
       ${categories
         .map((category) => {
-          const density = claimDensity(category);
-          const meta = railMetaLabels(category, discoveries, securityMeta);
+          const meta = railMetaLabels(category, discoveries);
           const shortTitle = category.title
             .replace('Database Query Efficiency', 'Database')
             .replace('Test Coverage and Quality', 'Tests')
@@ -260,33 +270,16 @@ function categoryRail(categories, discoveries, securityMeta = null) {
             .replace('Bundle Size', 'Bundle')
             .replace('Type Safety', 'Types');
           return `
-            <button class="rail-cell rail-${escapeHtml(density.level)}" type="button" data-category-id="${escapeHtml(
-              category.id
-            )}" data-meta-overview="${escapeHtml(meta.overview.compact)}" data-detail-overview="${escapeHtml(
-              meta.overview.detail
-            )}" data-meta-evidence="${escapeHtml(meta.evidence.compact)}" data-detail-evidence="${escapeHtml(
-              meta.evidence.detail
-            )}" data-meta-cross-examine="${escapeHtml(meta.crossExamine.compact)}" data-detail-cross-examine="${escapeHtml(
-              meta.crossExamine.detail
-            )}" data-meta-claim-diff="${escapeHtml(meta.claimDiff.compact)}" data-detail-claim-diff="${escapeHtml(
-              meta.claimDiff.detail
-            )}" data-meta-targets="${escapeHtml(meta.targets.compact)}" data-detail-targets="${escapeHtml(
-              meta.targets.detail
-            )}" data-meta-rubric="${escapeHtml(meta.rubric.compact)}" data-detail-rubric="${escapeHtml(
-              meta.rubric.detail
-            )}" data-meta-boundaries="${escapeHtml(meta.boundaries.compact)}" data-detail-boundaries="${escapeHtml(
-              meta.boundaries.detail
-            )}" data-meta-discoveries="${escapeHtml(meta.discoveries.compact)}" data-detail-discoveries="${escapeHtml(
-              meta.discoveries.detail
-            )}" data-meta-security="${escapeHtml(meta.security.compact)}" data-detail-security="${escapeHtml(
-              meta.security.detail
-            )}" aria-label="Jump to Cat ${category.number}: ${escapeHtml(category.title)}">
+            <button class="rail-cell rail-low" type="button" data-category-id="${escapeHtml(category.id)}" data-meta-overview="${escapeHtml(
+              meta.overview.compact
+            )}" data-detail-overview="${escapeHtml(overviewSignal(category))}" aria-label="Jump to Cat ${category.number}: ${escapeHtml(
+              category.title
+            )}">
               <span class="rail-number">${category.number}</span>
-              <span class="rail-load">${escapeHtml(density.level[0].toUpperCase())}</span>
+              <span class="rail-load" aria-hidden="true"></span>
               <span class="rail-delta">${escapeHtml(meta.overview.compact)}</span>
               <span class="rail-title">Cat ${category.number} · ${escapeHtml(shortTitle)}</span>
-              <span class="rail-meta">${escapeHtml(category.title)}</span>
-              <span class="rail-detail">${escapeHtml(meta.overview.detail)}</span>
+              <span class="rail-detail">${escapeHtml(overviewSignal(category))}</span>
             </button>`;
         })
         .join('')}
@@ -758,6 +751,218 @@ function verdictStrip(categories) {
     </div>`;
 }
 
+function gradingPacketRows(packet) {
+  return packet.rows
+    .map(
+      (row) => `
+        <tr id="summary-${escapeHtml(row.categoryId)}" data-ledger-id="${escapeHtml(row.categoryId)}">
+          <td><strong>Cat ${row.number}</strong><span class="subtle">${escapeHtml(row.title)}</span></td>
+          <td>${escapeHtml(row.sourceGate)} ${row.sourcePath ? repoLink(row.sourcePath, 'Source') : ''}</td>
+          <td>${escapeHtml(row.baseline)}</td>
+          <td>${escapeHtml(row.improvement || 'Improvement proof is recorded in the ledger.')}</td>
+          <td>
+            ${row.proof?.path ? linkedPath(row.proof.path, 'Open proof') : '<span class="subtle">See category evidence</span>'}
+            ${
+              row.reproduce?.command
+                ? `<small>${code(row.reproduce.command)}${row.reproduce.result ? ` · ${escapeHtml(row.reproduce.result)}` : ''}</small>`
+                : ''
+            }
+          </td>
+          <td>${escapeHtml(row.caveat || 'No special caveat recorded.')}</td>
+          <td>${badge(row.status)}<small>${escapeHtml(row.verdict)}</small></td>
+        </tr>`
+    )
+    .join('');
+}
+
+function evidencePacketSections(categories, packet) {
+  const rowsByCategory = new Map(packet.rows.map((row) => [row.categoryId, row]));
+  return categories
+    .map((category) => {
+      const row = rowsByCategory.get(category.id);
+      const claim = category.primaryClaim || category.claims?.[0];
+      return `
+        <article id="category-${escapeHtml(category.id)}" class="panel span-12" data-ledger-id="${escapeHtml(category.id)}">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Category ${category.number}</p>
+              <h2>${escapeHtml(category.title)}</h2>
+            </div>
+            ${badge(category.status)}
+          </div>
+          <div class="diff-lanes packet-lanes">
+            <section>
+              <h3>Claim</h3>
+              <p>${escapeHtml(claim?.statement || overviewSignal(category))}</p>
+            </section>
+            <section>
+              <h3>Measurement</h3>
+              <p>${escapeHtml(row?.improvement || category.proofSummary || overviewSignal(category))}</p>
+            </section>
+            <section>
+              <h3>Boundary</h3>
+              <p>${escapeHtml(row?.caveat || category.non_claims?.[0] || category.caveats?.[0] || 'No special caveat recorded.')}</p>
+            </section>
+          </div>
+          ${passPathBlock(category, row)}
+          <h3>Reproduce / inspect</h3>
+          <ul class="check-list">
+            ${
+              row?.reproduce?.command
+                ? `<li><strong>${escapeHtml(row.reproduce.label)}</strong><span>${code(row.reproduce.command)}</span><small>${escapeHtml(row.reproduce.result || '')}</small></li>`
+                : '<li><strong>No command evidence recorded</strong><span>Use the linked artifact and ledger row.</span></li>'
+            }
+            ${
+              row?.proof?.path
+                ? `<li><strong>${escapeHtml(row.proof.label)}</strong><span>${linkedPath(row.proof.path, row.proof.path)}</span></li>`
+                : '<li><strong>No artifact path recorded</strong><span>Use the ledger evidence list below.</span></li>'
+            }
+          </ul>
+          <details class="appendix-details">
+            <summary>Full ledger evidence</summary>
+            <ul class="check-list">${evidenceItems(category)}</ul>
+          </details>
+        </article>`;
+    })
+    .join('');
+}
+
+const PASS_PATHS = {
+  'cat-1-type-safety': {
+    heading: 'Pass path used: 25% meaningful type-safety reduction',
+    summary:
+      'The source requires a 25% reduction in type-safety violations, preserved functionality, and no superficial unknown swaps. This packet uses the counted syntax reduction path.',
+    facts: [
+      ['Baseline', '1340 counted syntax nodes.'],
+      ['Current', '625 counted syntax nodes, a 53.4% reduction.'],
+      ['Proof', 'pnpm type-check passed; API 509 tests and web 168 tests passed.'],
+      ['Not claimed', 'Does not claim every untyped callback or every low-risk syntax category is gone.'],
+    ],
+  },
+  'cat-2-bundle-size': {
+    heading: 'Pass path used: initial page-load code splitting',
+    summary:
+      'The source allows total bundle reduction or 20% initial page-load reduction through code splitting. This packet uses the initial page-load path.',
+    facts: [
+      ['Baseline', 'Initial entry bundle was 2025.10 KB.'],
+      ['Current', 'Initial entry bundle is 528.48 KB, a 73.9% reduction.'],
+      ['Proof', 'Before/after bundle stats and bundle-analysis artifacts are linked.'],
+      ['Not claimed', 'Does not claim total JS/CSS size decreased or every async chunk is optimized.'],
+    ],
+  },
+  'cat-3-api-response-time': {
+    heading: 'Pass path used: 2 endpoints clear P95 target',
+    summary:
+      'The source requires 20% P95 improvement on at least 2 endpoints under identical benchmark conditions. This packet uses /api/bootstrap and /api/dashboard/my-week.',
+    facts: [
+      ['Endpoint 1', 'GET /api/bootstrap improved 41.9%, 60.3%, and 45.1% at 10/25/50 concurrency.'],
+      ['Endpoint 2', 'GET /api/dashboard/my-week improved 21.1%, 37.7%, and 36.3% at 10/25/50 concurrency.'],
+      ['Proof', 'Before/after benchmark artifacts use the same data, concurrency, and command shape.'],
+      ['Not claimed', 'Does not claim every endpoint improved or production rate limiting was weakened.'],
+    ],
+  },
+  'cat-4-database-query-efficiency': {
+    heading: 'Pass path used: query-count reduction on one user flow',
+    summary:
+      'The source allows 20% fewer queries on at least one user flow or 50% improvement on the slowest query. This packet uses the query-count reduction path.',
+    facts: [
+      ['Baseline', 'Protected docs startup used 33 queries across 7 requests.'],
+      ['Current', 'Protected docs startup uses 24 queries across 1 bootstrap request, a 27.3% reduction.'],
+      ['Proof', 'Query-count artifact and before/after bootstrap EXPLAIN evidence are linked.'],
+      ['Not claimed', 'Does not claim a row-level N+1 fix or Cat 3 latency proof from Cat 4 evidence.'],
+    ],
+  },
+  'cat-5-test-coverage-quality': {
+    heading: 'Pass path used: 3 meaningful regression tests',
+    summary:
+      'The source requires 3 meaningful tests for previously weak critical paths or 3 flaky-test fixes. This packet uses the meaningful regression-test path.',
+    facts: [
+      ['Test 1', 'Overlapping comment mark removal.'],
+      ['Test 2', 'Project issue filtering.'],
+      ['Test 3', 'Private document comment visibility.'],
+      ['Proof', 'API 554 tests and web 172 tests passed; counted risk-comment locations are linked.'],
+      ['Not claimed', 'Does not claim coverage percentage improved or zero retry artifacts under every worker count.'],
+    ],
+  },
+  'cat-6-runtime-error-handling': {
+    heading: 'Pass path used: 3 documented runtime fixes',
+    summary:
+      'The source requires 3 error-handling fixes, with at least 1 real user-facing data-loss or confusion scenario. This packet counts three runtime fixes.',
+    facts: [
+      ['Fix 1', 'CSRF failure returns JSON 403 instead of HTML stack/error output.'],
+      ['Fix 2', 'Offline editor disconnect preserves draft content after reconnect.'],
+      ['Fix 3', 'AI unavailable returns controlled degraded UI without clearing editor content.'],
+      ['User-facing clause', 'Offline editor draft preservation covers real data-loss/confusion risk.'],
+      ['Proof', 'Focused runtime E2E passed 9/9 with named screenshots.'],
+      ['Not counted', 'Comments authorization, migration runner, and general route-boundary hardening are not counted as the 3 fixes.'],
+    ],
+  },
+  'cat-7-accessibility': {
+    heading: 'Pass path used: Critical/Serious fix',
+    summary:
+      'The source allows Lighthouse +10 or fixing all Critical/Serious violations on the 3 most important pages. This packet uses the second path.',
+    facts: [
+      ['Baseline', '2 critical + 40 serious axe nodes.'],
+      ['Current', '0 critical/serious violations on /docs, /documents/:id, and /projects.'],
+      ['Proof', 'pnpm a11y:closeout -- --fail-on-serious.'],
+      ['Not claimed', 'Lighthouse was not rerun; full manual keyboard/screen-reader certification is not claimed.'],
+    ],
+  },
+  'cat-8-security-audit': {
+    heading: 'Pass path used: runnable security probe plus verified fixes',
+    summary:
+      'The source requires a runnable probe, manual security review, dependency CVE coverage, and at least 2 verified vulnerabilities with before/after proof. This packet uses the probe-and-fix path.',
+    facts: [
+      ['Probe', 'Current CI-shaped probe reports 5/5 surfaces measured, 40/40 probes passed, and 0 findings.'],
+      ['Required surfaces', 'Auth/session, WebSocket validation, input sanitization, and dependency CVEs are covered.'],
+      ['Verified fixes', 'File upload validation/serving and WebSocket malformed/oversized resilience have before/after proof.'],
+      ['Manual review', 'CORS/CSP, secrets, rate limits, and verbose errors are recorded in the security evidence.'],
+      ['Not claimed', 'Clean latest probe does not close the historical SS-FIND backlog or prove remote production penetration testing.'],
+    ],
+  },
+};
+
+function passPathBlock(category) {
+  const passPath = PASS_PATHS[category.id];
+  if (!passPath) return '';
+  return `
+          <section class="pass-path" aria-labelledby="${escapeHtml(category.id)}-pass-path">
+            <h3 id="${escapeHtml(category.id)}-pass-path">${escapeHtml(passPath.heading)}</h3>
+            <p>${escapeHtml(passPath.summary)}</p>
+            <div class="pass-path-grid">
+              ${passPath.facts
+                .map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`)
+                .join('')}
+            </div>
+          </section>`;
+}
+
+function appendixPanel(categories, discoveries) {
+  return `
+      <section id="panel-appendix" class="tab-panel" role="tabpanel" aria-labelledby="tab-appendix" tabindex="0" hidden>
+        <article class="panel">
+          <h2>Appendix</h2>
+          <p class="lede">Raw rubric rows, targets, non-claims, and discovery notes stay here so the first path remains a grading packet.</p>
+
+          <h3>Targets</h3>
+          <div class="table-wrap"><table><thead><tr><th>Category</th><th>Target</th><th>Description</th><th>Operator</th><th>Threshold</th><th>Actual</th><th>Result</th></tr></thead><tbody>${targetRows(categories)}</tbody></table></div>
+
+          <h3>Rubric</h3>
+          <div class="table-wrap"><table class="rubric-table"><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>${rubricRows(categories)}</tbody></table></div>
+
+          <h3>Explicit Non-Claims</h3>
+          <div class="non-claim-grid">${nonClaimItems(categories)}</div>
+
+          <h3>Discoveries</h3>
+          <div class="discovery-head">
+            <p>Short list of findings, decisions, fixes, and follow-up signals. Full log: ${repoLink('my-docs/discovery-research-log.md', 'discovery-research-log.md')}.</p>
+            <div class="chip-list">${discoverySummary(discoveries)}</div>
+          </div>
+          <div class="table-wrap"><table class="discoveries-table"><thead><tr><th><button class="sort-button" type="button" data-sort="index">#</button></th><th><button class="sort-button" type="button" data-sort="impact">Impact</button></th><th><button class="sort-button" type="button" data-sort="area">Area</button></th><th><button class="sort-button" type="button" data-sort="type">Type</button></th><th>Discovery</th><th>Consequence</th><th><button class="sort-button" type="button" data-sort="status">Status</button></th><th>Evidence</th></tr></thead><tbody>${discoveryRows(discoveries)}</tbody></table></div>
+        </article>
+      </section>`;
+}
+
 export function renderDashboard(
   ledger,
   discoveries = { items: [] },
@@ -767,14 +972,8 @@ export function renderDashboard(
 ) {
   const model = buildLedgerModel(ledger);
   const categories = model.categories;
-  const failedTests = model.failuresAndWarnings.filter((item) => item.result === 'fail');
-  const warningTests = model.failuresAndWarnings.filter((item) => item.result === 'warn');
-  const securityView = buildSecurityView(ledger, securityReport, securityFindings, securityDeliverable);
-  const securityMeta = {
-    compact: `${securityView.activeFindings.length} active`,
-    detail: `run ${securityView.report?.run?.id || '—'}`,
-  };
-  const securityConsoleLink = 'Open Security Console →';
+  const packet = model.gradingPacket;
+  const blockedCount = categories.length - model.gateSnapshot.proven;
 
   return `<!doctype html>
 <!-- GENERATED FILE: run pnpm submission:render-dashboard. Do not edit by hand. -->
@@ -782,7 +981,7 @@ export function renderDashboard(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ShipShape Reviewer Dashboard</title>
+    <title>ShipShape Reviewer Packet</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2320201d'/%3E%3Cpath d='M3 4h10v2H3zm0 3h7v2H3zm0 3h10v2H3z' fill='%23fffdf8'/%3E%3C/svg%3E" />
     <style>
       :root { --bg:#f6f4ef; --paper:#fffdf8; --ink:#151515; --muted:#66635d; --line:#d8d1c3; --dark:#20201d; --proven-bg:#e7f2e5; --proven-ink:#24542a; --partial-bg:#fff3cf; --partial-ink:#73500b; --open-bg:#f7dedc; --open-ink:#7d2f28; --fill-bg:#e9edf3; --fill-ink:#38475d; }
@@ -790,7 +989,7 @@ export function renderDashboard(
       body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.45; }
       .page { width:min(1260px, calc(100vw - 32px)); margin:0 auto; padding:20px 0 44px; }
       .dashboard-shell { display:grid; grid-template-columns:74px minmax(0,1fr); gap:14px; align-items:start; }
-      .dashboard-content { min-width:0; }
+      .dashboard-content { position:relative; z-index:1; min-width:0; }
       p,li,td,code { overflow-wrap:anywhere; }
       a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
       .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.8fr); align-items:stretch; gap:14px; margin-bottom:14px; }
@@ -822,19 +1021,18 @@ export function renderDashboard(
       .tab:hover { border-color:var(--dark); }
       .tab:focus-visible { border-color:var(--dark); outline:2px solid var(--dark); outline-offset:2px; }
       .tab[aria-selected="true"] { background:var(--dark); border-color:var(--dark); color:#fffdf8; }
-      .category-rail { position:sticky; top:8px; z-index:11; display:grid; gap:6px; padding:8px; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border:1px solid var(--line); }
+      .category-rail { position:sticky; top:8px; z-index:20; display:grid; gap:6px; padding:8px; overflow:visible; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border:1px solid var(--line); }
       .rail-cell { appearance:none; position:relative; display:grid; grid-template-columns:1fr 1fr; gap:4px 6px; align-items:center; min-height:66px; width:56px; padding:7px 8px; border:1px solid var(--line); background:var(--paper); color:var(--dark); font:inherit; cursor:pointer; text-align:left; transition:width .16s ease, border-color .16s ease, box-shadow .16s ease; }
-      .rail-cell:hover { width:230px; z-index:12; border-color:var(--dark); box-shadow:0 8px 20px rgba(32,32,29,.12); }
+      .rail-cell:hover { width:230px; z-index:30; border-color:var(--dark); box-shadow:0 8px 20px rgba(32,32,29,.12); }
       .rail-cell:hover { grid-template-columns:minmax(0,1fr); }
       .rail-cell:focus-visible { outline:2px solid var(--dark); outline-offset:2px; }
       .rail-number { grid-column:1; font-size:15px; font-weight:950; line-height:1; }
       .rail-load { grid-column:2; color:var(--muted); font-size:11px; font-weight:950; line-height:1; text-align:right; white-space:nowrap; }
-      .rail-delta { grid-column:1 / -1; display:block; min-width:0; color:var(--muted); font-size:10px; font-weight:850; line-height:1; text-align:left; white-space:nowrap; }
-      .rail-title,.rail-meta,.rail-detail { grid-column:1 / -1; display:none; min-width:0; white-space:normal; overflow:visible; text-overflow:clip; }
+      .rail-delta { grid-column:1 / -1; display:block; min-width:0; max-width:100%; color:var(--muted); font-size:10px; font-weight:850; line-height:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .rail-title,.rail-detail { grid-column:1 / -1; display:none; min-width:0; white-space:normal; overflow:visible; text-overflow:clip; }
       .rail-title { font-size:13px; font-weight:950; line-height:1.15; }
-      .rail-meta { color:#34342f; font-size:12px; font-weight:800; line-height:1.2; }
       .rail-detail { color:var(--muted); font-size:11px; font-weight:750; line-height:1.2; }
-      .rail-cell:hover .rail-title,.rail-cell:hover .rail-meta,.rail-cell:hover .rail-detail { display:block; }
+      .rail-cell:hover .rail-title,.rail-cell:hover .rail-detail { display:block; }
       .rail-cell:hover .rail-number,.rail-cell:hover .rail-load,.rail-cell:hover .rail-delta { display:none; }
       .rail-low { border-left:4px solid #b6d6b2; }
       .rail-medium { border-left:4px solid #e2c77f; }
@@ -927,6 +1125,25 @@ export function renderDashboard(
       .cross-list dd { margin:0; color:#2d2d29; font-size:13px; }
       .cross-list dd span { display:block; margin-top:4px; color:var(--muted); }
       .table-wrap { overflow-x:auto; }
+      .packet-table { table-layout:fixed; min-width:1180px; }
+      .packet-table th:nth-child(1),.packet-table td:nth-child(1) { width:105px; }
+      .packet-table th:nth-child(2),.packet-table td:nth-child(2) { width:260px; }
+      .packet-table th:nth-child(3),.packet-table td:nth-child(3) { width:220px; }
+      .packet-table th:nth-child(4),.packet-table td:nth-child(4) { width:260px; }
+      .packet-table th:nth-child(5),.packet-table td:nth-child(5) { width:190px; }
+      .packet-table th:nth-child(6),.packet-table td:nth-child(6) { width:220px; }
+      .packet-table th:nth-child(7),.packet-table td:nth-child(7) { width:110px; }
+      .packet-table td strong,.packet-table td small { display:block; }
+      .packet-lanes { margin:10px 0 12px; }
+      .pass-path { border:1px solid var(--line); background:#f9f7f1; padding:14px; margin:0 0 16px; }
+      .pass-path h3 { margin-top:0; }
+      .pass-path p { margin:0 0 12px; color:#34342f; }
+      .pass-path-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+      .pass-path-grid div { border-left:3px solid #2f5f9f; padding-left:10px; }
+      .pass-path-grid strong,.pass-path-grid span { display:block; }
+      .pass-path-grid span { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35; }
+      .appendix-details { margin-top:12px; }
+      .appendix-details summary { cursor:pointer; font-weight:850; }
       table { width:100%; min-width:760px; border-collapse:collapse; font-size:13px; }
       th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
       th { color:var(--muted); font-size:11px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
@@ -956,118 +1173,76 @@ export function renderDashboard(
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
-      @media (max-width: 1100px) { .score-grid,.security-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title,.rail-meta { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes,.security-evidence-list { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
-      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row,.security-metric-grid { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
+      @media (max-width: 1100px) { .score-grid,.security-metric-grid,.pass-path-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes,.security-evidence-list { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
+      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row,.security-metric-grid,.pass-path-grid { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
     </style>
   </head>
   <body>
     <main class="page">
       <div class="dashboard-shell">
-      ${categoryRail(categories, discoveries, securityMeta)}
+      ${categoryRail(categories, discoveries)}
       <div class="dashboard-content">
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-main">
           <div>
-            <p class="eyebrow">Generated From Evidence Ledger</p>
-            <h1 id="page-title">ShipShape evidence dashboard</h1>
-            <p class="lede">Week 4 reviewer console for source-backed category status, acceptance gates, evidence paths, and explicit non-claims.</p>
+            <p class="eyebrow">Generated reviewer packet</p>
+            <h1 id="page-title">${escapeHtml(packet.title)}</h1>
+            <p class="lede">${escapeHtml(packet.lede)}</p>
           </div>
-          ${verdictStrip(categories)}
+          <div class="verdict-strip" aria-label="Reproduce commands">
+            ${packet.reproduceCommands
+              .map(
+                (item) => `
+            <div class="verdict-row">
+              <div>
+                <strong>${escapeHtml(item.label)}</strong>
+                <span>Run from the repository root.</span>
+              </div>
+              <div>${code(item.command)}</div>
+            </div>`
+              )
+              .join('')}
+          </div>
         </div>
         <aside class="hero-side" aria-label="Current review status">
-          <p class="eyebrow">Reviewer Gate Snapshot</p>
+          <p class="eyebrow">Gate snapshot</p>
           <div class="mini-grid">
             <div class="mini"><strong>${model.gateSnapshot.proven}</strong><span>proven</span></div>
-            <div class="mini"><strong>${model.gateSnapshot.partial}</strong><span>partial</span></div>
-            <div class="mini"><strong>${model.gateSnapshot.openFill}</strong><span>open/fill</span></div>
+            <div class="mini"><strong>${blockedCount}</strong><span>blocked</span></div>
+            <div class="mini"><strong>2</strong><span>commands</span></div>
           </div>
-          <div class="score-grid">${categories
-            .map((category) => `<div class="status-dot">${badge(category.status)} <strong>Cat ${category.number}</strong></div>`)
-            .join('')}</div>
-          ${issueList([...failedTests, ...warningTests])}
+          <p>Start with Summary for the acceptance decision. Use Security for Category 8 probe evidence and active backlog boundaries.</p>
         </aside>
       </section>
 
       <nav class="tabs" role="tablist" aria-label="Dashboard sections">
-        <button class="tab" id="tab-overview" role="tab" aria-selected="true" aria-controls="panel-overview" tabindex="0" data-tab="overview">Overview</button>
+        <button class="tab" id="tab-summary" role="tab" aria-selected="true" aria-controls="panel-summary" tabindex="0" data-tab="summary">Summary</button>
         <button class="tab" id="tab-evidence" role="tab" aria-selected="false" aria-controls="panel-evidence" tabindex="-1" data-tab="evidence">Evidence</button>
-        <button class="tab" id="tab-cross-examine" role="tab" aria-selected="false" aria-controls="panel-cross-examine" tabindex="-1" data-tab="cross-examine">Cross-Examine</button>
-        <button class="tab" id="tab-claim-diff" role="tab" aria-selected="false" aria-controls="panel-claim-diff" tabindex="-1" data-tab="claim-diff">Claim Diff</button>
-        <button class="tab" id="tab-targets" role="tab" aria-selected="false" aria-controls="panel-targets" tabindex="-1" data-tab="targets">Targets</button>
-        <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
-        <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
-        <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
-        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security Console</button>
+        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security</button>
+        <button class="tab" id="tab-appendix" role="tab" aria-selected="false" aria-controls="panel-appendix" tabindex="-1" data-tab="appendix">Appendix</button>
       </nav>
 
-      <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
-        <div class="section-grid">
-          <div class="span-12"><div class="score-grid">${metricCards(categories, securityConsoleLink)}</div></div>
-        </div>
+      <section id="panel-summary" class="tab-panel active" role="tabpanel" aria-labelledby="tab-summary" tabindex="0">
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Reviewer decision table</p>
+              <h2>Summary</h2>
+            </div>
+            <span class="subtle">Source gate -> proof -> caveat</span>
+          </div>
+          <div class="table-wrap"><table class="packet-table"><thead><tr><th>Category</th><th>Source gate</th><th>Baseline</th><th>Improvement</th><th>Proof</th><th>Caveat</th><th>Verdict</th></tr></thead><tbody>${gradingPacketRows(packet)}</tbody></table></div>
+        </article>
       </section>
 
       <section id="panel-evidence" class="tab-panel" role="tabpanel" aria-labelledby="tab-evidence" tabindex="0" hidden>
-        <div class="section-grid">${categorySections(categories)}</div>
-        <div class="table-wrap"><table class="evidence-summary-table"><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>${evidenceRows(categories)}</tbody></table></div>
+        <div class="section-grid">${evidencePacketSections(categories, packet)}</div>
       </section>
 
       ${securityTab(ledger, securityReport, securityFindings, securityDeliverable)}
 
-      <section id="panel-cross-examine" class="tab-panel" role="tabpanel" aria-labelledby="tab-cross-examine" tabindex="0" hidden>
-        <article class="panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Reviewer Defense Packets</p>
-              <h2>Cross-Examine</h2>
-            </div>
-            <span class="subtle">Claim -> attack -> defense -> proof</span>
-          </div>
-          <div class="cross-grid">${crossExamineCards(categories)}</div>
-        </article>
-      </section>
-
-      <section id="panel-claim-diff" class="tab-panel" role="tabpanel" aria-labelledby="tab-claim-diff" tabindex="0" hidden>
-        <article class="panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Before / After / Meaning</p>
-              <h2>Claim Diff</h2>
-            </div>
-            <span class="subtle">Derived from baseline and closeout cards</span>
-          </div>
-          <div class="diff-grid">${claimDiffCards(categories)}</div>
-        </article>
-      </section>
-
-      <section id="panel-targets" class="tab-panel" role="tabpanel" aria-labelledby="tab-targets" tabindex="0" hidden>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Target</th><th>Description</th><th>Operator</th><th>Threshold</th><th>Actual</th><th>Result</th></tr></thead><tbody>${targetRows(categories)}</tbody></table></div>
-      </section>
-
-      <section id="panel-rubric" class="tab-panel" role="tabpanel" aria-labelledby="tab-rubric" tabindex="0" hidden>
-        <div class="table-wrap"><table class="rubric-table"><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>${rubricRows(categories)}</tbody></table></div>
-      </section>
-
-      <section id="panel-boundaries" class="tab-panel" role="tabpanel" aria-labelledby="tab-boundaries" tabindex="0" hidden>
-        <article class="panel">
-          <h2>Explicit Non-Claims</h2>
-          <div class="non-claim-grid">${nonClaimItems(categories)}</div>
-        </article>
-      </section>
-
-      <section id="panel-discoveries" class="tab-panel" role="tabpanel" aria-labelledby="tab-discoveries" tabindex="0" hidden>
-        <article class="panel">
-          <div class="discovery-head">
-            <div>
-              <p class="eyebrow">Short Research Log</p>
-              <h2>Discoveries</h2>
-              <p>Short list of findings, decisions, fixes, and follow-up signals. Full log: ${repoLink('my-docs/discovery-research-log.md', 'discovery-research-log.md')}.</p>
-            </div>
-            <div class="chip-list">${discoverySummary(discoveries)}</div>
-          </div>
-          <div class="table-wrap"><table class="discoveries-table"><thead><tr><th><button class="sort-button" type="button" data-sort="index">#</button></th><th><button class="sort-button" type="button" data-sort="impact">Impact</button></th><th><button class="sort-button" type="button" data-sort="area">Area</button></th><th><button class="sort-button" type="button" data-sort="type">Type</button></th><th>Discovery</th><th>Consequence</th><th><button class="sort-button" type="button" data-sort="status">Status</button></th><th>Evidence</th></tr></thead><tbody>${discoveryRows(discoveries)}</tbody></table></div>
-        </article>
-      </section>
+      ${appendixPanel(categories, discoveries)}
 
       <footer class="footer">
         Generated from ${code('my-docs/evidence/submission-ledger.json')} using ${code('pnpm submission:render-dashboard')}. Validate with ${code('pnpm submission:validate')}.
@@ -1081,6 +1256,7 @@ export function renderDashboard(
       const railCells = Array.from(document.querySelectorAll('.rail-cell'));
       const activeTabStorageKey = 'ship-submission-dashboard-active-tab';
       function syncRailMeta(tabName) {
+        if (tabName === 'security') return;
         const key = \`meta\${tabName
           .split('-')
           .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

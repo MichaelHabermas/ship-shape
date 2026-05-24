@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "bundleGeneratedAt": "2026-05-24T17:59:46.514Z",
+  "bundleGeneratedAt": "2026-05-24T20:46:29.901Z",
   "generator": "scripts/submission/evidence-bundle-utils.mjs",
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
-    "branch": "test-improvements-and-submission-hardening-1",
-    "commit": "5efec0ac592a6a3035069cacc446fcf7cf0e5322",
+    "branch": "security-improvements-2",
+    "commit": "92f79f7164b81f21d5cdfdebe55d2808c67b5004",
     "dirtyWorktree": true
   },
   "security": {
-    "runId": "cat8-2026-05-24T17-59-45-512Z",
+    "runId": "security-probe-ci-20260524-154623",
     "mode": "local-active",
-    "apiUrl": "http://localhost:3000",
-    "webUrl": "http://localhost:5173",
+    "apiUrl": "http://127.0.0.1:3099",
+    "webUrl": "http://localhost:5199",
     "latestConfirmedFindings": 0,
     "triageCounts": {
       "knownOpen": 0,
-      "resolved": 1,
+      "resolved": 0,
       "new": 0,
       "regression": 0
     }
@@ -49,16 +49,16 @@
     "my-docs/SUBMISSION_CHECKLIST.md",
     "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
     "test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json",
+    "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
+    "test-results/a11y-closeout/axe-summary.json",
     "test-results/perf/explain-performance-2026-05-21T02-16-39-379Z.json",
     "test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json",
     "test-results/perf/query-count-api-2026-05-22T19-47-22-751Z.json",
-    "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-47f12-es-API-500-error-gracefully-chromium/category-6-runtime-evidence-api-500-documents-list-viewport.png",
     "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handl-e0866-twork-disconnect-gracefully-chromium/category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png",
     "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-CSRF-token-expiration-chromium/category-6-runtime-evidence-csrf-json-editor-usable-viewport.png",
     "test-results/category-6-runtime-easy-wins/playwright/error-handling-Error-Handling-handles-concurrent-API-errors-chromium/category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png",
     "test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png",
     "test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png",
-    "test-results/a11y-closeout/axe-summary.json",
     "test-results/cat5-last-failed/summary.json",
     "test-results/cat5-full-green-check/summary.json",
     "test-results/cat5-full-green-check/errors",

@@ -3,6 +3,7 @@
  */
 
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+import { visibleAssociatedDocumentCountSql } from '../services/document-graph-visibility.js';
 
 export { VISIBILITY_FILTER_SQL as visibilityFilterSql } from '../middleware/visibility.js';
 
@@ -69,6 +70,7 @@ export function buildBootstrapExplainCatalog(ctx: BootstrapExplainContext): {
 } {
   const { workspaceId, userId, isAdmin, currentSprintNumber, todayIso, todayStr } = ctx;
   const visibilitySql = VISIBILITY_FILTER_SQL('d', '$2', '$3');
+  const programVisibilitySql = VISIBILITY_FILTER_SQL('prog', '$2', '$3');
 
   const currentBootstrap: BootstrapExplainQuery[] = [
     {
@@ -121,12 +123,8 @@ export function buildBootstrapExplainCatalog(ctx: BootstrapExplainContext): {
       sql: `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
                    COALESCE((d.properties->>'owner_id')::uuid, d.created_by) AS owner_id,
                    u.name AS owner_name, u.email AS owner_email,
-                   (SELECT COUNT(*) FROM documents i
-                    JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'program'
-                    WHERE i.document_type = 'issue') AS issue_count,
-                   (SELECT COUNT(*) FROM documents s
-                    JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
-                    WHERE s.document_type = 'sprint') AS sprint_count
+                   (${visibleAssociatedDocumentCountSql('i', 'program', 'issue', 'd', '$2', '$3')}) AS issue_count,
+                   (${visibleAssociatedDocumentCountSql('s', 'program', 'sprint', 'd', '$2', '$3')}) AS sprint_count
             FROM documents d
             LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
             WHERE d.workspace_id = $1 AND d.document_type = 'program'
@@ -139,20 +137,22 @@ export function buildBootstrapExplainCatalog(ctx: BootstrapExplainContext): {
       name: 'bootstrap_projects',
       endpoint: '/api/bootstrap',
       source: 'api/src/routes/bootstrap.ts projectsResult',
-      sql: `SELECT d.id, d.title, d.properties, prog_da.related_id AS program_id,
+      sql: `SELECT d.id, d.title, d.properties, prog.id AS program_id,
                    d.archived_at, d.created_at, d.updated_at, d.converted_from_id,
                    (d.properties->>'owner_id')::uuid AS owner_id,
                    u.name AS owner_name, u.email AS owner_email,
-                   (SELECT COUNT(*) FROM documents s
-                    JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'project'
-                    WHERE s.document_type = 'sprint') AS sprint_count,
-                   (SELECT COUNT(*) FROM documents i
-                    JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
-                    WHERE i.document_type = 'issue') AS issue_count,
+                   (${visibleAssociatedDocumentCountSql('s', 'project', 'sprint', 'd', '$2', '$3')}) AS sprint_count,
+                   (${visibleAssociatedDocumentCountSql('i', 'project', 'issue', 'd', '$2', '$3')}) AS issue_count,
                    (${INFERRED_PROJECT_STATUS_SUBQUERY}) AS inferred_status
             FROM documents d
             LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
             LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
+            LEFT JOIN documents prog ON prog.id = prog_da.related_id
+              AND prog.workspace_id = d.workspace_id
+              AND prog.document_type = 'program'
+              AND prog.archived_at IS NULL
+              AND prog.deleted_at IS NULL
+              AND ${programVisibilitySql}
             WHERE d.workspace_id = $1 AND d.document_type = 'project'
               AND d.archived_at IS NULL
               AND ${visibilitySql}

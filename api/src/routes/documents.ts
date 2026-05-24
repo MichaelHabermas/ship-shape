@@ -21,6 +21,8 @@ import {
   updateDocumentContentMutation,
   updateDocumentMutation,
 } from '../services/document-mutations.js';
+import { authorize, type DocumentCapabilityAction } from '../security/capabilities.js';
+import { principalFromRequest } from '../security/principal.js';
 
 const router = Router();
 
@@ -647,6 +649,123 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Uses in-place conversion with snapshots: same ID, state preserved for undo
 const convertDocumentSchema = z.object({
   target_type: z.enum(['issue', 'project']),
+});
+
+const documentCommandSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('set_governance'), properties: z.record(z.unknown()) }),
+  z.object({ type: z.literal('set_raci'), properties: z.record(z.unknown()) }),
+  z.object({ type: z.literal('set_workflow_status'), status: z.enum(['planning', 'active', 'completed']) }),
+  z.object({ type: z.literal('set_visibility'), visibility: documentVisibilitySchema }),
+  z.object({ type: z.literal('set_parent'), parent_id: z.string().uuid().nullable() }),
+  z.object({ type: z.literal('set_associations'), belongs_to: z.array(belongsToSchema) }),
+  z.object({ type: z.literal('edit_content'), content: z.object({ type: z.unknown(), content: z.unknown() }).passthrough() }),
+  z.object({ type: z.literal('convert'), target_type: z.enum(['issue', 'project']) }),
+  z.object({ type: z.literal('delete') }),
+]);
+
+function capabilityForCommand(command: z.infer<typeof documentCommandSchema>): DocumentCapabilityAction {
+  switch (command.type) {
+    case 'set_governance':
+      return 'set_governance';
+    case 'set_raci':
+      return 'set_raci';
+    case 'set_workflow_status':
+      return 'set_workflow_state';
+    case 'set_visibility':
+      return 'set_visibility';
+    case 'set_parent':
+      return 'set_parent';
+    case 'set_associations':
+      return 'set_associations';
+    case 'edit_content':
+      return 'edit_content';
+    case 'convert':
+      return 'convert';
+    case 'delete':
+      return 'delete';
+  }
+}
+
+router.post('/:id/commands', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const parsed = documentCommandSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error);
+      return;
+    }
+
+    const actor = getActor(req);
+    const principal = principalFromRequest(req);
+    const command = parsed.data;
+    const decision = await authorize(pool, principal, {
+      resource: 'document',
+      action: capabilityForCommand(command),
+      documentId: id,
+    });
+
+    if (!decision.allowed) {
+      res.status(decision.reason === 'document_not_found' ? 404 : 403).json({ error: decision.reason });
+      return;
+    }
+
+    if (command.type === 'edit_content') {
+      const mutation = await updateDocumentContentMutation({
+        actor,
+        documentId: id,
+        content: command.content,
+        source: 'rest',
+      });
+      res.status(mutation.status).json(mutation.body);
+      return;
+    }
+
+    if (command.type === 'convert') {
+      const mutation = await convertDocumentMutation({
+        actor,
+        documentId: id,
+        targetType: command.target_type,
+        source: 'rest',
+      });
+      res.status(mutation.status).json(mutation.body);
+      return;
+    }
+
+    if (command.type === 'delete') {
+      const mutation = await deleteDocumentMutation({
+        actor,
+        documentId: id,
+        source: 'rest',
+      });
+      if (mutation.status === 204) {
+        res.status(204).send();
+        return;
+      }
+      res.status(mutation.status).json(mutation.body);
+      return;
+    }
+
+    const patch =
+      command.type === 'set_governance' || command.type === 'set_raci'
+        ? { properties: command.properties }
+        : command.type === 'set_workflow_status'
+          ? { status: command.status }
+          : command.type === 'set_visibility'
+            ? { visibility: command.visibility }
+            : command.type === 'set_parent'
+              ? { parent_id: command.parent_id }
+              : { belongs_to: command.belongs_to };
+
+    const mutation = await updateDocumentMutation({
+      actor,
+      documentId: id,
+      patch,
+      source: 'rest',
+    });
+    res.status(mutation.status).json(mutation.body);
+  } catch (err) {
+    sendInternalError(res, err, 'Run document command error:');
+  }
 });
 
 router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) => {

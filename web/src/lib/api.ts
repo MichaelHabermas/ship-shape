@@ -557,7 +557,7 @@ export const api = {
   invites: {
     // Public invite operations
     validate: (token: string) =>
-      request<{ email: string; workspaceName: string; invitedBy: string; role: 'admin' | 'member'; userExists: boolean; alreadyMember?: boolean }>(`/api/invites/${token}`),
+      request<{ workspaceName: string; role: 'admin' | 'member'; userExists: boolean; alreadyMember?: boolean }>(`/api/invites/${token}`),
 
     accept: (token: string, data?: { password?: string; name?: string }) =>
       request<LoginResponse>(`/api/invites/${token}/accept`, {

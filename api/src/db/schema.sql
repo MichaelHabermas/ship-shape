@@ -474,6 +474,7 @@ CREATE TABLE IF NOT EXISTS files (
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   uploaded_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   filename TEXT NOT NULL,
+  document_id UUID REFERENCES documents(id) ON DELETE SET NULL,
   mime_type TEXT NOT NULL,
   size_bytes BIGINT NOT NULL,
   s3_key TEXT NOT NULL,        -- S3 object key (or local path for dev)
@@ -604,6 +605,7 @@ CREATE INDEX IF NOT EXISTS idx_issue_iterations_issue_workspace ON issue_iterati
 -- File indexes
 CREATE INDEX IF NOT EXISTS idx_files_workspace ON files(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
+CREATE INDEX IF NOT EXISTS idx_files_document_id ON files(document_id);
 
 -- Document links indexes
 CREATE INDEX IF NOT EXISTS idx_document_links_target ON document_links(target_id);

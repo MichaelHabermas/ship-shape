@@ -3726,7 +3726,7 @@
           "id": "cat8-probe-v2-ci-gate",
           "kind": "security_probe_status",
           "label": "Probe v2 CI gate (fail-on=new)",
-          "recorded_at": "2026-05-23",
+          "recorded_at": "2026-05-24",
           "values": {
             "fail_on": "new",
             "attack_surfaces_measured": 5,
@@ -3739,7 +3739,7 @@
           },
           "origin": "artifact_parsed",
           "confidence": "report_backed",
-          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json"
+          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json"
         }
       ],
       "derived_metrics": [
@@ -3838,7 +3838,7 @@
         {
           "id": "cat8-security-audit-proven",
           "status": "proven",
-          "statement": "Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence.",
+      "statement": "Category 8 is backed by a runnable repo-aware security probe covering the required attack-surface buckets plus authorization probes, assisted manual review, zero high/critical dependency CVEs, and verified vulnerabilities with before/after probe evidence.",
           "basis": [
             "cat8-security-probe-status",
             "cat8-target-four-attack-surfaces",
@@ -3850,7 +3850,7 @@
             "Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field.",
             "The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories.",
             "Manual review is assisted and evidence-backed; it is not a formal third-party penetration test.",
-            "Cat 8 proven covers four required attack surfaces plus two verified fixes; the SS-FIND backlog (34 deep-review items) is tracked in security-findings.json — not all rows are closed."
+        "Cat 8 proven covers the required probe surfaces plus verified fixes; the SS-FIND backlog (34 deep-review items) is tracked in security-findings.json and remains the authority for rows not explicitly marked fixed."
           ]
         }
       ],
@@ -3871,7 +3871,7 @@
           "id": "cat8-security-probe-final-report",
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/latest.json",
-          "description": "Final full security probe report: 4/4 attack surfaces measured, 25/25 probes passed, 0 findings."
+      "description": "Latest full security probe report: 5/5 attack surfaces measured, 40/40 probes passed, 0 findings."
         },
         {
           "id": "cat8-security-probe-final-markdown",
@@ -3883,7 +3883,7 @@
           "id": "cat8-probe-v2-baseline-unfixed",
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json",
-          "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout."
+          "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace the separate 4-surface perimeter closeout."
         },
         {
           "id": "cat8-security-findings",
@@ -3907,11 +3907,57 @@
           "id": "cat8-security-probe-ci-gate",
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json",
-          "description": "CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml."
-        },
-        {
-          "id": "cat8-before-file-size",
-          "type": "artifact",
+      "description": "CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-141159",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-141159/report.json",
+      "description": "Current CI-shaped local probe run on alternate ports after security architecture closure work: 5/5 surfaces, 40 probes passed, 0 findings; findings ledger was regenerated after recorded verifications."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-143310",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-143310/report.json",
+      "description": "Current CI-shaped local probe run on alternate ports after identity/token/file closeout wave: 5/5 surfaces measured, 40 probes passed, 0 findings; CI wrapper reported stale generated findings after recording verifications, then findings render/check passed."
+    },
+    {
+      "id": "cat8-security-control-plane-focused-tests-20260524",
+      "type": "test_run",
+      "path": "api/src/routes/workspaces.test.ts",
+      "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/workspaces.test.ts src/routes/setup.test.ts src/routes/api-tokens.test.ts src/routes/files.test.ts src/routes/openapi-contract.test.ts src/security/capabilities.test.ts",
+      "result": "pass: 6 files, 51 tests",
+      "description": "Focused API/security regression run after identity/token/file closure wave: workspaces/setup/api-tokens/files/openapi-contract/capabilities suites passed 51/51, covering setup token/race, token capability denial, minimized invite preview, strong invite session IDs, and dangerous multi-extension filename rejection."
+    },
+    {
+      "id": "cat8-security-graph-realtime-tests-20260524",
+      "type": "test_run",
+      "path": "api/src/routes/security-graph.test.ts",
+      "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test",
+      "result": "pass: 51 files, 595 tests",
+      "description": "Full API regression run after graph visibility and realtime parity closure wave. Covers private graph metadata omission, association metadata DTO projection, bootstrap visible-count filtering, parent close warning filtering, public_feedback_enabled member denial, collaboration history editor attribution, revoked-session revalidation close, and Y.Doc cache cap rejection."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-145758",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json",
+      "description": "Current CI-shaped local probe run after graph visibility and realtime parity closure wave: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-153908",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json",
+      "description": "Current CI-shaped local probe run after external config, AI validation, session anomaly, and policy-proof tail: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-154623",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json",
+      "description": "Current CI-shaped local probe run after final correctness verification fixes for CAIA SSRF fetch and session binding lifecycle: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
+    },
+    {
+      "id": "cat8-before-file-size",
+      "type": "artifact",
           "path": "my-docs/evidence/security-audit/runs/before-file-size/report.json",
           "description": "Before proof for local upload declared-size mismatch acceptance."
         },

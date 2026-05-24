@@ -608,9 +608,10 @@ describe('Invite Validation API', () => {
 
       expect(response.status).toBe(200)
       expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveProperty('email', `invited-${testRunId}@test.com`)
       expect(response.body.data).toHaveProperty('workspaceName')
       expect(response.body.data).toHaveProperty('role', 'member')
+      expect(response.body.data).not.toHaveProperty('email')
+      expect(response.body.data).not.toHaveProperty('invitedBy')
     })
 
     it('should return 404 for invalid token', async () => {
@@ -630,6 +631,29 @@ describe('Invite Validation API', () => {
       const response = await request(app).get(`/api/invites/${expiredTokenSuffix}`)
 
       expect(response.status).toBe(400)
+    })
+  })
+
+  describe('POST /api/invites/:token/accept', () => {
+    it('creates cryptographically strong session IDs for invite acceptance', async () => {
+      const acceptToken = `accept-${testRunId}`
+      await pool.query(
+        `INSERT INTO workspace_invites (workspace_id, email, role, invited_by_user_id, token, expires_at)
+         VALUES ($1, $2, 'member', $3, $4, now() + interval '7 days')`,
+        [testWorkspaceId, `accept-${testRunId}@test.com`, testUserId, acceptToken]
+      )
+
+      const agent = request.agent(app)
+      const csrf = await agent.get('/api/csrf-token')
+      const response = await agent
+        .post(`/api/invites/${acceptToken}/accept`)
+        .set('X-CSRF-Token', csrf.body.token)
+        .send({ name: 'Invite Accept', password: 'correct-horse-battery' })
+
+      expect(response.status).toBe(201)
+      const setCookie = response.headers['set-cookie']?.[0] ?? ''
+      const sessionId = /session_id=([^;]+)/.exec(setCookie)?.[1]
+      expect(sessionId).toMatch(/^[a-f0-9]{64}$/)
     })
   })
 })

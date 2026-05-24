@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-24T20:38:54.923Z",
+  "run": {
+    "id": "deployed-smoke-test",
+    "startedAt": "2026-05-24T20:38:53.593Z",
+    "finishedAt": "2026-05-24T20:38:54.923Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "remote",
+    "mode": "safe",
+    "apiUrl": "https://ship-shape-api.onrender.com",
+    "webUrl": "https://ship-shape-web.onrender.com",
+    "wsUrl": "wss://ship-shape-api.onrender.com"
+  },
+  "summary": {
+    "status": "pass",
+    "attackSurfacesMeasured": 1,
+    "attackSurfacesTotal": 5,
+    "findings": 0,
+    "findingsBySeverity": {},
+    "triageCounts": {
+      "knownOpen": 0,
+      "resolved": 0,
+      "new": 0,
+      "regression": 0
+    },
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "passed": 1
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "auth-session-unauthenticated-api"
+      ]
+    },
+    "authorization": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "websocketValidation": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "inputSanitization": {
+      "status": "not_measured",
+      "findings": []
+    },
+    "dependencyCves": {
+      "status": "not_measured",
+      "findings": []
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "not_measured"
+    },
+    "secrets": {
+      "status": "not_measured"
+    },
+    "rateLimits": {
+      "status": "not_measured"
+    },
+    "verboseErrors": {
+      "status": "not_measured"
+    }
+  },
+  "triage": {
+    "knownOpen": [],
+    "resolved": [],
+    "new": [],
+    "regression": [],
+    "counts": {
+      "knownOpen": 0,
+      "resolved": 0,
+      "new": 0,
+      "regression": 0
+    }
+  },
+  "coverageGaps": [
+    {
+      "method": "PATCH",
+      "path": "/api/documents/:id",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-governance-properties-injection",
+        "authorization-weekly-plan-idor-documents",
+        "input-governance-mass-assignment"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/programs/:id",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-governance-accountable-self-assign"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/weeks/:id",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-governance-week-status-bypass"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/weekly-plans/:id",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-weekly-plan-idor-documents"
+      ]
+    },
+    {
+      "method": "WS",
+      "path": "/collaboration/:room",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-weekly-plan-idor-websocket",
+        "authorization-websocket-origin-reject"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/files/:id/local-upload",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-file-upload-hijack-denied"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/feedback/public",
+      "owasp": "A04",
+      "probeIds": [
+        "abuse-public-feedback-rate-limit"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "owasp": "A07",
+      "probeIds": [
+        "abuse-login-rate-limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/audit-logs",
+      "owasp": "A01",
+      "probeIds": [
+        "auth-session-member-audit-logs-denied"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/issues/bulk",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-bulk-issue-foreign-target"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/my-focus",
+      "owasp": "A01",
+      "probeIds": [
+        "authorization-dashboard-private-metadata"
+      ]
+    }
+  ],
+  "findings": [],
+  "probes": [
+    {
+      "id": "auth-session-unauthenticated-api",
+      "name": "Unauthenticated protected API access rejected",
+      "status": "passed",
+      "durationMs": 234,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/deployed-smoke-test/report.json",
+    "attackSurfacesMeasured": 1,
+    "attackSurfacesTotal": 5,
+    "manualReviewComplete": false,
+    "findingSuggestions": [],
+    "registrySuggestions": [],
+    "note": "Workflow status is CLI-owned (security-findings.json). Probe appends verifications only."
+  }
+}

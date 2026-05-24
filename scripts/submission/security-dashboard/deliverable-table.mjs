@@ -21,7 +21,7 @@ function formatDeliverableCell(value, escapeHtml, linkedPath) {
     const details = value.details ?? value.detail ?? value.examples;
     const parts = [];
     if (yesNo !== undefined) parts.push(`<strong>${escapeHtml(String(yesNo))}</strong>`);
-    if (details) parts.push(`<span class="subtle">${escapeHtml(String(details))}</span>`);
+    if (details) parts.push(`<span class="subtle">${escapeHtml(formatNestedDetail(details))}</span>`);
     if (value.count !== undefined) parts.push(`count: ${escapeHtml(String(value.count))}`);
     if (value.packages?.length) {
       parts.push(
@@ -46,6 +46,20 @@ function formatDeliverableCell(value, escapeHtml, linkedPath) {
     return parts.join(' ') || escapeHtml(JSON.stringify(value));
   }
   return escapeHtml(String(value));
+}
+
+function formatNestedDetail(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map((item) => formatNestedDetail(item)).filter(Boolean).join('; ');
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, entry]) => `${key}: ${formatNestedDetail(entry)}`)
+      .filter((item) => !item.endsWith(': '))
+      .join('; ');
+  }
+  return String(value);
 }
 
 function evidenceLinks(row, linkedPath) {

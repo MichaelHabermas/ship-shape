@@ -4,6 +4,20 @@ Durable choices made during the audit/improvement work. This file exists so we c
 
 ## 2026-05-24: Evidence Freeze
 
+### D079: Render Reviewer Evidence As A Grading Packet
+
+Status: Accepted
+
+Decision: Keep `my-docs/evidence/submission-ledger.json` as the claim source of truth, but render `my-docs/reviewer-dashboard.html` as a four-path reviewer packet: Summary, Evidence, Security, Appendix. The first screen must answer source gate, baseline, improvement proof, artifact/command, caveat, and verdict before exposing raw proof machinery.
+
+Why: The previous generated dashboard was defensible but reviewer-hostile: it exposed internal views such as defense load, cross-examine, claim diff, targets, rubric, boundaries, and discoveries as peer navigation choices. The source docs grade baseline completeness, before/after proof, reproducibility, and bounded claims. A grading-packet projection maps directly to that job.
+
+Consequences: Future reviewer-facing output should derive plain grading rows from the ledger projection layer, not recompute claim truth inside HTML helpers or hand-edit generated output. Internal proof details belong in Evidence or Appendix unless a gate is blocked. Category 8 remains special because latest clean probe output and active SS-FIND backlog must stay visually connected.
+
+Evidence: Renderer/projection change plus `pnpm submission:validate`, `pnpm submission:test`, `pnpm submission:render`, and `pnpm submission:check` after implementation.
+
+**Decision Gist**: Lead reviewers through the grading decision; keep the ledger as source and raw machinery as appendix.
+
 ### D069: Put Generic Document Mutations Behind One Core
 
 Status: Accepted
@@ -19,6 +33,36 @@ Consequences: New generic document mutation work should prefer the mutation boun
 Evidence: `pnpm type-check` passed; focused API regressions for document policy/documents/visibility/associations passed 72/72. Full API suite passed 579/579. `pnpm security:probe:ci` is not accepted as evidence for this pass because it failed at seeded admin login with HTTP 500 after migrate/seed/package tests.
 
 **Decision Gist**: Centralize generic document writes in one auditable mutation core; keep generated policy tooling as a later proof mechanism, not first-pass architecture.
+
+### D077: Central Security Capability Layer (2026-05-24)
+
+Status: Accepted
+
+Decision: Add `Principal`, reason-coded `Capability`, `authorize()`, and `requireCapability()` as the shared security layer for sessions, API tokens, setup actors, document reads/writes/references, files, collaboration, workspace admin actions, and token governance. Keep existing `document-access`, `document-policy`, and mutation helpers as inputs/adapters rather than parallel authorization systems.
+
+Why: The active findings were not one-route bugs; they were duplicated authority decisions across REST, WebSockets, file serving, setup, and token paths. One capability boundary makes the safer path simpler: new code asks for a named capability and gets a reason-coded decision.
+
+Alternatives considered: patch every route independently; full generated policy compiler first; separate auth systems for REST and realtime. Route patches leave drift. A compiler is useful later but premature before the capability vocabulary stabilizes. Separate realtime auth was the class of bug this pass removed.
+
+Consequences: New sensitive behavior should add or reuse a capability, not copy workspace/user checks. Existing API tokens receive `legacy:full` compatibility; new tokens are admin-created, scoped, audited, and expire by default. Setup initialization is gated by a server-side token when configured/production. Document-bound files authorize through the linked document; legacy unbound files fall back to uploader/admin. Collaboration joins and revalidation use the same capability layer as REST.
+
+Evidence: Focused API/security tests passed; file route tests passed after applying migration `041_security_capabilities.sql` to `ship_test_audit`; `pnpm type-check`, `pnpm openapi:check:strict`, and `pnpm security:probe:test` passed. `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201 pnpm security:probe:ci` produced `runs/security-probe-ci-20260524-141159/` with 5/5 surfaces, 40/40 probes passed, and 0 findings; the wrapper then reported generated-findings output stale after recording verifications, which was resolved with `pnpm security:findings:render` and `pnpm security:findings:check`.
+
+**Decision Gist**: Authorize capabilities, not routes; REST, files, tokens, setup, and realtime share one reason-coded security model.
+
+### D078: Close Security Findings Only Through Evidence-Backed CLI Updates (2026-05-24)
+
+Status: Accepted
+
+Decision: Treat `security-findings.json` as the source of truth and close SS-FIND rows only after a mapped probe or focused regression test proves the original exploit path is blocked. Use `pnpm exec shipshape-security findings record-manual` or probe verification, then `findings status`, then regenerate/check the findings ledger.
+
+Why: The security architecture closure fixed several code paths before the findings registry reflected them. Closing rows from code inspection would make the evidence story look cleaner than it is. The safer rule is slower but defensible: no proof, no fixed status.
+
+Consequences: The identity/token/file closeout wave marked `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033` fixed because focused API/security tests covered the relevant behavior. Other rows that appear partly mitigated remain open until they have direct probes/tests.
+
+Evidence: Focused API/security run passed 51/51 across workspaces, setup, API tokens, files, OpenAPI contract, and capabilities. `pnpm security:findings:render` and `pnpm security:findings:check` passed after CLI updates.
+
+**Decision Gist**: Findings close by evidence, not vibes.
 
 ### D066: Treat Generated Reviewer Bundles As Build Output
 
@@ -1094,7 +1138,7 @@ Alternatives considered: static audit writeup only (rejected — not runnable); 
 
 Consequences: Security evidence now lives under `my-docs/evidence/security-audit/`. Local mode may create run-tagged records; remote write/stress probing is opt-in. Category 8 ledger truth is generated from probe-backed paths, not memory.
 
-Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured, 25/25 probes passed, 0 findings. Before/after proof covers file upload validation/headers and WebSocket malformed/unknown/oversized frame resilience across collaboration and event sockets.
+Evidence: 4/4 perimeter surfaces measured, 25/25 probes passed, 0 findings. Before/after proof covers file upload validation/headers and WebSocket malformed/unknown/oversized frame resilience across collaboration and event sockets; use stable latest artifacts or existing immutable run directories for current reviewer links.
 
 **Decision Gist**: Category 8 proof is a runnable black-box harness plus before/after reports, not a narrative-only audit.
 
@@ -1102,7 +1146,7 @@ Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured
 
 Status: Accepted
 
-Decision: Extend `pnpm security:probe` with a fifth measured surface (`authorization`), shared fixtures (`lib/fixtures.mjs`), and a fingerprinted `probe-finding-registry.json` so runs report **known-open**, **new**, **resolved**, and **regression** buckets instead of re-listing the same issues as novel every time. Keep Cat 8 historical closeout at `runs/cat8-final/` (4/4 perimeter, 0 findings); v2 runs use new run IDs (e.g. `probe-v2-baseline-unfixed`). Default `failOn` is `high`; use `--fail-on=new` when only unknown findings should break CI.
+Decision: Extend `pnpm security:probe` with a fifth measured surface (`authorization`), shared fixtures (`lib/fixtures.mjs`), and a fingerprinted `probe-finding-registry.json` so runs report **known-open**, **new**, **resolved**, and **regression** buckets instead of re-listing the same issues as novel every time. Keep Cat 8 perimeter closeout semantics distinct from v2 authorization runs; use stable `latest.*` artifacts or existing immutable run directories for reviewer links because the old `runs/cat8-final/` path is no longer present in-tree. Default `failOn` is `high`; use `--fail-on=new` when only unknown findings should break CI.
 
 Why: Perimeter probes passed while a deep authorization review found 34 open business-logic issues. The tool must encode OWASP A01-style checks (governance PATCH, IDOR, WS origin, upload hijack) as live regressions, not rely on separate agent skills.
 
@@ -1150,7 +1194,7 @@ Evidence: `pnpm security:findings:migrate` → 34 findings; `pnpm security:findi
 
 Status: Accepted
 
-Decision: Ship Category 8 as **`@ship/shipshape-security`** with binary **`shipshape-security`**: subcommands `run`, `ci`, `findings`, `baseline`, `compliance`, `tui`. Move probe/findings implementation from `scripts/security-probe/` into `packages/shipshape-security/src/`. Default `run` keeps v2 (5 surfaces); `--cat8-perimeter` preserves 4-surface `cat8-final` parity. Root `pnpm security:*` scripts delegate via `pnpm exec shipshape-security`. Ink TUI supports browse findings, run probe, set status.
+Decision: Ship Category 8 as **`@ship/shipshape-security`** with binary **`shipshape-security`**: subcommands `run`, `ci`, `findings`, `baseline`, `compliance`, `tui`. Move probe/findings implementation from `scripts/security-probe/` into `packages/shipshape-security/src/`. Default `run` keeps v2 (5 surfaces); `--cat8-perimeter` preserves 4-surface perimeter parity. Root `pnpm security:*` scripts delegate via `pnpm exec shipshape-security`. Ink TUI supports browse findings, run probe, set status.
 
 Why: Cat 8 brief requires a deliverable runnable tool with single-command grader UX; scattered pnpm script names failed discoverability (D064 SoT was correct; packaging was not).
 
@@ -1393,3 +1437,63 @@ Why: Parallel review found regenerate could run parallel to probes, console-ui p
 Evidence: `job-queue.test.mjs`, `job-stream.test.mjs`, `payload.mjs` imports package path helpers.
 
 **Decision Gist**: One queue for all console jobs; reload beats partial DOM patch for auto-refresh.
+
+### D079: Graph visibility by omission, not placeholders (2026-05-24)
+
+Status: Accepted
+
+Decision: Related document surfaces must omit inaccessible graph nodes and internal edge metadata rather than returning redacted placeholders. Association responses expose a public DTO only; `document_associations.metadata` remains accepted on write for compatibility but is not echoed. Bootstrap/program counts count only documents visible to the actor.
+
+Why: Placeholder nodes still leak graph existence and UUIDs. A single omission rule is simpler for users and clients: if you cannot read the related document, it is not part of your response.
+
+Evidence: `api/src/services/document-graph-visibility.ts`, `api/src/routes/security-graph.test.ts`, full API suite 51 files / 595 tests passing.
+
+**Decision Gist**: Hidden related docs are absent, not half-shown.
+
+### D080: Collaboration persistence needs persist authority (2026-05-24)
+
+Status: Accepted
+
+Decision: Treat collaboration room entry and collaboration persistence as separate capabilities. Debounced and final Yjs persistence now carries the latest valid editing principal; persistence without an editor principal skips rather than falling back to the document creator.
+
+Why: Joining a room proves read/collab access at the transport edge, but audit history and DB writes need their own authority and actor attribution.
+
+Evidence: `api/src/collaboration/index.ts`, `api/src/collaboration/__tests__/collaboration.test.ts`, full API suite 51 files / 595 tests passing.
+
+**Decision Gist**: Join is not persist; edits are attributed to the editor.
+
+### D081: Graph IDs come from visible joins only (2026-05-24)
+
+Status: Accepted
+
+Decision: Public graph responses must select related IDs from the filtered related document join, not from raw `document_associations.related_id`. If the actor cannot read the related document, the related ID and metadata are null/absent even when the edge exists.
+
+Why: Filtering names but returning raw related UUIDs still leaks private graph structure. This showed up in bootstrap projects and team assignment/project APIs during the parallel verification pass.
+
+Evidence: `api/src/routes/bootstrap.ts`, `api/src/routes/team.ts`, `api/src/routes/security-graph.test.ts`; full API suite 51 files / 600 tests passing; security probe CI run `security-probe-ci-20260524-150803`.
+
+**Decision Gist**: Raw association IDs are private until the joined document is readable.
+
+### D082: External config and browser defenses fail closed in production (2026-05-24)
+
+Status: Accepted
+
+Decision: Production OpenAPI routes require normal authentication unless `OPENAPI_PUBLIC=1`. CAIA issuer URLs are validated with SSRF-safe URL/IP/DNS checks before discovery, admin save, or credential test. CAIA OAuth `returnTo` is limited to safe relative paths. Cookie-auth mutating REST requests keep the central CSRF plus same-origin Origin/Referer guard; bearer tokens remain exempt from browser auto-attach assumptions.
+
+Why: These are deployment-facing boundaries. The simple rule is better than route-local exceptions: production introspection is private by default, external issuer discovery cannot reach private infrastructure, and browser-carried cookies need browser-origin proof in addition to CSRF tokens.
+
+Evidence: `api/src/app.ts`, `api/src/services/caia.ts`, `api/src/security/redirects.ts`, `api/src/security/__tests__/security-tail.test.ts`, `api/src/routes/ai-security.test.ts`, `api/src/routes/openapi-security.test.ts`; verification pass added malformed issuer fail-closed behavior and SSRF-safe CAIA custom fetch for discovery/token/userinfo calls. Gates: `pnpm type-check`, `pnpm openapi:check:strict`, API suite, `security-probe-ci-20260524-153908`.
+
+**Decision Gist**: Production external/security edges default private and SSRF-safe.
+
+### D083: Session binding is risk-based, not IP-hard-bound (2026-05-24)
+
+Status: Accepted
+
+Decision: Store and evaluate session binding context through a pure session-binding decision module. Strong User-Agent mismatch denies and requires re-login. IP drift records a suspicious audit path by default, but does not break normal mobile/VPN/network movement unless a future high-security mode explicitly changes policy.
+
+Why: Hard IP binding creates false lockouts and teaches users to work around security. User-Agent mismatch is a stronger replay signal; IP drift is useful telemetry without becoming brittle auth.
+
+Evidence: `api/src/security/session-binding.ts`, `api/src/services/session-auth.ts`, `api/src/middleware/auth.ts`, `api/src/collaboration/index.ts`, `api/src/routes/invites.ts`, `api/src/services/__tests__/session-auth.test.ts`, `api/src/security/__tests__/security-tail.test.ts`.
+
+**Decision Gist**: Deny strong UA mismatch; audit ordinary IP drift.

@@ -7,6 +7,7 @@ import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { formatWireDate } from '../utils/format-wire-date.js';
+import { visibleAssociatedDocumentCountSql } from '../services/document-graph-visibility.js';
 
 const router = Router();
 
@@ -187,12 +188,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
              COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
              u.name as owner_name, u.email as owner_email,
-             (SELECT COUNT(*) FROM documents i
-              JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'program'
-              WHERE i.document_type = 'issue') as issue_count,
-             (SELECT COUNT(*) FROM documents s
-              JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
-              WHERE s.document_type = 'sprint') as sprint_count
+             (${visibleAssociatedDocumentCountSql('i', 'program', 'issue', 'd', '$2', '$3')}) as issue_count,
+             (${visibleAssociatedDocumentCountSql('s', 'program', 'sprint', 'd', '$2', '$3')}) as sprint_count
       FROM documents d
       LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
       WHERE d.workspace_id = $1 AND d.document_type = 'program'
@@ -227,12 +224,8 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
               COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
               u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'program'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents s
-               JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
-               WHERE s.document_type = 'sprint') as sprint_count
+              (${visibleAssociatedDocumentCountSql('i', 'program', 'issue', 'd', '$3', '$4')}) as issue_count,
+              (${visibleAssociatedDocumentCountSql('s', 'program', 'sprint', 'd', '$3', '$4')}) as sprint_count
        FROM documents d
        LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
        WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'program'

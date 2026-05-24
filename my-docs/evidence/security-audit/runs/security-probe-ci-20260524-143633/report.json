@@ -1,0 +1,561 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-24T19:36:39.372Z",
+  "run": {
+    "id": "security-probe-ci-20260524-143633",
+    "startedAt": "2026-05-24T19:36:38.496Z",
+    "finishedAt": "2026-05-24T19:36:39.372Z",
+    "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
+    "target": "local",
+    "mode": "local-active",
+    "apiUrl": "http://127.0.0.1:3099",
+    "webUrl": "http://localhost:5199",
+    "wsUrl": "ws://127.0.0.1:3099"
+  },
+  "summary": {
+    "status": "pass",
+    "attackSurfacesMeasured": 5,
+    "attackSurfacesTotal": 5,
+    "findings": 0,
+    "findingsBySeverity": {},
+    "triageCounts": {
+      "knownOpen": 0,
+      "resolved": 0,
+      "new": 0,
+      "regression": 0
+    },
+    "highOrCriticalDependencyCves": 0,
+    "probesByStatus": {
+      "passed": 40
+    }
+  },
+  "surfaces": {
+    "authSession": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "auth-session-unauthenticated-api",
+        "auth-session-invalid-bearer",
+        "auth-session-cookie-flags",
+        "auth-session-cookie-shape-expiry",
+        "auth-session-csrf-mutating-request",
+        "auth-session-api-token-super-admin-boundary",
+        "auth-session-member-audit-logs-denied",
+        "auth-session-member-impersonation-denied"
+      ]
+    },
+    "authorization": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "authorization-governance-properties-injection",
+        "authorization-governance-accountable-self-assign",
+        "authorization-governance-week-status-bypass",
+        "authorization-weekly-plan-idor-documents",
+        "authorization-weekly-plan-idor-websocket",
+        "authorization-websocket-origin-reject",
+        "authorization-file-upload-hijack-denied",
+        "authorization-bulk-issue-foreign-target",
+        "authorization-dashboard-private-metadata",
+        "authorization-file-document-scope"
+      ]
+    },
+    "websocketValidation": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "websocket-no-cookie-denied",
+        "websocket-nonexistent-doc-denied",
+        "websocket-malformed-frame",
+        "websocket-unknown-message-type",
+        "websocket-oversized-frame",
+        "websocket-events-malformed-message",
+        "websocket-events-unknown-message-type"
+      ]
+    },
+    "inputSanitization": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "input-stored-xss-document-title",
+        "input-search-payloads",
+        "input-long-field-validation",
+        "input-issue-payloads",
+        "input-comment-payloads",
+        "input-file-upload-size-mismatch",
+        "input-file-serve-headers",
+        "input-governance-mass-assignment"
+      ]
+    },
+    "dependencyCves": {
+      "status": "pass",
+      "findings": [],
+      "probes": [
+        "dependency-pnpm-audit"
+      ]
+    }
+  },
+  "manualReview": {
+    "corsCsp": {
+      "status": "passed",
+      "details": {
+        "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+        "accessControlAllowOrigin": "http://localhost:5199"
+      }
+    },
+    "secrets": {
+      "status": "passed",
+      "details": {
+        "inspected": [
+          "api/src/config/ssm.ts",
+          "api/src/services/secrets-manager.ts",
+          "web/src/api/client.ts",
+          "web/src/pages/Login.tsx"
+        ],
+        "suspiciousClientEnvUsage": []
+      }
+    },
+    "rateLimits": {
+      "status": "passed",
+      "details": {
+        "apiLimiter": true,
+        "loginLimiter": true,
+        "websocketConnectionLimiter": true,
+        "websocketMessageLimiter": true
+      }
+    },
+    "verboseErrors": {
+      "status": "passed",
+      "details": {}
+    }
+  },
+  "triage": {
+    "knownOpen": [],
+    "resolved": [],
+    "new": [],
+    "regression": [],
+    "counts": {
+      "knownOpen": 0,
+      "resolved": 0,
+      "new": 0,
+      "regression": 0
+    }
+  },
+  "coverageGaps": [],
+  "findings": [],
+  "probes": [
+    {
+      "id": "auth-session-unauthenticated-api",
+      "name": "Unauthenticated protected API access rejected",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-invalid-bearer",
+      "name": "Invalid bearer token rejected",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-cookie-flags",
+      "name": "Session cookie has hardened local flags",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "setCookie": "[redacted]"
+      }
+    },
+    {
+      "id": "auth-session-cookie-shape-expiry",
+      "name": "Session cookie has strong shape and browser expiry",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "sessionIdLength": 64,
+        "hasExpiry": true
+      }
+    },
+    {
+      "id": "auth-session-csrf-mutating-request",
+      "name": "CSRF blocks mutating cookie request without token",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-api-token-super-admin-boundary",
+      "name": "API tokens cannot access super-admin routes",
+      "status": "passed",
+      "durationMs": 8,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-member-audit-logs-denied",
+      "name": "Member cannot access global audit logs",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "auth-session-member-impersonation-denied",
+      "name": "Member cannot impersonate users",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-governance-properties-injection",
+      "name": "Member cannot forge plan_approval via documents PATCH",
+      "status": "passed",
+      "durationMs": 25,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-governance-accountable-self-assign",
+      "name": "Member cannot self-assign accountable_id on program",
+      "status": "passed",
+      "durationMs": 11,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-governance-week-status-bypass",
+      "name": "Member cannot complete sprint via ungoverned status PATCH",
+      "status": "passed",
+      "durationMs": 12,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-weekly-plan-idor-documents",
+      "name": "Member cannot access peer weekly plan via documents API",
+      "status": "passed",
+      "durationMs": 19,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "victimPersonId": "7a12eed3-ad83-4515-9605-fc8d42346b7d",
+        "attackerPersonId": "9987e4f6-c9e9-4537-804f-583a7fbad138"
+      }
+    },
+    {
+      "id": "authorization-weekly-plan-idor-websocket",
+      "name": "Member cannot join peer weekly plan collaboration room",
+      "status": "passed",
+      "durationMs": 11,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-websocket-origin-reject",
+      "name": "Cross-origin WebSocket upgrade rejected",
+      "status": "passed",
+      "durationMs": 3,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-file-upload-hijack-denied",
+      "name": "Member cannot complete another user pending upload",
+      "status": "passed",
+      "durationMs": 4,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-bulk-issue-foreign-target",
+      "name": "Bulk issue update does not mutate inaccessible foreign IDs",
+      "status": "passed",
+      "durationMs": 7,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-dashboard-private-metadata",
+      "name": "Dashboard my-focus does not expose private project titles to unrelated members",
+      "status": "passed",
+      "durationMs": 5,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "authorization-file-document-scope",
+      "name": "File serve respects parent document visibility",
+      "status": "passed",
+      "durationMs": 7,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "websocket-no-cookie-denied",
+      "name": "Unauthenticated collaboration upgrade rejected",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "websocket-nonexistent-doc-denied",
+      "name": "Nonexistent collaboration document rejected",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "websocket-malformed-frame",
+      "name": "Malformed WebSocket message rejected deterministically",
+      "status": "passed",
+      "durationMs": 7,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "closeCode": 1003
+      }
+    },
+    {
+      "id": "websocket-unknown-message-type",
+      "name": "Unknown WebSocket message type rejected deterministically",
+      "status": "passed",
+      "durationMs": 4,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "closeCode": 1003
+      }
+    },
+    {
+      "id": "websocket-oversized-frame",
+      "name": "Oversized WebSocket frame bounded by server",
+      "status": "passed",
+      "durationMs": 23,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "closeCode": 1009
+      }
+    },
+    {
+      "id": "websocket-events-malformed-message",
+      "name": "Malformed events WebSocket message rejected",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "closeCode": 1003
+      }
+    },
+    {
+      "id": "websocket-events-unknown-message-type",
+      "name": "Unknown events WebSocket message rejected",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "closeCode": 1003
+      }
+    },
+    {
+      "id": "input-stored-xss-document-title",
+      "name": "Stored XSS payload remains inert in JSON API response",
+      "status": "passed",
+      "durationMs": 3,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-search-payloads",
+      "name": "Search payloads do not leak internals",
+      "status": "passed",
+      "durationMs": 2,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-long-field-validation",
+      "name": "Excessively long document title rejected",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-issue-payloads",
+      "name": "Issue payloads remain inert and validation bounded",
+      "status": "passed",
+      "durationMs": 3,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-comment-payloads",
+      "name": "Comment payloads remain inert and validation bounded",
+      "status": "passed",
+      "durationMs": 6,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-file-upload-size-mismatch",
+      "name": "Local upload size mismatch rejected",
+      "status": "passed",
+      "durationMs": 3,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-file-serve-headers",
+      "name": "Served uploads use safe download headers",
+      "status": "passed",
+      "durationMs": 4,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "input-governance-mass-assignment",
+      "name": "Governance fields rejected on generic PATCH",
+      "status": "passed",
+      "durationMs": 9,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "dependency-pnpm-audit",
+      "name": "pnpm audit high/critical CVE check",
+      "status": "passed",
+      "durationMs": 478,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "highCriticalCount": 0
+      }
+    },
+    {
+      "id": "manual-cors-csp",
+      "name": "Assisted CORS/CSP review",
+      "status": "passed",
+      "durationMs": 1,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "csp": "default-src 'self';script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data: blob: https:;connect-src 'self' wss: ws:;font-src 'self' data:;object-src 'none';frame-src 'none';base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none';upgrade-insecure-requests",
+        "accessControlAllowOrigin": "http://localhost:5199"
+      }
+    },
+    {
+      "id": "manual-secrets",
+      "name": "Assisted secret exposure review",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "inspected": [
+          "api/src/config/ssm.ts",
+          "api/src/services/secrets-manager.ts",
+          "web/src/api/client.ts",
+          "web/src/pages/Login.tsx"
+        ],
+        "suspiciousClientEnvUsage": []
+      }
+    },
+    {
+      "id": "manual-rate-limits",
+      "name": "Assisted rate limit review",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "apiLimiter": true,
+        "loginLimiter": true,
+        "websocketConnectionLimiter": true,
+        "websocketMessageLimiter": true
+      }
+    },
+    {
+      "id": "manual-verbose-errors",
+      "name": "Assisted verbose error leakage review",
+      "status": "passed",
+      "durationMs": 5,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {}
+    },
+    {
+      "id": "abuse-login-rate-limit",
+      "name": "Login endpoint rate limits burst attempts",
+      "status": "passed",
+      "durationMs": 0,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "mode": "static-only",
+        "note": "Live login burst skipped in full runs to avoid locking out seeded admin login."
+      }
+    },
+    {
+      "id": "abuse-public-feedback-rate-limit",
+      "name": "Public feedback endpoint resists burst submissions",
+      "status": "passed",
+      "durationMs": 56,
+      "targetSafe": true,
+      "findingIds": [],
+      "details": {
+        "burst": 20,
+        "lastStatus": 429
+      }
+    }
+  ],
+  "createdArtifacts": [],
+  "suggestedLedgerUpdate": {
+    "category": "cat-8-security-audit",
+    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-143633/report.json",
+    "attackSurfacesMeasured": 5,
+    "attackSurfacesTotal": 5,
+    "manualReviewComplete": true,
+    "findingSuggestions": [],
+    "registrySuggestions": [],
+    "note": "Workflow status is CLI-owned (security-findings.json). Probe appends verifications only."
+  }
+}

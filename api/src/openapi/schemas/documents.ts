@@ -4,7 +4,7 @@
 
 import { z, registry } from '../registry.js';
 import { documentTypeSchema } from '../../schemas/document-boundary.js';
-import { UuidSchema, DateTimeSchema, DocumentVisibilitySchema } from './common.js';
+import { UuidSchema, DateTimeSchema, DocumentVisibilitySchema, BelongsToEntrySchema, ErrorResponseSchema } from './common.js';
 
 // ============== Document Types ==============
 
@@ -82,6 +82,25 @@ export const UpdateDocumentSchema = z.object({
 }).openapi('UpdateDocument');
 
 registry.register('UpdateDocument', UpdateDocumentSchema);
+
+const TipTapDocumentSchema = z.object({
+  type: z.string(),
+  content: z.array(z.unknown()),
+}).passthrough().openapi('TipTapDocument');
+
+const DocumentCommandSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('set_governance'), properties: z.record(z.unknown()) }),
+  z.object({ type: z.literal('set_raci'), properties: z.record(z.unknown()) }),
+  z.object({ type: z.literal('set_workflow_status'), status: z.enum(['planning', 'active', 'completed']) }),
+  z.object({ type: z.literal('set_visibility'), visibility: DocumentVisibilitySchema }),
+  z.object({ type: z.literal('set_parent'), parent_id: UuidSchema.nullable() }),
+  z.object({ type: z.literal('set_associations'), belongs_to: z.array(BelongsToEntrySchema) }),
+  z.object({ type: z.literal('edit_content'), content: TipTapDocumentSchema }),
+  z.object({ type: z.literal('convert'), target_type: z.enum(['issue', 'project']) }),
+  z.object({ type: z.literal('delete') }),
+]).openapi('DocumentCommand');
+
+registry.register('DocumentCommand', DocumentCommandSchema);
 
 // ============== Register Document Endpoints ==============
 
@@ -244,6 +263,31 @@ registry.registerPath({
     404: {
       description: 'Document not found',
     },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/documents/{id}/commands',
+  tags: ['Documents'],
+  summary: 'Run a typed document command',
+  description: 'Additive command boundary for sensitive document mutations. Legacy PATCH remains supported for compatibility.',
+  request: {
+    params: z.object({ id: UuidSchema }),
+    body: {
+      content: {
+        'application/json': {
+          schema: DocumentCommandSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: { description: 'Command completed', content: { 'application/json': { schema: z.record(z.unknown()) } } },
+    204: { description: 'Document deleted' },
+    400: { description: 'Validation error', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    403: { description: 'Capability denied', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Document not found' },
   },
 });
 

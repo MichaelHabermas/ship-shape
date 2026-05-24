@@ -146,11 +146,12 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
 
     await pool.query<TeamGridSprintRow>(
       `SELECT d.id, d.title as name, d.properties->>'start_date' as start_date, d.properties->>'end_date' as end_date,
-              prog_da.related_id as program_id,
+              p.id as program_id,
               p.title as program_name, p.properties->>'emoji' as program_emoji, p.properties->>'color' as program_color
        FROM documents d
        LEFT JOIN document_associations prog_da ON d.id = prog_da.document_id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id AND p.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('p', '$4', '$5')}
        WHERE d.workspace_id = $1 AND d.document_type = 'sprint'
          AND (d.properties->>'start_date')::date >= $2 AND (d.properties->>'end_date')::date <= $3
          AND ${VISIBILITY_FILTER_SQL('d', '$4', '$5')}`,
@@ -161,12 +162,13 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
     const issuesResult = await pool.query<TeamGridIssueRow>(
       `SELECT i.id, i.title, da_sprint.related_id as sprint_id, i.properties->>'assignee_id' as assignee_id, i.properties->>'state' as state, i.ticket_number,
               s.properties->>'start_date' as sprint_start, s.properties->>'end_date' as sprint_end,
-              prog_da.related_id as program_id, p.title as program_name, p.properties->>'emoji' as program_emoji, p.properties->>'color' as program_color
+              p.id as program_id, p.title as program_name, p.properties->>'emoji' as program_emoji, p.properties->>'color' as program_color
        FROM documents i
        JOIN document_associations da_sprint ON da_sprint.document_id = i.id AND da_sprint.relationship_type = 'sprint'
        JOIN documents s ON s.id = da_sprint.related_id
        LEFT JOIN document_associations prog_da ON i.id = prog_da.document_id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id AND p.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('p', '$2', '$3')}
        WHERE i.workspace_id = $1 AND i.document_type = 'issue' AND i.properties->>'assignee_id' IS NOT NULL
          AND ${VISIBILITY_FILTER_SQL('i', '$2', '$3')}`,
       [workspaceId, userId, isAdmin]
@@ -251,13 +253,18 @@ router.get('/projects', authMiddleware, async (req: Request, res: Response) => {
          proj.id,
          proj.title,
          proj.properties->>'color' as "color",
-         prog_da.related_id as "programId",
+         prog.id as "programId",
          prog.title as "programName",
          prog.properties->>'emoji' as "programEmoji",
          prog.properties->>'color' as "programColor"
        FROM documents proj
        LEFT JOIN document_associations prog_da ON proj.id = prog_da.document_id AND prog_da.relationship_type = 'program'
-       LEFT JOIN documents prog ON prog_da.related_id = prog.id AND prog.document_type = 'program'
+       LEFT JOIN documents prog ON prog_da.related_id = prog.id
+         AND prog.workspace_id = proj.workspace_id
+         AND prog.document_type = 'program'
+         AND prog.archived_at IS NULL
+         AND prog.deleted_at IS NULL
+         AND ${VISIBILITY_FILTER_SQL('prog', '$2', '$3')}
        WHERE proj.workspace_id = $1
          AND proj.document_type = 'project'
          AND proj.archived_at IS NULL
@@ -311,19 +318,26 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
       `SELECT
          jsonb_array_elements_text(s.properties->'assignee_ids') as person_id,
          (s.properties->>'sprint_number')::int as sprint_number,
-         s.properties->>'project_id' as project_id,
+         proj.id as project_id,
          proj.title as project_name,
          proj.properties->>'color' as project_color,
-         COALESCE(prog_da.related_id, sprint_prog_da.related_id) as program_id,
+         COALESCE(prog.id, sprint_prog.id) as program_id,
          COALESCE(prog.title, sprint_prog.title) as program_name,
          COALESCE(prog.properties->>'emoji', sprint_prog.properties->>'emoji') as program_emoji,
          COALESCE(prog.properties->>'color', sprint_prog.properties->>'color') as program_color
        FROM documents s
        LEFT JOIN documents proj ON (s.properties->>'project_id')::uuid = proj.id
+         AND proj.workspace_id = s.workspace_id
+         AND proj.document_type = 'project'
+         AND proj.archived_at IS NULL
+         AND proj.deleted_at IS NULL
+         AND ${VISIBILITY_FILTER_SQL('proj', '$2', '$3')}
        LEFT JOIN document_associations prog_da ON proj.id = prog_da.document_id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents prog ON prog_da.related_id = prog.id AND prog.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('prog', '$2', '$3')}
        LEFT JOIN document_associations sprint_prog_da ON s.id = sprint_prog_da.document_id AND sprint_prog_da.relationship_type = 'program'
        LEFT JOIN documents sprint_prog ON sprint_prog_da.related_id = sprint_prog.id AND sprint_prog.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('sprint_prog', '$2', '$3')}
        WHERE s.workspace_id = $1
          AND s.document_type = 'sprint'
          AND jsonb_array_length(COALESCE(s.properties->'assignee_ids', '[]'::jsonb)) > 0
@@ -384,10 +398,10 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
     const issuesResult = await pool.query<AssignmentInferenceIssueRow>(
       `SELECT
          i.properties->>'assignee_id' as assignee_id,
-         da_project.related_id as project_id,
+         proj.id as project_id,
          proj.title as project_name,
          proj.properties->>'color' as project_color,
-         proj_prog_da.related_id as program_id,
+         prog.id as program_id,
          prog.title as program_name,
          prog.properties->>'emoji' as program_emoji,
          prog.properties->>'color' as program_color,
@@ -396,9 +410,15 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
        JOIN document_associations da_sprint ON da_sprint.document_id = i.id AND da_sprint.relationship_type = 'sprint'
        JOIN documents s ON s.id = da_sprint.related_id
        JOIN document_associations da_project ON da_project.document_id = i.id AND da_project.relationship_type = 'project'
-       JOIN documents proj ON proj.id = da_project.related_id
+       LEFT JOIN documents proj ON proj.id = da_project.related_id
+         AND proj.workspace_id = i.workspace_id
+         AND proj.document_type = 'project'
+         AND proj.archived_at IS NULL
+         AND proj.deleted_at IS NULL
+         AND ${VISIBILITY_FILTER_SQL('proj', '$2', '$3')}
        LEFT JOIN document_associations proj_prog_da ON proj.id = proj_prog_da.document_id AND proj_prog_da.relationship_type = 'program'
        LEFT JOIN documents prog ON proj_prog_da.related_id = prog.id AND prog.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('prog', '$2', '$3')}
        WHERE i.workspace_id = $1
          AND i.document_type = 'issue'
          AND i.properties->>'assignee_id' IS NOT NULL

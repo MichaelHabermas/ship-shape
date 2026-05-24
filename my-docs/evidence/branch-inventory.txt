@@ -1,0 +1,181 @@
+# Branch inventory — ship-shape
+# Generated: 2026-05-24
+
+## 1. git fetch origin --prune && git fetch gitlab --prune
+
+From github.com:MichaelHabermas/ship-shape
+ - [deleted]         (none)     -> origin/audit-fail-open-paths
+ - [deleted]         (none)     -> origin/cat-1-fixes-nn-as
+ - [deleted]         (none)     -> origin/cat-8-get-baselines
+ - [deleted]         (none)     -> origin/cat-8-init
+ - [deleted]         (none)     -> origin/codex/dependency-security-cleanup
+ - [deleted]         (none)     -> origin/dashboard-updates-1
+ - [deleted]         (none)     -> origin/doc-and-script-sync-1
+ - [deleted]         (none)     -> origin/easy-wins-to-fluff-the-numbers-1
+ - [deleted]         (none)     -> origin/improve-arch-1
+ - [deleted]         (none)     -> origin/openapi-typed-client
+ - [deleted]         (none)     -> origin/simple-packages-upgrade
+ - [deleted]         (none)     -> origin/specs-polish-1
+
+(gitlab fetch: no output; exit 0)
+
+Fetch errors: none
+
+## 2. git branch -a | sort
+
+  remotes/gitlab/BASELINE
+  remotes/gitlab/HEAD -> gitlab/master
+  remotes/gitlab/improvements-1
+  remotes/gitlab/master
+  remotes/origin/BASELINE
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/cat-3-closeout-and-dashboard
+  remotes/origin/codex/render-deploy
+  remotes/origin/improvements-1
+  remotes/origin/master
+  remotes/origin/openapi-contract-completion
+  remotes/origin/sec-probe-juicing-1
+  remotes/origin/test-improvements-and-submission-hardening-1
+  sec-probe-juicing-1
+  test-improvements-and-submission-hardening-1
+* master
+
+## 3. gh api repos/MichaelHabermas/ship-shape/branches --paginate -q '.[].name'
+
+BASELINE
+cat-3-closeout-and-dashboard
+codex/render-deploy
+improvements-1
+master
+openapi-contract-completion
+sec-probe-juicing-1
+test-improvements-and-submission-hardening-1
+
+## 4. git for-each-ref --format='%(refname:short)' refs/remotes/origin refs/remotes/gitlab | sort
+
+gitlab
+gitlab/BASELINE
+gitlab/improvements-1
+gitlab/master
+origin
+origin/BASELINE
+origin/cat-3-closeout-and-dashboard
+origin/codex/render-deploy
+origin/improvements-1
+origin/master
+origin/openapi-contract-completion
+origin/sec-probe-juicing-1
+origin/test-improvements-and-submission-hardening-1
+
+## Local branches (git branch --format='%(refname:short)' | sort)
+
+master
+sec-probe-juicing-1
+test-improvements-and-submission-hardening-1
+
+## Commit existence (git cat-file -t)
+
+072818cf77a54e1a796dd4b878e8564d8af3f1e7 -> commit
+5731a92a01e357b0ffb7ffa28e3319b3a14ffedf -> commit
+
+## Summary
+
+### origin branches (8)
+BASELINE
+cat-3-closeout-and-dashboard
+codex/render-deploy
+improvements-1
+master
+openapi-contract-completion
+sec-probe-juicing-1
+test-improvements-and-submission-hardening-1
+
+### gitlab branches (3)
+BASELINE
+improvements-1
+master
+
+### local branches (3)
+master (current)
+sec-probe-juicing-1
+test-improvements-and-submission-hardening-1
+
+================================================================================
+Post-sync state — 2026-05-24 (pnpm branches:sync / scripts/sync-feature-branches.sh)
+================================================================================
+
+### origin + gitlab (after sync)
+All 8 origin branches mirrored to gitlab. Ten previously deleted GitHub branches
+restored from local reflog tips and pushed to both origin and gitlab.
+
+See my-docs/evidence/branch-sync-run.txt for push log.
+
+### Policy
+docs/feature-branches.md — do not delete durable feature branches; prune only
+remote-tracking refs after intentional remote deletion.
+
+================================================================================
+Deleted branch recovery scan — 2026-05-24T19:00:00Z
+Method: git reflog show --all (filtered); git show-ref per branch; HEAD@{n+1}
+before last "moving from <branch> to master" for branch tips. No refs remain.
+Branch reflog files removed from .git/logs/refs/heads/ (only master + 2 locals).
+================================================================================
+
+## Reflog filter (first 40 hits)
+
+git reflog show --all | rg -i 'audit-fail|cat-1-fixes|cat-8-get|cat-8-init|dependency-security|dashboard-updates|doc-and-script|easy-wins|improve-arch|openapi-typed|simple-packages|specs-polish' | head -40
+
+(22 lines — all HEAD checkout moves; no hits for codex/dependency-security-cleanup)
+
+## git show-ref (refs/.*<name>)
+
+All 12 names: (no ref) — branches deleted locally and not on remotes in this clone.
+
+## Last known commits (recoverable objects)
+
+| branch | commit | subject | on master? | ahead of master | in any ref? |
+|--------|--------|---------|------------|-----------------|-------------|
+| audit-fail-open-paths | 513d444ddab31cae89f905b707edec419576a3ee | Refactor document association handling and enhance visibility controls | no | 5 | no |
+| cat-1-fixes-nn-as | 1bd50f751f71e7915512dea8a293eba0ba536c63 | Refactor document type handling and query parsing for improved correctness | no | 8 | no |
+| cat-8-get-baselines | 4c11bdc90644a38adc55a3b96be4d87d5503ac4e | Finalize Category 8 security audit with comprehensive updates | no | 6 | no |
+| cat-8-init | e7208ed5f3d864fd47df89c69849330d7235dd70 | Finalize Category 8 security audit with comprehensive probe implementation | no | 7 | no |
+| codex/dependency-security-cleanup | (unknown) | — | — | — | — |
+| dashboard-updates-1 | 8f00d0279a2598380551aa893422775d9322beaf | Update decision log, improvement report, and memory documentation for submission evidence | no | 3 | no |
+| doc-and-script-sync-1 | fe5df1152b3acfc068d5ac8118027ab71ddb0911 | Update deployment documentation to reflect new script usage and environment options | no | 9 | no |
+| easy-wins-to-fluff-the-numbers-1 | 8b297eeea684a8d09eb8a6b4f2e64f455484b8fe | Update IMPROVEMENT_REPORT.md, reviewer-dashboard.html, and submission-ledger.json | no | 4 | no |
+| improve-arch-1 | 665acb7d18261df25e6d5e413558b48f9844738a | feat: document architecture deepening and follow-up decisions | no | 3 | no |
+| openapi-typed-client | 883cd81927929afa31d11bd8a73595cd66696159 | feat: enhance OpenAPI integration and runtime validation strategy | no | 3 | no |
+| simple-packages-upgrade | 6df172ae14a4efecd48150462f531b78e7070a9a | chore: update dependencies across multiple packages | yes (ancestor) | 0 | yes (master + several remotes) |
+| specs-polish-1 | 31095369a995ca70c47ca33180479c004d9b3ea2 | Update decision log and discovery research documentation | no | 19 | no |
+
+Tip derivation: for each branch, commit at HEAD@{n+1} where HEAD@{n} is
+"checkout: moving from <branch> to master".
+
+## codex/dependency-security-cleanup (special case)
+
+- No reflog or show-ref match for branch name in this repo.
+- Never checked out locally per HEAD reflog (only codex/render-deploy seen).
+- master contains b697f46 "chore: dependency security cleanup" — likely merged work,
+  but not confirmed as the deleted branch tip without branch reflog or remote ref.
+
+## Recover locally (git branch <name> <sha>)
+
+RECOVERABLE (commit object present; tip not on a named branch except where noted):
+  audit-fail-open-paths → 513d444
+  cat-1-fixes-nn-as → 1bd50f7
+  cat-8-get-baselines → 4c11bdc
+  cat-8-init → e7208ed
+  dashboard-updates-1 → 8f00d02
+  doc-and-script-sync-1 → fe5df11
+  easy-wins-to-fluff-the-numbers-1 → 8b297ee
+  improve-arch-1 → 665acb7
+  openapi-typed-client → 883cd81
+  specs-polish-1 → 3109536
+
+RECOVERABLE but redundant (tip already ancestor of master):
+  simple-packages-upgrade → 6df172a
+
+NOT recoverable as a distinct branch tip locally:
+  codex/dependency-security-cleanup — no SHA from reflog; only inferred merge commit b697f46 on master.
+
+Note: 10 branches above are dangling w.r.t. refs (reachable via reflog/objects until gc).

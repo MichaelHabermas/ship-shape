@@ -9,6 +9,7 @@ export function SetupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [setupToken, setSetupToken] = useState(() => new URLSearchParams(window.location.search).get('setup_token') ?? '');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -24,7 +25,10 @@ export function SetupPage() {
         const tokenData = await publicFetchJson<CsrfTokenResponse>('/api/csrf-token');
         setCsrfToken(tokenData.token);
 
-        const data = await publicFetchJson<ApiResponse<SetupStatusData>>('/api/setup/status');
+        const setupHeaders = setupToken ? { 'X-Setup-Token': setupToken } : undefined;
+        const data = await publicFetchJson<ApiResponse<SetupStatusData>>('/api/setup/status', {
+          headers: setupHeaders,
+        });
 
         if (data.success && data.data?.needsSetup) {
           setNeedsSetup(true);
@@ -39,7 +43,7 @@ export function SetupPage() {
       }
     }
     checkSetup();
-  }, [navigate]);
+  }, [navigate, setupToken]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -64,7 +68,7 @@ export function SetupPage() {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, ...(setupToken ? { setup_token: setupToken } : {}) }),
       });
 
       if (data.success) {
@@ -152,6 +156,26 @@ export function SetupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
+              className={cn(
+                'w-full rounded-md border border-border bg-background px-4 py-2.5',
+                'text-sm text-foreground placeholder:text-muted',
+                'transition-colors focus:border-accent focus:outline-none'
+              )}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="setupToken" className="sr-only">
+              Setup token
+            </label>
+            <input
+              id="setupToken"
+              name="setupToken"
+              type="password"
+              autoComplete="off"
+              value={setupToken}
+              onChange={(e) => setSetupToken(e.target.value)}
+              placeholder="Setup token"
               className={cn(
                 'w-full rounded-md border border-border bg-background px-4 py-2.5',
                 'text-sm text-foreground placeholder:text-muted',

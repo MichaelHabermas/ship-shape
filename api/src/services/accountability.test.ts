@@ -52,7 +52,9 @@ describe('Accountability Service', () => {
       // 1. Workspace query
       .mockResolvedValueOnce(pgResult([{ sprint_start_date: sprintStartDate }]))
       // 2. Person document lookup
-      .mockResolvedValueOnce(pgResult([{ id: personId }]));
+      .mockResolvedValueOnce(pgResult([{ id: personId }]))
+      // 3. Workspace role lookup
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]));
   };
 
   /**

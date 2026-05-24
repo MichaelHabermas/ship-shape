@@ -24,6 +24,7 @@ import {
   normalizeWorkspaceStartDate,
   utcToday,
 } from '@ship/shared';
+import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 
 type WorkspaceSprintStartRow = {
   sprint_start_date: Date | string | null;
@@ -31,6 +32,10 @@ type WorkspaceSprintStartRow = {
 
 type PersonIdRow = {
   id: string;
+};
+
+type WorkspaceRoleRow = {
+  role: string | null;
 };
 
 type ActiveSprintStandupRow = {
@@ -144,17 +149,18 @@ export async function checkMissingAccountability(
   const today = utcToday();
   const todayStr = formatUtcDateIso(today);
   const currentSprintNumber = computeCurrentSprintNumber(workspaceStartDate, sprintDuration);
+  const isAdmin = await isWorkspaceAdminForAccountability(userId, workspaceId);
 
   // Check for missing standups (current sprint, business days only)
   if (todayStr) {
-    const standupItems = await checkMissingStandups(userId, workspaceId, currentSprintNumber, todayStr);
+    const standupItems = await checkMissingStandups(userId, workspaceId, currentSprintNumber, todayStr, isAdmin);
     items.push(...standupItems);
   }
 
   // Check sprint accountability: started status and issues
   if (todayStr) {
     const sprintItems = await checkSprintAccountability(
-      userId, workspaceId, workspaceStartDate, sprintDuration, today, personId
+      userId, workspaceId, workspaceStartDate, sprintDuration, today, personId, isAdmin
     );
     items.push(...sprintItems);
   }
@@ -164,24 +170,32 @@ export async function checkMissingAccountability(
   // the sprint starts (Saturday before a Monday-start week).
   if (personId && todayStr) {
     const weeklyPersonItems = await checkWeeklyPersonAccountability(
-      userId, workspaceId, personId, workspaceStartDate, sprintDuration, currentSprintNumber, todayStr
+      userId, workspaceId, personId, workspaceStartDate, sprintDuration, currentSprintNumber, todayStr, isAdmin
     );
     items.push(...weeklyPersonItems);
 
     // Also check next sprint - plan may be due before the sprint starts
     const nextSprintItems = await checkWeeklyPersonAccountability(
-      userId, workspaceId, personId, workspaceStartDate, sprintDuration, currentSprintNumber + 1, todayStr
+      userId, workspaceId, personId, workspaceStartDate, sprintDuration, currentSprintNumber + 1, todayStr, isAdmin
     );
     items.push(...nextSprintItems);
   }
 
   // Check for plans/retros where manager requested changes
   if (personId) {
-    const changesRequestedItems = await checkChangesRequested(workspaceId, personId);
+    const changesRequestedItems = await checkChangesRequested(workspaceId, userId, personId, isAdmin);
     items.push(...changesRequestedItems);
   }
 
   return items;
+}
+
+async function isWorkspaceAdminForAccountability(userId: string, workspaceId: string): Promise<boolean> {
+  const result = await pool.query<WorkspaceRoleRow>(
+    `SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2`,
+    [workspaceId, userId]
+  );
+  return result.rows[0]?.role === 'admin';
 }
 
 /**
@@ -196,7 +210,8 @@ async function checkMissingStandups(
   userId: string,
   workspaceId: string,
   currentSprintNumber: number,
-  todayStr: string
+  todayStr: string,
+  isAdmin: boolean
 ): Promise<MissingAccountabilityItem[]> {
   const items: MissingAccountabilityItem[] = [];
 
@@ -216,9 +231,14 @@ async function checkMissingStandups(
        AND i.document_type = 'issue'
        AND (i.properties->>'assignee_id')::uuid = $2
        AND (s.properties->>'sprint_number')::int = $3
+       AND i.deleted_at IS NULL
+       AND i.archived_at IS NULL
        AND s.deleted_at IS NULL
+       AND s.archived_at IS NULL
+       AND ${VISIBILITY_FILTER_SQL('i', '$2', '$4')}
+       AND ${VISIBILITY_FILTER_SQL('s', '$2', '$4')}
      GROUP BY s.id, s.title, s.properties`,
-    [workspaceId, userId, currentSprintNumber]
+    [workspaceId, userId, currentSprintNumber, isAdmin]
   );
 
   // Check each sprint for missing standup today
@@ -291,7 +311,8 @@ async function checkSprintAccountability(
   workspaceStartDate: Date,
   sprintDuration: number,
   today: Date,
-  _personId: string | null
+  _personId: string | null,
+  isAdmin: boolean
 ): Promise<MissingAccountabilityItem[]> {
   const items: MissingAccountabilityItem[] = [];
 
@@ -305,8 +326,9 @@ async function checkSprintAccountability(
        AND s.document_type = 'sprint'
        AND (s.properties->>'owner_id')::uuid = $2
        AND s.deleted_at IS NULL
-       AND s.archived_at IS NULL`,
-    [workspaceId, userId]
+       AND s.archived_at IS NULL
+       AND ${VISIBILITY_FILTER_SQL('s', '$2', '$3')}`,
+    [workspaceId, userId, isAdmin]
   );
 
   for (const sprint of sprintsResult.rows) {
@@ -348,9 +370,12 @@ async function checkSprintAccountability(
        JOIN documents d ON d.id = da.document_id
        WHERE da.related_id = $1
          AND da.relationship_type = 'sprint'
+         AND d.workspace_id = $4
          AND d.document_type = 'issue'
-         AND d.deleted_at IS NULL`,
-      [sprint.id]
+         AND d.deleted_at IS NULL
+         AND d.archived_at IS NULL
+         AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}`,
+      [sprint.id, userId, isAdmin, workspaceId]
     );
 
     const issueCount = parseInt(String(issueCountResult.rows[0]?.count ?? 0), 10);
@@ -386,7 +411,8 @@ async function checkWeeklyPersonAccountability(
   workspaceStartDate: Date,
   sprintDuration: number,
   sprintNumber: number,
-  todayStr: string
+  todayStr: string,
+  isAdmin: boolean
 ): Promise<MissingAccountabilityItem[]> {
   const items: MissingAccountabilityItem[] = [];
 
@@ -417,7 +443,7 @@ async function checkWeeklyPersonAccountability(
   // Get ALL allocations for this person/sprint (explicit assignee_ids + issue-based).
   // Note: The heatmap only displays one allocation per person per week (display limit),
   // but action items must check all allocations so nothing gets missed.
-  const allocations = await getAllocations(workspaceId, personId, userId, sprintNumber);
+  const allocations = await getAllocations(workspaceId, personId, userId, sprintNumber, isAdmin);
 
   for (const allocation of allocations) {
     const projectId = allocation.projectId;
@@ -498,7 +524,9 @@ async function checkWeeklyPersonAccountability(
  */
 async function checkChangesRequested(
   workspaceId: string,
-  personId: string
+  userId: string,
+  personId: string,
+  isAdmin: boolean
 ): Promise<MissingAccountabilityItem[]> {
   const items: MissingAccountabilityItem[] = [];
 
@@ -516,6 +544,8 @@ async function checkChangesRequested(
      WHERE s.workspace_id = $1
        AND s.document_type = 'sprint'
        AND s.deleted_at IS NULL
+       AND s.archived_at IS NULL
+       AND ${VISIBILITY_FILTER_SQL('s', '$3', '$4')}
        AND $2 = ANY(
          SELECT jsonb_array_elements_text(s.properties->'assignee_ids')
        )
@@ -523,7 +553,7 @@ async function checkChangesRequested(
          s.properties->'plan_approval'->>'state' = 'changes_requested'
          OR s.properties->'review_approval'->>'state' = 'changes_requested'
        )`,
-    [workspaceId, personId]
+    [workspaceId, personId, userId, isAdmin]
   );
 
   for (const row of result.rows) {

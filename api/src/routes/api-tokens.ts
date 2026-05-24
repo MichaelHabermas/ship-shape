@@ -1,36 +1,36 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'crypto';
 import { z } from 'zod';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { authorize } from '../security/capabilities.js';
+import { DEFAULT_API_TOKEN_SCOPES, generateApiToken, hashToken } from '../security/tokens.js';
+import { principalFromRequest, type ApiTokenScope } from '../security/principal.js';
 
 const router = Router();
-
-// Generate a secure API token with "ship_" prefix
-function generateApiToken(): { token: string; hash: string; prefix: string } {
-  const randomBytes = crypto.randomBytes(32).toString('hex');
-  const token = `ship_${randomBytes}`;
-  const hash = crypto.createHash('sha256').update(token).digest('hex');
-  const prefix = token.substring(0, 12); // "ship_" + first 7 chars
-  return { token, hash, prefix };
-}
-
-// Hash a token for comparison
-export function hashToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
-}
+export { hashToken };
 
 const createTokenSchema = z.object({
   name: z.string().min(1).max(100),
-  expires_in_days: z.number().int().positive().optional(), // NULL = never expires
+  expires_in_days: z.number().int().positive().max(365).optional(),
+  scopes: z.array(z.enum([
+    'documents:read',
+    'documents:write',
+    'documents:content',
+    'documents:governance',
+    'files:read',
+    'files:write',
+    'collaboration:join',
+    'admin:workspace',
+  ])).optional(),
 });
 
 // POST /api/api-tokens - Generate a new API token
 router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+  const principal = principalFromRequest(req);
   const parseResult = createTokenSchema.safeParse(req.body);
 
   if (!parseResult.success) {
@@ -46,8 +46,21 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
   }
 
   const { name, expires_in_days } = parseResult.data;
+  const scopes = parseResult.data.scopes ?? DEFAULT_API_TOKEN_SCOPES;
 
   try {
+    const capability = await authorize(pool, principal, { resource: 'api_token', action: 'create' });
+    if (!capability.allowed) {
+      res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        error: {
+          code: ERROR_CODES.FORBIDDEN,
+          message: 'Workspace admin access required to create API tokens',
+        },
+      });
+      return;
+    }
+
     // Check if token with same name already exists for this user/workspace
     const existingResult = await pool.query(
       `SELECT id FROM api_tokens
@@ -67,15 +80,13 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
     }
 
     const { token, hash, prefix } = generateApiToken();
-    const expiresAt = expires_in_days
-      ? new Date(Date.now() + expires_in_days * 24 * 60 * 60 * 1000)
-      : null;
+    const expiresAt = new Date(Date.now() + (expires_in_days ?? 30) * 24 * 60 * 60 * 1000);
 
     const result = await pool.query(
-      `INSERT INTO api_tokens (user_id, workspace_id, name, token_hash, token_prefix, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO api_tokens (user_id, workspace_id, name, token_hash, token_prefix, expires_at, scopes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, name, token_prefix, expires_at, created_at`,
-      [userId, workspaceId, name, hash, prefix, expiresAt]
+      [userId, workspaceId, name, hash, prefix, expiresAt, scopes]
     );
 
     await logAuditEvent({
@@ -84,7 +95,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       action: 'api_token.created',
       resourceType: 'api_token',
       resourceId: result.rows[0].id,
-      details: { name, expires_at: expiresAt },
+      details: { name, expires_at: expiresAt, scopes },
       req,
     });
 
@@ -96,6 +107,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
         name: result.rows[0].name,
         token: token, // ONLY returned here - user must save it
         token_prefix: result.rows[0].token_prefix,
+        scopes,
         expires_at: result.rows[0].expires_at,
         created_at: result.rows[0].created_at,
         warning: 'Save this token now. It will not be shown again.',
@@ -119,7 +131,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
   try {
     const result = await pool.query(
-      `SELECT id, name, token_prefix, last_used_at, expires_at, revoked_at, created_at
+      `SELECT id, name, token_prefix, scopes, last_used_at, expires_at, revoked_at, created_at
        FROM api_tokens
        WHERE user_id = $1 AND workspace_id = $2
        ORDER BY created_at DESC`,
@@ -132,6 +144,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         id: row.id,
         name: row.name,
         token_prefix: row.token_prefix,
+        scopes: (row.scopes ?? ['legacy:full']) as ApiTokenScope[],
         last_used_at: row.last_used_at,
         expires_at: row.expires_at,
         is_active: !row.revoked_at && (!row.expires_at || new Date(row.expires_at) > new Date()),

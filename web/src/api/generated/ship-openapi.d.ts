@@ -218,6 +218,85 @@ export interface paths {
         };
         trace?: never;
     };
+    "/documents/{id}/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a typed document command
+         * @description Additive command boundary for sensitive document mutations. Legacy PATCH remains supported for compatibility.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentCommand"];
+                };
+            };
+            responses: {
+                /** @description Command completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Document deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Capability denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Document not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{id}/content": {
         parameters: {
             query?: never;
@@ -8982,6 +9061,61 @@ export interface components {
              */
             document_type?: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
         };
+        TipTapDocument: {
+            type: string;
+            content: unknown[];
+        };
+        DocumentCommand: {
+            /** @enum {string} */
+            type: "set_governance";
+            properties: {
+                [key: string]: unknown;
+            };
+        } | {
+            /** @enum {string} */
+            type: "set_raci";
+            properties: {
+                [key: string]: unknown;
+            };
+        } | {
+            /** @enum {string} */
+            type: "set_workflow_status";
+            /** @enum {string} */
+            status: "planning" | "active" | "completed";
+        } | {
+            /** @enum {string} */
+            type: "set_visibility";
+            /**
+             * @description Document visibility scope
+             * @enum {string}
+             */
+            visibility: "private" | "workspace";
+        } | {
+            /** @enum {string} */
+            type: "set_parent";
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            parent_id: string | null;
+        } | {
+            /** @enum {string} */
+            type: "set_associations";
+            belongs_to: components["schemas"]["BelongsToEntry"][];
+        } | {
+            /** @enum {string} */
+            type: "edit_content";
+            content: components["schemas"]["TipTapDocument"];
+        } | {
+            /** @enum {string} */
+            type: "convert";
+            /** @enum {string} */
+            target_type: "issue" | "project";
+        } | {
+            /** @enum {string} */
+            type: "delete";
+        };
         /**
          * @description Issue workflow state
          * @enum {string}
@@ -11798,6 +11932,7 @@ export interface components {
             email: string;
             password: string;
             name: string;
+            setup_token?: string;
         };
         SetupInitializeData: {
             user: {
@@ -11818,14 +11953,9 @@ export interface components {
         InviteDetails: {
             /** Format: uuid */
             id: string;
-            /** Format: email */
-            email: string;
             /** @enum {string} */
             role: "admin" | "member";
-            /** Format: uuid */
-            workspaceId: string;
             workspaceName: string;
-            invitedBy: string;
             /**
              * Format: date-time
              * @description ISO 8601 datetime string

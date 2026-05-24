@@ -7,9 +7,7 @@ type InviteStatus = 'loading' | 'valid' | 'invalid' | 'expired' | 'accepted' | '
 
 interface InviteInfo {
   workspaceName: string;
-  invitedBy: string;
   role: 'admin' | 'member';
-  email: string;
   userExists: boolean;
   alreadyMember?: boolean;
 }
@@ -198,7 +196,7 @@ export function InviteAcceptPage() {
             </div>
             <h1 className="text-xl font-semibold text-foreground">You're Invited!</h1>
             <p className="mt-2 text-sm text-muted">
-              {inviteInfo?.invitedBy} has invited you to join
+              You have been invited to join
             </p>
             <p className="mt-1 text-lg font-medium text-foreground">
               {inviteInfo?.workspaceName}
@@ -207,10 +205,6 @@ export function InviteAcceptPage() {
 
           <div className="mt-6 rounded-md bg-border/30 p-4">
             <div className="flex justify-between text-sm">
-              <span className="text-muted">Email</span>
-              <span className="text-foreground">{inviteInfo?.email}</span>
-            </div>
-            <div className="mt-2 flex justify-between text-sm">
               <span className="text-muted">Role</span>
               <span className="text-foreground capitalize">{inviteInfo?.role}</span>
             </div>

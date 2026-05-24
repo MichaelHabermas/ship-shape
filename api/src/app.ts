@@ -34,6 +34,7 @@ import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
 import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js';
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
+import { authMiddleware } from './middleware/auth.js';
 import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
 import { sessionSameSitePolicy } from './config/session-cookies.js';
@@ -63,9 +64,78 @@ const conditionalCsrf = (req: Request, res: Response, next: NextFunction) => {
     // Skip CSRF for API token requests - Bearer tokens are not auto-attached by browsers
     return next();
   }
+  const originDecision = validateCookieAuthOrigin(req);
+  if (!originDecision.allowed) {
+    res.status(403).json({ error: originDecision.reason });
+    return;
+  }
   // Apply CSRF protection for session-based auth
   return csrfSynchronisedProtection(req, res, next);
 };
+
+function isStateChangingMethod(method: string): boolean {
+  return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
+}
+
+function parseOrigin(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function requestOrigin(req: Request): string {
+  const protocol = req.protocol;
+  const host = req.get('host') ?? '';
+  return `${protocol}://${host}`;
+}
+
+function configuredAllowedOrigins(): Set<string> {
+  const values = [
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL,
+    process.env.WEB_URL,
+  ]
+    .flatMap(value => (value ?? '').split(','))
+    .map(value => value.trim())
+    .filter(Boolean)
+    .filter(value => value !== '*')
+    .map(value => parseOrigin(value) ?? value);
+
+  return new Set(values);
+}
+
+function wildcardOriginAllowed(): boolean {
+  if (isProduction()) return false;
+  return [process.env.CORS_ORIGIN, process.env.FRONTEND_URL, process.env.WEB_URL]
+    .flatMap(value => (value ?? '').split(','))
+    .map(value => value.trim())
+    .includes('*');
+}
+
+function validateCookieAuthOrigin(req: Request): { allowed: true } | { allowed: false; reason: string } {
+  if (!isStateChangingMethod(req.method)) return { allowed: true };
+
+  const origin = parseOrigin(getHeaderValue(req.headers.origin));
+  const referer = parseOrigin(getHeaderValue(req.headers.referer));
+  const presentedOrigin = origin ?? referer;
+
+  if (!presentedOrigin) {
+    return isProduction()
+      ? { allowed: false, reason: 'Missing Origin or Referer header' }
+      : { allowed: true };
+  }
+
+  const sameOrigin = requestOrigin(req);
+  const allowedOrigins = configuredAllowedOrigins();
+  if (presentedOrigin === sameOrigin || allowedOrigins.has(presentedOrigin) || wildcardOriginAllowed()) {
+    return { allowed: true };
+  }
+
+  return { allowed: false, reason: 'Cross-site request rejected' };
+}
 
 function isCsrfError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
@@ -90,6 +160,11 @@ function shouldBypassRateLimit(req: Request): boolean {
   if (!token) return false;
 
   return getHeaderValue(req.headers['x-benchmark-rate-limit-bypass']) === token;
+}
+
+export function openApiShouldRequireAuth(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.NODE_ENV !== 'production') return false;
+  return env.OPENAPI_PUBLIC !== '1';
 }
 
 // Rate limiting configurations
@@ -198,8 +273,8 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     res.json({ status: 'ok' });
   });
 
-  // API documentation (no auth needed)
-  setupSwagger(app);
+  // API documentation. Public in local/dev; gated in production unless explicitly published.
+  setupSwagger(app, openApiShouldRequireAuth() ? authMiddleware : undefined);
 
   // Setup routes (CSRF protected - first-time setup only)
   app.use('/api/setup', conditionalCsrf, setupRoutes);

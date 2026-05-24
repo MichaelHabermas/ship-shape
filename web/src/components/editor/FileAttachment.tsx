@@ -108,6 +108,12 @@ export const FileAttachmentExtension = Node.create({
 
   atom: true,
 
+  addOptions() {
+    return {
+      documentId: undefined as string | undefined,
+    };
+  },
+
   addAttributes() {
     return {
       filename: {
@@ -176,7 +182,7 @@ export const FileAttachmentExtension = Node.create({
 
             // Upload all dropped non-image files
             nonImageFiles.forEach((file) => {
-              handleFileUpload(extensionThis.editor, file);
+              handleFileUpload(extensionThis.editor, file, undefined, extensionThis.options.documentId);
             });
 
             return true;
@@ -198,7 +204,7 @@ export const FileAttachmentExtension = Node.create({
             fileItems.forEach((item) => {
               const file = item.getAsFile();
               if (file) {
-                handleFileUpload(extensionThis.editor, file);
+                handleFileUpload(extensionThis.editor, file, undefined, extensionThis.options.documentId);
               }
             });
 
@@ -217,7 +223,7 @@ export const FileAttachmentExtension = Node.create({
  * @param file - File to upload
  * @param signal - Optional AbortSignal for cancelling uploads on navigation/cleanup
  */
-async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal) {
+async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal, documentId?: string) {
   // Check if already aborted
   if (signal?.aborted) {
     return;
@@ -263,7 +269,7 @@ async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal
     const result = await uploadFile(file, (progress) => {
       // Update global tracker for navigation warning
       updateUploadProgress(uploadId, progress.progress);
-    }, signal);
+    }, signal, documentId);
 
     // Check if aborted before updating the editor
     if (signal?.aborted) {
@@ -347,7 +353,7 @@ async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal
  * @param editor - TipTap editor instance
  * @param signal - Optional AbortSignal for cancelling uploads on navigation/cleanup
  */
-export function triggerFileUpload(editor: Editor, signal?: AbortSignal) {
+export function triggerFileUpload(editor: Editor, signal?: AbortSignal, documentId?: string) {
   // Check if already aborted
   if (signal?.aborted) {
     return;
@@ -367,7 +373,7 @@ export function triggerFileUpload(editor: Editor, signal?: AbortSignal) {
     const file = input.files?.[0];
     if (!file) return;
 
-    await handleFileUpload(editor, file, signal);
+    await handleFileUpload(editor, file, signal, documentId);
   };
 
   input.click();

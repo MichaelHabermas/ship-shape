@@ -37,26 +37,17 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
     // App redirects to /docs after login
     await page.waitForURL(/\/docs/);
 
-    // Get all cookies (session_id + connect.sid for CSRF)
-    const cookies = await page.context().cookies();
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-
-    // Get CSRF token for POST requests
-    const csrfResponse = await fetch(`${apiServer.url}/api/csrf-token`, {
-      headers: { Cookie: cookieHeader },
-    });
+    const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
+    expect(csrfResponse.ok()).toBeTruthy();
     const { token: csrfToken } = await csrfResponse.json();
 
     // Create 10 issues concurrently and verify all have unique ticket numbers
     const promises = Array.from({ length: 10 }, (_, i) =>
-      fetch(`${apiServer.url}/api/issues`, {
-        method: 'POST',
+      page.request.post(`${apiServer.url}/api/issues`, {
         headers: {
-          'Content-Type': 'application/json',
-          Cookie: cookieHeader,
           'X-CSRF-Token': csrfToken,
         },
-        body: JSON.stringify({ title: `Concurrent Issue ${i}` }),
+        data: { title: `Concurrent Issue ${i}` },
       })
     );
 
@@ -64,7 +55,7 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
     const ticketNumbers = new Set<number>();
 
     for (const response of responses) {
-      expect(response.ok).toBeTruthy();
+      expect(response.ok()).toBeTruthy();
       const data = await response.json();
       expect(data.ticket_number).toBeDefined();
       expect(ticketNumbers.has(data.ticket_number)).toBeFalsy();
@@ -82,28 +73,19 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/docs/);
 
-    // Get all cookies (session_id + connect.sid for CSRF)
-    const cookies = await page.context().cookies();
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-
-    // Get CSRF token for POST requests
-    const csrfResponse = await fetch(`${apiServer.url}/api/csrf-token`, {
-      headers: { Cookie: cookieHeader },
-    });
+    const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
+    expect(csrfResponse.ok()).toBeTruthy();
     const { token: csrfToken } = await csrfResponse.json();
 
     const issues = [];
     for (let i = 0; i < 5; i++) {
-      const response = await fetch(`${apiServer.url}/api/issues`, {
-        method: 'POST',
+      const response = await page.request.post(`${apiServer.url}/api/issues`, {
         headers: {
-          'Content-Type': 'application/json',
-          Cookie: cookieHeader,
           'X-CSRF-Token': csrfToken,
         },
-        body: JSON.stringify({ title: `Sequential Issue ${i}` }),
+        data: { title: `Sequential Issue ${i}` },
       });
-      expect(response.ok).toBeTruthy();
+      expect(response.ok()).toBeTruthy();
       issues.push(await response.json());
     }
 

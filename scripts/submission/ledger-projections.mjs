@@ -21,11 +21,16 @@ export function dashboardHref(repoPath) {
 
 export function buildLedgerModel(ledger) {
   const categories = [...ledger.categories].sort((a, b) => a.number - b.number);
-  return {
+  const categoryViews = categories.map((category) => buildCategoryView(category));
+  const model = {
     ledger,
-    categories: categories.map((category) => buildCategoryView(category)),
+    categories: categoryViews,
     gateSnapshot: getGateSnapshot(categories),
     failuresAndWarnings: getAcceptanceWarningsAndFailures(categories),
+  };
+  return {
+    ...model,
+    gradingPacket: buildGradingPacket(model),
   };
 }
 
@@ -125,6 +130,90 @@ export function renderTargetOutcome(category, target) {
   const thresholdText = target?.threshold !== undefined ? `threshold ${formatValue(target.threshold)}` : '';
   const actualText = target?.actual !== undefined ? `actual ${formatValue(target.actual)}` : '';
   return [metricText, thresholdText, actualText, target?.reason].filter(Boolean).join('; ');
+}
+
+export function buildGradingPacket(model) {
+  const categories = model.categories || [];
+  const blockedCount = categories.filter((category) => category.status !== 'proven').length;
+  return {
+    title: `${model.gateSnapshot.proven}/${categories.length} categories source-gate ready`,
+    lede:
+      blockedCount === 0
+        ? 'All required Week 4 improvements have before/after evidence; Category 8 includes a runnable security probe and verified fixes.'
+        : `${blockedCount} categor${blockedCount === 1 ? 'y still needs' : 'ies still need'} reviewer attention before the packet is claim-ready.`,
+    reproduceCommands: [
+      {
+        label: 'Validate and regenerate',
+        command: 'pnpm submission:validate && pnpm submission:render && pnpm submission:check',
+      },
+      {
+        label: 'Security probe',
+        command: 'pnpm security:probe:ci',
+      },
+    ],
+    rows: categories.map((category) => buildGradingRow(category)),
+  };
+}
+
+function buildGradingRow(category) {
+  const baseline = findSummaryCard(category, 'audit baseline');
+  const closeout = findSummaryCard(category, 'closeout proof');
+  const commandEvidence = firstEvidence(category, (item) => item.command);
+  const artifactEvidence = firstEvidence(category, (item) => item.path);
+  const caveat = category.non_claims?.[0] || category.caveats?.[0] || '';
+  const passedCount = category.passedTests?.length || 0;
+  const gateCount = category.acceptance_tests?.length || 0;
+  const failingOrWarning = [...(category.failedTests || []), ...(category.warningTests || [])];
+  const primaryTarget = category.primaryTarget;
+  const targetOutcome = primaryTarget ? renderTargetOutcome(category, primaryTarget) : '';
+  const improvement =
+    summaryCardSentence(closeout) ||
+    [primaryTarget?.description, targetOutcome].filter(Boolean).join(' ') ||
+    category.proofSummary ||
+    '';
+
+  return {
+    categoryId: category.id,
+    number: category.number,
+    title: category.title,
+    status: category.status,
+    sourceGate: category.source_requirement?.statement || '',
+    sourcePath: category.source_requirement?.source || '',
+    baseline: summaryCardSentence(baseline) || 'Audit baseline fields are recorded in the ledger.',
+    improvement,
+    proof: artifactEvidence
+      ? {
+          label: artifactEvidence.description || artifactEvidence.id,
+          path: artifactEvidence.path,
+          type: artifactEvidence.type,
+        }
+      : null,
+    reproduce: commandEvidence
+      ? {
+          label: commandEvidence.description || commandEvidence.id,
+          command: commandEvidence.command,
+          result: commandEvidence.result || '',
+        }
+      : null,
+    caveat,
+    verdict:
+      failingOrWarning.length === 0
+        ? `${passedCount}/${gateCount} gates pass`
+        : `${failingOrWarning.length} gate warning/failure${failingOrWarning.length === 1 ? '' : 's'}`,
+  };
+}
+
+function findSummaryCard(category, title) {
+  return (category.summary_cards || []).find((card) => String(card.title || '').toLowerCase() === title);
+}
+
+function summaryCardSentence(card) {
+  if (!card?.items?.length) return '';
+  return card.items.map((item) => `${item.label}: ${item.value}`).join(' ');
+}
+
+function firstEvidence(category, predicate) {
+  return (category.evidence || []).find(predicate) || null;
 }
 
 function renderCurrentTruth(category) {

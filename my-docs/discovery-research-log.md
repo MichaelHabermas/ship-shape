@@ -2,6 +2,21 @@
 
 ---
 
+## Reviewer packet simplification (2026-05-24)
+
+Decision: turn the generated reviewer dashboard into a grading packet. The reviewer path is now Summary, Evidence, Security, Appendix, with source gate and proof rows first and internal machinery moved behind drilldown.
+
+| Finding | Disposition |
+|---------|-------------|
+| The dashboard made reviewers choose among internal proof concepts before answering the grading question | **Resolved in generator** — Summary now maps Category 1-8 to source gate, baseline, improvement, proof, caveat, and verdict |
+| Category 8 manual-review cards could render object-shaped details as `[object Object]` | **Fixed** — manual review formatting now flattens nested object/array details into readable text |
+| Category 8 presentation led with deliverable completeness before verified fixes | **Fixed** — security evidence now leads with reproduce command, latest/backlog signal, verified fixes, attack surfaces/manual review, then raw tables |
+| Stale `runs/cat8-final/` references pointed at a missing in-tree run path | **Fixed in durable docs** — current references point to stable latest artifacts or existing immutable runs instead of the missing path |
+
+Future application: reviewer-facing generated pages should behave like grading packets, not data explorers. Keep source claims in the ledger; keep raw proof machinery in appendix unless a gate is failing.
+
+---
+
 ## Document Mutation Core pass (2026-05-24)
 
 Decision: implement the 10x architecture move as a policy/mutation boundary, not a broad model rewrite. Migrated generic document create/update/content/delete/convert paths while leaving deeper collaboration persistence, weekly-service extraction, and web adapter cleanup as separate follow-ons.
@@ -1375,7 +1390,7 @@ Implemented `scripts/security-probe/` and root commands:
 - `pnpm security:probe -- --probe <probe-id>`
 - `pnpm security:probe:test`
 
-Final report: `my-docs/evidence/security-audit/runs/cat8-final/report.json` and stable copy `my-docs/evidence/security-audit/latest.json`.
+Final report source is the stable copy `my-docs/evidence/security-audit/latest.json`; older notes referenced `runs/cat8-final/report.json`, but that immutable run path is no longer present in-tree.
 
 Final result after multi-agent verification tightening: 4/4 surfaces measured, 25/25 probes passed, 0 findings. Covered auth/session, WebSocket validation, input sanitization, dependency CVEs, and assisted CORS/CSP/secrets/rate-limit/verbose-error review.
 
@@ -1440,7 +1455,7 @@ Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no s
 - **Tool:** `shipshape-security` package (`packages/shipshape-security`) — CLI + Ink TUI; `pnpm exec shipshape-security run|ci|findings|tui`.
 - **Reports:** `schemaVersion: 2`, five measured surfaces, triage via `security-findings.json` (generated ledger + narratives).
 - **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
-- **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
+- **Preserved conceptually:** historical perimeter closeout remains represented through the stable latest security artifacts and ledger wording; the old `runs/cat8-final/` path is no longer present in-tree.
 
 Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.
 
@@ -1503,6 +1518,14 @@ Decision D076.
 
 ---
 
+## Security Console UX rollback (2026-05-24)
+
+Walked back over-engineered Security Console UI: removed large offline callout and paragraph control help; compact one-line hint + button `title` tooltips; inline Perimeter/Auto-refresh checkboxes. Rail: `overflow:visible`, higher z-index so hover labels are not clipped behind main panel; Security tab no longer rewrites rail deltas (no stray `22` on cat 8).
+
+**Ruthless simplification (2026-05-24):** Security tab is static evidence only — one reproduce line (`pnpm security:probe:ci`), metrics, tables, file links. Removed console buttons, payload blob, drawer/filters, duplicate CLI section, `pnpm security:console` / migrate noise. Tab renamed **Security**. `pnpm security:console` remains optional dev tooling, not part of the dashboard.
+
+---
+
 ## Doc activation cleanup and contract check (2026-05-24)
 
 Discovery: The existing strict doc-sync gate passed while important activation docs outside the curated target set still carried absent command references and historical absolute paths. Root AWS docs are intentionally future/legacy context and should not be deleted, but active agent instructions need tighter contract checks.
@@ -1518,3 +1541,61 @@ Implemented:
 Follow-up consolidation: root AWS duplicates were collapsed into `DEPLOYMENT.md` plus the canonical deep reference in `terraform/README.md`. Former root replay docs moved to `docs/archive/aws-deployment/`, and FPKI DCR background moved to `docs/research/`.
 
 Decision: Keep AWS/Terraform as the “mystic future path” / optional government-style deployment path, but prevent active agents from treating absent helpers or personal filesystem paths as executable guidance.
+
+---
+
+## Security architecture closure wave (2026-05-24)
+
+Discovery: The remaining security findings clustered around one design problem: authority decisions lived in too many places. REST routes, API token auth, setup, files, graph metadata, and WebSocket collaboration each had enough local context to look correct, but not enough shared vocabulary to prevent drift. The simpler structural fix was not another route patch; it was a central `Principal` + `Capability` model with reason-coded decisions.
+
+Implementation result: `api/src/security/principal.ts`, `tokens.ts`, and `capabilities.ts` now form the shared authorization boundary. Existing document access/policy code feeds this layer. Setup initialization has a server-side token gate, new API tokens are admin-created/scoped/expiring by default, bound files authorize through documents, collaboration revalidates active sessions, and high-risk route tails (CAIA/AI/file names/S3 confirm) received narrow hardening.
+
+Evidence nuance: `security:probe:ci` hit a stale local API port on 3099 first, so the accepted run used alternate ports: `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201`. The probe itself passed with 5/5 surfaces, 40/40 probes, 0 findings. Because the CI command recorded finding verifications, generated findings output became stale afterward; `pnpm security:findings:render` and `pnpm security:findings:check` repaired and verified the ledger.
+
+Future application: Add new sensitive behavior by naming the capability first. Generated/capability-driven probes remain the Galaxy Brain direction, but only after the static capability table is stable enough to be a useful proof target.
+
+---
+
+## Security identity/token/file closeout wave (2026-05-24)
+
+Discovery: The findings registry still showed several control-plane and file rows open after the capability foundation. The right next move was not to declare victory; it was to add or run focused proof, then close only rows whose original behavior was covered.
+
+Implemented: invite acceptance now uses 256-bit random session IDs; public invite preview no longer returns invite email or inviter name; production OpenAPI can be gated behind normal auth unless `OPENAPI_PUBLIC=1`; cookie-auth mutating requests get an Origin/Referer same-origin check before CSRF; `/api/documents/:id/commands` adds an additive typed command boundary for sensitive document mutations while preserving legacy PATCH; accountability action items omit targets the actor cannot read.
+
+Evidence: `pnpm type-check`, `pnpm openapi:check:strict`, `pnpm security:probe:test`, and focused API/security tests passed. The focused API run covered 51 tests across workspaces, setup, API tokens, files, OpenAPI contract, and capabilities. Findings `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033` were closed through the findings CLI with manual verification notes; other rows remain open until direct proof exists.
+
+Future application: Continue closing by cluster: graph metadata leaks, realtime parity proof, external config/browser defense, and input validation. Do not collapse legacy PATCH behavior until clients have moved to typed commands.
+
+---
+
+## Security graph and realtime closure wave (2026-05-24)
+
+Discovery: Several open findings were half-fixed in code but not safely closable. The real active issues were drift at graph serialization boundaries: hidden program UUIDs could still pass through context fallback, association `metadata` was returned despite not being public contract, and bootstrap/program aggregate counts counted hidden children. Accountability service also built sprint-derived items before applying route-level document filtering.
+
+Implementation: Added `document-graph-visibility.ts` for small reusable visibility/count helpers. Association list/create/delete/reverse responses now project public DTOs and omit `metadata`. Context uses `prog.id` rather than raw association id for program breadcrumbs, so hidden joins do not leak UUIDs. Bootstrap and program counts use visible associated document counts. Accountability service applies sprint visibility inside standup, sprint-accountability, and changes-requested queries.
+
+Realtime: Collaboration persistence now receives a principal, authorizes `collaboration:persist`, attributes weekly plan/retro history to the editor principal, and skips persistence when no principal is available. Cache admission now rejects new distinct rooms when `MAX_CACHED_DOCS` is full and no inactive room can be evicted. Revalidation/cache/persistence test hooks are internal exports only.
+
+Evidence: `pnpm type-check`; `pnpm openapi:check:strict`; `pnpm security:probe:test`; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed 51 files / 595 tests. Initial graph regression caught the hidden program UUID leak in `/api/documents/:id/context`; after patch, the full suite passed.
+
+Findings closed by CLI: `SS-FIND-006`, `009`, `011`, `015`, `022`, `024`, `027`, `030`.
+
+Residual risk: `SS-FIND-027` is count-bounded per process, not byte-bounded memory governance. That is a materially safer and test-proven closure of unbounded cache growth, but not a full memory-pressure controller.
+
+Verification addendum: Parallel reviewer agents found four missed graph leak paths after the first wave: bootstrap project `program_id`, team project `programId`, explicit team assignment project metadata, and inferred team assignment project metadata. They also found two accountability allocation leaks and one final WebSocket close-persist attribution bug. These were fixed before final proof. Evidence run `security-probe-ci-20260524-150803` passed 5/5 surfaces, 40 probes, 0 findings.
+
+---
+
+## Security external/browser/input/session tail (2026-05-24)
+
+Discovery: The remaining open rows were not one class of bug. They were deployment-edge trust boundaries: CAIA redirect and issuer discovery, production OpenAPI exposure, cookie-auth browser mutation proof, AI request body shape drift, and session replay/anomaly behavior. Several had partial code support already, so the safe path was proof reconciliation first, then small pure validators and focused contract tests.
+
+Implemented: `safeRelativeReturnTo` for CAIA callback paths; SSRF-safe CAIA issuer validation before discovery/save/test; exported production OpenAPI gating policy; AI OpenAPI schemas aligned to runtime string content and 10/hour rate-limit responses; risk-based `session-binding.ts` with UA mismatch denial and IP drift audit; shared session validation used by HTTP auth and WebSocket upgrade. Added a hand-written security policy matrix for the remaining finding/probe mapping rather than a generated compiler.
+
+Evidence: `pnpm type-check`; `pnpm openapi:check:strict`; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed 54 files / 611 tests after rerun with local Postgres access; `pnpm --filter @ship/web test` passed 24 files / 179 tests; `pnpm security:probe:test` passed 33 tests; `pnpm security:probe:ci` passed with run `security-probe-ci-20260524-153908`, 5/5 surfaces, 40 probes, 0 findings.
+
+Findings closed by CLI after proof: `SS-FIND-017`, `019`, `020`, `023`, `031`, and `034`.
+
+Residual risk: WebSocket periodic revalidation has no fresh request headers, so it enforces session deletion/expiry and membership/visibility loss; User-Agent binding is enforced at initial upgrade through the shared validator. OpenAPI production integration is covered by exported policy proof rather than mutating global `NODE_ENV` inside parallel route tests.
+
+Verification follow-up: A deeper correctness pass found two gaps before final handoff. Malformed CAIA issuer strings could throw `Invalid URL`, which the admin save path might treat as a safe discovery failure; they now fail closed with a CAIA-prefixed error. CAIA discovery now installs an SSRF-safe custom fetch so metadata endpoints and redirects cannot move later OAuth calls onto private infrastructure. Invite-accept sessions now store binding data, and legacy sessions with missing binding refresh UA/IP on successful validation.

@@ -111,6 +111,8 @@ interface CreateSlashCommandsOptions {
   onNavigateToDocument?: (id: string) => void;
   /** Document type for filtering document-specific commands */
   documentType?: string;
+  /** Current document ID for document-bound uploads */
+  documentId?: string;
   /** AbortSignal for cancelling async operations on navigation/cleanup */
   abortSignal?: AbortSignal;
 }
@@ -223,7 +225,7 @@ const icons = {
   ),
 };
 
-export function createSlashCommands({ onCreateSubDocument, onNavigateToDocument, documentType, abortSignal }: CreateSlashCommandsOptions) {
+export function createSlashCommands({ onCreateSubDocument, onNavigateToDocument, documentType, documentId, abortSignal }: CreateSlashCommandsOptions) {
   const slashCommands: SlashCommandItem[] = [
     // Sub-document (requires async callback)
     {
@@ -357,7 +359,7 @@ export function createSlashCommands({ onCreateSubDocument, onNavigateToDocument,
 
             try {
               // Upload and replace with CDN URL
-              const result = await uploadFile(file, undefined, abortSignal);
+              const result = await uploadFile(file, undefined, abortSignal, documentId);
 
               // Check if aborted before updating editor
               if (abortSignal?.aborted) {
@@ -411,7 +413,7 @@ export function createSlashCommands({ onCreateSubDocument, onNavigateToDocument,
         editor.chain().focus().deleteRange(range).run();
         // Import and trigger file upload
         const { triggerFileUpload } = await import('./FileAttachment');
-        triggerFileUpload(editor, abortSignal);
+        triggerFileUpload(editor, abortSignal, documentId);
       },
     },
     // Toggle/Details

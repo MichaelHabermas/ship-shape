@@ -19,6 +19,10 @@ Use multiple profiles only when the task clearly crosses boundaries. If no profi
 - For E2E, run `pnpm test:e2e:setup` once (or after Playwright bumps), then use `/e2e-test-runner` or `pnpm test:e2e:run` with full permissions — agent sandboxes lack Playwright browsers and report false 100% launch failures. API unit tests need `DATABASE_URL=…/ship_test_audit` (never truncate `ship_dev`).
 - For `gh` (PRs, issues): default repo is **origin** (`MichaelHabermas/ship-shape`). Run `./scripts/setup-gh-default.sh` after clone; never use `US-Department-of-the-Treasury/ship` as the gh target. Treasury is remote `treasury` (fetch-only).
 
+## Feature branches
+
+Durable feature branches live on **GitHub (`origin`)** and **GitLab (`gitlab`)**. Temporary agent/Codex worktrees are not branch inventory. See `docs/feature-branches.md` and run `pnpm branches:sync` to fetch remotes, create local tracking branches, and mirror `origin` → `gitlab`.
+
 ## Default Commands
 
 ```bash
@@ -29,6 +33,7 @@ pnpm test
 pnpm db:migrate
 pnpm db:seed
 pnpm exec shipshape-security run   # Cat 8 probe (or pnpm security:probe)
+pnpm security:probe:deployed       # Safe probe vs Render (https://ship-shape-api.onrender.com)
 pnpm exec shipshape-security ci    # CI gate: full probe, --fail-on=new (needs Postgres)
 pnpm security:console              # Reviewer Security Console (WS logs, CI mirror, hot payload)
 ```

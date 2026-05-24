@@ -30,7 +30,7 @@ pnpm exec shipshape-security run
 
 ### Probe v2 (authorization + unified findings store)
 
-Default **`run`** measures **five** attack surfaces (Cat 8’s four required surfaces plus **authorization**). Use **`run --cat8-perimeter`** for historical 4-surface mode (`runs/cat8-final/` parity).
+Default **`run`** measures **five** attack surfaces (Cat 8’s four required surfaces plus **authorization**). Use **`run --cat8-perimeter`** for historical 4-surface mode.
 
 Reports use `schemaVersion: 2` and triage against [`security-findings.json`](evidence/security-audit/security-findings.json) (authoritative; [`security-findings-ledger.md`](evidence/security-audit/security-findings-ledger.md) is generated):
 
@@ -49,7 +49,7 @@ pnpm exec shipshape-security findings check
 pnpm exec shipshape-security compliance
 ```
 
-Historical Cat 8 closeout remains **`runs/cat8-final/`** (perimeter-only, 25/25 passed). Do not overwrite that artifact when running v2.
+Historical Cat 8 closeout remains a perimeter-only scope concept (25/25 passed in the original closeout); use `latest.*` or existing immutable run directories for current reviewer links because the old `runs/cat8-final/` path is no longer present in-tree.
 
 The default local credentials are the seeded dev accounts:
 
@@ -79,7 +79,7 @@ pnpm exec shipshape-security baseline deps
 
 Before: **33** (BASELINE branch). After: **0**. Files: `runs/baseline-before/`, `runs/baseline-after/`. Index: `README.md` in this folder.
 
-**Historical closeout (`cat8-final`):** 4/4 required attack surfaces measured, 25/25 probes passed, 0 findings (perimeter scope).
+**Historical closeout (perimeter scope):** 4/4 required attack surfaces measured, 25/25 probes passed, 0 findings.
 
 **Probe v2 baseline (`probe-v2-baseline-unfixed`):** 5/5 surfaces measured; authorization probes detect open SS-FIND items. See `runs/probe-v2-baseline-unfixed/report.md` for triage buckets.
 
@@ -112,7 +112,7 @@ Package README: `packages/shipshape-security/README.md`
 
 ## Open findings (post–Cat 8 deep review)
 
-Probe closeout (`cat8-final`: 25/25 passed) covers **perimeter** controls. A separate deep authorization review on **2026-05-22** recorded **34 open business-logic findings** in the backlog — governance bypasses, weekly-plan IDOR, metadata leaks, and abuse surfaces.
+Probe closeout for the 4-surface perimeter covered **perimeter** controls. A separate deep authorization review on **2026-05-22** recorded **34 open business-logic findings** in the backlog — governance bypasses, weekly-plan IDOR, metadata leaks, and abuse surfaces.
 
 **Canonical backlog:** `security-findings.json` (CLI: `shipshape-security findings`)
 
