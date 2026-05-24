@@ -1048,6 +1048,22 @@ Evidence: `pnpm security:probe:ci` — 5/5 surfaces, 0 findings, 0 new, 0 regres
 
 **Decision Gist**: CI guards new security regressions, not the whole SS-FIND backlog — registry fingerprints are the contract.
 
+### D064: Unified security findings SoT (`security-findings.json`) (2026-05-23)
+
+Status: Accepted
+
+Decision: Replace dual `probe-finding-registry.json` + hand-edited `security-findings-ledger.md` with one authoritative index: **`security-findings.json`** (workflow `status`, `probes[]` bindings with `regression`/`control` roles, append-only `verifications[]`) plus **`security-findings/narratives/*.md`** for long prose. **`security-findings-ledger.md` is generated** (`pnpm security:findings:render`); `pnpm security:findings:check` runs in CI after probe. Workflow status is CLI-first (`pnpm security:findings:set-status`); probe pass appends verifications only — never auto-sets `status: fixed`. Legacy hand-edited ledger archived as `security-findings-ledger.legacy.md`.
+
+Why: Two stores drifted (registry marked fixes while ledger showed 34×open). One index answers first discovered, last verification, still active, and probe linkage without contradicting human workflow.
+
+Alternatives considered: DB-backed findings (deferred); auto-close on probe pass (rejected — SS-FIND-008); invariant DSL (deferred).
+
+Consequences: `probe-finding-registry.json` removed. `finding-registry.mjs` is a thin adapter over the store. Cat 8 `proven` unchanged; submission limit documents that SS-FIND backlog is not all closed.
+
+Evidence: `pnpm security:findings:migrate` → 34 findings; `pnpm security:findings:check` pass; modules under `scripts/security-probe/lib/security-findings-*.mjs`.
+
+**Decision Gist**: One JSON SoT for findings; generated ledger; CLI owns status; probes append history only.
+
 ### D061: Category 5 full E2E warning resolved with route-consistency fixes (2026-05-22)
 
 Status: Accepted

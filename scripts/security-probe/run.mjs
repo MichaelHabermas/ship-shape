@@ -4,7 +4,12 @@ import { ProbeHttpClient } from './lib/http-client.mjs';
 import { buildReport, writeReport } from './lib/report.mjs';
 import { SEVERITY_ORDER } from './lib/result-model.mjs';
 import { MEASURED_SURFACE_COUNT, selectedGroups } from './lib/registry.mjs';
-import { loadFindingRegistry, triageFindings } from './lib/finding-registry.mjs';
+import {
+  loadFindingRegistry,
+  loadSecurityFindings,
+  appendProbeVerifications,
+  triageFindings,
+} from './lib/finding-registry.mjs';
 import { shouldFailSecurityProbeRun } from './lib/ci-fail.mjs';
 
 async function main() {
@@ -55,6 +60,10 @@ async function main() {
     registry,
   });
   const paths = await writeReport(config, report);
+  if (config.recordVerifications) {
+    const store = loadSecurityFindings();
+    appendProbeVerifications(store, { runId: config.runId, probes: filtered });
+  }
   const triage = triageFindings({ registry, probes: filtered });
 
   console.log(`Security probe report: ${paths.jsonPath}`);

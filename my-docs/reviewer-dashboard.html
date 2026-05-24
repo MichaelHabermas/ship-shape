@@ -164,12 +164,15 @@
       .rubric-table th:nth-child(4),.rubric-table td:nth-child(4) { width:104px; }
       .rubric-table th:nth-child(5),.rubric-table td:nth-child(5) { width:280px; }
       .rubric-table td:nth-child(2),.rubric-table td:nth-child(5) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .discoveries-table { min-width:1060px; }
+      .discoveries-table { table-layout:fixed; min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
-      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
-      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:82px; }
-      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:126px; }
+      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:58px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:88px; }
+      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:112px; }
       .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
+      .discoveries-table th:nth-child(8),.discoveries-table td:nth-child(8) { width:150px; }
+      .discoveries-table td:nth-child(1),.discoveries-table td:nth-child(2),.discoveries-table td:nth-child(3),.discoveries-table td:nth-child(4),.discoveries-table td:nth-child(7),.discoveries-table td:nth-child(8) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .discoveries-table td:nth-child(8) .path { line-height:1.15; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
@@ -240,7 +243,7 @@
               <span class="rail-meta">Accessibility Compliance</span>
               <span class="rail-detail">M · 4/4</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="20 art" data-detail-evidence="H · 20 artifacts" data-meta-cross-examine="40 pts" data-detail-cross-examine="H · 40 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="21 art" data-detail-evidence="H · 21 artifacts" data-meta-cross-examine="41 pts" data-detail-cross-examine="H · 41 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
               <span class="rail-number">8</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">4/4</span>
@@ -429,7 +432,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>40 pts · 1 claim · 7 boundaries · 20 artifacts · 4 gates</small>
+      <small>41 pts · 1 claim · 7 boundaries · 21 artifacts · 4 gates</small>
 
     </div>
             <span>4/4 acceptance pass; all gates clear</span>
@@ -1311,7 +1314,7 @@
 
                   <li data-ledger-id="cat8-security-audit-proven">
                     <strong>Security Audit Proven <span class="badge proven">proven</span></strong>
-                    <span>Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence. Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled. Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field. The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories. Manual review is assisted and evidence-backed; it is not a formal third-party penetration test.</span>
+                    <span>Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence. Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled. Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field. The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories. Manual review is assisted and evidence-backed; it is not a formal third-party penetration test. Cat 8 proven covers four required attack surfaces plus two verified fixes; the SS-FIND backlog (34 deep-review items) is tracked in security-findings.json — not all rows are closed.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -1340,11 +1343,17 @@
           <small>Path: my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json</small>
           <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json" title="my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
-        <li data-ledger-id="cat8-probe-finding-registry">
-          <strong>Probe Finding Registry <span class="subtle">artifact</span></strong>
-          <span>Fingerprinted probe findings linked to SS-FIND IDs for deduplicated triage across runs.</span>
-          <small>Path: my-docs/evidence/security-audit/probe-finding-registry.json</small>
-          <div class="artifact-link"><a class="path" href="evidence/security-audit/probe-finding-registry.json" title="my-docs/evidence/security-audit/probe-finding-registry.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        <li data-ledger-id="cat8-security-findings">
+          <strong>Security Findings <span class="subtle">artifact</span></strong>
+          <span>Unified security findings SoT: workflow status, probe bindings, append-only verification history (SS-FIND-001…034).</span>
+          <small>Path: my-docs/evidence/security-audit/security-findings.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/security-findings.json" title="my-docs/evidence/security-audit/security-findings.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-findings-ledger-generated">
+          <strong>Security Findings Ledger Generated <span class="subtle">artifact</span></strong>
+          <span>Generated human-readable ledger from security-findings.json (pnpm security:findings:render).</span>
+          <small>Path: my-docs/evidence/security-audit/security-findings-ledger.md</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/security-findings-ledger.md" title="my-docs/evidence/security-audit/security-findings-ledger.md" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat8-security-probe-ci-gate">
           <strong>Security Probe Ci Gate <span class="subtle">artifact</span></strong>
@@ -1829,7 +1838,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>40 pts · 1 claim · 7 boundaries · 20 artifacts · 4 gates</small>
+      <small>41 pts · 1 claim · 7 boundaries · 21 artifacts · 4 gates</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>

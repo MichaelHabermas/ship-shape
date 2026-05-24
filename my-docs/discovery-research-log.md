@@ -1368,7 +1368,7 @@ Validation: `pnpm submission:validate`, `pnpm submission:render`, `pnpm submissi
 Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no separate agent skills at runtime):
 
 - **Architecture:** `lib/registry.mjs`, `lib/fixtures.mjs`, `lib/finding-registry.mjs`, `data/route-manifest.mjs`, `probes/authorization.mjs`, `probes/abuse-surfaces.mjs`.
-- **Reports:** `schemaVersion: 2`, five measured surfaces, triage buckets (known-open / new / resolved / regression) via `probe-finding-registry.json`.
+- **Reports:** `schemaVersion: 2`, five measured surfaces, triage buckets (known-open / new / resolved / regression) via `security-findings.json` (generated ledger + narratives).
 - **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
 - **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
 

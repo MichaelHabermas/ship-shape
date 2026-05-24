@@ -10,12 +10,15 @@ pnpm security:probe
 pnpm security:probe -- --quick
 pnpm security:probe -- --probe <probe-id>
 pnpm security:probe:test
-pnpm security:probe:sync-registry   # merge bootstrap entries into probe-finding-registry.json
+pnpm security:probe:sync-registry   # merge bootstrap probe bindings into security-findings.json
+pnpm security:findings:set-status SS-FIND-008 open --note "..."
+pnpm security:findings:render
+pnpm security:findings:check
 ```
 
-### Probe v2 (authorization + finding registry)
+### Probe v2 (authorization + unified findings store)
 
-The harness now measures **five** attack surfaces (Cat 8’s four required surfaces plus an **authorization / business-logic** extension). Reports use `schemaVersion: 2` and triage findings against [`probe-finding-registry.json`](evidence/security-audit/probe-finding-registry.json):
+The harness now measures **five** attack surfaces (Cat 8’s four required surfaces plus an **authorization / business-logic** extension). Reports use `schemaVersion: 2` and triage findings against [`security-findings.json`](evidence/security-audit/security-findings.json) (authoritative index; [`security-findings-ledger.md`](evidence/security-audit/security-findings-ledger.md) is generated):
 
 - **known-open** — tracked vulnerability, probe still fails
 - **new** — probe failed, fingerprint not in registry yet

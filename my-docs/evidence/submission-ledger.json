@@ -3780,7 +3780,8 @@
             "Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled.",
             "Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field.",
             "The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories.",
-            "Manual review is assisted and evidence-backed; it is not a formal third-party penetration test."
+            "Manual review is assisted and evidence-backed; it is not a formal third-party penetration test.",
+            "Cat 8 proven covers four required attack surfaces plus two verified fixes; the SS-FIND backlog (34 deep-review items) is tracked in security-findings.json — not all rows are closed."
           ]
         }
       ],
@@ -3810,10 +3811,16 @@
           "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout."
         },
         {
-          "id": "cat8-probe-finding-registry",
+          "id": "cat8-security-findings",
           "type": "artifact",
-          "path": "my-docs/evidence/security-audit/probe-finding-registry.json",
-          "description": "Fingerprinted probe findings linked to SS-FIND IDs for deduplicated triage across runs."
+          "path": "my-docs/evidence/security-audit/security-findings.json",
+          "description": "Unified security findings SoT: workflow status, probe bindings, append-only verification history (SS-FIND-001…034)."
+        },
+        {
+          "id": "cat8-security-findings-ledger-generated",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/security-findings-ledger.md",
+          "description": "Generated human-readable ledger from security-findings.json (pnpm security:findings:render)."
         },
         {
           "id": "cat8-security-probe-ci-gate",

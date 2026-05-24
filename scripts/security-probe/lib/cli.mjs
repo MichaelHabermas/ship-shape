@@ -86,6 +86,10 @@ export function buildConfig(argv = process.argv.slice(2), env = process.env) {
     quick: optionEnabled(options.quick),
     probe: options.probe ? String(options.probe) : null,
     failOn: options.failOn ? String(options.failOn) : 'high',
+    recordVerifications:
+      env.CI === 'true'
+        ? !optionDisabled(options.noRecordVerifications)
+        : optionEnabled(options.recordVerifications),
     maxBurst: Number(options.maxBurst || 20),
     maxPayloadMb: Number(options.maxPayloadMb || 11),
     runId,

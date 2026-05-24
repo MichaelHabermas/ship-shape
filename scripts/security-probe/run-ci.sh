@@ -63,6 +63,9 @@ node ./scripts/security-probe/run.mjs \
   --run-id "${RUN_ID}" \
   --api-url "http://localhost:${API_PORT}" \
   --web-url "http://localhost:${WEB_PORT}" \
-  --fail-on=new
+  --fail-on=new \
+  --record-verifications
+
+pnpm security:findings:check
 
 echo "Security probe CI passed (fail-on=new). Report: my-docs/evidence/security-audit/runs/${RUN_ID}/"

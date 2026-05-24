@@ -27,7 +27,9 @@ Short write-up: **`baseline-measurements.md`**
 | **Current** full probe (v1 closeout: 25 probes, 0 perimeter findings) | **`runs/cat8-final/report.json`** (immutable) |
 | **Probe v2** baseline (40 probes, authorization + triage) | **`runs/probe-v2-baseline-unfixed/report.json`** |
 | Latest run pointer | **`latest.json`** / `latest.md` |
-| Finding fingerprints (dedupe open vs new) | **`probe-finding-registry.json`** |
+| Security findings SoT (status, probes, verifications) | **`security-findings.json`** |
+| Generated human ledger (do not edit) | **`security-findings-ledger.md`** |
+| Long-form narratives | **`security-findings/narratives/SS-FIND-NNN.md`** |
 
 ## Two fixes we proved (before / after)
 
@@ -38,7 +40,7 @@ Short write-up: **`baseline-measurements.md`**
 
 ## Deep review backlog (not dependency CVEs)
 
-34 open app-security items from manual code review: **`security-findings-ledger.md`**
+34 app-security items from manual code review: **`security-findings.json`** (workflow status via `pnpm security:findings:set-status`; ledger is generated)
 
 ## Submission ledger + HTML dashboard
 
@@ -52,7 +54,9 @@ pnpm security:baseline:deps      # pnpm audit before/after (clone BASELINE once)
 pnpm security:baseline:probe     # full live probe on BASELINE clone (phased + merge)
 pnpm security:baseline:deliverable  # rebuild cat8-audit-deliverable.json + sync ledger
 pnpm security:probe              # current-code live probe → latest.json + runs/<run-id>/
-pnpm security:probe:sync-registry
+pnpm security:probe:sync-registry   # merge bootstrap probe bindings into security-findings.json
+pnpm security:findings:render
+pnpm security:findings:check
 pnpm submission:render-dashboard
 ```
 

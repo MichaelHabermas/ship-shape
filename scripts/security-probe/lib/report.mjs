@@ -78,8 +78,9 @@ export function buildReport({ config, probes, startedAt, finishedAt, registry = 
       attackSurfacesMeasured: measuredSurfaceCount(surfaces),
       attackSurfacesTotal: MEASURED_SURFACE_COUNT,
       manualReviewComplete: Object.values(manualReview).every((review) => review.status !== 'not_measured'),
+      findingSuggestions: suggestRegistryUpdates(triage),
       registrySuggestions: suggestRegistryUpdates(triage),
-      note: 'Review before copying into submission-ledger.json; the probe does not auto-update claims.',
+      note: 'Workflow status is CLI-owned (security-findings.json). Probe appends verifications only.',
     },
   };
 }

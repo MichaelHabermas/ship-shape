@@ -10,7 +10,7 @@ export function shouldFailSecurityProbeRun({ failOn, triage }) {
     if (triage.counts.new > 0) {
       return {
         fail: true,
-        reason: `${triage.counts.new} new finding(s) not in probe-finding-registry.json`,
+        reason: `${triage.counts.new} new finding(s) not in security-findings.json`,
         exitCode: 2,
       };
     }

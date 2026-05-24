@@ -844,7 +844,7 @@ Evidence-changing work updates the ledger before narrative docs or dashboard out
 Extended `scripts/security-probe/` from perimeter-only (Cat 8 closeout) to **probe v2**:
 
 - Fifth measured surface: **authorization** (governance PATCH bypass, weekly-plan IDOR REST/WS, cross-origin WS, upload hijack, file scope, dashboard/bulk checks).
-- `probe-finding-registry.json` + triage in reports (known-open / new / resolved / regression).
+- `security-findings.json` SoT + triage in reports (known-open / new / resolved / regression); generated `security-findings-ledger.md`.
 - `lib/fixtures.mjs` for runtime weekly-plan/person setup; `lib/registry.mjs` modular probe groups.
 - Abuse probes for public-feedback rate limit; auth-session member audit/impersonation controls.
 
