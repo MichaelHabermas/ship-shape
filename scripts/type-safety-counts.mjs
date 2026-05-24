@@ -76,9 +76,18 @@ function getGitSha() {
   }
 }
 
-function countFile(filePath, totals, productionTotals, fileRows) {
+function packageRootFor(relPath) {
+  const match = roots.find((candidate) => relPath === candidate || relPath.startsWith(`${candidate}/`));
+  return match ?? 'other';
+}
+
+function countFile(filePath, totals, productionTotals, byPackage, fileRows) {
   const relPath = path.relative(root, filePath);
   const isProduction = !testPathRe.test(relPath);
+  const packageRoot = packageRootFor(relPath);
+  if (!byPackage[packageRoot]) {
+    byPackage[packageRoot] = createEmptyCounts();
+  }
   const text = fs.readFileSync(filePath, 'utf8');
   const sourceFile = ts.createSourceFile(
     filePath,
@@ -113,6 +122,7 @@ function countFile(filePath, totals, productionTotals, fileRows) {
 
   for (const key of Object.keys(fileCounts)) {
     totals[key] += fileCounts[key];
+    byPackage[packageRoot][key] += fileCounts[key];
     if (isProduction) {
       productionTotals[key] += fileCounts[key];
     }
@@ -136,11 +146,26 @@ for (const sourceRoot of roots) {
 
 const totals = createEmptyCounts();
 const productionTotals = createEmptyCounts();
+const byPackage = Object.fromEntries(roots.map((sourceRoot) => [sourceRoot, createEmptyCounts()]));
 const fileRows = [];
 
 for (const filePath of files) {
-  countFile(filePath, totals, productionTotals, fileRows);
+  countFile(filePath, totals, productionTotals, byPackage, fileRows);
 }
+
+function formatPackageBreakdown(counts) {
+  return {
+    any: counts.any,
+    type_assertions: counts.typeAssertions,
+    non_null_assertions: counts.nonNullAssertions,
+    ts_suppressions: counts.tsSuppressions,
+    counted_total: sumCounts(counts),
+  };
+}
+
+const packageBreakdown = Object.fromEntries(
+  roots.map((sourceRoot) => [sourceRoot, formatPackageBreakdown(byPackage[sourceRoot])])
+);
 
 const topNonNullFiles = fileRows
   .filter(row => row.counts.nonNullAssertions > 0)
@@ -173,6 +198,7 @@ const output = {
     ...productionTotals,
     countedTotal: sumCounts(productionTotals),
   },
+  packageBreakdown,
   topNonNullFiles,
 };
 

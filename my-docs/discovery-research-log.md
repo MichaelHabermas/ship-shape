@@ -2,6 +2,75 @@
 
 ---
 
+## Document Mutation Core pass (2026-05-24)
+
+Decision: implement the 10x architecture move as a policy/mutation boundary, not a broad model rewrite. Migrated generic document create/update/content/delete/convert paths while leaving deeper collaboration persistence, weekly-service extraction, and web adapter cleanup as separate follow-ons.
+
+| Finding | Disposition |
+|---------|-------------|
+| Generic document mutation mixed route parsing, access checks, property merging, association writes, content extraction, Yjs invalidation, visibility revocation, deletion, conversion snapshots, search indexing, and weekly resubmission behavior | **Resolved for generic route writes** — create/update/content/delete/convert now go through `document-mutations.ts` |
+| Authz needs to be reason-coded before any future policy compiler | **Seeded** — `DocumentPolicy` returns explicit decisions and exposes static policy cases for tests/probes later |
+| Multi-agent review found boundary regressions/gaps | **Fixed** — archived conversion contract, soft delete, creator/admin delete authz, top-level RACI blocking, issue ticket allocation, `"Untitled"` creation, weekly `/content` resubmission reset, and mixed association-shape rejection now have focused regression coverage |
+| Full rewrite beyond the generic document routes would risk proven submission evidence | **Deferred** — collaboration persistence, weekly accountability service extraction, and web adapter cleanup remain follow-on slices |
+| Full API suite needed regression signal after route migration | **Closed** — 579/579 API tests passed after review hardening; this is regression coverage, not complete semantic equivalence proof |
+| Security probe CI after authz hardening | **Open** — rerun got through migrate/seed/package tests but failed seeded admin login with HTTP 500; triage probe harness/auth separately before claiming Cat 8 evidence from this pass |
+
+Future application: extend the mutation core for adjacent write families only when they have focused boundary tests first. Do not build generated policy guards until the static policy matrix has stayed readable across more routes.
+
+---
+
+## Documentation noise cleanup (2026-05-24)
+
+Decision: reduce the docs surface to source truth plus regenerable outputs. Generated reviewer bundles, old evidence-run archives, and temporary orchestration plans were creating more drift risk than reviewer value.
+
+| Finding | Disposition |
+|---------|-------------|
+| Generated reviewer evidence bundle duplicated source docs and dashboard output | **Classified as generated output** — regenerate with `pnpm submission:render-bundle`; do not hand-edit bundled copies |
+| `my-docs/evidence-runs/` contained overlapping final/foundation/integration/closeout snapshots | **Pruned stale archives** — ledger-referenced Category 2 artifact retained; canonical claims remain ledger-first |
+| Manual evidence cleanup could accidentally break reviewer links | **Fixed** — `pnpm evidence:prune` dry-runs by default and protects ledger/dashboard references |
+| Standalone orchestration plans outlived their execution window | **Removed** — durable lessons live in MEMORY, DECISION_LOG, discovery log, and improvement report |
+| `docs/claude-reference/anti-patterns.md` contained old absolute paths | **Fixed** — paths are repo-relative |
+| FPKI DCR doc had an historical disclaimer but later active-sounding Ship federation sections | **Fixed** — non-implemented Ship federation guidance removed |
+| E2E testing doc kept an old failed-run snapshot without enough context | **Fixed** — labeled as historical diagnostic context |
+
+Future application: generated artifacts should have one owner script and one canonical source. If a reviewer bundle is needed, regenerate it; if a plan is completed, fold the enduring decision into the durable logs and delete the plan. Mark durable evidence runs with `--retention source-evidence`; prune scratch runs with `pnpm evidence:prune` after reviewing the dry-run output.
+
+---
+
+## E2E anti-fragility pass (2026-05-24)
+
+Decision: make the default full E2E run match the app's resource profile instead of treating all specs as equally parallel-safe. `pnpm test:e2e:run` now uses a profiled runner with normal, realtime, and isolated lanes.
+
+| Finding | Disposition |
+|---------|-------------|
+| Full E2E mixed true bugs with resource-pressure flakes | **Resolved** — specs are classified before full run; realtime/isolated lanes default to one worker |
+| Wiki maintainer default showed placeholder for creator | **Fixed** — team-member mapper now handles runtime `user_id` and person document id correctly |
+| Mention collaborator sync opened a second page outside fixture state, then forced login in an already-authenticated context | **Fixed** — second page uses the authenticated context and navigates directly to the document |
+| My Week stale-data test waited on UI status text instead of server proof | **Fixed** — poll `/api/documents/:id/content` / dashboard proof, not fixed sleeps or transient labels |
+| E2E WebSocket handshakes failed under `CORS_ORIGIN='*'` while HTTP appeared healthy | **Fixed** — wildcard origin is accepted only outside production; production wildcard fails closed |
+| Code block reload could initialize before async lowlight support arrived | **Fixed** — plain code-block fallback remains enabled until the lowlight extension is ready |
+
+Evidence: focused failure cluster exited successfully in `test-results/failure-cluster-final-8` with 35 passed / 1 flaky; full profiled E2E exited successfully in `test-results/profiled-full-final` with normal 525 passed / 4 flaky, realtime 177 passed / 1 flaky, and isolated 166 passed.
+
+Future application: new E2E specs must be classified by resource behavior. If a spec requires WebSockets, editor persistence, cross-page collaboration, session timers, or browser-state isolation, start it in realtime/isolated and only promote to normal after proving it is contention-safe.
+
+---
+
+## Evidence freeze and stale-candidate retirement (2026-05-24)
+
+Decision: stop product/architecture implementation and package the existing proof. The generated ledger currently marks Categories 1-8 `proven`; the weak point was reviewer navigation, not another refactor.
+
+| Finding | Disposition |
+|---------|-------------|
+| `SUBMISSION_CHECKLIST.md` was blank/stale while ledger/dashboard were current | **Resolved** — checklist is now the reviewer index and proof map |
+| Deploy URL was known in docs but lacked final smoke evidence | **Resolved for basic smoke** — public Render web URL reaches `/login`; unauthenticated `/api/bootstrap` 401 is expected |
+| Architecture deepening candidates remained useful but submission-risky | **Retired for final packaging** — no new code unless validation exposes a blocker |
+| Cat 8 `SS-FIND-008` deeper document-scoped file model remains product/security backlog | **Not in freeze scope** — current Category 8 proof stays ledger-bound to runnable probe evidence |
+
+Future application: when a ledger already proves the source targets, package and validate evidence before making more code changes. Extra architecture can invalidate identical-condition measurements.
+
+---
+
 ## Security probe v2 verification + CI gate (2026-05-23)
 
 Parallel agents (API security, probe/CI, SOT alignment, code quality, `security:probe:ci`) before shipping foundational security layer.
@@ -118,7 +187,7 @@ Orchestrated parallel review of `@ship/shared` Tier 1 consolidation (types/const
 
 ## Post-GFA Resolution Pass (2026-05-22)
 
-Status hygiene for findings addressed in Wave 3 (`my-docs/post-gfa-orchestration-plan.md`). Cat 8 probe tool remains a separate track.
+Status hygiene for findings addressed in Wave 3 of the retired post-GFA orchestration plan. Cat 8 probe tool remains a separate track.
 
 | Finding | Prior status | Now |
 |---------|--------------|-----|
@@ -211,7 +280,7 @@ The codebase already has good shared modules (`document-crud.ts`, `document-acce
 
 ### Future Application
 
-Follow `my-docs/code-simplification-orchestration-plan.md` phase order: delete → unify helpers → domain modules → file splits last. Bind phases to IMPROVEMENT_REPORT category rows when claiming GFA credit.
+Follow the recorded simplification phase order: delete → unify helpers → domain modules → file splits last. Bind phases to IMPROVEMENT_REPORT category rows when claiming GFA credit.
 
 ---
 
@@ -1029,7 +1098,7 @@ Severity: Ledger
 
 Status: Updated 2026-05-20
 
-Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. The important behavior is that missing proof stays explicit as `not_measured`.
+Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. Keep only source-referenced run artifacts in-tree; prune stale archives after their durable findings are recorded. The important behavior is that missing proof stays explicit as `not_measured`.
 
 Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Closeout artifacts were written under `test-results/perf/` on 2026-05-20. Category 3 still needs before/after endpoint P95 runs under identical conditions before a completion claim is defensible; later bootstrap evidence covers the Category 4 query-count branch for one app-shell flow.
 
@@ -1229,7 +1298,7 @@ Evidence: `pnpm type-safety:counts` moved `as` from 575 total / 461 production t
 
 Closed the non-Cat-8 admissibility gaps that had evidence but not proof packaging:
 
-- Category 2 now has an after bundle-analysis HTML artifact from `my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
+- Category 2 now has retained bundle evidence under `my-docs/evidence-runs/cat2-easy-wins-20260523/`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
 - Category 4 now has explicit before/after bootstrap EXPLAIN evidence in `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json`; claim remains flow-level query-count/request-count consolidation.
 - Category 7 closeout now scans `/projects` in addition to `/docs`, a real `/documents/:id`, and supporting `/my-week`; all four have 0 critical/serious axe violations in `test-results/a11y-closeout/axe-summary.json`.
 - Category 6 now has a third explicit fix record: AI/Bedrock unavailable degraded mode, with screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The evidence collector was corrected to use existing data or `CAT6_DOCUMENT_PATH` rather than creating a weekly plan.
@@ -1368,8 +1437,84 @@ Validation: `pnpm submission:validate`, `pnpm submission:render`, `pnpm submissi
 Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no separate agent skills at runtime):
 
 - **Architecture:** `lib/registry.mjs`, `lib/fixtures.mjs`, `lib/finding-registry.mjs`, `data/route-manifest.mjs`, `probes/authorization.mjs`, `probes/abuse-surfaces.mjs`.
-- **Reports:** `schemaVersion: 2`, five measured surfaces, triage buckets (known-open / new / resolved / regression) via `security-findings.json` (generated ledger + narratives).
+- **Tool:** `shipshape-security` package (`packages/shipshape-security`) — CLI + Ink TUI; `pnpm exec shipshape-security run|ci|findings|tui`.
+- **Reports:** `schemaVersion: 2`, five measured surfaces, triage via `security-findings.json` (generated ledger + narratives).
 - **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
 - **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
 
 Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.
+
+---
+
+## Reviewer security evidence bundle (2026-05-24)
+
+Discovery: The reviewer dashboard already had Cat 8 proof, but security evidence was split across rubric rows, discoveries, non-claims, `latest.json`, and `security-findings.json`. A reviewer could mistake “latest probe clean” for “all known security findings closed.”
+
+Decision: Add a generated Security tab to `my-docs/reviewer-dashboard.html` and package a deterministic static bundle at `my-docs/reviewer-evidence-bundle/` for a separate Render Static Site. The tab shows latest probe metrics, evidence links, per-probe results, known SS-FIND backlog rows, rerun commands, and explicit non-claims.
+
+Risk found during implementation: the bundle is a new publication surface. Raw evidence can expose local workstation paths, session-cookie examples, or DB URLs. The renderer now redacts local absolute paths, bearer tokens, session cookies, private keys, and DB URL passwords in the bundled copy and fails if those patterns remain.
+
+Future application: Any new reviewer/public evidence export needs a redaction gate and must distinguish measured probe output from the broader security backlog. Do not publish raw run directories without scanning or redacting them first.
+
+---
+
+## Security Console dashboard upgrade (2026-05-24)
+
+Discovery: The Security tab rendered `finding.active` from JSON, but `security-findings.json` has no `active` field — the **Active backlog** metric stayed at **0** even with many open SS-FIND rows. The tab also omitted the brief-aligned `cat8-audit-deliverable.json` table, manual-review cards, verified-fix lanes, narrative drill-down, and any runnable bridge (commands only).
+
+Fix: `packages/shipshape-security/src/core/finding-display.mjs` centralizes active labeling (same rules as generated ledger markdown). Dashboard render logic moved to `scripts/submission/security-dashboard/` with embedded `ship-security-payload` JSON for filters/drawer. `pnpm security:console` serves the dashboard over HTTP and runs `runProbe` / `findings check` with SSE logs.
+
+Future application: Regenerate dashboard after evidence edits; use console server for live runs, not `file://` alone. Decision D069.
+
+---
+
+## Security Console correctness audit (2026-05-24)
+
+Discovery: Parallel review of the new console server + dashboard client found job log hijacking (concurrent runs), SSE subscribers missing terminal `done`, drawer XSS via unescaped finding fields, narrative path traversal (`../../`), stale Active column after status save, and `lastVerification` using array tail instead of newest `at`.
+
+Fix: Serialized jobs with 409 conflict, SSE log replay + `done` on connect, `escapeHtml` in drawer, `safeNarrativePath` / `safeEvidencePath`, status API returns `activeLabel`, `lastVerification` sorts by `at`. Surfaces metric copy clarifies 4-surface Cat 8 perimeter vs default 5-surface v2 run.
+
+Future application: Do not reintroduce global `console.log` patching for probe output; keep file serving path-confined. Decision D070.
+
+---
+
+## Security Console full feature epic (2026-05-24)
+
+Discovery: Deferred UX (CI button, clipboard, filters persistence, focus trap, auto-refresh) and architecture items (subprocess jobs, WebSocket, hot payload, narrative API, Vite scaffold, TUI removal) were planned as a single epic.
+
+Implemented:
+
+- `job-runner.mjs` — probe/check/ci via subprocess; `run-ci.sh` shared with CLI
+- Server: `mode:ci`, `GET /api/payload`, `POST /api/dashboard/regenerate`, `GET/PUT` narrative, WebSocket `/api/run/:id/ws`
+- Client: `client-utils.mjs`, CI modal, auto-refresh + hot payload, localStorage, copy buttons, drawer focus trap, narrative editor
+- Removed Ink TUI; `console-ui/` Vite package (build → `dist/`, served at `/console/`)
+
+Future application: Full SPA cutover can migrate `#panel-security` to Vite app; grader path unchanged. Decisions D071–D075.
+
+---
+
+## Security Console post-epic audit (2026-05-24)
+
+Discovery: Parallel agents flagged regenerate outside job mutex, console-ui `startsWith` path bypass, partial hot-reload leaving probe tables stale, focus-trap listener leaks, and duplicate `markdownToHtml` / `safeNarrativePath`.
+
+Fix: `createJobQueue()` serializes all jobs; `serveConsoleUiAsset` uses `relative()`; auto-refresh tries hot payload then full `location.reload()`; `watchJobWs` with timeouts; `releaseFocus` before re-trap; payload imports shared package modules.
+
+Decision D076.
+
+---
+
+## Doc activation cleanup and contract check (2026-05-24)
+
+Discovery: The existing strict doc-sync gate passed while important activation docs outside the curated target set still carried absent command references and historical absolute paths. Root AWS docs are intentionally future/legacy context and should not be deleted, but active agent instructions need tighter contract checks.
+
+Implemented:
+
+- `scripts/doc-sync/check-activation-refs.mjs` scans high-activation docs for repo-local slash command drift, missing `./scripts/*` references, and external absolute local paths.
+- `scripts/doc-sync/check.mjs` now runs the activation checker.
+- `package.json` exposes `pnpm docs:check:activation`.
+- `.claude/CLAUDE.md` now points OpenAPI/security/deploy guidance at repo-local docs and scripts instead of absent slash skills.
+- `docs/research/fpki-auth-client-dcr-analysis.md` keeps its historical disclaimer but uses package-relative paths instead of personal `/Users/...` paths.
+
+Follow-up consolidation: root AWS duplicates were collapsed into `DEPLOYMENT.md` plus the canonical deep reference in `terraform/README.md`. Former root replay docs moved to `docs/archive/aws-deployment/`, and FPKI DCR background moved to `docs/research/`.
+
+Decision: Keep AWS/Terraform as the “mystic future path” / optional government-style deployment path, but prevent active agents from treating absent helpers or personal filesystem paths as executable guidance.

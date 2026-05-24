@@ -8,6 +8,7 @@ export const repoRoot = resolve(scriptDir, '../..');
 export const ledgerPath = resolve(repoRoot, 'my-docs/evidence/submission-ledger.json');
 export const schemaPath = resolve(repoRoot, 'my-docs/evidence/schema.json');
 export const dashboardPath = resolve(repoRoot, 'my-docs/reviewer-dashboard.html');
+export const reviewerBundlePath = resolve(repoRoot, 'my-docs/reviewer-evidence-bundle');
 export const improvementReportPath = resolve(repoRoot, 'my-docs/IMPROVEMENT_REPORT.md');
 
 export async function readJson(path) {

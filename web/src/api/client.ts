@@ -4,7 +4,7 @@ import type { CsrfTokenResponse } from '@/api/schemas';
 import { createApiStatusError } from '@/lib/api-error';
 import type { paths } from './generated/ship-openapi';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.MODE === 'test' ? 'http://localhost' : '');
 const API_BASE = `${API_URL}/api`;
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 

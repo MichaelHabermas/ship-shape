@@ -18,7 +18,8 @@ import {
 import { renderSecurityFindingsLedger } from '../security-probe/lib/security-findings-render.mjs';
 
 const AUDIT_DIR = resolve(repoRoot, 'my-docs/evidence/security-audit');
-const LEGACY_LEDGER = resolve(AUDIT_DIR, 'security-findings-ledger.md');
+const LEGACY_LEDGER = resolve(AUDIT_DIR, 'security-findings-ledger.legacy.md');
+const HAND_EDITED_LEDGER = resolve(AUDIT_DIR, 'security-findings-ledger.md');
 const REGISTRY_PATH = resolve(AUDIT_DIR, 'probe-finding-registry.json');
 
 const FIXED_IDS = new Set([
@@ -242,12 +243,18 @@ function seedVerificationsFromRuns(store) {
 }
 
 function main() {
-  if (!existsSync(LEGACY_LEDGER)) {
+  const ledgerSource = existsSync(LEGACY_LEDGER)
+    ? LEGACY_LEDGER
+    : existsSync(HAND_EDITED_LEDGER)
+      ? HAND_EDITED_LEDGER
+      : null;
+  if (!ledgerSource) {
     console.error(`Legacy ledger not found: ${LEGACY_LEDGER}`);
     process.exit(1);
   }
 
-  const markdown = readFileSync(LEGACY_LEDGER, 'utf8');
+  const markdown = readFileSync(ledgerSource, 'utf8');
+  console.log(`Parsing ledger: ${ledgerSource}`);
   const summary = parseSummaryTable(markdown);
   const clusters = parseClusters(markdown);
   const sections = parseFindingSections(markdown);
@@ -307,8 +314,8 @@ function main() {
   const saved = saveSecurityFindings(store, DEFAULT_STORE_PATH);
 
   const legacyArchive = resolve(AUDIT_DIR, 'security-findings-ledger.legacy.md');
-  if (!existsSync(legacyArchive)) {
-    copyFileSync(LEGACY_LEDGER, legacyArchive);
+  if (!existsSync(legacyArchive) && ledgerSource !== legacyArchive) {
+    copyFileSync(ledgerSource, legacyArchive);
   }
 
   writeFileSync(GENERATED_LEDGER_PATH, renderSecurityFindingsLedger(saved));

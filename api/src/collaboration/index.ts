@@ -26,6 +26,7 @@ import {
 import { getDocumentTypeById } from '../db/documents-repository.js';
 import { validateAuthenticatedSession } from '../services/session-auth.js';
 import { canReadAccountabilityDocument } from '../services/document-access.js';
+import { isProduction } from '../config/runtime.js';
 import type { DocumentType } from '@ship/shared';
 import cookie from 'cookie';
 
@@ -418,10 +419,13 @@ async function canAccessDocumentForCollab(
   }
 }
 
-function isAllowedWebSocketOrigin(
+export function isAllowedWebSocketOrigin(
   originHeader: string | string[] | undefined,
   allowedOrigin: string
 ): boolean {
+  if (allowedOrigin === '*') {
+    return !isProduction();
+  }
   if (!originHeader) {
     return true;
   }

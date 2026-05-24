@@ -364,53 +364,51 @@ test.describe('Mentions', () => {
     }
   });
 
-  test('should sync mentions between collaborators', async ({ page, browser }) => {
+  test('should sync mentions between collaborators', async ({ page, browser, baseURL }) => {
     await createNewDocument(page);
+    const docUrl = page.url();
+
+    const collaboratorContext = await browser.newContext({
+      baseURL: baseURL ?? undefined,
+      storageState: await page.context().storageState(),
+    });
+    await collaboratorContext.addInitScript(() => {
+      localStorage.setItem('ship:disableActionItemsModal', 'true');
+    });
+    const page2 = await collaboratorContext.newPage();
+    await page2.goto(docUrl);
+    await expect(page2.locator('.ProseMirror')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-testid="collab-status"] > div')).toHaveCount(1, { timeout: 15000 });
+    await expect(page2.locator('[data-testid="collab-status"] > div')).toHaveCount(1, { timeout: 15000 });
 
     const editor = page.locator('.ProseMirror');
     await editor.click();
+    const syncMarker = `collab-ready-${Date.now()} `;
+    await page.keyboard.type(syncMarker);
+    await expect(page2.locator('.ProseMirror')).toContainText(syncMarker.trim(), { timeout: 15000 });
     await page.keyboard.type('@');
 
     // Wait for popup
     await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 5000 });
 
     // Insert a mention
-    const option = page.locator('[role="option"]').first();
-    if (await option.isVisible()) {
-      await option.click();
+    try {
+      const option = page.locator('[role="option"]').first();
+      if (await option.isVisible()) {
+        await option.click();
 
-      // Verify mention was inserted
-      const mention = editor.locator('.mention');
-      await expect(mention).toBeVisible({ timeout: 3000 });
+        // Verify mention was inserted
+        const mention = editor.locator('.mention');
+        await expect(mention).toBeVisible({ timeout: 3000 });
+        const mentionText = (await mention.textContent())?.trim();
+        expect(mentionText, 'Inserted mention should have visible text').toBeTruthy();
 
-      // Get current document URL
-      const docUrl = page.url();
-
-      // Wait for Yjs sync
-      await page.waitForTimeout(2000);
-
-      // Open second tab with same document
-      const page2 = await browser.newPage();
-
-      // Login on second page
-      await page2.goto('/login');
-      await page2.locator('#email').fill('dev@ship.local');
-      await page2.locator('#password').fill('admin123');
-      await page2.getByRole('button', { name: 'Sign in', exact: true }).click();
-      await expect(page2).not.toHaveURL('/login', { timeout: 5000 });
-
-      // Navigate to same document
-      await page2.goto(docUrl);
-
-      // Wait for editor to load and Yjs sync to complete
-      await expect(page2.locator('.ProseMirror')).toBeVisible({ timeout: 5000 });
-      await page2.waitForTimeout(3000);
-
-      // Verify mention synced to second tab (Yjs sync can be slow)
-      await expect(page2.locator('.ProseMirror .mention')).toBeVisible({ timeout: 15000 });
-
-      // Clean up
-      await page2.close();
+        // Verify mention synced to the independent collaborator context.
+        await expect(page2.locator('.ProseMirror')).toContainText(mentionText!, { timeout: 15000 });
+        await expect(page2.locator('.ProseMirror .mention')).toBeVisible({ timeout: 30000 });
+      }
+    } finally {
+      await collaboratorContext.close();
     }
   });
 });

@@ -294,7 +294,11 @@ export function Editor({
     StarterKit.configure({
       history: false,
       dropcursor: false,
-      codeBlock: false, // Disable default code block to use CodeBlockLowlight
+      codeBlock: codeBlockExtension ? false : {
+        HTMLAttributes: {
+          class: 'code-block-lowlight',
+        },
+      },
     }),
     ...(codeBlockExtension ? [codeBlockExtension] : []),
     Placeholder.configure({ placeholder }),

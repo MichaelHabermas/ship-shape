@@ -40,24 +40,28 @@ Short write-up: **`baseline-measurements.md`**
 
 ## Deep review backlog (not dependency CVEs)
 
-34 app-security items from manual code review: **`security-findings.json`** (workflow status via `pnpm security:findings:set-status`; ledger is generated)
+34 app-security items from manual code review: **`security-findings.json`** (workflow status via `pnpm exec shipshape-security findings status`; ledger is generated)
 
 ## Submission ledger + HTML dashboard
 
 - Category 8 in **`../submission-ledger.json`** (synced from `cat8-audit-deliverable.json`)
-- Reviewer HTML: **`../../reviewer-dashboard.html`** — run `pnpm submission:render-dashboard` after ledger changes
+- Reviewer HTML: **`../../reviewer-dashboard.html`** — **Security Console** tab (full deliverable table, probes, SS-FIND backlog, verified fixes). Regenerate with `pnpm submission:render-dashboard` after ledger changes.
+- Interactive runs: **`pnpm security:console`** → open `http://127.0.0.1:9876/`, use **Run probe** / **Findings check** (requires `pnpm dev` API for probe).
 
 ## Re-run commands
 
 ```bash
-pnpm security:baseline:deps      # pnpm audit before/after (clone BASELINE once)
-pnpm security:baseline:probe     # full live probe on BASELINE clone (phased + merge)
-pnpm security:baseline:deliverable  # rebuild cat8-audit-deliverable.json + sync ledger
-pnpm security:probe              # current-code live probe → latest.json + runs/<run-id>/
-pnpm security:probe:sync-registry   # merge bootstrap probe bindings into security-findings.json
-pnpm security:findings:render
-pnpm security:findings:check
+pnpm exec shipshape-security --help
+pnpm security:console                  # dashboard + runnable probe (local)
+pnpm exec shipshape-security run       # live probe → latest.json + runs/<run-id>/
+pnpm exec shipshape-security ci        # full CI gate
+pnpm exec shipshape-security findings check
+pnpm security:console                  # Security Console (primary); tui deprecated
+pnpm exec shipshape-security baseline deps
+pnpm exec shipshape-security baseline deliverable
 pnpm submission:render-dashboard
 ```
+
+(`pnpm security:*` scripts are aliases to the same binary.)
 
 Raw audit JSON, stderr logs, and probe merge partials are **gitignored** (regenerate with the commands above). Only summaries and final reports are committed.

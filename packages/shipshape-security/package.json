@@ -1,0 +1,23 @@
+{
+  "name": "@ship/shipshape-security",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ShipShape Category 8 security probe, findings SoT, CLI, and Security Console server",
+  "bin": {
+    "shipshape-security": "./bin/shipshape-security.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test './test/**/*.test.mjs'",
+    "build:console-ui": "pnpm --filter @ship/shipshape-security-console-ui build"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

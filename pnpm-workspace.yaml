@@ -2,3 +2,5 @@ packages:
   - 'api'
   - 'web'
   - 'shared'
+  - 'packages/shipshape-security'
+  - 'packages/shipshape-security/console-ui'

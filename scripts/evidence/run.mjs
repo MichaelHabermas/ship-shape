@@ -9,6 +9,8 @@ import { defaultRunId, parseArgs, validateRunId } from './lib/cli.mjs';
 import { repoRelative, repoRoot } from './lib/fs-utils.mjs';
 import { runCommand } from './lib/shell.mjs';
 
+const RETENTION_KINDS = new Set(['source-evidence', 'scratch', 'generated-package']);
+
 const collectors = [
   collectRepoMetadata,
   collectOpenApiValidation,
@@ -121,10 +123,22 @@ function renderSummary({ runId, phase, startedAt, completedAt, collectorResults 
   return lines.join('\n');
 }
 
+function retentionFromOptions(options) {
+  const kind = String(options.retention || options.retentionKind || 'scratch');
+  if (!RETENTION_KINDS.has(kind)) {
+    throw new Error(`Invalid retention kind "${kind}". Use one of: ${[...RETENTION_KINDS].join(', ')}.`);
+  }
+  return {
+    kind,
+    note: options.retentionNote ? String(options.retentionNote) : null,
+  };
+}
+
 async function main() {
   const { options } = parseArgs(process.argv.slice(2));
   const phase = String(options.phase || 'local');
   const runId = validateRunId(String(options.runId || defaultRunId()));
+  const retention = retentionFromOptions(options);
   const runDir = resolve(repoRoot, 'my-docs/evidence-runs', runId);
   const collectorsDir = resolve(runDir, 'collectors');
   const startedAt = new Date().toISOString();
@@ -161,6 +175,7 @@ async function main() {
         : 'completed',
     startedAt,
     completedAt,
+    retention,
     root: repoRoot,
     outputDir: repoRelative(runDir),
     files: {

@@ -177,6 +177,31 @@ describe('Documents API - PATCH with Issue Fields', () => {
       expect(assocResult.rows.length).toBe(1)
     })
 
+    it('should reject mixed belongs_to and direct association fields', async () => {
+      const response = await request(app)
+        .patch(`/api/documents/${testIssueId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          belongs_to: [],
+          sprint_id: testSprintId,
+        })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error).toBe('Use either belongs_to or program_id/sprint_id association fields, not both')
+    })
+
+    it('should reject non-admin top-level RACI fields', async () => {
+      const response = await request(app)
+        .patch(`/api/documents/${testIssueId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ owner_id: testUserId })
+
+      expect(response.status).toBe(403)
+      expect(response.body.error).toBe('Cannot modify RACI fields via this endpoint: owner_id')
+    })
+
     it('should accept multiple top-level fields in one request', async () => {
       const response = await request(app)
         .patch(`/api/documents/${testIssueId}`)
@@ -350,6 +375,65 @@ describe('Documents API - Weekly Doc Resubmission', () => {
     expect(requireFirstRow(sprintAfter.rows).properties.plan_approval.feedback).toBe('Please make this plan more measurable.')
   })
 
+  it('moves plan_approval back to changed_since_approved after weekly plan content endpoint edit', async () => {
+    const weekNumber = 19
+    const sprintResult = await pool.query<IdRow>(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by, properties)
+       VALUES ($1, 'sprint', 'Week 19', $2, $3)
+       RETURNING id`,
+      [
+        testWorkspaceId,
+        testUserId,
+        JSON.stringify({
+          sprint_number: weekNumber,
+          project_id: testProjectId,
+          owner_id: testPersonId,
+          assignee_ids: [testPersonId],
+          plan_approval: {
+            state: 'changes_requested',
+            approved_by: testUserId,
+            approved_at: new Date().toISOString(),
+            feedback: 'Update via content endpoint.',
+          },
+        }),
+      ]
+    )
+    const sprintId = requireFirstRow(sprintResult.rows).id
+
+    const planResult = await pool.query<IdRow>(
+      `INSERT INTO documents (workspace_id, document_type, title, created_by, content, properties)
+       VALUES ($1, 'weekly_plan', 'Week 19 Plan', $2, $3, $4)
+       RETURNING id`,
+      [
+        testWorkspaceId,
+        testUserId,
+        JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Initial plan' }] }] }),
+        JSON.stringify({ person_id: testPersonId, project_id: testProjectId, week_number: weekNumber }),
+      ]
+    )
+    const planId = requireFirstRow(planResult.rows).id
+
+    const response = await request(app)
+      .patch(`/api/documents/${planId}/content`)
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        content: {
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Updated through content route.' }] }],
+        },
+      })
+
+    expect(response.status).toBe(200)
+
+    const sprintAfter = await pool.query<PropertiesRow>(
+      `SELECT properties FROM documents WHERE id = $1`,
+      [sprintId]
+    )
+    expect(requireFirstRow(sprintAfter.rows).properties.plan_approval.state).toBe('changed_since_approved')
+    expect(requireFirstRow(sprintAfter.rows).properties.plan_approval.feedback).toBe('Update via content endpoint.')
+  })
+
   it('moves review_approval back to changed_since_approved after weekly retro edit', async () => {
     const weekNumber = 18
     const sprintResult = await pool.query<IdRow>(
@@ -422,6 +506,9 @@ describe('Documents API - Delete', () => {
   let testDocumentId: string
   let testWorkspaceId: string
   let testUserId: string
+  let otherUserId: string
+  let otherSessionCookie: string
+  let otherCsrfToken: string
 
   // Setup: Create a test user and session
   beforeAll(async () => {
@@ -442,11 +529,24 @@ describe('Documents API - Delete', () => {
     )
     testUserId = requireFirstRow(userResult.rows).id
 
+    const otherUserResult = await pool.query<IdRow>(
+      `INSERT INTO users (email, password_hash, name)
+       VALUES ($1, 'test-hash', 'Other User')
+       RETURNING id`,
+      [`other-${testEmail}`]
+    )
+    otherUserId = requireFirstRow(otherUserResult.rows).id
+
     // Create workspace membership
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
+    )
+    await pool.query(
+      `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+       VALUES ($1, $2, 'member')`,
+      [testWorkspaceId, otherUserId]
     )
 
     // Create session (sessions.id is TEXT not UUID, generated from crypto.randomBytes)
@@ -467,15 +567,31 @@ describe('Documents API - Delete', () => {
     if (connectSidCookie) {
       sessionCookie = `${sessionCookie}; ${connectSidCookie}`
     }
+
+    const otherSessionId = crypto.randomBytes(32).toString('hex')
+    await pool.query(
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
+       VALUES ($1, $2, $3, now() + interval '1 hour')`,
+      [otherSessionId, otherUserId, testWorkspaceId]
+    )
+    otherSessionCookie = `session_id=${otherSessionId}`
+    const otherCsrfRes = await request(app)
+      .get('/api/csrf-token')
+      .set('Cookie', otherSessionCookie)
+    otherCsrfToken = otherCsrfRes.body.token
+    const otherConnectSidCookie = otherCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
+    if (otherConnectSidCookie) {
+      otherSessionCookie = `${otherSessionCookie}; ${otherConnectSidCookie}`
+    }
   })
 
   // Cleanup after all tests
   afterAll(async () => {
     // Clean up test data in correct order (foreign keys)
-    await pool.query('DELETE FROM sessions WHERE user_id = $1', [testUserId])
+    await pool.query('DELETE FROM sessions WHERE user_id IN ($1, $2)', [testUserId, otherUserId])
     await pool.query('DELETE FROM documents WHERE workspace_id = $1', [testWorkspaceId])
-    await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [testUserId])
-    await pool.query('DELETE FROM users WHERE id = $1', [testUserId])
+    await pool.query('DELETE FROM workspace_memberships WHERE user_id IN ($1, $2)', [testUserId, otherUserId])
+    await pool.query('DELETE FROM users WHERE id IN ($1, $2)', [testUserId, otherUserId])
     await pool.query('DELETE FROM workspaces WHERE id = $1', [testWorkspaceId])
   })
 
@@ -502,12 +618,23 @@ describe('Documents API - Delete', () => {
 
       expect(response.status).toBe(204)
 
-      // Verify document is actually deleted
+      // Verify document is soft-deleted for retention/audit safety
       const checkResult = await pool.query(
-        'SELECT id FROM documents WHERE id = $1',
+        'SELECT id, deleted_at FROM documents WHERE id = $1',
         [testDocumentId]
       )
-      expect(checkResult.rows.length).toBe(0)
+      expect(checkResult.rows.length).toBe(1)
+      expect(checkResult.rows[0].deleted_at).not.toBeNull()
+    })
+
+    it('should return 403 when a non-creator member deletes a workspace document', async () => {
+      const response = await request(app)
+        .delete(`/api/documents/${testDocumentId}`)
+        .set('Cookie', otherSessionCookie)
+        .set('x-csrf-token', otherCsrfToken)
+
+      expect(response.status).toBe(403)
+      expect(response.body.error).toBe('Only the document creator or admin can delete it')
     })
 
     it('should return 404 when deleting non-existent document', async () => {
@@ -576,12 +703,13 @@ describe('Documents API - Delete', () => {
 
       expect(response.status).toBe(204)
 
-      // Verify parent document is deleted
+      // Verify parent document is soft-deleted and child row remains for retention
       const checkResult = await pool.query(
-        'SELECT id FROM documents WHERE id = $1',
+        'SELECT id, deleted_at FROM documents WHERE id = $1',
         [testDocumentId]
       )
-      expect(checkResult.rows.length).toBe(0)
+      expect(checkResult.rows.length).toBe(1)
+      expect(checkResult.rows[0].deleted_at).not.toBeNull()
     })
 
     it('should return 403 when session is expired (CSRF check runs first)', async () => {
@@ -766,6 +894,25 @@ describe('Documents API - Conversion', () => {
 
       // Verify converted_from_id points to itself (indicating it was converted)
       expect(response.body.converted_from_id).toBe(projectId)
+    })
+
+    it('should return 400 when converting an archived document', async () => {
+      const issueResult = await pool.query<IdRow>(
+        `INSERT INTO documents (workspace_id, document_type, title, ticket_number, created_by, archived_at)
+         VALUES ($1, 'issue', 'Archived Issue', 1004, $2, now())
+         RETURNING id`,
+        [testWorkspaceId, testUserId]
+      )
+      const issueId = requireFirstRow(issueResult.rows).id
+
+      const response = await request(app)
+        .post(`/api/documents/${issueId}/convert`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ target_type: 'project' })
+
+      expect(response.status).toBe(400)
+      expect(response.body.error).toBe('Cannot convert an archived document')
     })
   })
 

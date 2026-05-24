@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T00:26:57.834Z",
+  "updatedAt": "2026-05-24T17:59:46.516Z",
   "discovery": {
     "date": "2026-05-22",
     "method": "deep_review",
@@ -17,578 +17,992 @@
   "findings": [
     {
       "id": "SS-FIND-001",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— Governance approval forgery via document `properties` mass assignment",
+      "severity": "critical",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "business-logic-authorization-bypass",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/documents.ts"
       ],
       "definition": "Member cannot set governance approval fields via PATCH /api/documents/:id",
       "narrativePath": "security-findings/narratives/SS-FIND-001.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-governance-properties-injection",
+          "findingId": "probe-governance-properties-injection",
+          "fingerprint": "sha256:71dd537e72cbee3b516352fceee783a04a7b73b2b226231d47ebcb993e339f52",
+          "role": "regression",
+          "title": "Member cannot PATCH plan_approval on sprint via documents API",
+          "expectedDenial": null
+        },
+        {
+          "probeId": "input-governance-mass-assignment",
+          "findingId": "probe-governance-mass-assignment",
+          "fingerprint": "sha256:6a82057c0e04516ae78cbfcbd6945b8bc6115027d82d5c377d275e72cfac8543",
+          "role": "regression",
+          "title": "Governance fields rejected on generic PATCH (input surface)",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-002",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— RACI self-elevation grants real approval authority",
+      "severity": "critical",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "privilege-escalation",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/programs.ts, documents.ts"
       ],
       "definition": "Member cannot self-assign accountable_id to gain approval authority",
       "narrativePath": "security-findings/narratives/SS-FIND-002.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-governance-accountable-self-assign",
+          "findingId": "probe-governance-accountable-self-assign",
+          "fingerprint": "sha256:6c0fd4150ea43ce551a07c4245129115c6a253d863378358ba0303ce20ed79f1",
+          "role": "regression",
+          "title": "Member cannot set accountable_id to self on program",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-003",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— Week lifecycle bypass via ungoverned `status` PATCH",
+      "severity": "critical",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "workflow-/-governance-bypass",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/weeks/sprints.ts, documents.ts"
       ],
       "definition": "Member cannot PATCH sprint/week status to completed without authorization",
       "narrativePath": "security-findings/narratives/SS-FIND-003.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-governance-week-status-bypass",
+          "findingId": "probe-governance-week-status-bypass",
+          "fingerprint": "sha256:5425ca6fd620b6cad358d1bcaae37ec6067c1f2a00e48d37f91cfce9557abb30",
+          "role": "regression",
+          "title": "Member cannot PATCH sprint/week status to completed",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-004",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— Weekly plan IDOR via generic documents REST API",
+      "severity": "high",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "accountability-integrity",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/documents.ts vs weekly-plans.ts"
       ],
       "definition": "Member cannot read peer weekly plan via generic documents API",
       "narrativePath": "security-findings/narratives/SS-FIND-004.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "findingId": "probe-weekly-plan-idor-documents",
+          "fingerprint": "sha256:673c5153d079a524f021bddacf93d9754b8476bcda14b968253afbfdc25e3d96",
+          "role": "regression",
+          "title": "Member cannot read peer weekly plan via documents API",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-005",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— Weekly plan IDOR via collaboration WebSocket",
+      "severity": "high",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "real-time-editing-bypass",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/collaboration/index.ts"
       ],
       "definition": "Member cannot open peer weekly plan collaboration WebSocket room",
       "narrativePath": "security-findings/narratives/SS-FIND-005.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "findingId": "probe-weekly-plan-idor-websocket",
+          "fingerprint": "sha256:5b807e33b2f5e34cce0004b8adadf62f0a425a70e5c1b48efd324e84d81e5a6a",
+          "role": "regression",
+          "title": "Member cannot open peer weekly plan collaboration room",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-006",
-      "title": "open",
+      "title": "— Collaboration audit trail attributes edits to document creator",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A09",
+      "category": "non-repudiation-/-forensics",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/collaboration/index.ts"
       ],
-      "definition": "open",
+      "definition": "Collaboration audit trail attributes edits to document creator",
       "narrativePath": "security-findings/narratives/SS-FIND-006.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-007",
-      "title": "open",
+      "title": "— Bulk issue move to private sprint/project without visibility check",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "association-/-scope-manipulation",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/issues.ts"
       ],
-      "definition": "open",
+      "definition": "Bulk issue move to private sprint/project without visibility check",
       "narrativePath": "security-findings/narratives/SS-FIND-007.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "findingId": "probe-bulk-issue-foreign-target",
+          "fingerprint": "sha256:d6d8e38d7cd2d50e7540a739d536f25912117f7f2dddf849ac95c7a85dfa852b",
+          "role": "control",
+          "title": "Bulk issue update rejects inaccessible target IDs",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-008",
-      "title": "open",
+      "title": "— File access is workspace-scoped, not document-scoped",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "attachment-confidentiality",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/files.ts"
       ],
       "definition": "File serve must respect parent document visibility (probe currently checks uploader-only; document scope still open)",
       "narrativePath": "security-findings/narratives/SS-FIND-008.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-file-document-scope",
+          "findingId": "probe-file-document-scope",
+          "fingerprint": "sha256:678f8fba4dba3af9c8c1bc70d534a9ca16b62becb6617c9d13fcacad64dd4cce",
+          "role": "regression",
+          "title": "File serve respects parent document visibility",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-009",
-      "title": "open",
+      "title": "— Private sub-issue metadata leaked in parent close warning",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "information-disclosure",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/issues.ts"
       ],
-      "definition": "open",
+      "definition": "Private sub-issue metadata leaked in parent close warning",
       "narrativePath": "security-findings/narratives/SS-FIND-009.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-010",
-      "title": "open",
+      "title": "— Dashboard `my-focus` leaks private project/program metadata",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "metadata-leak-(policy-dependent)",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/dashboard.ts"
       ],
-      "definition": "open",
+      "definition": "Dashboard `my-focus` leaks private project/program metadata",
       "narrativePath": "security-findings/narratives/SS-FIND-010.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-dashboard-private-metadata",
+          "findingId": "probe-dashboard-private-metadata",
+          "fingerprint": "sha256:0b9c87c0accf44ba7d617658bf2cdf0fffb047bda6e1b7ac4eec066501b8853d",
+          "role": "control",
+          "title": "Dashboard my-focus does not leak private project metadata",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-011",
-      "title": "open",
+      "title": "— Team grid leaks private program metadata via visible issues",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A01",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/team.ts"
       ],
-      "definition": "open",
+      "definition": "Team grid leaks private program metadata via visible issues",
       "narrativePath": "security-findings/narratives/SS-FIND-011.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-012",
-      "title": "fixed",
+      "title": "— Public feedback lacks dedicated anti-abuse controls",
       "severity": "medium",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A04",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/feedback.ts"
       ],
       "definition": "Public feedback endpoint enforces dedicated rate limiting",
       "narrativePath": "security-findings/narratives/SS-FIND-012.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "abuse-public-feedback-rate-limit",
+          "findingId": "probe-public-feedback-rate-limit",
+          "fingerprint": "sha256:4772b1af83b084537a015d9186188dab6d34e67e5376829fc29ff3095e3b7170",
+          "role": "regression",
+          "title": "Public feedback endpoint rate limited",
+          "expectedDenial": null
+        },
+        {
+          "probeId": "abuse-login-rate-limit",
+          "findingId": "probe-login-rate-limit-absent",
+          "fingerprint": "sha256:9006465ae02cb37c41c08fa8d65dfc0ce93afbf2e78ea936fe18346135d49da7",
+          "role": "control",
+          "title": "Login endpoint rate limits burst attempts",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-013",
-      "title": "open",
+      "title": "— S3 upload confirm without object verification",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A08",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/files.ts"
       ],
-      "definition": "open",
+      "definition": "S3 upload confirm without object verification",
       "narrativePath": "security-findings/narratives/SS-FIND-013.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-014",
-      "title": "open",
+      "title": "— File extension blocklist checks last extension only",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A04",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/files.ts"
       ],
-      "definition": "open",
+      "definition": "File extension blocklist checks last extension only",
       "narrativePath": "security-findings/narratives/SS-FIND-014.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-015",
-      "title": "open",
+      "title": "— WebSocket session not re-validated after upgrade",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A07",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/collaboration/index.ts"
       ],
-      "definition": "open",
+      "definition": "WebSocket session not re-validated after upgrade",
       "narrativePath": "security-findings/narratives/SS-FIND-015.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-016",
-      "title": "open",
+      "title": "— API tokens inherit full user privileges",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A07",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/middleware/auth.ts"
       ],
-      "definition": "open",
+      "definition": "API tokens inherit full user privileges (no route scoping)",
       "narrativePath": "security-findings/narratives/SS-FIND-016.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-017",
-      "title": "open",
+      "title": "— Session IP/User-Agent stored but never enforced",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A07",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "session-auth.ts, auth.ts"
       ],
-      "definition": "open",
+      "definition": "Session IP/User-Agent stored but never enforced",
       "narrativePath": "security-findings/narratives/SS-FIND-017.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-018",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Setup race: first caller becomes super-admin",
+      "severity": "critical",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A04",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/setup.ts"
       ],
-      "definition": "open",
+      "definition": "Setup race — first caller becomes super-admin if API exposed pre-bootstrap",
       "narrativePath": "security-findings/narratives/SS-FIND-018.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-019",
-      "title": "open",
-      "severity": "medium",
+      "title": "— CAIA `returnTo` weak validation",
+      "severity": "low",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A01",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/caia-auth.ts"
       ],
-      "definition": "open",
+      "definition": "CAIA `returnTo` validation may allow open-redirect variants",
       "narrativePath": "security-findings/narratives/SS-FIND-019.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-020",
-      "title": "open",
+      "title": "— Super-admin SSRF via CAIA issuer URL",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
+      "owasp": "A10",
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "admin-credentials.ts, services/caia.ts"
       ],
-      "definition": "open",
+      "definition": "Super-admin SSRF via CAIA `issuer_url` on credentials save",
       "narrativePath": "security-findings/narratives/SS-FIND-020.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-021",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Setup status reveals uninitialized instance",
+      "severity": "low",
       "status": "open",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/setup.ts"
       ],
-      "definition": "open",
+      "definition": "Setup status endpoint reveals uninitialized instance",
       "narrativePath": "security-findings/narratives/SS-FIND-021.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-022",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Accountability may expose private sprint titles",
+      "severity": "low",
       "status": "open",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/services/accountability.ts"
       ],
-      "definition": "open",
+      "definition": "Accountability action-items may expose private sprint titles",
       "narrativePath": "security-findings/narratives/SS-FIND-022.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-023",
-      "title": "open",
-      "severity": "medium",
+      "title": "— AI routes accept unvalidated bodies",
+      "severity": "low",
       "status": "open",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/ai.ts"
       ],
-      "definition": "open",
+      "definition": "AI analyze routes accept unvalidated request bodies",
       "narrativePath": "security-findings/narratives/SS-FIND-023.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-024",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Breadcrumbs may expose hidden program UUID",
+      "severity": "low",
       "status": "open",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/associations.ts"
       ],
-      "definition": "open",
+      "definition": "Document context breadcrumbs may expose hidden program UUID",
       "narrativePath": "security-findings/narratives/SS-FIND-024.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-025",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— Pending file upload hijacking",
+      "severity": "high",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "idor-on-file-completion",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/files.ts"
       ],
       "definition": "Member cannot complete another user pending upload",
       "narrativePath": "security-findings/narratives/SS-FIND-025.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-file-upload-hijack-denied",
+          "findingId": "probe-file-upload-hijack-denied",
+          "fingerprint": "sha256:240e913263aaf376555fca4fb4fde45abe6f84fc6a9d69c56e755ea074df9ca3",
+          "role": "regression",
+          "title": "Member cannot complete another user pending upload",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-026",
-      "title": "fixed",
-      "severity": "medium",
+      "title": "— Cross-site WebSocket session riding (no Origin validation)",
+      "severity": "high",
       "status": "fixed",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A07",
+      "category": "csrf-equivalent-on-websocket",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/collaboration/index.ts"
       ],
       "definition": "Cross-origin WebSocket upgrade is rejected",
       "narrativePath": "security-findings/narratives/SS-FIND-026.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "authorization-websocket-origin-reject",
+          "findingId": "probe-websocket-origin-reject",
+          "fingerprint": "sha256:32863019b4169842555de69b60de6f40f37110eb44cecc86771e1d371cdcd30b",
+          "role": "regression",
+          "title": "Cross-origin WebSocket upgrade rejected",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-027",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Unbounded in-memory Y.Doc cache (WebSocket DoS)",
+      "severity": "high",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A05",
+      "category": "resource-exhaustion",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/collaboration/index.ts"
       ],
-      "definition": "open",
+      "definition": "Unbounded in-memory Y.Doc cache — WS connection abuse / DoS",
       "narrativePath": "security-findings/narratives/SS-FIND-027.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-028",
-      "title": "open",
+      "title": "— Invite accept uses weaker session IDs",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A02",
+      "category": "session-identifier-inconsistency",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/invites.ts"
       ],
-      "definition": "open",
+      "definition": "Invite accept creates sessions with `uuidv4()` not secure session IDs",
       "narrativePath": "security-findings/narratives/SS-FIND-028.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-029",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Super-admin cross-workspace access without membership",
+      "severity": "high",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "break-glass-/-insider-threat",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "workspaces.ts, document-access.ts"
       ],
-      "definition": "open",
+      "definition": "Super-admin cross-workspace access without membership / blanket admin",
       "narrativePath": "security-findings/narratives/SS-FIND-029.md",
-      "probes": [],
-      "verifications": []
+      "probes": [
+        {
+          "probeId": "auth-session-member-audit-logs-denied",
+          "findingId": "probe-member-audit-logs-denied",
+          "fingerprint": "sha256:5aa4f417ef666a50c168225897eb84953cb79b17d607c991d0cb3f58ff946f3c",
+          "role": "control",
+          "title": "Member cannot access admin audit logs",
+          "expectedDenial": null
+        },
+        {
+          "probeId": "auth-session-member-impersonation-denied",
+          "findingId": "probe-member-impersonation-denied",
+          "fingerprint": "sha256:abec1a1bbabf0cac5eed984e18ed36283b314304e753b9fa0fdaab9e1a10ec43",
+          "role": "control",
+          "title": "Member cannot impersonate users",
+          "expectedDenial": null
+        }
+      ],
+      "verifications": [
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T05:17:07.073Z",
+          "method": "probe",
+          "runId": "local-probe-repeat-verify",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        }
+      ]
     },
     {
       "id": "SS-FIND-030",
-      "title": "open",
+      "title": "— Member can enable public feedback via ungoverned PATCH",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "governance-property-injection-(feeds-ss-find-012)",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/documents.ts, programs.ts"
       ],
-      "definition": "open",
+      "definition": "Member can enable `public_feedback_enabled` via ungoverned PATCH",
       "narrativePath": "security-findings/narratives/SS-FIND-030.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-031",
-      "title": "open",
+      "title": "— Production `SameSite=None` — cross-site cookies, CSRF-only REST defense",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A05",
+      "category": "defense-in-depth-/-architectural",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "session-cookies.ts, app.ts"
       ],
-      "definition": "open",
+      "definition": "Production `SameSite=None` — cross-site cookies; CSRF-only REST defense",
       "narrativePath": "security-findings/narratives/SS-FIND-031.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-032",
-      "title": "open",
+      "title": "— Unauthenticated invite lookup leaks metadata",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "information-disclosure",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/invites.ts"
       ],
-      "definition": "open",
+      "definition": "Unauthenticated invite lookup leaks email and workspace metadata",
       "narrativePath": "security-findings/narratives/SS-FIND-032.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-033",
-      "title": "open",
+      "title": "— Any workspace member can mint full-privilege API tokens",
       "severity": "medium",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A01",
+      "category": "credential-issuance",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/routes/api-tokens.ts"
       ],
-      "definition": "open",
+      "definition": "Any workspace member can mint full-privilege API tokens",
       "narrativePath": "security-findings/narratives/SS-FIND-033.md",
       "probes": [],
       "verifications": []
     },
     {
       "id": "SS-FIND-034",
-      "title": "open",
-      "severity": "medium",
+      "title": "— Full OpenAPI schema exposed without authentication",
+      "severity": "low",
       "status": "open",
       "discoveredAt": "2026-05-22",
-      "owasp": null,
-      "category": null,
+      "owasp": "A05",
+      "category": "reconnaissance",
       "clusterIds": [],
       "primaryLocations": [
-        "2026-05-22"
+        "api/src/swagger.ts"
       ],
-      "definition": "open",
+      "definition": "Full OpenAPI schema exposed without authentication",
       "narrativePath": "security-findings/narratives/SS-FIND-034.md",
       "probes": [],
       "verifications": []

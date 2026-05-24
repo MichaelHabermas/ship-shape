@@ -1,6 +1,6 @@
 # Audit Report
 
-> **Supersession note (2026-05-22 doc-sync):** This report preserves **2026-05-19 baseline measurements** as historical audit evidence. Several narrative findings about search (client-only `/docs`, unmounted `/api/search/documents`) were **superseded by later implementation** — see `IMPROVEMENT_REPORT.md`, `MEMORY.md` (search contracts), and current `docs/application-architecture.md`. Do not treat stale search rows below as current product truth.
+> **Snapshot note (2026-05-22 doc-sync):** This report is a **2026-05-19 audit snapshot** at commit `5731a92a01e357b0ffb7ffa28e3319b3a14ffedf`. Baseline numbers and findings describe the codebase **at audit time**. Later implementation (for example server search and `/api/bootstrap`) is documented in `IMPROVEMENT_REPORT.md` — do not read audit-era search findings as today's product behavior.
 
 ---
 
@@ -47,6 +47,7 @@ Overall, Ship looks like a coherent product with implementation debt in the plac
 - TypeScript suppression directives were counted with a targeted text scan for `@ts-ignore` and `@ts-expect-error` in the same scopes.[^2]
 - Strict mode was checked in root and package TypeScript configs.
 - Violation-dense files were ranked by combined production counts of `any`, `as`, non-null assertions, and TypeScript suppression directives.
+- Per-package breakdown used the same AST scan, grouped by `api/src`, `web/src`, `shared/src`, and `e2e` (audit scope). A reproducible re-run at commit `5731a92` is archived at `my-docs/evidence/cat1-baseline-ast-counts-5731a92.json`.
 
 **Baseline**
 
@@ -59,6 +60,25 @@ Overall, Ship looks like a coherent product with implementation debt in the plac
 | Strict mode enabled?                          | Yes                                                                                                                                                                         |
 | Strict mode error count (if disabled)         | N/A                                                                                                                                                                         |
 | Top 5 violation-dense files (production only) | `api/src/routes/weeks.ts` (85), `api/src/routes/projects.ts` (51), `api/src/routes/issues.ts` (49), `web/src/pages/UnifiedDocumentPage.tsx` (37), `api/src/db/seed.ts` (35) |
+
+**Baseline by package (audit scope, 2026-05-19 / commit `5731a92`)**
+
+| Package      | `any` | `as` | `!` | `@ts-*` | Counted total |
+| ------------ | ----: | ---: | --: | ------: | ------------: |
+| `api/src`    |   238 |  317 | 296 |       0 |           851 |
+| `web/src`    |    33 |  372 |  33 |       1 |           439 |
+| `shared/src` |     0 |    2 |   0 |       0 |             2 |
+| `e2e`        |     7 |   22 |  19 |       0 |            48 |
+| **Total**    | **278** | **713** | **348** | **1** | **1340** |
+
+**Baseline by package (production only, excludes tests under `api/src`, `web/src`, `shared/src`)**
+
+| Package      | `any` | `as` | `!` | `@ts-*` | Counted total |
+| ------------ | ----: | ---: | --: | ------: | ------------: |
+| `api/src`    |    65 |  146 | 292 |       0 |           503 |
+| `web/src`    |    29 |  356 |  33 |       0 |           418 |
+| `shared/src` |     0 |    2 |   0 |       0 |             2 |
+| **Total**    | **94** | **504** | **325** | **0** | **923** |
 
 **Measurement note:** The baseline counts above are the authoritative Category 1 counts because they use a TypeScript AST scan over the documented audit scope. ESLint is configured as a warning/worklist tool for the same problem area, but it is not the official denominator for the 25% reduction. After adding ESLint, `@typescript-eslint/no-explicit-any` reported 269 total / 83 production warnings, while the AST baseline reported 278 total / 94 production `any` nodes. This difference is expected because the two tools do not inspect exactly the same scope and do not count all syntactic forms identically. Use the AST counter for before/after reporting; use ESLint to find and prioritize real fixes. Type-aware ESLint rules such as `no-unsafe-assignment`, `no-unsafe-member-access`, `no-unsafe-argument`, and `no-unsafe-return` intentionally count downstream unsafe usage, so one root `any` or unsafe cast can produce several ESLint warnings.
 
