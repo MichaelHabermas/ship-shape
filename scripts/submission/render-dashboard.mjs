@@ -804,6 +804,7 @@ function evidencePacketSections(categories, packet) {
               <p>${escapeHtml(row?.caveat || category.non_claims?.[0] || category.caveats?.[0] || 'No special caveat recorded.')}</p>
             </section>
           </div>
+          ${passPathBlock(category, row)}
           <h3>Reproduce / inspect</h3>
           <ul class="check-list">
             ${
@@ -824,6 +825,116 @@ function evidencePacketSections(categories, packet) {
         </article>`;
     })
     .join('');
+}
+
+const PASS_PATHS = {
+  'cat-1-type-safety': {
+    heading: 'Pass path used: 25% meaningful type-safety reduction',
+    summary:
+      'The source requires a 25% reduction in type-safety violations, preserved functionality, and no superficial unknown swaps. This packet uses the counted syntax reduction path.',
+    facts: [
+      ['Baseline', '1340 counted syntax nodes.'],
+      ['Current', '625 counted syntax nodes, a 53.4% reduction.'],
+      ['Proof', 'pnpm type-check passed; API 509 tests and web 168 tests passed.'],
+      ['Not claimed', 'Does not claim every untyped callback or every low-risk syntax category is gone.'],
+    ],
+  },
+  'cat-2-bundle-size': {
+    heading: 'Pass path used: initial page-load code splitting',
+    summary:
+      'The source allows total bundle reduction or 20% initial page-load reduction through code splitting. This packet uses the initial page-load path.',
+    facts: [
+      ['Baseline', 'Initial entry bundle was 2025.10 KB.'],
+      ['Current', 'Initial entry bundle is 528.48 KB, a 73.9% reduction.'],
+      ['Proof', 'Before/after bundle stats and bundle-analysis artifacts are linked.'],
+      ['Not claimed', 'Does not claim total JS/CSS size decreased or every async chunk is optimized.'],
+    ],
+  },
+  'cat-3-api-response-time': {
+    heading: 'Pass path used: 2 endpoints clear P95 target',
+    summary:
+      'The source requires 20% P95 improvement on at least 2 endpoints under identical benchmark conditions. This packet uses /api/bootstrap and /api/dashboard/my-week.',
+    facts: [
+      ['Endpoint 1', 'GET /api/bootstrap improved 41.9%, 60.3%, and 45.1% at 10/25/50 concurrency.'],
+      ['Endpoint 2', 'GET /api/dashboard/my-week improved 21.1%, 37.7%, and 36.3% at 10/25/50 concurrency.'],
+      ['Proof', 'Before/after benchmark artifacts use the same data, concurrency, and command shape.'],
+      ['Not claimed', 'Does not claim every endpoint improved or production rate limiting was weakened.'],
+    ],
+  },
+  'cat-4-database-query-efficiency': {
+    heading: 'Pass path used: query-count reduction on one user flow',
+    summary:
+      'The source allows 20% fewer queries on at least one user flow or 50% improvement on the slowest query. This packet uses the query-count reduction path.',
+    facts: [
+      ['Baseline', 'Protected docs startup used 33 queries across 7 requests.'],
+      ['Current', 'Protected docs startup uses 24 queries across 1 bootstrap request, a 27.3% reduction.'],
+      ['Proof', 'Query-count artifact and before/after bootstrap EXPLAIN evidence are linked.'],
+      ['Not claimed', 'Does not claim a row-level N+1 fix or Cat 3 latency proof from Cat 4 evidence.'],
+    ],
+  },
+  'cat-5-test-coverage-quality': {
+    heading: 'Pass path used: 3 meaningful regression tests',
+    summary:
+      'The source requires 3 meaningful tests for previously weak critical paths or 3 flaky-test fixes. This packet uses the meaningful regression-test path.',
+    facts: [
+      ['Test 1', 'Overlapping comment mark removal.'],
+      ['Test 2', 'Project issue filtering.'],
+      ['Test 3', 'Private document comment visibility.'],
+      ['Proof', 'API 554 tests and web 172 tests passed; counted risk-comment locations are linked.'],
+      ['Not claimed', 'Does not claim coverage percentage improved or zero retry artifacts under every worker count.'],
+    ],
+  },
+  'cat-6-runtime-error-handling': {
+    heading: 'Pass path used: 3 documented runtime fixes',
+    summary:
+      'The source requires 3 error-handling fixes, with at least 1 real user-facing data-loss or confusion scenario. This packet counts three runtime fixes.',
+    facts: [
+      ['Fix 1', 'CSRF failure returns JSON 403 instead of HTML stack/error output.'],
+      ['Fix 2', 'Offline editor disconnect preserves draft content after reconnect.'],
+      ['Fix 3', 'AI unavailable returns controlled degraded UI without clearing editor content.'],
+      ['User-facing clause', 'Offline editor draft preservation covers real data-loss/confusion risk.'],
+      ['Proof', 'Focused runtime E2E passed 9/9 with named screenshots.'],
+      ['Not counted', 'Comments authorization, migration runner, and general route-boundary hardening are not counted as the 3 fixes.'],
+    ],
+  },
+  'cat-7-accessibility': {
+    heading: 'Pass path used: Critical/Serious fix',
+    summary:
+      'The source allows Lighthouse +10 or fixing all Critical/Serious violations on the 3 most important pages. This packet uses the second path.',
+    facts: [
+      ['Baseline', '2 critical + 40 serious axe nodes.'],
+      ['Current', '0 critical/serious violations on /docs, /documents/:id, and /projects.'],
+      ['Proof', 'pnpm a11y:closeout -- --fail-on-serious.'],
+      ['Not claimed', 'Lighthouse was not rerun; full manual keyboard/screen-reader certification is not claimed.'],
+    ],
+  },
+  'cat-8-security-audit': {
+    heading: 'Pass path used: runnable security probe plus verified fixes',
+    summary:
+      'The source requires a runnable probe, manual security review, dependency CVE coverage, and at least 2 verified vulnerabilities with before/after proof. This packet uses the probe-and-fix path.',
+    facts: [
+      ['Probe', 'Current CI-shaped probe reports 5/5 surfaces measured, 40/40 probes passed, and 0 findings.'],
+      ['Required surfaces', 'Auth/session, WebSocket validation, input sanitization, and dependency CVEs are covered.'],
+      ['Verified fixes', 'File upload validation/serving and WebSocket malformed/oversized resilience have before/after proof.'],
+      ['Manual review', 'CORS/CSP, secrets, rate limits, and verbose errors are recorded in the security evidence.'],
+      ['Not claimed', 'Clean latest probe does not close the historical SS-FIND backlog or prove remote production penetration testing.'],
+    ],
+  },
+};
+
+function passPathBlock(category) {
+  const passPath = PASS_PATHS[category.id];
+  if (!passPath) return '';
+  return `
+          <section class="pass-path" aria-labelledby="${escapeHtml(category.id)}-pass-path">
+            <h3 id="${escapeHtml(category.id)}-pass-path">${escapeHtml(passPath.heading)}</h3>
+            <p>${escapeHtml(passPath.summary)}</p>
+            <div class="pass-path-grid">
+              ${passPath.facts
+                .map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`)
+                .join('')}
+            </div>
+          </section>`;
 }
 
 function appendixPanel(categories, discoveries) {
@@ -1024,6 +1135,13 @@ export function renderDashboard(
       .packet-table th:nth-child(7),.packet-table td:nth-child(7) { width:110px; }
       .packet-table td strong,.packet-table td small { display:block; }
       .packet-lanes { margin:10px 0 12px; }
+      .pass-path { border:1px solid var(--line); background:#f9f7f1; padding:14px; margin:0 0 16px; }
+      .pass-path h3 { margin-top:0; }
+      .pass-path p { margin:0 0 12px; color:#34342f; }
+      .pass-path-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+      .pass-path-grid div { border-left:3px solid #2f5f9f; padding-left:10px; }
+      .pass-path-grid strong,.pass-path-grid span { display:block; }
+      .pass-path-grid span { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35; }
       .appendix-details { margin-top:12px; }
       .appendix-details summary { cursor:pointer; font-weight:850; }
       table { width:100%; min-width:760px; border-collapse:collapse; font-size:13px; }
@@ -1055,9 +1173,9 @@ export function renderDashboard(
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
-      @media (max-width: 1100px) { .score-grid,.security-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media (max-width: 1100px) { .score-grid,.security-metric-grid,.pass-path-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
       @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes,.security-evidence-list { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
-      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row,.security-metric-grid { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
+      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row,.security-metric-grid,.pass-path-grid { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
     </style>
   </head>
   <body>

@@ -71,6 +71,13 @@ async function createTestProject(
   });
   expect(response.ok()).toBe(true);
   const project = await response.json();
+
+  const renameResponse = await page.request.patch(`${apiUrl}/api/documents/${project.id}`, {
+    headers: { 'x-csrf-token': csrfToken },
+    data: { title },
+  });
+  expect(renameResponse.ok()).toBe(true);
+
   return project.id;
 }
 

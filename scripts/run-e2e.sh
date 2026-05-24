@@ -112,10 +112,19 @@ set -e
 echo ""
 E2E_RESULTS_DIR="${RESULTS_DIR}" "${ROOT_DIR}/scripts/watch-tests.sh" --once || true
 
-if [ -d "${RESULTS_DIR}/errors" ] && [ "$(find "${RESULTS_DIR}/errors" -type f | head -n 1)" ]; then
-  echo ""
-  echo "Failure logs:"
-  find "${RESULTS_DIR}/errors" -type f -maxdepth 1 -print
+summary_failed_count=0
+if [ -f "${RESULTS_DIR}/summary.json" ]; then
+  summary_failed_count="$(
+    node -e "const fs=require('fs'); const summary=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(String(Number(summary.failed || 0)));" "${RESULTS_DIR}/summary.json" 2>/dev/null || echo 0
+  )"
+fi
+
+if [ "${status}" -ne 0 ] || [ "${summary_failed_count}" -gt 0 ]; then
+  if [ -d "${RESULTS_DIR}/errors" ] && [ "$(find "${RESULTS_DIR}/errors" -maxdepth 1 -type f | head -n 1)" ]; then
+    echo ""
+    echo "Failure logs:"
+    find "${RESULTS_DIR}/errors" -maxdepth 1 -type f -print
+  fi
 fi
 
 echo ""

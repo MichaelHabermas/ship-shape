@@ -67,7 +67,16 @@ async function createDocument(page: Page, options: { title?: string; visibility?
     throw new Error(`Failed to create document: ${response.status()}`);
   }
 
-  return response.json();
+  const document = await response.json();
+  if (options.title && options.title !== 'Untitled') {
+    const updateResponse = await updateDocument(page, document.id, { title: options.title });
+    if (!updateResponse.ok()) {
+      throw new Error(`Failed to title document: ${updateResponse.status()}`);
+    }
+    return updateResponse.json();
+  }
+
+  return document;
 }
 
 // Helper to get document via API - uses relative URLs for proxy

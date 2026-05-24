@@ -107,6 +107,14 @@ function configuredAllowedOrigins(): Set<string> {
   return new Set(values);
 }
 
+function wildcardOriginAllowed(): boolean {
+  if (isProduction()) return false;
+  return [process.env.CORS_ORIGIN, process.env.FRONTEND_URL, process.env.WEB_URL]
+    .flatMap(value => (value ?? '').split(','))
+    .map(value => value.trim())
+    .includes('*');
+}
+
 function validateCookieAuthOrigin(req: Request): { allowed: true } | { allowed: false; reason: string } {
   if (!isStateChangingMethod(req.method)) return { allowed: true };
 
@@ -122,7 +130,7 @@ function validateCookieAuthOrigin(req: Request): { allowed: true } | { allowed: 
 
   const sameOrigin = requestOrigin(req);
   const allowedOrigins = configuredAllowedOrigins();
-  if (presentedOrigin === sameOrigin || allowedOrigins.has(presentedOrigin)) {
+  if (presentedOrigin === sameOrigin || allowedOrigins.has(presentedOrigin) || wildcardOriginAllowed()) {
     return { allowed: true };
   }
 

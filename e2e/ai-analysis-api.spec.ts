@@ -34,34 +34,11 @@ async function loginAsAdmin(page: import('@playwright/test').Page, apiUrl: strin
   return { csrfToken };
 }
 
-// Sample TipTap JSON content for testing
-const samplePlanContent = {
-  type: 'doc',
-  content: [
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Complete the API integration and write unit tests for the auth module.' }],
-    },
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Deploy staging environment and verify monitoring dashboards.' }],
-    },
-  ],
-};
+const samplePlanContent =
+  'Complete the API integration and write unit tests for the auth module. Deploy staging and verify monitoring dashboards.';
 
-const sampleRetroContent = {
-  type: 'doc',
-  content: [
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Completed the API integration. Tests pass at 95% coverage.' }],
-    },
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Staging deploy delayed due to infrastructure issues. Moved to next week.' }],
-    },
-  ],
-};
+const sampleRetroContent =
+  'Completed the API integration. Tests pass at 95% coverage. Staging deploy delayed due to infrastructure issues.';
 
 test.describe('AI Status API', () => {
   test('GET /api/ai/status returns availability object', async ({ page, apiServer }) => {
@@ -94,7 +71,8 @@ test.describe('AI Analyze Plan API', () => {
 
     expect(response.status(), 'Should return 400 when content is missing').toBe(400);
     const result = await response.json();
-    expect(result.error, 'Error should mention content').toContain('content');
+    expect(result.error).toBe('Invalid input');
+    expect(JSON.stringify(result.details), 'Validation details should mention content').toContain('content');
   });
 
   test('POST /api/ai/analyze-plan accepts valid content', async ({ page, apiServer }) => {
@@ -142,7 +120,8 @@ test.describe('AI Analyze Retro API', () => {
 
     expect(response.status(), 'Should return 400 when retro_content is missing').toBe(400);
     const result = await response.json();
-    expect(result.error, 'Error should mention retro_content').toContain('retro_content');
+    expect(result.error).toBe('Invalid input');
+    expect(JSON.stringify(result.details), 'Validation details should mention retro_content').toContain('retro_content');
   });
 
   test('POST /api/ai/analyze-retro returns 400 when plan_content is missing', async ({ page, apiServer }) => {
@@ -155,7 +134,8 @@ test.describe('AI Analyze Retro API', () => {
 
     expect(response.status(), 'Should return 400 when plan_content is missing').toBe(400);
     const result = await response.json();
-    expect(result.error, 'Error should mention plan_content').toContain('plan_content');
+    expect(result.error).toBe('Invalid input');
+    expect(JSON.stringify(result.details), 'Validation details should mention plan_content').toContain('plan_content');
   });
 
   test('POST /api/ai/analyze-retro returns 400 when both fields are missing', async ({ page, apiServer }) => {

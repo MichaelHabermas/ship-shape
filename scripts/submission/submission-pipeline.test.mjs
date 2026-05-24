@@ -81,6 +81,18 @@ test('dashboard render is deterministic from ledger projections', async () => {
   assert(first.includes('ShipShape Reviewer Packet'));
   assert(first.includes('categories source-gate ready'));
   assert(first.includes('Reviewer decision table'));
+  assert(first.includes('Pass path used: 25% meaningful type-safety reduction'));
+  assert(first.includes('Pass path used: initial page-load code splitting'));
+  assert(first.includes('Pass path used: 2 endpoints clear P95 target'));
+  assert(first.includes('Pass path used: query-count reduction on one user flow'));
+  assert(first.includes('Pass path used: 3 meaningful regression tests'));
+  assert(first.includes('API 554 tests and web 172 tests passed; counted risk-comment locations are linked.'));
+  assert(first.includes('Pass path used: 3 documented runtime fixes'));
+  assert(first.includes('Offline editor draft preservation covers real data-loss/confusion risk.'));
+  assert(first.includes('Pass path used: Critical/Serious fix'));
+  assert(first.includes('This packet uses the second path.'));
+  assert(first.includes('Pass path used: runnable security probe plus verified fixes'));
+  assert(first.includes('Clean latest probe does not close the historical SS-FIND backlog'));
   assert(first.includes('data-ledger-id="cat-8-security-audit"'));
   assert(first.includes('Security evidence'));
   assert(first.includes('Deliverable table'));

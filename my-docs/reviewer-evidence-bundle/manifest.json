@@ -5,7 +5,7 @@
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
     "branch": "security-improvements-2",
-    "commit": "842a0dc1b44f18b4c3d1554e58413056f5eb3f8d",
+    "commit": "92f79f7164b81f21d5cdfdebe55d2808c67b5004",
     "dirtyWorktree": true
   },
   "security": {

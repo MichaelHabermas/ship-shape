@@ -163,22 +163,13 @@ test.describe('Issue Display IDs', () => {
     // Type to search for issues
     const searchInput = page.locator('[cmdk-input], input[placeholder*="Search"], input[placeholder*="Type"]')
     if (await searchInput.isVisible()) {
-      await searchInput.fill('#')
+      await searchInput.fill('Infrastructure')
       await page.waitForTimeout(500)
 
-      // Check that any issue results use #N format, not PREFIX-N format
-      const issueResults = page.locator('[cmdk-item]')
-      const count = await issueResults.count()
-
-      for (let i = 0; i < Math.min(count, 5); i++) {
-        const text = await issueResults.nth(i).textContent()
-        if (text && text.includes('#')) {
-          // Should see #N format
-          expect(text).toMatch(/#\d+/)
-          // Should NOT see PREFIX-N format (uppercase letters followed by hyphen and number)
-          expect(text).not.toMatch(/[A-Z]{2,}-\d+/)
-        }
-      }
+      const suggestions = page.getByLabel('Suggestions')
+      const issueDisplayId = suggestions.getByText(/#\d+/).first()
+      await expect(issueDisplayId).toBeVisible({ timeout: 5000 })
+      await expect(issueDisplayId).not.toHaveText(/[A-Z]{2,}-\d+/)
     }
 
     // Close command palette
