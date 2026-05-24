@@ -2,6 +2,32 @@
 
 ---
 
+## Document Mutation Core Pass (2026-05-24)
+
+Scope: architecture hardening only. This pass introduced a reason-coded `DocumentPolicy` and a document mutation boundary, then migrated the generic create/update/content/delete/convert document routes through it. A follow-up multi-agent review found correctness/security gaps in the new boundary and the pre-existing delete route semantics; those were fixed before closeout.
+
+### What changed
+
+- Added a reason-coded `DocumentPolicy` matrix seed for read/write/reference/content/update/delete/convert/review/collaboration decisions.
+- Added `document-mutations.ts` as the Document Mutation Core for `POST /api/documents`, `PATCH /api/documents/:id`, `PATCH /api/documents/:id/content`, `DELETE /api/documents/:id`, and `POST /api/documents/:id/convert`.
+- Preserved unified document storage, JSONB property merging, association sync helpers, content-derived fields, Yjs invalidation, search indexing, visibility revocation, and weekly plan/retro resubmission behavior.
+- Review hardening: archived conversion now preserves the explicit 400 contract; document delete is creator/admin-gated and soft-deletes through `deleted_at`; generic issue creation allocates ticket numbers; generic creation enforces `"Untitled"` titles; top-level RACI mutations are blocked for non-admins; mixed association write shapes are rejected; `/content` edits now reset weekly approvals like top-level content edits.
+- Kept the policy-compiler idea constrained to a static policy-case table; no generated guards or probe cases yet.
+
+### Evidence
+
+- `pnpm submission:validate` | pass before changes
+- `pnpm type-check` | pass
+- Focused API regressions | 72/72 pass: `document-policy`, `documents`, `documents-visibility`, `associations-regression`
+- Full API suite | 579/579 pass
+- `pnpm security:probe:ci` | blocked after migrate/seed/package tests by seeded admin login returning HTTP 500; needs separate probe-harness/auth triage before using as evidence
+
+### Claim boundary
+
+No Category 1-8 claim changed. This is a safer architecture boundary for future security/proof work, not a new measured submission improvement. This pass did not intentionally update `my-docs/evidence/submission-ledger.json`; that file is already dirty in the working tree from separate Cat 8 evidence work, so do not read this architecture pass as a ledger claim.
+
+---
+
 ## Documentation Noise Cleanup (2026-05-24)
 
 Scope: documentation hygiene only. This pass removed generated/temporary docs and corrected stale durable references without changing product behavior or submission-ledger claims.
@@ -12,7 +38,7 @@ Scope: documentation hygiene only. This pass removed generated/temporary docs an
 - Removed stale evidence-run archive directories under `my-docs/evidence-runs/`; retained ledger-referenced Category 2 evidence so reviewer links stay valid.
 - Added evidence retention metadata and `pnpm evidence:prune`: dry-run by default, protects ledger/dashboard-referenced runs, and requires `--apply` before deleting unprotected scratch/legacy runs.
 - Removed temporary orchestration-plan files after preserving durable lessons in `MEMORY.md`, `DECISION_LOG.md`, and this report.
-- Replaced stale absolute paths in `docs/claude-reference/anti-patterns.md`, clarified the historical E2E snapshot in `docs/claude-reference/testing.md`, and removed active-sounding non-implemented Ship federation guidance from `docs/fpki-auth-client-dcr-analysis.md`.
+- Replaced stale absolute paths in `docs/claude-reference/anti-patterns.md`, clarified the historical E2E snapshot in `docs/claude-reference/testing.md`, and removed active-sounding non-implemented Ship federation guidance from `docs/research/fpki-auth-client-dcr-analysis.md`.
 
 ### Claim boundary
 
@@ -615,7 +641,7 @@ This is security/trust foundation work. It closes the known first-run race risk,
 - `pnpm --filter @ship/web exec vitest run web/src/lib/document-tabs.test.ts web/src/components/editor/DetailsExtension.test.ts web/src/hooks/useSessionTimeout.test.ts web/src/components/editor/CommentMark.test.ts`: 4 files passed, 67 tests passed.
 - Correctness review targeted API rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/associations-regression.test.ts src/routes/auth.test.ts`: 3 files passed, 50 tests passed.
 - Correctness review targeted web rerun: `pnpm --filter @ship/web exec vitest run src/components/editor/CommentMark.test.ts src/hooks/useSessionTimeout.test.ts src/components/editor/DetailsExtension.test.ts src/lib/document-tabs.test.ts`: 4 files passed, 67 tests passed. Existing React `act(...)` warnings remain in `useSessionTimeout.test.ts`.
-- `ruby -e "require 'yaml'; YAML.load_file('[repo-root]/api/openapi.yaml')"`: generated OpenAPI YAML parses after fixing the local YAML writer.
+- `ruby -e "require 'yaml'; YAML.load_file('api/openapi.yaml')"`: generated OpenAPI YAML parses after fixing the local YAML writer.
 - Final API rerun after correctness fixes: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
 - Focused inline-comment E2E rerun was not rerun during closeout; unit-level inline comment regression remains covered by `CommentMark.test.ts`, and the closeout E2E slot was used for the stale accessibility tree selector proof.
 - Separate full E2E baseline: `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors"; screenshot and accessibility snapshot showed seeded nested documents visible in the sidebar, while the assertion searched for a nested `ul` under the expanded item. Current tree semantics expose nested items through ARIA `group` structure, so this is likely a stale test-shape/selector issue rather than evidence that the runner work regressed product behavior.
@@ -898,9 +924,19 @@ Evidence-changing work updates the ledger before narrative docs or dashboard out
 
 ---
 
+## shipshape-security package (2026-05-24)
+
+Category 8 is packaged as **`shipshape-security`** (`packages/shipshape-security`):
+
+- `pnpm exec shipshape-security --help` — single entry point (run, ci, findings, baseline, compliance, tui).
+- **Security Console** (primary interactive UX): `pnpm submission:render-dashboard` then `pnpm security:console`. Features: subprocess probe/check/CI, WebSocket logs, CI gate button (mirrors `pnpm security:probe:ci`), hot payload reload, auto-refresh toggle, localStorage filters, copy-to-clipboard, drawer focus trap, inline narrative edit. See D070–D075.
+- Ink TUI removed; use Security Console (`shipshape-security tui` exits 1 with migration hint).
+- Optional: `pnpm --filter @ship/shipshape-security build:console-ui` for Vite bundle at `/console/`.
+- `pnpm security:*` root scripts are aliases; implementation lives in the package.
+
 ## Security probe v2 (2026-05-23)
 
-Extended `scripts/security-probe/` from perimeter-only (Cat 8 closeout) to **probe v2**:
+Extended probe harness from perimeter-only (Cat 8 closeout) to **probe v2**:
 
 - Fifth measured surface: **authorization** (governance PATCH bypass, weekly-plan IDOR REST/WS, cross-origin WS, upload hijack, file scope, dashboard/bulk checks).
 - `security-findings.json` SoT + triage in reports (known-open / new / resolved / regression); generated `security-findings-ledger.md`.
@@ -1070,3 +1106,20 @@ Six parallel reviewers re-audited the completed Tier 2 hardening pass. **Verdict
 | `openapi:check:strict` | 193/193 |
 
 Still open: POST /weeks create response vs `WeekResponseSchema`, PATCH week governance, bulk sprint target visibility.
+
+### Doc-sync activation hardening (2026-05-24)
+
+Added a repo-local activation contract check for agent-readable docs. **No submission-ledger row** — this is documentation/tooling hygiene, not a category outcome claim.
+
+| Workstream | Result |
+|------------|--------|
+| Activation checker | Added `scripts/doc-sync/check-activation-refs.mjs` |
+| Doc-sync wiring | `pnpm docs:check` / `docs:check:strict` now include activation refs |
+| Package script | Added `pnpm docs:check:activation` |
+| Agent guidance cleanup | Removed absent active references to `/ship-openapi-endpoints`, `/workflows:deploy`, and `/ship-security-compliance` |
+| Historical research cleanup | Replaced personal home-directory FPKI paths with package-relative background paths |
+| AWS posture | Preserved as optional future/legacy path; not removed |
+| Root AWS replay docs | Collapsed to `DEPLOYMENT.md` + `terraform/README.md`; archived duplicates under `docs/archive/aws-deployment/` |
+| Research/archive routing | Added `docs/archive/README.md`, `docs/research/README.md`; moved FPKI DCR background to `docs/research/` |
+
+Verification: `pnpm docs:check:activation`; `pnpm docs:check:strict`.

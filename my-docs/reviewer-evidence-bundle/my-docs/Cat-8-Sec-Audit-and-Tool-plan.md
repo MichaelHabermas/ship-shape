@@ -2,33 +2,51 @@
 
 Source of truth: `my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt`.
 
-Category 8 is implemented as a repo-aware, black-box-first probe harness:
+Category 8 is delivered as **`shipshape-security`** (`@ship/shipshape-security` in this monorepo): a runnable CLI + TUI that probes the live app and manages the findings SoT.
 
 ```bash
+pnpm install
 pnpm dev
-pnpm security:probe
-pnpm security:probe -- --quick
-pnpm security:probe -- --probe <probe-id>
-pnpm security:probe:test
-pnpm security:probe:sync-registry   # merge bootstrap probe bindings into security-findings.json
-pnpm security:findings:set-status SS-FIND-008 open --note "..."
-pnpm security:findings:render
-pnpm security:findings:check
+pnpm exec shipshape-security --help
+pnpm exec shipshape-security run
+pnpm security:console                     # primary interactive UX (probe / CI mirror / SS-FIND)
+# shipshape-security tui is deprecated (exits 1)
+pnpm security:console                    # reviewer dashboard + runnable probe
+```
+
+`pnpm security:*` scripts are thin aliases to the same binary.
+
+### Grader / fresh instance
+
+```bash
+pnpm exec shipshape-security ci
+```
+
+Or with a running dev API:
+
+```bash
+pnpm exec shipshape-security run
 ```
 
 ### Probe v2 (authorization + unified findings store)
 
-The harness now measures **five** attack surfaces (Cat 8’s four required surfaces plus an **authorization / business-logic** extension). Reports use `schemaVersion: 2` and triage findings against [`security-findings.json`](evidence/security-audit/security-findings.json) (authoritative index; [`security-findings-ledger.md`](evidence/security-audit/security-findings-ledger.md) is generated):
+Default **`run`** measures **five** attack surfaces (Cat 8’s four required surfaces plus **authorization**). Use **`run --cat8-perimeter`** for historical 4-surface mode (`runs/cat8-final/` parity).
+
+Reports use `schemaVersion: 2` and triage against [`security-findings.json`](evidence/security-audit/security-findings.json) (authoritative; [`security-findings-ledger.md`](evidence/security-audit/security-findings-ledger.md) is generated):
 
 - **known-open** — tracked vulnerability, probe still fails
-- **new** — probe failed, fingerprint not in registry yet
-- **resolved** — registry marked open, probe now passes (confirm in ledger before closing SS-FIND rows)
-- **regression** — registry marked fixed/control, probe failed again
+- **new** — probe failed, fingerprint not in store yet
+- **resolved** — store marked open, probe now passes (confirm status via CLI before closing SS-FIND)
+- **regression** — store marked fixed/control, probe failed again
 
 ```bash
-pnpm security:probe -- --run-id probe-v2-baseline-unfixed
-pnpm security:probe -- --fail-on=new          # fail on unknown findings or regressions (not known-open backlog)
-pnpm security:probe:ci                        # migrate + seed + API + full probe with --fail-on=new (GitHub Actions)
+pnpm exec shipshape-security run --run-id probe-v2-baseline-unfixed
+pnpm exec shipshape-security run --fail-on=new
+pnpm exec shipshape-security ci
+pnpm exec shipshape-security findings list
+pnpm exec shipshape-security findings status SS-FIND-008 open --note "document scope still open"
+pnpm exec shipshape-security findings check
+pnpm exec shipshape-security compliance
 ```
 
 Historical Cat 8 closeout remains **`runs/cat8-final/`** (perimeter-only, 25/25 passed). Do not overwrite that artifact when running v2.
@@ -42,33 +60,33 @@ The runner discovers `.ports` from `pnpm dev`, accepts `--api-url` and `--web-ur
 
 - `my-docs/evidence/security-audit/latest.json`
 - `my-docs/evidence/security-audit/latest.md`
-- `my-docs/evidence/security-audit/security-findings-ledger.md` — **open/deferred security findings** with full evidence (separate from probe pass/fail)
+- `my-docs/evidence/security-audit/security-findings.json` — workflow status, probe bindings, verifications
+- `my-docs/evidence/security-audit/security-findings-ledger.md` — generated human ledger
 - `my-docs/evidence/security-audit/runs/<run-id>/report.json`
 - `my-docs/evidence/security-audit/runs/<run-id>/report.md`
-- `my-docs/evidence/security-audit/runs/<run-id>/suggested-ledger-update.json`
 
 Final closeout run:
 
 ```bash
-pnpm security:probe -- --run-id cat8-final
+pnpm exec shipshape-security run --run-id cat8-final --cat8-perimeter
 ```
 
 Retroactive dependency CVE baselines:
 
 ```bash
-pnpm security:baseline:deps
+pnpm exec shipshape-security baseline deps
 ```
 
 Before: **33** (BASELINE branch). After: **0**. Files: `runs/baseline-before/`, `runs/baseline-after/`. Index: `README.md` in this folder.
 
 **Historical closeout (`cat8-final`):** 4/4 required attack surfaces measured, 25/25 probes passed, 0 findings (perimeter scope).
 
-**Probe v2 baseline (`probe-v2-baseline-unfixed`):** 5/5 surfaces measured; authorization probes detect open SS-FIND items (governance bypass, weekly-plan IDOR, WS origin, file hijack). See `runs/probe-v2-baseline-unfixed/report.md` for triage buckets.
+**Probe v2 baseline (`probe-v2-baseline-unfixed`):** 5/5 surfaces measured; authorization probes detect open SS-FIND items. See `runs/probe-v2-baseline-unfixed/report.md` for triage buckets.
 
 Covered surfaces (v1 + v2):
 
 - Auth/session: unauthenticated API rejection, invalid bearer rejection, session cookie flags, session ID shape/browser expiry, CSRF rejection, API-token super-admin boundary.
-- WebSocket validation: unauthenticated collaboration rejection, missing document rejection, malformed frame handling, unknown message handling, oversized frame handling, malformed `/events` message handling, unknown `/events` message handling.
+- WebSocket validation: unauthenticated collaboration rejection, missing document rejection, malformed frame handling, unknown message handling, oversized frame handling, malformed `/events` message handling, unknown `/events` message type handling.
 - Input sanitization: stored XSS-shaped document title, reflected/search payloads, SQL-shaped search strings, long field validation, issue payloads, comment payloads, file upload size/header smoke checks.
 - Dependency CVEs: `pnpm audit --json` high/critical count, including dev/transitive advisories.
 - Assisted review: CORS/CSP, secret/env exposure, API/WS rate-limit map, verbose malformed-request leakage.
@@ -90,14 +108,16 @@ Additional hardening found by the probe: malformed JSON no longer falls through 
 
 Remote mode remains safe by default. Any remote write or stress probe requires explicit `--allow-write` or `--allow-stress`.
 
+Package README: `packages/shipshape-security/README.md`
+
 ## Open findings (post–Cat 8 deep review)
 
-Probe closeout (`cat8-final`: 25/25 passed) covers **perimeter** controls. A separate deep authorization review on **2026-05-22** (same day, after probes) recorded **34 open business-logic findings** in the ledger — governance bypasses, weekly-plan IDOR, metadata leaks, and abuse surfaces.
+Probe closeout (`cat8-final`: 25/25 passed) covers **perimeter** controls. A separate deep authorization review on **2026-05-22** recorded **34 open business-logic findings** in the backlog — governance bypasses, weekly-plan IDOR, metadata leaks, and abuse surfaces.
 
-**Canonical backlog:** [`my-docs/evidence/security-audit/security-findings-ledger.md`](evidence/security-audit/security-findings-ledger.md)
+**Canonical backlog:** `security-findings.json` (CLI: `shipshape-security findings`)
 
 When a finding is fixed:
 
-1. Update its status in the findings ledger and link before/after probe run IDs or tests.
+1. Set status: `pnpm exec shipshape-security findings status SS-FIND-NNN fixed --note "..."`
 2. Move a short summary into **Verified fixes** above (same pattern as file upload / WebSocket hardening).
-3. Add regression probes under `scripts/security-probe/probes/` where applicable (see ledger *Probe extensions needed* section).
+3. Add regression probes under `packages/shipshape-security/src/probes/` where applicable.

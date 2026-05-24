@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T14:54:05.794Z",
+  "updatedAt": "2026-05-24T17:59:46.516Z",
   "discovery": {
     "date": "2026-05-22",
     "method": "deep_review",
@@ -65,6 +65,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -97,6 +115,15 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "authorization-governance-accountable-self-assign",
           "result": "pass",
           "stillActive": false,
@@ -137,6 +164,15 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -173,6 +209,15 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -205,6 +250,15 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "authorization-weekly-plan-idor-websocket",
           "result": "pass",
           "stillActive": false,
@@ -262,6 +316,15 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -294,6 +357,15 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "authorization-file-document-scope",
           "result": "pass",
           "stillActive": false,
@@ -347,6 +419,15 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "authorization-dashboard-private-metadata",
           "result": "pass",
           "stillActive": false,
@@ -417,6 +498,24 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "abuse-login-rate-limit",
           "result": "pass",
           "stillActive": false,
@@ -661,6 +760,15 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -693,6 +801,15 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "authorization-websocket-origin-reject",
           "result": "pass",
           "stillActive": false,
@@ -780,6 +897,24 @@
           "at": "2026-05-24T05:17:07.073Z",
           "method": "probe",
           "runId": "local-probe-repeat-verify",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T17:59:46.516Z",
+          "method": "probe",
+          "runId": "cat8-2026-05-24T17-59-45-512Z",
           "probeId": "auth-session-member-impersonation-denied",
           "result": "pass",
           "stillActive": false,

@@ -319,6 +319,7 @@ describe('Document Visibility', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.visibility).toBe('workspace');
+      expect(res.body.title).toBe('Untitled');
     });
 
     it('allows creating document with private visibility', async () => {
@@ -330,6 +331,7 @@ describe('Document Visibility', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.visibility).toBe('private');
+      expect(res.body.title).toBe('Untitled');
     });
 
     it('inherits visibility from parent document', async () => {

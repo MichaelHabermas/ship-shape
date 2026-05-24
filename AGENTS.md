@@ -28,7 +28,9 @@ pnpm type-check
 pnpm test
 pnpm db:migrate
 pnpm db:seed
-pnpm security:probe:ci   # CI gate: full probe, --fail-on=new (needs Postgres)
+pnpm exec shipshape-security run   # Cat 8 probe (or pnpm security:probe)
+pnpm exec shipshape-security ci    # CI gate: full probe, --fail-on=new (needs Postgres)
+pnpm security:console              # Reviewer Security Console (WS logs, CI mirror, hot payload)
 ```
 
 `pnpm dev` creates `api/.env.local` if needed, creates the local database if missing, runs migrations/seeds for fresh databases, finds open API/web ports, and starts both servers.

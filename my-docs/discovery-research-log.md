@@ -2,6 +2,23 @@
 
 ---
 
+## Document Mutation Core pass (2026-05-24)
+
+Decision: implement the 10x architecture move as a policy/mutation boundary, not a broad model rewrite. Migrated generic document create/update/content/delete/convert paths while leaving deeper collaboration persistence, weekly-service extraction, and web adapter cleanup as separate follow-ons.
+
+| Finding | Disposition |
+|---------|-------------|
+| Generic document mutation mixed route parsing, access checks, property merging, association writes, content extraction, Yjs invalidation, visibility revocation, deletion, conversion snapshots, search indexing, and weekly resubmission behavior | **Resolved for generic route writes** — create/update/content/delete/convert now go through `document-mutations.ts` |
+| Authz needs to be reason-coded before any future policy compiler | **Seeded** — `DocumentPolicy` returns explicit decisions and exposes static policy cases for tests/probes later |
+| Multi-agent review found boundary regressions/gaps | **Fixed** — archived conversion contract, soft delete, creator/admin delete authz, top-level RACI blocking, issue ticket allocation, `"Untitled"` creation, weekly `/content` resubmission reset, and mixed association-shape rejection now have focused regression coverage |
+| Full rewrite beyond the generic document routes would risk proven submission evidence | **Deferred** — collaboration persistence, weekly accountability service extraction, and web adapter cleanup remain follow-on slices |
+| Full API suite needed regression signal after route migration | **Closed** — 579/579 API tests passed after review hardening; this is regression coverage, not complete semantic equivalence proof |
+| Security probe CI after authz hardening | **Open** — rerun got through migrate/seed/package tests but failed seeded admin login with HTTP 500; triage probe harness/auth separately before claiming Cat 8 evidence from this pass |
+
+Future application: extend the mutation core for adjacent write families only when they have focused boundary tests first. Do not build generated policy guards until the static policy matrix has stayed readable across more routes.
+
+---
+
 ## Documentation noise cleanup (2026-05-24)
 
 Decision: reduce the docs surface to source truth plus regenerable outputs. Generated reviewer bundles, old evidence-run archives, and temporary orchestration plans were creating more drift risk than reviewer value.
@@ -1420,7 +1437,8 @@ Validation: `pnpm submission:validate`, `pnpm submission:render`, `pnpm submissi
 Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no separate agent skills at runtime):
 
 - **Architecture:** `lib/registry.mjs`, `lib/fixtures.mjs`, `lib/finding-registry.mjs`, `data/route-manifest.mjs`, `probes/authorization.mjs`, `probes/abuse-surfaces.mjs`.
-- **Reports:** `schemaVersion: 2`, five measured surfaces, triage buckets (known-open / new / resolved / regression) via `security-findings.json` (generated ledger + narratives).
+- **Tool:** `shipshape-security` package (`packages/shipshape-security`) — CLI + Ink TUI; `pnpm exec shipshape-security run|ci|findings|tui`.
+- **Reports:** `schemaVersion: 2`, five measured surfaces, triage via `security-findings.json` (generated ledger + narratives).
 - **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
 - **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
 
@@ -1437,6 +1455,51 @@ Decision: Add a generated Security tab to `my-docs/reviewer-dashboard.html` and 
 Risk found during implementation: the bundle is a new publication surface. Raw evidence can expose local workstation paths, session-cookie examples, or DB URLs. The renderer now redacts local absolute paths, bearer tokens, session cookies, private keys, and DB URL passwords in the bundled copy and fails if those patterns remain.
 
 Future application: Any new reviewer/public evidence export needs a redaction gate and must distinguish measured probe output from the broader security backlog. Do not publish raw run directories without scanning or redacting them first.
+
+---
+
+## Security Console dashboard upgrade (2026-05-24)
+
+Discovery: The Security tab rendered `finding.active` from JSON, but `security-findings.json` has no `active` field — the **Active backlog** metric stayed at **0** even with many open SS-FIND rows. The tab also omitted the brief-aligned `cat8-audit-deliverable.json` table, manual-review cards, verified-fix lanes, narrative drill-down, and any runnable bridge (commands only).
+
+Fix: `packages/shipshape-security/src/core/finding-display.mjs` centralizes active labeling (same rules as generated ledger markdown). Dashboard render logic moved to `scripts/submission/security-dashboard/` with embedded `ship-security-payload` JSON for filters/drawer. `pnpm security:console` serves the dashboard over HTTP and runs `runProbe` / `findings check` with SSE logs.
+
+Future application: Regenerate dashboard after evidence edits; use console server for live runs, not `file://` alone. Decision D069.
+
+---
+
+## Security Console correctness audit (2026-05-24)
+
+Discovery: Parallel review of the new console server + dashboard client found job log hijacking (concurrent runs), SSE subscribers missing terminal `done`, drawer XSS via unescaped finding fields, narrative path traversal (`../../`), stale Active column after status save, and `lastVerification` using array tail instead of newest `at`.
+
+Fix: Serialized jobs with 409 conflict, SSE log replay + `done` on connect, `escapeHtml` in drawer, `safeNarrativePath` / `safeEvidencePath`, status API returns `activeLabel`, `lastVerification` sorts by `at`. Surfaces metric copy clarifies 4-surface Cat 8 perimeter vs default 5-surface v2 run.
+
+Future application: Do not reintroduce global `console.log` patching for probe output; keep file serving path-confined. Decision D070.
+
+---
+
+## Security Console full feature epic (2026-05-24)
+
+Discovery: Deferred UX (CI button, clipboard, filters persistence, focus trap, auto-refresh) and architecture items (subprocess jobs, WebSocket, hot payload, narrative API, Vite scaffold, TUI removal) were planned as a single epic.
+
+Implemented:
+
+- `job-runner.mjs` — probe/check/ci via subprocess; `run-ci.sh` shared with CLI
+- Server: `mode:ci`, `GET /api/payload`, `POST /api/dashboard/regenerate`, `GET/PUT` narrative, WebSocket `/api/run/:id/ws`
+- Client: `client-utils.mjs`, CI modal, auto-refresh + hot payload, localStorage, copy buttons, drawer focus trap, narrative editor
+- Removed Ink TUI; `console-ui/` Vite package (build → `dist/`, served at `/console/`)
+
+Future application: Full SPA cutover can migrate `#panel-security` to Vite app; grader path unchanged. Decisions D071–D075.
+
+---
+
+## Security Console post-epic audit (2026-05-24)
+
+Discovery: Parallel agents flagged regenerate outside job mutex, console-ui `startsWith` path bypass, partial hot-reload leaving probe tables stale, focus-trap listener leaks, and duplicate `markdownToHtml` / `safeNarrativePath`.
+
+Fix: `createJobQueue()` serializes all jobs; `serveConsoleUiAsset` uses `relative()`; auto-refresh tries hot payload then full `location.reload()`; `watchJobWs` with timeouts; `releaseFocus` before re-trap; payload imports shared package modules.
+
+Decision D076.
 
 ---
 

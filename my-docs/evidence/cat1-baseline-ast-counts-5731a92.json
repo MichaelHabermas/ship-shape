@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-05-24T18:50:35.295Z",
+  "gitSha": "5731a92a01e357b0ffb7ffa28e3319b3a14ffedf",
+  "methodology": "AUDIT_REPORT.md appendix [^1] (ts/tsx, audit roots, suppression regex [^2])",
+  "auditScope": {
+    "any": 278,
+    "type_assertions": 713,
+    "non_null_assertions": 348,
+    "ts_suppressions": 1,
+    "counted_total": 1340
+  },
+  "packageBreakdown": {
+    "web/src": {
+      "any": 33,
+      "type_assertions": 372,
+      "non_null_assertions": 33,
+      "ts_suppressions": 1,
+      "counted_total": 439
+    },
+    "api/src": {
+      "any": 238,
+      "type_assertions": 317,
+      "non_null_assertions": 296,
+      "ts_suppressions": 0,
+      "counted_total": 851
+    },
+    "shared/src": {
+      "any": 0,
+      "type_assertions": 2,
+      "non_null_assertions": 0,
+      "ts_suppressions": 0,
+      "counted_total": 2
+    },
+    "e2e": {
+      "any": 7,
+      "type_assertions": 22,
+      "non_null_assertions": 19,
+      "ts_suppressions": 0,
+      "counted_total": 48
+    }
+  },
+  "productionOnly": {
+    "any": 94,
+    "type_assertions": 504,
+    "non_null_assertions": 325,
+    "ts_suppressions": 0,
+    "counted_total": 923
+  },
+  "productionPackageBreakdown": {
+    "web/src": {
+      "any": 29,
+      "type_assertions": 356,
+      "non_null_assertions": 33,
+      "ts_suppressions": 0,
+      "counted_total": 418
+    },
+    "api/src": {
+      "any": 65,
+      "type_assertions": 146,
+      "non_null_assertions": 292,
+      "ts_suppressions": 0,
+      "counted_total": 503
+    },
+    "shared/src": {
+      "any": 0,
+      "type_assertions": 2,
+      "non_null_assertions": 0,
+      "ts_suppressions": 0,
+      "counted_total": 2
+    }
+  }
+}

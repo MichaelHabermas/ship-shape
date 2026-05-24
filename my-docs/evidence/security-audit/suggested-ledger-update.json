@@ -1,6 +1,6 @@
 {
   "category": "cat-8-security-audit",
-  "structuredReport": "my-docs/evidence/security-audit/runs/local-probe-repeat-verify/report.json",
+  "structuredReport": "my-docs/evidence/security-audit/runs/cat8-2026-05-24T17-59-45-512Z/report.json",
   "attackSurfacesMeasured": 5,
   "attackSurfacesTotal": 5,
   "manualReviewComplete": true,

@@ -180,9 +180,63 @@
             "ts_suppressions_total": 1,
             "ts_suppressions_production": 0
           },
+          "package_breakdown": {
+            "api/src": {
+              "any": 238,
+              "type_assertions": 317,
+              "non_null_assertions": 296,
+              "ts_suppressions": 0,
+              "counted_total": 851
+            },
+            "web/src": {
+              "any": 33,
+              "type_assertions": 372,
+              "non_null_assertions": 33,
+              "ts_suppressions": 1,
+              "counted_total": 439
+            },
+            "shared/src": {
+              "any": 0,
+              "type_assertions": 2,
+              "non_null_assertions": 0,
+              "ts_suppressions": 0,
+              "counted_total": 2
+            },
+            "e2e": {
+              "any": 7,
+              "type_assertions": 22,
+              "non_null_assertions": 19,
+              "ts_suppressions": 0,
+              "counted_total": 48
+            }
+          },
+          "production_package_breakdown": {
+            "api/src": {
+              "any": 65,
+              "type_assertions": 146,
+              "non_null_assertions": 292,
+              "ts_suppressions": 0,
+              "counted_total": 503
+            },
+            "web/src": {
+              "any": 29,
+              "type_assertions": 356,
+              "non_null_assertions": 33,
+              "ts_suppressions": 0,
+              "counted_total": 418
+            },
+            "shared/src": {
+              "any": 0,
+              "type_assertions": 2,
+              "non_null_assertions": 0,
+              "ts_suppressions": 0,
+              "counted_total": 2
+            }
+          },
           "origin": "report_extracted",
-          "confidence": "report_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "confidence": "artifact_backed",
+          "source": "my-docs/AUDIT_REPORT.md",
+          "artifact": "my-docs/evidence/cat1-baseline-ast-counts-5731a92.json"
         },
         {
           "id": "cat1-latest-ast-counts",
@@ -3159,8 +3213,8 @@
       "audit_deliverable": {
         "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
         "probe_tool": {
-          "command": "pnpm security:probe",
-          "fresh_instance_runbook": "Run pnpm dev against a seeded local instance, then run pnpm security:probe. Optional focused forms: pnpm security:probe -- --quick and pnpm security:probe -- --probe <probe-id>.",
+          "command": "pnpm exec shipshape-security run",
+          "fresh_instance_runbook": "Run pnpm exec shipshape-security ci for a fresh-instance gate, or pnpm dev then pnpm exec shipshape-security run. Optional: --quick, --probe <id>, --cat8-perimeter (4 surfaces).",
           "structured_report": "my-docs/evidence/security-audit/latest.json"
         },
         "fields": {
@@ -3681,7 +3735,7 @@
             "new_findings": 0,
             "regression_count": 0,
             "github_workflow": ".github/workflows/security-probe.yml",
-            "command": "pnpm security:probe:ci"
+            "command": "pnpm exec shipshape-security ci"
           },
           "origin": "artifact_parsed",
           "confidence": "report_backed",
@@ -3841,7 +3895,13 @@
           "id": "cat8-security-findings-ledger-generated",
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/security-findings-ledger.md",
-          "description": "Generated human-readable ledger from security-findings.json (pnpm security:findings:render)."
+          "description": "Generated human-readable ledger from security-findings.json (pnpm exec shipshape-security findings render)."
+        },
+        {
+          "id": "cat8-shipshape-security-package",
+          "type": "artifact",
+          "path": "packages/shipshape-security/README.md",
+          "description": "Category 8 deliverable CLI/TUI package: shipshape-security run, ci, findings, tui."
         },
         {
           "id": "cat8-security-probe-ci-gate",

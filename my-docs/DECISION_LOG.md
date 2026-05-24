@@ -4,6 +4,22 @@ Durable choices made during the audit/improvement work. This file exists so we c
 
 ## 2026-05-24: Evidence Freeze
 
+### D069: Put Generic Document Mutations Behind One Core
+
+Status: Accepted
+
+Decision: Introduce a reason-coded `DocumentPolicy` plus `document-mutations.ts` boundary and migrate `POST /api/documents`, `PATCH /api/documents/:id`, `PATCH /api/documents/:id/content`, `DELETE /api/documents/:id`, and `POST /api/documents/:id/convert` through it. During review, harden the boundary by enforcing `"Untitled"` creation, soft-delete retention, creator/admin delete authorization, top-level RACI blocking, archived conversion parity, issue ticket allocation, weekly `/content` approval reset, and unambiguous association update shapes. Keep broader weekly/collaboration/web adapter refactors deferred.
+
+Why: The highest-risk document behavior was still routed through large HTTP handlers that owned access checks, property merging, association writes, content extraction, Yjs invalidation, search updates, visibility revocation, accountability resubmission side effects, deletion, and in-place issue/project conversion. A small mutation core gives future work one auditable boundary without disturbing the already-proven submission evidence.
+
+Alternatives considered: full document service rewrite; policy compiler with generated guards; leaving route code untouched. A full rewrite risks submission evidence churn. Generated guards are promising but premature. Leaving the route untouched preserves duplication in the most security-sensitive mutation path.
+
+Consequences: New generic document mutation work should prefer the mutation boundary over adding route-local side effects. The static policy-case table is a seed for future generated probes/guards, not a compiler yet. Delete semantics are now intentionally soft-delete plus creator/admin authorization. No schema change and no submission-ledger claim change.
+
+Evidence: `pnpm type-check` passed; focused API regressions for document policy/documents/visibility/associations passed 72/72. Full API suite passed 579/579. `pnpm security:probe:ci` is not accepted as evidence for this pass because it failed at seeded admin login with HTTP 500 after migrate/seed/package tests.
+
+**Decision Gist**: Centralize generic document writes in one auditable mutation core; keep generated policy tooling as a later proof mechanism, not first-pass architecture.
+
 ### D066: Treat Generated Reviewer Bundles As Build Output
 
 Status: Accepted
@@ -1130,6 +1146,22 @@ Evidence: `pnpm security:findings:migrate` → 34 findings; `pnpm security:findi
 
 **Decision Gist**: One JSON SoT for findings; generated ledger; CLI owns status; probes append history only.
 
+### D065: `shipshape-security` package — CLI + TUI (2026-05-24)
+
+Status: Accepted
+
+Decision: Ship Category 8 as **`@ship/shipshape-security`** with binary **`shipshape-security`**: subcommands `run`, `ci`, `findings`, `baseline`, `compliance`, `tui`. Move probe/findings implementation from `scripts/security-probe/` into `packages/shipshape-security/src/`. Default `run` keeps v2 (5 surfaces); `--cat8-perimeter` preserves 4-surface `cat8-final` parity. Root `pnpm security:*` scripts delegate via `pnpm exec shipshape-security`. Ink TUI supports browse findings, run probe, set status.
+
+Why: Cat 8 brief requires a deliverable runnable tool with single-command grader UX; scattered pnpm script names failed discoverability (D064 SoT was correct; packaging was not).
+
+Alternatives considered: npm publish (deferred); generic probe engine split (deferred); TUI-only without CLI (rejected for CI).
+
+Consequences: `scripts/security-probe/run.mjs` and `scripts/security-findings/cli.mjs` are deprecated shims. CI uses `packages/shipshape-security/scripts/run-ci.sh`. Evidence paths unchanged under `my-docs/evidence/security-audit/`.
+
+Evidence: `pnpm exec shipshape-security --help`; `pnpm --filter @ship/shipshape-security test` 15/15; `pnpm exec shipshape-security findings check`.
+
+**Decision Gist**: One binary for Cat 8 — probe, findings, compliance, and TUI — not a menagerie of pnpm script names.
+
 ### D061: Category 5 full E2E warning resolved with route-consistency fixes (2026-05-22)
 
 Status: Accepted
@@ -1248,6 +1280,20 @@ Evidence: `pnpm docs:check:activation`; `pnpm docs:check:strict`.
 
 **Decision Gist**: Guard the activation surface, not just curated architecture prose.
 
+### D069: Security Console tab + local console server (2026-05-24)
+
+Status: Accepted
+
+Decision: Make the generated reviewer dashboard **Security Console** tab the primary interactive Category 8 surface. Extract render logic to `scripts/submission/security-dashboard/` (deliverable table, probe explorer, SS-FIND drawer, embedded JSON payload). Add `pnpm security:console` — a localhost-only server that serves the dashboard with `consoleApiBase` injected and exposes `POST /api/run` (probe or findings check) plus `POST /api/findings/:id/status` with SSE logs.
+
+Why: The prior Security tab duplicated static tables without the brief-aligned deliverable matrix, narrative drill-down, or runnable workflow. The dashboard HTML stays generated/offline-safe; live runs need Node (`runProbe`, `pnpm audit`, repo reads) and must not run in the browser.
+
+Consequences: Regenerate with `pnpm submission:render` after evidence changes. `findingActiveLabel` / `enrichFindingForDisplay` in `@ship/shipshape-security` is the single source for “active backlog” display. `compliance` reads `cat8-audit-deliverable.json` `table` (not `rows`). Static `file://` dashboard remains read-only; use the console server for Run probe.
+
+Evidence: `scripts/submission/security-dashboard/`, `packages/shipshape-security/src/console/server.mjs`, `pnpm security:console`, regenerated `my-docs/reviewer-dashboard.html`.
+
+**Decision Gist**: Generated dashboard for review; localhost console server for execution.
+
 ### D068: Collapse AWS root replay docs into one future-path guide (2026-05-24)
 
 Status: Accepted
@@ -1261,3 +1307,89 @@ Consequences: No AWS knowledge deleted. Active docs now point to one future-path
 Evidence: `pnpm docs:check:strict`.
 
 **Decision Gist**: Preserve the future path; collapse the noisy root surface.
+
+### D070: Security Console correctness hardening (2026-05-24)
+
+Status: Accepted
+
+Decision: Harden the localhost Security Console server and dashboard client without changing Cat 8 submission claims. Serialize probe/check jobs (409 when busy), replay SSE logs plus terminal `done` for late subscribers, escape finding fields in the drawer, confine narrative/evidence file reads to `my-docs/evidence/security-audit/`, return `activeLabel` from status saves, and sort `lastVerification` by newest `at` (not array tail).
+
+Why: Parallel audit sub-agents found foundational issues: global log hijacking, stuck “running” UI, XSS in drawer `innerHTML`, path traversal on narratives, and stale active-backlog cells after triage updates.
+
+Consequences: `pnpm security:probe:ci` remains the grader gate (not exposed in the console UI). Default probe scope stays 5 surfaces (v2 authorization); perimeter toggle documents 4-surface Cat 8 mode. No ledger row changes — behavior is reviewer/operator safety, not new evidence.
+
+Evidence: `packages/shipshape-security/src/console/server.mjs`, `scripts/submission/security-dashboard/client.mjs`, `payload.mjs`, `lastVerification` test in `packages/shipshape-security/test/security-findings-store.test.mjs`.
+
+**Decision Gist**: One job at a time, safe paths, honest SSE, escaped drawer, newest verification wins.
+
+### D071: Console jobs via subprocess (2026-05-24)
+
+Status: Accepted
+
+Decision: All console probe/check/CI runs spawn child processes through `packages/shipshape-security/src/console/job-runner.mjs` instead of in-process `runProbe` (which calls `process.exit` and killed the server).
+
+Why: Foundational correctness for a long-lived HTTP console.
+
+Evidence: `job-runner.test.mjs`, `server.mjs` delegates to `runConsoleJob`.
+
+**Decision Gist**: Never `process.exit` inside the console server process.
+
+### D072: Console CI mirror + WebSocket logs + hot payload (2026-05-24)
+
+Status: Accepted
+
+Decision: Add `POST /api/run` mode `ci` (streams `run-ci.sh`), `GET /api/payload`, `POST /api/dashboard/regenerate` (render-dashboard only), and WebSocket `/api/run/:id/ws` (replaces SSE in client). Grader path remains `pnpm security:probe:ci`.
+
+Why: Operator UX for preflight CI, faster evidence refresh without full `submission:render`, and stable log streaming.
+
+Evidence: `server.mjs`, `client.mjs`, CI confirmation modal in security tab HTML.
+
+**Decision Gist**: Console mirrors CI; grader command stays canonical.
+
+### D073: Inline narrative edit API (2026-05-24)
+
+Status: Accepted
+
+Decision: `GET/PUT /api/findings/:id/narrative` with path confinement (`narrative-paths.mjs`) and shared `markdown-lite.mjs` for HTML render on save.
+
+Why: Reviewers edit SS-FIND narratives without leaving the drawer; does not change probe pass/fail.
+
+Evidence: `narrative-paths.test.mjs`, drawer edit flow in `client.mjs`.
+
+**Decision Gist**: Safe narrative writes under audit evidence root only.
+
+### D074: Deprecate Ink TUI (2026-05-24)
+
+Status: Accepted
+
+Decision: Remove `src/tui/App.mjs` and ink/react dependencies; `shipshape-security tui` prints migration steps and exits 1.
+
+Why: Security Console is the primary interactive surface (D069); dual UIs drift.
+
+Evidence: `tui.mjs` stub, README.
+
+**Decision Gist**: Dashboard console only for interactive Cat 8 UX.
+
+### D075: Vite console-ui scaffold (2026-05-24)
+
+Status: Accepted
+
+Decision: Add `packages/shipshape-security/console-ui/` (Vite + TS) built to `dist/`; console server serves `/console/*` when built. Embedded `client.mjs` remains the active dashboard integration until a full SPA cutover.
+
+Why: Plan phase 6 — establish build pipeline without rewriting the entire reviewer dashboard as SPA in one step.
+
+Evidence: `console-ui/dist`, `pnpm --filter @ship/shipshape-security build:console-ui`.
+
+**Decision Gist**: Vite package is the migration target; embedded client ships features now.
+
+### D076: Security Console audit hardening (2026-05-24)
+
+Status: Accepted
+
+Decision: Post-epic audit fixes: unified `job-queue.mjs` for probe/check/ci/regenerate (single mutex + serialized chain), `relative()` guard on console-ui static assets, auto-refresh reloads full page after hot payload fetch, WebSocket timeouts, drawer/CI modal focus hygiene, DRY `markdown-lite` + `safeNarrativePath` for dashboard payload build.
+
+Why: Parallel review found regenerate could run parallel to probes, console-ui path prefix bypass, and incomplete hot reload leaving stale probe tables.
+
+Evidence: `job-queue.test.mjs`, `job-stream.test.mjs`, `payload.mjs` imports package path helpers.
+
+**Decision Gist**: One queue for all console jobs; reload beats partial DOM patch for auto-refresh.

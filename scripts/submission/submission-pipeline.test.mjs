@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { ledgerPath } from './ledger-utils.mjs';
+import { resolve } from 'node:path';
+import { ledgerPath, readJson, repoRoot } from './ledger-utils.mjs';
 import { buildLedgerModel } from './ledger-projections.mjs';
 import { replaceCurrentTruthSection, renderCurrentTruthBlock } from './render-markdown-sections.mjs';
-import { renderDashboard } from './render-dashboard.mjs';
+import { renderDashboard, securityDeliverablePath, securityFindingsPath, securityReportPath } from './render-dashboard.mjs';
 import { validateLedger } from './validate-ledger.mjs';
 
 async function fixtureLedger() {
@@ -68,10 +69,22 @@ test('markdown generated block replacement is stable and scoped', async () => {
 
 test('dashboard render is deterministic from ledger projections', async () => {
   const ledger = await fixtureLedger();
-  const first = renderDashboard(ledger);
-  const second = renderDashboard(ledger);
+  const discoveries = await readJson(resolve(repoRoot, 'my-docs/evidence/discoveries.json'));
+  const securityReport = await readJson(securityReportPath);
+  const securityFindings = await readJson(securityFindingsPath);
+  const securityDeliverable = await readJson(securityDeliverablePath);
+  const first = renderDashboard(ledger, discoveries, securityReport, securityFindings, securityDeliverable);
+  const second = renderDashboard(ledger, discoveries, securityReport, securityFindings, securityDeliverable);
 
   assert.equal(first, second);
   assert(first.includes('GENERATED FILE'));
   assert(first.includes('data-ledger-id="cat-8-security-audit"'));
+  assert(first.includes('id="ship-security-payload"'));
+  assert(first.includes('Security Console'));
+  assert(first.includes('Audit deliverable (brief table)'));
+  assert(first.includes('security-finding-drawer'));
+  assert(first.includes('id="security-run-ci"'));
+  assert(first.includes('data-copy-command="pnpm security:probe:ci"'));
+  assert(first.includes('id="security-auto-refresh"'));
+  assert(first.includes('role="dialog"'));
 });

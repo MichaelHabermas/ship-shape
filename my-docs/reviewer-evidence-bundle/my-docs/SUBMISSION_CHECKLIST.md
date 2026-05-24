@@ -4,7 +4,7 @@ This is the reviewer-facing index for the Week 4 ShipShape submission. The claim
 
 Start here:
 
-1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard, or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle.
+1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard (**Security Console** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. For runnable probes in the browser: `pnpm security:console` (local server).
 2. Use this checklist for deliverable status and exact artifact paths.
 3. Use `my-docs/evidence/submission-ledger.json` for canonical category status and caveats.
 
@@ -31,7 +31,7 @@ Start here:
 | 5. Test Coverage and Quality | Three meaningful tests or three flaky-test fixes with RCA | `cat5-baseline-test-inventory` in ledger | `test-results/cat5-full-green-check`; focused regression tests in ledger | `DATABASE_URL=...ship_test_audit pnpm test`; `pnpm --filter @ship/web test`; `pnpm test:e2e:run` | Full E2E green proof retained retry artifacts as follow-up context, not zero-flake certification. |
 | 6. Runtime Error and Edge Case Handling | Three error-handling fixes, including one real data-loss/confusion scenario | `cat6-audit-runtime-baseline` in ledger | `test-results/category-6-runtime-easy-wins/`; `test-results/category-6-ai-unavailable/`; `test-results/category-6-boundary-evidence/` | `E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts` | Operational shutdown hardening is documented separately from the three counted user-facing fixes. |
 | 7. Accessibility Compliance | +10 Lighthouse on worst page or all Critical/Serious axe issues fixed on top pages | `cat7-baseline-lighthouse`; `cat7-baseline-axe` in ledger | `test-results/a11y-closeout/axe-summary.json`; tree keyboard E2E artifacts | `pnpm a11y:closeout:local -- --fail-on-serious` | Proven path is axe Critical/Serious closeout, not full manual screen-reader certification. |
-| 8. Security Audit | Runnable probe, four attack surfaces, manual review, two verified fixes | `my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json`; named before reports | `my-docs/evidence/security-audit/latest.json`; `runs/security-probe-ci-20260523-190801/report.json` | `pnpm security:probe:ci`; `pnpm security:findings:check` | Proof follows the runnable probe and named findings, not generic dependency hygiene or remote production penetration testing. |
+| 8. Security Audit | Runnable probe, four attack surfaces, manual review, two verified fixes | `my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json`; named before reports | `my-docs/evidence/security-audit/latest.json`; `runs/security-probe-ci-20260523-190801/report.json` | `pnpm security:probe:ci` (includes findings check) | Proof follows the runnable probe and named findings, not generic dependency hygiene or remote production penetration testing. |
 
 ## Deployed Application
 
