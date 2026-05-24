@@ -5,6 +5,22 @@ const MANUAL_KEYS = [
   { key: 'verboseErrors', label: 'Verbose errors' },
 ];
 
+function formatManualDetail(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => formatManualDetail(item)).filter(Boolean).join('; ');
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, entry]) => `${key}: ${formatManualDetail(entry)}`)
+      .filter((item) => !item.endsWith(': '))
+      .join('; ');
+  }
+  return String(value);
+}
+
 export function renderManualReview(view, helpers) {
   const { escapeHtml } = helpers;
   const manual = view.report?.manualReview || {};
@@ -26,7 +42,7 @@ export function renderManualReview(view, helpers) {
               <h4>${escapeHtml(label)}</h4>
               <span class="test-chip ${chip}">${escapeHtml(status)}</span>
             </header>
-            <p>${escapeHtml(String(detail).slice(0, 400) || 'See latest.json manualReview block.')}</p>
+            <p>${escapeHtml(formatManualDetail(detail).slice(0, 400) || 'See latest.json manualReview block.')}</p>
           </article>`;
       }).join('')}
     </div>`;

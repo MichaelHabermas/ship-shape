@@ -2,6 +2,21 @@
 
 ---
 
+## Reviewer packet simplification (2026-05-24)
+
+Decision: turn the generated reviewer dashboard into a grading packet. The reviewer path is now Summary, Evidence, Security, Appendix, with source gate and proof rows first and internal machinery moved behind drilldown.
+
+| Finding | Disposition |
+|---------|-------------|
+| The dashboard made reviewers choose among internal proof concepts before answering the grading question | **Resolved in generator** — Summary now maps Category 1-8 to source gate, baseline, improvement, proof, caveat, and verdict |
+| Category 8 manual-review cards could render object-shaped details as `[object Object]` | **Fixed** — manual review formatting now flattens nested object/array details into readable text |
+| Category 8 presentation led with deliverable completeness before verified fixes | **Fixed** — security evidence now leads with reproduce command, latest/backlog signal, verified fixes, attack surfaces/manual review, then raw tables |
+| Stale `runs/cat8-final/` references pointed at a missing in-tree run path | **Fixed in durable docs** — current references point to stable latest artifacts or existing immutable runs instead of the missing path |
+
+Future application: reviewer-facing generated pages should behave like grading packets, not data explorers. Keep source claims in the ledger; keep raw proof machinery in appendix unless a gate is failing.
+
+---
+
 ## Document Mutation Core pass (2026-05-24)
 
 Decision: implement the 10x architecture move as a policy/mutation boundary, not a broad model rewrite. Migrated generic document create/update/content/delete/convert paths while leaving deeper collaboration persistence, weekly-service extraction, and web adapter cleanup as separate follow-ons.
@@ -1375,7 +1390,7 @@ Implemented `scripts/security-probe/` and root commands:
 - `pnpm security:probe -- --probe <probe-id>`
 - `pnpm security:probe:test`
 
-Final report: `my-docs/evidence/security-audit/runs/cat8-final/report.json` and stable copy `my-docs/evidence/security-audit/latest.json`.
+Final report source is the stable copy `my-docs/evidence/security-audit/latest.json`; older notes referenced `runs/cat8-final/report.json`, but that immutable run path is no longer present in-tree.
 
 Final result after multi-agent verification tightening: 4/4 surfaces measured, 25/25 probes passed, 0 findings. Covered auth/session, WebSocket validation, input sanitization, dependency CVEs, and assisted CORS/CSP/secrets/rate-limit/verbose-error review.
 
@@ -1440,7 +1455,7 @@ Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no s
 - **Tool:** `shipshape-security` package (`packages/shipshape-security`) — CLI + Ink TUI; `pnpm exec shipshape-security run|ci|findings|tui`.
 - **Reports:** `schemaVersion: 2`, five measured surfaces, triage via `security-findings.json` (generated ledger + narratives).
 - **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
-- **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
+- **Preserved conceptually:** historical perimeter closeout remains represented through the stable latest security artifacts and ledger wording; the old `runs/cat8-final/` path is no longer present in-tree.
 
 Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.
 

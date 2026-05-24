@@ -1,10 +1,10 @@
 # Submission Checklist
 
-This is the reviewer-facing index for the Week 4 ShipShape submission. The claim source of truth is `my-docs/evidence/submission-ledger.json`; generated views are `my-docs/reviewer-dashboard.html` and the Current Ledger Truth block in `my-docs/IMPROVEMENT_REPORT.md`.
+This is the reviewer-facing index for the Week 4 ShipShape submission. The claim source of truth is `my-docs/evidence/submission-ledger.json`; generated views are the reviewer packet at `my-docs/reviewer-dashboard.html` and the Current Ledger Truth block in `my-docs/IMPROVEMENT_REPORT.md`.
 
 Start here:
 
-1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard (**Security** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. Reproduce probe: `pnpm security:probe:ci`.
+1. Open `my-docs/reviewer-dashboard.html` for the reviewer packet (**Security** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. Reproduce probe: `pnpm security:probe:ci`.
 2. Use this checklist for deliverable status and exact artifact paths.
 3. Use `my-docs/evidence/submission-ledger.json` for canonical category status and caveats.
 
@@ -48,7 +48,7 @@ Run after the final docs/evidence state is frozen. Latest local results from 202
 | Command | Result |
 | --- | --- |
 | `pnpm submission:validate` | Pass; Categories 1-8 proven. |
-| `pnpm submission:render` | Pass; regenerated reviewer dashboard/report ledger block. |
+| `pnpm submission:render` | Pass; regenerated reviewer packet/report ledger block. |
 | `pnpm submission:check` | Pass; generated submission artifacts and reviewer evidence bundle current. |
 | `pnpm docs:check:strict` | Pass; no findings. |
 | `pnpm type-check` | Pass. |

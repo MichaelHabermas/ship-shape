@@ -125,7 +125,7 @@ async function redactBundleTextFiles() {
 
 function renderBundleIndex(manifest) {
   const links = [
-    ['Reviewer dashboard', 'my-docs/reviewer-dashboard.html'],
+    ['Reviewer packet', 'my-docs/reviewer-dashboard.html'],
     ['Submission ledger', 'my-docs/evidence/submission-ledger.json'],
     ['Security latest report', 'my-docs/evidence/security-audit/latest.json'],
     ['Security findings ledger', 'my-docs/evidence/security-audit/security-findings-ledger.md'],

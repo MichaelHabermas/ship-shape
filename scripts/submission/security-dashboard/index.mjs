@@ -67,15 +67,12 @@ export function buildSecurityTabHtml(ledger, securityReport, securityFindings, d
           <p class="security-signals">Latest probe: <strong>${escapeHtml(String(view.report?.summary?.findings ?? 0))}</strong> confirmed finding(s). SS-FIND backlog: <strong>${escapeHtml(String(view.activeFindings.length))}</strong> active of <strong>${escapeHtml(String(view.findings.length))}</strong> tracked. A clean probe does not close the backlog.</p>
           ${securityMetricCards(view, escapeHtml)}
 
-          <h3 id="security-deliverable">Deliverable table</h3>
-          ${renderDeliverableTable(view, helpersWithStatus)}
+          <h3 id="security-verified-fixes">Verified fixes (×2)</h3>
+          ${renderVerifiedFixes(view, helpersWithStatus)}
 
           <h3 id="security-surfaces">Attack surfaces &amp; manual review</h3>
           ${renderSurfaceCards(view, helpersWithStatus)}
           ${renderManualReview(view, helpersWithStatus)}
-
-          <h3 id="security-verified-fixes">Verified fixes (×2)</h3>
-          ${renderVerifiedFixes(view, helpersWithStatus)}
 
           <h3 id="security-latest-findings">Latest probe findings</h3>
           ${renderLatestFindings(view, helpersWithStatus)}
@@ -102,6 +99,9 @@ export function buildSecurityTabHtml(ledger, securityReport, securityFindings, d
 
           <h3 id="security-probes">Probe results (latest run)</h3>
           ${renderProbeTableShell(view, helpersWithStatus)}
+
+          <h3 id="security-deliverable">Deliverable table</h3>
+          ${renderDeliverableTable(view, helpersWithStatus)}
 
           <h3 id="security-evidence">Evidence files</h3>
           ${renderSecurityEvidenceMap(view, helpersWithStatus)}

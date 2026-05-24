@@ -60,7 +60,7 @@
 | Discovered | 2026-05-22 |
 | Definition | Member cannot set governance approval fields via PATCH /api/documents/:id |
 | Probes | authorization-governance-properties-injection, input-governance-mass-assignment |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -138,7 +138,7 @@ No probe sends governance-field injection to `PATCH /api/documents/:id`.
 | Discovered | 2026-05-22 |
 | Definition | Member cannot self-assign accountable_id to gain approval authority |
 | Probes | authorization-governance-accountable-self-assign |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -202,7 +202,7 @@ Restrict RACI mutations (`accountable_id`, `owner_id`, `consulted_ids`, `informe
 | Discovered | 2026-05-22 |
 | Definition | Member cannot PATCH sprint/week status to completed without authorization |
 | Probes | authorization-governance-week-status-bypass |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -258,7 +258,7 @@ Remove `status` from generic PATCH schemas; require lifecycle endpoints with `re
 | Discovered | 2026-05-22 |
 | Definition | Member cannot read peer weekly plan via generic documents API |
 | Probes | authorization-weekly-plan-idor-documents |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -306,7 +306,7 @@ Enforce `requireSelfOrAdminPerson` on all weekly_plan/weekly_retro paths (REST l
 | Discovered | 2026-05-22 |
 | Definition | Member cannot open peer weekly plan collaboration WebSocket room |
 | Probes | authorization-weekly-plan-idor-websocket |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -388,7 +388,7 @@ Use `conn.userId` for `changed_by`.
 | Discovered | 2026-05-22 |
 | Definition | Bulk issue move to private sprint/project without visibility check |
 | Probes | authorization-bulk-issue-foreign-target |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -427,7 +427,7 @@ Reuse `requireReferenceableDocument` in bulk update path.
 | Discovered | 2026-05-22 |
 | Definition | File serve must respect parent document visibility (probe currently checks uploader-only; document scope still open) |
 | Probes | authorization-file-document-scope |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -495,7 +495,7 @@ Filter children query with visibility predicate; or return counts only without t
 | Discovered | 2026-05-22 |
 | Definition | Dashboard `my-focus` leaks private project/program metadata |
 | Probes | authorization-dashboard-private-metadata |
-| Last verification | 2026-05-24T20:08:08.983Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -548,7 +548,7 @@ Add `VISIBILITY_FILTER_SQL` on program join alias.
 | Discovered | 2026-05-22 |
 | Definition | Public feedback endpoint enforces dedicated rate limiting |
 | Probes | abuse-public-feedback-rate-limit, abuse-login-rate-limit |
-| Last verification | 2026-05-24T20:08:08.984Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -881,7 +881,7 @@ Association context may include program UUID in breadcrumbs with redacted title 
 | Discovered | 2026-05-22 |
 | Definition | Member cannot complete another user pending upload |
 | Probes | authorization-file-upload-hijack-denied |
-| Last verification | 2026-05-24T20:08:08.984Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -917,7 +917,7 @@ Require `uploaded_by = req.userId` (or admin) on all completion paths. Pair with
 | Discovered | 2026-05-22 |
 | Definition | Cross-origin WebSocket upgrade is rejected |
 | Probes | authorization-websocket-origin-reject |
-| Last verification | 2026-05-24T20:08:08.984Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -1014,7 +1014,7 @@ Use shared `generateSecureSessionId()` for all session creation paths.
 | Discovered | 2026-05-22 |
 | Definition | Super-admin cross-workspace access without membership / blanket admin |
 | Probes | auth-session-member-audit-logs-denied, auth-session-member-impersonation-denied |
-| Last verification | 2026-05-24T20:08:08.984Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T20:20:32.318Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -1257,4 +1257,4 @@ Open findings in this ledger are **separate** from Cat 8 closeout — discovered
 
 ---
 
-*Generated at 2026-05-24T20:08:52.005Z from security-findings.json*
+*Generated at 2026-05-24T20:20:32.606Z from security-findings.json*

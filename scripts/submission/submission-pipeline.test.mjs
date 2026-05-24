@@ -78,11 +78,25 @@ test('dashboard render is deterministic from ledger projections', async () => {
 
   assert.equal(first, second);
   assert(first.includes('GENERATED FILE'));
+  assert(first.includes('ShipShape Reviewer Packet'));
+  assert(first.includes('categories source-gate ready'));
+  assert(first.includes('Reviewer decision table'));
   assert(first.includes('data-ledger-id="cat-8-security-audit"'));
   assert(first.includes('Security evidence'));
   assert(first.includes('Deliverable table'));
+  assert(first.includes('Verified fixes (×2)'));
+  assert(first.includes('SS-FIND backlog'));
   assert(first.includes('data-copy-command="pnpm security:probe:ci"'));
   assert(first.includes('class="security-reproduce"'));
+  assert(first.includes('id="tab-summary"'));
+  assert(first.includes('id="tab-appendix"'));
+  assert(!first.includes('id="tab-cross-examine"'));
+  assert(!first.includes('id="tab-claim-diff"'));
+  assert(!first.includes('id="tab-targets"'));
+  assert(!first.includes('id="tab-rubric"'));
+  assert(!first.includes('id="tab-boundaries"'));
+  assert(!first.includes('id="tab-discoveries"'));
   assert(!first.includes('id="security-run-probe"'));
   assert(!first.includes('security-finding-drawer'));
+  assert(!first.includes('[object Object]'));
 });

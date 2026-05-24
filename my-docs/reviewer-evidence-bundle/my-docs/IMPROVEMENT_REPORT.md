@@ -2,6 +2,25 @@
 
 ---
 
+## Reviewer Packet Simplification (2026-05-24)
+
+Scope: reviewer-facing evidence packaging only. This pass changes the generated submission dashboard into a reviewer-first packet without changing Category 1-8 measurements or source claims.
+
+### What changed
+
+- Reframed `my-docs/reviewer-dashboard.html` as a generated reviewer packet: Summary, Evidence, Security, and Appendix.
+- Added a grading-packet projection so the first screen maps each category to source gate, baseline, improvement proof, artifact/command, caveat, and verdict.
+- Moved internal proof machinery (`Targets`, `Rubric`, `Boundaries`, `Discoveries`, cross-examine/claim-diff views) out of top-level navigation and into Evidence or Appendix.
+- Reordered Category 8 so verified fixes and runnable probe proof precede raw deliverable/probe tables.
+- Fixed security manual-review rendering so object-shaped details do not appear as `[object Object]`.
+- Replaced stale `runs/cat8-final/` references with stable `latest.*` / existing-run wording.
+
+### Claim boundary
+
+No Category 1-8 claim changed. The ledger remains the claim source of truth; this pass makes the same evidence easier and safer for reviewers to consume.
+
+---
+
 ## Document Mutation Core Pass (2026-05-24)
 
 Scope: architecture hardening only. This pass introduced a reason-coded `DocumentPolicy` and a document mutation boundary, then migrated the generic create/update/content/delete/convert document routes through it. A follow-up multi-agent review found correctness/security gaps in the new boundary and the pre-existing delete route semantics; those were fixed before closeout.
@@ -102,7 +121,7 @@ Multi-agent verification (security API review, probe/CI audit, SOT alignment, th
 - `pnpm type-check` | pass
 
 ### Claim boundary
-Cat 8 **proven** metrics remain 4 required surfaces / historical `cat8-final`; v2 CI is an extension artifact, not a Cat 8 rubric change.
+Cat 8 **proven** metrics remain the 4 required perimeter surfaces; v2 CI is an extension artifact, not a Cat 8 rubric change.
 
 ---
 
@@ -943,7 +962,7 @@ Extended probe harness from perimeter-only (Cat 8 closeout) to **probe v2**:
 - `lib/fixtures.mjs` for runtime weekly-plan/person setup; `lib/registry.mjs` modular probe groups.
 - Abuse probes for public-feedback rate limit; auth-session member audit/impersonation controls.
 
-Baseline on unfixed main: `runs/probe-v2-baseline-unfixed/` — 10 findings, 10 known-open, matches SS-FIND Phase 1–2 backlog. Historical `cat8-final` artifact unchanged.
+Baseline on unfixed main: `runs/probe-v2-baseline-unfixed/` — 10 findings, 10 known-open, matches SS-FIND Phase 1–2 backlog. Historical perimeter closeout remains a separate scope concept.
 
 ## Type Safety Correctness Review Follow-up (2026-05-22)
 

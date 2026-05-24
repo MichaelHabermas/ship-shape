@@ -4,6 +4,20 @@ Durable choices made during the audit/improvement work. This file exists so we c
 
 ## 2026-05-24: Evidence Freeze
 
+### D079: Render Reviewer Evidence As A Grading Packet
+
+Status: Accepted
+
+Decision: Keep `my-docs/evidence/submission-ledger.json` as the claim source of truth, but render `my-docs/reviewer-dashboard.html` as a four-path reviewer packet: Summary, Evidence, Security, Appendix. The first screen must answer source gate, baseline, improvement proof, artifact/command, caveat, and verdict before exposing raw proof machinery.
+
+Why: The previous generated dashboard was defensible but reviewer-hostile: it exposed internal views such as defense load, cross-examine, claim diff, targets, rubric, boundaries, and discoveries as peer navigation choices. The source docs grade baseline completeness, before/after proof, reproducibility, and bounded claims. A grading-packet projection maps directly to that job.
+
+Consequences: Future reviewer-facing output should derive plain grading rows from the ledger projection layer, not recompute claim truth inside HTML helpers or hand-edit generated output. Internal proof details belong in Evidence or Appendix unless a gate is blocked. Category 8 remains special because latest clean probe output and active SS-FIND backlog must stay visually connected.
+
+Evidence: Renderer/projection change plus `pnpm submission:validate`, `pnpm submission:test`, `pnpm submission:render`, and `pnpm submission:check` after implementation.
+
+**Decision Gist**: Lead reviewers through the grading decision; keep the ledger as source and raw machinery as appendix.
+
 ### D069: Put Generic Document Mutations Behind One Core
 
 Status: Accepted
@@ -1124,7 +1138,7 @@ Alternatives considered: static audit writeup only (rejected — not runnable); 
 
 Consequences: Security evidence now lives under `my-docs/evidence/security-audit/`. Local mode may create run-tagged records; remote write/stress probing is opt-in. Category 8 ledger truth is generated from probe-backed paths, not memory.
 
-Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured, 25/25 probes passed, 0 findings. Before/after proof covers file upload validation/headers and WebSocket malformed/unknown/oversized frame resilience across collaboration and event sockets.
+Evidence: 4/4 perimeter surfaces measured, 25/25 probes passed, 0 findings. Before/after proof covers file upload validation/headers and WebSocket malformed/unknown/oversized frame resilience across collaboration and event sockets; use stable latest artifacts or existing immutable run directories for current reviewer links.
 
 **Decision Gist**: Category 8 proof is a runnable black-box harness plus before/after reports, not a narrative-only audit.
 
@@ -1132,7 +1146,7 @@ Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured
 
 Status: Accepted
 
-Decision: Extend `pnpm security:probe` with a fifth measured surface (`authorization`), shared fixtures (`lib/fixtures.mjs`), and a fingerprinted `probe-finding-registry.json` so runs report **known-open**, **new**, **resolved**, and **regression** buckets instead of re-listing the same issues as novel every time. Keep Cat 8 historical closeout at `runs/cat8-final/` (4/4 perimeter, 0 findings); v2 runs use new run IDs (e.g. `probe-v2-baseline-unfixed`). Default `failOn` is `high`; use `--fail-on=new` when only unknown findings should break CI.
+Decision: Extend `pnpm security:probe` with a fifth measured surface (`authorization`), shared fixtures (`lib/fixtures.mjs`), and a fingerprinted `probe-finding-registry.json` so runs report **known-open**, **new**, **resolved**, and **regression** buckets instead of re-listing the same issues as novel every time. Keep Cat 8 perimeter closeout semantics distinct from v2 authorization runs; use stable `latest.*` artifacts or existing immutable run directories for reviewer links because the old `runs/cat8-final/` path is no longer present in-tree. Default `failOn` is `high`; use `--fail-on=new` when only unknown findings should break CI.
 
 Why: Perimeter probes passed while a deep authorization review found 34 open business-logic issues. The tool must encode OWASP A01-style checks (governance PATCH, IDOR, WS origin, upload hijack) as live regressions, not rely on separate agent skills.
 
@@ -1180,7 +1194,7 @@ Evidence: `pnpm security:findings:migrate` → 34 findings; `pnpm security:findi
 
 Status: Accepted
 
-Decision: Ship Category 8 as **`@ship/shipshape-security`** with binary **`shipshape-security`**: subcommands `run`, `ci`, `findings`, `baseline`, `compliance`, `tui`. Move probe/findings implementation from `scripts/security-probe/` into `packages/shipshape-security/src/`. Default `run` keeps v2 (5 surfaces); `--cat8-perimeter` preserves 4-surface `cat8-final` parity. Root `pnpm security:*` scripts delegate via `pnpm exec shipshape-security`. Ink TUI supports browse findings, run probe, set status.
+Decision: Ship Category 8 as **`@ship/shipshape-security`** with binary **`shipshape-security`**: subcommands `run`, `ci`, `findings`, `baseline`, `compliance`, `tui`. Move probe/findings implementation from `scripts/security-probe/` into `packages/shipshape-security/src/`. Default `run` keeps v2 (5 surfaces); `--cat8-perimeter` preserves 4-surface perimeter parity. Root `pnpm security:*` scripts delegate via `pnpm exec shipshape-security`. Ink TUI supports browse findings, run probe, set status.
 
 Why: Cat 8 brief requires a deliverable runnable tool with single-command grader UX; scattered pnpm script names failed discoverability (D064 SoT was correct; packaging was not).
 

@@ -3883,7 +3883,7 @@
           "id": "cat8-probe-v2-baseline-unfixed",
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json",
-          "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout."
+          "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace the separate 4-surface perimeter closeout."
         },
         {
           "id": "cat8-security-findings",
