@@ -1037,6 +1037,21 @@ test.describe('Phase 2: Serious Violations', () => {
 
       await page.keyboard.press('ArrowRight')
       await expect(expandableItem).toHaveAttribute('aria-expanded', 'true')
+
+      await page.keyboard.press('ArrowRight')
+      await expect.poll(focusedTreeItemIndex).toBeGreaterThan(0)
+
+      await page.keyboard.press('ArrowLeft')
+      await expect.poll(focusedTreeItemIndex).toBe(0)
+
+      await page.keyboard.press('End')
+      await expect.poll(focusedTreeItemIndex).toBeGreaterThan(0)
+
+      await page.keyboard.press('Home')
+      await expect.poll(focusedTreeItemIndex).toBe(0)
+
+      await page.keyboard.press('ArrowLeft')
+      await expect(expandableItem).toHaveAttribute('aria-expanded', 'false')
     })
   })
 

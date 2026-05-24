@@ -1199,7 +1199,7 @@
 
                   <li data-ledger-id="cat7-target-selected-axe-zero">
                     <strong>Target Selected Axe Zero <span class="badge proven">proven</span></strong>
-                    <span>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week.</span>
+                    <span>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, pre-login /login, post-login /issues, and supporting /my-week.</span>
                   </li>
                   <li data-ledger-id="cat7-target-source-backed-top3">
                     <strong>Target Source Backed Top3 <span class="badge proven">proven</span></strong>
@@ -1222,8 +1222,14 @@
           <ul class="check-list">
         <li data-ledger-id="cat7-closeout-axe-command">
           <strong>Closeout Axe Command <span class="subtle">command</span></strong>
-          <span>Repeatable closeout axe gate for /docs, selected /documents/:id, /projects, plus supporting /my-week.</span>
+          <span>Inner axe closeout gate for pre-login /login, post-login /docs, /issues, /projects, selected /documents/:id, plus supporting /my-week.</span>
           <small>Command: pnpm a11y:closeout -- --fail-on-serious | Result: pass</small>
+
+        </li>
+        <li data-ledger-id="cat7-local-closeout-wrapper-command">
+          <strong>Local Closeout Wrapper Command <span class="subtle">command</span></strong>
+          <span>10x local closeout wrapper starts ShipShape Docker PostgreSQL, migrates/seeds, boots local dev servers on available ports, runs the inner axe closeout, and stops the dev child.</span>
+          <small>Command: pnpm a11y:closeout:local -- --fail-on-serious | Result: pass</small>
 
         </li>
         <li data-ledger-id="cat7-axe-summary-artifact">
@@ -1236,6 +1242,12 @@
           <strong>Tree Selector E2E <span class="subtle">test_run</span></strong>
           <span>Focused E2E verification for updated document tree selector.</span>
           <small>Command: E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;navigating to nested document auto-expands tree ancestors&quot; | Result: 1 passed / 0 failed</small>
+
+        </li>
+        <li data-ledger-id="cat7-tree-keyboard-e2e">
+          <strong>Tree Keyboard E2E <span class="subtle">test_run</span></strong>
+          <span>Focused E2E verification for document tree Up/Down, Left/Right, Home, and End keyboard navigation.</span>
+          <small>Command: E2E_RESULTS_DIR=test-results/a11y-tree-keyboard-closeout PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g &quot;document tree supports arrow-key focus and expand/collapse&quot; | Result: 1 passed / 0 failed</small>
 
         </li></ul>
         </article>
@@ -1492,7 +1504,7 @@
         <tr data-ledger-id="cat-7-accessibility">
           <td>Cat 7. Accessibility Compliance</td>
           <td><span class="badge proven">proven</span></td>
-          <td>Selected closeout pages have zero axe violations. passes. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week..</td>
+          <td>Selected closeout pages have zero axe violations. passes. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, pre-login /login, post-login /issues, and supporting /my-week..</td>
           <td><div class="chip-list"><span class="test-chip pass" title="cat7-top3-axe-violations-zero">PASS Top3 Axe Violations Zero</span> <span class="test-chip pass" title="cat7-lighthouse-rerun-not-required-for-claimed-path">PASS Lighthouse Rerun Not Required For Claimed Path</span> <span class="test-chip pass" title="cat7-top3-page-selection-source-backed">PASS Top3 Page Selection Source Backed</span> <span class="test-chip pass" title="cat7-audit-required-fields-present">PASS Audit Required Fields Present</span></div></td>
           <td><div class="source-links"><a class="path" href="AUDIT_REPORT.md" title="my-docs/AUDIT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/AUDIT_REPORT.md</a><a class="path" href="IMPROVEMENT_REPORT.md" title="my-docs/IMPROVEMENT_REPORT.md" target="_blank" rel="noopener noreferrer">my-docs/IMPROVEMENT_REPORT.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a></div></td>
         </tr>
@@ -1818,7 +1830,7 @@
             </div>
             <div>
               <dt>Proof Hook</dt>
-              <dd>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week.</dd>
+              <dd>Selected closeout pages have zero axe violations. threshold true; actual true; Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, pre-login /login, post-login /issues, and supporting /my-week.</dd>
             </div>
             <div>
               <dt>Reproduce</dt>

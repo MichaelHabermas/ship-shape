@@ -59,6 +59,7 @@
     "perf:query-count-api": "node ./scripts/query-count-api.mjs",
     "perf:explain": "pnpm --filter @ship/api exec tsx ../scripts/explain-performance.ts",
     "a11y:closeout": "node ./scripts/a11y-closeout.mjs",
+    "a11y:closeout:local": "node ./scripts/a11y-closeout-local.mjs",
     "security:probe": "node ./scripts/security-probe/run.mjs",
     "security:probe:ci": "./scripts/security-probe/run-ci.sh",
     "security:probe:test": "node --test ./scripts/security-probe/*.test.mjs ./scripts/security-probe/security-findings-store.test.mjs",

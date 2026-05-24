@@ -1130,6 +1130,16 @@ Evidence: `pnpm a11y:closeout -- --fail-on-serious` → 0 critical/serious on `/
 
 **Decision Gist**: Axe path stays the proven Cat 7 branch; expand pages and fix one modal keyboard gap.
 
+### D065: Cat 7 local closeout wrapper + tree keyboard proof (2026-05-24)
+
+Decision: Add `pnpm a11y:closeout:local -- --fail-on-serious` as the preferred local Cat 7 closeout command and strengthen the docs tree keyboard E2E to cover Up/Down, Left/Right, Home, and End.
+
+Why: The source claim was already closed on the axe Critical/Serious path, but reruns depended on an already-running app and local database setup. The wrapper owns Docker PostgreSQL, migrate/seed, dev-server boot, axe execution, and dev-child cleanup. Tree arrow navigation was the only named Cat 7 manual keyboard debt, so the regression now proves it directly.
+
+Evidence: `pnpm a11y:closeout:local -- --fail-on-serious` -> 0 violations on `/login`, `/docs`, `/issues`, `/projects`, selected `/documents/:id`, and `/my-week`; `E2E_RESULTS_DIR=test-results/a11y-tree-keyboard-closeout PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "document tree supports arrow-key focus and expand/collapse"` -> 1 passed / 0 failed.
+
+**Decision Gist**: Make Cat 7 reruns self-setting locally and close the remaining tree keyboard debt with focused proof.
+
 ### D065: Cat 6 process lifecycle and targeted boundary hardening (2026-05-23)
 
 Status: Accepted

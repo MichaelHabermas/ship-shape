@@ -2917,10 +2917,11 @@
         {
           "id": "cat7-closeout-axe",
           "kind": "axe_closeout_by_page",
-          "label": "Closeout axe scan for selected top pages",
-          "recorded_at": "2026-05-23",
+          "label": "Closeout axe scan for selected top pages and expanded scanned surfaces",
+          "recorded_at": "2026-05-24",
           "tooling": {
-            "command": "pnpm a11y:closeout -- --fail-on-serious"
+            "command": "pnpm a11y:closeout:local -- --fail-on-serious",
+            "inner_command": "pnpm a11y:closeout -- --fail-on-serious"
           },
           "artifact": "test-results/a11y-closeout/axe-summary.json",
           "values": {
@@ -2954,7 +2955,7 @@
           "id": "cat7-top3-axe-critical-serious-fixed",
           "kind": "boolean_gate",
           "value": true,
-          "basis": "Closeout axe command reports 0 critical/serious violations on source-backed top-three pages /docs, selected /documents/:id, and /projects. /my-week remains supporting evidence.",
+          "basis": "Closeout axe command reports 0 critical/serious violations on source-backed top-three pages /docs, selected /documents/:id, and /projects. The expanded scan also reports 0 critical/serious violations on pre-login /login, post-login /issues, and supporting /my-week.",
           "origin": "computed",
           "confidence": "artifact_backed"
         },
@@ -3029,7 +3030,14 @@
           "type": "command",
           "command": "pnpm a11y:closeout -- --fail-on-serious",
           "result": "pass",
-          "description": "Repeatable closeout axe gate for /docs, selected /documents/:id, /projects, plus supporting /my-week."
+          "description": "Inner axe closeout gate for pre-login /login, post-login /docs, /issues, /projects, selected /documents/:id, plus supporting /my-week."
+        },
+        {
+          "id": "cat7-local-closeout-wrapper-command",
+          "type": "command",
+          "command": "pnpm a11y:closeout:local -- --fail-on-serious",
+          "result": "pass",
+          "description": "10x local closeout wrapper starts ShipShape Docker PostgreSQL, migrates/seeds, boots local dev servers on available ports, runs the inner axe closeout, and stops the dev child."
         },
         {
           "id": "cat7-axe-summary-artifact",
@@ -3043,6 +3051,13 @@
           "command": "E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g \"navigating to nested document auto-expands tree ancestors\"",
           "result": "1 passed / 0 failed",
           "description": "Focused E2E verification for updated document tree selector."
+        },
+        {
+          "id": "cat7-tree-keyboard-e2e",
+          "type": "test_run",
+          "command": "E2E_RESULTS_DIR=test-results/a11y-tree-keyboard-closeout PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g \"document tree supports arrow-key focus and expand/collapse\"",
+          "result": "1 passed / 0 failed",
+          "description": "Focused E2E verification for document tree Up/Down, Left/Right, Home, and End keyboard navigation."
         }
       ],
       "caveats": [
@@ -3105,7 +3120,7 @@
           "threshold": true,
           "actual": true,
           "result": "pass",
-          "reason": "Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, and supporting /my-week.",
+          "reason": "Repo-local axe closeout summary reports 0 violations on /docs, selected /documents/:id, /projects, pre-login /login, post-login /issues, and supporting /my-week.",
           "references": [
             "cat7-closeout-axe-command",
             "cat7-axe-summary-artifact"
