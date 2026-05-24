@@ -43,6 +43,12 @@ services:
       - key: VITE_WS_URL
         value: https://ship-shape-api.onrender.com
 
+  - type: web
+    name: ship-shape-reviewer-evidence
+    runtime: static
+    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm submission:render-bundle
+    staticPublishPath: ./my-docs/reviewer-evidence-bundle
+
 databases:
   - name: ship-shape-db
     databaseName: ship_shape

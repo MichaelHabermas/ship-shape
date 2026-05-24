@@ -1473,3 +1473,27 @@ Why: Filtering names but returning raw related UUIDs still leaks private graph s
 Evidence: `api/src/routes/bootstrap.ts`, `api/src/routes/team.ts`, `api/src/routes/security-graph.test.ts`; full API suite 51 files / 600 tests passing; security probe CI run `security-probe-ci-20260524-150803`.
 
 **Decision Gist**: Raw association IDs are private until the joined document is readable.
+
+### D082: External config and browser defenses fail closed in production (2026-05-24)
+
+Status: Accepted
+
+Decision: Production OpenAPI routes require normal authentication unless `OPENAPI_PUBLIC=1`. CAIA issuer URLs are validated with SSRF-safe URL/IP/DNS checks before discovery, admin save, or credential test. CAIA OAuth `returnTo` is limited to safe relative paths. Cookie-auth mutating REST requests keep the central CSRF plus same-origin Origin/Referer guard; bearer tokens remain exempt from browser auto-attach assumptions.
+
+Why: These are deployment-facing boundaries. The simple rule is better than route-local exceptions: production introspection is private by default, external issuer discovery cannot reach private infrastructure, and browser-carried cookies need browser-origin proof in addition to CSRF tokens.
+
+Evidence: `api/src/app.ts`, `api/src/services/caia.ts`, `api/src/security/redirects.ts`, `api/src/security/__tests__/security-tail.test.ts`, `api/src/routes/ai-security.test.ts`, `api/src/routes/openapi-security.test.ts`; verification pass added malformed issuer fail-closed behavior and SSRF-safe CAIA custom fetch for discovery/token/userinfo calls. Gates: `pnpm type-check`, `pnpm openapi:check:strict`, API suite, `security-probe-ci-20260524-153908`.
+
+**Decision Gist**: Production external/security edges default private and SSRF-safe.
+
+### D083: Session binding is risk-based, not IP-hard-bound (2026-05-24)
+
+Status: Accepted
+
+Decision: Store and evaluate session binding context through a pure session-binding decision module. Strong User-Agent mismatch denies and requires re-login. IP drift records a suspicious audit path by default, but does not break normal mobile/VPN/network movement unless a future high-security mode explicitly changes policy.
+
+Why: Hard IP binding creates false lockouts and teaches users to work around security. User-Agent mismatch is a stronger replay signal; IP drift is useful telemetry without becoming brittle auth.
+
+Evidence: `api/src/security/session-binding.ts`, `api/src/services/session-auth.ts`, `api/src/middleware/auth.ts`, `api/src/collaboration/index.ts`, `api/src/routes/invites.ts`, `api/src/services/__tests__/session-auth.test.ts`, `api/src/security/__tests__/security-tail.test.ts`.
+
+**Decision Gist**: Deny strong UA mismatch; audit ordinary IP drift.

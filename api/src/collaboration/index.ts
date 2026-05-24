@@ -400,7 +400,11 @@ async function validateWebSocketSession(request: IncomingMessage): Promise<Extra
   if (!sessionId) return null;
 
   try {
-    const validation = await validateAuthenticatedSession(sessionId, { updateActivity: true });
+    const validation = await validateAuthenticatedSession(sessionId, {
+      updateActivity: true,
+      userAgent: Array.isArray(request.headers['user-agent']) ? request.headers['user-agent'][0] : request.headers['user-agent'] || null,
+      ipAddress: request.socket.remoteAddress || null,
+    });
     if (!validation.ok || !validation.session.workspaceId) {
       return null;
     }

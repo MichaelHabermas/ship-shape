@@ -53,6 +53,13 @@ Full fresh-instance gate (CI equivalent):
 pnpm exec shipshape-security ci
 ```
 
+Deployed Render site (safe remote mode — write/stress probes skipped unless opted in):
+
+```bash
+pnpm security:probe:deployed
+# or: ./scripts/security-probe/run-deployed-probe.sh
+```
+
 ## Commands
 
 | Command | Purpose |

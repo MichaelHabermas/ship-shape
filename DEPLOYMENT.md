@@ -8,7 +8,7 @@ AWS/Terraform is intentionally preserved as a possible future government-style p
 
 - API service: Render, configured from `render.yaml`
 - Web service: Render, configured from `render.yaml`
-- Reviewer evidence bundle: generated separately by `pnpm submission:render-bundle`
+- Reviewer evidence bundle: Render static site `ship-shape-reviewer-evidence`, generated on deploy by `pnpm submission:render-bundle`
 
 ## Future Path: AWS/Terraform
 
@@ -40,5 +40,7 @@ After any deployment, verify with a browser, not only `curl`.
 
 - Render API: `https://ship-shape-api.onrender.com/health`
 - Render Web: `https://ship-shape-web.onrender.com`
+- Reviewer evidence bundle: `https://ship-shape-reviewer-evidence.onrender.com/`
+- Security probe (safe, read-only by default): `pnpm security:probe:deployed`
 - AWS prod API: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
 - AWS prod Web: `https://ship.awsdev.treasury.gov`

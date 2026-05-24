@@ -1210,3 +1210,24 @@ Additional verification:
 - `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 600 tests
 - `pnpm security:probe:test`: pass (32/32)
 - `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-150803`, 5/5 surfaces, 40 probes, 0 findings
+
+---
+
+## Security tail closure: external config, AI validation, session anomaly, policy proof (2026-05-24)
+
+Completed the remaining security waves with narrow structural fixes: production OpenAPI auth-gated by default, SSRF-safe CAIA issuer validation, safe relative CAIA return paths, central cookie-auth Origin/Referer proof preserved, AI request contracts aligned to string content, and risk-based session anomaly handling across HTTP plus WebSocket upgrade validation.
+
+Added the first hand-written policy proof matrix for the final SS-FIND rows. Findings closed through the CLI after mapped proof: `SS-FIND-017`, `019`, `020`, `023`, `031`, and `034`.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 54 files / 611 tests
+- `pnpm --filter @ship/web test`: pass, 24 files / 179 tests
+- `pnpm security:probe:test`: pass, 33 tests
+- `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-153908`, 5/5 surfaces, 40 probes, 0 findings
+
+Wave 10 simplification result: no broad deletion was safe or useful in this pass. `workspaceAdminMiddleware`/`workspaceAccessMiddleware` remain live in workspace routes, and legacy document/file/session modules still feed the capability system. The simplification landed as one clearer policy matrix and no new parallel authorization framework.
+
+Correctness follow-up: Review found and fixed two foundational tail gaps before handoff. Malformed CAIA issuer URLs now fail closed, CAIA discovery and later OAuth calls use an SSRF-safe custom fetch with redirect rejection, invite-accept sessions store binding data, and missing legacy session binding refreshes on successful validation.

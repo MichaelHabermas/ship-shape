@@ -1086,6 +1086,18 @@
           <small>Path: my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json</small>
           <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json" title="my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
+        <li data-ledger-id="cat8-security-probe-ci-20260524-153908">
+          <strong>Security Probe Ci 20260524 153908 <span class="subtle">artifact</span></strong>
+          <span>Current CI-shaped local probe run after external config, AI validation, session anomaly, and policy-proof tail: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json" title="my-docs/evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-ci-20260524-154623">
+          <strong>Security Probe Ci 20260524 154623 <span class="subtle">artifact</span></strong>
+          <span>Current CI-shaped local probe run after final correctness verification fixes for CAIA SSRF fetch and session binding lifecycle: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json" title="my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
         <li data-ledger-id="cat8-before-file-size">
           <strong>Before File Size <span class="subtle">artifact</span></strong>
           <span>Before proof for local upload declared-size mismatch acceptance.</span>
@@ -1191,11 +1203,11 @@
       <button type="button" class="security-copy-btn" data-copy-command="pnpm security:probe:ci">Copy</button>
       <p id="security-copy-toast" class="security-copy-toast" hidden aria-live="polite">Copied</p>
     </div>
-          <p class="security-signals">Latest probe: <strong>0</strong> confirmed finding(s). SS-FIND backlog: <strong>6</strong> active of <strong>34</strong> tracked. A clean probe does not close the backlog.</p>
+          <p class="security-signals">Latest probe: <strong>0</strong> confirmed finding(s). SS-FIND backlog: <strong>0</strong> active of <strong>34</strong> tracked. A clean probe does not close the backlog.</p>
           <div class="security-metric-grid">
         <div class="mini security-mini">
           <span>Latest run</span>
-          <strong>security-probe-ci-20260524-152026</strong>
+          <strong>security-probe-ci-20260524-154623</strong>
         </div>
         <div class="mini security-mini">
           <span>Surfaces</span>
@@ -1211,7 +1223,7 @@
         </div>
         <div class="mini security-mini">
           <span>SS-FIND active</span>
-          <strong>6</strong>
+          <strong>0</strong>
         </div>
         <div class="mini security-mini">
           <span>Triage resolved</span>
@@ -1347,66 +1359,6 @@
               </thead>
               <tbody>
         <tr class="security-finding-row">
-          <td><strong>SS-FIND-017</strong></td>
-          <td><span class="impact-pill impact-3">medium</span></td>
-          <td><span class="test-chip warn">open</span></td>
-          <td>yes</td>
-          <td>A07</td>
-          <td><span class="path" title="session-auth.ts, auth.ts">session-auth.ts, auth.ts</span></td>
-          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-017.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-017.md" target="_blank" rel="noopener noreferrer">— Session IP/User-Agent stored but never enforced</a></td>
-          <td>not recorded</td>
-        </tr>
-        <tr class="security-finding-row">
-          <td><strong>SS-FIND-020</strong></td>
-          <td><span class="impact-pill impact-3">medium</span></td>
-          <td><span class="test-chip warn">open</span></td>
-          <td>yes</td>
-          <td>A10</td>
-          <td><span class="path" title="admin-credentials.ts, services/caia.ts">admin-credentials.ts, services/caia.ts</span></td>
-          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-020.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-020.md" target="_blank" rel="noopener noreferrer">— Super-admin SSRF via CAIA issuer URL</a></td>
-          <td>not recorded</td>
-        </tr>
-        <tr class="security-finding-row">
-          <td><strong>SS-FIND-031</strong></td>
-          <td><span class="impact-pill impact-3">medium</span></td>
-          <td><span class="test-chip warn">open</span></td>
-          <td>yes</td>
-          <td>A05 / defense-in-depth-/-architectural</td>
-          <td><span class="path" title="session-cookies.ts, app.ts">session-cookies.ts, app.ts</span></td>
-          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-031.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-031.md" target="_blank" rel="noopener noreferrer">— Production `SameSite=None` — cross-site cookies, CSRF-only REST defense</a></td>
-          <td>not recorded</td>
-        </tr>
-        <tr class="security-finding-row">
-          <td><strong>SS-FIND-019</strong></td>
-          <td><span class="impact-pill impact-3">low</span></td>
-          <td><span class="test-chip warn">open</span></td>
-          <td>yes</td>
-          <td>A01</td>
-          <td><span class="path" title="api/src/routes/caia-auth.ts">api/src/routes/caia-auth.ts</span></td>
-          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-019.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-019.md" target="_blank" rel="noopener noreferrer">— CAIA `returnTo` weak validation</a></td>
-          <td>not recorded</td>
-        </tr>
-        <tr class="security-finding-row">
-          <td><strong>SS-FIND-023</strong></td>
-          <td><span class="impact-pill impact-3">low</span></td>
-          <td><span class="test-chip warn">open</span></td>
-          <td>yes</td>
-          <td></td>
-          <td><span class="path" title="api/src/routes/ai.ts">api/src/routes/ai.ts</span></td>
-          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-023.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-023.md" target="_blank" rel="noopener noreferrer">— AI routes accept unvalidated bodies</a></td>
-          <td>not recorded</td>
-        </tr>
-        <tr class="security-finding-row">
-          <td><strong>SS-FIND-034</strong></td>
-          <td><span class="impact-pill impact-3">low</span></td>
-          <td><span class="test-chip warn">open</span></td>
-          <td>yes</td>
-          <td>A05 / reconnaissance</td>
-          <td><span class="path" title="api/src/swagger.ts">api/src/swagger.ts</span></td>
-          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-034.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-034.md" target="_blank" rel="noopener noreferrer">— Full OpenAPI schema exposed without authentication</a></td>
-          <td>not recorded</td>
-        </tr>
-        <tr class="security-finding-row">
           <td><strong>SS-FIND-001</strong></td>
           <td><span class="impact-pill impact-5">critical</span></td>
           <td><span class="test-chip pass">fixed</span></td>
@@ -1414,7 +1366,7 @@
           <td>A01 / business-logic-authorization-bypass</td>
           <td><span class="path" title="api/src/routes/documents.ts">api/src/routes/documents.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-001.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-001.md" target="_blank" rel="noopener noreferrer">— Governance approval forgery via document `properties` mass assignment</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-002</strong></td>
@@ -1424,7 +1376,7 @@
           <td>A01 / privilege-escalation</td>
           <td><span class="path" title="api/src/routes/programs.ts, documents.ts">api/src/routes/programs.ts, documents.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-002.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-002.md" target="_blank" rel="noopener noreferrer">— RACI self-elevation grants real approval authority</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-003</strong></td>
@@ -1434,7 +1386,7 @@
           <td>A01 / workflow-/-governance-bypass</td>
           <td><span class="path" title="api/src/routes/weeks/sprints.ts, documents.ts">api/src/routes/weeks/sprints.ts, documents.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-003.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-003.md" target="_blank" rel="noopener noreferrer">— Week lifecycle bypass via ungoverned `status` PATCH</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-018</strong></td>
@@ -1454,7 +1406,7 @@
           <td>A01 / accountability-integrity</td>
           <td><span class="path" title="api/src/routes/documents.ts vs weekly-plans.ts">api/src/routes/documents.ts vs weekly-plans.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-004.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-004.md" target="_blank" rel="noopener noreferrer">— Weekly plan IDOR via generic documents REST API</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-005</strong></td>
@@ -1464,7 +1416,7 @@
           <td>A01 / real-time-editing-bypass</td>
           <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-005.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-005.md" target="_blank" rel="noopener noreferrer">— Weekly plan IDOR via collaboration WebSocket</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-025</strong></td>
@@ -1474,7 +1426,7 @@
           <td>A01 / idor-on-file-completion</td>
           <td><span class="path" title="api/src/routes/files.ts">api/src/routes/files.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-025.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-025.md" target="_blank" rel="noopener noreferrer">— Pending file upload hijacking</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-026</strong></td>
@@ -1484,7 +1436,7 @@
           <td>A07 / csrf-equivalent-on-websocket</td>
           <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-026.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-026.md" target="_blank" rel="noopener noreferrer">— Cross-site WebSocket session riding (no Origin validation)</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-027</strong></td>
@@ -1504,7 +1456,7 @@
           <td>A01 / break-glass-/-insider-threat</td>
           <td><span class="path" title="workspaces.ts, document-access.ts">workspaces.ts, document-access.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-029.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-029.md" target="_blank" rel="noopener noreferrer">— Super-admin cross-workspace access without membership</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-006</strong></td>
@@ -1524,7 +1476,7 @@
           <td>A01 / association-/-scope-manipulation</td>
           <td><span class="path" title="api/src/routes/issues.ts">api/src/routes/issues.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-007.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-007.md" target="_blank" rel="noopener noreferrer">— Bulk issue move to private sprint/project without visibility check</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-008</strong></td>
@@ -1534,7 +1486,7 @@
           <td>A01 / attachment-confidentiality</td>
           <td><span class="path" title="api/src/routes/files.ts">api/src/routes/files.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-008.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-008.md" target="_blank" rel="noopener noreferrer">— File access is workspace-scoped, not document-scoped</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-009</strong></td>
@@ -1554,7 +1506,7 @@
           <td>A01 / metadata-leak-(policy-dependent)</td>
           <td><span class="path" title="api/src/routes/dashboard.ts">api/src/routes/dashboard.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-010.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-010.md" target="_blank" rel="noopener noreferrer">— Dashboard `my-focus` leaks private project/program metadata</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-011</strong></td>
@@ -1574,7 +1526,7 @@
           <td>A04</td>
           <td><span class="path" title="api/src/routes/feedback.ts">api/src/routes/feedback.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-012.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-012.md" target="_blank" rel="noopener noreferrer">— Public feedback lacks dedicated anti-abuse controls</a></td>
-          <td>pass · security-probe-ci-20260524-152026</td>
+          <td>pass · security-probe-ci-20260524-154623</td>
         </tr>
         <tr class="security-finding-row">
           <td><strong>SS-FIND-013</strong></td>
@@ -1617,6 +1569,26 @@
           <td>status_change · manual</td>
         </tr>
         <tr class="security-finding-row">
+          <td><strong>SS-FIND-017</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A07</td>
+          <td><span class="path" title="session-auth.ts, auth.ts">session-auth.ts, auth.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-017.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-017.md" target="_blank" rel="noopener noreferrer">— Session IP/User-Agent stored but never enforced</a></td>
+          <td>pass · manual</td>
+        </tr>
+        <tr class="security-finding-row">
+          <td><strong>SS-FIND-020</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A10</td>
+          <td><span class="path" title="admin-credentials.ts, services/caia.ts">admin-credentials.ts, services/caia.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-020.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-020.md" target="_blank" rel="noopener noreferrer">— Super-admin SSRF via CAIA issuer URL</a></td>
+          <td>pass · manual</td>
+        </tr>
+        <tr class="security-finding-row">
           <td><strong>SS-FIND-028</strong></td>
           <td><span class="impact-pill impact-3">medium</span></td>
           <td><span class="test-chip pass">fixed</span></td>
@@ -1634,6 +1606,16 @@
           <td>A01 / governance-property-injection-(feeds-ss-find-012)</td>
           <td><span class="path" title="api/src/routes/documents.ts, programs.ts">api/src/routes/documents.ts, programs.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-030.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-030.md" target="_blank" rel="noopener noreferrer">— Member can enable public feedback via ungoverned PATCH</a></td>
+          <td>status_change · manual</td>
+        </tr>
+        <tr class="security-finding-row">
+          <td><strong>SS-FIND-031</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A05 / defense-in-depth-/-architectural</td>
+          <td><span class="path" title="session-cookies.ts, app.ts">session-cookies.ts, app.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-031.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-031.md" target="_blank" rel="noopener noreferrer">— Production `SameSite=None` — cross-site cookies, CSRF-only REST defense</a></td>
           <td>status_change · manual</td>
         </tr>
         <tr class="security-finding-row">
@@ -1657,6 +1639,16 @@
           <td>status_change · manual</td>
         </tr>
         <tr class="security-finding-row">
+          <td><strong>SS-FIND-019</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01</td>
+          <td><span class="path" title="api/src/routes/caia-auth.ts">api/src/routes/caia-auth.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-019.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-019.md" target="_blank" rel="noopener noreferrer">— CAIA `returnTo` weak validation</a></td>
+          <td>status_change · manual</td>
+        </tr>
+        <tr class="security-finding-row">
           <td><strong>SS-FIND-021</strong></td>
           <td><span class="impact-pill impact-3">low</span></td>
           <td><span class="test-chip pass">fixed</span></td>
@@ -1677,6 +1669,16 @@
           <td>status_change · manual</td>
         </tr>
         <tr class="security-finding-row">
+          <td><strong>SS-FIND-023</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td></td>
+          <td><span class="path" title="api/src/routes/ai.ts">api/src/routes/ai.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-023.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-023.md" target="_blank" rel="noopener noreferrer">— AI routes accept unvalidated bodies</a></td>
+          <td>status_change · manual</td>
+        </tr>
+        <tr class="security-finding-row">
           <td><strong>SS-FIND-024</strong></td>
           <td><span class="impact-pill impact-3">low</span></td>
           <td><span class="test-chip pass">fixed</span></td>
@@ -1684,6 +1686,16 @@
           <td></td>
           <td><span class="path" title="api/src/routes/associations.ts">api/src/routes/associations.ts</span></td>
           <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-024.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-024.md" target="_blank" rel="noopener noreferrer">— Breadcrumbs may expose hidden program UUID</a></td>
+          <td>status_change · manual</td>
+        </tr>
+        <tr class="security-finding-row">
+          <td><strong>SS-FIND-034</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A05 / reconnaissance</td>
+          <td><span class="path" title="api/src/swagger.ts">api/src/swagger.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-034.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-034.md" target="_blank" rel="noopener noreferrer">— Full OpenAPI schema exposed without authentication</a></td>
           <td>status_change · manual</td>
         </tr></tbody>
             </table>
@@ -1726,7 +1738,7 @@
             <tr data-probe-id="abuse-public-feedback-rate-limit" class="security-probe-row">
               <td>abuse-public-feedback-rate-limit</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>50 ms</td>
+              <td>52 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1746,7 +1758,7 @@
             <tr data-probe-id="auth-session-api-token-super-admin-boundary" class="security-probe-row">
               <td>auth-session-api-token-super-admin-boundary</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>11 ms</td>
+              <td>10 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1816,7 +1828,7 @@
             <tr data-probe-id="auth-session-member-audit-logs-denied" class="security-probe-row">
               <td>auth-session-member-audit-logs-denied</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>3 ms</td>
+              <td>1 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1842,7 +1854,7 @@
             <tr data-probe-id="auth-session-unauthenticated-api" class="security-probe-row">
               <td>auth-session-unauthenticated-api</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>4 ms</td>
+              <td>2 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1859,7 +1871,7 @@
             <tr data-probe-id="authorization-bulk-issue-foreign-target" class="security-probe-row">
               <td>authorization-bulk-issue-foreign-target</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>8 ms</td>
+              <td>12 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1885,7 +1897,7 @@
             <tr data-probe-id="authorization-file-document-scope" class="security-probe-row">
               <td>authorization-file-document-scope</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>10 ms</td>
+              <td>7 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1898,7 +1910,7 @@
             <tr data-probe-id="authorization-file-upload-hijack-denied" class="security-probe-row">
               <td>authorization-file-upload-hijack-denied</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>5 ms</td>
+              <td>4 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1911,7 +1923,7 @@
             <tr data-probe-id="authorization-governance-accountable-self-assign" class="security-probe-row">
               <td>authorization-governance-accountable-self-assign</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>13 ms</td>
+              <td>12 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1924,7 +1936,7 @@
             <tr data-probe-id="authorization-governance-properties-injection" class="security-probe-row">
               <td>authorization-governance-properties-injection</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>39 ms</td>
+              <td>31 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1937,7 +1949,7 @@
             <tr data-probe-id="authorization-governance-week-status-bypass" class="security-probe-row">
               <td>authorization-governance-week-status-bypass</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>17 ms</td>
+              <td>13 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1950,7 +1962,7 @@
             <tr data-probe-id="authorization-websocket-origin-reject" class="security-probe-row">
               <td>authorization-websocket-origin-reject</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>5 ms</td>
+              <td>4 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1963,7 +1975,7 @@
             <tr data-probe-id="authorization-weekly-plan-idor-documents" class="security-probe-row">
               <td>authorization-weekly-plan-idor-documents</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>29 ms</td>
+              <td>21 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1972,14 +1984,14 @@
             </tr>
             <tr class="security-probe-detail-row" data-probe-detail="authorization-weekly-plan-idor-documents" hidden>
               <td colspan="6"><pre class="security-probe-pre">{
-  &quot;victimPersonId&quot;: &quot;4965051b-5e0e-49bf-9d61-d9555b2064e7&quot;,
-  &quot;attackerPersonId&quot;: &quot;f13d8218-80ed-49ce-927c-4d794d9fbef1&quot;
+  &quot;victimPersonId&quot;: &quot;4ab5f211-d2b7-48ba-9a31-e1b1ef9e3b5a&quot;,
+  &quot;attackerPersonId&quot;: &quot;ac1a962d-8675-4860-bf83-136a4ef11979&quot;
 }</pre></td>
             </tr>
             <tr data-probe-id="authorization-weekly-plan-idor-websocket" class="security-probe-row">
               <td>authorization-weekly-plan-idor-websocket</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>15 ms</td>
+              <td>12 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -1996,7 +2008,7 @@
             <tr data-probe-id="dependency-pnpm-audit" class="security-probe-row">
               <td>dependency-pnpm-audit</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>563 ms</td>
+              <td>749 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2041,7 +2053,7 @@
             <tr data-probe-id="input-file-upload-size-mismatch" class="security-probe-row">
               <td>input-file-upload-size-mismatch</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>3 ms</td>
+              <td>2 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2054,7 +2066,7 @@
             <tr data-probe-id="input-governance-mass-assignment" class="security-probe-row">
               <td>input-governance-mass-assignment</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>12 ms</td>
+              <td>10 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2067,7 +2079,7 @@
             <tr data-probe-id="input-issue-payloads" class="security-probe-row">
               <td>input-issue-payloads</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>4 ms</td>
+              <td>3 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2093,7 +2105,7 @@
             <tr data-probe-id="input-search-payloads" class="security-probe-row">
               <td>input-search-payloads</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>3 ms</td>
+              <td>2 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2106,7 +2118,7 @@
             <tr data-probe-id="input-stored-xss-document-title" class="security-probe-row">
               <td>input-stored-xss-document-title</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>2 ms</td>
+              <td>3 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2123,7 +2135,7 @@
             <tr data-probe-id="manual-cors-csp" class="security-probe-row">
               <td>manual-cors-csp</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>1 ms</td>
+              <td>2 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2178,7 +2190,7 @@
             <tr data-probe-id="manual-verbose-errors" class="security-probe-row">
               <td>manual-verbose-errors</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>2 ms</td>
+              <td>5 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2195,7 +2207,7 @@
             <tr data-probe-id="websocket-events-malformed-message" class="security-probe-row">
               <td>websocket-events-malformed-message</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>1 ms</td>
+              <td>2 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2225,7 +2237,7 @@
             <tr data-probe-id="websocket-malformed-frame" class="security-probe-row">
               <td>websocket-malformed-frame</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>10 ms</td>
+              <td>6 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2253,7 +2265,7 @@
             <tr data-probe-id="websocket-nonexistent-doc-denied" class="security-probe-row">
               <td>websocket-nonexistent-doc-denied</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>0 ms</td>
+              <td>1 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2266,7 +2278,7 @@
             <tr data-probe-id="websocket-oversized-frame" class="security-probe-row">
               <td>websocket-oversized-frame</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>21 ms</td>
+              <td>20 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>
@@ -2281,7 +2293,7 @@
             <tr data-probe-id="websocket-unknown-message-type" class="security-probe-row">
               <td>websocket-unknown-message-type</td>
               <td><span class="test-chip pass">passed</span></td>
-              <td>7 ms</td>
+              <td>5 ms</td>
               <td>Passed — no confirmed finding</td>
               <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
               <td>

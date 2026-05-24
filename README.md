@@ -262,6 +262,7 @@ Public demo URLs used for final smoke evidence:
 |---------|-----|
 | Web app | https://ship-shape-web.onrender.com/ |
 | API health | https://ship-shape-api.onrender.com/health |
+| Reviewer evidence bundle | https://ship-shape-reviewer-evidence.onrender.com/ |
 
 Final smoke evidence lives in [`my-docs/evidence/deploy-smoke-2026-05-24.md`](./my-docs/evidence/deploy-smoke-2026-05-24.md).
 

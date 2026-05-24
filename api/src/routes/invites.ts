@@ -228,9 +228,17 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
     const expiresAt = new Date(Date.now() + SESSION_TIMEOUT_MS);
 
     await pool.query(
-      `INSERT INTO sessions (id, user_id, workspace_id, expires_at, last_activity)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [sessionId, user.id, invite.workspace_id, expiresAt, new Date()]
+      `INSERT INTO sessions (id, user_id, workspace_id, expires_at, last_activity, user_agent, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        sessionId,
+        user.id,
+        invite.workspace_id,
+        expiresAt,
+        new Date(),
+        req.get('user-agent') || 'unknown',
+        req.ip || req.socket.remoteAddress || 'unknown',
+      ]
     );
 
     await logAuditEvent({

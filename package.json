@@ -64,6 +64,7 @@
     "a11y:closeout": "node ./scripts/a11y-closeout.mjs",
     "a11y:closeout:local": "node ./scripts/a11y-closeout-local.mjs",
     "security:probe": "pnpm exec shipshape-security run",
+    "security:probe:deployed": "./scripts/security-probe/run-deployed-probe.sh",
     "security:probe:ci": "pnpm exec shipshape-security ci",
     "security:console": "node ./packages/shipshape-security/src/console/server.mjs",
     "security:probe:test": "pnpm --filter @ship/shipshape-security test",

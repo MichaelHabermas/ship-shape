@@ -132,6 +132,7 @@ Local dev uses `.env.local` for DB connection.
 **After deploy, verify with browser** (curl can't catch JS errors). Health checks:
 - Render API: `https://ship-shape-api.onrender.com/health`
 - Render Web: `https://ship-shape-web.onrender.com`
+- Reviewer evidence bundle: `https://ship-shape-reviewer-evidence.onrender.com/`
 - AWS prod API: `http://ship-api-prod.eba-xsaqsg9h.us-east-1.elasticbeanstalk.com/health`
 - AWS prod Web: `https://ship.awsdev.treasury.gov`
 

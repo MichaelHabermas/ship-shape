@@ -3739,7 +3739,7 @@
           },
           "origin": "artifact_parsed",
           "confidence": "report_backed",
-          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-150803/report.json"
+          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json"
         }
       ],
       "derived_metrics": [
@@ -3942,6 +3942,18 @@
       "type": "artifact",
       "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json",
       "description": "Current CI-shaped local probe run after graph visibility and realtime parity closure wave: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-153908",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json",
+      "description": "Current CI-shaped local probe run after external config, AI validation, session anomaly, and policy-proof tail: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-154623",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json",
+      "description": "Current CI-shaped local probe run after final correctness verification fixes for CAIA SSRF fetch and session binding lifecycle: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
     },
     {
       "id": "cat8-before-file-size",

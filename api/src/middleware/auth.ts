@@ -4,6 +4,7 @@ import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 import { validateAuthenticatedSession } from '../services/session-auth.js';
 import { validateApiToken } from '../security/tokens.js';
+import { logAuditEvent } from '../services/audit.js';
 
 // Extend Express Request to include session info
 declare global {
@@ -82,7 +83,12 @@ export async function authMiddleware(
   }
 
   try {
-    const validation = await validateAuthenticatedSession(sessionId, { updateActivity: true });
+    const userAgentHeader = req.get?.('user-agent') ?? req.headers?.['user-agent'];
+    const validation = await validateAuthenticatedSession(sessionId, {
+      updateActivity: true,
+      userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader || null,
+      ipAddress: req.ip || req.socket?.remoteAddress || null,
+    });
 
     if (!validation.ok) {
       if (validation.reason === 'membership_revoked') {
@@ -98,14 +104,17 @@ export async function authMiddleware(
 
       if (
         validation.reason === 'absolute_timeout' ||
-        validation.reason === 'inactivity_timeout'
+        validation.reason === 'inactivity_timeout' ||
+        validation.reason === 'binding_mismatch'
       ) {
         res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
           error: {
             code: ERROR_CODES.SESSION_EXPIRED,
             message:
-              validation.reason === 'absolute_timeout'
+              validation.reason === 'binding_mismatch'
+                ? 'Session security changed. Please log in again.'
+                : validation.reason === 'absolute_timeout'
                 ? 'Session expired. Please log in again.'
                 : 'Session expired due to inactivity',
           },
@@ -125,6 +134,15 @@ export async function authMiddleware(
 
     if (validation.session.sessionId === sessionId && validation.activityUpdated) {
       res.cookie('session_id', sessionId, sessionCookieOptions());
+    }
+    if (validation.bindingDecision?.level === 'suspicious') {
+      void logAuditEvent({
+        workspaceId: validation.session.workspaceId ?? undefined,
+        actorUserId: validation.session.userId,
+        action: 'auth.session_anomaly',
+        details: { reasons: validation.bindingDecision?.reasons },
+        req,
+      });
     }
 
     req.sessionId = validation.session.sessionId;

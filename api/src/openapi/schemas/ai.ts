@@ -34,6 +34,12 @@ const AiAnalysisErrorSchema = z.object({
 
 registry.register('AiAnalysisError', AiAnalysisErrorSchema);
 
+const AiRateLimitErrorSchema = z.object({
+  error: z.literal('Rate limit exceeded. Max 10 analysis requests per hour.'),
+}).openapi('AiRateLimitError');
+
+registry.register('AiRateLimitError', AiRateLimitErrorSchema);
+
 // ============== Retro Analysis ==============
 
 const RetroItemAnalysisSchema = z.object({
@@ -87,7 +93,7 @@ registry.registerPath({
       content: {
         'application/json': {
           schema: z.object({
-            content: z.record(z.unknown()).describe('TipTap JSON content of the weekly plan'),
+            content: z.string().min(1).max(50_000).describe('Plain text content extracted from the weekly plan'),
           }),
         },
       },
@@ -99,7 +105,8 @@ registry.registerPath({
       content: { 'application/json': { schema: z.union([PlanAnalysisResultSchema, AiAnalysisErrorSchema]) } },
     },
     429: {
-      description: 'Rate limit exceeded (max 120 per hour)',
+      description: 'Rate limit exceeded (max 10 per hour)',
+      content: { 'application/json': { schema: AiRateLimitErrorSchema } },
     },
   },
 });
@@ -115,8 +122,8 @@ registry.registerPath({
       content: {
         'application/json': {
           schema: z.object({
-            retro_content: z.record(z.unknown()).describe('TipTap JSON content of the weekly retro'),
-            plan_content: z.record(z.unknown()).describe('TipTap JSON content of the weekly plan for comparison'),
+            retro_content: z.string().min(1).max(50_000).describe('Plain text content extracted from the weekly retro'),
+            plan_content: z.string().min(1).max(50_000).describe('Plain text content extracted from the weekly plan for comparison'),
           }),
         },
       },
@@ -128,7 +135,8 @@ registry.registerPath({
       content: { 'application/json': { schema: z.union([RetroAnalysisResultSchema, AiAnalysisErrorSchema]) } },
     },
     429: {
-      description: 'Rate limit exceeded (max 120 per hour)',
+      description: 'Rate limit exceeded (max 10 per hour)',
+      content: { 'application/json': { schema: AiRateLimitErrorSchema } },
     },
   },
 });

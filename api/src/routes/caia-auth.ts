@@ -27,6 +27,7 @@ import {
 import { SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { sessionCookieOptions } from '../config/session-cookies.js';
+import { safeRelativeReturnTo } from '../security/redirects.js';
 
 const router = Router();
 
@@ -38,20 +39,6 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(gov|mil)$/i;
 
 function isValidEmail(email: string): boolean {
   return EMAIL_REGEX.test(email) && email.length <= 254;
-}
-
-/**
- * Validate returnTo URL is same-origin (prevent open redirect)
- */
-function isValidReturnTo(returnTo: string): boolean {
-  try {
-    const decoded = decodeURIComponent(returnTo);
-    if (!decoded.startsWith('/') || decoded.startsWith('//')) return false;
-    if (decoded.includes('\\')) return false;
-    return !decoded.toLowerCase().startsWith('/http:') && !decoded.toLowerCase().startsWith('/https:');
-  } catch {
-    return false;
-  }
 }
 
 // GET /api/auth/caia/status - Check if CAIA auth is available
@@ -310,11 +297,7 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
     res.cookie('session_id', sessionId, sessionCookieOptions({ secure: true }));
 
     // Get returnTo from query param (preserved through OAuth flow)
-    const returnTo = req.query.returnTo;
-    let redirectUrl = '/';
-    if (typeof returnTo === 'string' && isValidReturnTo(returnTo)) {
-      redirectUrl = returnTo;
-    }
+    const redirectUrl = safeRelativeReturnTo(req.query.returnTo) ?? '/';
 
     // Redirect to app (OAuth state was already consumed from database above)
     res.redirect(redirectUrl);

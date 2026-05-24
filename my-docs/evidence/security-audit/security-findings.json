@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T20:20:32.606Z",
+  "updatedAt": "2026-05-24T20:46:45.031Z",
   "discovery": {
     "date": "2026-05-22",
     "method": "deep_review",
@@ -227,6 +227,42 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -340,6 +376,24 @@
           "at": "2026-05-24T20:20:32.318Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-152026",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
           "probeId": "authorization-governance-accountable-self-assign",
           "result": "pass",
           "stillActive": false,
@@ -461,6 +515,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -578,6 +650,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -691,6 +781,24 @@
           "at": "2026-05-24T20:20:32.318Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-152026",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
           "probeId": "authorization-weekly-plan-idor-websocket",
           "result": "pass",
           "stillActive": false,
@@ -857,6 +965,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -979,6 +1105,24 @@
           "at": "2026-05-24T20:20:32.318Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-152026",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
           "probeId": "authorization-file-document-scope",
           "result": "pass",
           "stillActive": false,
@@ -1141,6 +1285,24 @@
           "at": "2026-05-24T20:20:32.318Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-152026",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
           "probeId": "authorization-dashboard-private-metadata",
           "result": "pass",
           "stillActive": false,
@@ -1396,6 +1558,42 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.904Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.905Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -1547,7 +1745,7 @@
       "id": "SS-FIND-017",
       "title": "— Session IP/User-Agent stored but never enforced",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A07",
       "category": null,
@@ -1558,7 +1756,35 @@
       "definition": "Session IP/User-Agent stored but never enforced",
       "narrativePath": "security-findings/narratives/SS-FIND-017.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T20:35:12.585Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Risk-based session binding added and proven: user-agent mismatch invalidates sessions; IP drift is audit/suspicious, not strict-deny. Focused API tests cover shared session validation."
+        },
+        {
+          "at": "2026-05-24T20:35:26.277Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Risk-based session binding closure: deny strong User-Agent mismatch; audit ordinary IP drift; HTTP and WebSocket use shared validateAuthenticatedSession path."
+        },
+        {
+          "at": "2026-05-24T20:45:26.913Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Verification pass completed session anomaly lifecycle: invite-created sessions now store binding data, and legacy sessions with missing binding refresh stored UA/IP on successful validation without hard-failing users."
+        }
+      ]
     },
     {
       "id": "SS-FIND-018",
@@ -1600,7 +1826,7 @@
       "id": "SS-FIND-019",
       "title": "— CAIA `returnTo` weak validation",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": null,
@@ -1611,13 +1837,32 @@
       "definition": "CAIA `returnTo` validation may allow open-redirect variants",
       "narrativePath": "security-findings/narratives/SS-FIND-019.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T20:35:12.593Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "CAIA returnTo now resolves through safeRelativeReturnTo; tests cover same-origin relative path allow and encoded/backslash/protocol bypass rejection."
+        },
+        {
+          "at": "2026-05-24T20:35:26.283Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: CAIA returnTo now accepts only safe relative app paths through safeRelativeReturnTo; bypass variants covered by tests."
+        }
+      ]
     },
     {
       "id": "SS-FIND-020",
       "title": "— Super-admin SSRF via CAIA issuer URL",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A10",
       "category": null,
@@ -1628,7 +1873,35 @@
       "definition": "Super-admin SSRF via CAIA `issuer_url` on credentials save",
       "narrativePath": "security-findings/narratives/SS-FIND-020.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T20:35:12.611Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "CAIA issuer validation strengthened before discovery/save/test paths; tests cover unsafe private, metadata, localhost, userinfo, numeric/octal/hex issuer rejection."
+        },
+        {
+          "at": "2026-05-24T20:35:26.296Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: CAIA issuer validation blocks unsafe hosts and resolved private/metadata addresses before OIDC discovery in auth/admin paths."
+        },
+        {
+          "at": "2026-05-24T20:45:23.872Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Verification pass tightened CAIA SSRF closure: malformed issuer URLs now fail closed with CAIA-prefixed errors, discovery and later CAIA token/userinfo requests use an SSRF-safe custom fetch, and redirects are rejected after validating the Location target."
+        }
+      ]
     },
     {
       "id": "SS-FIND-021",
@@ -1706,7 +1979,7 @@
       "id": "SS-FIND-023",
       "title": "— AI routes accept unvalidated bodies",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
@@ -1717,7 +1990,26 @@
       "definition": "AI analyze routes accept unvalidated request bodies",
       "narrativePath": "security-findings/narratives/SS-FIND-023.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T20:35:12.616Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "AI routes validate string request bodies with Zod before analysis; focused API tests cover missing, non-string, empty, oversized, and valid request bodies."
+        },
+        {
+          "at": "2026-05-24T20:35:26.310Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: AI body validation and OpenAPI schema now use bounded string bodies; malformed and oversized bodies are rejected before analysis."
+        }
+      ]
     },
     {
       "id": "SS-FIND-024",
@@ -1869,6 +2161,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.905Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -1982,6 +2292,24 @@
           "at": "2026-05-24T20:20:32.318Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-152026",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.905Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
           "probeId": "authorization-websocket-origin-reject",
           "result": "pass",
           "stillActive": false,
@@ -2282,6 +2610,42 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:39:14.355Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-153908",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.905Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:46:29.905Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-154623",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -2325,7 +2689,7 @@
       "id": "SS-FIND-031",
       "title": "— Production `SameSite=None` — cross-site cookies, CSRF-only REST defense",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A05",
       "category": "defense-in-depth-/-architectural",
@@ -2336,7 +2700,26 @@
       "definition": "Production `SameSite=None` — cross-site cookies; CSRF-only REST defense",
       "narrativePath": "security-findings/narratives/SS-FIND-031.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T20:35:19.594Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Central conditionalCsrf Origin/Referer guard rejects cross-site cookie-auth mutations; focused API test covers cross-site mutation rejection with valid CSRF token. SameSite=None remains a production constraint with compensating controls."
+        },
+        {
+          "at": "2026-05-24T20:35:32.579Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Fixed with compensating controls for SameSite=None: cookie-auth mutating routes retain CSRF and same-origin Origin/Referer rejection; Bearer auth remains exempt."
+        }
+      ]
     },
     {
       "id": "SS-FIND-032",
@@ -2414,7 +2797,7 @@
       "id": "SS-FIND-034",
       "title": "— Full OpenAPI schema exposed without authentication",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A05",
       "category": "reconnaissance",
@@ -2425,7 +2808,26 @@
       "definition": "Full OpenAPI schema exposed without authentication",
       "narrativePath": "security-findings/narratives/SS-FIND-034.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T20:35:19.607Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Production OpenAPI policy is auth-gated by default with explicit OPENAPI_PUBLIC=1 opt-in; unit proof covers dev/test public and production gated policy."
+        },
+        {
+          "at": "2026-05-24T20:35:32.592Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Production OpenAPI is auth-gated by default; dev/test remain public and OPENAPI_PUBLIC=1 is explicit opt-in."
+        }
+      ]
     }
   ]
 }

@@ -1583,3 +1583,19 @@ Findings closed by CLI: `SS-FIND-006`, `009`, `011`, `015`, `022`, `024`, `027`,
 Residual risk: `SS-FIND-027` is count-bounded per process, not byte-bounded memory governance. That is a materially safer and test-proven closure of unbounded cache growth, but not a full memory-pressure controller.
 
 Verification addendum: Parallel reviewer agents found four missed graph leak paths after the first wave: bootstrap project `program_id`, team project `programId`, explicit team assignment project metadata, and inferred team assignment project metadata. They also found two accountability allocation leaks and one final WebSocket close-persist attribution bug. These were fixed before final proof. Evidence run `security-probe-ci-20260524-150803` passed 5/5 surfaces, 40 probes, 0 findings.
+
+---
+
+## Security external/browser/input/session tail (2026-05-24)
+
+Discovery: The remaining open rows were not one class of bug. They were deployment-edge trust boundaries: CAIA redirect and issuer discovery, production OpenAPI exposure, cookie-auth browser mutation proof, AI request body shape drift, and session replay/anomaly behavior. Several had partial code support already, so the safe path was proof reconciliation first, then small pure validators and focused contract tests.
+
+Implemented: `safeRelativeReturnTo` for CAIA callback paths; SSRF-safe CAIA issuer validation before discovery/save/test; exported production OpenAPI gating policy; AI OpenAPI schemas aligned to runtime string content and 10/hour rate-limit responses; risk-based `session-binding.ts` with UA mismatch denial and IP drift audit; shared session validation used by HTTP auth and WebSocket upgrade. Added a hand-written security policy matrix for the remaining finding/probe mapping rather than a generated compiler.
+
+Evidence: `pnpm type-check`; `pnpm openapi:check:strict`; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed 54 files / 611 tests after rerun with local Postgres access; `pnpm --filter @ship/web test` passed 24 files / 179 tests; `pnpm security:probe:test` passed 33 tests; `pnpm security:probe:ci` passed with run `security-probe-ci-20260524-153908`, 5/5 surfaces, 40 probes, 0 findings.
+
+Findings closed by CLI after proof: `SS-FIND-017`, `019`, `020`, `023`, `031`, and `034`.
+
+Residual risk: WebSocket periodic revalidation has no fresh request headers, so it enforces session deletion/expiry and membership/visibility loss; User-Agent binding is enforced at initial upgrade through the shared validator. OpenAPI production integration is covered by exported policy proof rather than mutating global `NODE_ENV` inside parallel route tests.
+
+Verification follow-up: A deeper correctness pass found two gaps before final handoff. Malformed CAIA issuer strings could throw `Invalid URL`, which the admin save path might treat as a safe discovery failure; they now fail closed with a CAIA-prefixed error. CAIA discovery now installs an SSRF-safe custom fetch so metadata endpoints and redirects cannot move later OAuth calls onto private infrastructure. Invite-accept sessions now store binding data, and legacy sessions with missing binding refresh UA/IP on successful validation.

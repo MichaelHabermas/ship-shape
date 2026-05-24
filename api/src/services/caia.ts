@@ -9,6 +9,8 @@
  */
 
 import * as client from 'openid-client';
+import dns from 'dns/promises';
+import net from 'net';
 import {
   getCAIACredentials,
   type CAIACredentials,
@@ -128,12 +130,15 @@ async function discoverIssuer(): Promise<client.Configuration> {
   console.log(`[CAIA]   Client ID: ${creds.client_id}`);
 
   try {
-    const issuerUrl = validateIssuerUrl(creds.issuer_url);
+    const issuerUrl = await validateCaiaIssuerUrl(creds.issuer_url);
     const config = await client.discovery(
       issuerUrl,
       creds.client_id,
       creds.client_secret,
+      undefined,
+      { [client.customFetch]: ssrfSafeFetch },
     );
+    config[client.customFetch] = ssrfSafeFetch;
     const metadata = config.serverMetadata();
     console.log(`[CAIA] Issuer discovered successfully: ${metadata.issuer}`);
     console.log(`[CAIA] Token endpoint: ${metadata.token_endpoint}`);
@@ -150,28 +155,97 @@ async function discoverIssuer(): Promise<client.Configuration> {
   }
 }
 
-function validateIssuerUrl(rawIssuerUrl: string): URL {
-  const issuerUrl = new URL(rawIssuerUrl);
+function isUnsafeIpAddress(address: string): boolean {
+  if (net.isIP(address) === 6) {
+    const normalized = address.toLowerCase();
+    return normalized === '::1'
+      || normalized === '::'
+      || normalized.startsWith('fc')
+      || normalized.startsWith('fd')
+      || normalized.startsWith('fe80:')
+      || normalized.startsWith('::ffff:127.')
+      || normalized.startsWith('::ffff:10.')
+      || normalized.startsWith('::ffff:192.168.')
+      || /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./.test(normalized);
+  }
+
+  if (net.isIP(address) !== 4) return true;
+  return address === '0.0.0.0'
+    || address.startsWith('127.')
+    || address.startsWith('10.')
+    || address.startsWith('192.168.')
+    || address.startsWith('169.254.')
+    || /^172\.(1[6-9]|2\d|3[0-1])\./.test(address);
+}
+
+function numberToIpv4(value: number): string | null {
+  if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) return null;
+  return [
+    (value >>> 24) & 255,
+    (value >>> 16) & 255,
+    (value >>> 8) & 255,
+    value & 255,
+  ].join('.');
+}
+
+function parseNumericIpv4(hostname: string): string | null {
+  const normalized = hostname.toLowerCase();
+  if (/^0x[0-9a-f]+$/.test(normalized)) return numberToIpv4(Number.parseInt(normalized.slice(2), 16));
+  if (/^0[0-7]+$/.test(normalized)) return numberToIpv4(Number.parseInt(normalized, 8));
+  if (/^\d+$/.test(normalized)) return numberToIpv4(Number.parseInt(normalized, 10));
+  return null;
+}
+
+function validateIssuerUrlShape(rawIssuerUrl: string): URL {
+  let issuerUrl: URL;
+  try {
+    issuerUrl = new URL(rawIssuerUrl);
+  } catch {
+    throw new Error('CAIA issuer URL is malformed');
+  }
   if (issuerUrl.protocol !== 'https:') {
     throw new Error('CAIA issuer URL must use HTTPS');
   }
+  if (issuerUrl.username || issuerUrl.password) {
+    throw new Error('CAIA issuer URL cannot include credentials');
+  }
 
-  const hostname = issuerUrl.hostname.toLowerCase();
+  const hostname = issuerUrl.hostname.toLowerCase().replace(/\.$/, '');
   const blockedHostnames = new Set(['localhost', 'metadata.google.internal']);
+  const numericIpv4 = parseNumericIpv4(hostname);
   if (
     blockedHostnames.has(hostname) ||
     hostname.endsWith('.local') ||
-    hostname === '169.254.169.254' ||
-    hostname === '0.0.0.0' ||
-    hostname === '127.0.0.1' ||
-    hostname.startsWith('10.') ||
-    hostname.startsWith('192.168.') ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+    (net.isIP(hostname) !== 0 && isUnsafeIpAddress(hostname)) ||
+    (numericIpv4 !== null && isUnsafeIpAddress(numericIpv4))
   ) {
     throw new Error('CAIA issuer URL cannot target private or metadata hosts');
   }
 
   return issuerUrl;
+}
+
+export async function validateCaiaIssuerUrl(rawIssuerUrl: string): Promise<URL> {
+  const issuerUrl = validateIssuerUrlShape(rawIssuerUrl);
+  const addresses = await dns.lookup(issuerUrl.hostname, { all: true, verbatim: true });
+  if (addresses.some(address => isUnsafeIpAddress(address.address))) {
+    throw new Error('CAIA issuer URL resolved to a private or metadata address');
+  }
+  return issuerUrl;
+}
+
+async function ssrfSafeFetch(input: Request | string | URL, init?: RequestInit): Promise<Response> {
+  const requestUrl = input instanceof Request ? input.url : input.toString();
+  await validateCaiaIssuerUrl(requestUrl);
+  const response = await fetch(input, { ...init, redirect: 'manual' });
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get('location');
+    if (location) {
+      await validateCaiaIssuerUrl(new URL(location, requestUrl).toString());
+    }
+    throw new Error('CAIA issuer URL redirects are not allowed');
+  }
+  return response;
 }
 
 /**
@@ -380,11 +454,15 @@ export async function validateIssuerDiscovery(
   console.log(`[CAIA]   Client Secret: ${clientSecret ? '[REDACTED - ' + clientSecret.length + ' chars]' : '[EMPTY]'}`);
 
   try {
+    const safeIssuerUrl = await validateCaiaIssuerUrl(issuerUrl);
     const config = await client.discovery(
-      new URL(issuerUrl),
+      safeIssuerUrl,
       clientId,
       clientSecret,
+      undefined,
+      { [client.customFetch]: ssrfSafeFetch },
     );
+    config[client.customFetch] = ssrfSafeFetch;
 
     const issuer = config.serverMetadata().issuer;
     console.log(`[CAIA] Discovery successful! Issuer: ${issuer}`);

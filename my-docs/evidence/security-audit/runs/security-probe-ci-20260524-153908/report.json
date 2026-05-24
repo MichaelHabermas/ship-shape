@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-24T20:46:29.901Z",
+  "generatedAt": "2026-05-24T20:39:14.353Z",
   "run": {
-    "id": "security-probe-ci-20260524-154623",
-    "startedAt": "2026-05-24T20:46:28.721Z",
-    "finishedAt": "2026-05-24T20:46:29.901Z",
+    "id": "security-probe-ci-20260524-153908",
+    "startedAt": "2026-05-24T20:39:13.374Z",
+    "finishedAt": "2026-05-24T20:39:14.353Z",
     "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
     "target": "local",
     "mode": "local-active",
@@ -148,7 +148,7 @@
       "id": "auth-session-unauthenticated-api",
       "name": "Unauthenticated protected API access rejected",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -198,7 +198,7 @@
       "id": "auth-session-api-token-super-admin-boundary",
       "name": "API tokens cannot access super-admin routes",
       "status": "passed",
-      "durationMs": 10,
+      "durationMs": 11,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -207,7 +207,7 @@
       "id": "auth-session-member-audit-logs-denied",
       "name": "Member cannot access global audit logs",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 3,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -225,7 +225,7 @@
       "id": "authorization-governance-properties-injection",
       "name": "Member cannot forge plan_approval via documents PATCH",
       "status": "passed",
-      "durationMs": 31,
+      "durationMs": 38,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -234,7 +234,7 @@
       "id": "authorization-governance-accountable-self-assign",
       "name": "Member cannot self-assign accountable_id on program",
       "status": "passed",
-      "durationMs": 12,
+      "durationMs": 25,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -243,7 +243,7 @@
       "id": "authorization-governance-week-status-bypass",
       "name": "Member cannot complete sprint via ungoverned status PATCH",
       "status": "passed",
-      "durationMs": 13,
+      "durationMs": 25,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -252,19 +252,19 @@
       "id": "authorization-weekly-plan-idor-documents",
       "name": "Member cannot access peer weekly plan via documents API",
       "status": "passed",
-      "durationMs": 21,
+      "durationMs": 22,
       "targetSafe": true,
       "findingIds": [],
       "details": {
-        "victimPersonId": "4ab5f211-d2b7-48ba-9a31-e1b1ef9e3b5a",
-        "attackerPersonId": "ac1a962d-8675-4860-bf83-136a4ef11979"
+        "victimPersonId": "c0073a8e-5e93-4ed3-a8ef-f917165a48ff",
+        "attackerPersonId": "5b03510f-1a0f-4462-b04f-e6f240a4f26f"
       }
     },
     {
       "id": "authorization-weekly-plan-idor-websocket",
       "name": "Member cannot join peer weekly plan collaboration room",
       "status": "passed",
-      "durationMs": 12,
+      "durationMs": 13,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -291,7 +291,7 @@
       "id": "authorization-bulk-issue-foreign-target",
       "name": "Bulk issue update does not mutate inaccessible foreign IDs",
       "status": "passed",
-      "durationMs": 12,
+      "durationMs": 8,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -309,7 +309,7 @@
       "id": "authorization-file-document-scope",
       "name": "File serve respects parent document visibility",
       "status": "passed",
-      "durationMs": 7,
+      "durationMs": 18,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -336,7 +336,7 @@
       "id": "websocket-malformed-frame",
       "name": "Malformed WebSocket message rejected deterministically",
       "status": "passed",
-      "durationMs": 6,
+      "durationMs": 7,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -369,7 +369,7 @@
       "id": "websocket-events-malformed-message",
       "name": "Malformed events WebSocket message rejected",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -391,7 +391,7 @@
       "id": "input-stored-xss-document-title",
       "name": "Stored XSS payload remains inert in JSON API response",
       "status": "passed",
-      "durationMs": 3,
+      "durationMs": 4,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -454,7 +454,7 @@
       "id": "input-governance-mass-assignment",
       "name": "Governance fields rejected on generic PATCH",
       "status": "passed",
-      "durationMs": 10,
+      "durationMs": 25,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -463,7 +463,7 @@
       "id": "dependency-pnpm-audit",
       "name": "pnpm audit high/critical CVE check",
       "status": "passed",
-      "durationMs": 749,
+      "durationMs": 495,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -474,7 +474,7 @@
       "id": "manual-cors-csp",
       "name": "Assisted CORS/CSP review",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 0,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -517,7 +517,7 @@
       "id": "manual-verbose-errors",
       "name": "Assisted verbose error leakage review",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -538,7 +538,7 @@
       "id": "abuse-public-feedback-rate-limit",
       "name": "Public feedback endpoint resists burst submissions",
       "status": "passed",
-      "durationMs": 52,
+      "durationMs": 53,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -550,7 +550,7 @@
   "createdArtifacts": [],
   "suggestedLedgerUpdate": {
     "category": "cat-8-security-audit",
-    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json",
+    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json",
     "attackSurfacesMeasured": 5,
     "attackSurfacesTotal": 5,
     "manualReviewComplete": true,

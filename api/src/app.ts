@@ -154,9 +154,9 @@ function shouldBypassRateLimit(req: Request): boolean {
   return getHeaderValue(req.headers['x-benchmark-rate-limit-bypass']) === token;
 }
 
-function openApiShouldRequireAuth(): boolean {
-  if (!isProduction()) return false;
-  return process.env.OPENAPI_PUBLIC !== '1';
+export function openApiShouldRequireAuth(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.NODE_ENV !== 'production') return false;
+  return env.OPENAPI_PUBLIC !== '1';
 }
 
 // Rate limiting configurations
