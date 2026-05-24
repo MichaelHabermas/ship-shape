@@ -16,8 +16,43 @@ export function fail(id, name, finding) {
   return { id, name, status: 'failed', durationMs: 0, targetSafe: true, findingIds: [finding.id], findings: [finding] };
 }
 
-export function finding({ id, probeId, title, severity = 'medium', confidence = 'confirmed', category, affected = {}, evidence = {}, expected, observed, fixCandidate, safeToAutoFix = false }) {
-  return { id, probeId, title, severity, confidence, category, affected, evidence, expected, observed, fixCandidate, safeToAutoFix };
+import { fingerprintForFinding } from './finding-registry.mjs';
+
+export function finding({
+  id,
+  probeId,
+  title,
+  severity = 'medium',
+  confidence = 'confirmed',
+  category,
+  owasp = null,
+  ledgerId = null,
+  fingerprint = null,
+  affected = {},
+  evidence = {},
+  expected,
+  observed,
+  fixCandidate,
+  safeToAutoFix = false,
+}) {
+  const resolvedFingerprint = fingerprint || fingerprintForFinding(probeId, id);
+  return {
+    id,
+    probeId,
+    title,
+    severity,
+    confidence,
+    category,
+    owasp,
+    ledgerId,
+    fingerprint: resolvedFingerprint,
+    affected,
+    evidence,
+    expected,
+    observed,
+    fixCandidate,
+    safeToAutoFix,
+  };
 }
 
 export async function timed(resultPromise) {

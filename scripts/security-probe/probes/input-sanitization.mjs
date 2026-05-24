@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import { fail, finding, pass, skip } from '../lib/result-model.mjs';
 import { runSelectedProbes } from '../lib/probe-selection.mjs';
+import { fingerprintForFinding } from '../lib/finding-registry.mjs';
+import { isDeniedStatus, memberReady, pickSprintDocument, pickProgram } from '../lib/fixtures.mjs';
 import { longPayload, marker, sqlPayload, xssPayload } from '../fixtures/payloads.mjs';
 
 export async function inputSanitizationProbes(context) {
@@ -12,7 +14,41 @@ export async function inputSanitizationProbes(context) {
     { id: 'input-comment-payloads', name: 'Comment payloads remain inert and validation bounded', run: commentPayloads, requiresWrite: true },
     { id: 'input-file-upload-size-mismatch', name: 'Local upload size mismatch rejected', run: fileUploadSizeMismatch, requiresWrite: true },
     { id: 'input-file-serve-headers', name: 'Served uploads use safe download headers', run: fileServeHeaders, requiresWrite: true },
+    { id: 'input-governance-mass-assignment', name: 'Governance fields rejected on generic PATCH', run: governanceMassAssignment, requiresWrite: true },
   ]);
+}
+
+async function governanceMassAssignment({ clients }) {
+  if (!memberReady(clients)) {
+    return skip('input-governance-mass-assignment', 'Governance fields rejected on generic PATCH', 'member login unavailable');
+  }
+  const program = await pickProgram(clients.admin);
+  const sprint = await pickSprintDocument(clients.admin, program.id);
+  const patch = await clients.member.api(`/api/documents/${sprint.id}`, {
+    method: 'PATCH',
+    body: {
+      properties: {
+        review_approval: { state: 'approved' },
+        submitted_at: new Date().toISOString(),
+      },
+    },
+  });
+  if (isDeniedStatus(patch.status)) {
+    return pass('input-governance-mass-assignment', 'Governance fields rejected on generic PATCH');
+  }
+  return fail('input-governance-mass-assignment', 'Governance fields rejected on generic PATCH', finding({
+    id: 'probe-governance-mass-assignment',
+    probeId: 'input-governance-mass-assignment',
+    title: 'Governance fields accepted via generic PATCH',
+    severity: 'critical',
+    ledgerId: 'SS-FIND-001',
+    owasp: 'A01',
+    fingerprint: fingerprintForFinding('input-governance-mass-assignment', 'probe-governance-mass-assignment'),
+    category: 'input-validation',
+    expected: 'Member PATCH with review_approval/submitted_at returns 400 or 403.',
+    observed: `Received HTTP ${patch.status}.`,
+    evidence: { reproduction: ['pnpm security:probe -- --probe input-governance-mass-assignment'] },
+  }));
 }
 
 async function storedXssDocumentTitle({ clients, config }) {

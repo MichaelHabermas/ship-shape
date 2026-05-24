@@ -1,6 +1,9 @@
 import { mkdir, writeFile, copyFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { repoRoot } from './cli.mjs';
+import { coverageGaps } from '../data/route-manifest.mjs';
+import { loadFindingRegistry, triageFindings, suggestRegistryUpdates } from './finding-registry.mjs';
+import { MEASURED_SURFACE_COUNT } from './registry.mjs';
 
 function countBy(items, keyFn) {
   return items.reduce((acc, item) => {
@@ -10,10 +13,15 @@ function countBy(items, keyFn) {
   }, {});
 }
 
-export function buildReport({ config, probes, startedAt, finishedAt }) {
+function measuredSurfaceCount(surfaces) {
+  return Object.values(surfaces).filter((surface) => ['pass', 'partial', 'fail', 'error'].includes(surface.status)).length;
+}
+
+export function buildReport({ config, probes, startedAt, finishedAt, registry = loadFindingRegistry() }) {
   const findings = probes.flatMap((probe) => probe.findings || []);
   const surfaces = {
     authSession: surfaceStatus(probes, 'auth-session'),
+    authorization: surfaceStatus(probes, 'authorization'),
     websocketValidation: surfaceStatus(probes, 'websocket'),
     inputSanitization: surfaceStatus(probes, 'input'),
     dependencyCves: surfaceStatus(probes, 'dependency'),
@@ -24,9 +32,11 @@ export function buildReport({ config, probes, startedAt, finishedAt }) {
     rateLimits: manualStatus(probes, 'manual-rate-limits'),
     verboseErrors: manualStatus(probes, 'manual-verbose-errors'),
   };
+  const triage = triageFindings({ registry, probes });
+  const probeIdsRun = probes.map((probe) => probe.id);
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: finishedAt,
     run: {
       id: config.runId,
@@ -40,23 +50,35 @@ export function buildReport({ config, probes, startedAt, finishedAt }) {
       wsUrl: config.wsUrl,
     },
     summary: {
-      status: probes.some((probe) => probe.status === 'error') ? 'fail' : findings.length > 0 ? 'warn' : 'pass',
-      attackSurfacesMeasured: Object.values(surfaces).filter((surface) => ['pass', 'partial', 'fail', 'error'].includes(surface.status)).length,
+      status: probes.some((probe) => probe.status === 'error')
+        ? 'fail'
+        : findings.length > 0
+          ? 'warn'
+          : 'pass',
+      attackSurfacesMeasured: measuredSurfaceCount(surfaces),
+      attackSurfacesTotal: MEASURED_SURFACE_COUNT,
       findings: findings.length,
       findingsBySeverity: countBy(findings, (finding) => finding.severity),
-      highOrCriticalDependencyCves: findings.filter((finding) => finding.category === 'dependency' && ['high', 'critical'].includes(finding.severity)).length,
+      triageCounts: triage.counts,
+      highOrCriticalDependencyCves: findings.filter(
+        (finding) => finding.category === 'dependency' && ['high', 'critical'].includes(finding.severity)
+      ).length,
       probesByStatus: countBy(probes, (probe) => probe.status),
     },
     surfaces,
     manualReview,
+    triage,
+    coverageGaps: coverageGaps(probeIdsRun),
     findings,
     probes: probes.map(({ findings: _findings, ...probe }) => probe),
     createdArtifacts: probes.flatMap((probe) => probe.createdArtifacts || []),
     suggestedLedgerUpdate: {
       category: 'cat-8-security-audit',
       structuredReport: `my-docs/evidence/security-audit/runs/${config.runId}/report.json`,
-      attackSurfacesMeasured: Object.values(surfaces).filter((surface) => ['pass', 'partial', 'fail', 'error'].includes(surface.status)).length,
+      attackSurfacesMeasured: measuredSurfaceCount(surfaces),
+      attackSurfacesTotal: MEASURED_SURFACE_COUNT,
       manualReviewComplete: Object.values(manualReview).every((review) => review.status !== 'not_measured'),
+      registrySuggestions: suggestRegistryUpdates(triage),
       note: 'Review before copying into submission-ledger.json; the probe does not auto-update claims.',
     },
   };
@@ -74,7 +96,13 @@ function surfaceStatus(probes, prefix) {
     };
   }
   return {
-    status: measured.some((probe) => probe.status === 'failed') ? 'fail' : measured.some((probe) => probe.status === 'error') ? 'error' : selected.some((probe) => probe.status === 'skipped') ? 'partial' : 'pass',
+    status: measured.some((probe) => probe.status === 'failed')
+      ? 'fail'
+      : measured.some((probe) => probe.status === 'error')
+        ? 'error'
+        : selected.some((probe) => probe.status === 'skipped')
+          ? 'partial'
+          : 'pass',
     findings: measured.flatMap((probe) => probe.findingIds || []),
     probes: selected.map((probe) => probe.id),
   };
@@ -86,16 +114,57 @@ function manualStatus(probes, id) {
   return { status: probe.status === 'failed' ? 'needs_review' : probe.status, details: probe.details || {} };
 }
 
+function renderTriageSection(report) {
+  const lines = ['## Finding triage', ''];
+  const { triage } = report;
+  if (!triage.counts.knownOpen && !triage.counts.new && !triage.counts.resolved && !triage.counts.regression) {
+    lines.push('No triaged findings in this run.', '');
+    return lines;
+  }
+  if (triage.knownOpen.length) {
+    lines.push('### Still open (known registry)', '');
+    for (const finding of triage.knownOpen) {
+      lines.push(`- ${finding.title} (${finding.ledgerId || finding.id})`);
+    }
+    lines.push('');
+  }
+  if (triage.new.length) {
+    lines.push('### New this run (not in registry)', '');
+    for (const finding of triage.new) {
+      lines.push(`- ${finding.title} (${finding.id})`);
+    }
+    lines.push('');
+  }
+  if (triage.resolved.length) {
+    lines.push('### Resolved since registry (probe passed)', '');
+    for (const item of triage.resolved) {
+      lines.push(`- ${item.registryEntry.title} (${item.registryEntry.ledgerId || item.registryEntry.findingId})`);
+    }
+    lines.push('');
+  }
+  if (triage.regression.length) {
+    lines.push('### Regressions (registry marked fixed, probe failed)', '');
+    for (const finding of triage.regression) {
+      lines.push(`- ${finding.title} (${finding.ledgerId || finding.id})`);
+    }
+    lines.push('');
+  }
+  return lines;
+}
+
 export function renderMarkdown(report) {
+  const total = report.summary.attackSurfacesTotal ?? MEASURED_SURFACE_COUNT;
   const lines = [
-    `# Category 8 Security Probe ${report.run.id}`,
+    `# Security Probe ${report.run.id}`,
     '',
     `- API URL: ${report.run.apiUrl}`,
     `- Web URL: ${report.run.webUrl}`,
     `- Mode: ${report.run.mode}`,
-    `- Attack surfaces measured: ${report.summary.attackSurfacesMeasured}/4`,
+    `- Attack surfaces measured: ${report.summary.attackSurfacesMeasured}/${total}`,
     `- Findings: ${report.summary.findings}`,
+    `- Triage: known-open=${report.summary.triageCounts?.knownOpen ?? 0}, new=${report.summary.triageCounts?.new ?? 0}, resolved=${report.summary.triageCounts?.resolved ?? 0}, regression=${report.summary.triageCounts?.regression ?? 0}`,
     '',
+    ...renderTriageSection(report),
     '## Findings',
     '',
   ];
@@ -106,6 +175,8 @@ export function renderMarkdown(report) {
       lines.push(`### ${finding.severity.toUpperCase()}: ${finding.title}`);
       lines.push(`- ID: ${finding.id}`);
       lines.push(`- Probe: ${finding.probeId}`);
+      if (finding.ledgerId) lines.push(`- Ledger: ${finding.ledgerId}`);
+      if (finding.owasp) lines.push(`- OWASP: ${finding.owasp}`);
       lines.push(`- Expected: ${finding.expected}`);
       lines.push(`- Observed: ${finding.observed}`);
       if (finding.fixCandidate) lines.push(`- Fix candidate: ${finding.fixCandidate}`);

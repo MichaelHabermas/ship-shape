@@ -85,7 +85,7 @@ export function buildConfig(argv = process.argv.slice(2), env = process.env) {
     allowStress,
     quick: optionEnabled(options.quick),
     probe: options.probe ? String(options.probe) : null,
-    failOn: options.failOn ? String(options.failOn) : 'none',
+    failOn: options.failOn ? String(options.failOn) : 'high',
     maxBurst: Number(options.maxBurst || 20),
     maxPayloadMb: Number(options.maxPayloadMb || 11),
     runId,

@@ -1,6 +1,8 @@
 import { ProbeHttpClient } from '../lib/http-client.mjs';
-import { fail, finding, pass } from '../lib/result-model.mjs';
+import { fail, finding, pass, skip } from '../lib/result-model.mjs';
 import { runSelectedProbes } from '../lib/probe-selection.mjs';
+import { fingerprintForFinding } from '../lib/finding-registry.mjs';
+import { memberReady } from '../lib/fixtures.mjs';
 
 export async function authSessionProbes(context) {
   return runSelectedProbes(context, [
@@ -10,6 +12,8 @@ export async function authSessionProbes(context) {
     { id: 'auth-session-cookie-shape-expiry', name: 'Session cookie has strong shape and browser expiry', run: sessionCookieShapeExpiry },
     { id: 'auth-session-csrf-mutating-request', name: 'CSRF blocks mutating cookie request without token', run: csrfMutatingRequest },
     { id: 'auth-session-api-token-super-admin-boundary', name: 'API tokens cannot access super-admin routes', run: apiTokenSuperAdminBoundary, requiresWrite: true },
+    { id: 'auth-session-member-audit-logs-denied', name: 'Member cannot access global audit logs', run: memberAuditLogsDenied },
+    { id: 'auth-session-member-impersonation-denied', name: 'Member cannot impersonate users', run: memberImpersonationDenied },
   ]);
 }
 
@@ -139,5 +143,47 @@ async function apiTokenSuperAdminBoundary({ clients, config }) {
     observed: `Super-admin route returned HTTP ${result.status} for a bearer token.`,
     evidence: { reproduction: ['Log in as seeded admin.', 'Create an API token.', 'GET /api/admin/credentials/status with Authorization: Bearer <token>.'] },
     fixCandidate: 'Reject req.isApiToken inside superAdminMiddleware unless scoped token support exists.',
+  }));
+}
+
+async function memberAuditLogsDenied({ clients }) {
+  if (!memberReady(clients)) {
+    return skip('auth-session-member-audit-logs-denied', 'Member cannot access global audit logs', 'member login unavailable');
+  }
+  const result = await clients.member.api('/api/admin/audit-logs');
+  if (result.status === 403) return pass('auth-session-member-audit-logs-denied', 'Member cannot access global audit logs');
+  return fail('auth-session-member-audit-logs-denied', 'Member cannot access global audit logs', finding({
+    id: 'probe-member-audit-logs-denied',
+    probeId: 'auth-session-member-audit-logs-denied',
+    title: 'Member accessed global audit logs',
+    severity: 'high',
+    category: 'authorization',
+    fingerprint: fingerprintForFinding('auth-session-member-audit-logs-denied', 'probe-member-audit-logs-denied'),
+    affected: { endpoint: '/api/admin/audit-logs' },
+    expected: 'Workspace member GET /api/admin/audit-logs returns 403.',
+    observed: `Received HTTP ${result.status}.`,
+    evidence: { reproduction: ['pnpm security:probe -- --probe auth-session-member-audit-logs-denied'] },
+  }));
+}
+
+async function memberImpersonationDenied({ clients }) {
+  if (!memberReady(clients)) {
+    return skip('auth-session-member-impersonation-denied', 'Member cannot impersonate users', 'member login unavailable');
+  }
+  const result = await clients.member.api('/api/admin/impersonate/00000000-0000-4000-8000-000000000099', {
+    method: 'POST',
+  });
+  if (result.status === 403) return pass('auth-session-member-impersonation-denied', 'Member cannot impersonate users');
+  return fail('auth-session-member-impersonation-denied', 'Member cannot impersonate users', finding({
+    id: 'probe-member-impersonation-denied',
+    probeId: 'auth-session-member-impersonation-denied',
+    title: 'Member invoked impersonation endpoint',
+    severity: 'high',
+    category: 'authorization',
+    fingerprint: fingerprintForFinding('auth-session-member-impersonation-denied', 'probe-member-impersonation-denied'),
+    affected: { endpoint: '/api/admin/impersonate/:userId' },
+    expected: 'Member POST /api/admin/impersonate/:id returns 403.',
+    observed: `Received HTTP ${result.status}.`,
+    evidence: { reproduction: ['pnpm security:probe -- --probe auth-session-member-impersonation-denied'] },
   }));
 }
