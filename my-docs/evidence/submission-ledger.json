@@ -3652,6 +3652,25 @@
           "origin": "artifact_parsed",
           "confidence": "report_backed",
           "source": "my-docs/evidence/security-audit/runs/baseline-before-probe/report.json"
+        },
+        {
+          "id": "cat8-probe-v2-ci-gate",
+          "kind": "security_probe_status",
+          "label": "Probe v2 CI gate (fail-on=new)",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "fail_on": "new",
+            "attack_surfaces_measured": 5,
+            "total_named_probes_passed": 40,
+            "findings": 0,
+            "new_findings": 0,
+            "regression_count": 0,
+            "github_workflow": ".github/workflows/security-probe.yml",
+            "command": "pnpm security:probe:ci"
+          },
+          "origin": "artifact_parsed",
+          "confidence": "report_backed",
+          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json"
         }
       ],
       "derived_metrics": [
@@ -3783,6 +3802,24 @@
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/latest.md",
           "description": "Human-readable final security probe report."
+        },
+        {
+          "id": "cat8-probe-v2-baseline-unfixed",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json",
+          "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout."
+        },
+        {
+          "id": "cat8-probe-finding-registry",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/probe-finding-registry.json",
+          "description": "Fingerprinted probe findings linked to SS-FIND IDs for deduplicated triage across runs."
+        },
+        {
+          "id": "cat8-security-probe-ci-gate",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json",
+          "description": "CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml."
         },
         {
           "id": "cat8-before-file-size",

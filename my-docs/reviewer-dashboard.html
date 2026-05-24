@@ -157,6 +157,13 @@
       .evidence-summary-table th:nth-child(1),.evidence-summary-table td:nth-child(1) { width:110px; }
       .evidence-summary-table th:nth-child(2),.evidence-summary-table td:nth-child(2) { width:76px; }
       .evidence-summary-table th:nth-child(5),.evidence-summary-table td:nth-child(5) { width:160px; }
+      .rubric-table { table-layout:fixed; min-width:900px; }
+      .rubric-table th:nth-child(1),.rubric-table td:nth-child(1) { width:64px; }
+      .rubric-table th:nth-child(2),.rubric-table td:nth-child(2) { width:330px; }
+      .rubric-table th:nth-child(3),.rubric-table td:nth-child(3) { width:90px; }
+      .rubric-table th:nth-child(4),.rubric-table td:nth-child(4) { width:104px; }
+      .rubric-table th:nth-child(5),.rubric-table td:nth-child(5) { width:280px; }
+      .rubric-table td:nth-child(2),.rubric-table td:nth-child(5) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .discoveries-table { min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
       .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
@@ -233,7 +240,7 @@
               <span class="rail-meta">Accessibility Compliance</span>
               <span class="rail-detail">M · 4/4</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="17 art" data-detail-evidence="H · 17 artifacts" data-meta-cross-examine="37 pts" data-detail-cross-examine="H · 37 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="20 art" data-detail-evidence="H · 20 artifacts" data-meta-cross-examine="40 pts" data-detail-cross-examine="H · 40 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
               <span class="rail-number">8</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">4/4</span>
@@ -422,7 +429,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>37 pts · 1 claim · 7 boundaries · 17 artifacts · 4 gates</small>
+      <small>40 pts · 1 claim · 7 boundaries · 20 artifacts · 4 gates</small>
 
     </div>
             <span>4/4 acceptance pass; all gates clear</span>
@@ -1327,6 +1334,24 @@
           <small>Path: my-docs/evidence/security-audit/latest.md</small>
           <div class="artifact-link"><a class="path" href="evidence/security-audit/latest.md" title="my-docs/evidence/security-audit/latest.md" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
+        <li data-ledger-id="cat8-probe-v2-baseline-unfixed">
+          <strong>Probe V2 Baseline Unfixed <span class="subtle">artifact</span></strong>
+          <span>Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json" title="my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-probe-finding-registry">
+          <strong>Probe Finding Registry <span class="subtle">artifact</span></strong>
+          <span>Fingerprinted probe findings linked to SS-FIND IDs for deduplicated triage across runs.</span>
+          <small>Path: my-docs/evidence/security-audit/probe-finding-registry.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/probe-finding-registry.json" title="my-docs/evidence/security-audit/probe-finding-registry.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-ci-gate">
+          <strong>Security Probe Ci Gate <span class="subtle">artifact</span></strong>
+          <span>CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json" title="my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
         <li data-ledger-id="cat8-before-file-size">
           <strong>Before File Size <span class="subtle">artifact</span></strong>
           <span>Before proof for local upload declared-size mismatch acceptance.</span>
@@ -1804,7 +1829,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>37 pts · 1 claim · 7 boundaries · 17 artifacts · 4 gates</small>
+      <small>40 pts · 1 claim · 7 boundaries · 20 artifacts · 4 gates</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>
@@ -2271,7 +2296,7 @@
       </section>
 
       <section id="panel-rubric" class="tab-panel" role="tabpanel" aria-labelledby="tab-rubric" tabindex="0" hidden>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="rubric-table"><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>
           <tr data-ledger-id="cat1-audit-total-any-types">
             <td>Cat 1</td>
             <td><span title="cat1-audit-total-any-types">Audit Total Any Types</span></td>

@@ -1,17 +1,15 @@
-# Security Probe security-probe-ci-20260523-190801
+# Security Probe security-probe-ci-20260523-185357
 
 - API URL: http://localhost:3099
 - Web URL: http://localhost:5199
 - Mode: local-active
 - Attack surfaces measured: 5/5
 - Findings: 0
-- Triage: known-open=0, new=0, resolved=1, regression=0
+- Triage: known-open=0, new=0, resolved=0, regression=0
 
 ## Finding triage
 
-### Resolved since registry (probe passed)
-
-- File serve respects parent document visibility (probe checks uploader-only; ledger expects document scope) (SS-FIND-008)
+No triaged findings in this run.
 
 ## Findings
 

@@ -2,7 +2,7 @@
 
 **Path:** `my-docs/evidence/security-audit/security-findings-ledger.md`
 
-**Purpose:** Canonical record of **security** findings discovered outside or beyond the Category 8 black-box probe harness. Use this ledger to plan remediation, track fix status, and attach before/after evidence for submission requirements. **All 34 open findings (SS-FIND-001…034) were discovered in a single deep authorization review on 2026-05-22; IDs were assigned incrementally in that session as findings were confirmed — not remediated yet.**
+**Purpose:** Canonical record of **security** findings discovered outside or beyond the Category 8 black-box probe harness. Use this ledger to plan remediation, track fix status, and attach before/after evidence for submission requirements. **All 34 findings (SS-FIND-001…034) were discovered in a single deep authorization review on 2026-05-22.** Probe v2 + API hardening (2026-05-23) address several high-severity items; **update individual row status here when confirmed** — `probe-finding-registry.json` tracks probe fingerprints separately (SS-FIND-008 remains open for document-scoped file serve).
 
 **Relationship to other artifacts:**
 
@@ -1224,7 +1224,7 @@ Phased approach for when fixes begin. **Do not implement until explicitly approv
 
 ### Probe extensions needed
 
-When fixing, add probes under `scripts/security-probe/probes/`. This list is **starter coverage for Phase 1–2**, not one probe per ledger ID — extend when each finding is remediated.
+When fixing, add probes under `scripts/security-probe/probes/`. Phase 1–2 probes are implemented in **`probes/authorization.mjs`** (see `probe-finding-registry.json`). Extend registry + probes when additional SS-FIND rows are remediated.
 
 1. `governance-properties-injection` — member PATCH sprint with `plan_approval`
 2. `governance-accountable-self-assign` — member sets own `accountable_id`

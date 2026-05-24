@@ -1,17 +1,28 @@
-# Security Probe security-probe-ci-20260523-190801
+# Security Probe probe-v2-post-fixes
 
-- API URL: http://localhost:3099
-- Web URL: http://localhost:5199
+- API URL: http://localhost:3001
+- Web URL: http://localhost:5175
 - Mode: local-active
 - Attack surfaces measured: 5/5
 - Findings: 0
-- Triage: known-open=0, new=0, resolved=1, regression=0
+- Triage: known-open=0, new=0, resolved=12, regression=0
 
 ## Finding triage
 
 ### Resolved since registry (probe passed)
 
-- File serve respects parent document visibility (probe checks uploader-only; ledger expects document scope) (SS-FIND-008)
+- Member cannot PATCH plan_approval on sprint via documents API (SS-FIND-001)
+- Member cannot set accountable_id to self on program (SS-FIND-002)
+- Member cannot PATCH sprint/week status to completed (SS-FIND-003)
+- Member cannot read peer weekly plan via documents API (SS-FIND-004)
+- Member cannot open peer weekly plan collaboration room (SS-FIND-005)
+- Cross-origin WebSocket upgrade rejected (SS-FIND-026)
+- Member cannot complete another user pending upload (SS-FIND-025)
+- Public feedback endpoint rate limited (SS-FIND-012)
+- Bulk issue update rejects inaccessible target IDs (SS-FIND-007)
+- Dashboard my-focus does not leak private project metadata (SS-FIND-010)
+- File serve respects parent document visibility (SS-FIND-008)
+- Governance fields rejected on generic PATCH (input surface) (SS-FIND-001)
 
 ## Findings
 
