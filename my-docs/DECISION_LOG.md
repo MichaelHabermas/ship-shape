@@ -4,6 +4,38 @@ Durable choices made during the audit/improvement work. This file exists so we c
 
 ## 2026-05-24: Evidence Freeze
 
+### D066: Treat Generated Reviewer Bundles As Build Output
+
+Status: Accepted
+
+Decision: Treat generated reviewer bundle output as build output, prune stale evidence-run archives, and remove temporary orchestration-plan files from the durable docs surface. Keep source evidence in the submission ledger, source-of-truth briefs, security-audit evidence, retained source-referenced run artifacts, and referenced test artifacts; regenerate reviewer bundles with `pnpm submission:render-bundle`.
+
+Why: The source-of-truth assignment rewards measured evidence, but duplicated generated artifacts create false authorities. The bundle copies can diverge from source docs, old run archives mixed superseded measurements with current proof, and temporary plans kept inviting agents to re-execute completed coordination.
+
+Alternatives considered: Leave everything in place and rely on readers to infer which files are source; hand-edit generated bundle copies after source docs change. Both approaches increase drift and weaken reviewer navigation.
+
+Consequences: Future doc edits should update the source docs and ledger first, then regenerate generated outputs. Do not preserve one-off orchestration plans unless they are actively guiding current work. Do not prune run artifacts that are still referenced by the ledger or reviewer dashboard. This does not change Categories 1-8 claims.
+
+Evidence: Documentation cleanup removed stale evidence-run archives and two temporary orchestration-plan files; retained ledger-referenced Category 2 evidence; regenerated reviewer bundle output; stale durable doc references were patched in `docs/claude-reference/anti-patterns.md`, `docs/claude-reference/testing.md`, and `docs/fpki-auth-client-dcr-analysis.md`.
+
+**Decision Gist**: Source docs should be few and authoritative; generated packages should be rebuilt, not curated by hand.
+
+### D067: Evidence Run Retention Policy
+
+Status: Accepted
+
+Decision: Add retention metadata to evidence-run manifests and a conservative `pnpm evidence:prune` command. New runs default to `scratch`; callers can pass `--retention source-evidence`, `--retention scratch`, or `--retention generated-package`. Prune runs in dry-run mode unless `--apply` is passed, and it refuses to delete runs referenced by the submission ledger, checklist, improvement report, or reviewer dashboard.
+
+Why: Manual evidence cleanup is error-prone because some generated run directories are disposable while others are part of source-required proof. A retention policy makes the distinction explicit and moves deletion decisions into a reusable tool.
+
+Alternatives considered: keep deleting archive folders by hand; preserve every run forever. Manual deletion risks broken reviewer links. Keeping everything recreates the docs-noise problem and hides current evidence under stale snapshots.
+
+Consequences: Evidence producers should mark durable proof with `--retention source-evidence`; local experiments can stay default `scratch`. Use `pnpm evidence:prune` first to inspect, then `pnpm evidence:prune -- --apply` only after reviewing protected/kept runs.
+
+Evidence: `scripts/evidence/run.mjs` writes `manifest.retention`; `scripts/evidence/prune.mjs` protects referenced runs and deletes only unprotected runs when applied; `package.json` exposes `pnpm evidence:prune`.
+
+**Decision Gist**: Evidence retention is metadata-driven and delete-safe by default.
+
 ### D064: Freeze Product Code And Package Reviewer Evidence
 
 Status: Accepted
@@ -394,7 +426,7 @@ Alternatives considered: Keep using ad hoc shell snippets; build one large all-o
 
 Consequences: Evidence artifacts are now part of the submission workflow and may be tracked when they support proof. The runner must remain read-only by default and must not regenerate tracked contracts unless explicitly asked. New collectors should report missing prerequisites as `not_measured`, not as a fake pass.
 
-Evidence: `pnpm evidence:run -- --phase final-review --run-id codex-final-review` writes artifacts under `my-docs/evidence-runs/codex-final-review/`; its manifest is correctly failed because the nested `openapi.prettier.json` claim is failed, while incomplete proof lanes remain `not_measured`. `pnpm evidence:compare codex-final-check codex-final-review` passes and writes comparison artifacts under the final-review run directory.
+Evidence: Historical `pnpm evidence:run -- --phase final-review --run-id codex-final-review` output proved the runner shape and comparison behavior; stale generated archives were later pruned after durable findings moved into the narrative docs and ledger.
 
 **Decision Gist**: Evidence collection is modular and claim-aware, so proof gaps stay visible instead of becoming prose claims.
 
@@ -576,7 +608,7 @@ Evidence: Migrations `039_fail_closed_document_access_guards.sql` and `040_relat
 
 Status: In progress
 
-Decision: Execute ten simplification opportunities in dependency order via parallel sub-agents (route-http, runtime config, dead grid deletion, extractPlanItems unify, approval workflow, document-access/repository widening, defineRoute pilots, deferred `weeks.ts`/`App.tsx` splits). Master plan: `my-docs/code-simplification-orchestration-plan.md`.
+Decision: Execute ten simplification opportunities in dependency order via parallel sub-agents (route-http, runtime config, dead grid deletion, extractPlanItems unify, approval workflow, document-access/repository widening, defineRoute pilots, deferred `weeks.ts`/`App.tsx` splits). The temporary master plan was retired after durable decisions were recorded here.
 
 Why: Five copies of Render SameSite policy were already consolidated into `session-cookies.ts`. Remaining wins are god routes (`weeks.ts` ~3.3k lines), duplicate approval/TipTap/HTTP patterns, dead accountability-grid v1/v2, and OpenAPI split-brain. Eelon advisory: delete dead surfaces first; defer file splits until S5/S6/S7 land with tests.
 
@@ -584,7 +616,7 @@ Alternatives considered: Big-bang `weeks.ts` split first (high merge/conflict ri
 
 Consequences: No git commits in this pass unless user asks. Phase 3 splits (S8/S10) gated on Phase 1–2 integration + type-check/API tests. v3 accountability grid endpoint path unchanged (`/accountability-grid-v3`).
 
-Evidence: Orchestration plan; parallel agents A1–A4 Phase 1; eelon agent advisory 2026-05-21.
+Evidence: Parallel agents A1–A4 Phase 1; eelon agent advisory 2026-05-21; durable phase outcomes in this decision log and `my-docs/IMPROVEMENT_REPORT.md`.
 
 **Decision Gist**: Delete dead code first, unify cross-cutting helpers second, split god files last with measurement.
 
@@ -694,7 +726,7 @@ Decision: Treat `simplify-1` refactor as **correctness-verified for merge** on a
 
 Why: Foundational refactors (route-http, weeks split, document-access pilots, defineRoute pilots) need evidence beyond green status-code tests. Parallel agents (security, OpenAPI, weeks structure, web shell, thermo review, test-contract) found **no CRITICAL** regressions; visibility/approval/session behavior preserved vs `master`.
 
-Findings catalogued in `my-docs/code-simplification-orchestration-plan.md` Verification report. Intentional: defineRoute validation envelope; grid route removal (193 paths). Follow-up: prod `databaseSslOptions`, approval-workflow tests, feedback/standups contract tests, `asApprovalRecord` guard.
+Findings were catalogued in the retired orchestration verification report and preserved here. Intentional: defineRoute validation envelope; grid route removal (193 paths). Follow-up: prod `databaseSslOptions`, approval-workflow tests, feedback/standups contract tests, `asApprovalRecord` guard.
 
 Evidence: `pnpm type-check`; `openapi:check:strict` 193/193; `vitest run src/routes/` 313/313; standups+feedback 21/21 on `ship_test_audit` (2026-05-21).
 

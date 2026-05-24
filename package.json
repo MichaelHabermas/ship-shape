@@ -55,6 +55,7 @@
     "benchmark:api": "node ./scripts/benchmark-api.mjs",
     "evidence:run": "node ./scripts/evidence/run.mjs",
     "evidence:compare": "node ./scripts/evidence/compare.mjs",
+    "evidence:prune": "node ./scripts/evidence/prune.mjs",
     "perf:seed-audit-load": "node ./scripts/seed-audit-load.mjs",
     "perf:query-count-api": "node ./scripts/query-count-api.mjs",
     "perf:explain": "pnpm --filter @ship/api exec tsx ../scripts/explain-performance.ts",

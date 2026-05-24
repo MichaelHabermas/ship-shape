@@ -167,28 +167,36 @@
       .discoveries-table { table-layout:fixed; min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
       .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:58px; }
-      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:88px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:108px; }
       .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:112px; }
+      .discoveries-table th:nth-child(5),.discoveries-table td:nth-child(5) { width:295px; }
       .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
       .discoveries-table th:nth-child(8),.discoveries-table td:nth-child(8) { width:150px; }
       .discoveries-table td:nth-child(1),.discoveries-table td:nth-child(2),.discoveries-table td:nth-child(3),.discoveries-table td:nth-child(4),.discoveries-table td:nth-child(7),.discoveries-table td:nth-child(8) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .discoveries-table td:nth-child(8) .path { line-height:1.15; }
       .security-panel h3 { margin-top:18px; }
       .security-callout { margin:10px 0 12px; color:#34342f; font-size:13px; font-weight:750; }
-      .security-metric-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:7px; margin:12px 0; }
+      .security-metric-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); align-items:stretch; gap:7px; margin:12px 0; }
+      .security-mini { min-height:76px; display:flex; flex-direction:column; }
       .security-mini span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; }
-      .security-mini strong { margin:2px 0; font-size:18px; }
+      .security-mini strong { margin:8px 0 2px; font-size:18px; line-height:1.05; }
+      .security-mini strong:first-of-type { margin-top:auto; }
       .security-mini small { display:block; color:var(--muted); font-size:11px; line-height:1.2; }
       .security-evidence-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .security-probe-table { min-width:980px; }
-      .security-findings-table { min-width:1180px; }
+      .security-findings-table { table-layout:fixed; min-width:1540px; }
       .security-probe-table th:nth-child(1),.security-probe-table td:nth-child(1) { width:130px; }
       .security-probe-table th:nth-child(2),.security-probe-table td:nth-child(2) { width:260px; }
-      .security-findings-table th:nth-child(1),.security-findings-table td:nth-child(1) { width:96px; }
-      .security-findings-table th:nth-child(2),.security-findings-table td:nth-child(2) { width:90px; }
-      .security-findings-table th:nth-child(3),.security-findings-table td:nth-child(3) { width:80px; }
-      .security-findings-table th:nth-child(4),.security-findings-table td:nth-child(4) { width:70px; }
-      .security-findings-table th:nth-child(6),.security-findings-table td:nth-child(6) { width:210px; }
+      .security-findings-table th:nth-child(1),.security-findings-table td:nth-child(1) { width:122px; white-space:nowrap; overflow-wrap:normal; }
+      .security-findings-table th:nth-child(2),.security-findings-table td:nth-child(2) { width:118px; white-space:nowrap; overflow-wrap:normal; }
+      .security-findings-table th:nth-child(3),.security-findings-table td:nth-child(3) { width:92px; white-space:nowrap; }
+      .security-findings-table th:nth-child(4),.security-findings-table td:nth-child(4) { width:78px; white-space:nowrap; }
+      .security-findings-table th:nth-child(5),.security-findings-table td:nth-child(5) { width:245px; }
+      .security-findings-table th:nth-child(6),.security-findings-table td:nth-child(6) { width:220px; }
+      .security-findings-table th:nth-child(7),.security-findings-table td:nth-child(7) { width:440px; }
+      .security-findings-table th:nth-child(8),.security-findings-table td:nth-child(8) { width:225px; }
+      .security-findings-table td:nth-child(6) .path,.security-findings-table td:nth-child(7) .path,.security-findings-table td:nth-child(8) { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; }
+      .security-findings-table .impact-pill { width:auto; min-width:66px; padding:3px 7px; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
@@ -324,13 +332,13 @@
       <nav class="tabs" role="tablist" aria-label="Dashboard sections">
         <button class="tab" id="tab-overview" role="tab" aria-selected="true" aria-controls="panel-overview" tabindex="0" data-tab="overview">Overview</button>
         <button class="tab" id="tab-evidence" role="tab" aria-selected="false" aria-controls="panel-evidence" tabindex="-1" data-tab="evidence">Evidence</button>
-        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security</button>
         <button class="tab" id="tab-cross-examine" role="tab" aria-selected="false" aria-controls="panel-cross-examine" tabindex="-1" data-tab="cross-examine">Cross-Examine</button>
         <button class="tab" id="tab-claim-diff" role="tab" aria-selected="false" aria-controls="panel-claim-diff" tabindex="-1" data-tab="claim-diff">Claim Diff</button>
         <button class="tab" id="tab-targets" role="tab" aria-selected="false" aria-controls="panel-targets" tabindex="-1" data-tab="targets">Targets</button>
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
         <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
+        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security</button>
       </nav>
 
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">

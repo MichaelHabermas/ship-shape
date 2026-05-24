@@ -5,7 +5,7 @@
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
     "branch": "test-improvements-and-submission-hardening-1",
-    "commit": "f09f01a276fe6d41e770f1c2aa6d1dda199174f8",
+    "commit": "0824612e8142b71e55265c83d9a419fb1faf507d",
     "dirtyWorktree": true
   },
   "security": {

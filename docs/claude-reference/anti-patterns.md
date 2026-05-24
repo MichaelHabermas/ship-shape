@@ -84,9 +84,9 @@ expect((editor.commands as any).setDetails).toBeDefined();
 
 ### Examples in codebase
 
-- `/Users/jonesshaw/Documents/code/ship/api/src/__tests__/transformIssueLinks.test.ts:35-481` - 25+ instances of `as any` for mocking
-- `/Users/jonesshaw/Documents/code/ship/web/src/components/editor/DetailsExtension.test.ts:75-76` - Testing TipTap commands
-- `/Users/jonesshaw/Documents/code/ship/web/src/components/editor/FileAttachment.test.ts:70-71` - Testing TipTap commands
+- `api/src/__tests__/transformIssueLinks.test.ts:35-481` - 25+ instances of `as any` for mocking
+- `web/src/components/editor/DetailsExtension.test.ts:75-76` - Testing TipTap commands
+- `web/src/components/editor/FileAttachment.test.ts:70-71` - Testing TipTap commands
 
 ### Why it's problematic
 
@@ -169,7 +169,7 @@ See `e2e/AGENTS.md` for full details on the E2E workflow.
 
 ### What it looks like
 
-Editing `/Users/jonesshaw/Documents/code/ship/api/src/db/schema.sql` to add columns or modify constraints on tables that already exist in production.
+Editing `api/src/db/schema.sql` to add columns or modify constraints on tables that already exist in production.
 
 ### Why it's problematic
 
@@ -188,9 +188,9 @@ ALTER TABLE documents ADD COLUMN IF NOT EXISTS new_column TEXT;
 ```
 
 Existing migrations show the pattern:
-- `/Users/jonesshaw/Documents/code/ship/api/src/db/migrations/001_properties_jsonb.sql`
-- `/Users/jonesshaw/Documents/code/ship/api/src/db/migrations/006_document_visibility.sql`
-- `/Users/jonesshaw/Documents/code/ship/api/src/db/migrations/020_document_associations.sql`
+- `api/src/db/migrations/001_properties_jsonb.sql`
+- `api/src/db/migrations/006_document_visibility.sql`
+- `api/src/db/migrations/020_document_associations.sql`
 
 Migrations are tracked in `schema_migrations` table and run automatically on deploy.
 
@@ -207,9 +207,8 @@ git commit -n -m "Bypass hooks"
 
 ### References in codebase
 
-- `/Users/jonesshaw/Documents/code/ship/SECURITY.md:70-72` - Explicitly prohibits this
-- `/Users/jonesshaw/Documents/code/ship/.claude/CLAUDE.md:133` - States it's not acceptable
-- `/Users/jonesshaw/Documents/code/ship/.claude/rules/security.md:287` - Fix issues instead
+- `AGENTS.md` - Explicitly prohibits this
+- `.claude/CLAUDE.md` - Agent reference for local Claude workflows
 
 ### Why it's problematic
 
@@ -247,10 +246,10 @@ res.status(400).json({ message: 'Bad request' });
 
 ### Examples in codebase
 
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/issues.ts:284-933` - Uses `{ error: string }`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/issues.ts:517` - Uses `{ error, details }`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/standups.ts:159` - Uses `{ error, details }`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/associations.ts:86` - Uses `{ error: 'Failed to...' }`
+- `api/src/routes/issues.ts:284-933` - Uses `{ error: string }`
+- `api/src/routes/issues.ts:517` - Uses `{ error, details }`
+- `api/src/routes/standups.ts:159` - Uses `{ error, details }`
+- `api/src/routes/associations.ts:86` - Uses `{ error: 'Failed to...' }`
 
 ### Why it's problematic
 
@@ -308,12 +307,12 @@ interface ClaudeContextRequest {
 
 ### Examples in codebase
 
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/dashboard.ts:11-32` - `WorkItem` interface
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/claude.ts:21-48` - Multiple interfaces
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/weeks.ts:265` - `ActionItem` interface
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/backlinks.ts:158` - `Request` interface
+- `api/src/routes/dashboard.ts:11-32` - `WorkItem` interface
+- `api/src/routes/claude.ts:21-48` - Multiple interfaces
+- `api/src/routes/weeks.ts:265` - `ActionItem` interface
+- `api/src/routes/backlinks.ts:158` - `Request` interface
 - `api/src/routes/issues.ts:105` - `BelongsTo` is in `shared/src/types/document.ts`; do not reintroduce local `BelongsToEntry`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/caia-auth.ts:381` - `PendingInvite` interface
+- `api/src/routes/caia-auth.ts:381` - `PendingInvite` interface
 
 ### Why it's problematic
 
@@ -343,9 +342,9 @@ import { WorkItem } from '@ship/shared';
 ```
 
 Existing shared types are at:
-- `/Users/jonesshaw/Documents/code/ship/shared/src/types/api.ts`
-- `/Users/jonesshaw/Documents/code/ship/shared/src/types/document.ts`
-- `/Users/jonesshaw/Documents/code/ship/shared/src/types/user.ts`
+- `shared/src/types/api.ts`
+- `shared/src/types/document.ts`
+- `shared/src/types/user.ts`
 
 ---
 
@@ -361,12 +360,12 @@ await page.waitForSelector('.tiptap', { timeout: 30000 });
 
 ### Examples in codebase
 
-- `/Users/jonesshaw/Documents/code/ship/e2e/file-attachments.spec.ts:97` - `setTimeout(..., 5000)`
-- `/Users/jonesshaw/Documents/code/ship/e2e/feedback-consolidation.spec.ts:109` - `setTimeout(..., 3000)`
-- `/Users/jonesshaw/Documents/code/ship/e2e/issue-estimates.spec.ts:28` - `timeout: 10000`
-- `/Users/jonesshaw/Documents/code/ship/e2e/features-real.spec.ts:175` - `timeout: 30000`
-- `/Users/jonesshaw/Documents/code/ship/web/src/hooks/useAutoSave.ts:42` - `1000 * (retryCount + 1)`
-- `/Users/jonesshaw/Documents/code/ship/playwright.isolated.config.ts:41` - `timeout: 60000`
+- `e2e/file-attachments.spec.ts:97` - `setTimeout(..., 5000)`
+- `e2e/feedback-consolidation.spec.ts:109` - `setTimeout(..., 3000)`
+- `e2e/issue-estimates.spec.ts:28` - `timeout: 10000`
+- `e2e/features-real.spec.ts:175` - `timeout: 30000`
+- `web/src/hooks/useAutoSave.ts:42` - `1000 * (retryCount + 1)`
+- `playwright.isolated.config.ts:41` - `timeout: 60000`
 
 ### Why it's problematic
 
@@ -411,9 +410,9 @@ await pool.query('INSERT INTO document_history ...', [...]);
 
 ### Examples of CORRECT usage (with transactions)
 
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/issues.ts:513-582` - Issue creation
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/documents.ts:675-871` - Document operations
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/backlinks.ts:115-142` - Backlink updates
+- `api/src/routes/issues.ts:513-582` - Issue creation
+- `api/src/routes/documents.ts:675-871` - Document operations
+- `api/src/routes/backlinks.ts:115-142` - Backlink updates
 
 ### Examples of potentially risky patterns
 
@@ -452,8 +451,8 @@ try {
 ```
 
 Follow the transaction pattern used in:
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/issues.ts:513-586`
-- `/Users/jonesshaw/Documents/code/ship/api/src/routes/documents.ts:907-1002`
+- `api/src/routes/issues.ts:513-586`
+- `api/src/routes/documents.ts:907-1002`
 
 ---
 

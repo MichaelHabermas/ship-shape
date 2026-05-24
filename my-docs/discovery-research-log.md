@@ -2,6 +2,24 @@
 
 ---
 
+## Documentation noise cleanup (2026-05-24)
+
+Decision: reduce the docs surface to source truth plus regenerable outputs. Generated reviewer bundles, old evidence-run archives, and temporary orchestration plans were creating more drift risk than reviewer value.
+
+| Finding | Disposition |
+|---------|-------------|
+| Generated reviewer evidence bundle duplicated source docs and dashboard output | **Classified as generated output** — regenerate with `pnpm submission:render-bundle`; do not hand-edit bundled copies |
+| `my-docs/evidence-runs/` contained overlapping final/foundation/integration/closeout snapshots | **Pruned stale archives** — ledger-referenced Category 2 artifact retained; canonical claims remain ledger-first |
+| Manual evidence cleanup could accidentally break reviewer links | **Fixed** — `pnpm evidence:prune` dry-runs by default and protects ledger/dashboard references |
+| Standalone orchestration plans outlived their execution window | **Removed** — durable lessons live in MEMORY, DECISION_LOG, discovery log, and improvement report |
+| `docs/claude-reference/anti-patterns.md` contained old absolute paths | **Fixed** — paths are repo-relative |
+| FPKI DCR doc had an historical disclaimer but later active-sounding Ship federation sections | **Fixed** — non-implemented Ship federation guidance removed |
+| E2E testing doc kept an old failed-run snapshot without enough context | **Fixed** — labeled as historical diagnostic context |
+
+Future application: generated artifacts should have one owner script and one canonical source. If a reviewer bundle is needed, regenerate it; if a plan is completed, fold the enduring decision into the durable logs and delete the plan. Mark durable evidence runs with `--retention source-evidence`; prune scratch runs with `pnpm evidence:prune` after reviewing the dry-run output.
+
+---
+
 ## E2E anti-fragility pass (2026-05-24)
 
 Decision: make the default full E2E run match the app's resource profile instead of treating all specs as equally parallel-safe. `pnpm test:e2e:run` now uses a profiled runner with normal, realtime, and isolated lanes.
@@ -152,7 +170,7 @@ Orchestrated parallel review of `@ship/shared` Tier 1 consolidation (types/const
 
 ## Post-GFA Resolution Pass (2026-05-22)
 
-Status hygiene for findings addressed in Wave 3 (`my-docs/post-gfa-orchestration-plan.md`). Cat 8 probe tool remains a separate track.
+Status hygiene for findings addressed in Wave 3 of the retired post-GFA orchestration plan. Cat 8 probe tool remains a separate track.
 
 | Finding | Prior status | Now |
 |---------|--------------|-----|
@@ -245,7 +263,7 @@ The codebase already has good shared modules (`document-crud.ts`, `document-acce
 
 ### Future Application
 
-Follow `my-docs/code-simplification-orchestration-plan.md` phase order: delete → unify helpers → domain modules → file splits last. Bind phases to IMPROVEMENT_REPORT category rows when claiming GFA credit.
+Follow the recorded simplification phase order: delete → unify helpers → domain modules → file splits last. Bind phases to IMPROVEMENT_REPORT category rows when claiming GFA credit.
 
 ---
 
@@ -1063,7 +1081,7 @@ Severity: Ledger
 
 Status: Updated 2026-05-20
 
-Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. The important behavior is that missing proof stays explicit as `not_measured`.
+Evidence collection moved from ad hoc snippets to a repo-local runner. `pnpm evidence:run` writes manifest, environment, git status, collector outputs, claims, and a Markdown summary under `my-docs/evidence-runs/<run-id>/`; `pnpm evidence:compare` writes JSON and Markdown comparisons and rejects self-comparisons. Keep only source-referenced run artifacts in-tree; prune stale archives after their durable findings are recorded. The important behavior is that missing proof stays explicit as `not_measured`.
 
 Performance and query measurement rails now exist, but they are not performance wins by themselves. `pnpm perf:seed-audit-load` idempotently creates source-of-truth-scale tagged audit data, including the source-required document/issue/user/sprint shape; `pnpm perf:query-count-api` captures API query counts through an in-process app harness; and `pnpm perf:explain` captures EXPLAIN output. Closeout artifacts were written under `test-results/perf/` on 2026-05-20. Category 3 still needs before/after endpoint P95 runs under identical conditions before a completion claim is defensible; later bootstrap evidence covers the Category 4 query-count branch for one app-shell flow.
 
@@ -1263,7 +1281,7 @@ Evidence: `pnpm type-safety:counts` moved `as` from 575 total / 461 production t
 
 Closed the non-Cat-8 admissibility gaps that had evidence but not proof packaging:
 
-- Category 2 now has an after bundle-analysis HTML artifact from `my-docs/evidence-runs/cat2-closeout/collectors/bundle-analysis.html`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
+- Category 2 now has retained bundle evidence under `my-docs/evidence-runs/cat2-easy-wins-20260523/`; claim remains scoped to initial-entry/code-splitting reduction, not total JS/CSS.
 - Category 4 now has explicit before/after bootstrap EXPLAIN evidence in `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json`; claim remains flow-level query-count/request-count consolidation.
 - Category 7 closeout now scans `/projects` in addition to `/docs`, a real `/documents/:id`, and supporting `/my-week`; all four have 0 critical/serious axe violations in `test-results/a11y-closeout/axe-summary.json`.
 - Category 6 now has a third explicit fix record: AI/Bedrock unavailable degraded mode, with screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. The evidence collector was corrected to use existing data or `CAT6_DOCUMENT_PATH` rather than creating a weekly plan.
