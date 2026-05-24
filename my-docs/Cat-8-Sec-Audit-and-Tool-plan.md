@@ -10,7 +10,25 @@ pnpm security:probe
 pnpm security:probe -- --quick
 pnpm security:probe -- --probe <probe-id>
 pnpm security:probe:test
+pnpm security:probe:sync-registry   # merge bootstrap entries into probe-finding-registry.json
 ```
+
+### Probe v2 (authorization + finding registry)
+
+The harness now measures **five** attack surfaces (Cat 8’s four required surfaces plus an **authorization / business-logic** extension). Reports use `schemaVersion: 2` and triage findings against [`probe-finding-registry.json`](evidence/security-audit/probe-finding-registry.json):
+
+- **known-open** — tracked vulnerability, probe still fails
+- **new** — probe failed, fingerprint not in registry yet
+- **resolved** — registry marked open, probe now passes (confirm in ledger before closing SS-FIND rows)
+- **regression** — registry marked fixed/control, probe failed again
+
+```bash
+pnpm security:probe -- --run-id probe-v2-baseline-unfixed
+pnpm security:probe -- --fail-on=new          # fail on unknown findings or regressions (not known-open backlog)
+pnpm security:probe:ci                        # migrate + seed + API + full probe with --fail-on=new (GitHub Actions)
+```
+
+Historical Cat 8 closeout remains **`runs/cat8-final/`** (perimeter-only, 25/25 passed). Do not overwrite that artifact when running v2.
 
 The default local credentials are the seeded dev accounts:
 
@@ -40,15 +58,18 @@ pnpm security:baseline:deps
 
 Before: **33** (BASELINE branch). After: **0**. Files: `runs/baseline-before/`, `runs/baseline-after/`. Index: `README.md` in this folder.
 
-Result: 4/4 required attack surfaces measured, 25/25 probes passed, 0 findings.
+**Historical closeout (`cat8-final`):** 4/4 required attack surfaces measured, 25/25 probes passed, 0 findings (perimeter scope).
 
-Covered surfaces:
+**Probe v2 baseline (`probe-v2-baseline-unfixed`):** 5/5 surfaces measured; authorization probes detect open SS-FIND items (governance bypass, weekly-plan IDOR, WS origin, file hijack). See `runs/probe-v2-baseline-unfixed/report.md` for triage buckets.
+
+Covered surfaces (v1 + v2):
 
 - Auth/session: unauthenticated API rejection, invalid bearer rejection, session cookie flags, session ID shape/browser expiry, CSRF rejection, API-token super-admin boundary.
 - WebSocket validation: unauthenticated collaboration rejection, missing document rejection, malformed frame handling, unknown message handling, oversized frame handling, malformed `/events` message handling, unknown `/events` message handling.
 - Input sanitization: stored XSS-shaped document title, reflected/search payloads, SQL-shaped search strings, long field validation, issue payloads, comment payloads, file upload size/header smoke checks.
 - Dependency CVEs: `pnpm audit --json` high/critical count, including dev/transitive advisories.
 - Assisted review: CORS/CSP, secret/env exposure, API/WS rate-limit map, verbose malformed-request leakage.
+- Authorization (v2): governance field injection, RACI self-assign, week status bypass, weekly-plan IDOR (REST + WS), cross-origin WS, pending-upload hijack, file serve scope, bulk-issue foreign IDs, dashboard metadata leak; abuse surfaces for login/public-feedback rate limits.
 
 Verified fixes:
 

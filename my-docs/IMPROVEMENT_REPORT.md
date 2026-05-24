@@ -2,6 +2,27 @@
 
 ---
 
+## Security probe CI gate + verification hardening (2026-05-23)
+
+Multi-agent verification (security API review, probe/CI audit, SOT alignment, thermo-nuclear quality, automated `security:probe:ci`) found real bypasses and probe drift. Follow-up fixes:
+
+- Block sprint `status` on `PATCH /api/weeks/:id` for non-admins; probe now tests `/api/documents` **and** `/api/weeks`
+- Block RACI keys in `properties` on document POST/PATCH; governance keys on POST create
+- Accountability checks on `GET/PATCH /api/documents/:id/content` and `DELETE`
+- `POST /api/files/:id/confirm` requires uploader
+- CI `--fail-on=new`: skip probes no longer fail completeness; regressions fail exit 2
+- Registry: SS-FIND-008 probe entry back to `open` (uploader-only serve ≠ document-scoped)
+
+### Evidence
+- `pnpm security:probe:ci` | pass (`runs/security-probe-ci-20260523-190801/`)
+- `pnpm security:probe:test` | 9/9
+- `pnpm type-check` | pass
+
+### Claim boundary
+Cat 8 **proven** metrics remain 4 required surfaces / historical `cat8-final`; v2 CI is an extension artifact, not a Cat 8 rubric change.
+
+---
+
 ## Documentation Sync Pass — Final (2026-05-22)
 
 Scope: Phases 0–8 across `docs/`, `AGENTS.md`, `.claude/`, `scripts/doc-sync/`, one code fix (`Editor.tsx` person-mention nav), and my-docs reconciliation.
@@ -817,6 +838,17 @@ Gate snapshot: 8 proven, 0 partial, 0 open/fill.
 Evidence-changing work updates the ledger before narrative docs or dashboard output. Only mark a category `proven` when required rubric items and acceptance gates clear the source requirement; otherwise keep it `partial`, `open`, `needs_fill_in`, or `not_measured`. After ledger edits, run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`, then report changed categories and any failing/warning acceptance tests.
 
 ---
+
+## Security probe v2 (2026-05-23)
+
+Extended `scripts/security-probe/` from perimeter-only (Cat 8 closeout) to **probe v2**:
+
+- Fifth measured surface: **authorization** (governance PATCH bypass, weekly-plan IDOR REST/WS, cross-origin WS, upload hijack, file scope, dashboard/bulk checks).
+- `probe-finding-registry.json` + triage in reports (known-open / new / resolved / regression).
+- `lib/fixtures.mjs` for runtime weekly-plan/person setup; `lib/registry.mjs` modular probe groups.
+- Abuse probes for public-feedback rate limit; auth-session member audit/impersonation controls.
+
+Baseline on unfixed main: `runs/probe-v2-baseline-unfixed/` — 10 findings, 10 known-open, matches SS-FIND Phase 1–2 backlog. Historical `cat8-final` artifact unchanged.
 
 ## Type Safety Correctness Review Follow-up (2026-05-22)
 

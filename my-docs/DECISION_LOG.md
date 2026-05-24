@@ -1016,6 +1016,38 @@ Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured
 
 **Decision Gist**: Category 8 proof is a runnable black-box harness plus before/after reports, not a narrative-only audit.
 
+### D062: Security probe v2 — authorization surface and finding registry (2026-05-23)
+
+Status: Accepted
+
+Decision: Extend `pnpm security:probe` with a fifth measured surface (`authorization`), shared fixtures (`lib/fixtures.mjs`), and a fingerprinted `probe-finding-registry.json` so runs report **known-open**, **new**, **resolved**, and **regression** buckets instead of re-listing the same issues as novel every time. Keep Cat 8 historical closeout at `runs/cat8-final/` (4/4 perimeter, 0 findings); v2 runs use new run IDs (e.g. `probe-v2-baseline-unfixed`). Default `failOn` is `high`; use `--fail-on=new` when only unknown findings should break CI.
+
+Why: Perimeter probes passed while a deep authorization review found 34 open business-logic issues. The tool must encode OWASP A01-style checks (governance PATCH, IDOR, WS origin, upload hijack) as live regressions, not rely on separate agent skills.
+
+Alternatives considered: dual `cat8` vs `full` profiles (rejected — one honest tool); auto-closing SS-FIND rows from probe alone (rejected — ledger stays human-confirmed).
+
+Consequences: Full runs against unfixed main report ~10 known-open authorization/input findings. Login rate-limit live burst runs only under `--probe abuse-login-rate-limit` so seeded admin login is not locked out. Control probes (member denied audit logs, etc.) use registry `status: control`.
+
+Evidence: `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` — 5/5 surfaces, 10 findings, triage known-open=10, new=0. Code under `scripts/security-probe/probes/authorization.mjs`, `lib/finding-registry.mjs`, `lib/registry.mjs`.
+
+**Decision Gist**: One probe harness, honest failures, fingerprinted triage — Cat 8 closeout artifact preserved, v2 catches business-logic regressions.
+
+### D063: Security probe CI gate with `--fail-on=new` (2026-05-23)
+
+Status: Accepted
+
+Decision: Add `pnpm security:probe:ci` (migrate, seed, API, full probe) and GitHub Actions workflow `security-probe.yml`. CI fails only on **new** findings or **regressions** (`lib/ci-fail.mjs`), not on registry `open` backlog. Completeness under `--fail-on=new` fails only when surfaces are incomplete or probes **error** (skipped member-only probes do not fail CI). Mark registry entries `fixed` only after probe passes; keep SS-FIND-008 registry `open` until document-scoped file serve exists.
+
+Why: Option F from probe v2 plan — green CI on `main` while honest about backlog, but block unknown vulns and re-breaks of fixed fingerprints.
+
+Alternatives considered: fail on any finding including known-open (rejected — blocks merges until all 34 SS-FIND closed); skip CI entirely (rejected).
+
+Consequences: Multi-agent verification found probe/route drift (week status tested documents only) and API bypasses; follow-up hardening same day. `authorization-file-document-scope` remains a partial check (uploader vs document visibility).
+
+Evidence: `pnpm security:probe:ci` — 5/5 surfaces, 0 findings, 0 new, 0 regression (`runs/security-probe-ci-20260523-190801/`). `pnpm security:probe:test` 9/9; `pnpm type-check` pass.
+
+**Decision Gist**: CI guards new security regressions, not the whole SS-FIND backlog — registry fingerprints are the contract.
+
 ### D061: Category 5 full E2E warning resolved with route-consistency fixes (2026-05-22)
 
 Status: Accepted
