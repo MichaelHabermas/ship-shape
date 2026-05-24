@@ -2,6 +2,40 @@
 
 ---
 
+## E2E anti-fragility pass (2026-05-24)
+
+Decision: make the default full E2E run match the app's resource profile instead of treating all specs as equally parallel-safe. `pnpm test:e2e:run` now uses a profiled runner with normal, realtime, and isolated lanes.
+
+| Finding | Disposition |
+|---------|-------------|
+| Full E2E mixed true bugs with resource-pressure flakes | **Resolved** — specs are classified before full run; realtime/isolated lanes default to one worker |
+| Wiki maintainer default showed placeholder for creator | **Fixed** — team-member mapper now handles runtime `user_id` and person document id correctly |
+| Mention collaborator sync opened a second page outside fixture state, then forced login in an already-authenticated context | **Fixed** — second page uses the authenticated context and navigates directly to the document |
+| My Week stale-data test waited on UI status text instead of server proof | **Fixed** — poll `/api/documents/:id/content` / dashboard proof, not fixed sleeps or transient labels |
+| E2E WebSocket handshakes failed under `CORS_ORIGIN='*'` while HTTP appeared healthy | **Fixed** — wildcard origin is accepted only outside production; production wildcard fails closed |
+| Code block reload could initialize before async lowlight support arrived | **Fixed** — plain code-block fallback remains enabled until the lowlight extension is ready |
+
+Evidence: focused failure cluster exited successfully in `test-results/failure-cluster-final-8` with 35 passed / 1 flaky; full profiled E2E exited successfully in `test-results/profiled-full-final` with normal 525 passed / 4 flaky, realtime 177 passed / 1 flaky, and isolated 166 passed.
+
+Future application: new E2E specs must be classified by resource behavior. If a spec requires WebSockets, editor persistence, cross-page collaboration, session timers, or browser-state isolation, start it in realtime/isolated and only promote to normal after proving it is contention-safe.
+
+---
+
+## Evidence freeze and stale-candidate retirement (2026-05-24)
+
+Decision: stop product/architecture implementation and package the existing proof. The generated ledger currently marks Categories 1-8 `proven`; the weak point was reviewer navigation, not another refactor.
+
+| Finding | Disposition |
+|---------|-------------|
+| `SUBMISSION_CHECKLIST.md` was blank/stale while ledger/dashboard were current | **Resolved** — checklist is now the reviewer index and proof map |
+| Deploy URL was known in docs but lacked final smoke evidence | **Resolved for basic smoke** — public Render web URL reaches `/login`; unauthenticated `/api/bootstrap` 401 is expected |
+| Architecture deepening candidates remained useful but submission-risky | **Retired for final packaging** — no new code unless validation exposes a blocker |
+| Cat 8 `SS-FIND-008` deeper document-scoped file model remains product/security backlog | **Not in freeze scope** — current Category 8 proof stays ledger-bound to runnable probe evidence |
+
+Future application: when a ledger already proves the source targets, package and validate evidence before making more code changes. Extra architecture can invalidate identical-condition measurements.
+
+---
+
 ## Security probe v2 verification + CI gate (2026-05-23)
 
 Parallel agents (API security, probe/CI, SOT alignment, code quality, `security:probe:ci`) before shipping foundational security layer.
@@ -1373,3 +1407,15 @@ Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no s
 - **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
 
 Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.
+
+---
+
+## Reviewer security evidence bundle (2026-05-24)
+
+Discovery: The reviewer dashboard already had Cat 8 proof, but security evidence was split across rubric rows, discoveries, non-claims, `latest.json`, and `security-findings.json`. A reviewer could mistake “latest probe clean” for “all known security findings closed.”
+
+Decision: Add a generated Security tab to `my-docs/reviewer-dashboard.html` and package a deterministic static bundle at `my-docs/reviewer-evidence-bundle/` for a separate Render Static Site. The tab shows latest probe metrics, evidence links, per-probe results, known SS-FIND backlog rows, rerun commands, and explicit non-claims.
+
+Risk found during implementation: the bundle is a new publication surface. Raw evidence can expose local workstation paths, session-cookie examples, or DB URLs. The renderer now redacts local absolute paths, bearer tokens, session cookies, private keys, and DB URL passwords in the bundled copy and fails if those patterns remain.
+
+Future application: Any new reviewer/public evidence export needs a redaction gate and must distinguish measured probe output from the broader security backlog. Do not publish raw run directories without scanning or redacting them first.

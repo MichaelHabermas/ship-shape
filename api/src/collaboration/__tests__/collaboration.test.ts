@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import * as Y from 'yjs'
 import { pool } from '../../db/client.js'
 import crypto from 'crypto'
+import { isAllowedWebSocketOrigin } from '../index.js'
 
 /**
  * Collaboration server tests
@@ -99,6 +100,28 @@ describe('Collaboration Server', () => {
         [uuid]
       )
       expect(result.rows[0]).toBeDefined()
+    })
+  })
+
+  describe('WebSocket Origin Validation', () => {
+    const originalNodeEnv = process.env.NODE_ENV
+
+    afterAll(() => {
+      process.env.NODE_ENV = originalNodeEnv
+    })
+
+    it('allows wildcard origin only outside production', () => {
+      process.env.NODE_ENV = 'test'
+      expect(isAllowedWebSocketOrigin('https://attacker.example', '*')).toBe(true)
+
+      process.env.NODE_ENV = 'production'
+      expect(isAllowedWebSocketOrigin('https://attacker.example', '*')).toBe(false)
+    })
+
+    it('allows explicit matching origin and rejects wrong origin', () => {
+      process.env.NODE_ENV = 'production'
+      expect(isAllowedWebSocketOrigin('https://app.example/path', 'https://app.example')).toBe(true)
+      expect(isAllowedWebSocketOrigin('https://attacker.example', 'https://app.example')).toBe(false)
     })
   })
 

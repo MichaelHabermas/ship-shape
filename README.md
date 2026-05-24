@@ -218,6 +218,33 @@ Ship uses Playwright for end-to-end testing with Testcontainers-backed PostgreSQ
 
 ---
 
+## Week 4 Audit Evidence
+
+This fork includes reviewer-facing evidence for the ShipShape audit and improvement sprint:
+
+| Artifact | Purpose |
+|----------|---------|
+| [`my-docs/SUBMISSION_CHECKLIST.md`](./my-docs/SUBMISSION_CHECKLIST.md) | Start-here checklist, proof map, deploy smoke, and final verification commands |
+| [`my-docs/reviewer-dashboard.html`](./my-docs/reviewer-dashboard.html) | Generated visual dashboard for Categories 1-8 |
+| [`my-docs/evidence/submission-ledger.json`](./my-docs/evidence/submission-ledger.json) | Structured source of truth for category claims |
+| [`my-docs/IMPROVEMENT_REPORT.md`](./my-docs/IMPROVEMENT_REPORT.md) | Narrative improvement history and claim boundaries |
+| [`my-docs/AUDIT_REPORT.md`](./my-docs/AUDIT_REPORT.md) | Baseline audit report |
+| [`my-docs/discovery-research-log.md`](./my-docs/discovery-research-log.md) | Discovery write-up and disposition log |
+| [`my-docs/AI_COST_ANALYSIS.md`](./my-docs/AI_COST_ANALYSIS.md) | AI usage, cost basis, and reflection |
+
+Submission gates:
+
+```bash
+pnpm submission:validate
+pnpm submission:render
+pnpm submission:check
+pnpm docs:check:strict
+```
+
+The ledger is the claim authority. The dashboard and Current Ledger Truth block are generated from it; do not hand-edit generated proof.
+
+---
+
 ## Deployment
 
 Ship currently has a Render deployment path for public/demo evidence and an AWS/Terraform path for future government-style infrastructure work.
@@ -228,6 +255,15 @@ Ship currently has a Render deployment path for public/demo evidence and an AWS/
 | **Optional local container stack** | `pnpm docker:up` |
 | **Public/demo deployment** | Render (`render.yaml`) |
 | **Future government deployment** | AWS/Terraform docs in `DEPLOYMENT.md` and `terraform/` |
+
+Public demo URLs used for final smoke evidence:
+
+| Service | URL |
+|---------|-----|
+| Web app | https://ship-shape-web.onrender.com/ |
+| API health | https://ship-shape-api.onrender.com/health |
+
+Final smoke evidence lives in [`my-docs/evidence/deploy-smoke-2026-05-24.md`](./my-docs/evidence/deploy-smoke-2026-05-24.md).
 
 ### Docker
 

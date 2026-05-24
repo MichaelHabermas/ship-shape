@@ -2,6 +2,40 @@
 
 Durable choices made during the audit/improvement work. This file exists so we can defend why structural decisions were made, what they do not claim, and what future work must preserve.
 
+## 2026-05-24: Evidence Freeze
+
+### D064: Freeze Product Code And Package Reviewer Evidence
+
+Status: Accepted
+
+Decision: Stop product and architecture changes after the ledger-proven Categories 1-8 state, and spend the final pass on submission packaging: checklist, proof map, deploy smoke evidence, claim boundaries, and generated dashboard/ledger consistency.
+
+Why: The source-of-truth assignment rewards measured improvements with proof. Additional implementation after proven ledger status risks invalidating benchmark comparability and diffusing reviewer attention. The stale artifact was not the code; it was the blank reviewer checklist and scattered proof paths.
+
+Alternatives considered: start another architecture-deepening pass around file authorization or visibility joins; rerun broad product refactors for SOLID/DRY polish. Those are real backlog items, but they do not improve the current submission unless they produce new source-required evidence, and they could force costly reruns.
+
+Consequences: Product code is frozen unless a validation command exposes a blocker. `my-docs/evidence/submission-ledger.json` remains the claim authority. Narrative docs can explain caveats, but generated dashboard/report truth comes from `pnpm submission:render`. No staging, unstaging, or commits without explicit instruction.
+
+Evidence: `my-docs/SUBMISSION_CHECKLIST.md` now indexes deliverables, category proof, deploy smoke, final commands, and claim boundaries; `my-docs/evidence/deploy-smoke-2026-05-24.md` records the basic public Render smoke.
+
+**Decision Gist**: After proof is good enough, protect it; package evidence instead of reopening implementation.
+
+### D065: Profile E2E By Resource Sensitivity
+
+Status: Accepted
+
+Decision: Route full E2E runs through `scripts/run-e2e-profiled.sh`, which classifies specs into normal, realtime, and isolated lanes. Normal specs run with moderate parallelism; realtime/collaboration and state-sensitive specs run with one worker by default. Targeted E2E invocations still delegate to the existing runner.
+
+Why: The previous full-suite failure pattern mixed true bugs with resource-pressure flakes: collaboration persistence, multi-page auth, session timeout, bulk selection, and stale My Week data all competed in one broad lane. Running everything together made the suite brittle and made failures expensive to classify.
+
+Alternatives considered: Keep one global worker count for all specs; mark failing specs flaky; only rerun focused clusters. A global low worker count hides the resource model and slows every run. Flaky annotations weaken the signal. Focused reruns help diagnosis but do not make the default full suite trustworthy.
+
+Consequences: New E2E spec files must be classified before the full profiled run starts. Specs that depend on WebSockets, editor persistence, browser context isolation, or timing-sensitive modal/session state should go in realtime or isolated lanes until proven otherwise. `pnpm test:e2e:run` is now the stable full-suite entrypoint; raw Playwright remains behind the runner.
+
+Evidence: Final focused failure cluster exited successfully in `test-results/failure-cluster-final-8` with retry-pass output: 35 passed, 1 flaky. Final full profiled E2E exited successfully in `test-results/profiled-full-final` with normal 525 passed / 4 flaky, realtime 177 passed / 1 flaky, and isolated 166 passed.
+
+**Decision Gist**: Default E2E should encode the system's resource reality instead of asking every spec to survive maximum contention.
+
 ## 2026-05-21: Architecture Deepening Pass
 
 ### D020: Canonical Collaboration Room Names
@@ -1153,3 +1187,17 @@ Consequences: `SIGTERM`/`SIGINT` now attempt bounded graceful shutdown and exit 
 Evidence: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts` 7/7; `pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx` 6/6; `E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep "error boundary"` 1/1; full Cat 6 runtime file 9/9.
 
 **Decision Gist**: Treat process fatal handlers and targeted render boundaries as Cat 6 hardening, not a new counted fix.
+
+### D066: Separate reviewer security evidence bundle (2026-05-24)
+
+Status: Accepted
+
+Decision: Publish reviewer-facing evidence through a generated static bundle at `my-docs/reviewer-evidence-bundle/`, intended for a separate Render Static Site named `ship-shape-reviewer-evidence`. Do not fold the reviewer bundle into `ship-shape-web`, AWS app deploys, or authenticated app routes.
+
+Why: The reviewer dashboard needs live-linkable evidence without coupling proof artifacts to the React SPA, login routing, or app deploy rollback. The static bundle is a publication surface, so it gets a manifest and redaction gate instead of copying raw local reports blindly.
+
+Consequences: `pnpm submission:render` now generates the dashboard, markdown ledger block, and reviewer bundle. `pnpm submission:check` verifies generated dashboard/markdown freshness plus bundle presence/redaction. The Security tab renders latest probe results separately from the known findings backlog so “latest active probe confirmed 0 findings” cannot be read as “all security findings are closed.”
+
+Evidence: `my-docs/reviewer-evidence-bundle/index.html`, `manifest.json`, generated `my-docs/reviewer-dashboard.html` Security tab, and `my-docs/evidence/submission-ledger.json` Cat 8 evidence entry.
+
+**Decision Gist**: Keep reviewer evidence static, isolated, generated, and bounded by explicit non-claims.

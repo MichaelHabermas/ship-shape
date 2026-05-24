@@ -17,7 +17,7 @@ async function waitForDocumentContentInApi(page: Page, text: string) {
   expect(docId, 'Editor URL should include document id').toBeTruthy()
 
   await expect.poll(async () => {
-    const response = await page.request.get(`/api/documents/${docId}`)
+    const response = await page.request.get(`/api/documents/${docId}/content`)
     if (!response.ok()) return false
     const body = await response.json()
     return JSON.stringify(body).includes(text)
@@ -73,9 +73,8 @@ test.describe('My Week - stale data after editing plan/retro', () => {
     await editor.click()
     await page.keyboard.type('1. Completed the API refactoring')
 
-    // 6. Wait for the collaboration server to persist the content
-    await expect(page.getByText('Saved')).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(2500)
+    // 6. Wait for the collaboration server to persist the content.
+    // The status may show Cached when IndexedDB has the latest local state; the API is the durable signal.
     await waitForDocumentContentInApi(page, 'Completed the API refactoring')
 
     // 7. Navigate back to /my-week using client-side navigation

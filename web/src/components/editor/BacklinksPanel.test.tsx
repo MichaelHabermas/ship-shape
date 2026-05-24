@@ -98,6 +98,8 @@ describe('BacklinksPanel', () => {
       await flushPromises();
       vi.advanceTimersByTime(15000);
       await flushPromises();
+      vi.advanceTimersByTime(15000);
+      await flushPromises();
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
@@ -143,6 +145,8 @@ describe('BacklinksPanel', () => {
     global.fetch = fetchMock;
 
     renderPanel();
+
+    await act(flushPromises);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 

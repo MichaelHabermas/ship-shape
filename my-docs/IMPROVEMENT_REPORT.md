@@ -2,6 +2,45 @@
 
 ---
 
+## E2E Anti-Fragility Pass (2026-05-24)
+
+Scope: test reliability and real blocker fixes only. This pass did not change submission-ledger claims.
+
+### What changed
+
+- Added `scripts/run-e2e-profiled.sh` and made `pnpm test:e2e:run` split the full suite into normal, realtime, and isolated lanes.
+- Fixed runtime/test causes behind the failing cluster: team-member id mapping, authenticated second-page collaboration setup, My Week server-proof waits, WebSocket wildcard origin handling, and code-block fallback support before async lowlight loads.
+- Preserved targeted E2E behavior by delegating argument-based runs to the existing runner.
+
+### Evidence
+
+- Focused cluster: `test-results/failure-cluster-final-8` — exit-pass with 35 passed / 1 flaky.
+- Full profiled E2E: `test-results/profiled-full-final` — exit-pass with normal 525 passed / 4 flaky, realtime 177 passed / 1 flaky, isolated 166 passed.
+- Supporting gates stayed green: `pnpm type-check`, web unit tests, API unit tests on `ship_test_audit`.
+
+### Claim boundary
+
+This is a suite-trust improvement and blocker cleanup. It does not add a new Category 1-8 measurement claim, so `my-docs/evidence/submission-ledger.json` remains unchanged.
+
+---
+
+## Evidence Freeze And Submission Packaging (2026-05-24)
+
+Scope: reviewer-facing evidence packaging only. Product code is frozen because the structured submission ledger already marks Categories 1-8 `proven`; remaining work is claim integrity, final navigation, and deploy smoke evidence.
+
+### What changed
+
+- Promoted `my-docs/SUBMISSION_CHECKLIST.md` from a stale placeholder into the reviewer-facing index for deliverables, category proof, deploy status, final verification commands, and claim boundaries.
+- Added basic public deploy smoke evidence at `my-docs/evidence/deploy-smoke-2026-05-24.md` for `https://ship-shape-web.onrender.com/` reaching `/login`.
+- Kept category status, acceptance results, measurements, and claim basis unchanged. The ledger may still gain reviewer-packaging artifact references when generated evidence bundle paths change.
+- Kept generated dashboard/report truth ledger-first; run `pnpm submission:render` after final ledger edits, not by hand.
+
+### Claim boundary
+
+The freeze does not add new product claims. It makes existing proof easier to review and keeps the important non-claims explicit: Cat 2 is initial-entry/code-splitting, Cat 4 is app-shell query consolidation, Cat 7 is axe Critical/Serious closeout, and Cat 8 is runnable-probe evidence rather than generic security hygiene.
+
+---
+
 ## Security probe CI gate + verification hardening (2026-05-23)
 
 Multi-agent verification (security API review, probe/CI audit, SOT alignment, thermo-nuclear quality, automated `security:probe:ci`) found real bypasses and probe drift. Follow-up fixes:

@@ -167,18 +167,42 @@
       .discoveries-table { table-layout:fixed; min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
       .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:58px; }
-      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:88px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:108px; }
       .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:112px; }
+      .discoveries-table th:nth-child(5),.discoveries-table td:nth-child(5) { width:295px; }
       .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
       .discoveries-table th:nth-child(8),.discoveries-table td:nth-child(8) { width:150px; }
       .discoveries-table td:nth-child(1),.discoveries-table td:nth-child(2),.discoveries-table td:nth-child(3),.discoveries-table td:nth-child(4),.discoveries-table td:nth-child(7),.discoveries-table td:nth-child(8) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .discoveries-table td:nth-child(8) .path { line-height:1.15; }
+      .security-panel h3 { margin-top:18px; }
+      .security-callout { margin:10px 0 12px; color:#34342f; font-size:13px; font-weight:750; }
+      .security-metric-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); align-items:stretch; gap:7px; margin:12px 0; }
+      .security-mini { min-height:76px; display:flex; flex-direction:column; }
+      .security-mini span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; }
+      .security-mini strong { margin:8px 0 2px; font-size:18px; line-height:1.05; }
+      .security-mini strong:first-of-type { margin-top:auto; }
+      .security-mini small { display:block; color:var(--muted); font-size:11px; line-height:1.2; }
+      .security-evidence-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .security-probe-table { min-width:980px; }
+      .security-findings-table { table-layout:fixed; min-width:1540px; }
+      .security-probe-table th:nth-child(1),.security-probe-table td:nth-child(1) { width:130px; }
+      .security-probe-table th:nth-child(2),.security-probe-table td:nth-child(2) { width:260px; }
+      .security-findings-table th:nth-child(1),.security-findings-table td:nth-child(1) { width:122px; white-space:nowrap; overflow-wrap:normal; }
+      .security-findings-table th:nth-child(2),.security-findings-table td:nth-child(2) { width:118px; white-space:nowrap; overflow-wrap:normal; }
+      .security-findings-table th:nth-child(3),.security-findings-table td:nth-child(3) { width:92px; white-space:nowrap; }
+      .security-findings-table th:nth-child(4),.security-findings-table td:nth-child(4) { width:78px; white-space:nowrap; }
+      .security-findings-table th:nth-child(5),.security-findings-table td:nth-child(5) { width:245px; }
+      .security-findings-table th:nth-child(6),.security-findings-table td:nth-child(6) { width:220px; }
+      .security-findings-table th:nth-child(7),.security-findings-table td:nth-child(7) { width:440px; }
+      .security-findings-table th:nth-child(8),.security-findings-table td:nth-child(8) { width:225px; }
+      .security-findings-table td:nth-child(6) .path,.security-findings-table td:nth-child(7) .path,.security-findings-table td:nth-child(8) { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; }
+      .security-findings-table .impact-pill { width:auto; min-width:66px; padding:3px 7px; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
-      @media (max-width: 1100px) { .score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title,.rail-meta { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
-      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
+      @media (max-width: 1100px) { .score-grid,.security-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title,.rail-meta { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes,.security-evidence-list { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
+      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row,.security-metric-grid { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
     </style>
   </head>
   <body>
@@ -243,7 +267,7 @@
               <span class="rail-meta">Accessibility Compliance</span>
               <span class="rail-detail">M · 4/4</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="21 art" data-detail-evidence="H · 21 artifacts" data-meta-cross-examine="41 pts" data-detail-cross-examine="H · 41 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="22 art" data-detail-evidence="H · 22 artifacts" data-meta-cross-examine="42 pts" data-detail-cross-examine="H · 42 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
               <span class="rail-number">8</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">4/4</span>
@@ -314,6 +338,7 @@
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
         <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
+        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security</button>
       </nav>
 
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
@@ -432,7 +457,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>41 pts · 1 claim · 7 boundaries · 21 artifacts · 4 gates</small>
+      <small>42 pts · 1 claim · 7 boundaries · 22 artifacts · 4 gates</small>
 
     </div>
             <span>4/4 acceptance pass; all gates clear</span>
@@ -1337,6 +1362,12 @@
           <small>Path: my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</small>
           <div class="artifact-link"><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
+        <li data-ledger-id="cat8-reviewer-evidence-bundle">
+          <strong>Reviewer Evidence Bundle <span class="subtle">artifact</span></strong>
+          <span>Self-contained static reviewer evidence bundle for separate Render Static Site deployment; includes generated dashboard, manifest, source briefs, and curated security evidence.</span>
+          <small>Path: my-docs/reviewer-evidence-bundle/index.html</small>
+          <div class="artifact-link"><a class="path" href="reviewer-evidence-bundle/index.html" title="my-docs/reviewer-evidence-bundle/index.html" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
         <li data-ledger-id="cat8-security-probe-final-report">
           <strong>Security Probe Final Report <span class="subtle">artifact</span></strong>
           <span>Final full security probe report: 4/4 attack surfaces measured, 25/25 probes passed, 0 findings.</span>
@@ -1515,6 +1546,799 @@
           <td><div class="chip-list"><span class="test-chip pass" title="cat8-probe-tool-runnable">PASS Probe Tool Runnable</span> <span class="test-chip pass" title="cat8-four-attack-surfaces-covered">PASS Four Attack Surfaces Covered</span> <span class="test-chip pass" title="cat8-manual-review-complete">PASS Manual Review Complete</span> <span class="test-chip pass" title="cat8-two-verified-vulnerability-fixes">PASS Two Verified Vulnerability Fixes</span></div></td>
           <td><div class="source-links"><a class="path" href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" title="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" target="_blank" rel="noopener noreferrer">my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt</a><a class="path" href="SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" title="my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt" target="_blank" rel="noopener noreferrer">my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt</a><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/latest.json</a><a class="path" href="Cat-8-Sec-Audit-and-Tool-plan.md" title="my-docs/Cat-8-Sec-Audit-and-Tool-plan.md" target="_blank" rel="noopener noreferrer">my-docs/Cat-8-Sec-Audit-and-Tool-plan.md</a><a class="path" href="MEMORY.md" title="my-docs/MEMORY.md" target="_blank" rel="noopener noreferrer">my-docs/MEMORY.md</a><a class="path" href="DECISION_LOG.md" title="my-docs/DECISION_LOG.md" target="_blank" rel="noopener noreferrer">my-docs/DECISION_LOG.md</a></div></td>
         </tr></tbody></table></div>
+      </section>
+
+
+      <section id="panel-security" class="tab-panel" role="tabpanel" aria-labelledby="tab-security" tabindex="0" hidden>
+        <article class="panel security-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Category 8 Deep Dive</p>
+              <h2>Security Evidence</h2>
+              <p>Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof. <a href="SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt" target="_blank" rel="noopener noreferrer">Source</a></p>
+            </div>
+            <span class="badge proven">proven</span>
+          </div>
+          <div class="callout security-callout">
+            Latest active probe results and known security backlog are separate signals. A clean latest probe does not claim every manual-review finding is closed.
+          </div>
+          <div class="security-metric-grid">
+        <div class="mini security-mini">
+          <span>Latest run</span>
+          <strong>local-probe-repeat-verify</strong>
+          <small>2026-05-24T05:17:07.070Z</small>
+        </div>
+        <div class="mini security-mini">
+          <span>Surfaces measured</span>
+          <strong>5/5</strong>
+          <small>Latest active probe scope</small>
+        </div>
+        <div class="mini security-mini">
+          <span>Named probes</span>
+          <strong>40</strong>
+          <small>Passed in latest active probe</small>
+        </div>
+        <div class="mini security-mini">
+          <span>Latest confirmed findings</span>
+          <strong>0</strong>
+          <small>Latest active probe only</small>
+        </div>
+        <div class="mini security-mini">
+          <span>Resolved triage</span>
+          <strong>1</strong>
+          <small>Passed after registry expected a finding</small>
+        </div>
+        <div class="mini security-mini">
+          <span>Active backlog</span>
+          <strong>0</strong>
+          <small>Known security findings ledger</small>
+        </div></div>
+
+          <h3>Evidence Bundle Map</h3>
+          <ul class="check-list security-evidence-list">
+        <li data-ledger-id="cat8-baseline-comparison-json">
+          <strong>Baseline Comparison Json</strong>
+          <span>Baseline vs current audit deliverable table aligned to Shipshape-Security-Audit.txt.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/cat8-audit-deliverable.json" title="my-docs/evidence/security-audit/cat8-audit-deliverable.json" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/cat8-audit-deliverable.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-final-report">
+          <strong>Security Probe Final Report</strong>
+          <span>Final full security probe report: 4/4 attack surfaces measured, 25/25 probes passed, 0 findings.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/latest.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-final-markdown">
+          <strong>Security Probe Final Markdown</strong>
+          <span>Human-readable final security probe report.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/latest.md" title="my-docs/evidence/security-audit/latest.md" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/latest.md</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-findings">
+          <strong>Security Findings</strong>
+          <span>Unified security findings SoT: workflow status, probe bindings, append-only verification history (SS-FIND-001…034).</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/security-findings.json" title="my-docs/evidence/security-audit/security-findings.json" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/security-findings.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-findings-ledger-generated">
+          <strong>Security Findings Ledger Generated</strong>
+          <span>Generated human-readable ledger from security-findings.json (pnpm security:findings:render).</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/security-findings-ledger.md" title="my-docs/evidence/security-audit/security-findings-ledger.md" target="_blank" rel="noopener noreferrer">.../evidence/security-audit/security-findings-ledger.md</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-ci-gate">
+          <strong>Security Probe Ci Gate</strong>
+          <span>CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json" title="my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json" target="_blank" rel="noopener noreferrer">.../runs/security-probe-ci-20260523-190801/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-before-file-size">
+          <strong>Before File Size</strong>
+          <span>Before proof for local upload declared-size mismatch acceptance.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/before-file-size/report.json" title="my-docs/evidence/security-audit/runs/before-file-size/report.json" target="_blank" rel="noopener noreferrer">.../runs/before-file-size/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-file-size">
+          <strong>After File Size</strong>
+          <span>After proof for local upload declared-size mismatch rejection.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-file-size/report.json" title="my-docs/evidence/security-audit/runs/after-file-size/report.json" target="_blank" rel="noopener noreferrer">.../runs/after-file-size/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-before-file-headers">
+          <strong>Before File Headers</strong>
+          <span>Before proof for unsafe inline uploaded HTML serving headers.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/before-file-headers/report.json" title="my-docs/evidence/security-audit/runs/before-file-headers/report.json" target="_blank" rel="noopener noreferrer">.../runs/before-file-headers/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-file-headers">
+          <strong>After File Headers</strong>
+          <span>After proof for attachment/nosniff uploaded file serving headers.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-file-headers-2/report.json" title="my-docs/evidence/security-audit/runs/after-file-headers-2/report.json" target="_blank" rel="noopener noreferrer">.../runs/after-file-headers-2/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-before-ws-malformed">
+          <strong>Before Ws Malformed</strong>
+          <span>Before proof for unsafe malformed WebSocket frame handling.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/before-ws-malformed/report.json" title="my-docs/evidence/security-audit/runs/before-ws-malformed/report.json" target="_blank" rel="noopener noreferrer">.../runs/before-ws-malformed/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-ws-malformed">
+          <strong>After Ws Malformed</strong>
+          <span>After proof for malformed WebSocket frame handling.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-ws-malformed/report.json" title="my-docs/evidence/security-audit/runs/after-ws-malformed/report.json" target="_blank" rel="noopener noreferrer">.../runs/after-ws-malformed/report.json</a></div>
+        </li>
+        <li data-ledger-id="cat8-after-ws-oversized">
+          <strong>After Ws Oversized</strong>
+          <span>After proof for oversized WebSocket frame handling without process crash.</span>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/after-ws-oversized/report.json" title="my-docs/evidence/security-audit/runs/after-ws-oversized/report.json" target="_blank" rel="noopener noreferrer">.../runs/after-ws-oversized/report.json</a></div>
+        </li></ul>
+
+          <h3>Probe Results</h3>
+          <div class="table-wrap"><table class="security-probe-table"><thead><tr><th>Surface</th><th>Probe ID</th><th>Status</th><th>Triage / Finding</th><th>Evidence</th><th>Notes</th></tr></thead><tbody>
+        <tr data-probe-id="abuse-login-rate-limit">
+          <td>Abuse controls</td>
+          <td><span class="path" title="abuse-login-rate-limit">abuse-login-rate-limit</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="abuse-public-feedback-rate-limit">
+          <td>Abuse controls</td>
+          <td><span class="path" title="abuse-public-feedback-rate-limit">abuse-public-feedback-rate-limit</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-api-token-super-admin-boundary">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-api-token-super-admin-boundary">auth-session-api-token-super-admin-boundary</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-cookie-flags">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-cookie-flags">auth-session-cookie-flags</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-cookie-shape-expiry">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-cookie-shape-expiry">auth-session-cookie-shape-expiry</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-csrf-mutating-request">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-csrf-mutating-request">auth-session-csrf-mutating-request</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-invalid-bearer">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-invalid-bearer">auth-session-invalid-bearer</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-member-audit-logs-denied">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-member-audit-logs-denied">auth-session-member-audit-logs-denied</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-member-impersonation-denied">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-member-impersonation-denied">auth-session-member-impersonation-denied</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="auth-session-unauthenticated-api">
+          <td>Auth/session</td>
+          <td><span class="path" title="auth-session-unauthenticated-api">auth-session-unauthenticated-api</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-bulk-issue-foreign-target">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-bulk-issue-foreign-target">authorization-bulk-issue-foreign-target</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-dashboard-private-metadata">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-dashboard-private-metadata">authorization-dashboard-private-metadata</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-file-document-scope">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-file-document-scope">authorization-file-document-scope</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-file-upload-hijack-denied">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-file-upload-hijack-denied">authorization-file-upload-hijack-denied</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-governance-accountable-self-assign">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-governance-accountable-self-assign">authorization-governance-accountable-self-assign</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-governance-properties-injection">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-governance-properties-injection">authorization-governance-properties-injection</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-governance-week-status-bypass">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-governance-week-status-bypass">authorization-governance-week-status-bypass</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-websocket-origin-reject">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-websocket-origin-reject">authorization-websocket-origin-reject</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-weekly-plan-idor-documents">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-weekly-plan-idor-documents">authorization-weekly-plan-idor-documents</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="authorization-weekly-plan-idor-websocket">
+          <td>Authorization</td>
+          <td><span class="path" title="authorization-weekly-plan-idor-websocket">authorization-weekly-plan-idor-websocket</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="dependency-pnpm-audit">
+          <td>Dependencies</td>
+          <td><span class="path" title="dependency-pnpm-audit">dependency-pnpm-audit</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-comment-payloads">
+          <td>Input</td>
+          <td><span class="path" title="input-comment-payloads">input-comment-payloads</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-file-serve-headers">
+          <td>Input</td>
+          <td><span class="path" title="input-file-serve-headers">input-file-serve-headers</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-file-upload-size-mismatch">
+          <td>Input</td>
+          <td><span class="path" title="input-file-upload-size-mismatch">input-file-upload-size-mismatch</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-governance-mass-assignment">
+          <td>Input</td>
+          <td><span class="path" title="input-governance-mass-assignment">input-governance-mass-assignment</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-issue-payloads">
+          <td>Input</td>
+          <td><span class="path" title="input-issue-payloads">input-issue-payloads</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-long-field-validation">
+          <td>Input</td>
+          <td><span class="path" title="input-long-field-validation">input-long-field-validation</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-search-payloads">
+          <td>Input</td>
+          <td><span class="path" title="input-search-payloads">input-search-payloads</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="input-stored-xss-document-title">
+          <td>Input</td>
+          <td><span class="path" title="input-stored-xss-document-title">input-stored-xss-document-title</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="manual-cors-csp">
+          <td>Manual review</td>
+          <td><span class="path" title="manual-cors-csp">manual-cors-csp</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="manual-rate-limits">
+          <td>Manual review</td>
+          <td><span class="path" title="manual-rate-limits">manual-rate-limits</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="manual-secrets">
+          <td>Manual review</td>
+          <td><span class="path" title="manual-secrets">manual-secrets</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="manual-verbose-errors">
+          <td>Manual review</td>
+          <td><span class="path" title="manual-verbose-errors">manual-verbose-errors</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-events-malformed-message">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-events-malformed-message">websocket-events-malformed-message</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-events-unknown-message-type">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-events-unknown-message-type">websocket-events-unknown-message-type</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-malformed-frame">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-malformed-frame">websocket-malformed-frame</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-no-cookie-denied">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-no-cookie-denied">websocket-no-cookie-denied</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-nonexistent-doc-denied">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-nonexistent-doc-denied">websocket-nonexistent-doc-denied</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-oversized-frame">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-oversized-frame">websocket-oversized-frame</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr>
+        <tr data-probe-id="websocket-unknown-message-type">
+          <td>WebSocket</td>
+          <td><span class="path" title="websocket-unknown-message-type">websocket-unknown-message-type</span></td>
+          <td><span class="test-chip pass">passed</span></td>
+          <td>Latest active probe confirmed this probe passed</td>
+          <td><a class="path" href="evidence/security-audit/latest.json" title="my-docs/evidence/security-audit/latest.json" target="_blank" rel="noopener noreferrer">latest.json</a></td>
+          <td>Target-safe probe</td>
+        </tr></tbody></table></div>
+
+          <h3>Known Findings Ledger</h3>
+          <p class="subtle">Rows come from security-findings.json. Open/unfixed rows are summarized here without expanding exploit steps inline.</p>
+          <div class="table-wrap"><table class="security-findings-table"><thead><tr><th>ID</th><th>Severity</th><th>Status</th><th>Active</th><th>OWASP / Category</th><th>Primary location</th><th>Narrative</th><th>Last verification</th></tr></thead><tbody>
+        <tr data-finding-id="SS-FIND-001" data-status="fixed" data-severity="critical" data-active="false">
+          <td><strong>SS-FIND-001</strong></td>
+          <td><span class="impact-pill impact-5">critical</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01 / business-logic-authorization-bypass</td>
+          <td><span class="path" title="api/src/routes/documents.ts">api/src/routes/documents.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-001.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-001.md" target="_blank" rel="noopener noreferrer">— Governance approval forgery via document `properties` mass assignment</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-002" data-status="fixed" data-severity="critical" data-active="false">
+          <td><strong>SS-FIND-002</strong></td>
+          <td><span class="impact-pill impact-5">critical</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01 / privilege-escalation</td>
+          <td><span class="path" title="api/src/routes/programs.ts, documents.ts">api/src/routes/programs.ts, documents.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-002.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-002.md" target="_blank" rel="noopener noreferrer">— RACI self-elevation grants real approval authority</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-003" data-status="fixed" data-severity="critical" data-active="false">
+          <td><strong>SS-FIND-003</strong></td>
+          <td><span class="impact-pill impact-5">critical</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01 / workflow-/-governance-bypass</td>
+          <td><span class="path" title="api/src/routes/weeks/sprints.ts, documents.ts">api/src/routes/weeks/sprints.ts, documents.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-003.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-003.md" target="_blank" rel="noopener noreferrer">— Week lifecycle bypass via ungoverned `status` PATCH</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-018" data-status="open" data-severity="critical" data-active="false">
+          <td><strong>SS-FIND-018</strong></td>
+          <td><span class="impact-pill impact-5">critical</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A04</td>
+          <td><span class="path" title="api/src/routes/setup.ts">api/src/routes/setup.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-018.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-018.md" target="_blank" rel="noopener noreferrer">— Setup race: first caller becomes super-admin</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-004" data-status="fixed" data-severity="high" data-active="false">
+          <td><strong>SS-FIND-004</strong></td>
+          <td><span class="impact-pill impact-5">high</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01 / accountability-integrity</td>
+          <td><span class="path" title="api/src/routes/documents.ts vs weekly-plans.ts">api/src/routes/documents.ts vs weekly-plans.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-004.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-004.md" target="_blank" rel="noopener noreferrer">— Weekly plan IDOR via generic documents REST API</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-005" data-status="fixed" data-severity="high" data-active="false">
+          <td><strong>SS-FIND-005</strong></td>
+          <td><span class="impact-pill impact-5">high</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01 / real-time-editing-bypass</td>
+          <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-005.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-005.md" target="_blank" rel="noopener noreferrer">— Weekly plan IDOR via collaboration WebSocket</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-025" data-status="fixed" data-severity="high" data-active="false">
+          <td><strong>SS-FIND-025</strong></td>
+          <td><span class="impact-pill impact-5">high</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A01 / idor-on-file-completion</td>
+          <td><span class="path" title="api/src/routes/files.ts">api/src/routes/files.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-025.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-025.md" target="_blank" rel="noopener noreferrer">— Pending file upload hijacking</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-026" data-status="fixed" data-severity="high" data-active="false">
+          <td><strong>SS-FIND-026</strong></td>
+          <td><span class="impact-pill impact-5">high</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A07 / csrf-equivalent-on-websocket</td>
+          <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-026.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-026.md" target="_blank" rel="noopener noreferrer">— Cross-site WebSocket session riding (no Origin validation)</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-027" data-status="open" data-severity="high" data-active="false">
+          <td><strong>SS-FIND-027</strong></td>
+          <td><span class="impact-pill impact-5">high</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A05 / resource-exhaustion</td>
+          <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-027.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-027.md" target="_blank" rel="noopener noreferrer">— Unbounded in-memory Y.Doc cache (WebSocket DoS)</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-029" data-status="open" data-severity="high" data-active="false">
+          <td><strong>SS-FIND-029</strong></td>
+          <td><span class="impact-pill impact-5">high</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / break-glass-/-insider-threat</td>
+          <td><span class="path" title="workspaces.ts, document-access.ts">workspaces.ts, document-access.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-029.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-029.md" target="_blank" rel="noopener noreferrer">— Super-admin cross-workspace access without membership</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-006" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-006</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A09 / non-repudiation-/-forensics</td>
+          <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-006.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-006.md" target="_blank" rel="noopener noreferrer">— Collaboration audit trail attributes edits to document creator</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-007" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-007</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / association-/-scope-manipulation</td>
+          <td><span class="path" title="api/src/routes/issues.ts">api/src/routes/issues.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-007.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-007.md" target="_blank" rel="noopener noreferrer">— Bulk issue move to private sprint/project without visibility check</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-008" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-008</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / attachment-confidentiality</td>
+          <td><span class="path" title="api/src/routes/files.ts">api/src/routes/files.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-008.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-008.md" target="_blank" rel="noopener noreferrer">— File access is workspace-scoped, not document-scoped</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-009" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-009</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / information-disclosure</td>
+          <td><span class="path" title="api/src/routes/issues.ts">api/src/routes/issues.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-009.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-009.md" target="_blank" rel="noopener noreferrer">— Private sub-issue metadata leaked in parent close warning</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-010" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-010</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / metadata-leak-(policy-dependent)</td>
+          <td><span class="path" title="api/src/routes/dashboard.ts">api/src/routes/dashboard.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-010.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-010.md" target="_blank" rel="noopener noreferrer">— Dashboard `my-focus` leaks private project/program metadata</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-011" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-011</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01</td>
+          <td><span class="path" title="api/src/routes/team.ts">api/src/routes/team.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-011.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-011.md" target="_blank" rel="noopener noreferrer">— Team grid leaks private program metadata via visible issues</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-012" data-status="fixed" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-012</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip pass">fixed</span></td>
+          <td>no</td>
+          <td>A04</td>
+          <td><span class="path" title="api/src/routes/feedback.ts">api/src/routes/feedback.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-012.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-012.md" target="_blank" rel="noopener noreferrer">— Public feedback lacks dedicated anti-abuse controls</a></td>
+          <td>pass · local-probe-repeat-verify</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-013" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-013</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A08</td>
+          <td><span class="path" title="api/src/routes/files.ts">api/src/routes/files.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-013.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-013.md" target="_blank" rel="noopener noreferrer">— S3 upload confirm without object verification</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-014" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-014</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A04</td>
+          <td><span class="path" title="api/src/routes/files.ts">api/src/routes/files.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-014.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-014.md" target="_blank" rel="noopener noreferrer">— File extension blocklist checks last extension only</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-015" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-015</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A07</td>
+          <td><span class="path" title="api/src/collaboration/index.ts">api/src/collaboration/index.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-015.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-015.md" target="_blank" rel="noopener noreferrer">— WebSocket session not re-validated after upgrade</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-016" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-016</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A07</td>
+          <td><span class="path" title="api/src/middleware/auth.ts">api/src/middleware/auth.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-016.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-016.md" target="_blank" rel="noopener noreferrer">— API tokens inherit full user privileges</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-017" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-017</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A07</td>
+          <td><span class="path" title="session-auth.ts, auth.ts">session-auth.ts, auth.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-017.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-017.md" target="_blank" rel="noopener noreferrer">— Session IP/User-Agent stored but never enforced</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-020" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-020</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A10</td>
+          <td><span class="path" title="admin-credentials.ts, services/caia.ts">admin-credentials.ts, services/caia.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-020.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-020.md" target="_blank" rel="noopener noreferrer">— Super-admin SSRF via CAIA issuer URL</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-028" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-028</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A02 / session-identifier-inconsistency</td>
+          <td><span class="path" title="api/src/routes/invites.ts">api/src/routes/invites.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-028.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-028.md" target="_blank" rel="noopener noreferrer">— Invite accept uses weaker session IDs</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-030" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-030</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / governance-property-injection-(feeds-ss-find-012)</td>
+          <td><span class="path" title="api/src/routes/documents.ts, programs.ts">api/src/routes/documents.ts, programs.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-030.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-030.md" target="_blank" rel="noopener noreferrer">— Member can enable public feedback via ungoverned PATCH</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-031" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-031</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A05 / defense-in-depth-/-architectural</td>
+          <td><span class="path" title="session-cookies.ts, app.ts">session-cookies.ts, app.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-031.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-031.md" target="_blank" rel="noopener noreferrer">— Production `SameSite=None` — cross-site cookies, CSRF-only REST defense</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-032" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-032</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / information-disclosure</td>
+          <td><span class="path" title="api/src/routes/invites.ts">api/src/routes/invites.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-032.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-032.md" target="_blank" rel="noopener noreferrer">— Unauthenticated invite lookup leaks metadata</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-033" data-status="open" data-severity="medium" data-active="false">
+          <td><strong>SS-FIND-033</strong></td>
+          <td><span class="impact-pill impact-3">medium</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01 / credential-issuance</td>
+          <td><span class="path" title="api/src/routes/api-tokens.ts">api/src/routes/api-tokens.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-033.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-033.md" target="_blank" rel="noopener noreferrer">— Any workspace member can mint full-privilege API tokens</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-019" data-status="open" data-severity="low" data-active="false">
+          <td><strong>SS-FIND-019</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A01</td>
+          <td><span class="path" title="api/src/routes/caia-auth.ts">api/src/routes/caia-auth.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-019.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-019.md" target="_blank" rel="noopener noreferrer">— CAIA `returnTo` weak validation</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-021" data-status="open" data-severity="low" data-active="false">
+          <td><strong>SS-FIND-021</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td></td>
+          <td><span class="path" title="api/src/routes/setup.ts">api/src/routes/setup.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-021.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-021.md" target="_blank" rel="noopener noreferrer">— Setup status reveals uninitialized instance</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-022" data-status="open" data-severity="low" data-active="false">
+          <td><strong>SS-FIND-022</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td></td>
+          <td><span class="path" title="api/src/services/accountability.ts">api/src/services/accountability.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-022.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-022.md" target="_blank" rel="noopener noreferrer">— Accountability may expose private sprint titles</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-023" data-status="open" data-severity="low" data-active="false">
+          <td><strong>SS-FIND-023</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td></td>
+          <td><span class="path" title="api/src/routes/ai.ts">api/src/routes/ai.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-023.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-023.md" target="_blank" rel="noopener noreferrer">— AI routes accept unvalidated bodies</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-024" data-status="open" data-severity="low" data-active="false">
+          <td><strong>SS-FIND-024</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td></td>
+          <td><span class="path" title="api/src/routes/associations.ts">api/src/routes/associations.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-024.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-024.md" target="_blank" rel="noopener noreferrer">— Breadcrumbs may expose hidden program UUID</a></td>
+          <td>not recorded</td>
+        </tr>
+        <tr data-finding-id="SS-FIND-034" data-status="open" data-severity="low" data-active="false">
+          <td><strong>SS-FIND-034</strong></td>
+          <td><span class="impact-pill impact-3">low</span></td>
+          <td><span class="test-chip warn">open</span></td>
+          <td>no</td>
+          <td>A05 / reconnaissance</td>
+          <td><span class="path" title="api/src/swagger.ts">api/src/swagger.ts</span></td>
+          <td><a class="path" href="evidence/security-audit/security-findings/narratives/SS-FIND-034.md" title="my-docs/evidence/security-audit/security-findings/narratives/SS-FIND-034.md" target="_blank" rel="noopener noreferrer">— Full OpenAPI schema exposed without authentication</a></td>
+          <td>not recorded</td>
+        </tr></tbody></table></div>
+
+          <h3>Rerun / Validate</h3>
+          <ul class="check-list">
+            <li><strong>Local reviewer run</strong><span><code>pnpm dev</code> then <code>pnpm security:probe</code></span></li>
+            <li><strong>CI-shaped gate</strong><span><code>pnpm security:probe:ci</code> and <code>pnpm security:findings:check</code></span></li>
+            <li><strong>Submission bundle</strong><span><code>pnpm submission:validate</code> then <code>pnpm submission:render</code> then <code>pnpm submission:check</code></span></li>
+          </ul>
+
+          <h3>Explicit Non-Claims</h3>
+          <ul class="check-list"><li><span>Does not claim remote production penetration testing.</span></li><li><span>Does not claim capability-scoped API tokens beyond the verified super-admin route denial check.</span></li><li><span>Does not claim future dependency advisories will remain zero without rerunning pnpm security:probe.</span></li><li><span>Remote/deployed destructive probing remains out of scope by default; remote mode requires explicit --allow-write and --allow-stress.</span></li><li><span>Created local probe records are retained unless a future run uses cleanup support.</span></li><li><span>Input sanitization probes sample the major current user-facing write/read surfaces and should be extended when new fields are introduced.</span></li><li><span>This is black-box plus assisted review evidence, not a formal external penetration test.</span></li></ul>
+        </article>
       </section>
 
       <section id="panel-cross-examine" class="tab-panel" role="tabpanel" aria-labelledby="tab-cross-examine" tabindex="0" hidden>
@@ -1850,7 +2674,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>41 pts · 1 claim · 7 boundaries · 21 artifacts · 4 gates</small>
+      <small>42 pts · 1 claim · 7 boundaries · 22 artifacts · 4 gates</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>

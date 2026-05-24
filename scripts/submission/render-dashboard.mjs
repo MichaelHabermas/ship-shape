@@ -24,6 +24,8 @@ import {
 
 const validateLedgerScript = fileURLToPath(new URL('./validate-ledger.mjs', import.meta.url));
 export const discoveriesPath = resolve(repoRoot, 'my-docs/evidence/discoveries.json');
+export const securityReportPath = resolve(repoRoot, 'my-docs/evidence/security-audit/latest.json');
+export const securityFindingsPath = resolve(repoRoot, 'my-docs/evidence/security-audit/security-findings.json');
 
 function badge(status) {
   return `<span class="badge ${statusClass(status)}">${escapeHtml(statusLabel(status))}</span>`;
@@ -352,6 +354,214 @@ function discoverySummary(discoveries) {
   return [...counts.entries()]
     .map(([status, count]) => `<span class="test-chip ${escapeHtml(discoveryStatusClass(status))}">${escapeHtml(status)} ${count}</span>`)
     .join(' ');
+}
+
+function securitySeverityRank(severity) {
+  return { critical: 4, high: 3, medium: 2, low: 1 }[String(severity || '').toLowerCase()] || 0;
+}
+
+function securityStatusClass(status) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'fixed' || normalized === 'control') return 'pass';
+  if (normalized === 'open') return 'warn';
+  return '';
+}
+
+function securitySurfaceLabel(id) {
+  if (id?.startsWith('auth-session')) return 'Auth/session';
+  if (id?.startsWith('authorization')) return 'Authorization';
+  if (id?.startsWith('websocket')) return 'WebSocket';
+  if (id?.startsWith('input')) return 'Input';
+  if (id?.startsWith('dependency')) return 'Dependencies';
+  if (id?.startsWith('manual')) return 'Manual review';
+  if (id?.startsWith('abuse')) return 'Abuse controls';
+  return 'Other';
+}
+
+function lastVerification(find) {
+  return [...(find.verifications || [])].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))[0] || null;
+}
+
+function buildSecurityView(ledger, securityReport = null, securityFindings = null) {
+  const category = (ledger.categories || []).find((item) => item.id === 'cat-8-security-audit');
+  const findings = [...(securityFindings?.findings || [])].sort((a, b) => {
+    if (Boolean(b.active) !== Boolean(a.active)) return Boolean(b.active) - Boolean(a.active);
+    const severityDelta = securitySeverityRank(b.severity) - securitySeverityRank(a.severity);
+    if (severityDelta) return severityDelta;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+  const activeFindings = findings.filter((item) => item.active);
+  const probes = [...(securityReport?.probes || [])].sort((a, b) => {
+    const surfaceDelta = securitySurfaceLabel(a.id).localeCompare(securitySurfaceLabel(b.id));
+    if (surfaceDelta) return surfaceDelta;
+    const statusDelta = String(a.status || '').localeCompare(String(b.status || ''));
+    if (statusDelta) return statusDelta;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+  const triageCounts = securityReport?.summary?.triageCounts || securityReport?.triage?.counts || {};
+  return {
+    category,
+    report: securityReport,
+    findingsStore: securityFindings,
+    findings,
+    activeFindings,
+    probes,
+    triageCounts,
+  };
+}
+
+function securityMetricCards(view) {
+  const summary = view.report?.summary || {};
+  const runId = view.report?.run?.id || view.report?.run?.runId || 'unknown run';
+  const generatedAt = view.report?.generatedAt || view.findingsStore?.updatedAt || 'unknown time';
+  const cards = [
+    ['Latest run', runId, generatedAt],
+    ['Surfaces measured', `${summary.attackSurfacesMeasured ?? 0}/${summary.attackSurfacesTotal ?? 0}`, 'Latest active probe scope'],
+    ['Named probes', String(summary.probesByStatus?.passed ?? view.probes.length), 'Passed in latest active probe'],
+    ['Latest confirmed findings', String(summary.findings ?? 0), 'Latest active probe only'],
+    ['Resolved triage', String(view.triageCounts.resolved ?? 0), 'Passed after registry expected a finding'],
+    ['Active backlog', String(view.activeFindings.length), 'Known security findings ledger'],
+  ];
+  return `<div class="security-metric-grid">${cards
+    .map(
+      ([label, value, note]) => `
+        <div class="mini security-mini">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+          <small>${escapeHtml(note)}</small>
+        </div>`
+    )
+    .join('')}</div>`;
+}
+
+function securityEvidenceMap(view) {
+  const categoryEvidence = view.category?.evidence || [];
+  const preferred = [
+    'cat8-baseline-comparison-json',
+    'cat8-security-probe-final-report',
+    'cat8-security-probe-final-markdown',
+    'cat8-security-findings',
+    'cat8-security-findings-ledger-generated',
+    'cat8-security-probe-ci-gate',
+    'cat8-before-file-size',
+    'cat8-after-file-size',
+    'cat8-before-file-headers',
+    'cat8-after-file-headers',
+    'cat8-before-ws-malformed',
+    'cat8-after-ws-malformed',
+    'cat8-after-ws-oversized',
+  ];
+  const rows = preferred
+    .map((id) => categoryEvidence.find((item) => item.id === id))
+    .filter(Boolean)
+    .map(
+      (item) => `
+        <li data-ledger-id="${escapeHtml(item.id)}">
+          <strong>${escapeHtml(humanizeId(item.id))}</strong>
+          <span>${escapeHtml(item.description || '')}</span>
+          <div class="artifact-link">${linkedPath(item.path, shortPath(item.path))}</div>
+        </li>`
+    )
+    .join('');
+  return `<ul class="check-list security-evidence-list">${rows}</ul>`;
+}
+
+function securityProbeRows(view) {
+  if (!view.probes.length) {
+    return '<tr><td colspan="6">No probe rows were available from the latest security report.</td></tr>';
+  }
+  return view.probes
+    .map((probe) => {
+      const findingText = probe.findingIds?.length ? probe.findingIds.join(', ') : 'Latest active probe confirmed this probe passed';
+      const reportPath = 'my-docs/evidence/security-audit/latest.json';
+      return `
+        <tr data-probe-id="${escapeHtml(probe.id)}">
+          <td>${escapeHtml(securitySurfaceLabel(probe.id))}</td>
+          <td><span class="path" title="${escapeHtml(probe.id)}">${escapeHtml(probe.id)}</span></td>
+          <td><span class="test-chip ${probe.status === 'passed' ? 'pass' : 'fail'}">${escapeHtml(probe.status || 'unknown')}</span></td>
+          <td>${escapeHtml(findingText)}</td>
+          <td>${linkedPath(reportPath, 'latest.json')}</td>
+          <td>${escapeHtml(probe.targetSafe === false ? 'Requires explicit unsafe opt-in' : 'Target-safe probe')}</td>
+        </tr>`;
+    })
+    .join('');
+}
+
+function securityFindingRows(view) {
+  if (!view.findings.length) {
+    return '<tr><td colspan="8">No known findings are recorded in security-findings.json.</td></tr>';
+  }
+  return view.findings
+    .map((finding) => {
+      const verification = lastVerification(finding);
+      const narrativePath = finding.narrativePath ? `my-docs/evidence/security-audit/${finding.narrativePath}` : '';
+      const location = (finding.primaryLocations || []).join(', ');
+      return `
+        <tr data-finding-id="${escapeHtml(finding.id)}" data-status="${escapeHtml(finding.status)}" data-severity="${escapeHtml(
+          finding.severity
+        )}" data-active="${escapeHtml(String(Boolean(finding.active)))}">
+          <td><strong>${escapeHtml(finding.id)}</strong></td>
+          <td><span class="impact-pill impact-${securitySeverityRank(finding.severity) >= 3 ? '5' : '3'}">${escapeHtml(
+            finding.severity || 'n/a'
+          )}</span></td>
+          <td><span class="test-chip ${escapeHtml(securityStatusClass(finding.status))}">${escapeHtml(finding.status)}</span></td>
+          <td>${escapeHtml(finding.active ? 'yes' : 'no')}</td>
+          <td>${escapeHtml([finding.owasp, finding.category].filter(Boolean).join(' / '))}</td>
+          <td><span class="path" title="${escapeHtml(location)}">${escapeHtml(location)}</span></td>
+          <td>${narrativePath ? linkedPath(narrativePath, finding.title || finding.id) : escapeHtml(finding.title || finding.id)}</td>
+          <td>${escapeHtml(verification ? `${verification.result} · ${verification.runId || verification.method || verification.at}` : 'not recorded')}</td>
+        </tr>`;
+    })
+    .join('');
+}
+
+function securityTab(ledger, securityReport, securityFindings) {
+  const view = buildSecurityView(ledger, securityReport, securityFindings);
+  const source = view.category?.source_requirement;
+  const nonClaims = [...(view.category?.non_claims || []), ...(view.category?.caveats || [])];
+  return `
+      <section id="panel-security" class="tab-panel" role="tabpanel" aria-labelledby="tab-security" tabindex="0" hidden>
+        <article class="panel security-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Category 8 Deep Dive</p>
+              <h2>Security Evidence</h2>
+              <p>${escapeHtml(source?.statement || 'Security evidence is generated from the Category 8 source requirements and security findings store.')} ${
+                source?.source ? repoLink(source.source, 'Source') : ''
+              }</p>
+            </div>
+            ${view.category ? badge(view.category.status) : ''}
+          </div>
+          <div class="callout security-callout">
+            Latest active probe results and known security backlog are separate signals. A clean latest probe does not claim every manual-review finding is closed.
+          </div>
+          ${securityMetricCards(view)}
+
+          <h3>Evidence Bundle Map</h3>
+          ${securityEvidenceMap(view)}
+
+          <h3>Probe Results</h3>
+          <div class="table-wrap"><table class="security-probe-table"><thead><tr><th>Surface</th><th>Probe ID</th><th>Status</th><th>Triage / Finding</th><th>Evidence</th><th>Notes</th></tr></thead><tbody>${securityProbeRows(
+            view
+          )}</tbody></table></div>
+
+          <h3>Known Findings Ledger</h3>
+          <p class="subtle">Rows come from security-findings.json. Open/unfixed rows are summarized here without expanding exploit steps inline.</p>
+          <div class="table-wrap"><table class="security-findings-table"><thead><tr><th>ID</th><th>Severity</th><th>Status</th><th>Active</th><th>OWASP / Category</th><th>Primary location</th><th>Narrative</th><th>Last verification</th></tr></thead><tbody>${securityFindingRows(
+            view
+          )}</tbody></table></div>
+
+          <h3>Rerun / Validate</h3>
+          <ul class="check-list">
+            <li><strong>Local reviewer run</strong><span>${code('pnpm dev')} then ${code('pnpm security:probe')}</span></li>
+            <li><strong>CI-shaped gate</strong><span>${code('pnpm security:probe:ci')} and ${code('pnpm security:findings:check')}</span></li>
+            <li><strong>Submission bundle</strong><span>${code('pnpm submission:validate')} then ${code('pnpm submission:render')} then ${code('pnpm submission:check')}</span></li>
+          </ul>
+
+          <h3>Explicit Non-Claims</h3>
+          <ul class="check-list">${nonClaims.map((item) => `<li><span>${escapeHtml(item)}</span></li>`).join('')}</ul>
+        </article>
+      </section>`;
 }
 
 function targetRows(categories) {
@@ -725,7 +935,7 @@ function verdictStrip(categories) {
     </div>`;
 }
 
-export function renderDashboard(ledger, discoveries = { items: [] }) {
+export function renderDashboard(ledger, discoveries = { items: [] }, securityReport = null, securityFindings = null) {
   const model = buildLedgerModel(ledger);
   const categories = model.categories;
   const failedTests = model.failuresAndWarnings.filter((item) => item.result === 'fail');
@@ -900,18 +1110,42 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .discoveries-table { table-layout:fixed; min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
       .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:58px; }
-      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:88px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:108px; }
       .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:112px; }
+      .discoveries-table th:nth-child(5),.discoveries-table td:nth-child(5) { width:295px; }
       .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
       .discoveries-table th:nth-child(8),.discoveries-table td:nth-child(8) { width:150px; }
       .discoveries-table td:nth-child(1),.discoveries-table td:nth-child(2),.discoveries-table td:nth-child(3),.discoveries-table td:nth-child(4),.discoveries-table td:nth-child(7),.discoveries-table td:nth-child(8) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .discoveries-table td:nth-child(8) .path { line-height:1.15; }
+      .security-panel h3 { margin-top:18px; }
+      .security-callout { margin:10px 0 12px; color:#34342f; font-size:13px; font-weight:750; }
+      .security-metric-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); align-items:stretch; gap:7px; margin:12px 0; }
+      .security-mini { min-height:76px; display:flex; flex-direction:column; }
+      .security-mini span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; }
+      .security-mini strong { margin:8px 0 2px; font-size:18px; line-height:1.05; }
+      .security-mini strong:first-of-type { margin-top:auto; }
+      .security-mini small { display:block; color:var(--muted); font-size:11px; line-height:1.2; }
+      .security-evidence-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .security-probe-table { min-width:980px; }
+      .security-findings-table { table-layout:fixed; min-width:1540px; }
+      .security-probe-table th:nth-child(1),.security-probe-table td:nth-child(1) { width:130px; }
+      .security-probe-table th:nth-child(2),.security-probe-table td:nth-child(2) { width:260px; }
+      .security-findings-table th:nth-child(1),.security-findings-table td:nth-child(1) { width:122px; white-space:nowrap; overflow-wrap:normal; }
+      .security-findings-table th:nth-child(2),.security-findings-table td:nth-child(2) { width:118px; white-space:nowrap; overflow-wrap:normal; }
+      .security-findings-table th:nth-child(3),.security-findings-table td:nth-child(3) { width:92px; white-space:nowrap; }
+      .security-findings-table th:nth-child(4),.security-findings-table td:nth-child(4) { width:78px; white-space:nowrap; }
+      .security-findings-table th:nth-child(5),.security-findings-table td:nth-child(5) { width:245px; }
+      .security-findings-table th:nth-child(6),.security-findings-table td:nth-child(6) { width:220px; }
+      .security-findings-table th:nth-child(7),.security-findings-table td:nth-child(7) { width:440px; }
+      .security-findings-table th:nth-child(8),.security-findings-table td:nth-child(8) { width:225px; }
+      .security-findings-table td:nth-child(6) .path,.security-findings-table td:nth-child(7) .path,.security-findings-table td:nth-child(8) { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; }
+      .security-findings-table .impact-pill { width:auto; min-width:66px; padding:3px 7px; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
-      @media (max-width: 1100px) { .score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title,.rail-meta { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
-      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
+      @media (max-width: 1100px) { .score-grid,.security-metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media (max-width: 960px) { .dashboard-shell { grid-template-columns:1fr; } .category-rail { top:47px; display:flex; overflow-x:auto; margin:-8px 0 10px; } .rail-cell,.rail-cell:hover,.rail-cell:focus-visible { flex:0 0 138px; width:138px; } .rail-title,.rail-meta { display:block; } .hero,.section-grid,.mini-grid,.non-claim-grid,.cross-grid,.diff-lanes,.security-evidence-list { grid-template-columns:1fr; } .hero-side .score-grid,.score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .span-4,.span-6,.span-8,.span-12 { grid-column:auto; } }
+      @media (max-width: 620px) { .page { width:min(100% - 20px,1240px); padding-top:14px; } .hero-main,.hero-side,.panel,.callout { padding:14px; } .verdict-row,.security-metric-grid { grid-template-columns:1fr; } .cat-chip-row { justify-content:flex-start; } .tabs { margin-left:-10px; margin-right:-10px; padding-left:10px; padding-right:10px; } table { min-width:680px; } }
     </style>
   </head>
   <body>
@@ -951,6 +1185,7 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
         <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
+        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security</button>
       </nav>
 
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
@@ -963,6 +1198,8 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
         <div class="section-grid">${categorySections(categories)}</div>
         <div class="table-wrap"><table class="evidence-summary-table"><thead><tr><th>Category</th><th>Status</th><th>Proof Summary</th><th>Acceptance Tests</th><th>Sources</th></tr></thead><tbody>${evidenceRows(categories)}</tbody></table></div>
       </section>
+
+      ${securityTab(ledger, securityReport, securityFindings)}
 
       <section id="panel-cross-examine" class="tab-panel" role="tabpanel" aria-labelledby="tab-cross-examine" tabindex="0" hidden>
         <article class="panel">
@@ -1201,6 +1438,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   execFileSync(process.execPath, [validateLedgerScript], { stdio: 'inherit' });
   const ledger = await readLedger();
   const discoveries = await readJson(discoveriesPath);
-  await writeText(dashboardPath, renderDashboard(ledger, discoveries));
+  const securityReport = await readJson(securityReportPath);
+  const securityFindings = await readJson(securityFindingsPath);
+  await writeText(dashboardPath, renderDashboard(ledger, discoveries, securityReport, securityFindings));
   console.log(`Dashboard written to ${repoRelative(dashboardPath)}`);
 }

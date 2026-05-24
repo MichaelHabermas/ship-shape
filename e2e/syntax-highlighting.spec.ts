@@ -161,16 +161,28 @@ test.describe('Syntax Highlighting - Code Blocks', () => {
 
     // Create code block with unique content
     const uniqueCode = `const timestamp = ${Date.now()};`
-    await page.keyboard.type('```javascript')
-    await page.keyboard.press('Enter')
+    await page.keyboard.type('/code')
+    const codeOption = page.getByRole('button', { name: /^Code Block Capture a code snippet/i })
+    await expect(codeOption).toBeVisible({ timeout: 3000 })
+    await codeOption.click()
     await page.keyboard.type(uniqueCode)
-    await page.waitForTimeout(500)
+    await expect(page.locator('.ProseMirror .code-block-lowlight').first()).toContainText(uniqueCode)
 
     // Get current URL
     const docUrl = page.url()
 
-    // Wait for auto-save
-    await page.waitForTimeout(2000)
+    // Wait for durable collaboration persistence before navigating away.
+    const docId = docUrl.match(/\/documents\/([a-f0-9-]+)/i)?.[1]
+    expect(docId, 'Editor URL should include document id').toBeTruthy()
+    await expect.poll(async () => {
+      const response = await page.request.get(`/api/documents/${docId}/content`)
+      if (!response.ok()) return false
+      const body = await response.json()
+      return JSON.stringify(body).includes(uniqueCode)
+    }, {
+      timeout: 30000,
+      intervals: [500, 1000, 2000],
+    }).toBe(true)
 
     // Navigate away and back
     await page.goto('/docs')

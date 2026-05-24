@@ -17,9 +17,10 @@ export const teamMemberKeys = {
 };
 
 function mapPersonToTeamMember(person: components['schemas']['Person']): TeamMember {
+  const rawPerson = person as components['schemas']['Person'] & { user_id?: string | null };
   return {
-    id: person.personId,
-    user_id: person.id,
+    id: person.personId ?? person.id ?? '',
+    user_id: 'user_id' in rawPerson ? rawPerson.user_id ?? null : person.id,
     name: person.name,
     email: person.email ?? undefined,
     isPending: person.isPending,

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShipShape Reviewer Evidence Bundle</title>
+    <style>
+      :root { color-scheme: light; --bg:#f6f4ef; --paper:#fffdf8; --ink:#151515; --muted:#66635d; --line:#d8d1c3; --dark:#20201d; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.5; }
+      main { width:min(980px, calc(100vw - 32px)); margin:0 auto; padding:32px 0 48px; }
+      section, header { background:var(--paper); border:1px solid var(--line); padding:18px; margin-bottom:14px; }
+      h1,h2,p { margin-top:0; }
+      h1 { font-size:34px; line-height:1.05; }
+      h2 { font-size:20px; }
+      p,li { color:var(--muted); }
+      code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; }
+      a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
+      ul { display:grid; gap:8px; padding-left:20px; }
+      .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+      .metric { border:1px solid var(--line); background:#fbf8f0; padding:10px; }
+      .metric strong { display:block; color:var(--dark); font-size:20px; }
+      .metric span { color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; }
+      @media (max-width:720px) { .grid { grid-template-columns:1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p><strong>Generated reviewer artifact</strong></p>
+        <h1>ShipShape reviewer evidence bundle</h1>
+        <p>Static bundle for the Week 4 submission. Security wording is scoped: latest active probe results are separate from the known security findings backlog.</p>
+      </header>
+      <section>
+        <h2>Bundle Snapshot</h2>
+        <div class="grid">
+          <div class="metric"><span>Commit</span><strong>f09f01a276fe</strong></div>
+          <div class="metric"><span>Branch</span><strong>test-improvements-and-submission-hardening-1</strong></div>
+          <div class="metric"><span>Security run</span><strong>local-probe-repeat-verify</strong></div>
+        </div>
+      </section>
+      <section>
+        <h2>Start Here</h2>
+        <ul><li><a href="my-docs/reviewer-dashboard.html">Reviewer dashboard</a></li><li><a href="my-docs/evidence/submission-ledger.json">Submission ledger</a></li><li><a href="my-docs/evidence/security-audit/latest.json">Security latest report</a></li><li><a href="my-docs/evidence/security-audit/security-findings-ledger.md">Security findings ledger</a></li><li><a href="my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt">Category 8 source brief</a></li><li><a href="my-docs/IMPROVEMENT_REPORT.md">Improvement report</a></li><li><a href="manifest.json">Bundle manifest</a></li></ul>
+      </section>
+      <section>
+        <h2>Non-Claims</h2>
+        <ul>
+          <li>This bundle does not claim remote production penetration testing.</li>
+          <li>This bundle does not claim every known security backlog item is closed.</li>
+          <li>Dependency CVE status is tied to the included probe/audit run time.</li>
+          <li>This is not a FedRAMP, NIST, or third-party pentest certification.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Render Commands</h2>
+        <p><code>pnpm submission:validate</code> <code>pnpm submission:render</code> <code>pnpm submission:check</code></p>
+      </section>
+    </main>
+  </body>
+</html>

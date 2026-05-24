@@ -3808,6 +3808,12 @@
           "description": "Category 8 source brief defining required probe/manual review/fix proof."
         },
         {
+          "id": "cat8-reviewer-evidence-bundle",
+          "type": "artifact",
+          "path": "my-docs/reviewer-evidence-bundle/index.html",
+          "description": "Self-contained static reviewer evidence bundle for separate Render Static Site deployment; includes generated dashboard, manifest, source briefs, and curated security evidence."
+        },
+        {
           "id": "cat8-security-probe-final-report",
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/latest.json",
