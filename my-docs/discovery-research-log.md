@@ -2,6 +2,25 @@
 
 ---
 
+## Security probe v2 verification + CI gate (2026-05-23)
+
+Parallel agents (API security, probe/CI, SOT alignment, code quality, `security:probe:ci`) before shipping foundational security layer.
+
+| Finding | Disposition |
+|---------|-------------|
+| `PATCH /api/weeks/:id` allowed member `status: completed` | **Fixed** — admin-only; probe tests documents + weeks |
+| `properties.accountable_id` on documents PATCH | **Fixed** — `findForbiddenRaciKeys` |
+| Weekly plan IDOR via content/DELETE | **Fixed** — accountability on content + DELETE |
+| Governance on POST create | **Fixed** |
+| `files` confirm without uploader check | **Fixed** |
+| SS-FIND-008 probe ≠ document-scoped serve | **Open** — registry `open`; serve still uploader/admin |
+| CI fail-on=new blocked by skip completeness | **Fixed** — skips allowed under `fail-on=new` |
+| Ledger vs registry drift | **Documented** — humans close SS-FIND rows; registry tracks probes |
+
+Evidence: `runs/security-probe-ci-20260523-190801/`; D063 in `DECISION_LOG.md`.
+
+---
+
 ## Documentation Sync — Full Pass (2026-05-22)
 
 Orchestrated eight-phase doc-sync per attached plan. Baseline: ~80 drift rows from parallel audit (Critical/Warning/Info). Tooling: `scripts/doc-sync/` with `pnpm docs:check:strict`.
@@ -1337,7 +1356,20 @@ Parallel harvest across Categories 1–4, 6–7 (Cat 5 skipped; Lighthouse defer
 - **Cat 1:** Web/API typing batch — inferred-any params 47→30; production `any` still 1. Hooks migrated to `apiClient.GET` + `assertApiData`; route row types on auth/associations.
 - **Cat 2:** Lazy lowlight via `lowlight-setup.ts` — largest chunk 837.24→642.48 KB; total JS/CSS 2396.29→2369.69 KB. Evidence: `my-docs/evidence-runs/cat2-easy-wins-20260523/`.
 - **Cat 4:** Search content scorecard filled — 3 SQL queries per `/api/search/content` request (`test-results/perf/query-count-api-easy-wins-20260523.json`); documented 0→3 tradeoff, not a reduction claim.
-- **Cat 6:** Fresh `error-handling.spec.ts` 8/8 (`test-results/category-6-runtime-easy-wins/`); AI screenshot refreshed; collector reads `bootstrap.data.documents` and skips `/docs` when `CAT6_DOCUMENT_PATH` is set.
+- **Cat 6:** Fresh `error-handling.spec.ts` 9/9 (`test-results/category-6-runtime-easy-wins/`); AI screenshot refreshed; collector reads `bootstrap.data.documents` and skips `/docs` when `CAT6_DOCUMENT_PATH` is set. Follow-up hardening added API process fatal handlers, bounded/awaited collaboration shutdown, and named frontend boundary islands; this remains operational hardening, not a fourth counted fix.
 - **Cat 7:** Axe closeout expanded to `/login` + `/issues` (0 critical/serious on six pages); Action Items modal `Dialog.Close` + Vitest regression.
 
 Validation: `pnpm submission:validate`, `pnpm submission:render`, `pnpm submission:check`.
+
+---
+
+## Security probe v2 (2026-05-23)
+
+Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no separate agent skills at runtime):
+
+- **Architecture:** `lib/registry.mjs`, `lib/fixtures.mjs`, `lib/finding-registry.mjs`, `data/route-manifest.mjs`, `probes/authorization.mjs`, `probes/abuse-surfaces.mjs`.
+- **Reports:** `schemaVersion: 2`, five measured surfaces, triage buckets (known-open / new / resolved / regression) via `security-findings.json` (generated ledger + narratives).
+- **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
+- **Preserved:** `runs/cat8-final/` perimeter closeout (25/25 pass) unchanged.
+
+Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.

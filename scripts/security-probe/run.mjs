@@ -3,27 +3,14 @@ import { buildConfig } from './lib/cli.mjs';
 import { ProbeHttpClient } from './lib/http-client.mjs';
 import { buildReport, writeReport } from './lib/report.mjs';
 import { SEVERITY_ORDER } from './lib/result-model.mjs';
-import { authSessionProbes } from './probes/auth-session.mjs';
-import { websocketValidationProbes } from './probes/websocket-validation.mjs';
-import { inputSanitizationProbes } from './probes/input-sanitization.mjs';
-import { dependencyCveProbes } from './probes/dependency-cves.mjs';
-import { manualReviewProbes } from './probes/manual-review.mjs';
-
-const registry = [
-  { id: 'auth-session', quick: true, needsLogin: true, run: authSessionProbes },
-  { id: 'websocket', quick: true, needsLogin: true, run: websocketValidationProbes },
-  { id: 'input', quick: true, needsLogin: true, run: inputSanitizationProbes },
-  { id: 'dependency', quick: false, needsLogin: false, run: dependencyCveProbes },
-  { id: 'manual', quick: true, needsLogin: true, run: manualReviewProbes },
-];
-
-function selectedGroups(config) {
-  return registry.filter((group) => {
-    if (config.quick && !group.quick) return false;
-    if (config.probe && group.id !== config.probe && !config.probe.startsWith(`${group.id}-`)) return false;
-    return true;
-  });
-}
+import { MEASURED_SURFACE_COUNT, selectedGroups } from './lib/registry.mjs';
+import {
+  loadFindingRegistry,
+  loadSecurityFindings,
+  appendProbeVerifications,
+  triageFindings,
+} from './lib/finding-registry.mjs';
+import { shouldFailSecurityProbeRun } from './lib/ci-fail.mjs';
 
 async function main() {
   const config = buildConfig();
@@ -32,10 +19,21 @@ async function main() {
   const member = new ProbeHttpClient(config.apiUrl);
   const groups = selectedGroups(config);
 
+  async function loginWithRetry(client, email, password) {
+    let last = null;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      last = await client.login(email, password);
+      if (last.status < 400) return last;
+      if (last.status !== 429) break;
+      await new Promise((resolve) => setTimeout(resolve, 5000 * (attempt + 1)));
+    }
+    return last;
+  }
+
   if (groups.some((group) => group.needsLogin)) {
-    const adminLogin = await admin.login(config.adminEmail, config.adminPassword);
+    const adminLogin = await loginWithRetry(admin, config.adminEmail, config.adminPassword);
     if (adminLogin.status >= 400) throw new Error(`Admin login failed with HTTP ${adminLogin.status}`);
-    const memberLogin = await member.login(config.memberEmail, config.memberPassword);
+    const memberLogin = await loginWithRetry(member, config.memberEmail, config.memberPassword);
     if (memberLogin.status >= 400) {
       console.warn(`Member login failed with HTTP ${memberLogin.status}; member-only probes may skip.`);
     }
@@ -53,19 +51,52 @@ async function main() {
     : probes;
   if (config.probe && filtered.length === 0) throw new Error(`No probe matched "${config.probe}"`);
 
-  const report = buildReport({ config, probes: filtered, startedAt, finishedAt: new Date().toISOString() });
+  const registry = loadFindingRegistry();
+  const report = buildReport({
+    config,
+    probes: filtered,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    registry,
+  });
   const paths = await writeReport(config, report);
+  if (config.recordVerifications) {
+    const store = loadSecurityFindings();
+    appendProbeVerifications(store, { runId: config.runId, probes: filtered });
+  }
+  const triage = triageFindings({ registry, probes: filtered });
+
   console.log(`Security probe report: ${paths.jsonPath}`);
   console.log(`Markdown summary: ${paths.mdPath}`);
-  console.log(`Attack surfaces measured: ${report.summary.attackSurfacesMeasured}/4`);
+  console.log(`Attack surfaces measured: ${report.summary.attackSurfacesMeasured}/${MEASURED_SURFACE_COUNT}`);
   console.log(`Findings: ${report.summary.findings}`);
-
-  if (!config.probe && !config.quick && (report.summary.attackSurfacesMeasured < 4 || report.probes.some((probe) => probe.status === 'skipped' || probe.status === 'error'))) {
-    process.exit(1);
-  }
+  console.log(
+    `Triage: known-open=${triage.counts.knownOpen}, new=${triage.counts.new}, resolved=${triage.counts.resolved}, regression=${triage.counts.regression}`
+  );
 
   const failOn = config.failOn;
-  if (failOn !== 'none') {
+  const incompleteSurfaces = report.summary.attackSurfacesMeasured < MEASURED_SURFACE_COUNT;
+  const erroredProbes = report.probes.some((probe) => probe.status === 'error');
+  const skippedProbes = report.probes.some((probe) => probe.status === 'skipped');
+  if (!config.probe && !config.quick) {
+    if (failOn === 'new') {
+      if (incompleteSurfaces || erroredProbes) {
+        console.error(
+          `Security probe incomplete: surfaces=${report.summary.attackSurfacesMeasured}/${MEASURED_SURFACE_COUNT}, errors=${erroredProbes}`
+        );
+        process.exit(1);
+      }
+    } else if (incompleteSurfaces || erroredProbes || skippedProbes) {
+      process.exit(1);
+    }
+  }
+
+  const ciFail = shouldFailSecurityProbeRun({ failOn, triage });
+  if (ciFail.fail) {
+    console.error(`Security probe failed (${failOn}): ${ciFail.reason}`);
+    process.exit(ciFail.exitCode ?? 2);
+  }
+  if (failOn !== 'none' && failOn !== 'new') {
     const threshold = SEVERITY_ORDER.indexOf(failOn);
     const shouldFail = report.findings.some((finding) => SEVERITY_ORDER.indexOf(finding.severity) >= threshold);
     if (shouldFail) process.exit(2);

@@ -2,6 +2,27 @@
 
 ---
 
+## Security probe CI gate + verification hardening (2026-05-23)
+
+Multi-agent verification (security API review, probe/CI audit, SOT alignment, thermo-nuclear quality, automated `security:probe:ci`) found real bypasses and probe drift. Follow-up fixes:
+
+- Block sprint `status` on `PATCH /api/weeks/:id` for non-admins; probe now tests `/api/documents` **and** `/api/weeks`
+- Block RACI keys in `properties` on document POST/PATCH; governance keys on POST create
+- Accountability checks on `GET/PATCH /api/documents/:id/content` and `DELETE`
+- `POST /api/files/:id/confirm` requires uploader
+- CI `--fail-on=new`: skip probes no longer fail completeness; regressions fail exit 2
+- Registry: SS-FIND-008 probe entry back to `open` (uploader-only serve ≠ document-scoped)
+
+### Evidence
+- `pnpm security:probe:ci` | pass (`runs/security-probe-ci-20260523-190801/`)
+- `pnpm security:probe:test` | 9/9
+- `pnpm type-check` | pass
+
+### Claim boundary
+Cat 8 **proven** metrics remain 4 required surfaces / historical `cat8-final`; v2 CI is an extension artifact, not a Cat 8 rubric change.
+
+---
+
 ## Documentation Sync Pass — Final (2026-05-22)
 
 Scope: Phases 0–8 across `docs/`, `AGENTS.md`, `.claude/`, `scripts/doc-sync/`, one code fix (`Editor.tsx` person-mention nav), and my-docs reconciliation.
@@ -580,17 +601,22 @@ This is security/trust foundation work. It closes the known first-run race risk,
 - Migration bootstrap still tolerates `schema.sql` "already exists" during initial setup, but numbered migration failures no longer get broadly swallowed. This is tracked as operational safety, not as proof toward the Category 6 user-facing error-handling target.
 - Session activity writes are now throttled server-side: authenticated requests still validate inactivity against stored `last_activity`, but only update `last_activity` and refresh the cookie after the 60-second activity threshold.
 - Backlinks now preserve the last successful result during fetch failures, show a visible offline/stale status with `role="status"` and `aria-live="polite"`, pause polling while offline, retry immediately when the browser returns online, and avoid repeated console-error spam.
-- `e2e/error-handling.spec.ts` now captures named Category 6 runtime screenshots for API 500 fallback UI, offline editor draft preservation, CSRF JSON/editor usability, and concurrent API failure fallback UI. These tests also assert the intercepted failure path occurred, the editor remained usable where relevant, and no uncaught browser `pageerror` was emitted.
+- `e2e/error-handling.spec.ts` now captures named Category 6 runtime screenshots for API 500 fallback UI, offline editor draft preservation, CSRF JSON/editor usability, concurrent API failure fallback UI, and a test-only route error-boundary containment probe. These tests also assert the intercepted failure path occurred, the editor remained usable where relevant, and no uncaught browser `pageerror` was emitted outside the expected boundary scenario.
 - The screenshot-backed user-facing data-loss/confusion proof is the offline editor draft-preservation scenario; the Backlinks offline/stale-status work remains supporting runtime-error evidence, not the counted screenshot-backed fix.
 - AI/Bedrock unavailable handling now returns controlled `ai_unavailable` JSON from status/analysis endpoints when provider credentials cannot resolve, and the plan/retro quality banners show a concise degraded state without clearing existing editor content or persisted analysis.
+- Process-level `SIGTERM`, `SIGINT`, `unhandledRejection`, and `uncaughtException` handling now lives in a testable runtime shutdown module. Collaboration shutdown removes the upgrade listener, closes WebSockets with a bounded terminate fallback, awaits final Yjs persistence, and flushes pending saves before DB pool close. This is operational hardening and does not increase the counted Category 6 fix proof beyond the original three.
+- `ErrorBoundary` is now a named reusable primitive with custom fallback, `onError`, and `resetKeys`; `ResilientSection` wraps optional sidebar/AI/backlink surfaces with a retry affordance while leaving the live TipTap/Yjs editor core unwrapped.
 
 ### Evidence
 
 - API unit suite: 28 files passed, 452 tests passed in the current post-correctness run.
 - Missing-CSRF probe against local API returned `403`, `content-type: application/json; charset=utf-8`, body `{"error":"Invalid or missing CSRF token"}`.
 - `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
-- Focused E2E runtime run: `E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts`: 8 passed / 0 failed (2026-05-23 refresh).
-- Category 6 screenshot artifacts were captured under `test-results/category-6-runtime-easy-wins/playwright/` (2026-05-23 refresh) and the prior closeout dir `test-results/category-6-runtime-evidence-final2/playwright/`, including `category-6-runtime-evidence-api-500-documents-list-viewport.png`, `category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png`, `category-6-runtime-evidence-csrf-json-editor-usable-viewport.png`, and `category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png` plus matching full-page screenshots.
+- Focused E2E runtime run: `E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts`: 9 passed / 0 failed (2026-05-23 refresh).
+- API shutdown unit tests: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts`: 7 passed / 0 failed.
+- Frontend boundary component tests: `pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx`: 6 passed / 0 failed.
+- Focused boundary E2E proof: `E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep "error boundary"`: 1 passed / 0 failed; screenshot `test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png`.
+- Category 6 screenshot artifacts were captured under `test-results/category-6-runtime-easy-wins/playwright/` (2026-05-23 refresh) and the prior closeout dir `test-results/category-6-runtime-evidence-final2/playwright/`, including `category-6-runtime-evidence-api-500-documents-list-viewport.png`, `category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png`, `category-6-runtime-evidence-csrf-json-editor-usable-viewport.png`, `category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png`, and `category-6-runtime-evidence-error-boundary-route-viewport.png` plus matching full-page screenshots where the test captures them.
 - AI unavailable evidence collector: `node scripts/cat6-ai-unavailable-evidence.mjs`: pass (2026-05-23 refresh); screenshot `test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png`. Use `CAT6_DOCUMENT_PATH=/documents/<weekly_plan_id>` when bootstrap omits weekly plans; collector reads `bootstrap.data.documents` and skips `/docs` when the path is preset.
 
 ---
@@ -709,7 +735,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - Super-admin API token policy and API-token docs/UI: deferred pending policy decision.
 - Association/context visibility leaks: addressed in the fail-closed authorization hardening pass below; rerun DB-backed regression coverage against a disposable database before calling it fully closed.
 - Full route row-mapper typing: partially started for high-risk routes; broader dashboard/comments/auth route typing deferred.
-- Process-level unhandled rejection handlers: still skipped; easy to add badly without coordinated HTTP/WebSocket/DB shutdown semantics.
+- Process-level unhandled rejection handlers: now implemented through coordinated HTTP/WebSocket/DB shutdown semantics and tracked as operational Cat 6 hardening, not as a fourth counted user-facing fix.
 - Category 6 screenshot/recording evidence: completed for the focused runtime file; broader full-suite E2E remains outside this pass.
 - Category 7 Lighthouse rerun: still deferred because `lighthouse` is not installed in the repo-local toolchain. The axe closeout branch currently passes with 0 critical/serious violations on `/docs`, `/projects`, the selected document page, and supporting `/my-week`; manual keyboard/a11y polish gaps remain outside that axe gate.
 
@@ -812,6 +838,17 @@ Gate snapshot: 8 proven, 0 partial, 0 open/fill.
 Evidence-changing work updates the ledger before narrative docs or dashboard output. Only mark a category `proven` when required rubric items and acceptance gates clear the source requirement; otherwise keep it `partial`, `open`, `needs_fill_in`, or `not_measured`. After ledger edits, run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`, then report changed categories and any failing/warning acceptance tests.
 
 ---
+
+## Security probe v2 (2026-05-23)
+
+Extended `scripts/security-probe/` from perimeter-only (Cat 8 closeout) to **probe v2**:
+
+- Fifth measured surface: **authorization** (governance PATCH bypass, weekly-plan IDOR REST/WS, cross-origin WS, upload hijack, file scope, dashboard/bulk checks).
+- `security-findings.json` SoT + triage in reports (known-open / new / resolved / regression); generated `security-findings-ledger.md`.
+- `lib/fixtures.mjs` for runtime weekly-plan/person setup; `lib/registry.mjs` modular probe groups.
+- Abuse probes for public-feedback rate limit; auth-session member audit/impersonation controls.
+
+Baseline on unfixed main: `runs/probe-v2-baseline-unfixed/` — 10 findings, 10 known-open, matches SS-FIND Phase 1–2 backlog. Historical `cat8-final` artifact unchanged.
 
 ## Type Safety Correctness Review Follow-up (2026-05-22)
 

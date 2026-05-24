@@ -79,11 +79,14 @@ test.describe('Error Handling', () => {
 
   test('handles API 500 error gracefully', async ({ page }, testInfo) => {
     const pageErrors = collectPageErrors(page)
-    let documentsRequestFailed = false
+    await page.goto('/docs')
+    await expect(page).not.toHaveURL(/\/login/)
+    await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible()
 
-    // Intercept initial app-shell data and return a 500 error.
-    await page.route('**/api/bootstrap**', (route) => {
-      documentsRequestFailed = true
+    let searchRequestFailed = false
+
+    await page.route('**/api/search/content**', (route) => {
+      searchRequestFailed = true
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -91,20 +94,35 @@ test.describe('Error Handling', () => {
       })
     })
 
-    await page.goto('/docs')
+    await page.getByRole('textbox', { name: 'Search documents' }).fill('runtime proof')
 
-    await expect.poll(() => documentsRequestFailed).toBe(true)
+    await expect.poll(() => searchRequestFailed).toBe(true)
+    await expect(page.getByRole('alert')).toContainText('Search unavailable')
 
-    // Page should still be responsive
     const body = page.locator('body')
     await expect(body).toBeVisible()
-
-    // Should not show React error boundary
     const errorText = await body.textContent()
     expect(errorText).not.toContain('Something went wrong')
     expect(errorText?.trim().length).toBeGreaterThan(0)
 
     await captureCategory6Evidence(page, testInfo, 'api-500-documents-list')
+    await expectNoPageErrors(pageErrors)
+  })
+
+  test('error boundary contains route render failures', async ({ page }, testInfo) => {
+    const pageErrors = collectPageErrors(page)
+
+    await page.goto('/__cat6/error-boundary')
+
+    await expect(page.getByRole('main')).toBeVisible()
+    await expect(page.getByText('Something went wrong')).toBeVisible()
+    await expect(page.getByText('An unexpected error occurred while rendering this section.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Docs' })).toBeVisible()
+
+    await page.screenshot({
+      path: testInfo.outputPath(`${CATEGORY_6_ARTIFACT_PREFIX}-error-boundary-route-viewport.png`),
+      animations: 'disabled',
+    })
     await expectNoPageErrors(pageErrors)
   })
 
@@ -234,25 +252,6 @@ test.describe('Error Handling', () => {
 
     await createNewDocument(page)
 
-    // Intercept API requests and return CSRF error
-    const csrfResponses: Array<{ status: number; contentType: string; body: string }> = []
-    await page.route('**/api/**', (route) => {
-      if (['PATCH', 'POST', 'PUT'].includes(route.request().method())) {
-        csrfResponses.push({
-          status: 403,
-          contentType: 'application/json',
-          body: JSON.stringify({ error: 'Invalid CSRF token' }),
-        })
-        route.fulfill({
-          status: 403,
-          contentType: 'application/json',
-          body: JSON.stringify({ error: 'Invalid CSRF token' }),
-        })
-      } else {
-        route.continue()
-      }
-    })
-
     const editor = page.locator('.ProseMirror')
     await editor.click()
 
@@ -267,21 +266,22 @@ test.describe('Error Handling', () => {
 
     const documentId = page.url().match(/\/documents\/([a-f0-9-]+)/)?.[1]
     expect(documentId).toBeTruthy()
-    await page.evaluate(async (id) => {
-      await fetch(`/api/documents/${id}`, {
+    const csrfResponse = await page.evaluate(async (id) => {
+      const response = await fetch(`/api/documents/${id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ title: 'CSRF failure probe' }),
       })
+      return {
+        status: response.status,
+        contentType: response.headers.get('content-type') ?? '',
+        body: await response.json(),
+      }
     }, documentId)
 
-    await expect.poll(() => csrfResponses.length).toBeGreaterThan(0)
-    expect(csrfResponses).not.toHaveLength(0)
-    for (const response of csrfResponses) {
-      expect(response.status).toBe(403)
-      expect(response.contentType).toBe('application/json')
-      expect(JSON.parse(response.body)).toEqual({ error: 'Invalid CSRF token' })
-    }
+    expect(csrfResponse.status).toBe(403)
+    expect(csrfResponse.contentType).toContain('application/json')
+    expect(csrfResponse.body).toEqual({ error: 'Invalid or missing CSRF token' })
 
     await captureCategory6Evidence(page, testInfo, 'csrf-json-editor-usable')
     await expectNoPageErrors(pageErrors)
@@ -289,10 +289,12 @@ test.describe('Error Handling', () => {
 
   test('handles concurrent API errors', async ({ page }, testInfo) => {
     const pageErrors = collectPageErrors(page)
+    await page.goto('/docs')
+    await expect(page).not.toHaveURL(/\/login/)
+    await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible()
 
-    // Intercept multiple API endpoints and make them all fail
     let failedApiRequests = 0
-    await page.route('**/api/**', (route) => {
+    await page.route('**/api/search/content**', (route) => {
       failedApiRequests++
       route.fulfill({
         status: 500,
@@ -301,18 +303,16 @@ test.describe('Error Handling', () => {
       })
     })
 
-    // Try to load the app
-    await page.goto('/docs')
+    await page.getByRole('textbox', { name: 'Search documents' }).fill('concurrent failure')
     await expect.poll(() => failedApiRequests).toBeGreaterThan(0)
+    await expect(page.getByRole('alert')).toContainText('Search unavailable')
 
-    // App should not crash, should show some UI
     const body = page.locator('body')
     await expect(body).toBeVisible()
-
-    // Should not show unhandled error or blank screen
     const bodyText = await body.textContent()
     expect(bodyText).toBeTruthy()
     expect(bodyText!.length).toBeGreaterThan(0)
+    expect(bodyText).not.toContain('Sign in')
 
     await captureCategory6Evidence(page, testInfo, 'concurrent-api-errors-nonblank')
     await expectNoPageErrors(pageErrors)

@@ -2,6 +2,7 @@ import { createServer } from 'http';
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createShutdownController, installRuntimeShutdownHandlers } from './runtime/shutdown.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,6 +21,7 @@ async function main() {
   // Now import app after secrets are loaded
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');
+  const { closeDatabasePool } = await import('./db/client.js');
 
   const PORT = process.env.PORT || 3000;
   const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
@@ -33,7 +35,16 @@ async function main() {
   server.headersTimeout = 66000; // 66 seconds (slightly longer than keepAlive)
 
   // Setup WebSocket collaboration server
-  setupCollaboration(server);
+  const closeCollaboration = setupCollaboration(server, { allowedOrigin: CORS_ORIGIN });
+
+  const shutdownController = createShutdownController({
+    server,
+    cleanup: async () => {
+      await closeCollaboration();
+      await closeDatabasePool();
+    },
+  });
+  installRuntimeShutdownHandlers(shutdownController);
 
   // Start server
   server.listen(PORT, () => {

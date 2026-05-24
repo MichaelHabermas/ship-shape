@@ -2,7 +2,10 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: ReactNode | ((resetErrorBoundary: () => void) => ReactNode);
+  boundaryName?: string;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  resetKeys?: unknown[];
 }
 
 interface ErrorBoundaryState {
@@ -21,8 +24,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('[ErrorBoundary] Uncaught error:', error);
+    console.error('[ErrorBoundary] Uncaught error:', this.props.boundaryName ?? 'unnamed', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+    this.props.onError?.(error, errorInfo);
+  }
+
+  componentDidUpdate(prevProps: ErrorBoundaryProps): void {
+    if (!this.state.hasError) return;
+    if (!this.props.resetKeys || !prevProps.resetKeys) return;
+    if (this.props.resetKeys.length !== prevProps.resetKeys.length) {
+      this.handleReset();
+      return;
+    }
+    const hasChanged = this.props.resetKeys.some((key, index) => !Object.is(key, prevProps.resetKeys?.[index]));
+    if (hasChanged) this.handleReset();
   }
 
   handleReset = (): void => {
@@ -32,7 +47,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.hasError) {
       if (this.props.fallback) {
-        return this.props.fallback;
+        return typeof this.props.fallback === 'function'
+          ? this.props.fallback(this.handleReset)
+          : this.props.fallback;
       }
 
       return (

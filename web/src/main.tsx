@@ -86,6 +86,15 @@ function SprintTabRedirect({ tab }: { tab?: string }) {
   return <Navigate to={targetPath} replace />;
 }
 
+const enableCat6BoundaryProbe = import.meta.env.VITE_APP_ENV === 'test_e2e';
+
+function Cat6ErrorBoundaryProbe() {
+  if (!enableCat6BoundaryProbe) {
+    return <Navigate to="/my-week" replace />;
+  }
+  throw new Error('Cat 6 error boundary evidence probe');
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -240,6 +249,9 @@ function AppRoutes() {
         <Route path="feedback/:id" element={<LazyRoute><FeedbackEditorPage /></LazyRoute>} />
         <Route path="settings" element={<LazyRoute><WorkspaceSettingsPage /></LazyRoute>} />
         <Route path="settings/conversions" element={<LazyRoute><ConvertedDocumentsPage /></LazyRoute>} />
+        {enableCat6BoundaryProbe && (
+          <Route path="__cat6/error-boundary" element={<Cat6ErrorBoundaryProbe />} />
+        )}
       </Route>
     </Routes>
   );

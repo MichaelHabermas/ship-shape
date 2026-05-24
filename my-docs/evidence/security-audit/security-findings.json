@@ -1,0 +1,597 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-24T00:26:57.834Z",
+  "discovery": {
+    "date": "2026-05-22",
+    "method": "deep_review",
+    "sessionNote": "Single deep authorization review; migrated from hand-edited ledger"
+  },
+  "statusDefinitions": {
+    "open": "Confirmed in code; not remediated",
+    "deferred": "Acknowledged; fix intentionally postponed",
+    "in-progress": "Fix branch or PR underway",
+    "fixed": "Remediated with linked evidence",
+    "accepted_risk": "Accepted risk with documented rationale"
+  },
+  "clusters": [],
+  "findings": [
+    {
+      "id": "SS-FIND-001",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Member cannot set governance approval fields via PATCH /api/documents/:id",
+      "narrativePath": "security-findings/narratives/SS-FIND-001.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-002",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Member cannot self-assign accountable_id to gain approval authority",
+      "narrativePath": "security-findings/narratives/SS-FIND-002.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-003",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Member cannot PATCH sprint/week status to completed without authorization",
+      "narrativePath": "security-findings/narratives/SS-FIND-003.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-004",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Member cannot read peer weekly plan via generic documents API",
+      "narrativePath": "security-findings/narratives/SS-FIND-004.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-005",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Member cannot open peer weekly plan collaboration WebSocket room",
+      "narrativePath": "security-findings/narratives/SS-FIND-005.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-006",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-006.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-007",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-007.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-008",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "File serve must respect parent document visibility (probe currently checks uploader-only; document scope still open)",
+      "narrativePath": "security-findings/narratives/SS-FIND-008.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-009",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-009.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-010",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-010.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-011",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-011.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-012",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Public feedback endpoint enforces dedicated rate limiting",
+      "narrativePath": "security-findings/narratives/SS-FIND-012.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-013",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-013.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-014",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-014.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-015",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-015.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-016",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-016.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-017",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-017.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-018",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-018.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-019",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-019.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-020",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-020.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-021",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-021.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-022",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-022.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-023",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-023.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-024",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-024.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-025",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Member cannot complete another user pending upload",
+      "narrativePath": "security-findings/narratives/SS-FIND-025.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-026",
+      "title": "fixed",
+      "severity": "medium",
+      "status": "fixed",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "Cross-origin WebSocket upgrade is rejected",
+      "narrativePath": "security-findings/narratives/SS-FIND-026.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-027",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-027.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-028",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-028.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-029",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-029.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-030",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-030.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-031",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-031.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-032",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-032.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-033",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-033.md",
+      "probes": [],
+      "verifications": []
+    },
+    {
+      "id": "SS-FIND-034",
+      "title": "open",
+      "severity": "medium",
+      "status": "open",
+      "discoveredAt": "2026-05-22",
+      "owasp": null,
+      "category": null,
+      "clusterIds": [],
+      "primaryLocations": [
+        "2026-05-22"
+      ],
+      "definition": "open",
+      "narrativePath": "security-findings/narratives/SS-FIND-034.md",
+      "probes": [],
+      "verifications": []
+    }
+  ]
+}

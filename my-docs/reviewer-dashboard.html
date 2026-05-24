@@ -157,12 +157,22 @@
       .evidence-summary-table th:nth-child(1),.evidence-summary-table td:nth-child(1) { width:110px; }
       .evidence-summary-table th:nth-child(2),.evidence-summary-table td:nth-child(2) { width:76px; }
       .evidence-summary-table th:nth-child(5),.evidence-summary-table td:nth-child(5) { width:160px; }
-      .discoveries-table { min-width:1060px; }
+      .rubric-table { table-layout:fixed; min-width:900px; }
+      .rubric-table th:nth-child(1),.rubric-table td:nth-child(1) { width:64px; }
+      .rubric-table th:nth-child(2),.rubric-table td:nth-child(2) { width:330px; }
+      .rubric-table th:nth-child(3),.rubric-table td:nth-child(3) { width:90px; }
+      .rubric-table th:nth-child(4),.rubric-table td:nth-child(4) { width:104px; }
+      .rubric-table th:nth-child(5),.rubric-table td:nth-child(5) { width:280px; }
+      .rubric-table td:nth-child(2),.rubric-table td:nth-child(5) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .discoveries-table { table-layout:fixed; min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
-      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
-      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:82px; }
-      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:126px; }
+      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:58px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:88px; }
+      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:112px; }
       .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
+      .discoveries-table th:nth-child(8),.discoveries-table td:nth-child(8) { width:150px; }
+      .discoveries-table td:nth-child(1),.discoveries-table td:nth-child(2),.discoveries-table td:nth-child(3),.discoveries-table td:nth-child(4),.discoveries-table td:nth-child(7),.discoveries-table td:nth-child(8) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .discoveries-table td:nth-child(8) .path { line-height:1.15; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
@@ -217,7 +227,7 @@
               <span class="rail-meta">Test Coverage and Quality</span>
               <span class="rail-detail">H · 5/5</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-6-runtime-error-handling" data-meta-overview="6/6" data-detail-overview="H · 6/6" data-meta-evidence="5 art" data-detail-evidence="H · 5 artifacts" data-meta-cross-examine="29 pts" data-detail-cross-examine="H · 29 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="6/6" data-detail-targets="H · 6/6 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="4 lim" data-detail-boundaries="H · 4 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 6: Runtime Error and Edge Case Handling">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-6-runtime-error-handling" data-meta-overview="6/6" data-detail-overview="H · 6/6" data-meta-evidence="6 art" data-detail-evidence="H · 6 artifacts" data-meta-cross-examine="32 pts" data-detail-cross-examine="H · 32 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="6/6" data-detail-targets="H · 6/6 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="4 lim" data-detail-boundaries="H · 4 limits" data-meta-discoveries="2 find" data-detail-discoveries="H · 2 findings" aria-label="Jump to Cat 6: Runtime Error and Edge Case Handling">
               <span class="rail-number">6</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">6/6</span>
@@ -233,7 +243,7 @@
               <span class="rail-meta">Accessibility Compliance</span>
               <span class="rail-detail">M · 4/4</span>
             </button>
-            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="17 art" data-detail-evidence="H · 17 artifacts" data-meta-cross-examine="37 pts" data-detail-cross-examine="H · 37 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
+            <button class="rail-cell rail-high" type="button" data-category-id="cat-8-security-audit" data-meta-overview="4/4" data-detail-overview="H · 4/4" data-meta-evidence="21 art" data-detail-evidence="H · 21 artifacts" data-meta-cross-examine="41 pts" data-detail-cross-examine="H · 41 pts" data-meta-claim-diff="diff" data-detail-claim-diff="H · before -&gt; after" data-meta-targets="4/4" data-detail-targets="H · 4/4 gates" data-meta-rubric="7 rub" data-detail-rubric="H · 7 rubric" data-meta-boundaries="7 lim" data-detail-boundaries="H · 7 limits" data-meta-discoveries="12 find" data-detail-discoveries="H · 12 findings" aria-label="Jump to Cat 8: Security Audit">
               <span class="rail-number">8</span>
               <span class="rail-load">H</span>
               <span class="rail-delta">4/4</span>
@@ -392,7 +402,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>29 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 4 manual</small>
+      <small>32 pts · 2 claims · 4 boundaries · 6 artifacts · 6 gates · 4 manual</small>
 
     </div>
             <span>6/6 acceptance pass; all gates clear</span>
@@ -422,7 +432,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>37 pts · 1 claim · 7 boundaries · 17 artifacts · 4 gates</small>
+      <small>41 pts · 1 claim · 7 boundaries · 21 artifacts · 4 gates</small>
 
     </div>
             <span>4/4 acceptance pass; all gates clear</span>
@@ -1005,7 +1015,7 @@
 
                   <li>
                     <strong>Focused runtime E2E</strong>
-                    <span>Focused runtime refresh: 8 passed / 0 failed with named screenshots.</span>
+                    <span>Focused runtime refresh: 9 passed / 0 failed with named screenshots.</span>
                   </li>
                   <li>
                     <strong>Proven fixes</strong>
@@ -1038,7 +1048,11 @@
 
                   <li data-ledger-id="cat6-runtime-error-handling-partial">
                     <strong>Runtime Error Handling Partial <span class="badge proven">proven</span></strong>
-                    <span>Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode. Does not count comments visibility or migration bootstrap as Category 6 proof. Does not claim process-level unhandled rejection handling is solved. Focused runtime E2E and the AI unavailable collector are the screenshot artifact basis.</span>
+                    <span>Category 6 now has three documented error-handling fixes: CSRF JSON errors, offline editor draft preservation, and AI unavailable degraded mode. Does not count comments visibility or migration bootstrap as Category 6 proof. Process-level fatal handling is operational runtime hardening, not one of the three screenshot-backed user-facing fixes. Focused runtime E2E and the AI unavailable collector are the screenshot artifact basis.</span>
+                  </li>
+                  <li data-ledger-id="cat6-operational-runtime-hardening">
+                    <strong>Operational Runtime Hardening <span class="badge proven">proven</span></strong>
+                    <span>Category 6 now also has operational hardening for process fatal handlers and targeted frontend render boundaries, separate from the three counted user-facing fixes. Does not raise cat6-explicit-fix-proof-count above 3. Does not claim every possible component error-boundary gap is fixed.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -1064,7 +1078,25 @@
         <li data-ledger-id="cat6-runtime-e2e-run">
           <strong>Runtime E2E Run <span class="subtle">test_run</span></strong>
           <span>Focused runtime evidence E2E run (2026-05-23 refresh).</span>
-          <small>Command: E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts | Result: 8 passed / 0 failed</small>
+          <small>Command: E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts | Result: 9 passed / 0 failed</small>
+
+        </li>
+        <li data-ledger-id="cat6-process-handler-unit-test-run">
+          <strong>Process Handler Unit Test Run <span class="subtle">test_run</span></strong>
+          <span>API runtime shutdown handlers close resources for signals, fatal process events, cleanup failures, HTTP close failures, timeout fallback, and fatal events that arrive during an in-flight clean shutdown.</span>
+          <small>Command: DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts | Result: 7 passed / 0 failed</small>
+
+        </li>
+        <li data-ledger-id="cat6-error-boundary-component-test-run">
+          <strong>Error Boundary Component Test Run <span class="subtle">test_run</span></strong>
+          <span>Reusable ErrorBoundary and ResilientSection tests cover default fallback, custom fallback, custom fallback reset, resetKeys, boundaryName logging, sibling survival, and local retry affordance.</span>
+          <small>Command: pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx | Result: 6 passed / 0 failed</small>
+
+        </li>
+        <li data-ledger-id="cat6-error-boundary-e2e-run">
+          <strong>Error Boundary E2E Run <span class="subtle">test_run</span></strong>
+          <span>Focused route-boundary E2E proves a test-only render failure is contained inside the main content region while the app shell remains visible.</span>
+          <small>Command: E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep &quot;error boundary&quot; | Result: 1 passed / 0 failed</small>
 
         </li>
         <li data-ledger-id="cat6-runtime-screenshot-api-500">
@@ -1108,6 +1140,12 @@
           <span>AI unavailable degraded-mode runtime screenshot.</span>
           <small>Path: test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png</small>
           <div class="artifact-link"><a class="path" href="../test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png" title="test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat6-error-boundary-route-screenshot">
+          <strong>Error Boundary Route Screenshot <span class="subtle">screenshot</span></strong>
+          <span>Test-only route render failure contained by the route-level ErrorBoundary while app navigation/sidebar chrome remains visible.</span>
+          <small>Path: test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png</small>
+          <div class="artifact-link"><a class="path" href="../test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png" title="test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li></ul>
         </article>
         <article id="category-cat-7-accessibility" class="panel span-12" data-ledger-id="cat-7-accessibility">
@@ -1276,7 +1314,7 @@
 
                   <li data-ledger-id="cat8-security-audit-proven">
                     <strong>Security Audit Proven <span class="badge proven">proven</span></strong>
-                    <span>Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence. Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled. Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field. The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories. Manual review is assisted and evidence-backed; it is not a formal third-party penetration test.</span>
+                    <span>Category 8 is backed by a runnable repo-aware security probe covering four required attack-surface buckets, assisted manual review, zero high/critical dependency CVEs, and two verified vulnerabilities with before/after probe evidence. Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled. Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field. The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories. Manual review is assisted and evidence-backed; it is not a formal third-party penetration test. Cat 8 proven covers four required attack surfaces plus two verified fixes; the SS-FIND backlog (34 deep-review items) is tracked in security-findings.json — not all rows are closed.</span>
                   </li>
           </ul>
           <h3>Evidence</h3>
@@ -1298,6 +1336,30 @@
           <span>Human-readable final security probe report.</span>
           <small>Path: my-docs/evidence/security-audit/latest.md</small>
           <div class="artifact-link"><a class="path" href="evidence/security-audit/latest.md" title="my-docs/evidence/security-audit/latest.md" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-probe-v2-baseline-unfixed">
+          <strong>Probe V2 Baseline Unfixed <span class="subtle">artifact</span></strong>
+          <span>Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json" title="my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-findings">
+          <strong>Security Findings <span class="subtle">artifact</span></strong>
+          <span>Unified security findings SoT: workflow status, probe bindings, append-only verification history (SS-FIND-001…034).</span>
+          <small>Path: my-docs/evidence/security-audit/security-findings.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/security-findings.json" title="my-docs/evidence/security-audit/security-findings.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-findings-ledger-generated">
+          <strong>Security Findings Ledger Generated <span class="subtle">artifact</span></strong>
+          <span>Generated human-readable ledger from security-findings.json (pnpm security:findings:render).</span>
+          <small>Path: my-docs/evidence/security-audit/security-findings-ledger.md</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/security-findings-ledger.md" title="my-docs/evidence/security-audit/security-findings-ledger.md" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
+        </li>
+        <li data-ledger-id="cat8-security-probe-ci-gate">
+          <strong>Security Probe Ci Gate <span class="subtle">artifact</span></strong>
+          <span>CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml.</span>
+          <small>Path: my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json</small>
+          <div class="artifact-link"><a class="path" href="evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json" title="my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json" target="_blank" rel="noopener noreferrer">Open artifact</a></div>
         </li>
         <li data-ledger-id="cat8-before-file-size">
           <strong>Before File Size <span class="subtle">artifact</span></strong>
@@ -1686,7 +1748,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>29 pts · 1 claim · 4 boundaries · 5 artifacts · 6 gates · 4 manual</small>
+      <small>32 pts · 2 claims · 4 boundaries · 6 artifacts · 6 gates · 4 manual</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>
@@ -1715,7 +1777,7 @@
             </div>
             <div>
               <dt>Reproduce</dt>
-              <dd><code>E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts</code> <span>Result: 8 passed / 0 failed</span></dd>
+              <dd><code>E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts</code> <span>Result: 9 passed / 0 failed</span></dd>
             </div>
             <div>
               <dt>Artifact</dt>
@@ -1776,7 +1838,7 @@
 
     <div class="defense-load defense-load-high">
       <span>High defense load</span>
-      <small>37 pts · 1 claim · 7 boundaries · 17 artifacts · 4 gates</small>
+      <small>41 pts · 1 claim · 7 boundaries · 21 artifacts · 4 gates</small>
       <em>Proven, but review the boundary language and artifact chain before repeating the claim.</em>
     </div>
             </div>
@@ -1956,7 +2018,7 @@
             </section>
             <section>
               <h3>After</h3>
-              <p>Focused runtime E2E: Focused runtime refresh: 8 passed / 0 failed with named screenshots. Proven fixes: CSRF JSON 403, offline editor draft preservation, and AI unavailable degraded mode are documented. Third fix: AI/Bedrock unavailable path returns controlled JSON and visible degraded UI without clearing editor content.</p>
+              <p>Focused runtime E2E: Focused runtime refresh: 9 passed / 0 failed with named screenshots. Proven fixes: CSRF JSON 403, offline editor draft preservation, and AI unavailable degraded mode are documented. Third fix: AI/Bedrock unavailable path returns controlled JSON and visible degraded UI without clearing editor content.</p>
             </section>
             <section>
               <h3>Reviewer Meaning</h3>
@@ -2243,7 +2305,7 @@
       </section>
 
       <section id="panel-rubric" class="tab-panel" role="tabpanel" aria-labelledby="tab-rubric" tabindex="0" hidden>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="rubric-table"><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>
           <tr data-ledger-id="cat1-audit-total-any-types">
             <td>Cat 1</td>
             <td><span title="cat1-audit-total-any-types">Audit Total Any Types</span></td>
@@ -2703,7 +2765,7 @@
         <article class="non-claim-card" data-ledger-id="cat-6-runtime-error-handling">
           <h3>Cat 6: Runtime Error and Edge Case Handling</h3>
           <ul>
-            <li>Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</li><li>Does not count migration runner hardening as a Category 6 proof.</li><li>Does not claim all error-boundary gaps are fixed.</li>
+            <li>Does not count comments authorization hardening as a Category 6 user-facing runtime proof.</li><li>Does not count migration runner hardening as a Category 6 proof.</li><li>Does not claim every possible component error-boundary gap is fixed; only the route boundary and targeted optional-surface islands are covered.</li>
           </ul>
         </article>
         <article class="non-claim-card" data-ledger-id="cat-7-accessibility">

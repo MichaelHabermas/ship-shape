@@ -1016,6 +1016,54 @@ Evidence: `pnpm security:probe -- --run-id cat8-final` — 4/4 surfaces measured
 
 **Decision Gist**: Category 8 proof is a runnable black-box harness plus before/after reports, not a narrative-only audit.
 
+### D062: Security probe v2 — authorization surface and finding registry (2026-05-23)
+
+Status: Accepted
+
+Decision: Extend `pnpm security:probe` with a fifth measured surface (`authorization`), shared fixtures (`lib/fixtures.mjs`), and a fingerprinted `probe-finding-registry.json` so runs report **known-open**, **new**, **resolved**, and **regression** buckets instead of re-listing the same issues as novel every time. Keep Cat 8 historical closeout at `runs/cat8-final/` (4/4 perimeter, 0 findings); v2 runs use new run IDs (e.g. `probe-v2-baseline-unfixed`). Default `failOn` is `high`; use `--fail-on=new` when only unknown findings should break CI.
+
+Why: Perimeter probes passed while a deep authorization review found 34 open business-logic issues. The tool must encode OWASP A01-style checks (governance PATCH, IDOR, WS origin, upload hijack) as live regressions, not rely on separate agent skills.
+
+Alternatives considered: dual `cat8` vs `full` profiles (rejected — one honest tool); auto-closing SS-FIND rows from probe alone (rejected — ledger stays human-confirmed).
+
+Consequences: Full runs against unfixed main report ~10 known-open authorization/input findings. Login rate-limit live burst runs only under `--probe abuse-login-rate-limit` so seeded admin login is not locked out. Control probes (member denied audit logs, etc.) use registry `status: control`.
+
+Evidence: `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` — 5/5 surfaces, 10 findings, triage known-open=10, new=0. Code under `scripts/security-probe/probes/authorization.mjs`, `lib/finding-registry.mjs`, `lib/registry.mjs`.
+
+**Decision Gist**: One probe harness, honest failures, fingerprinted triage — Cat 8 closeout artifact preserved, v2 catches business-logic regressions.
+
+### D063: Security probe CI gate with `--fail-on=new` (2026-05-23)
+
+Status: Accepted
+
+Decision: Add `pnpm security:probe:ci` (migrate, seed, API, full probe) and GitHub Actions workflow `security-probe.yml`. CI fails only on **new** findings or **regressions** (`lib/ci-fail.mjs`), not on registry `open` backlog. Completeness under `--fail-on=new` fails only when surfaces are incomplete or probes **error** (skipped member-only probes do not fail CI). Mark registry entries `fixed` only after probe passes; keep SS-FIND-008 registry `open` until document-scoped file serve exists.
+
+Why: Option F from probe v2 plan — green CI on `main` while honest about backlog, but block unknown vulns and re-breaks of fixed fingerprints.
+
+Alternatives considered: fail on any finding including known-open (rejected — blocks merges until all 34 SS-FIND closed); skip CI entirely (rejected).
+
+Consequences: Multi-agent verification found probe/route drift (week status tested documents only) and API bypasses; follow-up hardening same day. `authorization-file-document-scope` remains a partial check (uploader vs document visibility).
+
+Evidence: `pnpm security:probe:ci` — 5/5 surfaces, 0 findings, 0 new, 0 regression (`runs/security-probe-ci-20260523-190801/`). `pnpm security:probe:test` 9/9; `pnpm type-check` pass.
+
+**Decision Gist**: CI guards new security regressions, not the whole SS-FIND backlog — registry fingerprints are the contract.
+
+### D064: Unified security findings SoT (`security-findings.json`) (2026-05-23)
+
+Status: Accepted
+
+Decision: Replace dual `probe-finding-registry.json` + hand-edited `security-findings-ledger.md` with one authoritative index: **`security-findings.json`** (workflow `status`, `probes[]` bindings with `regression`/`control` roles, append-only `verifications[]`) plus **`security-findings/narratives/*.md`** for long prose. **`security-findings-ledger.md` is generated** (`pnpm security:findings:render`); `pnpm security:findings:check` runs in CI after probe. Workflow status is CLI-first (`pnpm security:findings:set-status`); probe pass appends verifications only — never auto-sets `status: fixed`. Legacy hand-edited ledger archived as `security-findings-ledger.legacy.md`.
+
+Why: Two stores drifted (registry marked fixes while ledger showed 34×open). One index answers first discovered, last verification, still active, and probe linkage without contradicting human workflow.
+
+Alternatives considered: DB-backed findings (deferred); auto-close on probe pass (rejected — SS-FIND-008); invariant DSL (deferred).
+
+Consequences: `probe-finding-registry.json` removed. `finding-registry.mjs` is a thin adapter over the store. Cat 8 `proven` unchanged; submission limit documents that SS-FIND backlog is not all closed.
+
+Evidence: `pnpm security:findings:migrate` → 34 findings; `pnpm security:findings:check` pass; modules under `scripts/security-probe/lib/security-findings-*.mjs`.
+
+**Decision Gist**: One JSON SoT for findings; generated ledger; CLI owns status; probes append history only.
+
 ### D061: Category 5 full E2E warning resolved with route-consistency fixes (2026-05-22)
 
 Status: Accepted
@@ -1081,3 +1129,17 @@ Why: Expands repeatable axe evidence to pages graders care about without install
 Evidence: `pnpm a11y:closeout -- --fail-on-serious` → 0 critical/serious on `/login`, `/docs`, `/issues`, `/projects`, selected `/documents/:id`, `/my-week` in `test-results/a11y-closeout/axe-summary.json`; `pnpm --filter @ship/web exec vitest run src/components/ActionItemsModal.test.tsx`.
 
 **Decision Gist**: Axe path stays the proven Cat 7 branch; expand pages and fix one modal keyboard gap.
+
+### D065: Cat 6 process lifecycle and targeted boundary hardening (2026-05-23)
+
+Status: Accepted
+
+Decision: Add Cat 6 operational runtime hardening without changing the counted three-fix proof. Centralize API shutdown handling in `api/src/runtime/shutdown.ts`, move signal/fatal process ownership to `api/src/index.ts`, expose `closeDatabasePool()`, and make collaboration setup return a cleanup function that removes the upgrade listener, closes WebSocket servers with a terminate fallback, awaits final Yjs persistence, and flushes pending saves. On the frontend, make `ErrorBoundary` a named reusable primitive, reset the route boundary on navigation, and use recoverable `ResilientSection` wrappers around volatile optional surfaces while keeping the TipTap/Yjs editor core outside a small fallback boundary.
+
+Why: The audit called out missing process-level fatal handlers and partial error-boundary coverage. Those are real operational risks, but they should not be counted as a fourth user-facing Cat 6 fix unless they have the same before/after repro and screenshot burden as the original source requirement.
+
+Consequences: `SIGTERM`/`SIGINT` now attempt bounded graceful shutdown and exit 0 unless a fatal event arrives during shutdown; `unhandledRejection`/`uncaughtException` log fatal context, attempt shutdown, and exit 1. Optional sidebar/AI/backlink render failures can degrade locally without replacing the editor. A test-only boundary route is included only in `VITE_APP_ENV=test_e2e` builds for deterministic Playwright screenshot evidence.
+
+Evidence: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts` 7/7; `pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx` 6/6; `E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep "error boundary"` 1/1; full Cat 6 runtime file 9/9.
+
+**Decision Gist**: Treat process fatal handlers and targeted render boundaries as Cat 6 hardening, not a new counted fix.

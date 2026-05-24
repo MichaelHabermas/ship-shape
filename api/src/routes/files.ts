@@ -172,6 +172,11 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
 
     const file = fileResult.rows[0];
 
+    if (file.uploaded_by !== req.userId) {
+      res.status(403).json({ error: 'Only the uploader can complete this upload' });
+      return;
+    }
+
     // Get raw body as buffer - handle various input types
     let buffer: Buffer;
     if (Buffer.isBuffer(req.body)) {
@@ -250,6 +255,11 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
 
     const file = fileResult.rows[0];
 
+    if (file.uploaded_by !== req.userId) {
+      res.status(403).json({ error: 'Only the uploader can confirm this upload' });
+      return;
+    }
+
     // For production: verify file exists in S3
     // For local dev: file was already saved in local-upload
 
@@ -308,6 +318,13 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
     }
 
     const file = fileResult.rows[0];
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
+    if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
     const filePath = join(UPLOADS_DIR, file.s3_key);
 
     // Serve user uploads as downloads to avoid browser execution of uploaded content.

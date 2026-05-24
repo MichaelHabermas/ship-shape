@@ -733,8 +733,12 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       propsChanged = true;
     }
 
-    // Handle status update
+    // Handle status update — lifecycle only (SS-FIND-003); not generic member PATCH
     if (data.status !== undefined) {
+      if (!isAdmin) {
+        res.status(403).json({ error: 'Sprint status cannot be changed via this endpoint' });
+        return;
+      }
       newProps.status = data.status;
       propsChanged = true;
     }

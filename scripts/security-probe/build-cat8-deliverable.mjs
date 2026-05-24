@@ -165,6 +165,11 @@ const deliverable = {
       current: surfaceFindings(currentProbe, 'inputSanitization'),
     },
     {
+      metric: 'Authorization / business-logic failures (probe v2 extension)',
+      baseline: 'Not measured (v1 perimeter probe)',
+      current: surfaceFindings(currentProbe, 'authorization'),
+    },
+    {
       metric: 'High/Critical CVEs in dependencies',
       baseline: {
         count: baselineDeps.highOrCriticalCount,

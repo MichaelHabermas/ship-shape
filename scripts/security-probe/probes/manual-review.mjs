@@ -60,7 +60,7 @@ async function secrets() {
   }));
 }
 
-async function rateLimits() {
+async function rateLimits({ config }) {
   const app = readFileSync(resolve(repoRoot, 'api/src/app.ts'), 'utf8');
   const collab = readFileSync(resolve(repoRoot, 'api/src/collaboration/index.ts'), 'utf8');
   const details = {
@@ -69,7 +69,10 @@ async function rateLimits() {
     websocketConnectionLimiter: /MAX_CONNECTIONS_PER_IP/.test(collab),
     websocketMessageLimiter: /MAX_MESSAGES_PER_SECOND/.test(collab),
   };
-  if (Object.values(details).every(Boolean)) return pass('manual-rate-limits', 'Assisted rate limit review', details);
+  const staticOk = Object.values(details).every(Boolean);
+  if (staticOk) {
+    return pass('manual-rate-limits', 'Assisted rate limit review', details);
+  }
   return fail('manual-rate-limits', 'Assisted rate limit review', finding({
     id: 'cat8-manual-rate-limit-gap',
     probeId: 'manual-rate-limits',

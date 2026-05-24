@@ -2378,7 +2378,7 @@
           "items": [
             {
               "label": "Focused runtime E2E",
-              "value": "Focused runtime refresh: 8 passed / 0 failed with named screenshots."
+              "value": "Focused runtime refresh: 9 passed / 0 failed with named screenshots."
             },
             {
               "label": "Proven fixes",
@@ -2465,13 +2465,53 @@
           "label": "Focused runtime evidence E2E",
           "recorded_at": "2026-05-23",
           "values": {
-            "passed": 8,
+            "passed": 9,
             "failed": 0,
-            "screenshots": 8
+            "screenshots": 9
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
           "source": "my-docs/IMPROVEMENT_REPORT.md"
+        },
+        {
+          "id": "cat6-process-handler-unit-tests",
+          "kind": "unit_test_result",
+          "label": "API process shutdown handler unit tests",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "passed": 7,
+            "failed": 0
+          },
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "api/src/runtime/shutdown.test.ts"
+        },
+        {
+          "id": "cat6-error-boundary-component-tests",
+          "kind": "component_test_result",
+          "label": "Frontend ErrorBoundary component tests",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "passed": 6,
+            "failed": 0
+          },
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "web/src/components/ui/ErrorBoundary.test.tsx"
+        },
+        {
+          "id": "cat6-error-boundary-e2e-evidence",
+          "kind": "e2e_runtime_evidence",
+          "label": "Focused error-boundary containment E2E",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "passed": 1,
+            "failed": 0,
+            "screenshots": 1
+          },
+          "origin": "artifact_parsed",
+          "confidence": "artifact_backed",
+          "source": "test-results/category-6-boundary-evidence/summary.json"
         }
       ],
       "derived_metrics": [
@@ -2573,8 +2613,22 @@
           ],
           "limits": [
             "Does not count comments visibility or migration bootstrap as Category 6 proof.",
-            "Does not claim process-level unhandled rejection handling is solved.",
+            "Process-level fatal handling is operational runtime hardening, not one of the three screenshot-backed user-facing fixes.",
             "Focused runtime E2E and the AI unavailable collector are the screenshot artifact basis."
+          ]
+        },
+        {
+          "id": "cat6-operational-runtime-hardening",
+          "status": "proven",
+          "statement": "Category 6 now also has operational hardening for process fatal handlers and targeted frontend render boundaries, separate from the three counted user-facing fixes.",
+          "basis": [
+            "cat6-process-handler-unit-tests",
+            "cat6-error-boundary-component-tests",
+            "cat6-error-boundary-e2e-evidence"
+          ],
+          "limits": [
+            "Does not raise cat6-explicit-fix-proof-count above 3.",
+            "Does not claim every possible component error-boundary gap is fixed."
           ]
         }
       ],
@@ -2598,8 +2652,29 @@
           "id": "cat6-runtime-e2e-run",
           "type": "test_run",
           "command": "E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts",
-          "result": "8 passed / 0 failed",
+          "result": "9 passed / 0 failed",
           "description": "Focused runtime evidence E2E run (2026-05-23 refresh)."
+        },
+        {
+          "id": "cat6-process-handler-unit-test-run",
+          "type": "test_run",
+          "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts",
+          "result": "7 passed / 0 failed",
+          "description": "API runtime shutdown handlers close resources for signals, fatal process events, cleanup failures, HTTP close failures, timeout fallback, and fatal events that arrive during an in-flight clean shutdown."
+        },
+        {
+          "id": "cat6-error-boundary-component-test-run",
+          "type": "test_run",
+          "command": "pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx",
+          "result": "6 passed / 0 failed",
+          "description": "Reusable ErrorBoundary and ResilientSection tests cover default fallback, custom fallback, custom fallback reset, resetKeys, boundaryName logging, sibling survival, and local retry affordance."
+        },
+        {
+          "id": "cat6-error-boundary-e2e-run",
+          "type": "test_run",
+          "command": "E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep \"error boundary\"",
+          "result": "1 passed / 0 failed",
+          "description": "Focused route-boundary E2E proves a test-only render failure is contained inside the main content region while the app shell remains visible."
         },
         {
           "id": "cat6-runtime-screenshot-api-500",
@@ -2642,15 +2717,21 @@
           "type": "screenshot",
           "path": "test-results/category-6-ai-unavailable/cat6-ai-unavailable-degraded-ui.png",
           "description": "AI unavailable degraded-mode runtime screenshot."
+        },
+        {
+          "id": "cat6-error-boundary-route-screenshot",
+          "type": "screenshot",
+          "path": "test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png",
+          "description": "Test-only route render failure contained by the route-level ErrorBoundary while app navigation/sidebar chrome remains visible."
         }
       ],
       "caveats": [
-        "Process-level unhandled rejection handlers remain outside this Cat 6 closeout."
+        "Process-level unhandledRejection and uncaughtException handlers are now covered as operational runtime hardening, not as one of the original three user-facing fixes."
       ],
       "non_claims": [
         "Does not count comments authorization hardening as a Category 6 user-facing runtime proof.",
         "Does not count migration runner hardening as a Category 6 proof.",
-        "Does not claim all error-boundary gaps are fixed."
+        "Does not claim every possible component error-boundary gap is fixed; only the route boundary and targeted optional-surface islands are covered."
       ],
       "sources": [
         "my-docs/AUDIT_REPORT.md",
@@ -3571,6 +3652,25 @@
           "origin": "artifact_parsed",
           "confidence": "report_backed",
           "source": "my-docs/evidence/security-audit/runs/baseline-before-probe/report.json"
+        },
+        {
+          "id": "cat8-probe-v2-ci-gate",
+          "kind": "security_probe_status",
+          "label": "Probe v2 CI gate (fail-on=new)",
+          "recorded_at": "2026-05-23",
+          "values": {
+            "fail_on": "new",
+            "attack_surfaces_measured": 5,
+            "total_named_probes_passed": 40,
+            "findings": 0,
+            "new_findings": 0,
+            "regression_count": 0,
+            "github_workflow": ".github/workflows/security-probe.yml",
+            "command": "pnpm security:probe:ci"
+          },
+          "origin": "artifact_parsed",
+          "confidence": "report_backed",
+          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json"
         }
       ],
       "derived_metrics": [
@@ -3680,7 +3780,8 @@
             "Probe runs are local black-box checks against the seeded dev instance; remote destructive probing remains out of scope unless explicitly enabled.",
             "Input sanitization coverage includes documents, search, issues, comments, and file upload surfaces; it is not a formal proof over every possible future field.",
             "The dependency CVE count is from pnpm audit at final run time, not a guarantee about future advisories.",
-            "Manual review is assisted and evidence-backed; it is not a formal third-party penetration test."
+            "Manual review is assisted and evidence-backed; it is not a formal third-party penetration test.",
+            "Cat 8 proven covers four required attack surfaces plus two verified fixes; the SS-FIND backlog (34 deep-review items) is tracked in security-findings.json — not all rows are closed."
           ]
         }
       ],
@@ -3702,6 +3803,30 @@
           "type": "artifact",
           "path": "my-docs/evidence/security-audit/latest.md",
           "description": "Human-readable final security probe report."
+        },
+        {
+          "id": "cat8-probe-v2-baseline-unfixed",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json",
+          "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace cat8-final perimeter closeout."
+        },
+        {
+          "id": "cat8-security-findings",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/security-findings.json",
+          "description": "Unified security findings SoT: workflow status, probe bindings, append-only verification history (SS-FIND-001…034)."
+        },
+        {
+          "id": "cat8-security-findings-ledger-generated",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/security-findings-ledger.md",
+          "description": "Generated human-readable ledger from security-findings.json (pnpm security:findings:render)."
+        },
+        {
+          "id": "cat8-security-probe-ci-gate",
+          "type": "artifact",
+          "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json",
+          "description": "CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml."
         },
         {
           "id": "cat8-before-file-size",

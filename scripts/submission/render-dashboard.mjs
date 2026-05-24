@@ -890,12 +890,22 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       .evidence-summary-table th:nth-child(1),.evidence-summary-table td:nth-child(1) { width:110px; }
       .evidence-summary-table th:nth-child(2),.evidence-summary-table td:nth-child(2) { width:76px; }
       .evidence-summary-table th:nth-child(5),.evidence-summary-table td:nth-child(5) { width:160px; }
-      .discoveries-table { min-width:1060px; }
+      .rubric-table { table-layout:fixed; min-width:900px; }
+      .rubric-table th:nth-child(1),.rubric-table td:nth-child(1) { width:64px; }
+      .rubric-table th:nth-child(2),.rubric-table td:nth-child(2) { width:330px; }
+      .rubric-table th:nth-child(3),.rubric-table td:nth-child(3) { width:90px; }
+      .rubric-table th:nth-child(4),.rubric-table td:nth-child(4) { width:104px; }
+      .rubric-table th:nth-child(5),.rubric-table td:nth-child(5) { width:280px; }
+      .rubric-table td:nth-child(2),.rubric-table td:nth-child(5) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .discoveries-table { table-layout:fixed; min-width:1060px; }
       .discoveries-table th:nth-child(1),.discoveries-table td:nth-child(1) { width:42px; }
-      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:70px; }
-      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:82px; }
-      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:126px; }
+      .discoveries-table th:nth-child(2),.discoveries-table td:nth-child(2) { width:58px; }
+      .discoveries-table th:nth-child(3),.discoveries-table td:nth-child(3) { width:88px; }
+      .discoveries-table th:nth-child(4),.discoveries-table td:nth-child(4) { width:112px; }
       .discoveries-table th:nth-child(7),.discoveries-table td:nth-child(7) { width:96px; }
+      .discoveries-table th:nth-child(8),.discoveries-table td:nth-child(8) { width:150px; }
+      .discoveries-table td:nth-child(1),.discoveries-table td:nth-child(2),.discoveries-table td:nth-child(3),.discoveries-table td:nth-child(4),.discoveries-table td:nth-child(7),.discoveries-table td:nth-child(8) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .discoveries-table td:nth-child(8) .path { line-height:1.15; }
       code { padding:2px 5px; background:#eee7da; border:1px solid #ded3c0; font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
       .footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
       .status-row { margin-bottom:10px; }
@@ -985,7 +995,7 @@ export function renderDashboard(ledger, discoveries = { items: [] }) {
       </section>
 
       <section id="panel-rubric" class="tab-panel" role="tabpanel" aria-labelledby="tab-rubric" tabindex="0" hidden>
-        <div class="table-wrap"><table><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>${rubricRows(categories)}</tbody></table></div>
+        <div class="table-wrap"><table class="rubric-table"><thead><tr><th>Category</th><th>Rubric Item</th><th>Phase</th><th>Status</th><th>Ledger Location</th></tr></thead><tbody>${rubricRows(categories)}</tbody></table></div>
       </section>
 
       <section id="panel-boundaries" class="tab-panel" role="tabpanel" aria-labelledby="tab-boundaries" tabindex="0" hidden>

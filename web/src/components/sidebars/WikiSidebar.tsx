@@ -1,6 +1,7 @@
 import { PersonCombobox, Person } from '@/components/PersonCombobox';
 import { VisibilityDropdown } from '@/components/VisibilityDropdown';
 import { BacklinksPanel } from '@/components/editor/BacklinksPanel';
+import { ResilientSection } from '@/components/ui/ResilientSection';
 
 interface WikiDocument {
   id: string;
@@ -83,7 +84,14 @@ export function WikiSidebar({ document, teamMembers, currentUserId, onUpdate }: 
         <p className="text-sm text-foreground">{formatDateTime(document.updated_at)}</p>
       </PropertyRow>
 
-      <BacklinksPanel documentId={document.id} />
+      <ResilientSection
+        name="backlinks-panel"
+        fallbackTitle="Backlinks unavailable"
+        fallbackDescription="The document remains editable while backlinks recover."
+        resetKeys={[document.id]}
+      >
+        <BacklinksPanel documentId={document.id} />
+      </ResilientSection>
     </div>
   );
 }

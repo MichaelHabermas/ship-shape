@@ -2,7 +2,7 @@ import net from 'node:net';
 import tls from 'node:tls';
 import crypto from 'node:crypto';
 
-export function websocketProbe({ wsUrl, path, cookieHeader, payload, textPayload, timeoutMs = 1500 }) {
+export function websocketProbe({ wsUrl, path, cookieHeader, originHeader, payload, textPayload, timeoutMs = 1500 }) {
   return new Promise((resolve) => {
     const url = new URL(path, wsUrl);
     const port = Number(url.port || (url.protocol === 'wss:' ? 443 : 80));
@@ -35,6 +35,7 @@ export function websocketProbe({ wsUrl, path, cookieHeader, payload, textPayload
         'Sec-WebSocket-Version: 13',
       ];
       if (cookieHeader) headers.push(`Cookie: ${cookieHeader}`);
+      if (originHeader) headers.push(`Origin: ${originHeader}`);
       socket.write(`${headers.join('\r\n')}\r\n\r\n`);
     });
     socket.on('data', (chunk) => {
