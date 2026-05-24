@@ -1,4 +1,6 @@
-# Ship - AWS Deployment Checklist
+# Ship - AWS Deployment Checklist (Archived)
+
+> Archived duplicate. Keep for historical AWS/Terraform context. Current entry point: `DEPLOYMENT.md`; canonical deep reference: `terraform/README.md`.
 
 Quick reference for the optional AWS deployment path. The current public/demo deployment is Render via `render.yaml`.
 

@@ -12,7 +12,7 @@ Scope: documentation hygiene only. This pass removed generated/temporary docs an
 - Removed stale evidence-run archive directories under `my-docs/evidence-runs/`; retained ledger-referenced Category 2 evidence so reviewer links stay valid.
 - Added evidence retention metadata and `pnpm evidence:prune`: dry-run by default, protects ledger/dashboard-referenced runs, and requires `--apply` before deleting unprotected scratch/legacy runs.
 - Removed temporary orchestration-plan files after preserving durable lessons in `MEMORY.md`, `DECISION_LOG.md`, and this report.
-- Replaced stale absolute paths in `docs/claude-reference/anti-patterns.md`, clarified the historical E2E snapshot in `docs/claude-reference/testing.md`, and removed active-sounding non-implemented Ship federation guidance from `docs/fpki-auth-client-dcr-analysis.md`.
+- Replaced stale absolute paths in `docs/claude-reference/anti-patterns.md`, clarified the historical E2E snapshot in `docs/claude-reference/testing.md`, and removed active-sounding non-implemented Ship federation guidance from `docs/research/fpki-auth-client-dcr-analysis.md`.
 
 ### Claim boundary
 
@@ -1070,3 +1070,20 @@ Six parallel reviewers re-audited the completed Tier 2 hardening pass. **Verdict
 | `openapi:check:strict` | 193/193 |
 
 Still open: POST /weeks create response vs `WeekResponseSchema`, PATCH week governance, bulk sprint target visibility.
+
+### Doc-sync activation hardening (2026-05-24)
+
+Added a repo-local activation contract check for agent-readable docs. **No submission-ledger row** — this is documentation/tooling hygiene, not a category outcome claim.
+
+| Workstream | Result |
+|------------|--------|
+| Activation checker | Added `scripts/doc-sync/check-activation-refs.mjs` |
+| Doc-sync wiring | `pnpm docs:check` / `docs:check:strict` now include activation refs |
+| Package script | Added `pnpm docs:check:activation` |
+| Agent guidance cleanup | Removed absent active references to `/ship-openapi-endpoints`, `/workflows:deploy`, and `/ship-security-compliance` |
+| Historical research cleanup | Replaced personal `/Users/neumankyle/...` FPKI paths with package-relative background paths |
+| AWS posture | Preserved as optional future/legacy path; not removed |
+| Root AWS replay docs | Collapsed to `DEPLOYMENT.md` + `terraform/README.md`; archived duplicates under `docs/archive/aws-deployment/` |
+| Research/archive routing | Added `docs/archive/README.md`, `docs/research/README.md`; moved FPKI DCR background to `docs/research/` |
+
+Verification: `pnpm docs:check:activation`; `pnpm docs:check:strict`.

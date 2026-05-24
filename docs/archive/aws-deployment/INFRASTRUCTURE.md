@@ -1,4 +1,6 @@
-# Ship - AWS Infrastructure Plan
+# Ship - AWS Infrastructure Plan (Archived)
+
+> Archived duplicate. Keep for historical AWS/Terraform context. Current entry point: `DEPLOYMENT.md`; canonical deep reference: `terraform/README.md`.
 
 **Government-compliant deployment for Express API + React frontend**
 

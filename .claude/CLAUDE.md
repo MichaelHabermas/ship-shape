@@ -53,7 +53,7 @@ pnpm test             # Runs api unit tests via vitest
 
 ## E2E Testing
 
-**Use `/e2e-test-runner` when running E2E tests**; if unavailable, use `pnpm test:e2e:run`. Never run `pnpm test:e2e` directly — it causes output explosion (600+ tests crash Claude Code). The skill and fallback handle background execution, progress polling via `test-results/summary.json`, and `--last-failed` for iterative fixing.
+**Use `pnpm test:e2e:run` when running E2E tests.** If your agent environment provides `/e2e-test-runner`, it may be used as a wrapper around the same background/polling flow. Never run `pnpm test:e2e` directly — it causes output explosion (600+ tests crash Claude Code). The repo-local runner handles background execution, progress polling via `test-results/summary.json`, and `--last-failed` for iterative fixing.
 
 **Empty test footgun:** Tests with only TODO comments pass silently. Use `test.fixme()` for unimplemented tests. Pre-commit hook (`scripts/check-empty-tests.sh`) catches these.
 
@@ -93,7 +93,7 @@ pnpm test             # Runs api unit tests via vitest
 
 ## Adding API Endpoints
 
-**All API routes must be registered with OpenAPI.** See `/ship-openapi-endpoints` skill for the full pattern (schema → register path → implement route). Result: Swagger + MCP tools auto-generated.
+**All API routes must be registered with OpenAPI.** See `docs/openapi-contract.md` for the full pattern (schema -> register path -> implement route). Result: Swagger + MCP tools auto-generated.
 
 ## Database
 
@@ -121,7 +121,7 @@ Local dev uses `.env.local` for DB connection.
 
 **Primary path: Render** via `render.yaml` (public/demo deployments).
 
-**Optional AWS path:** Use `/workflows:deploy` or run manually when targeting Treasury infrastructure:
+**Optional AWS future path:** Run manually when targeting Treasury-style infrastructure:
 
 ```bash
 ./scripts/deploy.sh prod           # API → Elastic Beanstalk (dev|shadow|prod)
@@ -149,4 +149,4 @@ Use `/ship-philosophy-reviewer` to audit changes against Ship's core philosophy.
 
 ## Security Compliance
 
-**NEVER use `git commit --no-verify`.** See `/ship-security-compliance` skill for pre-commit hooks (`comply opensource`), CI enforcement, and compliance check failure handling.
+**NEVER use `git commit --no-verify`.** Pre-commit hooks run `comply opensource`; see `SECURITY.md` for compliance posture and failure handling.

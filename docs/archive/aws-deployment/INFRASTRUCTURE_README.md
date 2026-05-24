@@ -1,4 +1,6 @@
-# Ship - Optional AWS Infrastructure
+# Ship - Optional AWS Infrastructure (Archived)
+
+> Archived duplicate. Keep for historical AWS/Terraform context. Current entry point: `DEPLOYMENT.md`; canonical deep reference: `terraform/README.md`.
 
 **Optional government-style infrastructure path for production deployment**
 

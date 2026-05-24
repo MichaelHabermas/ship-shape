@@ -16,7 +16,7 @@ Alternatives considered: Leave everything in place and rely on readers to infer 
 
 Consequences: Future doc edits should update the source docs and ledger first, then regenerate generated outputs. Do not preserve one-off orchestration plans unless they are actively guiding current work. Do not prune run artifacts that are still referenced by the ledger or reviewer dashboard. This does not change Categories 1-8 claims.
 
-Evidence: Documentation cleanup removed stale evidence-run archives and two temporary orchestration-plan files; retained ledger-referenced Category 2 evidence; regenerated reviewer bundle output; stale durable doc references were patched in `docs/claude-reference/anti-patterns.md`, `docs/claude-reference/testing.md`, and `docs/fpki-auth-client-dcr-analysis.md`.
+Evidence: Documentation cleanup removed stale evidence-run archives and two temporary orchestration-plan files; retained ledger-referenced Category 2 evidence; regenerated reviewer bundle output; stale durable doc references were patched in `docs/claude-reference/anti-patterns.md`, `docs/claude-reference/testing.md`, and `docs/research/fpki-auth-client-dcr-analysis.md`.
 
 **Decision Gist**: Source docs should be few and authoritative; generated packages should be rebuilt, not curated by hand.
 
@@ -1233,3 +1233,31 @@ Consequences: `pnpm submission:render` now generates the dashboard, markdown led
 Evidence: `my-docs/reviewer-evidence-bundle/index.html`, `manifest.json`, generated `my-docs/reviewer-dashboard.html` Security tab, and `my-docs/evidence/submission-ledger.json` Cat 8 evidence entry.
 
 **Decision Gist**: Keep reviewer evidence static, isolated, generated, and bounded by explicit non-claims.
+
+### D067: Activation contract for agent-readable docs (2026-05-24)
+
+Status: Accepted
+
+Decision: Add `scripts/doc-sync/check-activation-refs.mjs` and wire it into `pnpm docs:check` / `pnpm docs:check:strict`. The check scans high-activation docs (`AGENTS.md`, `.claude/**`, `.agents/**`, and selected `docs/claude-reference/**`) for repo-local slash command drift, missing `./scripts/*` references, and external absolute local paths. Keep `/e2e-test-runner` as an external optional wrapper with repo-local fallback instead of requiring a repo skill.
+
+Why: The curated doc-sync path check was green while stale agent activation remained outside the gate. The expensive failures are not prose typos; they are agents chasing absent commands or personal workstation paths.
+
+Consequences: AWS/Terraform docs remain as a future/legacy path. Active agent guidance now points absent `/ship-openapi-endpoints`, `/workflows:deploy`, and `/ship-security-compliance` references back to repo-local docs/scripts. Historical FPKI research no longer exposes personal absolute paths.
+
+Evidence: `pnpm docs:check:activation`; `pnpm docs:check:strict`.
+
+**Decision Gist**: Guard the activation surface, not just curated architecture prose.
+
+### D068: Collapse AWS root replay docs into one future-path guide (2026-05-24)
+
+Status: Accepted
+
+Decision: Keep `DEPLOYMENT.md` as the active deployment switchboard: Render is current, AWS/Terraform is future/legacy. Move duplicate root AWS planning/checklist/summary docs into `docs/archive/aws-deployment/`. Keep `terraform/README.md` as the canonical deep AWS/Terraform reference. Move non-implemented FPKI DCR analysis into `docs/research/`.
+
+Why: The AWS path remains valuable optional future infrastructure, but five root docs made it look active and fragmented. Root-level docs should tell agents what is current fast.
+
+Consequences: No AWS knowledge deleted. Active docs now point to one future-path entry point plus one deep reference. Archived docs are retained but no longer compete for first-read attention.
+
+Evidence: `pnpm docs:check:strict`.
+
+**Decision Gist**: Preserve the future path; collapse the noisy root surface.

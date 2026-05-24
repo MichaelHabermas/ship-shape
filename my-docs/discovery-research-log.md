@@ -1437,3 +1437,21 @@ Decision: Add a generated Security tab to `my-docs/reviewer-dashboard.html` and 
 Risk found during implementation: the bundle is a new publication surface. Raw evidence can expose local workstation paths, session-cookie examples, or DB URLs. The renderer now redacts local absolute paths, bearer tokens, session cookies, private keys, and DB URL passwords in the bundled copy and fails if those patterns remain.
 
 Future application: Any new reviewer/public evidence export needs a redaction gate and must distinguish measured probe output from the broader security backlog. Do not publish raw run directories without scanning or redacting them first.
+
+---
+
+## Doc activation cleanup and contract check (2026-05-24)
+
+Discovery: The existing strict doc-sync gate passed while important activation docs outside the curated target set still carried absent command references and historical absolute paths. Root AWS docs are intentionally future/legacy context and should not be deleted, but active agent instructions need tighter contract checks.
+
+Implemented:
+
+- `scripts/doc-sync/check-activation-refs.mjs` scans high-activation docs for repo-local slash command drift, missing `./scripts/*` references, and external absolute local paths.
+- `scripts/doc-sync/check.mjs` now runs the activation checker.
+- `package.json` exposes `pnpm docs:check:activation`.
+- `.claude/CLAUDE.md` now points OpenAPI/security/deploy guidance at repo-local docs and scripts instead of absent slash skills.
+- `docs/research/fpki-auth-client-dcr-analysis.md` keeps its historical disclaimer but uses package-relative paths instead of personal `/Users/...` paths.
+
+Follow-up consolidation: root AWS duplicates were collapsed into `DEPLOYMENT.md` plus the canonical deep reference in `terraform/README.md`. Former root replay docs moved to `docs/archive/aws-deployment/`, and FPKI DCR background moved to `docs/research/`.
+
+Decision: Keep AWS/Terraform as the “mystic future path” / optional government-style deployment path, but prevent active agents from treating absent helpers or personal filesystem paths as executable guidance.

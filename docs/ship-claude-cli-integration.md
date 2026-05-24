@@ -21,7 +21,7 @@ Claude Code is Anthropic's official CLI for Claude, providing AI-assisted softwa
 - `/work` (alias `/workflows:work`): Execute PRDs with automatic verification loops
 - `/standup` (alias `/workflows:standup`): Daily progress summaries with Ship integration
 - `/review` (alias `/workflows:review`): Deep PR analysis
-- `/deploy` (alias `/workflows:deploy`): Deployment with verification
+- Deploy verification: use repo-local deployment commands from `DEPLOYMENT.md`
 
 ### Why Integrate Them?
 
