@@ -182,3 +182,26 @@ export async function requireSelfOrAdminPerson(
 
   throw new Error('PERSON_NOT_SELF_OR_ADMIN');
 }
+
+/** Weekly accountability docs are scoped to the linked person, not workspace visibility alone. */
+export async function canReadAccountabilityDocument(
+  db: QueryRunner,
+  actor: DocumentActor,
+  doc: Pick<AccessibleDocument, 'document_type' | 'properties'>
+): Promise<boolean> {
+  if (doc.document_type !== 'weekly_plan' && doc.document_type !== 'weekly_retro') {
+    return true;
+  }
+
+  const personId = doc.properties?.person_id;
+  if (typeof personId !== 'string') {
+    return false;
+  }
+
+  try {
+    await requireSelfOrAdminPerson(db, actor, personId);
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -35,7 +35,7 @@ async function main() {
   server.headersTimeout = 66000; // 66 seconds (slightly longer than keepAlive)
 
   // Setup WebSocket collaboration server
-  const closeCollaboration = setupCollaboration(server);
+  const closeCollaboration = setupCollaboration(server, { allowedOrigin: CORS_ORIGIN });
 
   const shutdownController = createShutdownController({
     server,

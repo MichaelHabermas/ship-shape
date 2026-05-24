@@ -25,6 +25,8 @@ import {
 } from '@ship/shared';
 import { getDocumentTypeById } from '../db/documents-repository.js';
 import { validateAuthenticatedSession } from '../services/session-auth.js';
+import { canReadAccountabilityDocument } from '../services/document-access.js';
+import type { DocumentType } from '@ship/shared';
 import cookie from 'cookie';
 
 // Rate limiting configuration
@@ -381,27 +383,54 @@ async function validateWebSocketSession(request: IncomingMessage): Promise<{ use
   }
 }
 
-// Check if user can access a document for collaboration (visibility check)
+// Check if user can access a document for collaboration (visibility + accountability)
 async function canAccessDocumentForCollab(
   docId: string,
   userId: string,
   workspaceId: string
 ): Promise<boolean> {
   try {
-    const result = await pool.query(
-      `SELECT d.id,
+    const result = await pool.query<{
+      can_access: boolean;
+      document_type: string;
+      properties: Record<string, unknown> | null;
+    }>(
+      `SELECT d.document_type,
+              d.properties,
               (d.visibility = 'workspace' OR d.created_by = $2 OR
                (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
        FROM documents d
-       WHERE d.id = $1 AND d.workspace_id = $3`,
+       WHERE d.id = $1 AND d.workspace_id = $3 AND d.deleted_at IS NULL`,
       [docId, userId, workspaceId]
     );
 
-    if (result.rows.length === 0) {
+    const row = result.rows[0];
+    if (!row?.can_access) {
       return false;
     }
 
-    return result.rows[0].can_access;
+    return canReadAccountabilityDocument(pool, { userId, workspaceId, isSuperAdmin: false }, {
+      document_type: row.document_type as DocumentType,
+      properties: row.properties ?? {},
+    });
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedWebSocketOrigin(
+  originHeader: string | string[] | undefined,
+  allowedOrigin: string
+): boolean {
+  if (!originHeader) {
+    return true;
+  }
+  const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
+  if (!origin) {
+    return true;
+  }
+  try {
+    return new URL(origin).origin === new URL(allowedOrigin).origin;
   } catch {
     return false;
   }
@@ -630,7 +659,11 @@ function closeWebSocketServer(wss: WebSocketServer, forceAfterMs = 1000): Promis
   });
 }
 
-export function setupCollaboration(server: Server): () => Promise<void> {
+export function setupCollaboration(
+  server: Server,
+  options: { allowedOrigin?: string } = {}
+): () => Promise<void> {
+  const allowedOrigin = options.allowedOrigin || process.env.CORS_ORIGIN || 'http://localhost:5173';
   collaborationShuttingDown = false;
   const connectionAttemptCleanupInterval = setInterval(cleanupOldConnectionAttempts, 30_000);
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_MESSAGE_SIZE });
@@ -657,6 +690,12 @@ export function setupCollaboration(server: Server): () => Promise<void> {
         return;
       }
       recordConnectionAttempt(clientIp);
+
+      if (!isAllowedWebSocketOrigin(request.headers.origin, allowedOrigin)) {
+        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+        socket.destroy();
+        return;
+      }
 
       // Validate session
       const sessionData = await validateWebSocketSession(request);
@@ -689,6 +728,12 @@ export function setupCollaboration(server: Server): () => Promise<void> {
       return;
     }
     recordConnectionAttempt(clientIp);
+
+    if (!isAllowedWebSocketOrigin(request.headers.origin, allowedOrigin)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
 
     // CRITICAL: Validate session before allowing WebSocket connection
     const sessionData = await validateWebSocketSession(request);

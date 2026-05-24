@@ -819,6 +819,10 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     if (data.accountable_id !== undefined) {
+      if (!isAdmin) {
+        res.status(403).json({ error: 'Only workspace admins can change accountable_id' });
+        return;
+      }
       newProps.accountable_id = data.accountable_id;
       propsChanged = true;
     }

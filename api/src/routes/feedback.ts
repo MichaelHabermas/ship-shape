@@ -1,5 +1,7 @@
 import { Router, type Router as ExpressRouter, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { pool } from '../db/client.js';
+import { isTestEnv } from '../config/runtime.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { defineRoute } from '../openapi/define-route.js';
@@ -16,6 +18,14 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 
 // Public routes - no auth/CSRF required
 export const publicFeedbackRouter: ExpressRouter = Router();
+
+const publicFeedbackSubmitLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isTestEnv() ? 1000 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many feedback submissions. Please try again later.' },
+});
 
 // Protected routes - auth/CSRF required
 const router = Router();
@@ -65,6 +75,7 @@ function extractFeedbackFromRow(row: FeedbackRow, programPrefix?: string | null)
 // Creates an issue with source='external', state='triage'
 publicFeedbackRouter.post(
   '/',
+  publicFeedbackSubmitLimiter,
   defineRoute({
     method: 'post',
     path: '/feedback',

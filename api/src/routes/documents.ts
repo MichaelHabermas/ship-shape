@@ -16,13 +16,21 @@ import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSou
 import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
 import { updateDocumentContent } from '../db/documents-repository.js';
 import {
+  canReadAccountabilityDocument,
   expectedTypeForRelationship,
   getActor,
   getDocumentAccessContext,
   getReadableDocument,
   requireReferenceableDocument,
   visibilityPredicate,
+  type AccessibleDocument,
 } from '../services/document-access.js';
+import {
+  findForbiddenGovernanceKeys,
+  findForbiddenRaciKeys,
+  formatForbiddenGovernanceKeys,
+  stripForbiddenGovernanceKeys,
+} from '../utils/document-governance.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { asApprovalRecord } from '../utils/approval-workflow.js';
@@ -183,6 +191,16 @@ async function canAccessDocument(
     return { canAccess: false, doc: null };
   }
   return { canAccess: doc.can_access, doc };
+}
+
+async function canReadDocumentWithAccountability(
+  doc: Pick<DocumentAccessRow, 'document_type' | 'properties'>,
+  actor: ReturnType<typeof getActor>
+): Promise<boolean> {
+  return canReadAccountabilityDocument(pool, actor, {
+    document_type: doc.document_type as AccessibleDocument['document_type'],
+    properties: doc.properties ?? {},
+  });
 }
 
 // Validation schemas
@@ -389,6 +407,11 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
+    if (!(await canReadDocumentWithAccountability(doc, actor))) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
     // LEGACY: Handle old-style conversions that created new documents
     // New conversions (2024+) use in-place updates with snapshots, so converted_to_id won't be set.
     // This redirect only applies to documents converted before the in-place model was implemented.
@@ -531,10 +554,11 @@ router.get('/:id/content', authMiddleware, async (req: Request, res: Response) =
     const id = String(req.params.id);
     const userId = String(req.userId);
     const workspaceId = String(req.workspaceId);
+    const actor = getActor(req);
 
     // Verify document exists and user can access it
-    const result = await pool.query<DocumentContentAccessRow>(
-      `SELECT d.id, d.content, d.yjs_state, d.title,
+    const result = await pool.query<DocumentContentAccessRow & { document_type: string; properties: DocumentProperties | null }>(
+      `SELECT d.id, d.document_type, d.properties, d.content, d.yjs_state, d.title,
               (d.visibility = 'workspace' OR d.created_by = $2 OR
                (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
        FROM documents d
@@ -554,6 +578,11 @@ router.get('/:id/content', authMiddleware, async (req: Request, res: Response) =
     }
 
     if (!doc.can_access) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    if (!(await canReadDocumentWithAccountability(doc, actor))) {
       res.status(404).json({ error: 'Document not found' });
       return;
     }
@@ -620,6 +649,12 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
       return;
     }
 
+    const actor = getActor(req);
+    if (!(await canReadDocumentWithAccountability(existing, actor))) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
     // Extract hypothesis, success criteria, vision, and goals from content
     const extractedHypothesis = extractHypothesisFromContent(content);
     const extractedCriteria = extractSuccessCriteriaFromContent(content);
@@ -677,7 +712,23 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const { title, document_type, parent_id, program_id, sprint_id, properties, content, belongs_to } = parsed.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
     let { visibility } = parsed.data;
+
+    const forbiddenOnCreate = isAdmin ? [] : findForbiddenGovernanceKeys(properties);
+    if (forbiddenOnCreate.length > 0) {
+      res.status(403).json({
+        error: `Cannot set governance fields via this endpoint: ${formatForbiddenGovernanceKeys(forbiddenOnCreate)}`,
+      });
+      return;
+    }
+    const forbiddenRaciOnCreate = isAdmin ? [] : findForbiddenRaciKeys(properties);
+    if (forbiddenRaciOnCreate.length > 0) {
+      res.status(403).json({
+        error: `Cannot set RACI fields via this endpoint: ${forbiddenRaciOnCreate.join(', ')}`,
+      });
+      return;
+    }
 
     // If parent_id is provided and visibility is not specified, inherit from parent
     if (parent_id && !visibility) {
@@ -781,7 +832,44 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
+    if (!(await canReadDocumentWithAccountability(existing, actor))) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
     const data = parsed.data;
+    const { isAdmin } = await getDocumentAccessContext(actor);
+
+    const forbiddenGovernanceKeys = isAdmin ? [] : findForbiddenGovernanceKeys(data.properties);
+    if (forbiddenGovernanceKeys.length > 0) {
+      res.status(403).json({
+        error: `Cannot modify governance fields via this endpoint: ${formatForbiddenGovernanceKeys(forbiddenGovernanceKeys)}`,
+      });
+      return;
+    }
+
+    const forbiddenRaciKeys = isAdmin ? [] : findForbiddenRaciKeys(data.properties);
+    if (forbiddenRaciKeys.length > 0) {
+      res.status(403).json({
+        error: `Cannot modify RACI fields via this endpoint: ${forbiddenRaciKeys.join(', ')}`,
+      });
+      return;
+    }
+
+    if (!isAdmin) {
+      if (data.accountable_id !== undefined) {
+        res.status(403).json({ error: 'Only workspace admins can change accountable_id' });
+        return;
+      }
+      if (existing.document_type === 'sprint' && data.status !== undefined) {
+        res.status(403).json({ error: 'Sprint status cannot be changed via this endpoint' });
+        return;
+      }
+      if (existing.document_type === 'sprint' && data.properties?.status !== undefined) {
+        res.status(403).json({ error: 'Sprint status cannot be changed via this endpoint' });
+        return;
+      }
+    }
 
     const references = [
       ...(data.parent_id ? [{ id: data.parent_id, type: 'parent' as const, label: 'Parent document' }] : []),
@@ -927,6 +1015,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
           goals: extractedGoals,
         } : {}),
       };
+      newProps = stripForbiddenGovernanceKeys(newProps, { isAdmin });
 
       // Compute document completeness for projects and sprints
       if (existing.document_type === 'project' || existing.document_type === 'sprint') {
@@ -1232,6 +1321,12 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     if (!canAccess) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const actor = getActor(req);
+    if (!(await canReadDocumentWithAccountability(doc, actor))) {
       res.status(404).json({ error: 'Document not found' });
       return;
     }
