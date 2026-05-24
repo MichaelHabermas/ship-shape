@@ -144,6 +144,31 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // sessions.workspace_id is NOT NULL — super-admins with no membership still need a workspace row
+    if (!workspaceId && user.is_super_admin) {
+      const fallbackWorkspace = await pool.query<{ id: string }>(
+        `SELECT id FROM workspaces WHERE archived_at IS NULL ORDER BY name LIMIT 1`
+      );
+      workspaceId = fallbackWorkspace.rows[0]?.id ?? null;
+    }
+
+    if (!workspaceId) {
+      await logAuditEvent({
+        actorUserId: user.id,
+        action: 'auth.login_failed',
+        details: { email, reason: 'no_workspace_configured' },
+        req,
+      });
+      res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        error: {
+          code: ERROR_CODES.FORBIDDEN,
+          message: 'No workspace is available for session creation',
+        },
+      });
+      return;
+    }
+
     // Session fixation prevention: Delete any existing session from this request
     const oldSessionId = req.cookies.session_id;
     if (oldSessionId) {

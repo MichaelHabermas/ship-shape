@@ -4,7 +4,7 @@ This is the reviewer-facing index for the Week 4 ShipShape submission. The claim
 
 Start here:
 
-1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard (**Security Console** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. For runnable probes in the browser: `pnpm security:console` (local server).
+1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard (**Security** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. Reproduce probe: `pnpm security:probe:ci`.
 2. Use this checklist for deliverable status and exact artifact paths.
 3. Use `my-docs/evidence/submission-ledger.json` for canonical category status and caveats.
 
@@ -24,7 +24,7 @@ Start here:
 
 | Category | Source target | Before artifact | After artifact / proof | Validation command | Caveat / non-claim |
 | --- | --- | --- | --- | --- | --- |
-| 1. Type Safety | 25% reduction in type-safety violations with meaningful types | `my-docs/AUDIT_REPORT.md`; `cat1-baseline-ast-counts` in ledger | `cat1-latest-ast-counts`; `cat1-latest-implicit-any-report`; `pnpm type-check` | `pnpm type-safety:report`; `pnpm type-check` | Syntax-count reduction supports the claim; semantic safety is bounded to documented boundary narrowing. |
+| 1. Type Safety | 25% reduction in type-safety violations with meaningful types | `my-docs/AUDIT_REPORT.md` (per-package tables); `my-docs/evidence/cat1-baseline-ast-counts-5731a92.json`; `cat1-baseline-ast-counts` in ledger | `cat1-latest-ast-counts`; `cat1-latest-implicit-any-report`; `pnpm type-check` | `pnpm type-safety:counts:audit-baseline`; `pnpm type-safety:report`; `pnpm type-check` | Audit is a 2026-05-19 snapshot; syntax-count reduction supports the claim; semantic safety is bounded to documented boundary narrowing. |
 | 2. Bundle Size | 15% total reduction or 20% initial-load reduction via code splitting | `my-docs/audit-evidence/category-2-bundle/bundle-stats.json` | `my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json` | `pnpm build:web`; `pnpm evidence:run -- --phase <phase> --run-id <id>` | Proven path is initial entry/code-splitting improvement, not total JS/CSS shrink. |
 | 3. API Response Time | 20% P95 reduction on at least two endpoints under identical conditions | `my-docs/evidence/artifacts/cat3-before-7d31add-bypass.json` | `my-docs/evidence/artifacts/cat3-after-current-bypass-repeat.json` | `pnpm benchmark:api` with documented `API_BASE_URL`, connections, duration, and bypass token | Exclude non-2xx/rate-limited benchmark artifacts. |
 | 4. Database Query Efficiency | 20% fewer queries on one flow or 50% slowest-query improvement | Audit baseline in ledger; protected docs startup before query-count artifact | `test-results/perf/query-count-api-2026-05-22T15-07-32-461Z.json`; `test-results/perf/explain-performance-2026-05-22T20-11-19-137Z.json` | `pnpm perf:query-count-api`; `pnpm perf:explain` | Proven claim is app-shell query consolidation, not a blanket N+1 fix. |

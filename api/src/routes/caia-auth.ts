@@ -44,8 +44,14 @@ function isValidEmail(email: string): boolean {
  * Validate returnTo URL is same-origin (prevent open redirect)
  */
 function isValidReturnTo(returnTo: string): boolean {
-  // Only allow relative paths starting with /
-  return returnTo.startsWith('/') && !returnTo.startsWith('//');
+  try {
+    const decoded = decodeURIComponent(returnTo);
+    if (!decoded.startsWith('/') || decoded.startsWith('//')) return false;
+    if (decoded.includes('\\')) return false;
+    return !decoded.toLowerCase().startsWith('/http:') && !decoded.toLowerCase().startsWith('/https:');
+  } catch {
+    return false;
+  }
 }
 
 // GET /api/auth/caia/status - Check if CAIA auth is available

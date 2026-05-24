@@ -23,7 +23,6 @@ import {
 } from './ledger-projections.mjs';
 import {
   buildSecurityTabHtml,
-  buildSecurityView,
   renderSecurityClientBundle,
   securityDashboardStyles,
 } from './security-dashboard/index.mjs';
@@ -243,13 +242,13 @@ function railMetaLabels(category, discoveries, securityMeta = null) {
   };
 }
 
-function categoryRail(categories, discoveries, securityMeta = null) {
+function categoryRail(categories, discoveries) {
   return `
     <aside class="category-rail" aria-label="Category navigation">
       ${categories
         .map((category) => {
           const density = claimDensity(category);
-          const meta = railMetaLabels(category, discoveries, securityMeta);
+          const meta = railMetaLabels(category, discoveries);
           const shortTitle = category.title
             .replace('Database Query Efficiency', 'Database')
             .replace('Test Coverage and Quality', 'Tests')
@@ -769,12 +768,7 @@ export function renderDashboard(
   const categories = model.categories;
   const failedTests = model.failuresAndWarnings.filter((item) => item.result === 'fail');
   const warningTests = model.failuresAndWarnings.filter((item) => item.result === 'warn');
-  const securityView = buildSecurityView(ledger, securityReport, securityFindings, securityDeliverable);
-  const securityMeta = {
-    compact: `${securityView.activeFindings.length} active`,
-    detail: `run ${securityView.report?.run?.id || '—'}`,
-  };
-  const securityConsoleLink = 'Open Security Console →';
+  const securityConsoleLink = 'View security evidence →';
 
   return `<!doctype html>
 <!-- GENERATED FILE: run pnpm submission:render-dashboard. Do not edit by hand. -->
@@ -790,7 +784,7 @@ export function renderDashboard(
       body { margin:0; background:var(--bg); color:var(--ink); font-family:"Avenir Next","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.45; }
       .page { width:min(1260px, calc(100vw - 32px)); margin:0 auto; padding:20px 0 44px; }
       .dashboard-shell { display:grid; grid-template-columns:74px minmax(0,1fr); gap:14px; align-items:start; }
-      .dashboard-content { min-width:0; }
+      .dashboard-content { position:relative; z-index:1; min-width:0; }
       p,li,td,code { overflow-wrap:anywhere; }
       a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
       .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.8fr); align-items:stretch; gap:14px; margin-bottom:14px; }
@@ -822,14 +816,14 @@ export function renderDashboard(
       .tab:hover { border-color:var(--dark); }
       .tab:focus-visible { border-color:var(--dark); outline:2px solid var(--dark); outline-offset:2px; }
       .tab[aria-selected="true"] { background:var(--dark); border-color:var(--dark); color:#fffdf8; }
-      .category-rail { position:sticky; top:8px; z-index:11; display:grid; gap:6px; padding:8px; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border:1px solid var(--line); }
+      .category-rail { position:sticky; top:8px; z-index:20; display:grid; gap:6px; padding:8px; overflow:visible; background:color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter:blur(8px); border:1px solid var(--line); }
       .rail-cell { appearance:none; position:relative; display:grid; grid-template-columns:1fr 1fr; gap:4px 6px; align-items:center; min-height:66px; width:56px; padding:7px 8px; border:1px solid var(--line); background:var(--paper); color:var(--dark); font:inherit; cursor:pointer; text-align:left; transition:width .16s ease, border-color .16s ease, box-shadow .16s ease; }
-      .rail-cell:hover { width:230px; z-index:12; border-color:var(--dark); box-shadow:0 8px 20px rgba(32,32,29,.12); }
+      .rail-cell:hover { width:230px; z-index:30; border-color:var(--dark); box-shadow:0 8px 20px rgba(32,32,29,.12); }
       .rail-cell:hover { grid-template-columns:minmax(0,1fr); }
       .rail-cell:focus-visible { outline:2px solid var(--dark); outline-offset:2px; }
       .rail-number { grid-column:1; font-size:15px; font-weight:950; line-height:1; }
       .rail-load { grid-column:2; color:var(--muted); font-size:11px; font-weight:950; line-height:1; text-align:right; white-space:nowrap; }
-      .rail-delta { grid-column:1 / -1; display:block; min-width:0; color:var(--muted); font-size:10px; font-weight:850; line-height:1; text-align:left; white-space:nowrap; }
+      .rail-delta { grid-column:1 / -1; display:block; min-width:0; max-width:100%; color:var(--muted); font-size:10px; font-weight:850; line-height:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .rail-title,.rail-meta,.rail-detail { grid-column:1 / -1; display:none; min-width:0; white-space:normal; overflow:visible; text-overflow:clip; }
       .rail-title { font-size:13px; font-weight:950; line-height:1.15; }
       .rail-meta { color:#34342f; font-size:12px; font-weight:800; line-height:1.2; }
@@ -964,7 +958,7 @@ export function renderDashboard(
   <body>
     <main class="page">
       <div class="dashboard-shell">
-      ${categoryRail(categories, discoveries, securityMeta)}
+      ${categoryRail(categories, discoveries)}
       <div class="dashboard-content">
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-main">
@@ -998,7 +992,7 @@ export function renderDashboard(
         <button class="tab" id="tab-rubric" role="tab" aria-selected="false" aria-controls="panel-rubric" tabindex="-1" data-tab="rubric">Rubric</button>
         <button class="tab" id="tab-boundaries" role="tab" aria-selected="false" aria-controls="panel-boundaries" tabindex="-1" data-tab="boundaries">Boundaries</button>
         <button class="tab" id="tab-discoveries" role="tab" aria-selected="false" aria-controls="panel-discoveries" tabindex="-1" data-tab="discoveries">Discoveries</button>
-        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security Console</button>
+        <button class="tab" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-tab="security">Security</button>
       </nav>
 
       <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
@@ -1081,6 +1075,7 @@ export function renderDashboard(
       const railCells = Array.from(document.querySelectorAll('.rail-cell'));
       const activeTabStorageKey = 'ship-submission-dashboard-active-tab';
       function syncRailMeta(tabName) {
+        if (tabName === 'security') return;
         const key = \`meta\${tabName
           .split('-')
           .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

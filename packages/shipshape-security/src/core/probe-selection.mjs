@@ -1,4 +1,4 @@
-import { skip, timed } from './result-model.mjs';
+import { errorResult, skip, timed } from './result-model.mjs';
 
 export function probeMatches(selectedProbe, id) {
   return !selectedProbe || id === selectedProbe || id.startsWith(selectedProbe);
@@ -19,7 +19,17 @@ export async function runSelectedProbes(context, definitions) {
       results.push(skip(definition.id, definition.name, 'stress probes disabled'));
       continue;
     }
-    results.push(await timed(definition.run(context)));
+    try {
+      results.push(await timed(definition.run(context)));
+    } catch (error) {
+      results.push(
+        errorResult(
+          definition.id,
+          definition.name,
+          error?.message || String(error)
+        )
+      );
+    }
   }
   return results;
 }

@@ -128,8 +128,9 @@ async function discoverIssuer(): Promise<client.Configuration> {
   console.log(`[CAIA]   Client ID: ${creds.client_id}`);
 
   try {
+    const issuerUrl = validateIssuerUrl(creds.issuer_url);
     const config = await client.discovery(
-      new URL(creds.issuer_url),
+      issuerUrl,
       creds.client_id,
       creds.client_secret,
     );
@@ -147,6 +148,30 @@ async function discoverIssuer(): Promise<client.Configuration> {
     }
     throw err;
   }
+}
+
+function validateIssuerUrl(rawIssuerUrl: string): URL {
+  const issuerUrl = new URL(rawIssuerUrl);
+  if (issuerUrl.protocol !== 'https:') {
+    throw new Error('CAIA issuer URL must use HTTPS');
+  }
+
+  const hostname = issuerUrl.hostname.toLowerCase();
+  const blockedHostnames = new Set(['localhost', 'metadata.google.internal']);
+  if (
+    blockedHostnames.has(hostname) ||
+    hostname.endsWith('.local') ||
+    hostname === '169.254.169.254' ||
+    hostname === '0.0.0.0' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+  ) {
+    throw new Error('CAIA issuer URL cannot target private or metadata hosts');
+  }
+
+  return issuerUrl;
 }
 
 /**

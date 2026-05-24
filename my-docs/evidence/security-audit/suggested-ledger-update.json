@@ -1,26 +1,10 @@
 {
   "category": "cat-8-security-audit",
-  "structuredReport": "my-docs/evidence/security-audit/runs/cat8-2026-05-24T17-59-45-512Z/report.json",
+  "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-143633/report.json",
   "attackSurfacesMeasured": 5,
   "attackSurfacesTotal": 5,
   "manualReviewComplete": true,
-  "findingSuggestions": [
-    {
-      "action": "mark_fixed_candidate",
-      "fingerprint": "sha256:678f8fba4dba3af9c8c1bc70d534a9ca16b62becb6617c9d13fcacad64dd4cce",
-      "ledgerId": "SS-FIND-008",
-      "probeId": "authorization-file-document-scope",
-      "note": "Probe passed; confirm with: pnpm security:findings:set-status <id> fixed --note \"...\""
-    }
-  ],
-  "registrySuggestions": [
-    {
-      "action": "mark_fixed_candidate",
-      "fingerprint": "sha256:678f8fba4dba3af9c8c1bc70d534a9ca16b62becb6617c9d13fcacad64dd4cce",
-      "ledgerId": "SS-FIND-008",
-      "probeId": "authorization-file-document-scope",
-      "note": "Probe passed; confirm with: pnpm security:findings:set-status <id> fixed --note \"...\""
-    }
-  ],
+  "findingSuggestions": [],
+  "registrySuggestions": [],
   "note": "Workflow status is CLI-owned (security-findings.json). Probe appends verifications only."
 }

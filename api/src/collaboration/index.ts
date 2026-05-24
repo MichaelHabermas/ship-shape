@@ -25,9 +25,9 @@ import {
 } from '@ship/shared';
 import { getDocumentTypeById } from '../db/documents-repository.js';
 import { validateAuthenticatedSession } from '../services/session-auth.js';
-import { canReadAccountabilityDocument } from '../services/document-access.js';
 import { isProduction } from '../config/runtime.js';
-import type { DocumentType } from '@ship/shared';
+import { authorize } from '../security/capabilities.js';
+import type { Principal } from '../security/principal.js';
 import cookie from 'cookie';
 
 // Rate limiting configuration
@@ -35,6 +35,10 @@ const RATE_LIMIT = {
   // Connection rate limiting: max connections per IP in time window
   CONNECTION_WINDOW_MS: 60_000,  // 1 minute window
   MAX_CONNECTIONS_PER_IP: 30,    // 30 connections per minute per IP
+  MAX_CONNECTIONS_PER_USER: 20,
+  MAX_CONNECTIONS_PER_WORKSPACE: 200,
+  MAX_CACHED_DOCS: 200,
+  SESSION_REVALIDATION_MS: 60_000,
   // Message rate limiting: max messages per connection in time window
   MESSAGE_WINDOW_MS: 1_000,      // 1 second window
   MAX_MESSAGES_PER_SECOND: 50,   // 50 messages per second per connection
@@ -101,14 +105,15 @@ function recordMessage(ws: WebSocket): void {
 // Store documents and awareness by room name
 const docs = new Map<string, Y.Doc>();
 const awareness = new Map<string, awarenessProtocol.Awareness>();
-const conns = new Map<WebSocket, { docName: string; awarenessClientId: number; userId: string; workspaceId: string }>();
+const conns = new Map<WebSocket, { docName: string; awarenessClientId: number; userId: string; workspaceId: string; principal: Principal; revalidateTimer?: NodeJS.Timeout }>();
 
 // Global events connections (separate from document collaboration)
 // These persist across navigation and are used for real-time notifications
-const eventConns = new Map<WebSocket, { userId: string; workspaceId: string }>();
+const eventConns = new Map<WebSocket, { userId: string; workspaceId: string; principal: Principal; revalidateTimer?: NodeJS.Timeout }>();
 
 // Debounce persistence (save every 2 seconds after changes)
 const pendingSaves = new Map<string, NodeJS.Timeout>();
+const docLastEditor = new Map<string, string>();
 
 function parseDocId(docName: string): string {
   return parseDocumentIdFromRoomName(docName);
@@ -121,7 +126,7 @@ const docEvictionTimers = new Map<string, NodeJS.Timeout>();
 const finalPersistSaves = new Set<Promise<void>>();
 let collaborationShuttingDown = false;
 
-async function persistDocumentStrict(docName: string, doc: Y.Doc) {
+async function persistDocumentStrict(docName: string, doc: Y.Doc, changedBy?: string) {
   const state = Y.encodeStateAsUpdate(doc);
   const docId = parseDocId(docName);
 
@@ -161,7 +166,7 @@ async function persistDocumentStrict(docName: string, doc: Y.Doc) {
         await pool.query(
           `INSERT INTO document_history (document_id, field, old_value, new_value, changed_by)
            VALUES ($1, 'content', $2, $3, $4)`,
-          [docId, oldContentStr, newContentStr, createdBy]
+          [docId, oldContentStr, newContentStr, changedBy ?? docLastEditor.get(docName) ?? createdBy]
         );
         contentHistoryLastLogged.set(docId, now);
       }
@@ -361,7 +366,7 @@ function handleMessage(ws: WebSocket, message: Uint8Array, docName: string, doc:
 }
 
 // Validate session from cookie header - returns userId/workspaceId or null
-async function validateWebSocketSession(request: IncomingMessage): Promise<{ userId: string; workspaceId: string } | null> {
+async function validateWebSocketSession(request: IncomingMessage): Promise<Extract<Principal, { kind: 'session' }> | null> {
   const cookieHeader = request.headers.cookie;
   if (!cookieHeader) return null;
 
@@ -376,8 +381,11 @@ async function validateWebSocketSession(request: IncomingMessage): Promise<{ use
     }
 
     return {
+      kind: 'session',
+      sessionId,
       userId: validation.session.userId,
       workspaceId: validation.session.workspaceId,
+      isSuperAdmin: validation.session.isSuperAdmin,
     };
   } catch {
     return null;
@@ -385,37 +393,72 @@ async function validateWebSocketSession(request: IncomingMessage): Promise<{ use
 }
 
 // Check if user can access a document for collaboration (visibility + accountability)
-async function canAccessDocumentForCollab(
-  docId: string,
-  userId: string,
-  workspaceId: string
-): Promise<boolean> {
+async function canAccessDocumentForCollab(docId: string, principal: Principal): Promise<boolean> {
   try {
-    const result = await pool.query<{
-      can_access: boolean;
-      document_type: string;
-      properties: Record<string, unknown> | null;
-    }>(
-      `SELECT d.document_type,
-              d.properties,
-              (d.visibility = 'workspace' OR d.created_by = $2 OR
-               (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
-       FROM documents d
-       WHERE d.id = $1 AND d.workspace_id = $3 AND d.deleted_at IS NULL`,
-      [docId, userId, workspaceId]
-    );
-
-    const row = result.rows[0];
-    if (!row?.can_access) {
-      return false;
-    }
-
-    return canReadAccountabilityDocument(pool, { userId, workspaceId, isSuperAdmin: false }, {
-      document_type: row.document_type as DocumentType,
-      properties: row.properties ?? {},
-    });
+    return (await authorize(pool, principal, {
+      resource: 'collaboration',
+      action: 'join',
+      documentId: docId,
+    })).allowed;
   } catch {
     return false;
+  }
+}
+
+function countConnectionsForUser(userId: string): number {
+  let count = 0;
+  conns.forEach((conn) => {
+    if (conn.userId === userId) count += 1;
+  });
+  eventConns.forEach((conn) => {
+    if (conn.userId === userId) count += 1;
+  });
+  return count;
+}
+
+function countConnectionsForWorkspace(workspaceId: string): number {
+  let count = 0;
+  conns.forEach((conn) => {
+    if (conn.workspaceId === workspaceId) count += 1;
+  });
+  eventConns.forEach((conn) => {
+    if (conn.workspaceId === workspaceId) count += 1;
+  });
+  return count;
+}
+
+function isConnectionBudgetExceeded(principal: Extract<Principal, { kind: 'session' }>): boolean {
+  return countConnectionsForUser(principal.userId) >= RATE_LIMIT.MAX_CONNECTIONS_PER_USER
+    || countConnectionsForWorkspace(principal.workspaceId) >= RATE_LIMIT.MAX_CONNECTIONS_PER_WORKSPACE;
+}
+
+async function revalidateConnection(
+  ws: WebSocket,
+  principal: Extract<Principal, { kind: 'session' }>,
+  documentId?: string
+): Promise<void> {
+  const validation = await validateAuthenticatedSession(principal.sessionId, { updateActivity: false });
+  if (!validation.ok || validation.session.workspaceId !== principal.workspaceId) {
+    ws.close(4401, 'Session expired');
+    return;
+  }
+  if (documentId && !(await canAccessDocumentForCollab(documentId, principal))) {
+    ws.close(COLLAB_CLOSE_CODE_ACCESS_REVOKED, 'Access revoked');
+  }
+}
+
+function evictCachedDocsIfNeeded(): void {
+  if (docs.size <= RATE_LIMIT.MAX_CACHED_DOCS) return;
+  for (const [docName] of docs) {
+    let hasConnections = false;
+    conns.forEach((conn) => {
+      if (conn.docName === docName) hasConnections = true;
+    });
+    if (!hasConnections) {
+      docs.delete(docName);
+      awareness.delete(docName);
+      if (docs.size <= RATE_LIMIT.MAX_CACHED_DOCS) return;
+    }
   }
 }
 
@@ -520,7 +563,7 @@ export function handleDocumentConversion(
   newDocType: ConversionDocumentType
 ): void {
   // Find all connections to this document (across all doc types)
-  const connectionsToNotify: Array<{ ws: WebSocket; conn: { docName: string; awarenessClientId: number; userId: string; workspaceId: string } }> = [];
+  const connectionsToNotify: Array<{ ws: WebSocket; conn: NonNullable<ReturnType<typeof conns.get>> }> = [];
 
   conns.forEach((conn, ws) => {
     const connDocId = parseDocId(conn.docName);
@@ -555,7 +598,7 @@ export async function handleVisibilityChange(
   creatorId: string
 ): Promise<void> {
   // Find all connections to this document (across all doc types)
-  const connectionsToCheck: Array<{ ws: WebSocket; conn: { docName: string; awarenessClientId: number; userId: string; workspaceId: string } }> = [];
+  const connectionsToCheck: Array<{ ws: WebSocket; conn: NonNullable<ReturnType<typeof conns.get>> }> = [];
 
   conns.forEach((conn, ws) => {
     const connDocId = parseDocId(conn.docName);
@@ -584,7 +627,7 @@ export async function handleVisibilityChange(
     }
 
     // Check if user is admin
-    const canAccess = await canAccessDocumentForCollab(docId, conn.userId, conn.workspaceId);
+    const canAccess = await canAccessDocumentForCollab(docId, conn.principal);
 
     if (!canAccess) {
       console.log(`[Collaboration] Disconnecting user ${conn.userId} from private doc ${docId}`);
@@ -709,6 +752,12 @@ export function setupCollaboration(
         return;
       }
 
+      if (isConnectionBudgetExceeded(sessionData)) {
+        socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
       eventsWss.handleUpgrade(request, socket, head, (ws) => {
         eventsWss.emit('connection', ws, sessionData);
       });
@@ -750,7 +799,13 @@ export function setupCollaboration(
     const requestedRoom = url.pathname.replace('/collaboration/', '');
     const docId = parseDocumentIdFromRoomName(requestedRoom);
 
-    const canAccess = await canAccessDocumentForCollab(docId, sessionData.userId, sessionData.workspaceId);
+    if (isConnectionBudgetExceeded(sessionData)) {
+      socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    const canAccess = await canAccessDocumentForCollab(docId, sessionData);
     if (!canAccess) {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
@@ -780,7 +835,7 @@ export function setupCollaboration(
 
   server.on('upgrade', handleUpgrade);
 
-  wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, docName: string, sessionData: { userId: string; workspaceId: string }) => {
+  wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, docName: string, sessionData: Extract<Principal, { kind: 'session' }>) => {
     closeOversizedOrErroredSocket(ws, 'Collaboration');
 
     const doc = await getOrCreateDoc(docName);
@@ -788,7 +843,18 @@ export function setupCollaboration(
 
     // Track this connection with user info for visibility change handling
     const clientId = doc.clientID;
-    conns.set(ws, { docName, awarenessClientId: clientId, userId: sessionData.userId, workspaceId: sessionData.workspaceId });
+    const revalidateTimer = setInterval(() => {
+      void revalidateConnection(ws, sessionData, parseDocId(docName));
+    }, RATE_LIMIT.SESSION_REVALIDATION_MS);
+    conns.set(ws, {
+      docName,
+      awarenessClientId: clientId,
+      userId: sessionData.userId,
+      workspaceId: sessionData.workspaceId,
+      principal: sessionData,
+      revalidateTimer,
+    });
+    evictCachedDocsIfNeeded();
 
     // If this doc was loaded fresh from JSON (API-created or API-updated content),
     // tell the browser to clear its IndexedDB cache before sync to prevent stale content merge
@@ -843,6 +909,7 @@ export function setupCollaboration(
       // Reset violation count on successful (non-rate-limited) messages
       rateLimitViolations.delete(ws);
       recordMessage(ws);
+      docLastEditor.set(docName, sessionData.userId);
 
       handleMessage(ws, new Uint8Array(data), docName, doc, aw);
     });
@@ -851,6 +918,7 @@ export function setupCollaboration(
       const conn = conns.get(ws);
       if (conn) {
         awarenessProtocol.removeAwarenessStates(aw, [conn.awarenessClientId], null);
+        if (conn.revalidateTimer) clearInterval(conn.revalidateTimer);
         conns.delete(ws);
       }
       // Clean up rate limiting data for this connection
@@ -869,7 +937,7 @@ export function setupCollaboration(
         if (pending) {
           clearTimeout(pending);
           pendingSaves.delete(docName);
-          const save = persistDocumentStrict(docName, doc);
+          const save = persistDocumentStrict(docName, doc, sessionData.userId);
           trackFinalPersist(save);
           void save.catch((err) => {
             console.error('Failed to persist document during connection close:', err);
@@ -895,10 +963,18 @@ export function setupCollaboration(
   });
 
   // Handle events WebSocket connections (for real-time notifications)
-  eventsWss.on('connection', (ws: WebSocket, sessionData: { userId: string; workspaceId: string }) => {
+  eventsWss.on('connection', (ws: WebSocket, sessionData: Extract<Principal, { kind: 'session' }>) => {
     closeOversizedOrErroredSocket(ws, 'Events');
 
-    eventConns.set(ws, { userId: sessionData.userId, workspaceId: sessionData.workspaceId });
+    const revalidateTimer = setInterval(() => {
+      void revalidateConnection(ws, sessionData);
+    }, RATE_LIMIT.SESSION_REVALIDATION_MS);
+    eventConns.set(ws, {
+      userId: sessionData.userId,
+      workspaceId: sessionData.workspaceId,
+      principal: sessionData,
+      revalidateTimer,
+    });
     console.log(`[Events] User ${sessionData.userId} connected (${eventConns.size} total connections)`);
 
     // Send initial connected message
@@ -935,6 +1011,8 @@ export function setupCollaboration(
     });
 
     ws.on('close', () => {
+      const conn = eventConns.get(ws);
+      if (conn?.revalidateTimer) clearInterval(conn.revalidateTimer);
       eventConns.delete(ws);
       rateLimitViolations.delete(ws);
       messageTimestamps.delete(ws);

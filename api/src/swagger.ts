@@ -6,7 +6,7 @@
  */
 
 import swaggerUi from 'swagger-ui-express';
-import { Express } from 'express';
+import { Express, type RequestHandler } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,9 +23,10 @@ const __dirname = path.dirname(__filename);
 // Generate the OpenAPI spec from registered schemas
 export const swaggerSpec: OpenAPIObject = normalizeNullableRefs(generateOpenAPIDocument());
 
-export function setupSwagger(app: Express): void {
+export function setupSwagger(app: Express, guard?: RequestHandler): void {
+  const guards = guard ? [guard] : [];
   // Serve swagger UI at /api/docs
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  app.use('/api/docs', ...guards, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'Ship API Documentation',
     swaggerOptions: {
@@ -38,12 +39,12 @@ export function setupSwagger(app: Express): void {
   }));
 
   // Serve the raw OpenAPI spec
-  app.get('/api/openapi.json', (req, res) => {
+  app.get('/api/openapi.json', ...guards, (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
 
-  app.get('/api/openapi.yaml', (req, res) => {
+  app.get('/api/openapi.yaml', ...guards, (req, res) => {
     res.setHeader('Content-Type', 'text/yaml');
     const yaml = jsonToYaml(swaggerSpec);
     res.send(yaml);

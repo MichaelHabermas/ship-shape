@@ -4,7 +4,7 @@ This is the reviewer-facing index for the Week 4 ShipShape submission. The claim
 
 Start here:
 
-1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard (**Security Console** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. For runnable probes in the browser: `pnpm security:console` (local server).
+1. Open `my-docs/reviewer-dashboard.html` for the visual proof dashboard (**Security** tab for Cat 8), or `my-docs/reviewer-evidence-bundle/index.html` for the static reviewer bundle. Reproduce probe: `pnpm security:probe:ci`.
 2. Use this checklist for deliverable status and exact artifact paths.
 3. Use `my-docs/evidence/submission-ledger.json` for canonical category status and caveats.
 

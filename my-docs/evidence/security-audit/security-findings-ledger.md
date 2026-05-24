@@ -18,33 +18,33 @@
 | SS-FIND-004 | — Weekly plan IDOR via generic documents REST API | high | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/documents.ts vs weekly-plans.ts |
 | SS-FIND-005 | — Weekly plan IDOR via collaboration WebSocket | high | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/collaboration/index.ts |
 | SS-FIND-006 | — Collaboration audit trail attributes edits to document creator | medium | open | 2026-05-22 | — | yes | api/src/collaboration/index.ts |
-| SS-FIND-007 | — Bulk issue move to private sprint/project without visibility check | medium | open | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/issues.ts |
-| SS-FIND-008 | — File access is workspace-scoped, not document-scoped | medium | open | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/files.ts |
+| SS-FIND-007 | — Bulk issue move to private sprint/project without visibility check | medium | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/issues.ts |
+| SS-FIND-008 | — File access is workspace-scoped, not document-scoped | medium | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/files.ts |
 | SS-FIND-009 | — Private sub-issue metadata leaked in parent close warning | medium | open | 2026-05-22 | — | yes | api/src/routes/issues.ts |
-| SS-FIND-010 | — Dashboard `my-focus` leaks private project/program metadata | medium | open | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/dashboard.ts |
+| SS-FIND-010 | — Dashboard `my-focus` leaks private project/program metadata | medium | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/dashboard.ts |
 | SS-FIND-011 | — Team grid leaks private program metadata via visible issues | medium | open | 2026-05-22 | — | yes | api/src/routes/team.ts |
 | SS-FIND-012 | — Public feedback lacks dedicated anti-abuse controls | medium | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/feedback.ts |
-| SS-FIND-013 | — S3 upload confirm without object verification | medium | open | 2026-05-22 | — | yes | api/src/routes/files.ts |
-| SS-FIND-014 | — File extension blocklist checks last extension only | medium | open | 2026-05-22 | — | yes | api/src/routes/files.ts |
+| SS-FIND-013 | — S3 upload confirm without object verification | medium | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/files.ts |
+| SS-FIND-014 | — File extension blocklist checks last extension only | medium | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/files.ts |
 | SS-FIND-015 | — WebSocket session not re-validated after upgrade | medium | open | 2026-05-22 | — | yes | api/src/collaboration/index.ts |
-| SS-FIND-016 | — API tokens inherit full user privileges | medium | open | 2026-05-22 | — | yes | api/src/middleware/auth.ts |
+| SS-FIND-016 | — API tokens inherit full user privileges | medium | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/middleware/auth.ts |
 | SS-FIND-017 | — Session IP/User-Agent stored but never enforced | medium | open | 2026-05-22 | — | yes | session-auth.ts, auth.ts |
-| SS-FIND-018 | — Setup race: first caller becomes super-admin | critical | open | 2026-05-22 | — | yes | api/src/routes/setup.ts |
+| SS-FIND-018 | — Setup race: first caller becomes super-admin | critical | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/setup.ts |
 | SS-FIND-019 | — CAIA `returnTo` weak validation | low | open | 2026-05-22 | — | yes | api/src/routes/caia-auth.ts |
 | SS-FIND-020 | — Super-admin SSRF via CAIA issuer URL | medium | open | 2026-05-22 | — | yes | admin-credentials.ts, services/caia.ts |
-| SS-FIND-021 | — Setup status reveals uninitialized instance | low | open | 2026-05-22 | — | yes | api/src/routes/setup.ts |
+| SS-FIND-021 | — Setup status reveals uninitialized instance | low | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/setup.ts |
 | SS-FIND-022 | — Accountability may expose private sprint titles | low | open | 2026-05-22 | — | yes | api/src/services/accountability.ts |
 | SS-FIND-023 | — AI routes accept unvalidated bodies | low | open | 2026-05-22 | — | yes | api/src/routes/ai.ts |
 | SS-FIND-024 | — Breadcrumbs may expose hidden program UUID | low | open | 2026-05-22 | — | yes | api/src/routes/associations.ts |
 | SS-FIND-025 | — Pending file upload hijacking | high | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/routes/files.ts |
 | SS-FIND-026 | — Cross-site WebSocket session riding (no Origin validation) | high | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | api/src/collaboration/index.ts |
 | SS-FIND-027 | — Unbounded in-memory Y.Doc cache (WebSocket DoS) | high | open | 2026-05-22 | — | yes | api/src/collaboration/index.ts |
-| SS-FIND-028 | — Invite accept uses weaker session IDs | medium | open | 2026-05-22 | — | yes | api/src/routes/invites.ts |
-| SS-FIND-029 | — Super-admin cross-workspace access without membership | high | open | 2026-05-22 | 2026-05-24 (probe/pass) | no | workspaces.ts, document-access.ts |
+| SS-FIND-028 | — Invite accept uses weaker session IDs | medium | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/invites.ts |
+| SS-FIND-029 | — Super-admin cross-workspace access without membership | high | fixed | 2026-05-22 | 2026-05-24 (probe/pass) | no | workspaces.ts, document-access.ts |
 | SS-FIND-030 | — Member can enable public feedback via ungoverned PATCH | medium | open | 2026-05-22 | — | yes | api/src/routes/documents.ts, programs.ts |
 | SS-FIND-031 | — Production `SameSite=None` — cross-site cookies, CSRF-only REST defense | medium | open | 2026-05-22 | — | yes | session-cookies.ts, app.ts |
-| SS-FIND-032 | — Unauthenticated invite lookup leaks metadata | medium | open | 2026-05-22 | — | yes | api/src/routes/invites.ts |
-| SS-FIND-033 | — Any workspace member can mint full-privilege API tokens | medium | open | 2026-05-22 | — | yes | api/src/routes/api-tokens.ts |
+| SS-FIND-032 | — Unauthenticated invite lookup leaks metadata | medium | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/invites.ts |
+| SS-FIND-033 | — Any workspace member can mint full-privilege API tokens | medium | fixed | 2026-05-22 | 2026-05-24 (manual/status_change) | no | api/src/routes/api-tokens.ts |
 | SS-FIND-034 | — Full OpenAPI schema exposed without authentication | low | open | 2026-05-22 | — | yes | api/src/swagger.ts |
 
 ## Findings
@@ -60,7 +60,7 @@
 | Discovered | 2026-05-22 |
 | Definition | Member cannot set governance approval fields via PATCH /api/documents/:id |
 | Probes | authorization-governance-properties-injection, input-governance-mass-assignment |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -138,7 +138,7 @@ No probe sends governance-field injection to `PATCH /api/documents/:id`.
 | Discovered | 2026-05-22 |
 | Definition | Member cannot self-assign accountable_id to gain approval authority |
 | Probes | authorization-governance-accountable-self-assign |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -202,7 +202,7 @@ Restrict RACI mutations (`accountable_id`, `owner_id`, `consulted_ids`, `informe
 | Discovered | 2026-05-22 |
 | Definition | Member cannot PATCH sprint/week status to completed without authorization |
 | Probes | authorization-governance-week-status-bypass |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -258,7 +258,7 @@ Remove `status` from generic PATCH schemas; require lifecycle endpoints with `re
 | Discovered | 2026-05-22 |
 | Definition | Member cannot read peer weekly plan via generic documents API |
 | Probes | authorization-weekly-plan-idor-documents |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -306,7 +306,7 @@ Enforce `requireSelfOrAdminPerson` on all weekly_plan/weekly_retro paths (REST l
 | Discovered | 2026-05-22 |
 | Definition | Member cannot open peer weekly plan collaboration WebSocket room |
 | Probes | authorization-weekly-plan-idor-websocket |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -381,13 +381,13 @@ Use `conn.userId` for `changed_by`.
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A01 |
 | Category | association-/-scope-manipulation |
 | Discovered | 2026-05-22 |
 | Definition | Bulk issue move to private sprint/project without visibility check |
 | Probes | authorization-bulk-issue-foreign-target |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -420,13 +420,13 @@ Reuse `requireReferenceableDocument` in bulk update path.
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A01 |
 | Category | attachment-confidentiality |
 | Discovered | 2026-05-22 |
 | Definition | File serve must respect parent document visibility (probe currently checks uploader-only; document scope still open) |
 | Probes | authorization-file-document-scope |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -487,13 +487,13 @@ Filter children query with visibility predicate; or return counts only without t
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A01 |
 | Category | metadata-leak-(policy-dependent) |
 | Discovered | 2026-05-22 |
 | Definition | Dashboard `my-focus` leaks private project/program metadata |
 | Probes | authorization-dashboard-private-metadata |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -545,7 +545,7 @@ Add `VISIBILITY_FILTER_SQL` on program join alias.
 | Discovered | 2026-05-22 |
 | Definition | Public feedback endpoint enforces dedicated rate limiting |
 | Probes | abuse-public-feedback-rate-limit, abuse-login-rate-limit |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -569,11 +569,12 @@ Dedicated rate limit, CAPTCHA, or honeypot; per-program throttle.
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A08 |
 | Category | — |
 | Discovered | 2026-05-22 |
 | Definition | S3 upload confirm without object verification |
+| Last verification | 2026-05-24T19:32:06.347Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -596,11 +597,12 @@ Verify object exists and size matches before status transition.
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A04 |
 | Category | — |
 | Discovered | 2026-05-22 |
 | Definition | File extension blocklist checks last extension only |
+| Last verification | 2026-05-24T19:31:59.960Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -647,11 +649,12 @@ Periodic session re-check on persist or ping; disconnect on failure.
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A07 |
 | Category | — |
 | Discovered | 2026-05-22 |
 | Definition | API tokens inherit full user privileges (no route scoping) |
+| Last verification | 2026-05-24T19:31:31.607Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -701,11 +704,12 @@ Stolen `session_id` cookie works from any client/IP until timeout.
 | Field | Value |
 |-------|-------|
 | Severity | critical |
-| Status | open |
+| Status | fixed |
 | OWASP | A04 |
 | Category | — |
 | Discovered | 2026-05-22 |
 | Definition | Setup race — first caller becomes super-admin if API exposed pre-bootstrap |
+| Last verification | 2026-05-24T19:31:18.646Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -784,11 +788,12 @@ HTTPS only; block RFC1918/link-local/metadata IPs on save.
 | Field | Value |
 |-------|-------|
 | Severity | low |
-| Status | open |
+| Status | fixed |
 | OWASP | — |
 | Category | — |
 | Discovered | 2026-05-22 |
 | Definition | Setup status endpoint reveals uninitialized instance |
+| Last verification | 2026-05-24T19:31:24.925Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -870,7 +875,7 @@ Association context may include program UUID in breadcrumbs with redacted title 
 | Discovered | 2026-05-22 |
 | Definition | Member cannot complete another user pending upload |
 | Probes | authorization-file-upload-hijack-denied |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -906,7 +911,7 @@ Require `uploaded_by = req.userId` (or admin) on all completion paths. Pair with
 | Discovered | 2026-05-22 |
 | Definition | Cross-origin WebSocket upgrade is rejected |
 | Probes | authorization-websocket-origin-reject |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -967,11 +972,12 @@ Global LRU cap on cached `Y.Doc` instances; per-user concurrent connection limit
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A02 |
 | Category | session-identifier-inconsistency |
 | Discovered | 2026-05-22 |
 | Definition | Invite accept creates sessions with `uuidv4()` not secure session IDs |
+| Last verification | 2026-05-24T19:31:45.130Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -995,13 +1001,13 @@ Use shared `generateSecureSessionId()` for all session creation paths.
 | Field | Value |
 |-------|-------|
 | Severity | high |
-| Status | open |
+| Status | fixed |
 | OWASP | A01 |
 | Category | break-glass-/-insider-threat |
 | Discovered | 2026-05-22 |
 | Definition | Super-admin cross-workspace access without membership / blanket admin |
 | Probes | auth-session-member-audit-logs-denied, auth-session-member-impersonation-denied |
-| Last verification | 2026-05-24T05:17:07.073Z — probe pass (stillActive: false) |
+| Last verification | 2026-05-24T19:36:39.376Z — probe pass (stillActive: false) |
 
 **Description**
 
@@ -1082,11 +1088,12 @@ Same-origin API where possible; CI test that fails if a mutating route lacks CSR
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A01 |
 | Category | information-disclosure |
 | Discovered | 2026-05-22 |
 | Definition | Unauthenticated invite lookup leaks email and workspace metadata |
+| Last verification | 2026-05-24T19:31:53.469Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -1109,11 +1116,12 @@ Rate limit; return minimal fields until accept step; short token TTL; consider s
 | Field | Value |
 |-------|-------|
 | Severity | medium |
-| Status | open |
+| Status | fixed |
 | OWASP | A01 |
 | Category | credential-issuance |
 | Discovered | 2026-05-22 |
 | Definition | Any workspace member can mint full-privilege API tokens |
+| Last verification | 2026-05-24T19:31:38.634Z — manual status_change (stillActive: false) |
 
 **Description**
 
@@ -1241,4 +1249,4 @@ Open findings in this ledger are **separate** from Cat 8 closeout — discovered
 
 ---
 
-*Generated at 2026-05-24T14:54:05.794Z from security-findings.json*
+*Generated at 2026-05-24T19:36:39.617Z from security-findings.json*

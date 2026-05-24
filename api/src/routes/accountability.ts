@@ -10,6 +10,9 @@ import { authMiddleware } from '../middleware/auth.js';
 import { checkMissingAccountability } from '../services/accountability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError } from '../utils/route-http.js';
+import { authorize } from '../security/capabilities.js';
+import { principalFromRequest } from '../security/principal.js';
+import { pool } from '../db/client.js';
 
 const router = Router();
 
@@ -34,12 +37,25 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
 
     // Get all missing accountability items via inference
     const missingItems = await checkMissingAccountability(userId, workspaceId);
+    const principal = principalFromRequest(req);
+    const visibleItems = [];
+
+    for (const item of missingItems) {
+      const decision = await authorize(pool, principal, {
+        resource: 'document',
+        action: 'read',
+        documentId: item.targetId,
+      });
+      if (decision.allowed) {
+        visibleItems.push(item);
+      }
+    }
 
     // Calculate days overdue for each item
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const items = missingItems.map((item) => {
+    const items = visibleItems.map((item) => {
       let daysOverdue = -999; // Default for items with no due date
 
       if (item.dueDate) {

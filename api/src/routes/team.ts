@@ -151,6 +151,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
        FROM documents d
        LEFT JOIN document_associations prog_da ON d.id = prog_da.document_id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id AND p.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('p', '$4', '$5')}
        WHERE d.workspace_id = $1 AND d.document_type = 'sprint'
          AND (d.properties->>'start_date')::date >= $2 AND (d.properties->>'end_date')::date <= $3
          AND ${VISIBILITY_FILTER_SQL('d', '$4', '$5')}`,
@@ -167,6 +168,7 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
        JOIN documents s ON s.id = da_sprint.related_id
        LEFT JOIN document_associations prog_da ON i.id = prog_da.document_id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id AND p.document_type = 'program'
+         AND ${VISIBILITY_FILTER_SQL('p', '$2', '$3')}
        WHERE i.workspace_id = $1 AND i.document_type = 'issue' AND i.properties->>'assignee_id' IS NOT NULL
          AND ${VISIBILITY_FILTER_SQL('i', '$2', '$3')}`,
       [workspaceId, userId, isAdmin]

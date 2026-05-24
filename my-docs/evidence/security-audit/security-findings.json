@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T17:59:46.516Z",
+  "updatedAt": "2026-05-24T19:36:39.617Z",
   "discovery": {
     "date": "2026-05-22",
     "method": "deep_review",
@@ -83,6 +83,96 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -124,6 +214,51 @@
           "at": "2026-05-24T17:59:46.516Z",
           "method": "probe",
           "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
           "probeId": "authorization-governance-accountable-self-assign",
           "result": "pass",
           "stillActive": false,
@@ -173,6 +308,51 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -214,6 +394,51 @@
           "at": "2026-05-24T17:59:46.516Z",
           "method": "probe",
           "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
           "probeId": "authorization-weekly-plan-idor-documents",
           "result": "pass",
           "stillActive": false,
@@ -263,6 +488,51 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -287,7 +557,7 @@
       "id": "SS-FIND-007",
       "title": "— Bulk issue move to private sprint/project without visibility check",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "association-/-scope-manipulation",
@@ -325,6 +595,60 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:09:05.808Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: latest mapped probe passed with stillActive=false"
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -332,7 +656,7 @@
       "id": "SS-FIND-008",
       "title": "— File access is workspace-scoped, not document-scoped",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "attachment-confidentiality",
@@ -370,6 +694,60 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:09:12.991Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: latest mapped probe passed with stillActive=false"
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -394,7 +772,7 @@
       "id": "SS-FIND-010",
       "title": "— Dashboard `my-focus` leaks private project/program metadata",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "metadata-leak-(policy-dependent)",
@@ -428,6 +806,60 @@
           "at": "2026-05-24T17:59:46.516Z",
           "method": "probe",
           "runId": "cat8-2026-05-24T17-59-45-512Z",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:09:12.999Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: latest mapped probe passed with stillActive=false"
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
           "probeId": "authorization-dashboard-private-metadata",
           "result": "pass",
           "stillActive": false,
@@ -520,6 +952,96 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -527,7 +1049,7 @@
       "id": "SS-FIND-013",
       "title": "— S3 upload confirm without object verification",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A08",
       "category": null,
@@ -538,13 +1060,32 @@
       "definition": "S3 upload confirm without object verification",
       "narrativePath": "security-findings/narratives/SS-FIND-013.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:32:03.180Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "files route verifies S3 object existence and size before confirm; focused file suite covers confirm behavior"
+        },
+        {
+          "at": "2026-05-24T19:32:06.347Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: S3 confirm path checks object existence and declared size before marking uploaded"
+        }
+      ]
     },
     {
       "id": "SS-FIND-014",
       "title": "— File extension blocklist checks last extension only",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A04",
       "category": null,
@@ -555,7 +1096,26 @@
       "definition": "File extension blocklist checks last extension only",
       "narrativePath": "security-findings/narratives/SS-FIND-014.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:56.744Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "files.test.ts verifies dangerous multi-extension filenames are rejected"
+        },
+        {
+          "at": "2026-05-24T19:31:59.960Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: filename validator checks all suffixes; focused file test covers malware.exe.txt"
+        }
+      ]
     },
     {
       "id": "SS-FIND-015",
@@ -578,7 +1138,7 @@
       "id": "SS-FIND-016",
       "title": "— API tokens inherit full user privileges",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A07",
       "category": null,
@@ -589,7 +1149,26 @@
       "definition": "API tokens inherit full user privileges (no route scoping)",
       "narrativePath": "security-findings/narratives/SS-FIND-016.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:28.055Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "capabilities.test.ts verifies scoped API token denial for governance actions"
+        },
+        {
+          "at": "2026-05-24T19:31:31.607Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: capability layer enforces API token scopes; focused policy test covers governance denial"
+        }
+      ]
     },
     {
       "id": "SS-FIND-017",
@@ -612,7 +1191,7 @@
       "id": "SS-FIND-018",
       "title": "— Setup race: first caller becomes super-admin",
       "severity": "critical",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A04",
       "category": null,
@@ -623,7 +1202,26 @@
       "definition": "Setup race — first caller becomes super-admin if API exposed pre-bootstrap",
       "narrativePath": "security-findings/narratives/SS-FIND-018.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:14.355Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "setup.test.ts verifies setup token denial and concurrent first-run single-winner behavior"
+        },
+        {
+          "at": "2026-05-24T19:31:18.646Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: focused setup tests verify token gate and race closure"
+        }
+      ]
     },
     {
       "id": "SS-FIND-019",
@@ -663,7 +1261,7 @@
       "id": "SS-FIND-021",
       "title": "— Setup status reveals uninitialized instance",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
@@ -674,7 +1272,26 @@
       "definition": "Setup status endpoint reveals uninitialized instance",
       "narrativePath": "security-findings/narratives/SS-FIND-021.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:21.859Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "setup status requires setup token authority before revealing needsSetup when token gate is configured"
+        },
+        {
+          "at": "2026-05-24T19:31:24.925Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: setup status no longer reveals useful first-run state without setup token authority"
+        }
+      ]
     },
     {
       "id": "SS-FIND-022",
@@ -769,6 +1386,51 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -814,6 +1476,51 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -838,7 +1545,7 @@
       "id": "SS-FIND-028",
       "title": "— Invite accept uses weaker session IDs",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A02",
       "category": "session-identifier-inconsistency",
@@ -849,13 +1556,32 @@
       "definition": "Invite accept creates sessions with `uuidv4()` not secure session IDs",
       "narrativePath": "security-findings/narratives/SS-FIND-028.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:42.009Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "workspaces.test.ts verifies invite acceptance session_id is 64 hex chars from 256-bit random session generation"
+        },
+        {
+          "at": "2026-05-24T19:31:45.130Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: invite acceptance now uses crypto.randomBytes(32) session IDs with focused regression coverage"
+        }
+      ]
     },
     {
       "id": "SS-FIND-029",
       "title": "— Super-admin cross-workspace access without membership",
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "break-glass-/-insider-threat",
@@ -919,6 +1645,105 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:09:13.082Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: latest mapped probe passed with stillActive=false"
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:12:04.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-141159",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:15.025Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143307",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:16.185Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143310",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:33:29.016Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143323",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:36:39.376Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-143633",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -960,7 +1785,7 @@
       "id": "SS-FIND-032",
       "title": "— Unauthenticated invite lookup leaks metadata",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "information-disclosure",
@@ -971,13 +1796,32 @@
       "definition": "Unauthenticated invite lookup leaks email and workspace metadata",
       "narrativePath": "security-findings/narratives/SS-FIND-032.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:50.127Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "workspaces.test.ts verifies public invite validation omits invite email and inviter name"
+        },
+        {
+          "at": "2026-05-24T19:31:53.469Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: public invite preview is minimized and focused test verifies email/inviter are not returned"
+        }
+      ]
     },
     {
       "id": "SS-FIND-033",
       "title": "— Any workspace member can mint full-privilege API tokens",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "credential-issuance",
@@ -988,7 +1832,26 @@
       "definition": "Any workspace member can mint full-privilege API tokens",
       "narrativePath": "security-findings/narratives/SS-FIND-033.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:31:35.268Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "capabilities.test.ts verifies non-admin principal cannot create API tokens; route uses capability check"
+        },
+        {
+          "at": "2026-05-24T19:31:38.634Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: new token creation is admin-gated through the capability layer"
+        }
+      ]
     },
     {
       "id": "SS-FIND-034",

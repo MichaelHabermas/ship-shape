@@ -1503,6 +1503,14 @@ Decision D076.
 
 ---
 
+## Security Console UX rollback (2026-05-24)
+
+Walked back over-engineered Security Console UI: removed large offline callout and paragraph control help; compact one-line hint + button `title` tooltips; inline Perimeter/Auto-refresh checkboxes. Rail: `overflow:visible`, higher z-index so hover labels are not clipped behind main panel; Security tab no longer rewrites rail deltas (no stray `22` on cat 8).
+
+**Ruthless simplification (2026-05-24):** Security tab is static evidence only — one reproduce line (`pnpm security:probe:ci`), metrics, tables, file links. Removed console buttons, payload blob, drawer/filters, duplicate CLI section, `pnpm security:console` / migrate noise. Tab renamed **Security**. `pnpm security:console` remains optional dev tooling, not part of the dashboard.
+
+---
+
 ## Doc activation cleanup and contract check (2026-05-24)
 
 Discovery: The existing strict doc-sync gate passed while important activation docs outside the curated target set still carried absent command references and historical absolute paths. Root AWS docs are intentionally future/legacy context and should not be deleted, but active agent instructions need tighter contract checks.
@@ -1518,3 +1526,27 @@ Implemented:
 Follow-up consolidation: root AWS duplicates were collapsed into `DEPLOYMENT.md` plus the canonical deep reference in `terraform/README.md`. Former root replay docs moved to `docs/archive/aws-deployment/`, and FPKI DCR background moved to `docs/research/`.
 
 Decision: Keep AWS/Terraform as the “mystic future path” / optional government-style deployment path, but prevent active agents from treating absent helpers or personal filesystem paths as executable guidance.
+
+---
+
+## Security architecture closure wave (2026-05-24)
+
+Discovery: The remaining security findings clustered around one design problem: authority decisions lived in too many places. REST routes, API token auth, setup, files, graph metadata, and WebSocket collaboration each had enough local context to look correct, but not enough shared vocabulary to prevent drift. The simpler structural fix was not another route patch; it was a central `Principal` + `Capability` model with reason-coded decisions.
+
+Implementation result: `api/src/security/principal.ts`, `tokens.ts`, and `capabilities.ts` now form the shared authorization boundary. Existing document access/policy code feeds this layer. Setup initialization has a server-side token gate, new API tokens are admin-created/scoped/expiring by default, bound files authorize through documents, collaboration revalidates active sessions, and high-risk route tails (CAIA/AI/file names/S3 confirm) received narrow hardening.
+
+Evidence nuance: `security:probe:ci` hit a stale local API port on 3099 first, so the accepted run used alternate ports: `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201`. The probe itself passed with 5/5 surfaces, 40/40 probes, 0 findings. Because the CI command recorded finding verifications, generated findings output became stale afterward; `pnpm security:findings:render` and `pnpm security:findings:check` repaired and verified the ledger.
+
+Future application: Add new sensitive behavior by naming the capability first. Generated/capability-driven probes remain the Galaxy Brain direction, but only after the static capability table is stable enough to be a useful proof target.
+
+---
+
+## Security identity/token/file closeout wave (2026-05-24)
+
+Discovery: The findings registry still showed several control-plane and file rows open after the capability foundation. The right next move was not to declare victory; it was to add or run focused proof, then close only rows whose original behavior was covered.
+
+Implemented: invite acceptance now uses 256-bit random session IDs; public invite preview no longer returns invite email or inviter name; production OpenAPI can be gated behind normal auth unless `OPENAPI_PUBLIC=1`; cookie-auth mutating requests get an Origin/Referer same-origin check before CSRF; `/api/documents/:id/commands` adds an additive typed command boundary for sensitive document mutations while preserving legacy PATCH; accountability action items omit targets the actor cannot read.
+
+Evidence: `pnpm type-check`, `pnpm openapi:check:strict`, `pnpm security:probe:test`, and focused API/security tests passed. The focused API run covered 51 tests across workspaces, setup, API tokens, files, OpenAPI contract, and capabilities. Findings `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033` were closed through the findings CLI with manual verification notes; other rows remain open until direct proof exists.
+
+Future application: Continue closing by cluster: graph metadata leaks, realtime parity proof, external config/browser defense, and input validation. Do not collapse legacy PATCH behavior until clients have moved to typed commands.

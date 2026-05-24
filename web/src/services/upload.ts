@@ -70,7 +70,8 @@ async function getCsrfToken(): Promise<string> {
 export async function uploadFile(
   file: File,
   onProgress?: ProgressCallback,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  documentId?: string
 ): Promise<UploadResult> {
   // Check if already aborted
   if (signal?.aborted) {
@@ -108,6 +109,7 @@ export async function uploadFile(
         filename: file.name,
         mimeType: effectiveMimeType,
         sizeBytes: file.size,
+        ...(documentId ? { documentId } : {}),
       }),
       signal,
     });

@@ -20,6 +20,36 @@ Evidence: `pnpm type-check` passed; focused API regressions for document policy/
 
 **Decision Gist**: Centralize generic document writes in one auditable mutation core; keep generated policy tooling as a later proof mechanism, not first-pass architecture.
 
+### D077: Central Security Capability Layer (2026-05-24)
+
+Status: Accepted
+
+Decision: Add `Principal`, reason-coded `Capability`, `authorize()`, and `requireCapability()` as the shared security layer for sessions, API tokens, setup actors, document reads/writes/references, files, collaboration, workspace admin actions, and token governance. Keep existing `document-access`, `document-policy`, and mutation helpers as inputs/adapters rather than parallel authorization systems.
+
+Why: The active findings were not one-route bugs; they were duplicated authority decisions across REST, WebSockets, file serving, setup, and token paths. One capability boundary makes the safer path simpler: new code asks for a named capability and gets a reason-coded decision.
+
+Alternatives considered: patch every route independently; full generated policy compiler first; separate auth systems for REST and realtime. Route patches leave drift. A compiler is useful later but premature before the capability vocabulary stabilizes. Separate realtime auth was the class of bug this pass removed.
+
+Consequences: New sensitive behavior should add or reuse a capability, not copy workspace/user checks. Existing API tokens receive `legacy:full` compatibility; new tokens are admin-created, scoped, audited, and expire by default. Setup initialization is gated by a server-side token when configured/production. Document-bound files authorize through the linked document; legacy unbound files fall back to uploader/admin. Collaboration joins and revalidation use the same capability layer as REST.
+
+Evidence: Focused API/security tests passed; file route tests passed after applying migration `041_security_capabilities.sql` to `ship_test_audit`; `pnpm type-check`, `pnpm openapi:check:strict`, and `pnpm security:probe:test` passed. `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201 pnpm security:probe:ci` produced `runs/security-probe-ci-20260524-141159/` with 5/5 surfaces, 40/40 probes passed, and 0 findings; the wrapper then reported generated-findings output stale after recording verifications, which was resolved with `pnpm security:findings:render` and `pnpm security:findings:check`.
+
+**Decision Gist**: Authorize capabilities, not routes; REST, files, tokens, setup, and realtime share one reason-coded security model.
+
+### D078: Close Security Findings Only Through Evidence-Backed CLI Updates (2026-05-24)
+
+Status: Accepted
+
+Decision: Treat `security-findings.json` as the source of truth and close SS-FIND rows only after a mapped probe or focused regression test proves the original exploit path is blocked. Use `pnpm exec shipshape-security findings record-manual` or probe verification, then `findings status`, then regenerate/check the findings ledger.
+
+Why: The security architecture closure fixed several code paths before the findings registry reflected them. Closing rows from code inspection would make the evidence story look cleaner than it is. The safer rule is slower but defensible: no proof, no fixed status.
+
+Consequences: The identity/token/file closeout wave marked `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033` fixed because focused API/security tests covered the relevant behavior. Other rows that appear partly mitigated remain open until they have direct probes/tests.
+
+Evidence: Focused API/security run passed 51/51 across workspaces, setup, API tokens, files, OpenAPI contract, and capabilities. `pnpm security:findings:render` and `pnpm security:findings:check` passed after CLI updates.
+
+**Decision Gist**: Findings close by evidence, not vibes.
+
 ### D066: Treat Generated Reviewer Bundles As Build Output
 
 Status: Accepted

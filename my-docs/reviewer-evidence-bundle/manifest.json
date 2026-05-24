@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "bundleGeneratedAt": "2026-05-24T17:59:46.514Z",
+  "bundleGeneratedAt": "2026-05-24T19:33:29.014Z",
   "generator": "scripts/submission/evidence-bundle-utils.mjs",
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
-    "branch": "test-improvements-and-submission-hardening-1",
-    "commit": "5efec0ac592a6a3035069cacc446fcf7cf0e5322",
+    "branch": "master",
+    "commit": "cce4a3942f9bed750e74bb54a21e43cdce630667",
     "dirtyWorktree": true
   },
   "security": {
-    "runId": "cat8-2026-05-24T17-59-45-512Z",
+    "runId": "security-probe-ci-20260524-143323",
     "mode": "local-active",
-    "apiUrl": "http://localhost:3000",
-    "webUrl": "http://localhost:5173",
+    "apiUrl": "http://127.0.0.1:3099",
+    "webUrl": "http://localhost:5199",
     "latestConfirmedFindings": 0,
     "triageCounts": {
       "knownOpen": 0,
-      "resolved": 1,
+      "resolved": 0,
       "new": 0,
       "regression": 0
     }

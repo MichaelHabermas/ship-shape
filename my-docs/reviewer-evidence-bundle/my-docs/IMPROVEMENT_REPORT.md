@@ -1123,3 +1123,42 @@ Added a repo-local activation contract check for agent-readable docs. **No submi
 | Research/archive routing | Added `docs/archive/README.md`, `docs/research/README.md`; moved FPKI DCR background to `docs/research/` |
 
 Verification: `pnpm docs:check:activation`; `pnpm docs:check:strict`.
+
+---
+
+## Security architecture closure wave (2026-05-24)
+
+Implemented the 10X security core from the closure plan: `Principal` + reason-coded `Capability` authorization, setup-token gating, scoped/admin-created API tokens with `legacy:full` compatibility, graph-aware document metadata filtering, document-bound file authorization, S3 confirm verification, dangerous multi-extension filename rejection, WebSocket authorization parity/revalidation/budgets, collaboration history actor attribution, CAIA return/issuer hardening, and Zod request validation for AI routes.
+
+Submission impact is Category 8 only. The ledger now references the fresh security probe CI run conservatively; it does not claim all historical SS-FIND backlog rows are closed. Findings `SS-FIND-007`, `008`, `010`, and `029` were marked fixed through the security findings CLI after probe verification, then findings output was regenerated.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (193/193)
+- Focused API/security Vitest: pass
+- Files/issues focused Vitest after migration: pass
+- `pnpm security:probe:test`: pass
+- `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201 pnpm security:probe:ci`: probe passed with 5/5 surfaces, 40/40 probes, 0 findings; generated findings ledger became stale after recorded verifications and was repaired with `pnpm security:findings:render` + `pnpm security:findings:check`
+
+Decision: D077.
+
+---
+
+## Security identity/token/file closeout wave (2026-05-24)
+
+Closed the next proof-backed security cluster after the central capability layer: setup bootstrap disclosure/race, API-token scope/minting authority, invite metadata/session strength, and file confirm/filename hardening. Also added the additive typed document command route so sensitive document mutations have a named command boundary without breaking legacy PATCH.
+
+Findings closed through the CLI after focused evidence: `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033`. Remaining graph/realtime/browser/input rows stay open until mapped proof exists.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `pnpm security:probe:test`: pass
+- `SECURITY_PROBE_API_PORT=3102 SECURITY_PROBE_WEB_PORT=5202 pnpm security:probe:ci`: probe passed with 5/5 surfaces, 40/40 probes, 0 findings; generated findings ledger became stale after recorded verifications and was repaired with `pnpm security:findings:render` + `pnpm security:findings:check`
+- Focused API/security Vitest on workspaces/setup/api-tokens/files/openapi-contract/capabilities: pass, 51/51
+- `pnpm security:findings:render`: pass
+- `pnpm security:findings:check`: pass
+
+Decision: D078.

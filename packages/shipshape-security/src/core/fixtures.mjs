@@ -73,7 +73,14 @@ export async function createPendingLocalUpload(client, config, sizeBytes = 32) {
   });
   const fileId = create.json?.fileId;
   const uploadUrl = create.json?.uploadUrl;
-  if (!fileId || !uploadUrl) throw new Error(`Failed to create pending upload (HTTP ${create.status})`);
+  if (!fileId || !uploadUrl) {
+    const detail =
+      create.json?.error ||
+      create.json?.message ||
+      (create.text && create.text.length < 240 ? create.text.trim() : '');
+    const suffix = detail ? `: ${detail}` : '';
+    throw new Error(`Failed to create pending upload (HTTP ${create.status})${suffix}`);
+  }
   return { fileId, uploadUrl, create };
 }
 

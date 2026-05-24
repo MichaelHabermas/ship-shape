@@ -79,12 +79,10 @@ test('dashboard render is deterministic from ledger projections', async () => {
   assert.equal(first, second);
   assert(first.includes('GENERATED FILE'));
   assert(first.includes('data-ledger-id="cat-8-security-audit"'));
-  assert(first.includes('id="ship-security-payload"'));
-  assert(first.includes('Security Console'));
-  assert(first.includes('Audit deliverable (brief table)'));
-  assert(first.includes('security-finding-drawer'));
-  assert(first.includes('id="security-run-ci"'));
+  assert(first.includes('Security evidence'));
+  assert(first.includes('Deliverable table'));
   assert(first.includes('data-copy-command="pnpm security:probe:ci"'));
-  assert(first.includes('id="security-auto-refresh"'));
-  assert(first.includes('role="dialog"'));
+  assert(first.includes('class="security-reproduce"'));
+  assert(!first.includes('id="security-run-probe"'));
+  assert(!first.includes('security-finding-drawer'));
 });

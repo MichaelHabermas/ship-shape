@@ -7,12 +7,22 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { analyzePlan, analyzeRetro, isAiAvailable, checkRateLimit } from '../services/ai-analysis.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
-import { sendLegacyError } from '../utils/route-http.js';
+import { sendValidationError } from '../utils/route-http.js';
 
 const router = Router();
+
+const analyzePlanSchema = z.object({
+  content: z.string().min(1).max(50_000),
+});
+
+const analyzeRetroSchema = z.object({
+  retro_content: z.string().min(1).max(50_000),
+  plan_content: z.string().min(1).max(50_000),
+});
 
 function aiStatusPayload(available: boolean) {
   return available
@@ -30,12 +40,12 @@ router.get('/status', authMiddleware, async (_req: Request, res: Response) => {
 router.post('/analyze-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { userId } = getAuthenticatedRouteContext(req);
-    const { content } = req.body;
-
-    if (!content) {
-      sendLegacyError(res, 400, 'content is required');
+    const parsed = analyzePlanSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error);
       return;
     }
+    const { content } = parsed.data;
 
     // Rate limit check
     if (!checkRateLimit(userId)) {
@@ -55,17 +65,12 @@ router.post('/analyze-plan', authMiddleware, async (req: Request, res: Response)
 router.post('/analyze-retro', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { userId } = getAuthenticatedRouteContext(req);
-    const { retro_content, plan_content } = req.body;
-
-    if (!retro_content) {
-      sendLegacyError(res, 400, 'retro_content is required');
+    const parsed = analyzeRetroSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error);
       return;
     }
-
-    if (!plan_content) {
-      sendLegacyError(res, 400, 'plan_content is required');
-      return;
-    }
+    const { retro_content, plan_content } = parsed.data;
 
     // Rate limit check
     if (!checkRateLimit(userId)) {

@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 import { validateAuthenticatedSession } from '../services/session-auth.js';
+import { validateApiToken } from '../security/tokens.js';
 
 // Extend Express Request to include session info
 declare global {
@@ -14,62 +14,9 @@ declare global {
       workspaceId?: string;
       isSuperAdmin?: boolean;
       isApiToken?: boolean; // True when authenticated via API token
+      apiTokenId?: string;
     }
   }
-}
-
-// Hash a token for comparison
-function hashToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-// Validate API token and return user info if valid
-async function validateApiToken(token: string): Promise<{
-  userId: string;
-  workspaceId: string;
-  isSuperAdmin: boolean;
-  tokenId: string;
-} | null> {
-  const tokenHash = hashToken(token);
-
-  const result = await pool.query(
-    `SELECT t.id, t.user_id, t.workspace_id, t.expires_at, t.revoked_at,
-            u.is_super_admin, wm.user_id AS membership_user_id
-     FROM api_tokens t
-     JOIN users u ON t.user_id = u.id
-     LEFT JOIN workspace_memberships wm
-       ON wm.user_id = t.user_id
-      AND wm.workspace_id = t.workspace_id
-     WHERE t.token_hash = $1`,
-    [tokenHash]
-  );
-
-  const tokenRow = result.rows[0];
-
-  if (!tokenRow) return null;
-
-  // Check if revoked
-  if (tokenRow.revoked_at) return null;
-
-  // Check if expired
-  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) return null;
-
-  // Super-admin tokens can authenticate globally; all other tokens require
-  // current membership in the token workspace.
-  if (!tokenRow.is_super_admin && !tokenRow.membership_user_id) return null;
-
-  // Update last_used_at
-  await pool.query(
-    'UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1',
-    [tokenRow.id]
-  );
-
-  return {
-    userId: tokenRow.user_id,
-    workspaceId: tokenRow.workspace_id,
-    isSuperAdmin: tokenRow.is_super_admin,
-    tokenId: tokenRow.id,
-  };
 }
 
 export async function authMiddleware(
@@ -101,6 +48,9 @@ export async function authMiddleware(
       req.workspaceId = tokenData.workspaceId;
       req.isSuperAdmin = tokenData.isSuperAdmin;
       req.isApiToken = true;
+      req.apiTokenId = tokenData.tokenId;
+      req.apiTokenScopes = tokenData.scopes;
+      req.principal = tokenData;
 
       next();
       return;
@@ -181,6 +131,15 @@ export async function authMiddleware(
     req.userId = validation.session.userId;
     req.workspaceId = validation.session.workspaceId ?? undefined;
     req.isSuperAdmin = validation.session.isSuperAdmin;
+    if (validation.session.workspaceId) {
+      req.principal = {
+        kind: 'session',
+        sessionId: validation.session.sessionId,
+        userId: validation.session.userId,
+        workspaceId: validation.session.workspaceId,
+        isSuperAdmin: validation.session.isSuperAdmin,
+      };
+    }
 
     next();
   } catch (error) {

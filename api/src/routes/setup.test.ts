@@ -21,6 +21,35 @@ async function csrf(agent: request.SuperAgentTest) {
 describe('Setup API', () => {
   const app = createApp();
 
+  it('requires the one-time setup token when configured', async () => {
+    const previous = process.env.SHIP_SETUP_TOKEN;
+    process.env.SHIP_SETUP_TOKEN = 'expected-setup-token';
+    const agent = request.agent(app);
+    const csrfToken = await csrf(agent);
+
+    try {
+      const response = await agent
+        .post('/api/setup/initialize')
+        .set('Cookie', csrfToken.cookie)
+        .set('x-csrf-token', csrfToken.token)
+        .send({
+          email: 'setup-token-denied@ship.local',
+          password: 'setup-password',
+          name: 'Setup Token Denied',
+        });
+
+      expect(response.status).toBe(403);
+      const counts = await pool.query('SELECT COUNT(*)::int AS users FROM users');
+      expect(counts.rows[0]).toEqual({ users: 0 });
+    } finally {
+      if (previous === undefined) {
+        delete process.env.SHIP_SETUP_TOKEN;
+      } else {
+        process.env.SHIP_SETUP_TOKEN = previous;
+      }
+    }
+  });
+
   it('allows only one concurrent first-run initialization', async () => {
     const agentA = request.agent(app);
     const agentB = request.agent(app);

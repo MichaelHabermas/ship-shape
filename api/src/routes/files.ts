@@ -8,9 +8,11 @@ import { basename, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authMiddleware } from '../middleware/auth.js';
 import { getActor, getDocumentAccessContext } from '../services/document-access.js';
+import { authorize } from '../security/capabilities.js';
+import { principalFromRequest } from '../security/principal.js';
 import { useS3Uploads } from '../config/runtime.js';
 import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +57,7 @@ const uploadRequestSchema = z.object({
   sizeBytes: z.number().int().positive().max(MAX_FILE_SIZE, {
     message: `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024 * 1024)}GB)`,
   }),
+  documentId: z.string().uuid().optional(),
 });
 
 /**
@@ -80,9 +83,9 @@ const BLOCKED_EXTENSIONS = new Set([
 ]);
 
 function isAllowedFile(filename: string, _mimeType: string): boolean {
-  // Check extension against blocklist (allow everything except dangerous types)
-  const ext = filename.toLowerCase().slice(filename.lastIndexOf('.'));
-  return !BLOCKED_EXTENSIONS.has(ext);
+  const safeName = basename(filename).toLowerCase();
+  const extensions = safeName.split('.').slice(1).map((ext) => `.${ext}`);
+  return extensions.every((ext) => !BLOCKED_EXTENSIONS.has(ext));
 }
 
 function safeAttachmentFilename(filename: string): string {
@@ -100,7 +103,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
       return;
     }
 
-    const { filename, mimeType, sizeBytes } = validation.data;
+    const { filename, mimeType, sizeBytes, documentId } = validation.data;
     const workspaceId = req.workspaceId;
     const userId = req.userId;
 
@@ -110,6 +113,18 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
       return;
     }
 
+    if (documentId) {
+      const decision = await authorize(pool, principalFromRequest(req), {
+        resource: 'file',
+        action: 'create_upload',
+        documentId,
+      });
+      if (!decision.allowed) {
+        res.status(403).json({ error: 'Document not accessible' });
+        return;
+      }
+    }
+
     // Generate unique S3 key / local path
     const fileId = randomUUID();
     const ext = filename.slice(filename.lastIndexOf('.'));
@@ -117,10 +132,10 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
 
     // Create file record with 'pending' status
     const result = await pool.query(
-      `INSERT INTO files (id, workspace_id, uploaded_by, filename, mime_type, size_bytes, s3_key, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+      `INSERT INTO files (id, workspace_id, uploaded_by, filename, mime_type, size_bytes, s3_key, status, document_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
        RETURNING id`,
-      [fileId, workspaceId, userId, filename, mimeType, sizeBytes, s3Key]
+      [fileId, workspaceId, userId, filename, mimeType, sizeBytes, s3Key, documentId ?? null]
     );
 
     // Use S3 when configured; otherwise use local storage for lightweight deployments.
@@ -175,6 +190,18 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
     if (file.uploaded_by !== req.userId) {
       res.status(403).json({ error: 'Only the uploader can complete this upload' });
       return;
+    }
+
+    if (file.document_id) {
+      const decision = await authorize(pool, principalFromRequest(req), {
+        resource: 'file',
+        action: 'complete_upload',
+        documentId: file.document_id,
+      });
+      if (!decision.allowed) {
+        res.status(403).json({ error: 'Document not accessible' });
+        return;
+      }
     }
 
     // Get raw body as buffer - handle various input types
@@ -260,8 +287,35 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    // For production: verify file exists in S3
-    // For local dev: file was already saved in local-upload
+    if (file.document_id) {
+      const decision = await authorize(pool, principalFromRequest(req), {
+        resource: 'file',
+        action: 'complete_upload',
+        documentId: file.document_id,
+      });
+      if (!decision.allowed) {
+        res.status(403).json({ error: 'Document not accessible' });
+        return;
+      }
+    }
+
+    if (useS3Uploads()) {
+      const client = getS3Client();
+      let head;
+      try {
+        head = await client.send(new HeadObjectCommand({
+          Bucket: S3_BUCKET_NAME,
+          Key: file.s3_key,
+        }));
+      } catch {
+        res.status(400).json({ error: 'Uploaded object was not found in storage' });
+        return;
+      }
+      if (head.ContentLength !== Number(file.size_bytes)) {
+        res.status(400).json({ error: 'Uploaded file size does not match declared size' });
+        return;
+      }
+    }
 
     // Generate CDN URL
     let cdnUrl: string;
@@ -318,11 +372,23 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
     }
 
     const file = fileResult.rows[0];
-    const actor = getActor(req);
-    const { isAdmin } = await getDocumentAccessContext(actor);
-    if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
-      res.status(403).json({ error: 'Forbidden' });
-      return;
+    if (file.document_id) {
+      const decision = await authorize(pool, principalFromRequest(req), {
+        resource: 'file',
+        action: 'serve',
+        documentId: file.document_id,
+      });
+      if (!decision.allowed) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+    } else {
+      const actor = getActor(req);
+      const { isAdmin } = await getDocumentAccessContext(actor);
+      if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
     }
 
     const filePath = join(UPLOADS_DIR, file.s3_key);
@@ -352,7 +418,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId;
 
     const result = await pool.query(
-      `SELECT id, filename, mime_type, size_bytes, cdn_url, status, created_at
+      `SELECT id, filename, mime_type, size_bytes, cdn_url, status, created_at, document_id, uploaded_by
        FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]
     );
@@ -362,7 +428,28 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    res.json(result.rows[0]);
+    const file = result.rows[0];
+    if (file.document_id) {
+      const decision = await authorize(pool, principalFromRequest(req), {
+        resource: 'file',
+        action: 'read',
+        documentId: file.document_id,
+      });
+      if (!decision.allowed) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+    } else {
+      const actor = getActor(req);
+      const { isAdmin } = await getDocumentAccessContext(actor);
+      if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+    }
+
+    const { uploaded_by: _uploadedBy, ...metadata } = file;
+    res.json(metadata);
   } catch (error) {
     sendInternalError(res, error, 'Error getting file:', { error: 'Failed to get file' });
   }
@@ -395,11 +482,23 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
 
     const file = fileResult.rows[0];
 
-    const actor = getActor(req);
-    const { isAdmin } = await getDocumentAccessContext(actor);
-    if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
-      res.status(403).json({ error: 'Only the uploader or an admin can delete this file' });
-      return;
+    if (file.document_id) {
+      const decision = await authorize(pool, principalFromRequest(req), {
+        resource: 'file',
+        action: 'delete',
+        documentId: file.document_id,
+      });
+      if (!decision.allowed) {
+        res.status(403).json({ error: 'Only an authorized document user can delete this file' });
+        return;
+      }
+    } else {
+      const actor = getActor(req);
+      const { isAdmin } = await getDocumentAccessContext(actor);
+      if (file.uploaded_by !== req.userId && !isAdmin && !req.isSuperAdmin) {
+        res.status(403).json({ error: 'Only the uploader or an admin can delete this file' });
+        return;
+      }
     }
 
     // Delete from storage (local or S3)

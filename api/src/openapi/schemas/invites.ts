@@ -8,11 +8,8 @@ import { jsonResponse, successEnvelope, TokenParamSchema } from './route-helpers
 
 const InviteDetailsSchema = z.object({
   id: z.string().uuid(),
-  email: z.string().email(),
   role: z.enum(['admin', 'member']),
-  workspaceId: z.string().uuid(),
   workspaceName: z.string(),
-  invitedBy: z.string(),
   expiresAt: DateTimeSchema,
   userExists: z.boolean(),
   alreadyMember: z.boolean(),

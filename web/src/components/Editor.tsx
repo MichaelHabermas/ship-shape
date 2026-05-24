@@ -247,6 +247,7 @@ export function Editor({
       onCreateSubDocument,
       onNavigateToDocument,
       documentType,
+      documentId,
       abortSignal: imageUploadAbortRef.current.signal,
     });
   }, [onCreateSubDocument, onNavigateToDocument, documentType, documentId]);
@@ -340,7 +341,7 @@ export function Editor({
       onUploadError: (error) => console.error('Upload error:', error),
       abortController: imageUploadAbortRef.current,
     }),
-    FileAttachmentExtension,
+    FileAttachmentExtension.configure({ documentId }),
     DocumentEmbed,
     DragHandleExtension,
     DetailsExtension,

@@ -151,6 +151,21 @@ describe('Files API', () => {
     expect(res.body.error).toContain('not allowed');
   });
 
+  it('POST /api/files/upload rejects dangerous multi-extension filenames', async () => {
+    const res = await request(app)
+      .post('/api/files/upload')
+      .set('Cookie', sessionCookie)
+      .set('x-csrf-token', csrfToken)
+      .send({
+        filename: 'malware.exe.txt',
+        mimeType: 'text/plain',
+        sizeBytes: 1024,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('not allowed');
+  });
+
   it('POST /api/files/:id/local-upload rejects bytes that do not match declared size', async () => {
     const { fileId, uploadUrl } = await createUpload('size-check.html', 'text/html', 2048);
 
