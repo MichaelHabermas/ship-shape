@@ -3726,7 +3726,7 @@
           "id": "cat8-probe-v2-ci-gate",
           "kind": "security_probe_status",
           "label": "Probe v2 CI gate (fail-on=new)",
-          "recorded_at": "2026-05-23",
+          "recorded_at": "2026-05-24",
           "values": {
             "fail_on": "new",
             "attack_surfaces_measured": 5,
@@ -3739,7 +3739,7 @@
           },
           "origin": "artifact_parsed",
           "confidence": "report_backed",
-          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json"
+          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-150803/report.json"
         }
       ],
       "derived_metrics": [
@@ -3928,6 +3928,20 @@
       "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/workspaces.test.ts src/routes/setup.test.ts src/routes/api-tokens.test.ts src/routes/files.test.ts src/routes/openapi-contract.test.ts src/security/capabilities.test.ts",
       "result": "pass: 6 files, 51 tests",
       "description": "Focused API/security regression run after identity/token/file closure wave: workspaces/setup/api-tokens/files/openapi-contract/capabilities suites passed 51/51, covering setup token/race, token capability denial, minimized invite preview, strong invite session IDs, and dangerous multi-extension filename rejection."
+    },
+    {
+      "id": "cat8-security-graph-realtime-tests-20260524",
+      "type": "test_run",
+      "path": "api/src/routes/security-graph.test.ts",
+      "command": "DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test",
+      "result": "pass: 51 files, 595 tests",
+      "description": "Full API regression run after graph visibility and realtime parity closure wave. Covers private graph metadata omission, association metadata DTO projection, bootstrap visible-count filtering, parent close warning filtering, public_feedback_enabled member denial, collaboration history editor attribution, revoked-session revalidation close, and Y.Doc cache cap rejection."
+    },
+    {
+      "id": "cat8-security-probe-ci-20260524-145758",
+      "type": "artifact",
+      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json",
+      "description": "Current CI-shaped local probe run after graph visibility and realtime parity closure wave: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
     },
     {
       "id": "cat8-before-file-size",

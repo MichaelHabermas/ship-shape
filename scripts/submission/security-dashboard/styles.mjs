@@ -36,6 +36,7 @@ export function securityDashboardStyles() {
       .security-expand-btn { appearance:none; border:1px solid var(--line); background:var(--paper); padding:3px 8px; font-size:11px; font-weight:750; cursor:pointer; }
       .security-findings-table th:nth-child(1),.security-findings-table td:nth-child(1) { width:122px; white-space:nowrap; }
       .security-findings-table th:nth-child(2),.security-findings-table td:nth-child(2) { width:118px; white-space:nowrap; }
+      .security-findings-table .impact-pill,.security-latest-findings-table .impact-pill { width:auto; padding:0 7px; white-space:nowrap; }
       .security-findings-table th:nth-child(3),.security-findings-table td:nth-child(3) { width:92px; white-space:nowrap; }
       .security-findings-table th:nth-child(4),.security-findings-table td:nth-child(4) { width:78px; white-space:nowrap; }
       .security-findings-table th:nth-child(5),.security-findings-table td:nth-child(5) { width:245px; }

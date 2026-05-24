@@ -31,14 +31,21 @@ import type { Principal } from '../security/principal.js';
 import cookie from 'cookie';
 
 // Rate limiting configuration
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 const RATE_LIMIT = {
   // Connection rate limiting: max connections per IP in time window
   CONNECTION_WINDOW_MS: 60_000,  // 1 minute window
-  MAX_CONNECTIONS_PER_IP: 30,    // 30 connections per minute per IP
-  MAX_CONNECTIONS_PER_USER: 20,
-  MAX_CONNECTIONS_PER_WORKSPACE: 200,
-  MAX_CACHED_DOCS: 200,
-  SESSION_REVALIDATION_MS: 60_000,
+  MAX_CONNECTIONS_PER_IP: readPositiveIntEnv('COLLAB_MAX_CONNECTIONS_PER_IP', 30),
+  MAX_CONNECTIONS_PER_USER: readPositiveIntEnv('COLLAB_MAX_CONNECTIONS_PER_USER', 20),
+  MAX_CONNECTIONS_PER_WORKSPACE: readPositiveIntEnv('COLLAB_MAX_CONNECTIONS_PER_WORKSPACE', 200),
+  MAX_CACHED_DOCS: readPositiveIntEnv('COLLAB_MAX_CACHED_DOCS', 200),
+  SESSION_REVALIDATION_MS: readPositiveIntEnv('COLLAB_SESSION_REVALIDATION_MS', 60_000),
   // Message rate limiting: max messages per connection in time window
   MESSAGE_WINDOW_MS: 1_000,      // 1 second window
   MAX_MESSAGES_PER_SECOND: 50,   // 50 messages per second per connection
@@ -113,7 +120,7 @@ const eventConns = new Map<WebSocket, { userId: string; workspaceId: string; pri
 
 // Debounce persistence (save every 2 seconds after changes)
 const pendingSaves = new Map<string, NodeJS.Timeout>();
-const docLastEditor = new Map<string, string>();
+const docLastEditorPrincipal = new Map<string, Principal>();
 
 function parseDocId(docName: string): string {
   return parseDocumentIdFromRoomName(docName);
@@ -126,9 +133,25 @@ const docEvictionTimers = new Map<string, NodeJS.Timeout>();
 const finalPersistSaves = new Set<Promise<void>>();
 let collaborationShuttingDown = false;
 
-async function persistDocumentStrict(docName: string, doc: Y.Doc, changedBy?: string) {
+async function persistDocumentStrict(docName: string, doc: Y.Doc, principal?: Principal) {
   const state = Y.encodeStateAsUpdate(doc);
   const docId = parseDocId(docName);
+  const editorPrincipal = principal ?? docLastEditorPrincipal.get(docName);
+
+  if (!editorPrincipal) {
+    console.warn(`[Collaboration] Skipping persist for ${docName}: no editor principal available`);
+    return;
+  }
+
+  const persistDecision = await authorize(pool, editorPrincipal, {
+    resource: 'collaboration',
+    action: 'persist',
+    documentId: docId,
+  });
+  if (!persistDecision.allowed) {
+    console.warn(`[Collaboration] Skipping persist for ${docName}: ${persistDecision.reason}`);
+    return;
+  }
 
   // Convert Yjs to TipTap JSON to extract hypothesis/criteria and keep content in sync
   const fragment = doc.getXmlFragment('default');
@@ -166,7 +189,7 @@ async function persistDocumentStrict(docName: string, doc: Y.Doc, changedBy?: st
         await pool.query(
           `INSERT INTO document_history (document_id, field, old_value, new_value, changed_by)
            VALUES ($1, 'content', $2, $3, $4)`,
-          [docId, oldContentStr, newContentStr, changedBy ?? docLastEditor.get(docName) ?? createdBy]
+          [docId, oldContentStr, newContentStr, editorPrincipal.kind === 'setup' ? createdBy : editorPrincipal.userId]
         );
         contentHistoryLastLogged.set(docId, now);
       }
@@ -193,9 +216,9 @@ async function persistDocumentStrict(docName: string, doc: Y.Doc, changedBy?: st
   await upsertDocumentSearchIndex(docId);
 }
 
-async function persistDocument(docName: string, doc: Y.Doc) {
+async function persistDocument(docName: string, doc: Y.Doc, principal?: Principal) {
   try {
-    await persistDocumentStrict(docName, doc);
+    await persistDocumentStrict(docName, doc, principal);
   } catch (err) {
     console.error('Failed to persist document:', err);
   }
@@ -208,12 +231,13 @@ function trackFinalPersist(save: Promise<void>): void {
   }).catch(() => undefined);
 }
 
-function schedulePersist(docName: string, doc: Y.Doc) {
+function schedulePersist(docName: string, doc: Y.Doc, principal?: Principal) {
   const existing = pendingSaves.get(docName);
   if (existing) clearTimeout(existing);
+  if (principal) docLastEditorPrincipal.set(docName, principal);
 
   pendingSaves.set(docName, setTimeout(() => {
-    persistDocument(docName, doc);
+    void persistDocument(docName, doc, principal ?? docLastEditorPrincipal.get(docName));
     pendingSaves.delete(docName);
   }, 2000));
 }
@@ -224,7 +248,7 @@ async function flushPendingSaves(): Promise<void> {
     clearTimeout(pendingSave);
     pendingSaves.delete(docName);
     const doc = docs.get(docName);
-    if (doc) saves.push(persistDocumentStrict(docName, doc));
+    if (doc) saves.push(persistDocumentStrict(docName, doc, docLastEditorPrincipal.get(docName)));
   });
   await Promise.all(saves);
 }
@@ -233,7 +257,7 @@ async function flushPendingSaves(): Promise<void> {
 // Browser should clear its IndexedDB cache when connecting to these docs
 const freshFromJsonDocs = new Set<string>();
 
-async function getOrCreateDoc(docName: string): Promise<Y.Doc> {
+async function getOrCreateDoc(docName: string, principal?: Principal): Promise<Y.Doc> {
   let doc = docs.get(docName);
   if (doc) return doc;
 
@@ -266,7 +290,7 @@ async function getOrCreateDoc(docName: string): Promise<Y.Doc> {
         `[Collaboration] Successfully converted content for ${docName}: ${resolved.docJson.content.length} top-level nodes`
       );
       freshFromJsonDocs.add(docName);
-      schedulePersist(docName, doc);
+      schedulePersist(docName, doc, principal);
     } else {
       console.log(`[Collaboration] No content found for ${docName}, starting with empty document`);
     }
@@ -276,7 +300,8 @@ async function getOrCreateDoc(docName: string): Promise<Y.Doc> {
 
   // Set up persistence and broadcast on changes
   doc.on('update', (update: Uint8Array, origin: any) => {
-    schedulePersist(docName, doc);
+    const originPrincipal = origin instanceof WebSocket ? conns.get(origin)?.principal : undefined;
+    schedulePersist(docName, doc, originPrincipal);
 
     // Broadcast update to all other clients in this room (except sender)
     const encoder = encoding.createEncoder();
@@ -455,12 +480,52 @@ function evictCachedDocsIfNeeded(): void {
       if (conn.docName === docName) hasConnections = true;
     });
     if (!hasConnections) {
-      docs.delete(docName);
-      awareness.delete(docName);
+      removeCachedDocState(docName);
       if (docs.size <= RATE_LIMIT.MAX_CACHED_DOCS) return;
     }
   }
 }
+
+function removeCachedDocState(docName: string): void {
+  docs.delete(docName);
+  awareness.delete(docName);
+  freshFromJsonDocs.delete(docName);
+  docLastEditorPrincipal.delete(docName);
+  const timer = docEvictionTimers.get(docName);
+  if (timer) clearTimeout(timer);
+  docEvictionTimers.delete(docName);
+  contentHistoryLastLogged.delete(parseDocId(docName));
+}
+
+function canAcceptCachedDoc(docName: string): boolean {
+  if (docs.has(docName) || docs.size < RATE_LIMIT.MAX_CACHED_DOCS) return true;
+
+  for (const [cachedDocName] of docs) {
+    let hasConnections = false;
+    conns.forEach((conn) => {
+      if (conn.docName === cachedDocName) hasConnections = true;
+    });
+    if (!hasConnections) {
+      removeCachedDocState(cachedDocName);
+      break;
+    }
+  }
+
+  return docs.has(docName) || docs.size < RATE_LIMIT.MAX_CACHED_DOCS;
+}
+
+export const __collaborationSecurityTestHooks = {
+  rateLimit: RATE_LIMIT,
+  docs,
+  awareness,
+  conns,
+  eventConns,
+  canAcceptCachedDoc,
+  evictCachedDocsIfNeeded,
+  persistDocumentStrict,
+  revalidateConnection,
+  docLastEditorPrincipal,
+};
 
 export function isAllowedWebSocketOrigin(
   originHeader: string | string[] | undefined,
@@ -827,6 +892,11 @@ export function setupCollaboration(
     }
 
     const docName = buildCollaborationRoomName(documentType, docId);
+    if (!canAcceptCachedDoc(docName)) {
+      socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n');
+      socket.destroy();
+      return;
+    }
 
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request, docName, sessionData);
@@ -838,7 +908,7 @@ export function setupCollaboration(
   wss.on('connection', async (ws: WebSocket, _request: IncomingMessage, docName: string, sessionData: Extract<Principal, { kind: 'session' }>) => {
     closeOversizedOrErroredSocket(ws, 'Collaboration');
 
-    const doc = await getOrCreateDoc(docName);
+    const doc = await getOrCreateDoc(docName, sessionData);
     const aw = getAwareness(docName, doc);
 
     // Track this connection with user info for visibility change handling
@@ -909,7 +979,7 @@ export function setupCollaboration(
       // Reset violation count on successful (non-rate-limited) messages
       rateLimitViolations.delete(ws);
       recordMessage(ws);
-      docLastEditor.set(docName, sessionData.userId);
+      docLastEditorPrincipal.set(docName, sessionData);
 
       handleMessage(ws, new Uint8Array(data), docName, doc, aw);
     });
@@ -937,7 +1007,7 @@ export function setupCollaboration(
         if (pending) {
           clearTimeout(pending);
           pendingSaves.delete(docName);
-          const save = persistDocumentStrict(docName, doc, sessionData.userId);
+          const save = persistDocumentStrict(docName, doc, docLastEditorPrincipal.get(docName) ?? sessionData);
           trackFinalPersist(save);
           void save.catch((err) => {
             console.error('Failed to persist document during connection close:', err);
@@ -952,8 +1022,7 @@ export function setupCollaboration(
             if (c.docName === docName) stillNoConnections = false;
           });
           if (stillNoConnections) {
-            docs.delete(docName);
-            awareness.delete(docName);
+            removeCachedDocState(docName);
           }
           docEvictionTimers.delete(docName);
         }, 30000);
@@ -1049,6 +1118,7 @@ export function setupCollaboration(
     eventConns.clear();
     docs.clear();
     awareness.clear();
+    docLastEditorPrincipal.clear();
     freshFromJsonDocs.clear();
     contentHistoryLastLogged.clear();
 

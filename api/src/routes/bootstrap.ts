@@ -10,6 +10,7 @@ import { sendInternalError } from '../utils/route-http.js';
 import { INFERRED_PROJECT_STATUS_SUBQUERY } from '../sql/bootstrap-queries.js';
 import { pickBootstrapDocumentProperties } from '../constants/bootstrap-document.js';
 import { listIssuesMetadata } from '../db/documents-repository.js';
+import { visibleAssociatedDocumentCountSql } from '../services/document-graph-visibility.js';
 
 const router = Router();
 
@@ -211,12 +212,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
                 COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
                 u.name as owner_name, u.email as owner_email,
-                (SELECT COUNT(*) FROM documents i
-                 JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'program'
-                 WHERE i.document_type = 'issue') as issue_count,
-                (SELECT COUNT(*) FROM documents s
-                 JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
-                 WHERE s.document_type = 'sprint') as sprint_count
+                (${visibleAssociatedDocumentCountSql('i', 'program', 'issue', 'd', '$2', '$3')}) as issue_count,
+                (${visibleAssociatedDocumentCountSql('s', 'program', 'sprint', 'd', '$2', '$3')}) as sprint_count
          FROM documents d
          LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
          WHERE d.workspace_id = $1 AND d.document_type = 'program'
@@ -226,20 +223,22 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         [workspaceId, userId, isAdmin]
       ),
       pool.query<ProjectRow>(
-        `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
+        `SELECT d.id, d.title, d.properties, prog.id as program_id,
                 d.archived_at, d.created_at, d.updated_at, d.converted_from_id,
                 (d.properties->>'owner_id')::uuid as owner_id,
                 u.name as owner_name, u.email as owner_email,
-                (SELECT COUNT(*) FROM documents s
-                 JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'project'
-                 WHERE s.document_type = 'sprint') as sprint_count,
-                (SELECT COUNT(*) FROM documents i
-                 JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
-                 WHERE i.document_type = 'issue') as issue_count,
+                (${visibleAssociatedDocumentCountSql('s', 'project', 'sprint', 'd', '$2', '$3')}) as sprint_count,
+                (${visibleAssociatedDocumentCountSql('i', 'project', 'issue', 'd', '$2', '$3')}) as issue_count,
                 (${INFERRED_PROJECT_STATUS_SUBQUERY}) as inferred_status
          FROM documents d
          LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
          LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
+         LEFT JOIN documents prog ON prog.id = prog_da.related_id
+          AND prog.workspace_id = d.workspace_id
+          AND prog.document_type = 'program'
+          AND prog.archived_at IS NULL
+          AND prog.deleted_at IS NULL
+          AND ${VISIBILITY_FILTER_SQL('prog', '$2', '$3')}
          WHERE d.workspace_id = $1 AND d.document_type = 'project'
            AND d.archived_at IS NULL
            AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}

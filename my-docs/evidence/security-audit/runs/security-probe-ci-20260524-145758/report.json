@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-24T20:08:08.981Z",
+  "generatedAt": "2026-05-24T19:58:04.158Z",
   "run": {
-    "id": "security-probe-ci-20260524-150803",
-    "startedAt": "2026-05-24T20:08:08.004Z",
-    "finishedAt": "2026-05-24T20:08:08.981Z",
+    "id": "security-probe-ci-20260524-145758",
+    "startedAt": "2026-05-24T19:58:03.279Z",
+    "finishedAt": "2026-05-24T19:58:04.158Z",
     "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
     "target": "local",
     "mode": "local-active",
@@ -157,7 +157,7 @@
       "id": "auth-session-invalid-bearer",
       "name": "Invalid bearer token rejected",
       "status": "passed",
-      "durationMs": 3,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -198,7 +198,7 @@
       "id": "auth-session-api-token-super-admin-boundary",
       "name": "API tokens cannot access super-admin routes",
       "status": "passed",
-      "durationMs": 7,
+      "durationMs": 10,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -207,7 +207,7 @@
       "id": "auth-session-member-audit-logs-denied",
       "name": "Member cannot access global audit logs",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -225,7 +225,7 @@
       "id": "authorization-governance-properties-injection",
       "name": "Member cannot forge plan_approval via documents PATCH",
       "status": "passed",
-      "durationMs": 23,
+      "durationMs": 37,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -234,7 +234,7 @@
       "id": "authorization-governance-accountable-self-assign",
       "name": "Member cannot self-assign accountable_id on program",
       "status": "passed",
-      "durationMs": 17,
+      "durationMs": 12,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -243,7 +243,7 @@
       "id": "authorization-governance-week-status-bypass",
       "name": "Member cannot complete sprint via ungoverned status PATCH",
       "status": "passed",
-      "durationMs": 13,
+      "durationMs": 12,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -256,8 +256,8 @@
       "targetSafe": true,
       "findingIds": [],
       "details": {
-        "victimPersonId": "4164fbbc-31ac-44cd-be59-0a997cfd6534",
-        "attackerPersonId": "13521eaf-2b31-44d7-bc06-da8b82af4aed"
+        "victimPersonId": "d29b8a4b-3209-4088-aa2b-c1bf95d06a38",
+        "attackerPersonId": "686a74a3-6765-4a22-b681-9c2086e754a0"
       }
     },
     {
@@ -282,7 +282,7 @@
       "id": "authorization-file-upload-hijack-denied",
       "name": "Member cannot complete another user pending upload",
       "status": "passed",
-      "durationMs": 3,
+      "durationMs": 4,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -327,7 +327,7 @@
       "id": "websocket-nonexistent-doc-denied",
       "name": "Nonexistent collaboration document rejected",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -336,7 +336,7 @@
       "id": "websocket-malformed-frame",
       "name": "Malformed WebSocket message rejected deterministically",
       "status": "passed",
-      "durationMs": 6,
+      "durationMs": 7,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -347,7 +347,7 @@
       "id": "websocket-unknown-message-type",
       "name": "Unknown WebSocket message type rejected deterministically",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 6,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -358,7 +358,7 @@
       "id": "websocket-oversized-frame",
       "name": "Oversized WebSocket frame bounded by server",
       "status": "passed",
-      "durationMs": 19,
+      "durationMs": 18,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -391,7 +391,7 @@
       "id": "input-stored-xss-document-title",
       "name": "Stored XSS payload remains inert in JSON API response",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 3,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -400,7 +400,7 @@
       "id": "input-search-payloads",
       "name": "Search payloads do not leak internals",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -418,7 +418,7 @@
       "id": "input-issue-payloads",
       "name": "Issue payloads remain inert and validation bounded",
       "status": "passed",
-      "durationMs": 4,
+      "durationMs": 3,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -427,7 +427,7 @@
       "id": "input-comment-payloads",
       "name": "Comment payloads remain inert and validation bounded",
       "status": "passed",
-      "durationMs": 8,
+      "durationMs": 7,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -436,7 +436,7 @@
       "id": "input-file-upload-size-mismatch",
       "name": "Local upload size mismatch rejected",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 3,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -445,7 +445,7 @@
       "id": "input-file-serve-headers",
       "name": "Served uploads use safe download headers",
       "status": "passed",
-      "durationMs": 6,
+      "durationMs": 5,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -463,7 +463,7 @@
       "id": "dependency-pnpm-audit",
       "name": "pnpm audit high/critical CVE check",
       "status": "passed",
-      "durationMs": 566,
+      "durationMs": 472,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -538,7 +538,7 @@
       "id": "abuse-public-feedback-rate-limit",
       "name": "Public feedback endpoint resists burst submissions",
       "status": "passed",
-      "durationMs": 49,
+      "durationMs": 40,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -550,7 +550,7 @@
   "createdArtifacts": [],
   "suggestedLedgerUpdate": {
     "category": "cat-8-security-audit",
-    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-150803/report.json",
+    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json",
     "attackSurfacesMeasured": 5,
     "attackSurfacesTotal": 5,
     "manualReviewComplete": true,

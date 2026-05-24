@@ -1423,3 +1423,39 @@ Why: Parallel review found regenerate could run parallel to probes, console-ui p
 Evidence: `job-queue.test.mjs`, `job-stream.test.mjs`, `payload.mjs` imports package path helpers.
 
 **Decision Gist**: One queue for all console jobs; reload beats partial DOM patch for auto-refresh.
+
+### D079: Graph visibility by omission, not placeholders (2026-05-24)
+
+Status: Accepted
+
+Decision: Related document surfaces must omit inaccessible graph nodes and internal edge metadata rather than returning redacted placeholders. Association responses expose a public DTO only; `document_associations.metadata` remains accepted on write for compatibility but is not echoed. Bootstrap/program counts count only documents visible to the actor.
+
+Why: Placeholder nodes still leak graph existence and UUIDs. A single omission rule is simpler for users and clients: if you cannot read the related document, it is not part of your response.
+
+Evidence: `api/src/services/document-graph-visibility.ts`, `api/src/routes/security-graph.test.ts`, full API suite 51 files / 595 tests passing.
+
+**Decision Gist**: Hidden related docs are absent, not half-shown.
+
+### D080: Collaboration persistence needs persist authority (2026-05-24)
+
+Status: Accepted
+
+Decision: Treat collaboration room entry and collaboration persistence as separate capabilities. Debounced and final Yjs persistence now carries the latest valid editing principal; persistence without an editor principal skips rather than falling back to the document creator.
+
+Why: Joining a room proves read/collab access at the transport edge, but audit history and DB writes need their own authority and actor attribution.
+
+Evidence: `api/src/collaboration/index.ts`, `api/src/collaboration/__tests__/collaboration.test.ts`, full API suite 51 files / 595 tests passing.
+
+**Decision Gist**: Join is not persist; edits are attributed to the editor.
+
+### D081: Graph IDs come from visible joins only (2026-05-24)
+
+Status: Accepted
+
+Decision: Public graph responses must select related IDs from the filtered related document join, not from raw `document_associations.related_id`. If the actor cannot read the related document, the related ID and metadata are null/absent even when the edge exists.
+
+Why: Filtering names but returning raw related UUIDs still leaks private graph structure. This showed up in bootstrap projects and team assignment/project APIs during the parallel verification pass.
+
+Evidence: `api/src/routes/bootstrap.ts`, `api/src/routes/team.ts`, `api/src/routes/security-graph.test.ts`; full API suite 51 files / 600 tests passing; security probe CI run `security-probe-ci-20260524-150803`.
+
+**Decision Gist**: Raw association IDs are private until the joined document is readable.

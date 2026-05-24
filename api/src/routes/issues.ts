@@ -624,6 +624,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
            AND da.relationship_type = 'parent'
            AND d.workspace_id = $2
            AND d.document_type = 'issue'
+           AND d.archived_at IS NULL
+           AND d.deleted_at IS NULL
            AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
         [id, workspaceId, userId, isAdmin]
       );

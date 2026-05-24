@@ -1,6 +1,6 @@
 {
   "category": "cat-8-security-audit",
-  "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-143633/report.json",
+  "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-150803/report.json",
   "attackSurfacesMeasured": 5,
   "attackSurfacesTotal": 5,
   "manualReviewComplete": true,

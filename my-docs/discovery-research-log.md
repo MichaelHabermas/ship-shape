@@ -1550,3 +1550,21 @@ Implemented: invite acceptance now uses 256-bit random session IDs; public invit
 Evidence: `pnpm type-check`, `pnpm openapi:check:strict`, `pnpm security:probe:test`, and focused API/security tests passed. The focused API run covered 51 tests across workspaces, setup, API tokens, files, OpenAPI contract, and capabilities. Findings `SS-FIND-013`, `014`, `016`, `018`, `021`, `028`, `032`, and `033` were closed through the findings CLI with manual verification notes; other rows remain open until direct proof exists.
 
 Future application: Continue closing by cluster: graph metadata leaks, realtime parity proof, external config/browser defense, and input validation. Do not collapse legacy PATCH behavior until clients have moved to typed commands.
+
+---
+
+## Security graph and realtime closure wave (2026-05-24)
+
+Discovery: Several open findings were half-fixed in code but not safely closable. The real active issues were drift at graph serialization boundaries: hidden program UUIDs could still pass through context fallback, association `metadata` was returned despite not being public contract, and bootstrap/program aggregate counts counted hidden children. Accountability service also built sprint-derived items before applying route-level document filtering.
+
+Implementation: Added `document-graph-visibility.ts` for small reusable visibility/count helpers. Association list/create/delete/reverse responses now project public DTOs and omit `metadata`. Context uses `prog.id` rather than raw association id for program breadcrumbs, so hidden joins do not leak UUIDs. Bootstrap and program counts use visible associated document counts. Accountability service applies sprint visibility inside standup, sprint-accountability, and changes-requested queries.
+
+Realtime: Collaboration persistence now receives a principal, authorizes `collaboration:persist`, attributes weekly plan/retro history to the editor principal, and skips persistence when no principal is available. Cache admission now rejects new distinct rooms when `MAX_CACHED_DOCS` is full and no inactive room can be evicted. Revalidation/cache/persistence test hooks are internal exports only.
+
+Evidence: `pnpm type-check`; `pnpm openapi:check:strict`; `pnpm security:probe:test`; `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed 51 files / 595 tests. Initial graph regression caught the hidden program UUID leak in `/api/documents/:id/context`; after patch, the full suite passed.
+
+Findings closed by CLI: `SS-FIND-006`, `009`, `011`, `015`, `022`, `024`, `027`, `030`.
+
+Residual risk: `SS-FIND-027` is count-bounded per process, not byte-bounded memory governance. That is a materially safer and test-proven closure of unbounded cache growth, but not a full memory-pressure controller.
+
+Verification addendum: Parallel reviewer agents found four missed graph leak paths after the first wave: bootstrap project `program_id`, team project `programId`, explicit team assignment project metadata, and inferred team assignment project metadata. They also found two accountability allocation leaks and one final WebSocket close-persist attribution bug. These were fixed before final proof. Evidence run `security-probe-ci-20260524-150803` passed 5/5 surfaces, 40 probes, 0 findings.

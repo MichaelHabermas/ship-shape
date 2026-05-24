@@ -93,6 +93,9 @@ function scopeAllows(scopes: ApiTokenScope[], capability: Capability): boolean {
   }
 
   if (capability.resource === 'collaboration') {
+    if (capability.action === 'persist') {
+      return scopes.includes('documents:content') || scopes.includes('documents:write');
+    }
     return scopes.includes('collaboration:join');
   }
 

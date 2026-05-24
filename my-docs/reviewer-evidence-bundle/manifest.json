@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "bundleGeneratedAt": "2026-05-24T19:33:29.014Z",
+  "bundleGeneratedAt": "2026-05-24T20:08:08.981Z",
   "generator": "scripts/submission/evidence-bundle-utils.mjs",
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
-    "branch": "master",
-    "commit": "cce4a3942f9bed750e74bb54a21e43cdce630667",
+    "branch": "security-improvements-2",
+    "commit": "315e15e0e0def328012f0390d34b6dca0b7fdb5e",
     "dirtyWorktree": true
   },
   "security": {
-    "runId": "security-probe-ci-20260524-143323",
+    "runId": "security-probe-ci-20260524-150803",
     "mode": "local-active",
     "apiUrl": "http://127.0.0.1:3099",
     "webUrl": "http://localhost:5199",

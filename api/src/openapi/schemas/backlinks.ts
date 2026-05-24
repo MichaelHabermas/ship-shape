@@ -36,6 +36,59 @@ export const AssociationSchema = z.object({
 
 registry.register('Association', AssociationSchema);
 
+export const ReverseAssociationSchema = z.object({
+  id: UuidSchema,
+  document_id: UuidSchema,
+  related_id: UuidSchema,
+  relationship_type: BelongsToTypeSchema,
+  created_at: DateTimeSchema,
+  document_title: z.string().nullable().optional(),
+  document_document_type: DocumentTypeSchema.nullable().optional(),
+}).openapi('ReverseAssociation');
+
+registry.register('ReverseAssociation', ReverseAssociationSchema);
+
+export const DeleteAssociationResponseSchema = z.object({
+  deleted: z.number().int().nonnegative(),
+  associations: z.array(AssociationSchema),
+}).openapi('DeleteAssociationResponse');
+
+registry.register('DeleteAssociationResponse', DeleteAssociationResponseSchema);
+
+const ContextDocumentSchema = z.object({
+  id: UuidSchema,
+  title: z.string().nullable(),
+  document_type: DocumentTypeSchema,
+  ticket_number: z.number().nullable().optional(),
+});
+
+const ContextAssociationSchema = z.object({
+  type: BelongsToTypeSchema,
+  id: UuidSchema,
+  title: z.string().nullable(),
+  document_type: DocumentTypeSchema,
+  color: z.string().nullable().optional(),
+});
+
+export const DocumentContextResponseSchema = z.object({
+  current: ContextDocumentSchema.extend({
+    program_id: UuidSchema.nullable().optional(),
+    program_name: z.string().nullable().optional(),
+    program_color: z.string().nullable().optional(),
+  }),
+  ancestors: z.array(ContextDocumentSchema.extend({ depth: z.number().int() })),
+  children: z.array(ContextDocumentSchema.extend({ child_count: z.number().int().nonnegative() })),
+  belongs_to: z.array(ContextAssociationSchema),
+  breadcrumbs: z.array(z.object({
+    id: UuidSchema,
+    title: z.string(),
+    type: z.string(),
+    ticket_number: z.number().optional(),
+  })),
+}).openapi('DocumentContextResponse');
+
+registry.register('DocumentContextResponse', DocumentContextResponseSchema);
+
 // ============== Register Backlink Endpoints ==============
 
 registry.registerPath({
@@ -134,6 +187,7 @@ registry.registerPath({
           schema: z.object({
             related_id: UuidSchema,
             relationship_type: BelongsToTypeSchema,
+            metadata: z.record(z.unknown()).optional(),
           }),
         },
       },
@@ -172,8 +226,13 @@ registry.registerPath({
     }),
   },
   responses: {
-    204: {
+    200: {
       description: 'Association removed',
+      content: {
+        'application/json': {
+          schema: DeleteAssociationResponseSchema,
+        },
+      },
     },
     404: {
       description: 'Document or association not found',
@@ -197,7 +256,7 @@ registry.registerPath({
       description: 'List of reverse associations',
       content: {
         'application/json': {
-          schema: z.array(AssociationSchema),
+          schema: z.array(ReverseAssociationSchema),
         },
       },
     },
@@ -221,7 +280,7 @@ registry.registerPath({
       description: 'Document context tree',
       content: {
         'application/json': {
-          schema: z.record(z.unknown()),
+          schema: DocumentContextResponseSchema,
         },
       },
     },

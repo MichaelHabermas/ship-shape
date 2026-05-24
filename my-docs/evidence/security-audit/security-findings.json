@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T19:36:39.617Z",
+  "updatedAt": "2026-05-24T20:08:52.005Z",
   "discovery": {
     "date": "2026-05-22",
     "method": "deep_review",
@@ -173,6 +173,42 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -259,6 +295,24 @@
           "at": "2026-05-24T19:36:39.376Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
           "probeId": "authorization-governance-accountable-self-assign",
           "result": "pass",
           "stillActive": false,
@@ -353,6 +407,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -439,6 +511,24 @@
           "at": "2026-05-24T19:36:39.376Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
           "probeId": "authorization-weekly-plan-idor-documents",
           "result": "pass",
           "stillActive": false,
@@ -533,6 +623,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -540,7 +648,7 @@
       "id": "SS-FIND-006",
       "title": "— Collaboration audit trail attributes edits to document creator",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A09",
       "category": "non-repudiation-/-forensics",
@@ -551,7 +659,26 @@
       "definition": "Collaboration audit trail attributes edits to document creator",
       "narrativePath": "security-findings/narratives/SS-FIND-006.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:45.168Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; collaboration regression verifies weekly_plan document_history.changed_by uses editing principal, not creator."
+        },
+        {
+          "at": "2026-05-24T19:55:48.515Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by principal-threaded collaboration persistence and history attribution regression."
+        }
+      ]
     },
     {
       "id": "SS-FIND-007",
@@ -645,6 +772,24 @@
           "at": "2026-05-24T19:36:39.376Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
           "probeId": "authorization-bulk-issue-foreign-target",
           "result": "pass",
           "stillActive": false,
@@ -748,6 +893,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -755,7 +918,7 @@
       "id": "SS-FIND-009",
       "title": "— Private sub-issue metadata leaked in parent close warning",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "information-disclosure",
@@ -766,7 +929,26 @@
       "definition": "Private sub-issue metadata leaked in parent close warning",
       "narrativePath": "security-findings/narratives/SS-FIND-009.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:01.931Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; security-graph regression verifies parent close warning omits private child IDs/titles/counts."
+        },
+        {
+          "at": "2026-05-24T19:55:05.774Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by graph visibility regression: private child metadata omitted from parent close warning."
+        }
+      ]
     },
     {
       "id": "SS-FIND-010",
@@ -864,6 +1046,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -871,7 +1071,7 @@
       "id": "SS-FIND-011",
       "title": "— Team grid leaks private program metadata via visible issues",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": null,
@@ -882,7 +1082,26 @@
       "definition": "Team grid leaks private program metadata via visible issues",
       "narrativePath": "security-findings/narratives/SS-FIND-011.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:11.005Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; security-graph regression verifies team grid omits private program id/name/emoji/color."
+        },
+        {
+          "at": "2026-05-24T19:55:15.285Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by graph visibility regression: team grid no longer reveals hidden program metadata."
+        }
+      ]
     },
     {
       "id": "SS-FIND-012",
@@ -1042,6 +1261,42 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.983Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.984Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -1121,7 +1376,7 @@
       "id": "SS-FIND-015",
       "title": "— WebSocket session not re-validated after upgrade",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A07",
       "category": null,
@@ -1132,7 +1387,26 @@
       "definition": "WebSocket session not re-validated after upgrade",
       "narrativePath": "security-findings/narratives/SS-FIND-015.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:52.467Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; collaboration regression verifies revoked session revalidation closes active connection with 4401."
+        },
+        {
+          "at": "2026-05-24T19:55:56.717Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by periodic session revalidation plus revoked-session close-code regression."
+        }
+      ]
     },
     {
       "id": "SS-FIND-016",
@@ -1297,7 +1571,7 @@
       "id": "SS-FIND-022",
       "title": "— Accountability may expose private sprint titles",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
@@ -1308,7 +1582,26 @@
       "definition": "Accountability action-items may expose private sprint titles",
       "narrativePath": "security-findings/narratives/SS-FIND-022.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:19.501Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; accountability service now applies sprint visibility in standup, sprint accountability, and changes-requested queries."
+        },
+        {
+          "at": "2026-05-24T19:55:23.244Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by central sprint visibility filtering in accountability service plus passing API suite."
+        }
+      ]
     },
     {
       "id": "SS-FIND-023",
@@ -1331,7 +1624,7 @@
       "id": "SS-FIND-024",
       "title": "— Breadcrumbs may expose hidden program UUID",
       "severity": "low",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": null,
       "category": null,
@@ -1342,7 +1635,26 @@
       "definition": "Document context breadcrumbs may expose hidden program UUID",
       "narrativePath": "security-findings/narratives/SS-FIND-024.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:26.892Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; security-graph regression verifies context breadcrumbs omit hidden program UUID/name."
+        },
+        {
+          "at": "2026-05-24T19:55:31.687Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by context current-program projection through visible program join plus regression coverage."
+        }
+      ]
     },
     {
       "id": "SS-FIND-025",
@@ -1427,6 +1739,24 @@
           "at": "2026-05-24T19:36:39.376Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-143633",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.984Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
           "probeId": "authorization-file-upload-hijack-denied",
           "result": "pass",
           "stillActive": false,
@@ -1521,6 +1851,24 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.984Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -1528,7 +1876,7 @@
       "id": "SS-FIND-027",
       "title": "— Unbounded in-memory Y.Doc cache (WebSocket DoS)",
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A05",
       "category": "resource-exhaustion",
@@ -1539,7 +1887,26 @@
       "definition": "Unbounded in-memory Y.Doc cache — WS connection abuse / DoS",
       "narrativePath": "security-findings/narratives/SS-FIND-027.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:56:02.505Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; collaboration regression verifies full Y.Doc cache rejects a new distinct room instead of growing unbounded."
+        },
+        {
+          "at": "2026-05-24T19:56:06.334Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by connection budgets, cache cap rejection, and cache-limit regression coverage; residual risk remains count-bounded per process, not byte-bounded."
+        }
+      ]
     },
     {
       "id": "SS-FIND-028",
@@ -1744,6 +2111,42 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T19:58:04.160Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-145758",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.984Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-24T20:08:08.984Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260524-150803",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -1751,7 +2154,7 @@
       "id": "SS-FIND-030",
       "title": "— Member can enable public feedback via ungoverned PATCH",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "discoveredAt": "2026-05-22",
       "owasp": "A01",
       "category": "governance-property-injection-(feeds-ss-find-012)",
@@ -1762,7 +2165,26 @@
       "definition": "Member can enable `public_feedback_enabled` via ungoverned PATCH",
       "narrativePath": "security-findings/narratives/SS-FIND-030.md",
       "probes": [],
-      "verifications": []
+      "verifications": [
+        {
+          "at": "2026-05-24T19:55:35.702Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "pass",
+          "stillActive": false,
+          "note": "Full API test suite 51 files/595 tests passed; security-graph regression verifies member PATCH cannot set properties.public_feedback_enabled and DB remains false."
+        },
+        {
+          "at": "2026-05-24T19:55:39.403Z",
+          "method": "manual",
+          "runId": null,
+          "probeId": null,
+          "result": "status_change",
+          "stillActive": false,
+          "note": "status set to fixed: Closed by governance property denylist plus member PATCH regression coverage."
+        }
+      ]
     },
     {
       "id": "SS-FIND-031",

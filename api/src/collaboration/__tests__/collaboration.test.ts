@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import * as Y from 'yjs'
+import type { WebSocket } from 'ws'
 import { pool } from '../../db/client.js'
 import crypto from 'crypto'
-import { isAllowedWebSocketOrigin } from '../index.js'
+import { __collaborationSecurityTestHooks, isAllowedWebSocketOrigin } from '../index.js'
 
 /**
  * Collaboration server tests
@@ -76,6 +77,7 @@ describe('Collaboration Server', () => {
     await pool.query('DELETE FROM documents WHERE workspace_id = $1', [testWorkspaceId])
     await pool.query('DELETE FROM workspace_memberships WHERE workspace_id = $1', [testWorkspaceId])
     await pool.query('DELETE FROM users WHERE id IN ($1, $2)', [testUserId, testUser2Id])
+    await pool.query('DELETE FROM users WHERE email LIKE $1', [`collab-%-${testRunId}@test.local`])
     await pool.query('DELETE FROM workspaces WHERE id = $1', [testWorkspaceId])
   })
 
@@ -122,6 +124,162 @@ describe('Collaboration Server', () => {
       process.env.NODE_ENV = 'production'
       expect(isAllowedWebSocketOrigin('https://app.example/path', 'https://app.example')).toBe(true)
       expect(isAllowedWebSocketOrigin('https://attacker.example', 'https://app.example')).toBe(false)
+    })
+  })
+
+  describe('Collaboration Cache Limits', () => {
+    afterAll(() => {
+      __collaborationSecurityTestHooks.docs.clear()
+      __collaborationSecurityTestHooks.awareness.clear()
+      __collaborationSecurityTestHooks.conns.clear()
+      __collaborationSecurityTestHooks.eventConns.clear()
+    })
+
+    it('evicts inactive cached documents before rejecting new rooms', () => {
+      __collaborationSecurityTestHooks.docs.clear()
+      __collaborationSecurityTestHooks.awareness.clear()
+      __collaborationSecurityTestHooks.conns.clear()
+
+      for (let i = 0; i < __collaborationSecurityTestHooks.rateLimit.MAX_CACHED_DOCS; i += 1) {
+        __collaborationSecurityTestHooks.docs.set(`wiki:${crypto.randomUUID()}`, new Y.Doc())
+      }
+
+      expect(__collaborationSecurityTestHooks.canAcceptCachedDoc(`wiki:${crypto.randomUUID()}`)).toBe(true)
+    })
+
+    it('rejects new document rooms when the cache is full of active documents', () => {
+      __collaborationSecurityTestHooks.docs.clear()
+      __collaborationSecurityTestHooks.awareness.clear()
+      __collaborationSecurityTestHooks.conns.clear()
+
+      for (let i = 0; i < __collaborationSecurityTestHooks.rateLimit.MAX_CACHED_DOCS; i += 1) {
+        const docName = `wiki:${crypto.randomUUID()}`
+        __collaborationSecurityTestHooks.docs.set(docName, new Y.Doc())
+        __collaborationSecurityTestHooks.conns.set({} as WebSocket, {
+          docName,
+          awarenessClientId: i,
+          userId: testUserId,
+          workspaceId: testWorkspaceId,
+          principal: {
+            kind: 'session',
+            sessionId: `cache-session-${i}`,
+            userId: testUserId,
+            workspaceId: testWorkspaceId,
+            isSuperAdmin: false,
+          },
+        })
+      }
+
+      expect(__collaborationSecurityTestHooks.canAcceptCachedDoc(`wiki:${crypto.randomUUID()}`)).toBe(false)
+    })
+  })
+
+  describe('Collaboration History Attribution', () => {
+    let creatorId: string
+    let editorId: string
+    let personId: string
+    let weeklyPlanId: string
+
+    beforeAll(async () => {
+      const creator = await pool.query(
+        `INSERT INTO users (email, password_hash, name)
+         VALUES ($1, 'test-hash', 'Collab Creator') RETURNING id`,
+        [`collab-creator-${testRunId}@test.local`]
+      )
+      creatorId = creator.rows[0].id
+
+      const editor = await pool.query(
+        `INSERT INTO users (email, password_hash, name)
+         VALUES ($1, 'test-hash', 'Collab Editor') RETURNING id`,
+        [`collab-editor-${testRunId}@test.local`]
+      )
+      editorId = editor.rows[0].id
+
+      await pool.query(
+        `INSERT INTO workspace_memberships (workspace_id, user_id, role)
+         VALUES ($1, $2, 'member'), ($1, $3, 'member')`,
+        [testWorkspaceId, creatorId, editorId]
+      )
+
+      const person = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'person', 'Collab Editor Person', 'workspace', $2, $3)
+         RETURNING id`,
+        [testWorkspaceId, editorId, JSON.stringify({ user_id: editorId })]
+      )
+      personId = person.rows[0].id
+
+      const weeklyPlan = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, content)
+         VALUES ($1, 'weekly_plan', 'Creator Plan', 'workspace', $2, $3, $4)
+         RETURNING id`,
+        [
+          testWorkspaceId,
+          creatorId,
+          JSON.stringify({ person_id: personId, week_number: 1 }),
+          JSON.stringify({ type: 'doc', content: [] }),
+        ]
+      )
+      weeklyPlanId = weeklyPlan.rows[0].id
+    })
+
+    it('attributes persisted weekly plan history to the editing principal', async () => {
+      const doc = new Y.Doc()
+      const fragment = doc.getXmlFragment('default')
+      doc.transact(() => {
+        const paragraph = new Y.XmlElement('paragraph')
+        fragment.push([paragraph])
+        const text = new Y.XmlText()
+        paragraph.push([text])
+        text.insert(0, 'Editor-owned collaboration content')
+      })
+
+      await __collaborationSecurityTestHooks.persistDocumentStrict(`weekly_plan:${weeklyPlanId}`, doc, {
+        kind: 'session',
+        sessionId: `test-session-${testRunId}`,
+        userId: editorId,
+        workspaceId: testWorkspaceId,
+        isSuperAdmin: false,
+      })
+
+      const history = await pool.query(
+        `SELECT changed_by FROM document_history
+         WHERE document_id = $1 AND field = 'content'
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [weeklyPlanId]
+      )
+      expect(history.rows[0]?.changed_by).toBe(editorId)
+      expect(history.rows[0]?.changed_by).not.toBe(creatorId)
+    })
+  })
+
+  describe('Session Revalidation', () => {
+    it('closes an active connection when its session has been revoked', async () => {
+      const sessionId = crypto.randomBytes(32).toString('hex')
+      await pool.query(
+        `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
+         VALUES ($1, $2, $3, now() + interval '1 hour')`,
+        [sessionId, testUserId, testWorkspaceId]
+      )
+      await pool.query('DELETE FROM sessions WHERE id = $1', [sessionId])
+
+      const closeCalls: Array<{ code: number; reason: string }> = []
+      const ws = {
+        close(code: number, reason: string) {
+          closeCalls.push({ code, reason })
+        },
+      } as WebSocket
+
+      await __collaborationSecurityTestHooks.revalidateConnection(ws, {
+        kind: 'session',
+        sessionId,
+        userId: testUserId,
+        workspaceId: testWorkspaceId,
+        isSuperAdmin: false,
+      })
+
+      expect(closeCalls).toEqual([{ code: 4401, reason: 'Session expired' }])
     })
   })
 

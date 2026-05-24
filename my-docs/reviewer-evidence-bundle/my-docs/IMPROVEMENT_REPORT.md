@@ -1162,3 +1162,32 @@ Verification:
 - `pnpm security:findings:check`: pass
 
 Decision: D078.
+
+---
+
+## Security graph and realtime closure wave (2026-05-24)
+
+Closed the next two security waves from the roadmap: graph metadata visibility and realtime parity. The work adds a small graph visibility helper, removes public association metadata echoes, makes context/current-program selection self-contained, filters bootstrap/program aggregate counts by actor visibility, and applies sprint visibility inside accountability inference. Team grid and parent-close warning leaks now have focused regression coverage.
+
+Realtime hardening now treats collaboration persistence as its own capability, carries the editing principal through scheduled/final Yjs persistence, rejects new distinct rooms when the Y.Doc cache is full, and exposes small test hooks for cache/revalidation proof without changing the WebSocket protocol.
+
+Findings closed through the CLI after focused tests: `SS-FIND-006`, `009`, `011`, `015`, `022`, `024`, `027`, and `030`.
+
+Verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `pnpm security:probe:test`: pass (32/32)
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 595 tests
+
+Decision: D079, D080.
+
+Correctness follow-up: Parallel review found and fixed hidden graph leaks in bootstrap projects and team assignment/project surfaces, tightened accountability allocation inference to visible, non-archived graph nodes, cleaned Y.Doc eviction side state, and corrected final close-triggered collaboration persistence to use the last editor principal. Added regression coverage for the newly found graph leaks.
+
+Additional verification:
+
+- `pnpm type-check`: pass
+- `pnpm openapi:check:strict`: pass (194/194)
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 600 tests
+- `pnpm security:probe:test`: pass (32/32)
+- `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-150803`, 5/5 surfaces, 40 probes, 0 findings
