@@ -75,6 +75,8 @@ Repo-specific facts that prevent wrong assumptions.
 
 Places where a small, focused change creates outsized value.
 
+- **Active execution checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` — waves, slices, evidence lines. Slice 1.1 auth inventory: `my-docs/evidence/auth-matrix.md`. Do not fork parallel plan files.
+- Code-quality Wave 1 trap (2026-05-24): `authorize()` for session users on `document`/`collaboration` is a **read gate only** — write truth still lives in `document-mutations.ts` / `document-policy.ts`. Slice 1.2 must make capability vocabulary honest (prefer collapse to read|write|governance|collaborate per inventory) before expanding call sites.
 - Bundle work should target initial-load JavaScript, especially the large `assets/index-*.js` entry chunk. Prefer lazy-loading route pages, emoji picker, editor/collaboration, and highlighting over chasing the existing many tiny chunks.
 - Test-quality work should optimize for trust and risk, not raw test count: green failing web tests, guard API tests against non-disposable databases, then add focused regression tests for workspace isolation and document association behavior.
 - E2E optimization source of truth lives in `docs/claude-reference/testing.md`; `e2e/AGENTS.md` owns test-writing flake patterns, and the Vite memory explosion doc is incident history only. Use `pnpm test:e2e:run`, preserve `vite preview`, tune `PLAYWRIGHT_WORKERS`, set `E2E_RESULTS_DIR` for concurrent lanes/shards, and use Playwright's exit code plus `${E2E_RESULTS_DIR:-test-results}/playwright/.last-run.json` for final status because `summary.json` is progress-only.

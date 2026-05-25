@@ -2,6 +2,25 @@
 
 ---
 
+## Code quality Slice 1.1 — authorization matrix (2026-05-24)
+
+Decision: inventory before Epic 1 code changes. No submission-ledger change (architecture-only).
+
+| Finding | Disposition |
+|---------|-------------|
+| Production `authorize` is read-level for session users on all document/collaboration actions | **Confirmed gap** — Slice 1.2 vocabulary + Slice 1.3 mutation/token guards |
+| 11 `authorize` call sites (files×6 not ×5); 0 `requireCapability` callers | **Documented** — `auth-matrix.md` |
+| All five mutation entrypoints use `DocumentActor` only — no token scope at entry | **Confirmed critical gap** — Slice 1.3 |
+| Triple `canAccessDocument` (documents, comments, collab wrapper) | **Confirmed** — Slice 1.5 convergence |
+| `workspaceAccessMiddleware` defined, never mounted | **Confirmed dead** — adopt or delete Slice 1.5 |
+| `setup.ts` env token vs `Principal.kind === 'setup'` never constructed | **Confirmed drift** — Slice 1.5 |
+| Phase-2 routes (~75 handlers, ~8k LOC) use visibility SQL, not capabilities | **Backlog** — Appendix D / Slice 1.6; `issues.ts` first |
+| Probe lib: 10 byte-identical script copies vs package core | **Preflight for Epic 2.1** — delete-safe after import retarget |
+
+Future application: do not add new `DocumentCapabilityAction` values until Slice 1.2 chooses honest vocabulary (inventory recommends collapse to read\|write\|governance\|collaborate for sessions).
+
+---
+
 ## Reviewer packet simplification (2026-05-24)
 
 Decision: turn the generated reviewer dashboard into a grading packet. The reviewer path is now Summary, Evidence, Security, Appendix, with source gate and proof rows first and internal machinery moved behind drilldown.

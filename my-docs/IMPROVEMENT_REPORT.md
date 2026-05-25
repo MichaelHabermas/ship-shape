@@ -1,5 +1,29 @@
 # Improvement Report
 
+**Active execution checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (code-quality remediation waves; auth matrix in `my-docs/evidence/auth-matrix.md`).
+
+---
+
+## Code Quality Remediation — Slice 1.1 (2026-05-24)
+
+Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledger changes.
+
+### What we learned
+
+- **11** production `authorize()` call sites; **0** `requireCapability` callers; **5** mutation entrypoints without token-scope guards at entry.
+- Session users hit the same read-level document gate for every `DocumentCapabilityAction` at the facade; write enforcement remains in `document-mutations.ts` / `document-policy.ts`.
+- Phase-2 surface: ~75 handlers across `programs`, `projects`, `issues`, `team`, `admin` (~8k LOC) still on visibility SQL — none use `authorize()` yet.
+- Epic 2.1 preflight: 10 probe lib files byte-identical to `packages/shipshape-security/src/core/` (safe to delete after import retarget).
+
+### Evidence
+
+- Deliverable: `my-docs/evidence/auth-matrix.md`
+- Orchestrator: parallel sub-agents (route inventory, god-file scan, capabilities review, probe dedupe preflight)
+
+### Next slice
+
+- **1.2** — DECISION_LOG entry: honest capability vocabulary (inventory favors option B: collapse to read|write|governance|collaborate for sessions).
+
 ---
 
 ## Reviewer Packet Simplification (2026-05-24)
