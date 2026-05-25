@@ -1,42 +1,22 @@
-import { execFileSync } from 'node:child_process';
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   dashboardPath,
   escapeHtml,
+  gitValue,
   readJson,
   repoRelative,
   repoRoot,
   reviewerBundlePath,
   writeText,
 } from './ledger-utils.mjs';
+import { evidenceBundleRequiredFiles } from './required-artifacts.mjs';
 import { securityFindingsPath, securityReportPath } from './render-dashboard.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 
-const requiredFiles = [
-  'my-docs/reviewer-dashboard.html',
-  'my-docs/evidence/submission-ledger.json',
-  'my-docs/evidence/security-audit/latest.json',
-  'my-docs/evidence/security-audit/latest.md',
-  'my-docs/evidence/security-audit/cat8-audit-deliverable.json',
-  'my-docs/evidence/security-audit/security-findings.json',
-  'my-docs/evidence/security-audit/security-findings-ledger.md',
-  'my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt',
-  'my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt',
-  'my-docs/IMPROVEMENT_REPORT.md',
-  'my-docs/SUBMISSION_CHECKLIST.md',
-  'my-docs/Cat-8-Sec-Audit-and-Tool-plan.md',
-];
-
-function gitValue(args, fallback = '') {
-  try {
-    return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim();
-  } catch {
-    return fallback;
-  }
-}
+const requiredFiles = evidenceBundleRequiredFiles;
 
 function redactPublicText(text) {
   return text

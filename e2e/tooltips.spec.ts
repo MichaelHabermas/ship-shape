@@ -1,13 +1,6 @@
 import { test, expect } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
 
-// Helper to log in before tests that need auth
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
 
 test.describe('Icon Tooltips', () => {
   test('rail icons show tooltips on hover', async ({ page }) => {

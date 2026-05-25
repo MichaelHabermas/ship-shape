@@ -1,17 +1,5 @@
-import { test, expect, Page } from './fixtures/isolated-env';
-
-// Helper to login and get session cookie
-async function loginAndGetCookies(page: Page): Promise<string> {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  // Get cookies from browser context
-  const cookies = await page.context().cookies();
-  return cookies.map(c => `${c.name}=${c.value}`).join('; ');
-}
+import { test, expect } from './fixtures/isolated-env';
+import { loginAndGetSessionCookieHeader } from './fixtures/api-auth';
 
 test.describe('Search API', () => {
   test('requires authentication', async ({ page, apiServer }) => {
@@ -25,7 +13,7 @@ test.describe('Search API', () => {
 
   test('returns people when searching for person documents', async ({ page, apiServer }) => {
     // Login first
-    await loginAndGetCookies(page);
+    await loginAndGetSessionCookieHeader(page);
 
     // Search for people (seed data should have person documents)
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=admin`);
@@ -40,7 +28,7 @@ test.describe('Search API', () => {
 
   test('returns documents when searching for wiki/issue/project', async ({ page, apiServer }) => {
     // Login first
-    await loginAndGetCookies(page);
+    await loginAndGetSessionCookieHeader(page);
 
     // Search with empty query to get all results
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=`);
@@ -62,7 +50,7 @@ test.describe('Search API', () => {
 
   test('limits results to reasonable count', async ({ page, apiServer }) => {
     // Login first
-    await loginAndGetCookies(page);
+    await loginAndGetSessionCookieHeader(page);
 
     // Search with empty query to get all results
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=`);

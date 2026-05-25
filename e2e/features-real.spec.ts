@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env';
+import { login } from './fixtures/api-auth';
+
 import path from 'path';
 import fs from 'fs';
 
@@ -8,15 +10,6 @@ import fs from 'fs';
  */
 
 // No API_URL needed - page.request uses the page's context baseURL automatically
-
-// Helper to login
-async function login(page: Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-}
 
 // Helper to login and navigate to editor
 async function loginAndCreateDoc(page: Page) {

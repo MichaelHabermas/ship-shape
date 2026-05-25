@@ -1,14 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { loginAsSuperAdmin } from './fixtures/api-auth';
 
-// Helper to login as super admin
-async function loginAsSuperAdmin(page: Page) {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 })
-}
 
 test.describe('Admin Workspace Detail Page', () => {
   test.beforeEach(async ({ page }) => {

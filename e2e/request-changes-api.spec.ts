@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginViaApi, loginMemberViaApi } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for Request Changes API endpoints.
@@ -9,38 +11,6 @@ import { test, expect } from './fixtures/isolated-env';
  * 3. Validation: feedback required (400 if missing), max 2000 chars (400 if exceeded)
  * 4. Authorization: only program accountable or admin can request changes
  */
-
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
-// Helper to login as default admin user
-async function loginAsAdmin(page: import('@playwright/test').Page, apiUrl: string) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  const csrfToken = await getCsrfToken(page, apiUrl);
-  return { csrfToken };
-}
-
-// Helper to login as non-admin member
-async function loginAsMember(page: import('@playwright/test').Page, apiUrl: string) {
-  await page.goto('/login');
-  await page.locator('#email').fill('bob.martinez@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  const csrfToken = await getCsrfToken(page, apiUrl);
-  return { csrfToken };
-}
 
 // Helper to get a sprint ID from the active weeks
 async function getSprintId(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
@@ -53,7 +23,7 @@ async function getSprintId(page: import('@playwright/test').Page, apiUrl: string
 
 test.describe('Request Plan Changes API', () => {
   test('POST /api/weeks/:id/request-plan-changes succeeds with valid feedback', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     const response = await page.request.post(
@@ -75,7 +45,7 @@ test.describe('Request Plan Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-plan-changes returns 400 when feedback is missing', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     // No feedback provided
@@ -93,7 +63,7 @@ test.describe('Request Plan Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-plan-changes returns 400 when feedback is empty string', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     const response = await page.request.post(
@@ -108,7 +78,7 @@ test.describe('Request Plan Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-plan-changes returns 400 when feedback exceeds 2000 chars', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     const longFeedback = 'x'.repeat(2001);
@@ -126,7 +96,7 @@ test.describe('Request Plan Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-plan-changes returns 404 for non-existent sprint', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     const fakeId = '00000000-0000-0000-0000-000000000000';
     const response = await page.request.post(
@@ -141,7 +111,7 @@ test.describe('Request Plan Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-plan-changes updates sprint properties correctly', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     // Request changes
@@ -166,7 +136,7 @@ test.describe('Request Plan Changes API', () => {
 
 test.describe('Request Retro Changes API', () => {
   test('POST /api/weeks/:id/request-retro-changes succeeds with valid feedback', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     const response = await page.request.post(
@@ -188,7 +158,7 @@ test.describe('Request Retro Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-retro-changes returns 400 when feedback is missing', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     const response = await page.request.post(
@@ -203,7 +173,7 @@ test.describe('Request Retro Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-retro-changes returns 400 when feedback exceeds 2000 chars', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     const longFeedback = 'y'.repeat(2001);
@@ -219,7 +189,7 @@ test.describe('Request Retro Changes API', () => {
   });
 
   test('POST /api/weeks/:id/request-retro-changes updates sprint properties correctly', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     // Request retro changes
@@ -245,12 +215,12 @@ test.describe('Request Retro Changes API', () => {
 test.describe('Request Changes Authorization', () => {
   test('non-admin, non-accountable user gets 403 on request-plan-changes', async ({ page, apiServer }) => {
     // First, login as admin to get a sprint ID
-    await loginAsAdmin(page, apiServer.url);
+    await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     // Clear cookies and login as non-admin member
     await page.context().clearCookies();
-    const { csrfToken } = await loginAsMember(page, apiServer.url);
+    const { csrfToken } = await loginMemberViaApi(page, apiServer.url);
 
     const response = await page.request.post(
       `${apiServer.url}/api/weeks/${sprintId}/request-plan-changes`,
@@ -265,12 +235,12 @@ test.describe('Request Changes Authorization', () => {
 
   test('non-admin, non-accountable user gets 403 on request-retro-changes', async ({ page, apiServer }) => {
     // First, login as admin to get a sprint ID
-    await loginAsAdmin(page, apiServer.url);
+    await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     // Clear cookies and login as non-admin member
     await page.context().clearCookies();
-    const { csrfToken } = await loginAsMember(page, apiServer.url);
+    const { csrfToken } = await loginMemberViaApi(page, apiServer.url);
 
     const response = await page.request.post(
       `${apiServer.url}/api/weeks/${sprintId}/request-retro-changes`,
@@ -285,7 +255,7 @@ test.describe('Request Changes Authorization', () => {
 
   test('unauthenticated request returns 401', async ({ page, apiServer }) => {
     // Get a sprint ID while logged in
-    await loginAsAdmin(page, apiServer.url);
+    await loginViaApi(page, apiServer.url);
     const sprintId = await getSprintId(page, apiServer.url);
 
     // Clear cookies to simulate unauthenticated request

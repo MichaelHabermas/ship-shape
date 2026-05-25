@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { repoRoot } from '../lib/cli.mjs';
-import { errorResult, fail, finding, pass } from '../lib/result-model.mjs';
-import { runSelectedProbes } from '../lib/probe-selection.mjs';
+import { repoRoot } from '../../../packages/shipshape-security/src/core/cli.mjs';
+import { errorResult, fail, finding, pass } from '../../../packages/shipshape-security/src/core/result-model.mjs';
+import { runSelectedProbes } from '../../../packages/shipshape-security/src/core/probe-selection.mjs';
 
 export async function dependencyCveProbes(context) {
   return runSelectedProbes(context, [

@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { login } from './fixtures/api-auth';
+
 import { hoverWithRetry, waitForTableData } from './fixtures/test-helpers';
 
 /**
@@ -7,15 +9,6 @@ import { hoverWithRetry, waitForTableData } from './fixtures/test-helpers';
  * Superhuman-style multi-select UX with keyboard navigation
  * and bulk operations (archive, move to sprint, delete, change status).
  */
-
-// Helper to login before tests
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 });
-}
 
 test.describe('Bulk Selection - List View', () => {
   test.describe('Checkbox Visibility', () => {

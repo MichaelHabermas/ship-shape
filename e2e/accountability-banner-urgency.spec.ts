@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { login } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for accountability banner urgency colors.
@@ -9,15 +11,6 @@ import { test, expect } from './fixtures/isolated-env';
  * - clicking the banner opens the ActionItemsModal
  * - days_overdue values are correctly computed
  */
-
-// Helper to login and get auth context
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-}
 
 test.describe('Accountability Banner Urgency', () => {
   test('API response includes has_overdue and has_due_today flags', async ({ page, apiServer }) => {

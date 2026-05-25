@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,12 +20,24 @@ export async function readLedger() {
   return readJson(ledgerPath);
 }
 
-export async function writeText(path, text) {
+export function normalizeWrittenText(text) {
   const cleanText = text
     .split('\n')
     .map((line) => line.trimEnd())
     .join('\n');
-  await writeFile(path, cleanText.endsWith('\n') ? cleanText : `${cleanText}\n`);
+  return cleanText.endsWith('\n') ? cleanText : `${cleanText}\n`;
+}
+
+export function gitValue(args, fallback = '') {
+  try {
+    return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim();
+  } catch {
+    return fallback;
+  }
+}
+
+export async function writeText(path, text) {
+  await writeFile(path, normalizeWrittenText(text));
 }
 
 export function repoRelative(path) {

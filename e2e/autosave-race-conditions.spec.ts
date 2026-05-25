@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env';
+import { login } from './fixtures/api-auth';
+
 
 /**
  * Auto-Save Race Condition Tests
@@ -9,16 +11,6 @@ import { test, expect, Page } from './fixtures/isolated-env';
  * Key scenario: User types "Hello", pauses, server saves "Hello", user continues
  * typing "Hello World", stale server response should NOT overwrite to "Hello".
  */
-
-// Helper to login
-async function login(page: Page, email: string = 'dev@ship.local', password: string = 'admin123') {
-  await page.context().clearCookies();
-  await page.goto('/login');
-  await page.locator('#email').fill(email);
-  await page.locator('#password').fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-}
 
 // Helper to create a new document and wait for editor
 async function createNewDocument(page: Page) {

@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginAsAdminWithUser } from './fixtures/api-auth';
+
 
 /**
  * E2E test for standup accountability flow.
@@ -16,14 +18,6 @@ import { test, expect } from './fixtures/isolated-env';
  * doesn't affect the API server).
  */
 
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
 function isBusinessDay(): boolean {
   const day = new Date().getUTCDay();
   return day >= 1 && day <= 5; // Mon=1 through Fri=5
@@ -31,21 +25,7 @@ function isBusinessDay(): boolean {
 
 test.describe('Standup Accountability Flow', () => {
   test('standup action items respect business day rules', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
-
-    // Get user ID
-    const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
-    expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
-    const userId = meData.data.user.id;
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
 
     // Create a program
     const programResponse = await page.request.post(`${apiServer.url}/api/documents`, {
@@ -114,21 +94,7 @@ test.describe('Standup Accountability Flow', () => {
     // This test only validates the remove-on-create behavior on business days.
     // On weekends there's no standup item to remove, so we verify that directly.
 
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
-
-    // Get user ID
-    const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
-    expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
-    const userId = meData.data.user.id;
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
 
     // Create a program
     const programResponse = await page.request.post(`${apiServer.url}/api/documents`, {
@@ -216,21 +182,7 @@ test.describe('Standup Accountability Flow', () => {
   });
 
   test('user without assigned issues does not see standup action item', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
-
-    // Get user ID
-    const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
-    expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
-    const userId = meData.data.user.id;
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
 
     // Create a program
     const programResponse = await page.request.post(`${apiServer.url}/api/documents`, {

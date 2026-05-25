@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { getCsrfToken, login } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for Request Changes UI flow on the ReviewsPage.
@@ -12,25 +14,9 @@ import { test, expect } from './fixtures/isolated-env';
  * 6. Legend shows all status colors
  */
 
-// Helper: login as admin
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-}
-
-// Helper: get CSRF token
-async function getCsrf(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const res = await page.request.get(`${apiUrl}/api/csrf-token`);
-  const { token } = await res.json();
-  return token;
-}
-
 // Helper: create a pending plan for the current week so "Review Plans" button appears
 async function createPendingPlan(page: import('@playwright/test').Page, apiUrl: string) {
-  const csrf = await getCsrf(page, apiUrl);
+  const csrf = await getCsrfToken(page, apiUrl);
 
   // Get current user info
   const meRes = await page.request.get(`${apiUrl}/api/auth/me`);

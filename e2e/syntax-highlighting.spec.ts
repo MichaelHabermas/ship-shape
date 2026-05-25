@@ -1,19 +1,12 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 
 /**
  * Syntax Highlighting E2E Tests
  *
  * Tests code block creation, language selection, and syntax highlighting.
  */
-
-// Helper to login before each test
-async function login(page: Page) {
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
 
 // Helper to create a new document and get to the editor
 async function createNewDocument(page: Page) {

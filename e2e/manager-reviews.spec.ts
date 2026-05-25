@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { login, loginViaApi } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for Manager Reviews feature.
@@ -11,22 +13,9 @@ import { test, expect } from './fixtures/isolated-env';
  * 5. Rating validation rejects invalid/missing values
  */
 
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
 test.describe('Manager Reviews', () => {
   test('reviews page renders with grid and sidebar navigation', async ({ page }) => {
-    // Login
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
+    await login(page);
 
     // Navigate to Reviews page
     await page.goto('/team/reviews');
@@ -47,12 +36,7 @@ test.describe('Manager Reviews', () => {
   });
 
   test('GET /api/team/reviews returns valid data structure', async ({ page, apiServer }) => {
-    // Login
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
+    await login(page);
 
     // Call the reviews API
     const response = await page.request.get(`${apiServer.url}/api/team/reviews?sprint_count=5`);
@@ -86,14 +70,7 @@ test.describe('Manager Reviews', () => {
   });
 
   test('POST /api/weeks/:id/approve-review with rating succeeds', async ({ page, apiServer }) => {
-    // Login
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    const csrfToken = await getCsrfToken(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get a sprint ID to approve
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
@@ -121,14 +98,7 @@ test.describe('Manager Reviews', () => {
   });
 
   test('POST /api/weeks/:id/approve-review rejects invalid ratings', async ({ page, apiServer }) => {
-    // Login
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    const csrfToken = await getCsrfToken(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get a sprint ID
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
@@ -168,14 +138,7 @@ test.describe('Manager Reviews', () => {
   });
 
   test('POST /api/weeks/:id/approve-review without rating is rejected', async ({ page, apiServer }) => {
-    // Login
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    const csrfToken = await getCsrfToken(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get a sprint ID
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);

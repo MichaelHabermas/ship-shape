@@ -76,6 +76,7 @@ Repo-specific facts that prevent wrong assumptions.
 Places where a small, focused change creates outsized value.
 
 - **Active execution checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` — waves, slices, evidence lines. Slice 1.1 auth inventory: `my-docs/evidence/auth-matrix.md`. Do not fork parallel plan files.
+- E2E auth DRY (2026-05-24, Epic 2): use `e2e/fixtures/api-auth.ts` for all login/CSRF flows; do not add inline `async function login` in specs. `e2e/AGENTS.md` documents helpers. Probe scripts import only `packages/shipshape-security/src/core/*` (no `scripts/security-probe/lib/`).
 - Code-quality D080 (2026-05-24): `DocumentCapabilityAction` is `read | write | governance | collaborate`. Document commands map via `documentCommandCapability()` with optional `enforce` (`creator_or_admin`, `workspace_admin`). `requireCapability` and `defaultCapabilityDb` removed.
 - Document mutations (2026-05-24): all five entrypoints require `principal` and call `authorizeDocumentMutation()` before writes. Scoped tokens denied at mutation boundary with `token_scope_denied`. Delete errors use `not_creator_or_admin` at capability layer (reason-coded).
 - `workspaceAccessMiddleware` deleted (D081). Setup `Principal` wiring deferred to plan Slice **1.5b** (D082). Phase/wave closeout: deslop + simplify + tests, then stop with **“Tell me you're done.”** (`CODE_QUALITY_REMEDIATION_PLAN.md` Phase closeout table).

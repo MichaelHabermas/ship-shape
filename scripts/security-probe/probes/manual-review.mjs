@@ -1,8 +1,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { repoRoot } from '../lib/cli.mjs';
-import { fail, finding, pass } from '../lib/result-model.mjs';
-import { runSelectedProbes } from '../lib/probe-selection.mjs';
+import { repoRoot } from '../../../packages/shipshape-security/src/core/cli.mjs';
+import { fail, finding, pass } from '../../../packages/shipshape-security/src/core/result-model.mjs';
+import { runSelectedProbes } from '../../../packages/shipshape-security/src/core/probe-selection.mjs';
 
 export async function manualReviewProbes(context) {
   return runSelectedProbes(context, [

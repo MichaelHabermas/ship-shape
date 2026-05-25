@@ -1,29 +1,12 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readJson, repoRelative, repoRoot, reviewerBundlePath } from './ledger-utils.mjs';
+import { gitValue, readJson, repoRelative, reviewerBundlePath } from './ledger-utils.mjs';
+import { reviewerBundleRequiredFiles } from './required-artifacts.mjs';
 
-const requiredBundleFiles = [
-  'index.html',
-  'manifest.json',
-  'my-docs/reviewer-dashboard.html',
-  'my-docs/evidence/submission-ledger.json',
-  'my-docs/evidence/security-audit/latest.json',
-  'my-docs/evidence/security-audit/security-findings.json',
-  'my-docs/evidence/security-audit/security-findings-ledger.md',
-  'my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt',
-];
-
-function gitValue(args, fallback = '') {
-  try {
-    return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim();
-  } catch {
-    return fallback;
-  }
-}
+const requiredBundleFiles = reviewerBundleRequiredFiles;
 
 async function listTextFiles(root) {
   const entries = [];

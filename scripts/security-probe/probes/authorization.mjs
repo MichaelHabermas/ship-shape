@@ -1,7 +1,7 @@
-import { websocketProbe } from '../lib/ws-raw.mjs';
-import { fail, finding, pass, skip } from '../lib/result-model.mjs';
-import { runSelectedProbes } from '../lib/probe-selection.mjs';
-import { fingerprintForFinding } from '../lib/finding-registry.mjs';
+import { websocketProbe } from '../../../packages/shipshape-security/src/core/ws-raw.mjs';
+import { fail, finding, pass, skip } from '../../../packages/shipshape-security/src/core/result-model.mjs';
+import { runSelectedProbes } from '../../../packages/shipshape-security/src/core/probe-selection.mjs';
+import { fingerprintForFinding } from '../../../packages/shipshape-security/src/core/finding-registry.mjs';
 import {
   authMe,
   createPendingLocalUpload,
@@ -12,7 +12,7 @@ import {
   pickProgram,
   pickSprintDocument,
   resolvePersonId,
-} from '../lib/fixtures.mjs';
+} from '../../../packages/shipshape-security/src/core/fixtures.mjs';
 
 function authzFinding({
   id,

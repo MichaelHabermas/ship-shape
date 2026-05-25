@@ -4,7 +4,7 @@
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { repoRoot } from '../security-probe/lib/cli.mjs';
+import { repoRoot } from '../../packages/shipshape-security/src/core/cli.mjs';
 import {
   DEFAULT_STORE_PATH,
   GENERATED_LEDGER_PATH,
@@ -14,8 +14,8 @@ import {
   saveSecurityFindings,
   appendVerification,
   linkProbe,
-} from '../security-probe/lib/security-findings-store.mjs';
-import { renderSecurityFindingsLedger } from '../security-probe/lib/security-findings-render.mjs';
+} from '../../packages/shipshape-security/src/core/security-findings-store.mjs';
+import { renderSecurityFindingsLedger } from '../../packages/shipshape-security/src/core/security-findings-render.mjs';
 
 const AUDIT_DIR = resolve(repoRoot, 'my-docs/evidence/security-audit');
 const LEGACY_LEDGER = resolve(AUDIT_DIR, 'security-findings-ledger.legacy.md');

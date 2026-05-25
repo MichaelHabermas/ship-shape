@@ -1,14 +1,7 @@
 import { test, expect } from './fixtures/isolated-env'
-import AxeBuilder from '@axe-core/playwright'
+import { login } from './fixtures/api-auth';
 
-// Helper to log in before tests that need auth
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
+import AxeBuilder from '@axe-core/playwright'
 
 test.describe('Accessibility - axe-core audit', () => {
   test('login page has no critical accessibility violations', async ({ page }) => {

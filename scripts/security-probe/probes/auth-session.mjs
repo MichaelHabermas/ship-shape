@@ -1,8 +1,8 @@
-import { ProbeHttpClient } from '../lib/http-client.mjs';
-import { fail, finding, pass, skip } from '../lib/result-model.mjs';
-import { runSelectedProbes } from '../lib/probe-selection.mjs';
-import { fingerprintForFinding } from '../lib/finding-registry.mjs';
-import { memberReady } from '../lib/fixtures.mjs';
+import { ProbeHttpClient } from '../../../packages/shipshape-security/src/core/http-client.mjs';
+import { fail, finding, pass, skip } from '../../../packages/shipshape-security/src/core/result-model.mjs';
+import { runSelectedProbes } from '../../../packages/shipshape-security/src/core/probe-selection.mjs';
+import { fingerprintForFinding } from '../../../packages/shipshape-security/src/core/finding-registry.mjs';
+import { memberReady } from '../../../packages/shipshape-security/src/core/fixtures.mjs';
 
 export async function authSessionProbes(context) {
   return runSelectedProbes(context, [

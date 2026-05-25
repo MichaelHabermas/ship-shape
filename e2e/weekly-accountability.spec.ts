@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginAsAdminWithUser } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for Weekly Accountability Documents feature.
@@ -12,32 +14,6 @@ import { test, expect } from './fixtures/isolated-env';
  * These tests use API calls directly to test the inference logic
  * without UI flakiness.
  */
-
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
-// Helper to login and get user context
-async function loginAndGetContext(page: import('@playwright/test').Page, apiUrl: string) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  const csrfToken = await getCsrfToken(page, apiUrl);
-
-  const meResponse = await page.request.get(`${apiUrl}/api/auth/me`);
-  expect(meResponse.ok()).toBe(true);
-  const meData = await meResponse.json();
-  const userId = meData.data.user.id;
-
-  return { csrfToken, userId };
-}
 
 // Helper to get person document ID for the current user
 async function getPersonIdForUser(
@@ -83,7 +59,7 @@ async function createTestProject(
 
 test.describe('Weekly Plan API', () => {
   test('POST /weekly-plans creates new weekly plan document', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project for Weekly Plan');
 
@@ -111,7 +87,7 @@ test.describe('Weekly Plan API', () => {
   });
 
   test('POST /weekly-plans is idempotent - returns existing document', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Idempotent');
 
@@ -143,7 +119,7 @@ test.describe('Weekly Plan API', () => {
   });
 
   test('GET /weekly-plans queries plans by person and project', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Query');
 
@@ -175,7 +151,7 @@ test.describe('Weekly Plan API', () => {
   });
 
   test('GET /weekly-plans/:id returns specific plan', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Get By ID');
 
@@ -200,7 +176,7 @@ test.describe('Weekly Plan API', () => {
   });
 
   test('POST /weekly-plans returns 404 for non-existent person', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken } = await loginAsAdminWithUser(page, apiServer.url);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project 404 Person');
 
     const response = await page.request.post(`${apiServer.url}/api/weekly-plans`, {
@@ -218,7 +194,7 @@ test.describe('Weekly Plan API', () => {
   });
 
   test('POST /weekly-plans returns 404 for non-existent project', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
 
     const response = await page.request.post(`${apiServer.url}/api/weekly-plans`, {
@@ -238,7 +214,7 @@ test.describe('Weekly Plan API', () => {
 
 test.describe('Weekly Retro API', () => {
   test('POST /weekly-retros creates new weekly retro document', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project for Weekly Retro');
 
@@ -266,7 +242,7 @@ test.describe('Weekly Retro API', () => {
   });
 
   test('POST /weekly-retros is idempotent - returns existing document', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Retro Idempotent');
 
@@ -298,7 +274,7 @@ test.describe('Weekly Retro API', () => {
   });
 
   test('GET /weekly-retros queries retros by person and project', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Retro Query');
 
@@ -330,7 +306,7 @@ test.describe('Weekly Retro API', () => {
   });
 
   test('GET /weekly-retros/:id returns specific retro', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Retro Get By ID');
 
@@ -360,7 +336,7 @@ test.describe('Project Allocation Grid API', () => {
     page,
     apiServer,
   }) => {
-    const { csrfToken } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken } = await loginAsAdminWithUser(page, apiServer.url);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Grid');
 
     // Get allocation grid
@@ -392,7 +368,7 @@ test.describe('Project Allocation Grid API', () => {
     page,
     apiServer,
   }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Allocation');
 
@@ -478,7 +454,7 @@ test.describe('Project Allocation Grid API', () => {
   });
 
   test('Allocation grid returns 404 for non-existent project', async ({ page, apiServer }) => {
-    await loginAndGetContext(page, apiServer.url);
+    await loginAsAdminWithUser(page, apiServer.url);
 
     const response = await page.request.get(
       `${apiServer.url}/api/weekly-plans/project-allocation-grid/00000000-0000-0000-0000-000000000000`
@@ -495,7 +471,7 @@ test.describe('Content Version History API', () => {
     page,
     apiServer,
   }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project History Empty');
 
@@ -525,7 +501,7 @@ test.describe('Content Version History API', () => {
     page,
     apiServer,
   }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Retro History');
 
@@ -555,7 +531,7 @@ test.describe('Content Version History API', () => {
     page,
     apiServer,
   }) => {
-    await loginAndGetContext(page, apiServer.url);
+    await loginAsAdminWithUser(page, apiServer.url);
 
     const response = await page.request.get(
       `${apiServer.url}/api/weekly-plans/00000000-0000-0000-0000-000000000000/history`
@@ -570,7 +546,7 @@ test.describe('Content Version History API', () => {
     page,
     apiServer,
   }) => {
-    await loginAndGetContext(page, apiServer.url);
+    await loginAsAdminWithUser(page, apiServer.url);
 
     const response = await page.request.get(
       `${apiServer.url}/api/weekly-retros/00000000-0000-0000-0000-000000000000/history`
@@ -584,7 +560,7 @@ test.describe('Content Version History API', () => {
 
 test.describe('Weekly Plan/Retro Document Navigation', () => {
   test('Weekly plan document can be fetched and navigated to', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Navigation');
 
@@ -610,7 +586,7 @@ test.describe('Weekly Plan/Retro Document Navigation', () => {
   });
 
   test('Weekly retro document can be fetched and navigated to', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
     const projectId = await createTestProject(page, apiServer.url, csrfToken, 'Test Project Retro Nav');
 

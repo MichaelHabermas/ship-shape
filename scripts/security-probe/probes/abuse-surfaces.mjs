@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { fail, finding, pass, skip } from '../lib/result-model.mjs';
-import { runSelectedProbes } from '../lib/probe-selection.mjs';
-import { fingerprintForFinding } from '../lib/finding-registry.mjs';
-import { ProbeHttpClient } from '../lib/http-client.mjs';
-import { repoRoot } from '../lib/cli.mjs';
+import { fail, finding, pass, skip } from '../../../packages/shipshape-security/src/core/result-model.mjs';
+import { runSelectedProbes } from '../../../packages/shipshape-security/src/core/probe-selection.mjs';
+import { fingerprintForFinding } from '../../../packages/shipshape-security/src/core/finding-registry.mjs';
+import { ProbeHttpClient } from '../../../packages/shipshape-security/src/core/http-client.mjs';
+import { repoRoot } from '../../../packages/shipshape-security/src/core/cli.mjs';
 
 export async function abuseSurfaceProbes(context) {
   return runSelectedProbes(context, [
@@ -68,7 +68,7 @@ async function loginRateLimit({ config }) {
 }
 
 async function publicFeedbackRateLimit({ config, clients }) {
-  const { pickProgram } = await import('../lib/fixtures.mjs');
+  const { pickProgram } = await import('../../../packages/shipshape-security/src/core/fixtures.mjs');
   const program = await pickProgram(clients.admin);
   await clients.admin.api(`/api/documents/${program.id}`, {
     method: 'PATCH',

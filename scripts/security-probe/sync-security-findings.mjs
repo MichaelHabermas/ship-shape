@@ -3,14 +3,14 @@
  * Merge bootstrap probe bindings into security-findings.json without removing manual edits.
  */
 import { resolve } from 'node:path';
-import { repoRoot } from './lib/cli.mjs';
+import { repoRoot } from '../../packages/shipshape-security/src/core/cli.mjs';
 import {
   DEFAULT_STORE_PATH,
   fingerprintForFinding,
   linkProbe,
   loadSecurityFindings,
   saveSecurityFindings,
-} from './lib/security-findings-store.mjs';
+} from '../../packages/shipshape-security/src/core/security-findings-store.mjs';
 
 const BOOTSTRAP = [
   {
