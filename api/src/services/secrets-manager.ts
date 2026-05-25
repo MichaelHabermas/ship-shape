@@ -15,6 +15,7 @@ import {
   CreateSecretCommand,
   ResourceNotFoundException,
 } from '@aws-sdk/client-secrets-manager';
+import { logHotError } from '../utils/hot-log.js';
 
 // Lazy-initialized client to avoid keeping Node.js alive during import tests
 let _client: SecretsManagerClient | null = null;
@@ -95,7 +96,7 @@ export async function getCAIACredentials(): Promise<CAIACredentialsResult> {
     }
 
     // Secrets Manager failure - fail closed
-    console.error('[SecretsManager] Failed to fetch CAIA credentials:', err);
+    logHotError('secrets.caia', 'Failed to fetch CAIA credentials', err);
     return {
       credentials: null,
       configured: false,
@@ -129,7 +130,7 @@ export async function saveCAIACredentials(credentials: CAIACredentials): Promise
       await getClient().send(createCommand);
       return;
     }
-    console.error('[SecretsManager] Failed to save credentials:', err);
+    logHotError('secrets.caia', 'Failed to save CAIA credentials', err);
     throw err;
   }
 }
@@ -152,7 +153,7 @@ async function ensureSecretExists(secretName: string): Promise<void> {
     if (awsErr.name === 'ResourceExistsException') {
       return;
     }
-    console.error('Failed to create CAIA credentials secret:', err);
+    logHotError('secrets.caia', 'Failed to create CAIA credentials secret', err);
     // Don't throw - this is a bootstrap operation
   }
 }
