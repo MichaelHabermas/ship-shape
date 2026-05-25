@@ -4,7 +4,7 @@ import { IssueListItem } from '@/contexts/IssuesContext';
 import { cn } from '@/lib/cn';
 import { apiPatch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { StatusBadge, PriorityBadge } from '@/components/IssuesList';
+import { StatusBadge, PriorityBadge } from '@/components/issues/issue-badges';
 
 export interface BacklogPickerModalProps {
   isOpen: boolean;
