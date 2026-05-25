@@ -570,6 +570,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
     const actor = getActor(req);
     const result = await updateDocumentContentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       content: req.body.content,
       source: 'rest',
@@ -592,6 +593,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const actor = getActor(req);
     const mutation = await createDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       input: parsed.data,
       source: 'rest',
     });
@@ -615,6 +617,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const mutation = await updateDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       patch: parsed.data,
       source: 'rest',
@@ -632,6 +635,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     const actor = getActor(req);
     const mutation = await deleteDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       source: 'rest',
     });
@@ -692,6 +696,7 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     if (command.type === 'edit_content') {
       const mutation = await updateDocumentContentMutation({
         actor,
+        principal,
         documentId: id,
         content: command.content,
         source: 'rest',
@@ -703,6 +708,7 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     if (command.type === 'convert') {
       const mutation = await convertDocumentMutation({
         actor,
+        principal,
         documentId: id,
         targetType: command.target_type,
         source: 'rest',
@@ -714,6 +720,7 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     if (command.type === 'delete') {
       const mutation = await deleteDocumentMutation({
         actor,
+        principal,
         documentId: id,
         source: 'rest',
       });
@@ -738,8 +745,10 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
 
     const mutation = await updateDocumentMutation({
       actor,
+      principal,
       documentId: id,
       patch,
+      capability: { action, documentId: id, enforce },
       source: 'rest',
     });
     res.status(mutation.status).json(mutation.body);
@@ -762,6 +771,7 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
     const actor = getActor(req);
     const mutation = await convertDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       targetType: target_type,
       source: 'rest',

@@ -22,7 +22,25 @@ Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledge
 
 ### Next slice
 
-- **1.3** — Token scope guards at `document-mutations.ts` entrypoints.
+- **1.4** — Merge `document-policy` into capabilities (or **1.5** after decision on `workspaceAccessMiddleware`).
+
+---
+
+## Code Quality Remediation — Slice 1.3 (2026-05-24)
+
+Scope: token scope guards at all document mutation entrypoints.
+
+### What changed
+
+- Every mutation (`create`, `update`, `content`, `delete`, `convert`) requires `principal` and runs `authorizeDocumentMutation()` first.
+- REST routes pass `principalFromRequest(req)`; commands pass collapsed capability spec including `governance` / `enforce`.
+- Delete/convert guards use `includeArchived` so archived conversion still returns 400, not 404.
+- API errors at the capability boundary use reason codes (`token_scope_denied`, `not_creator_or_admin`, `document_not_found`).
+
+### Evidence
+
+- New: `api/src/routes/documents-token-scope.test.ts` (3 tests)
+- `documents.test.ts`, `capabilities.test.ts` green
 
 ---
 

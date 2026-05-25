@@ -28,9 +28,10 @@ export type Capability =
   | {
       resource: 'document';
       action: DocumentCapabilityAction;
-      documentId: string;
+      documentId?: string;
       expectedType?: DocumentType;
       enforce?: DocumentCapabilityEnforce;
+      includeArchived?: boolean;
     }
   | {
       resource: 'document_reference';
@@ -58,6 +59,17 @@ export type CapabilityDecision = {
   principal: Principal;
   document?: AccessibleDocument;
 };
+
+export type DocumentMutationCapability = {
+  action: DocumentCapabilityAction;
+  documentId?: string;
+  enforce?: DocumentCapabilityEnforce;
+  includeArchived?: boolean;
+};
+
+export function capabilityDenialStatus(reason: CapabilityDenyReason | 'allowed'): number {
+  return reason === 'document_not_found' ? 404 : 403;
+}
 
 export type DocumentCommandType =
   | 'set_governance'
@@ -222,16 +234,30 @@ export async function authorize(
     return workspaceAdminDecision(db, principal, actor);
   }
 
-  if (capability.resource === 'document' || capability.resource === 'collaboration') {
-    const { documentId } = capability;
-    const expectedType = capability.resource === 'document' ? capability.expectedType : undefined;
-    const document = await getReadableDocument(db, actor, documentId, expectedType);
+  if (capability.resource === 'document') {
+    if (!capability.documentId) {
+      return decision(principal, true, 'allowed');
+    }
+    const document = await getReadableDocument(
+      db,
+      actor,
+      capability.documentId,
+      capability.expectedType,
+      { includeArchived: capability.includeArchived },
+    );
     if (!document) return decision(principal, false, 'document_not_found');
     if (!(await canReadAccountabilityDocument(db, actor, document))) {
       return decision(principal, false, 'accountability_scope_denied');
     }
-    if (capability.resource === 'document') {
-      return enforceDocumentSessionRule(db, principal, actor, capability, document);
+    return enforceDocumentSessionRule(db, principal, actor, capability, document);
+  }
+
+  if (capability.resource === 'collaboration') {
+    const { documentId } = capability;
+    const document = await getReadableDocument(db, actor, documentId);
+    if (!document) return decision(principal, false, 'document_not_found');
+    if (!(await canReadAccountabilityDocument(db, actor, document))) {
+      return decision(principal, false, 'accountability_scope_denied');
     }
     return decision(principal, true, 'allowed', document);
   }
@@ -258,4 +284,18 @@ export async function authorize(
   }
 
   return decision(principal, false, 'anonymous');
+}
+
+export async function authorizeDocumentMutation(
+  db: QueryRunner,
+  principal: Principal,
+  spec: DocumentMutationCapability
+): Promise<CapabilityDecision> {
+  return authorize(db, principal, {
+    resource: 'document',
+    action: spec.action,
+    documentId: spec.documentId,
+    enforce: spec.enforce,
+    includeArchived: spec.includeArchived,
+  });
 }

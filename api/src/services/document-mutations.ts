@@ -36,6 +36,12 @@ import {
   decideWorkspaceAdmin,
 } from './document-policy.js';
 import { getDocumentAccessContext, getReadableDocument, type DocumentActor } from './document-access.js';
+import {
+  authorizeDocumentMutation,
+  capabilityDenialStatus,
+  type DocumentMutationCapability,
+} from '../security/capabilities.js';
+import type { Principal } from '../security/principal.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -115,6 +121,7 @@ export type UpdateDocumentPatch = {
 
 export type CreateDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   input: {
     title: string;
     document_type: DocumentType;
@@ -131,6 +138,7 @@ export type CreateDocumentInput = {
 
 export type UpdateDocumentContentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   content: { type?: unknown; content?: unknown };
   source: 'rest' | 'collaboration' | 'system';
@@ -138,19 +146,23 @@ export type UpdateDocumentContentInput = {
 
 export type UpdateDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   patch: UpdateDocumentPatch;
+  capability?: DocumentMutationCapability;
   source: 'rest' | 'collaboration' | 'system';
 };
 
 export type DeleteDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   source: 'rest' | 'collaboration' | 'system';
 };
 
 export type ConvertDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   targetType: 'issue' | 'project';
   source: 'rest' | 'collaboration' | 'system';
@@ -161,6 +173,31 @@ function asDocumentProperties(value: unknown): DocumentProperties {
     return {};
   }
   return value as DocumentProperties;
+}
+
+async function guardMutationCapability(
+  db: QueryRunner,
+  principal: Principal,
+  spec: DocumentMutationCapability
+): Promise<MutationResult<never> | null> {
+  const decision = await authorizeDocumentMutation(db, principal, spec);
+  if (decision.allowed) return null;
+  return {
+    ok: false,
+    status: capabilityDenialStatus(decision.reason),
+    body: { error: decision.reason },
+  };
+}
+
+function defaultWriteCapability(documentId: string): DocumentMutationCapability {
+  return { action: 'write', documentId };
+}
+
+function creatorWriteCapability(
+  documentId: string,
+  options: { includeArchived?: boolean } = {}
+): DocumentMutationCapability {
+  return { action: 'write', documentId, enforce: 'creator_or_admin', includeArchived: options.includeArchived };
 }
 
 async function loadAccessibleDocument(
@@ -257,9 +294,13 @@ function extractedContentProperties(content: unknown) {
 
 export async function updateDocumentContentMutation({
   actor,
+  principal,
   documentId,
   content,
 }: UpdateDocumentContentInput): Promise<MutationResult<DocumentContentRow>> {
+  const denied = await guardMutationCapability(pool, principal, defaultWriteCapability(documentId));
+  if (denied) return denied;
+
   const validationError = validateTipTapContent(content);
   if (validationError) return validationError;
 
@@ -438,8 +479,12 @@ async function projectOwnerForResponse(ownerId: unknown, workspaceId: string): P
 
 export async function createDocumentMutation({
   actor,
+  principal,
   input,
 }: CreateDocumentInput): Promise<MutationResult<DocumentAccessRow>> {
+  const denied = await guardMutationCapability(pool, principal, { action: 'write' });
+  if (denied) return denied;
+
   const client = await pool.connect();
 
   try {
@@ -579,9 +624,18 @@ function flattenDocumentResponse(updatedDoc: DocumentAccessRow, owner: PersonOwn
 
 export async function updateDocumentMutation({
   actor,
+  principal,
   documentId,
   patch,
+  capability,
 }: UpdateDocumentInput): Promise<MutationResult<ReturnType<typeof flattenDocumentResponse>>> {
+  const denied = await guardMutationCapability(
+    pool,
+    principal,
+    capability ?? defaultWriteCapability(documentId),
+  );
+  if (denied) return denied;
+
   const client = await pool.connect();
   let contentUpdated = false;
   let visibilityChanged: { next: DocumentVisibility; previousCreatedBy: string } | null = null;
@@ -856,8 +910,16 @@ export async function updateDocumentMutation({
 
 export async function deleteDocumentMutation({
   actor,
+  principal,
   documentId,
 }: DeleteDocumentInput): Promise<MutationResult<null>> {
+  const denied = await guardMutationCapability(
+    pool,
+    principal,
+    creatorWriteCapability(documentId, { includeArchived: true }),
+  );
+  if (denied) return denied;
+
   const existing = await loadAccessibleDocument(pool, actor, documentId, { includeArchived: true });
   if (!existing) {
     return { ok: false, status: 404, body: { error: 'Document not found' } };
@@ -885,9 +947,17 @@ export async function deleteDocumentMutation({
 
 export async function convertDocumentMutation({
   actor,
+  principal,
   documentId,
   targetType,
 }: ConvertDocumentInput): Promise<MutationResult<Record<string, unknown>>> {
+  const denied = await guardMutationCapability(
+    pool,
+    principal,
+    creatorWriteCapability(documentId, { includeArchived: true }),
+  );
+  if (denied) return denied;
+
   const client = await pool.connect();
 
   try {

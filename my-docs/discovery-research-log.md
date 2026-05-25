@@ -36,6 +36,16 @@ Future application: new document command types must extend `documentCommandCapab
 
 ---
 
+## Code quality Slice 1.3 — mutation token scopes (2026-05-24)
+
+| Finding | Disposition |
+|---------|-------------|
+| Scoped tokens could hit REST mutations without scope check | **Fixed** — `guardMutationCapability` on all five entrypoints |
+| Delete 403 message vs capability reason drift | **Aligned** — HTTP body uses `not_creator_or_admin` |
+| Appendix D phase-2 backlog | **Populated** — Slice 1.6 |
+
+---
+
 ## Reviewer packet simplification (2026-05-24)
 
 Decision: turn the generated reviewer dashboard into a grading packet. The reviewer path is now Summary, Evidence, Security, Appendix, with source gate and proof rows first and internal machinery moved behind drilldown.
