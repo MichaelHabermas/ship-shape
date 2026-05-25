@@ -67,6 +67,18 @@ describe('security capabilities', () => {
     });
   });
 
+  it('allows setup initialization for the setup principal', async () => {
+    const decision = await authorize(dbWithRows([]), { kind: 'setup' }, {
+      resource: 'setup',
+      action: 'initialize',
+    });
+
+    expect(decision).toMatchObject({
+      allowed: true,
+      reason: 'allowed',
+    });
+  });
+
   it('denies API token create without a workspace admin principal', async () => {
     const db = dbWithRows([{ role: 'member' }]);
 

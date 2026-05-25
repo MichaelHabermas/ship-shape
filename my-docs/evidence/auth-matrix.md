@@ -49,30 +49,32 @@
 
 ---
 
-## `document-mutations.ts` entrypoints
+## `document-mutations.ts` entrypoints (post D084)
 
-| Export | `authorize` at entry? | Token scope? | Policy path |
-|--------|----------------------|--------------|-------------|
-| `updateDocumentContentMutation` | No | No | `decideDocumentAccess(..., 'write')` |
-| `createDocumentMutation` | No | No | `decideReferenceAccess`, admin checks |
-| `updateDocumentMutation` | No | No | `decideCreatorOrAdmin`, `decideWorkspaceAdmin` |
-| `deleteDocumentMutation` | No | No | `decideCreatorOrAdmin(..., 'delete')` |
-| `convertDocumentMutation` | No | No | Inline creator check |
+| Export | `authorizeDocumentMutation` at entry? | Field-level enforce |
+|--------|--------------------------------------|---------------------|
+| `updateDocumentContentMutation` | Yes (`write`) | — |
+| `createDocumentMutation` | Yes (`write`) | `authorize` `document_reference` for associations |
+| `updateDocumentMutation` | Yes (`write` or caller capability) | `creator_or_admin` (visibility/type), `governance`+`workspace_admin` (reports_to) |
+| `deleteDocumentMutation` | Yes (`write` + `creator_or_admin`) | — |
+| `convertDocumentMutation` | Yes (`write` + `creator_or_admin`) | — |
 
----
-
-## `document-policy.ts` production callers
-
-All production `decide*` usage is inside `document-mutations.ts` only (6 call sites). No route calls `decideDocumentAccess` directly.
+`loadAccessibleDocument` uses `authorizeDocumentMutation` read gate (write action without extra enforce). No `decide*` exports remain.
 
 ---
 
-## Setup vs capabilities
+## `document-policy.ts`
+
+Seed only: `DOCUMENT_POLICY_CASES` + types. Runtime policy is `authorize()` in `capabilities.ts`.
+
+---
+
+## Setup vs capabilities (post D082)
 
 | Surface | Mechanism |
 |---------|-----------|
-| `setup.ts` | `SHIP_SETUP_TOKEN` / header `x-setup-token` — no `Principal`, no `authorize` |
-| `capabilities.ts` | `{ resource: 'setup', action: 'initialize' }` requires `principal.kind === 'setup'` — **never constructed in production** |
+| `setup-access.ts` | Token parse/accept (unchanged semantics) |
+| `setup.ts` | `setupPrincipalFromRequest` → `req.principal`; `authorize({ resource: 'setup', action: 'initialize' })` |
 
 ---
 

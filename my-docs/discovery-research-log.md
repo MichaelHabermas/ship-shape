@@ -2,6 +2,21 @@
 
 ---
 
+## Wave 1 closeout — Epics 1 + 2 (2026-05-24)
+
+| Finding | Disposition |
+|---------|-------------|
+| Parallel `decide*` in `document-policy.ts` | **Resolved** D084 — `authorize` only; seed cases remain |
+| Setup env token without `Principal` | **Resolved** D082 — `setup-access.ts` + `authorize` setup |
+| Duplicate probe lib under `scripts/security-probe/lib/` | **Resolved** Epic 2.1 — package core imports |
+| 40+ duplicate e2e login helpers | **Resolved** Epic 2.2 — `e2e/fixtures/api-auth.ts` |
+| Submission artifact list duplication | **Resolved** Epic 2.3 — `required-artifacts.mjs`, `ledger-utils` |
+| Phase-2 route visibility SQL (~75 handlers) | **Deferred** D083 / Wave 2 Epic 3+ |
+
+Auth maintainability re-score: **7.5 / 10** (from 6.8). Evidence: API 620/620, smoke 27/27, probe 33/33.
+
+---
+
 ## Code quality Slice 1.1 — authorization matrix (2026-05-24)
 
 Decision: inventory before Epic 1 code changes. No submission-ledger change (architecture-only).

@@ -8,10 +8,6 @@ import {
   type AccessibleDocument,
   type DocumentActor,
 } from '../services/document-access.js';
-import {
-  decideCreatorOrAdmin,
-  decideWorkspaceAdmin,
-} from '../services/document-policy.js';
 import type { ApiTokenScope, Principal } from './principal.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
@@ -171,6 +167,15 @@ async function workspaceAdminDecision(
   return decision(principal, isAdmin, isAdmin ? 'allowed' : 'not_workspace_admin');
 }
 
+async function sessionIsCreatorOrAdmin(
+  db: QueryRunner,
+  actor: DocumentActor,
+  document: Pick<AccessibleDocument, 'created_by'>
+): Promise<boolean> {
+  const { isAdmin } = await getDocumentAccessContext(actor, db);
+  return isAdmin || document.created_by === actor.userId;
+}
+
 async function enforceDocumentSessionRule(
   db: QueryRunner,
   principal: Principal,
@@ -179,16 +184,15 @@ async function enforceDocumentSessionRule(
   document: AccessibleDocument
 ): Promise<CapabilityDecision> {
   if (capability.action === 'governance' || capability.enforce === 'workspace_admin') {
-    const policy = await decideWorkspaceAdmin(actor, 'write', db);
-    if (!policy.allowed) {
+    const { isAdmin } = await getDocumentAccessContext(actor, db);
+    if (!isAdmin) {
       return decision(principal, false, 'not_workspace_admin', document);
     }
     return decision(principal, true, 'allowed', document);
   }
 
   if (capability.enforce === 'creator_or_admin') {
-    const policy = await decideCreatorOrAdmin(actor, document, 'delete', db);
-    if (!policy.allowed) {
+    if (!(await sessionIsCreatorOrAdmin(db, actor, document))) {
       return decision(principal, false, 'not_creator_or_admin', document);
     }
   }

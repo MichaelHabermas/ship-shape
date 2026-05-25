@@ -20,11 +20,6 @@ Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledge
 - Deliverable: `my-docs/evidence/auth-matrix.md`
 - Orchestrator: parallel sub-agents (route inventory, god-file scan, capabilities review, probe dedupe preflight)
 
-### Next slice (after human OK)
-
-- **1.4** — Merge `document-policy` into capabilities.
-- **1.5b** — Setup `Principal` + `authorize` (deferred D082).
-
 ### Slice 1.5 (2026-05-24)
 
 - Deleted `workspaceAccessMiddleware` (D081).
@@ -32,9 +27,13 @@ Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledge
 - API token revoke uses `authorize` (`api_token` / `revoke`).
 - Setup Principal deferred to Slice **1.5b** (D082) — explicitly in plan.
 
-### Epic 1 phase pause (2026-05-24)
+### Wave 1 complete (2026-05-24)
 
-Slices **0.1, 1.1–1.3, 1.5, 1.6** landed. **1.4** and **1.5b** remain. Phase closeout: type-check, **619/619** API tests, 76 focused auth tests, probe 33/33, smoke 27/27; deslop + simplify applied to auth diff.
+**Epic 1:** Slices 1.4 (D084 policy merge) + 1.5b (D082 setup principal) finished. **Epic 2:** probe dedupe, e2e `api-auth.ts`, submission DRY.
+
+**Verification:** type-check pass; API **620/620**; `capabilities`+`document-policy`+`setup` 21/21; probe 33/33; submission test+validate; smoke 27/27.
+
+**Auth maintainability:** 6.8 → **7.5 / 10** — single `authorize` brain, honest four document actions, mutations token-guarded, no duplicate probe lib or e2e login copies. Remaining: Appendix D phase-2 routes (D083), god-files (Wave 2).
 
 ---
 

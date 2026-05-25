@@ -1,17 +1,7 @@
-import type { Pool, PoolClient } from 'pg';
-import type { DocumentType } from '@ship/shared';
-import { pool } from '../db/client.js';
-import {
-  canReadAccountabilityDocument,
-  expectedTypeForRelationship,
-  getDocumentAccessContext,
-  getReadableDocument,
-  type AccessibleDocument,
-  type DocumentActor,
-} from './document-access.js';
-
-type QueryRunner = Pick<Pool | PoolClient, 'query'>;
-
+/**
+ * Document policy compiler seed cases — vocabulary for future generated guards.
+ * Runtime enforcement lives in `api/src/security/capabilities.ts` (`authorize`).
+ */
 export type DocumentPolicyAction =
   | 'read'
   | 'write'
@@ -30,13 +20,6 @@ export type DocumentPolicyReason =
   | 'not_workspace_admin'
   | 'restricted_document_type'
   | 'wrong_reference_type';
-
-export type DocumentPolicyDecision = {
-  action: DocumentPolicyAction;
-  allowed: boolean;
-  reason: DocumentPolicyReason;
-  document?: AccessibleDocument;
-};
 
 export type DocumentPolicyCase = {
   id: string;
@@ -77,75 +60,3 @@ export const DOCUMENT_POLICY_CASES: DocumentPolicyCase[] = [
     description: 'Associations must reference a readable document of the expected relationship type.',
   },
 ];
-
-function decision(
-  action: DocumentPolicyAction,
-  allowed: boolean,
-  reason: DocumentPolicyReason,
-  document?: AccessibleDocument
-): DocumentPolicyDecision {
-  return { action, allowed, reason, ...(document ? { document } : {}) };
-}
-
-export async function decideDocumentAccess(
-  db: QueryRunner,
-  actor: DocumentActor,
-  action: DocumentPolicyAction,
-  documentId: string,
-  expectedType?: DocumentType,
-  options: { includeArchived?: boolean } = {}
-): Promise<DocumentPolicyDecision> {
-  const document = await getReadableDocument(db, actor, documentId, expectedType, options);
-  if (!document) {
-    return decision(action, false, 'document_not_found');
-  }
-
-  if (!(await canReadAccountabilityDocument(db, actor, document))) {
-    return decision(action, false, 'accountability_scope_denied');
-  }
-
-  return decision(action, true, 'allowed', document);
-}
-
-export async function decideReferenceAccess(
-  db: QueryRunner,
-  actor: DocumentActor,
-  relatedId: string,
-  relationshipType: 'program' | 'project' | 'sprint' | 'parent'
-): Promise<DocumentPolicyDecision> {
-  const expectedType = relationshipType === 'parent'
-    ? undefined
-    : expectedTypeForRelationship(relationshipType);
-  const document = await getReadableDocument(db, actor, relatedId, expectedType);
-
-  if (!document) {
-    return decision('reference', false, expectedType ? 'wrong_reference_type' : 'document_not_found');
-  }
-
-  return decision('reference', true, 'allowed', document);
-}
-
-export async function decideCreatorOrAdmin(
-  actor: DocumentActor,
-  document: Pick<AccessibleDocument, 'created_by'>,
-  action: DocumentPolicyAction,
-  db: QueryRunner = pool
-): Promise<DocumentPolicyDecision> {
-  const { isAdmin } = await getDocumentAccessContext(actor, db);
-  if (isAdmin || document.created_by === actor.userId) {
-    return decision(action, true, 'allowed');
-  }
-  return decision(action, false, 'not_creator_or_admin');
-}
-
-export async function decideWorkspaceAdmin(
-  actor: DocumentActor,
-  action: DocumentPolicyAction,
-  db: QueryRunner = pool
-): Promise<DocumentPolicyDecision> {
-  const { isAdmin } = await getDocumentAccessContext(actor, db);
-  if (isAdmin) {
-    return decision(action, true, 'allowed');
-  }
-  return decision(action, false, 'not_workspace_admin');
-}

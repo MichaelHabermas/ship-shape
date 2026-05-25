@@ -1,14 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DocumentActor } from '../document-access.js';
-import {
-  DOCUMENT_POLICY_CASES,
-  decideCreatorOrAdmin,
-  decideDocumentAccess,
-  decideReferenceAccess,
-  decideWorkspaceAdmin,
-} from '../document-policy.js';
+import { authorize } from '../../security/capabilities.js';
+import type { Principal } from '../../security/principal.js';
+import { DOCUMENT_POLICY_CASES } from '../document-policy.js';
 
-const actor: DocumentActor = {
+const sessionPrincipal: Principal = {
+  kind: 'session',
+  sessionId: 'session-1',
   userId: 'user-1',
   workspaceId: 'workspace-1',
   isSuperAdmin: false,
@@ -37,7 +34,7 @@ describe('DocumentPolicy', () => {
         id: 'doc-1',
         title: 'Doc',
         document_type: 'wiki',
-        workspace_id: actor.workspaceId,
+        workspace_id: sessionPrincipal.workspaceId,
         created_by: 'user-2',
         visibility: 'workspace',
         properties: {},
@@ -46,10 +43,13 @@ describe('DocumentPolicy', () => {
       },
     ]);
 
-    const decision = await decideDocumentAccess(db, actor, 'read', 'doc-1');
+    const decision = await authorize(db, sessionPrincipal, {
+      resource: 'document',
+      action: 'read',
+      documentId: 'doc-1',
+    });
 
     expect(decision).toMatchObject({
-      action: 'read',
       allowed: true,
       reason: 'allowed',
     });
@@ -58,10 +58,13 @@ describe('DocumentPolicy', () => {
   it('denies missing or unreadable documents as not found', async () => {
     const db = dbWithRows([]);
 
-    const decision = await decideDocumentAccess(db, actor, 'write', 'doc-1');
-
-    expect(decision).toEqual({
+    const decision = await authorize(db, sessionPrincipal, {
+      resource: 'document',
       action: 'write',
+      documentId: 'doc-1',
+    });
+
+    expect(decision).toMatchObject({
       allowed: false,
       reason: 'document_not_found',
     });
@@ -78,7 +81,7 @@ describe('DocumentPolicy', () => {
               id: 'doc-1',
               title: 'Plan',
               document_type: 'weekly_plan',
-              workspace_id: actor.workspaceId,
+              workspace_id: sessionPrincipal.workspaceId,
               created_by: 'user-2',
               visibility: 'workspace',
               properties: { person_id: 'person-1' },
@@ -92,10 +95,13 @@ describe('DocumentPolicy', () => {
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }),
     };
 
-    const decision = await decideDocumentAccess(db, actor, 'content_update', 'doc-1');
+    const decision = await authorize(db, sessionPrincipal, {
+      resource: 'document',
+      action: 'write',
+      documentId: 'doc-1',
+    });
 
-    expect(decision).toEqual({
-      action: 'content_update',
+    expect(decision).toMatchObject({
       allowed: false,
       reason: 'accountability_scope_denied',
     });
@@ -104,34 +110,74 @@ describe('DocumentPolicy', () => {
   it('requires expected reference types for associations', async () => {
     const db = dbWithRows([]);
 
-    const decision = await decideReferenceAccess(db, actor, 'doc-1', 'program');
+    const decision = await authorize(db, sessionPrincipal, {
+      resource: 'document_reference',
+      action: 'link',
+      targetId: 'doc-1',
+      relationship: 'program',
+    });
 
-    expect(decision).toEqual({
-      action: 'reference',
+    expect(decision).toMatchObject({
       allowed: false,
-      reason: 'wrong_reference_type',
+      reason: 'reference_not_visible',
     });
   });
 
   it('uses creator-or-admin decisions for type and visibility changes', async () => {
-    const db = dbWithRows([{ role: 'member' }]);
+    const db = dbWithRows([
+      { role: 'member' },
+      {
+        id: 'doc-1',
+        title: 'Doc',
+        document_type: 'wiki',
+        workspace_id: sessionPrincipal.workspaceId,
+        created_by: 'user-2',
+        visibility: 'workspace',
+        properties: {},
+        archived_at: null,
+        deleted_at: null,
+      },
+      { role: 'member' },
+    ]);
 
-    const decision = await decideCreatorOrAdmin(actor, { created_by: 'user-2' }, 'convert', db);
+    const decision = await authorize(db, sessionPrincipal, {
+      resource: 'document',
+      action: 'write',
+      documentId: 'doc-1',
+      enforce: 'creator_or_admin',
+    });
 
-    expect(decision).toEqual({
-      action: 'convert',
+    expect(decision).toMatchObject({
       allowed: false,
       reason: 'not_creator_or_admin',
     });
   });
 
   it('uses workspace-admin decisions for governance fields', async () => {
-    const db = dbWithRows([{ role: 'member' }]);
+    const db = dbWithRows([
+      { role: 'member' },
+      {
+        id: 'doc-1',
+        title: 'Doc',
+        document_type: 'wiki',
+        workspace_id: sessionPrincipal.workspaceId,
+        created_by: 'user-2',
+        visibility: 'workspace',
+        properties: {},
+        archived_at: null,
+        deleted_at: null,
+      },
+      { role: 'member' },
+    ]);
 
-    const decision = await decideWorkspaceAdmin(actor, 'write', db);
+    const decision = await authorize(db, sessionPrincipal, {
+      resource: 'document',
+      action: 'governance',
+      documentId: 'doc-1',
+      enforce: 'workspace_admin',
+    });
 
-    expect(decision).toEqual({
-      action: 'write',
+    expect(decision).toMatchObject({
       allowed: false,
       reason: 'not_workspace_admin',
     });

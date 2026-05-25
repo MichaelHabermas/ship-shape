@@ -74,15 +74,29 @@ Decision: Remove `workspaceAccessMiddleware` from `api/src/middleware/auth.ts`. 
 
 **Decision Gist**: Adopt or delete — delete dead middleware.
 
-### D082: Defer Setup `Principal` Wiring To Slice 1.5b (2026-05-24)
+### D082: Setup `Principal` Wiring (2026-05-24)
 
-Status: Accepted (deferred)
+Status: Accepted (completed Wave 1 slice 1.5b)
 
-Decision: Leave `setup.ts` on env setup token for Wave 1. Do not construct `Principal.kind === 'setup'` yet. Schedule Slice **1.5b** in `CODE_QUALITY_REMEDIATION_PLAN.md` to wire `authorize({ resource: 'setup', action: 'initialize' })` without changing token semantics.
+Decision: `api/src/security/setup-access.ts` owns setup token parsing; setup routes set `req.principal` via `setupPrincipalFromRequest()` and gate with `authorize({ resource: 'setup', action: 'initialize' })`. Invalid/missing tokens use a session stub principal so `authorize` returns `setup_token_required` without duplicating `setupTokenAccepted()` in handlers.
 
-Why: Route convergence value in 1.5 was documents reads, token revoke, and middleware cleanup. Setup bootstrap is low churn and test-isolated; deferring avoids touching production bootstrap during DRY wave.
+Why: Completes D077 for bootstrap while preserving env-token semantics (dev open when token not required; production/configured token enforced).
 
-**Decision Gist**: Setup stays on env token until 1.5b; plan documents the intent so it is not forgotten.
+**Decision Gist**: Setup uses the same capability layer as the rest of the API; token rules unchanged.
+
+### D084: Merge Runtime Document Policy Into Capabilities (2026-05-24)
+
+Status: Accepted
+
+Decision: Remove `decideDocumentAccess`, `decideReferenceAccess`, `decideCreatorOrAdmin`, and `decideWorkspaceAdmin` from `document-policy.ts`. Keep `DOCUMENT_POLICY_CASES` and policy vocabulary types as compiler seed only. `authorize()` / `authorizeDocumentMutation()` are the sole runtime policy brain; `document-mutations.ts` calls them (no parallel `decide*` paths).
+
+Why: Slice 1.1 showed dual enforcement; leaving `decide*` alongside `authorize` was slop-on-slop. Inlining creator/admin and workspace-admin checks in `enforceDocumentSessionRule` removes the adapter hop.
+
+Consequences: Policy tests assert via `authorize()`. `auth-matrix.md` should describe capability paths, not `decide*`. No submission-ledger change.
+
+Evidence: `document-policy.test.ts` + `capabilities.test.ts` parity; full API 620/620; setup tests pass (2026-05-24).
+
+**Decision Gist**: One policy brain (`authorize`); `document-policy.ts` is vocabulary seed only.
 
 ### D083: D077 Phase-2 Route Capability Backlog (2026-05-24)
 
