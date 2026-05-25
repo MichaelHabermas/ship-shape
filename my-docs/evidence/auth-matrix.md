@@ -11,7 +11,7 @@
 | Pattern | Production count | Gap |
 |---------|------------------|-----|
 | `authorize(` call sites | **11** | Document/collaboration paths ignore per-action for session users |
-| `requireCapability` callers | **0** | Exported, unused — adopt or delete in Slice 1.2 |
+| `requireCapability` callers | **removed (Slice 1.2)** | Deleted per D080 |
 | `canAccessDocument` (local duplicates) | **3 implementations**, 7 call sites | Not unified with `authorize` |
 | `workspaceAccessMiddleware` | **1 definition**, **0 mounts** | Dead middleware |
 | `Principal.kind === 'setup'` | **0 constructors** | `setup.ts` uses env token, not capability layer |
@@ -84,7 +84,7 @@ All production `decide*` usage is inside `document-mutations.ts` only (6 call si
 4. **`workspaceAccessMiddleware`** — defined in `auth.ts:269`, never mounted.
 5. **`requireCapability`** — zero callers.
 6. **Dead deny reasons** — `file_not_bound`, `file_not_owned_or_admin` never returned from `authorize()`.
-7. **Unused capability actions** — `read_content`, `rename`, `review_accountability`, `collaborate` (document resource) have no route mapping.
+7. **Collapsed vocabulary (D080)** — `read | write | governance | collaborate`; commands map via `documentCommandCapability()`.
 
 ---
 

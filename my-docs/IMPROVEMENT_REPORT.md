@@ -22,7 +22,25 @@ Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledge
 
 ### Next slice
 
-- **1.2** — DECISION_LOG entry: honest capability vocabulary (inventory favors option B: collapse to read|write|governance|collaborate for sessions).
+- **1.3** — Token scope guards at `document-mutations.ts` entrypoints.
+
+---
+
+## Code Quality Remediation — Slice 1.2 (2026-05-24)
+
+Scope: honest capability vocabulary (D080 option B). No submission-ledger change.
+
+### What changed
+
+- Collapsed `DocumentCapabilityAction` to `read | write | governance | collaborate`.
+- Added `documentCommandCapability()` for `POST /:id/commands` with `enforce` hints wired into `authorize()` via `decideCreatorOrAdmin` / `decideWorkspaceAdmin`.
+- Removed `requireCapability`, `defaultCapabilityDb`, and dead file deny reasons; added `not_creator_or_admin`.
+
+### Evidence
+
+- `vitest run src/security/capabilities.test.ts` — 8/8 pass
+- `pnpm security:probe:test` — pass
+- `pnpm type-check` — pass
 
 ---
 

@@ -50,6 +50,22 @@ Evidence: Focused API/security tests passed; file route tests passed after apply
 
 **Decision Gist**: Authorize capabilities, not routes; REST, files, tokens, setup, and realtime share one reason-coded security model.
 
+### D080: Collapsed Honest Document Capability Vocabulary (2026-05-24)
+
+Status: Accepted
+
+Decision: Collapse `DocumentCapabilityAction` to `read | write | governance | collaborate` (option B from Slice 1.2). Map `POST /api/documents/:id/commands` through `documentCommandCapability()` with optional `enforce` hints (`creator_or_admin`, `workspace_admin`) so session `authorize()` can delegate to existing `document-policy` helpers without pretending fourteen granular actions are enforced at the facade. Remove unused `requireCapability`, `defaultCapabilityDb`, and dead `CapabilityDenyReason` values (`file_not_bound`, `file_not_owned_or_admin`). Add `not_creator_or_admin` as a capability deny reason aligned with policy.
+
+Why: Slice 1.1 proved session users hit the same read gate for every former action name while writes were enforced only in mutations. Expanding fourteen parallel branches in `authorize()` would duplicate `document-policy` without making types honest. Collapse matches token scope buckets and makes read vs write vs governance meaningfully different at the capability boundary.
+
+Alternatives considered: option A — per-action checks inside `authorize()` for every legacy action name (rejected — decorative types, dual enforcement). Keeping `requireCapability` for future ergonomics (rejected — zero callers; YAGNI until a route adopts it).
+
+Consequences: Command routes must use `documentCommandCapability`, not ad-hoc action strings. Token scope mapping uses the four collapsed actions. Mutation entry token guards remain Slice 1.3. File unbound fallback stays in `files.ts` routes until a later slice wires file deny reasons. No submission-ledger change.
+
+Evidence: `vitest run api/src/security/capabilities.test.ts`; `pnpm security:probe:test` after implementation.
+
+**Decision Gist**: Four honest document capabilities; command mapper supplies enforcement hints; policy helpers stay the write-truth adapter until mutations gain token guards.
+
 ### D078: Close Security Findings Only Through Evidence-Backed CLI Updates (2026-05-24)
 
 Status: Accepted

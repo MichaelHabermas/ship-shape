@@ -21,7 +21,7 @@ import {
   updateDocumentContentMutation,
   updateDocumentMutation,
 } from '../services/document-mutations.js';
-import { authorize, type DocumentCapabilityAction } from '../security/capabilities.js';
+import { authorize, documentCommandCapability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
 
 const router = Router();
@@ -663,29 +663,6 @@ const documentCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('delete') }),
 ]);
 
-function capabilityForCommand(command: z.infer<typeof documentCommandSchema>): DocumentCapabilityAction {
-  switch (command.type) {
-    case 'set_governance':
-      return 'set_governance';
-    case 'set_raci':
-      return 'set_raci';
-    case 'set_workflow_status':
-      return 'set_workflow_state';
-    case 'set_visibility':
-      return 'set_visibility';
-    case 'set_parent':
-      return 'set_parent';
-    case 'set_associations':
-      return 'set_associations';
-    case 'edit_content':
-      return 'edit_content';
-    case 'convert':
-      return 'convert';
-    case 'delete':
-      return 'delete';
-  }
-}
-
 router.post('/:id/commands', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
@@ -698,14 +675,17 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     const actor = getActor(req);
     const principal = principalFromRequest(req);
     const command = parsed.data;
+    const { action, enforce } = documentCommandCapability(command);
     const decision = await authorize(pool, principal, {
       resource: 'document',
-      action: capabilityForCommand(command),
+      action,
       documentId: id,
+      enforce,
     });
 
     if (!decision.allowed) {
-      res.status(decision.reason === 'document_not_found' ? 404 : 403).json({ error: decision.reason });
+      const status = decision.reason === 'document_not_found' ? 404 : 403;
+      res.status(status).json({ error: decision.reason });
       return;
     }
 

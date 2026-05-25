@@ -21,6 +21,21 @@ Future application: do not add new `DocumentCapabilityAction` values until Slice
 
 ---
 
+## Code quality Slice 1.2 — honest capability vocabulary (2026-05-24)
+
+Decision: D080 option B — four document capabilities + command mapper with enforce hints.
+
+| Finding | Disposition |
+|---------|-------------|
+| Fourteen decorative document actions at facade | **Resolved** — collapsed to read/write/governance/collaborate |
+| Session delete/governance passed read gate only | **Resolved at commands path** — enforce hints + policy helpers; REST mutations still Slice 1.3 |
+| `requireCapability` / `defaultCapabilityDb` unused | **Removed** |
+| Dead `file_not_*` deny reasons | **Removed** from capability union |
+
+Future application: new document command types must extend `documentCommandCapability()` with correct action + enforce; do not reintroduce granular `DocumentCapabilityAction` strings without enforcement.
+
+---
+
 ## Reviewer packet simplification (2026-05-24)
 
 Decision: turn the generated reviewer dashboard into a grading packet. The reviewer path is now Summary, Evidence, Security, Appendix, with source gate and proof rows first and internal machinery moved behind drilldown.

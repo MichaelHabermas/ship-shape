@@ -1,6 +1,5 @@
 import type { Pool, PoolClient } from 'pg';
 import type { BelongsToType, DocumentType } from '@ship/shared';
-import { pool } from '../db/client.js';
 import {
   canReadAccountabilityDocument,
   expectedTypeForRelationship,
@@ -9,31 +8,30 @@ import {
   type AccessibleDocument,
   type DocumentActor,
 } from '../services/document-access.js';
+import {
+  decideCreatorOrAdmin,
+  decideWorkspaceAdmin,
+} from '../services/document-policy.js';
 import type { ApiTokenScope, Principal } from './principal.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
-export type DocumentCapabilityAction =
-  | 'read'
-  | 'read_content'
-  | 'edit_content'
-  | 'rename'
-  | 'set_visibility'
-  | 'set_parent'
-  | 'set_associations'
-  | 'set_workflow_state'
-  | 'set_governance'
-  | 'set_raci'
-  | 'convert'
-  | 'delete'
-  | 'review_accountability'
-  | 'collaborate';
+/** Collapsed document capability vocabulary (D080). */
+export type DocumentCapabilityAction = 'read' | 'write' | 'governance' | 'collaborate';
+
+export type DocumentCapabilityEnforce = 'creator_or_admin' | 'workspace_admin';
 
 export type Capability =
   | { resource: 'workspace'; action: 'read' | 'admin' }
   | { resource: 'setup'; action: 'initialize' }
   | { resource: 'api_token'; action: 'create' | 'revoke' | 'use' }
-  | { resource: 'document'; action: DocumentCapabilityAction; documentId: string; expectedType?: DocumentType }
+  | {
+      resource: 'document';
+      action: DocumentCapabilityAction;
+      documentId: string;
+      expectedType?: DocumentType;
+      enforce?: DocumentCapabilityEnforce;
+    }
   | {
       resource: 'document_reference';
       action: 'link' | 'reveal';
@@ -50,9 +48,8 @@ export type CapabilityDenyReason =
   | 'document_not_found'
   | 'accountability_scope_denied'
   | 'not_workspace_admin'
+  | 'not_creator_or_admin'
   | 'reference_not_visible'
-  | 'file_not_bound'
-  | 'file_not_owned_or_admin'
   | 'setup_token_required';
 
 export type CapabilityDecision = {
@@ -61,6 +58,38 @@ export type CapabilityDecision = {
   principal: Principal;
   document?: AccessibleDocument;
 };
+
+export type DocumentCommandType =
+  | 'set_governance'
+  | 'set_raci'
+  | 'set_workflow_status'
+  | 'set_visibility'
+  | 'set_parent'
+  | 'set_associations'
+  | 'edit_content'
+  | 'convert'
+  | 'delete';
+
+/** Maps document commands to collapsed capabilities plus optional session enforcement. */
+export function documentCommandCapability(command: { type: DocumentCommandType }): {
+  action: DocumentCapabilityAction;
+  enforce?: DocumentCapabilityEnforce;
+} {
+  switch (command.type) {
+    case 'set_governance':
+    case 'set_raci':
+      return { action: 'governance', enforce: 'workspace_admin' };
+    case 'set_workflow_status':
+    case 'set_visibility':
+    case 'set_parent':
+    case 'set_associations':
+    case 'edit_content':
+      return { action: 'write' };
+    case 'convert':
+    case 'delete':
+      return { action: 'write', enforce: 'creator_or_admin' };
+  }
+}
 
 function actorFromPrincipal(principal: Principal): DocumentActor | null {
   if (principal.kind === 'setup') return null;
@@ -105,16 +134,13 @@ function scopeAllows(scopes: ApiTokenScope[], capability: Capability): boolean {
   }
 
   if (capability.resource === 'document') {
-    if (capability.action === 'read' || capability.action === 'read_content') {
+    if (capability.action === 'read' || capability.action === 'collaborate') {
       return scopes.includes('documents:read');
     }
-    if (capability.action === 'edit_content') {
-      return scopes.includes('documents:content') || scopes.includes('documents:write');
-    }
-    if (capability.action === 'set_governance' || capability.action === 'set_raci') {
+    if (capability.action === 'governance') {
       return scopes.includes('documents:governance');
     }
-    return scopes.includes('documents:write');
+    return scopes.includes('documents:write') || scopes.includes('documents:content');
   }
 
   return false;
@@ -136,6 +162,36 @@ async function workspaceAdminDecision(
 ): Promise<CapabilityDecision> {
   const { isAdmin } = await getDocumentAccessContext(actor, db);
   return decision(principal, isAdmin, isAdmin ? 'allowed' : 'not_workspace_admin');
+}
+
+async function enforceDocumentSessionRule(
+  db: QueryRunner,
+  principal: Principal,
+  actor: DocumentActor,
+  capability: Extract<Capability, { resource: 'document' }>,
+  document: AccessibleDocument
+): Promise<CapabilityDecision> {
+  if (capability.action === 'governance' || capability.enforce === 'workspace_admin') {
+    const policy = await decideWorkspaceAdmin(actor, 'write', db);
+    if (!policy.allowed) {
+      return decision(principal, false, 'not_workspace_admin', document);
+    }
+    return decision(principal, true, 'allowed', document);
+  }
+
+  if (capability.enforce === 'creator_or_admin') {
+    const policy = await decideCreatorOrAdmin(actor, document, 'delete', db);
+    if (!policy.allowed) {
+      return decision(principal, false, 'not_creator_or_admin', document);
+    }
+    return decision(principal, true, 'allowed', document);
+  }
+
+  if (capability.action === 'write' || capability.action === 'collaborate') {
+    return decision(principal, true, 'allowed', document);
+  }
+
+  return decision(principal, true, 'allowed', document);
 }
 
 export async function authorize(
@@ -174,6 +230,9 @@ export async function authorize(
     if (!(await canReadAccountabilityDocument(db, actor, document))) {
       return decision(principal, false, 'accountability_scope_denied');
     }
+    if (capability.resource === 'document') {
+      return enforceDocumentSessionRule(db, principal, actor, capability, document);
+    }
     return decision(principal, true, 'allowed', document);
   }
 
@@ -200,17 +259,3 @@ export async function authorize(
 
   return decision(principal, false, 'anonymous');
 }
-
-export async function requireCapability(
-  db: QueryRunner,
-  principal: Principal,
-  capability: Capability
-): Promise<CapabilityDecision & { allowed: true }> {
-  const result = await authorize(db, principal, capability);
-  if (!result.allowed) {
-    throw new Error(result.reason);
-  }
-  return result as CapabilityDecision & { allowed: true };
-}
-
-export { pool as defaultCapabilityDb };
