@@ -158,8 +158,8 @@ export function buildGradingPacket(model) {
 function buildGradingRow(category) {
   const baseline = findSummaryCard(category, 'audit baseline');
   const closeout = findSummaryCard(category, 'closeout proof');
-  const commandEvidence = firstEvidence(category, (item) => item.command);
-  const artifactEvidence = firstEvidence(category, (item) => item.path);
+  const commandEvidence = firstCommandEvidence(category);
+  const artifactEvidence = firstArtifactEvidence(category);
   const caveat = category.non_claims?.[0] || category.caveats?.[0] || '';
   const passedCount = category.passedTests?.length || 0;
   const gateCount = category.acceptance_tests?.length || 0;

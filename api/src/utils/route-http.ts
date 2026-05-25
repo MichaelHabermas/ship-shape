@@ -18,3 +18,9 @@ export function sendInternalError(
   console.error(`${context}:`, err);
   res.status(500).json(body ?? { error: 'Internal server error' });
 }
+
+export function errorMessage(err: unknown, fallback = 'Unknown error'): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === 'string' && err) return err;
+  return fallback;
+}

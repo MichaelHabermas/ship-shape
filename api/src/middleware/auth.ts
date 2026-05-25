@@ -91,7 +91,7 @@ export async function authMiddleware(
   }
 
   try {
-    const userAgentHeader = req.get('user-agent');
+    const userAgentHeader = req.headers?.['user-agent'];
     const validation = await validateAuthenticatedSession(sessionId, {
       updateActivity: true,
       userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader || null,

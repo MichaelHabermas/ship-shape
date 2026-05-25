@@ -20,7 +20,7 @@ import {
   getChangedFields,
   type CAIACredentials,
 } from '../services/secrets-manager.js';
-import { sendInternalError } from '../utils/route-http.js';
+import { errorMessage, sendInternalError } from '../utils/route-http.js';
 import { getAuthenticatedUserContext } from '../utils/auth-context.js';
 
 const router = Router();
@@ -508,17 +508,16 @@ router.post('/save', authMiddleware, superAdminMiddleware, async (req: Request, 
       newCredentials.client_secret
     );
   } catch (err) {
-    const error = err as Error & { cause?: unknown; code?: string };
-    const errorMessage = error.message || 'Unknown error';
-    console.error('[AdminCredentials] Issuer validation failed:', errorMessage);
-    if (/CAIA issuer URL/i.test(errorMessage)) {
+    const errorMessageText = errorMessage(err);
+    console.error('[AdminCredentials] Issuer validation failed:', errorMessageText);
+    if (/CAIA issuer URL/i.test(errorMessageText)) {
       res.status(400).json({
         success: false,
-        error: { message: errorMessage },
+        error: { message: errorMessageText },
       });
       return;
     }
-    validationWarning = `Issuer discovery failed: ${errorMessage}`;
+    validationWarning = `Issuer discovery failed: ${errorMessageText}`;
   }
 
   // Determine which fields changed for audit logging

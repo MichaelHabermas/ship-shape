@@ -64,7 +64,6 @@ export interface CAIACredentialsResult {
  */
 export async function getCAIACredentials(): Promise<CAIACredentialsResult> {
   const secretName = `${getBasePath()}/caia-credentials`;
-  console.log(`[SecretsManager] Fetching CAIA credentials from: ${secretName}`);
 
   try {
     const command = new GetSecretValueCommand({ SecretId: secretName });
@@ -79,19 +78,10 @@ export async function getCAIACredentials(): Promise<CAIACredentialsResult> {
 
     // Check if all required fields are present and non-empty
     if (!parsed.issuer_url || !parsed.client_id || !parsed.client_secret) {
-      console.log('[SecretsManager] Secret exists but is incomplete:', {
-        hasIssuerUrl: !!parsed.issuer_url,
-        hasClientId: !!parsed.client_id,
-        hasClientSecret: !!parsed.client_secret,
-      });
+      console.log('[SecretsManager] CAIA secret exists but is incomplete');
       return { credentials: null, configured: false };
     }
 
-    console.log('[SecretsManager] Credentials loaded successfully:', {
-      issuerUrl: parsed.issuer_url,
-      clientId: parsed.client_id,
-      hasSecret: true,
-    });
     return {
       credentials: {
         issuer_url: parsed.issuer_url,
@@ -127,29 +117,21 @@ export async function saveCAIACredentials(credentials: CAIACredentials): Promise
   const secretName = `${getBasePath()}/caia-credentials`;
   const secretValue = JSON.stringify(credentials);
 
-  console.log(`[SecretsManager] Saving CAIA credentials to: ${secretName}`);
-  console.log(`[SecretsManager]   Issuer URL: ${credentials.issuer_url}`);
-  console.log(`[SecretsManager]   Client ID: ${credentials.client_id}`);
-  console.log(`[SecretsManager]   Secret length: ${credentials.client_secret?.length || 0} chars`);
-
   try {
     const command = new PutSecretValueCommand({
       SecretId: secretName,
       SecretString: secretValue,
     });
     await getClient().send(command);
-    console.log('[SecretsManager] Credentials saved successfully (updated existing secret)');
   } catch (err) {
     if (err instanceof ResourceNotFoundException) {
-      // Secret doesn't exist yet - create it
-      console.log('[SecretsManager] Secret not found, creating new secret...');
+      console.log('[SecretsManager] CAIA secret not found, creating new secret');
       const createCommand = new CreateSecretCommand({
         Name: secretName,
         SecretString: secretValue,
         Description: 'CAIA OAuth credentials for PIV authentication',
       });
       await getClient().send(createCommand);
-      console.log('[SecretsManager] New secret created successfully');
       return;
     }
     console.error('[SecretsManager] Failed to save credentials:', err);
