@@ -46,7 +46,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 0: Preparation And Guardrails
 
-**Status:** Started
+**Status:** Done
 
 **Goal:** Set the rules of engagement before implementation so Codex does not drift, mutate the wrong surfaces, or lose the Week 5 source truth.
 
@@ -73,7 +73,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 0.2: Lock Repo Workflow Rules
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -89,9 +89,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - No staged files or commits are created during implementation unless explicitly requested.
 
+**Implementation Note (2026-05-25):** Repo workflow rules confirmed before code implementation: do not stage, unstage, or commit without explicit instruction; do not modify `api/src/db/schema.sql` for existing tables; use numbered migrations for FleetGraph persistence; destructive API tests must use `DATABASE_URL=.../ship_test_audit`, never `ship_dev`. Current repo state was clean at slice start; no git index operation was performed for this slice.
+
 ### Slice 0.3: Apply File Summary Rule
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -105,6 +107,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Final diff review confirms the rule was applied only where appropriate.
+
+**Implementation Note (2026-05-25):** Final diff review for this slice found no changed code files (`.ts`, `.tsx`, `.js`). The rule is active for future slices: when a code file is changed, check the first lines for a truthful 1-2 line file intent comment, update or add one only when local convention allows it, and do not add comments to untouched files.
 
 ## Epic 1: FleetGraph State And Configuration
 
