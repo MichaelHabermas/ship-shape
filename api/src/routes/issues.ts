@@ -7,10 +7,9 @@ import {
   listIssueChildren,
   listIssuesMetadata,
   type IssueDetailRow,
-  type IssueDocumentRow,
 } from '../db/documents-repository.js';
 import { z } from 'zod';
-import type { IssueProperties, BelongsTo } from '@ship/shared';
+import type { IssueProperties } from '@ship/shared';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
@@ -23,178 +22,44 @@ import {
 } from '../schemas/document-boundary.js';
 import {
   logDocumentChange,
-  getTimestampUpdates,
   getBelongsToAssociations,
   getBelongsToAssociationsBatch,
-  syncBelongsToAssociations,
-  syncAssociationOfTypeForDocuments,
 } from '../utils/document-crud.js';
-import { broadcastToUser } from '../collaboration/index.js';
 import {
   canReadDocument,
-  expectedTypeForRelationship,
   getActor,
   getDocumentAccessContext,
   getReadableDocument,
-  requireReferenceableDocument,
   type DocumentActor,
 } from '../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
-import { mapIssueListItem } from '../utils/issue-response.js';
+import {
+  acceptIssueMutation,
+  bulkUpdateIssuesMutation,
+  createIssueIterationMutation,
+  createIssueMutation,
+  listIssueIterations,
+  rejectIssueMutation,
+  updateIssueMutation,
+  type IssueMutationResult,
+} from '../services/issue-mutations-service.js';
+import {
+  mapIssueActionItemRow,
+  mapIssueHistoryRow,
+  mapIssueListItem,
+  type IssueActionItemRow,
+  type IssueHistoryRow,
+} from '../utils/issue-response.js';
 import { requireFirstRow } from '../utils/query-rows.js';
 
 const router = Router();
 
 type IdRow = { id: string };
 type PersonIdRow = { id: string };
-type CountRow = { count: string | number };
-type TicketNumberRow = { next_number: number };
-type IssueTitlePropertiesRow = {
-  id: string;
-  title: string;
-  properties: IssueProperties | Record<string, unknown> | null;
-};
 type IssuePropertiesRow = {
   id: string;
   properties: IssueProperties | Record<string, unknown> | null;
 };
-type IncompleteChildRow = {
-  id: string;
-  title: string;
-  ticket_number: number | null;
-  state: string | null;
-};
-type OldSprintRow = {
-  sprint_number: string | null;
-  sprint_start_date: Date | string | null;
-};
-type ActionItemRow = {
-  id: string;
-  title: string;
-  state: string | null;
-  priority: string | null;
-  ticket_number: number | null;
-  due_date: string | null;
-  is_system_generated: boolean | null;
-  accountability_type: string | null;
-  accountability_target_id: string | null;
-  target_title: string | null;
-};
-type IssueHistoryRow = {
-  id: string;
-  field: string;
-  old_value: string | null;
-  new_value: string | null;
-  created_at: Date;
-  automated_by: string | null;
-  changed_by_id: string | null;
-  changed_by_name: string | null;
-};
-type IssueIterationRow = {
-  id: string;
-  issue_id: string;
-  status: string;
-  what_attempted: string | null;
-  blockers_encountered: string | null;
-  author_id: string;
-  created_at: Date;
-  updated_at: Date;
-  author_name: string;
-  author_email: string;
-};
-type AuthorRow = {
-  id: string;
-  name: string;
-  email: string;
-};
-
-function toCount(value: string | number): number {
-  return typeof value === 'number' ? value : Number(value);
-}
-
-function mapActionItemRow(row: ActionItemRow, today: Date) {
-  let daysOverdue = 0;
-  if (row.due_date) {
-    const dueDate = new Date(row.due_date + 'T00:00:00');
-    const diffTime = today.getTime() - dueDate.getTime();
-    daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  }
-
-  return {
-    id: row.id,
-    title: row.title,
-    state: row.state || 'backlog',
-    priority: row.priority || 'medium',
-    ticket_number: row.ticket_number,
-    display_id: `#${row.ticket_number}`,
-    due_date: row.due_date,
-    is_system_generated: row.is_system_generated ?? false,
-    accountability_type: row.accountability_type,
-    accountability_target_id: row.accountability_target_id,
-    target_title: row.target_title,
-    days_overdue: daysOverdue,
-  };
-}
-
-function mapIssueHistoryRow(row: IssueHistoryRow) {
-  return {
-    id: row.id,
-    field: row.field,
-    old_value: row.old_value,
-    new_value: row.new_value,
-    created_at: row.created_at,
-    changed_by: row.changed_by_id ? {
-      id: row.changed_by_id,
-      name: row.changed_by_name,
-    } : null,
-    automated_by: row.automated_by,
-  };
-}
-
-type StoredIterationRow = {
-  id: string;
-  issue_id: string;
-  status: string;
-  what_attempted: string | null;
-  blockers_encountered: string | null;
-  author_id: string;
-  created_at: Date;
-  updated_at: Date;
-};
-
-function mapStoredIterationRow(iteration: StoredIterationRow, author: AuthorRow) {
-  return {
-    id: iteration.id,
-    issue_id: iteration.issue_id,
-    status: iteration.status,
-    what_attempted: iteration.what_attempted,
-    blockers_encountered: iteration.blockers_encountered,
-    author: {
-      id: author.id,
-      name: author.name,
-      email: author.email,
-    },
-    created_at: iteration.created_at,
-    updated_at: iteration.updated_at,
-  };
-}
-
-function mapListedIterationRow(row: IssueIterationRow) {
-  return {
-    id: row.id,
-    issue_id: row.issue_id,
-    status: row.status,
-    what_attempted: row.what_attempted,
-    blockers_encountered: row.blockers_encountered,
-    author: {
-      id: row.author_id,
-      name: row.author_name,
-      email: row.author_email,
-    },
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-}
 
 // Validation schemas
 const createIssueSchema = createIssueRequestSchema;
@@ -215,6 +80,14 @@ const listIssuesQuerySchema = z.object({
   source: issueSourceSchema.optional(),
   parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional(),
 });
+
+function respondIssueMutation<T>(res: Response, result: IssueMutationResult<T>): void {
+  if (!result.ok) {
+    res.status(result.status).json(result.body);
+    return;
+  }
+  res.status(result.status).json(result.body);
+}
 
 async function sendIssueDetailResponse(
   res: Response,
@@ -298,7 +171,7 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
     const personDocId = personResult.rows[0]?.id;
 
     // Get action items: issues with source='action_items' assigned to current user, not done
-    const result = await pool.query<ActionItemRow>(
+    const result = await pool.query<IssueActionItemRow>(
       `SELECT
          d.id,
          d.title,
@@ -333,7 +206,7 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const items = result.rows.map(row => mapActionItemRow(row, today));
+    const items = result.rows.map(row => mapIssueActionItemRow(row, today));
 
     res.json({
       items,
@@ -435,125 +308,25 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Create issue
 // Uses advisory lock to prevent race condition in ticket number generation
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = createIssueSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendValidationError(res, parsed.error);
+    return;
+  }
+
   const client = await pool.connect();
   try {
-    const parsed = createIssueSchema.safeParse(req.body);
-    if (!parsed.success) {
-      sendValidationError(res, parsed.error);
-      return;
-    }
-
-    const {
-      title,
-      state,
-      priority,
-      assignee_id,
-      belongs_to,
-      source,
-      due_date,
-      is_system_generated,
-      accountability_target_id,
-      accountability_type,
-    } = parsed.data;
-
-    await client.query('BEGIN');
-
-    // Use advisory lock to serialize ticket number generation per workspace
-    // This prevents race conditions where concurrent requests get the same MAX value
-    // The lock key is derived from workspace_id (first 15 hex chars as bigint)
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const workspaceIdHex = workspaceId.replace(/-/g, '').substring(0, 15);
-    const lockKey = parseInt(workspaceIdHex, 16);
-    await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
-
-    // Now safely get next ticket number - we hold the lock until transaction ends
-    const ticketResult = await client.query<TicketNumberRow>(
-      `SELECT COALESCE(MAX(ticket_number), 0) + 1 as next_number
-       FROM documents
-       WHERE workspace_id = $1 AND document_type = 'issue'`,
-      [workspaceId]
-    );
-    const ticketNumber = requireFirstRow(ticketResult.rows).next_number;
-
-    // Build properties JSONB
-    const properties = {
-      state: state || 'backlog',
-      priority: priority || 'medium',
-      source: source || 'internal',
-      assignee_id: assignee_id || null,
-      rejection_reason: null,
-      // Accountability fields for action_items issues
-      due_date: due_date || null,
-      is_system_generated: is_system_generated || false,
-      accountability_target_id: accountability_target_id || null,
-      accountability_type: accountability_type || null,
-    };
-
-    const result = await client.query<IssueDocumentRow>(
-      `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
-       VALUES ($1, 'issue', $2, $3, $4, $5)
-       RETURNING *`,
-      [workspaceId, title, JSON.stringify(properties), ticketNumber, userId]
-    );
-
-    const newIssueId = requireFirstRow(result.rows).id;
-
-    const actor = getActor(req);
-    for (const assoc of belongs_to) {
-      try {
-        await requireReferenceableDocument(
-          client,
-          actor,
-          assoc.id,
-          expectedTypeForRelationship(assoc.type)
-        );
-      } catch (error) {
-        if (error instanceof Error && error.message === 'DOCUMENT_NOT_READABLE') {
-          await client.query('ROLLBACK');
-          res.status(404).json({ error: 'Referenced document not found' });
-          return;
-        }
-        throw error;
-      }
-    }
-
-    await syncBelongsToAssociations(
-      newIssueId,
-      belongs_to.map((assoc) => ({ id: assoc.id, type: assoc.type })),
-      client
-    );
-
-    await client.query('COMMIT');
-
-    // Auto-complete sprint_issues accountability when first issue is created in a sprint
-    const sprintAssociations = belongs_to.filter(bt => bt.type === 'sprint');
-    for (const sprintAssoc of sprintAssociations) {
-      // Check if this is the first issue in the sprint
-      const issueCountResult = await pool.query<CountRow>(
-        `SELECT COUNT(*) as count FROM document_associations
-         WHERE related_id = $1 AND relationship_type = 'sprint'`,
-        [sprintAssoc.id]
-      );
-      const issueCount = toCount(requireFirstRow(issueCountResult.rows).count);
-
-      // Broadcast celebration when first issue is added to sprint
-      if (issueCount === 1) {
-        broadcastToUser(userId, 'accountability:updated', { type: 'week_issues', targetId: sprintAssoc.id });
-      }
-    }
-
-    // Get the belongs_to associations with display info
-    const belongsToResult = await getBelongsToAssociations(newIssueId);
-
-    const row = requireFirstRow(result.rows);
-    const issue = extractIssueFromRow(row);
-    res.status(201).json({
-      ...issue,
-      display_id: `#${ticketNumber}`,
-      belongs_to: belongsToResult,
+    const result = await createIssueMutation({
+      client,
+      actor: getActor(req),
+      userId,
+      workspaceId,
+      data: parsed.data,
     });
+    respondIssueMutation(res, result);
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     sendInternalError(res, err, 'Create issue error:');
   } finally {
     client.release();
@@ -562,342 +335,27 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
 // Update issue
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = updateIssueSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendValidationError(res, parsed.error);
+    return;
+  }
+
   const client = await pool.connect();
   try {
     const id = String(req.params.id);
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    const parsed = updateIssueSchema.safeParse(req.body);
-    if (!parsed.success) {
-      sendValidationError(res, parsed.error);
-      return;
-    }
-
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Get full existing issue for history tracking (with visibility check)
-    const existing = await client.query<IssueTitlePropertiesRow>(
-      `SELECT id, title, properties
-       FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (existing.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
-      return;
-    }
-
-    const existingIssue = requireFirstRow(existing.rows);
-    const currentProps = (existingIssue.properties ?? {}) as Partial<IssueProperties>;
-    const updates: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
-
-    const data = parsed.data;
-
-    // Validate: estimate required when assigning to a sprint via belongs_to
-    if (data.belongs_to) {
-      const hasSprintAssociation = data.belongs_to.some(bt => bt.type === 'sprint');
-      if (hasSprintAssociation) {
-        const effectiveEstimate = data.estimate !== undefined ? data.estimate : currentProps.estimate;
-        if (!effectiveEstimate) {
-          res.status(400).json({ error: 'Estimate is required before assigning to a week' });
-          return;
-        }
-      }
-    }
-
-    // Check for incomplete children when closing parent
-    const isClosingIssue = data.state && (data.state === 'done' || data.state === 'cancelled');
-    const wasNotClosed = currentProps.state !== 'done' && currentProps.state !== 'cancelled';
-
-    if (isClosingIssue && wasNotClosed) {
-      // Check if this issue has any children via junction table
-      const childrenResult = await client.query<IncompleteChildRow>(
-        `SELECT d.id, d.title, d.ticket_number, d.properties->>'state' as state
-         FROM documents d
-         JOIN document_associations da ON da.document_id = d.id
-         WHERE da.related_id = $1
-           AND da.relationship_type = 'parent'
-           AND d.workspace_id = $2
-           AND d.document_type = 'issue'
-           AND d.archived_at IS NULL
-           AND d.deleted_at IS NULL
-           AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-        [id, workspaceId, userId, isAdmin]
-      );
-
-      // Filter to incomplete children
-      const incompleteChildren = childrenResult.rows.filter(
-        child => child.state !== 'done' && child.state !== 'cancelled'
-      );
-
-      if (incompleteChildren.length > 0 && !data.confirm_orphan_children) {
-        // Return warning with incomplete children details
-        res.status(409).json({
-          error: 'incomplete_children',
-          message: `This issue has ${incompleteChildren.length} incomplete sub-issue(s). Closing it will remove their parent association.`,
-          incomplete_children: incompleteChildren.map(child => ({
-            id: child.id,
-            title: child.title,
-            ticket_number: child.ticket_number,
-            state: child.state,
-          })),
-          confirm_action: 'Set confirm_orphan_children: true to proceed',
-        });
-        return;
-      }
-
-      // If confirmed, orphan the children by removing their parent associations
-      if (incompleteChildren.length > 0 && data.confirm_orphan_children) {
-        await client.query(
-          `DELETE FROM document_associations
-           WHERE related_id = $1
-             AND relationship_type = 'parent'`,
-          [id]
-        );
-      }
-    }
-
-    // Track changes for history
-    const changes: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
-
-    // Handle title update (regular column)
-    if (data.title !== undefined && data.title !== existingIssue.title) {
-      updates.push(`title = $${paramIndex++}`);
-      values.push(data.title);
-      changes.push({ field: 'title', oldValue: existingIssue.title, newValue: data.title });
-    }
-
-    // Handle properties updates
-    const newProps = { ...currentProps };
-    let propsChanged = false;
-
-    if (data.state !== undefined && data.state !== currentProps.state) {
-      changes.push({ field: 'state', oldValue: currentProps.state || null, newValue: data.state });
-      newProps.state = data.state;
-      propsChanged = true;
-
-      // Update status timestamps based on state change
-      const timestampUpdates = getTimestampUpdates(currentProps.state || null, data.state);
-      for (const [col, expr] of Object.entries(timestampUpdates)) {
-        updates.push(`${col} = ${expr}`);
-      }
-    }
-    if (data.priority !== undefined && data.priority !== currentProps.priority) {
-      changes.push({ field: 'priority', oldValue: currentProps.priority || null, newValue: data.priority });
-      newProps.priority = data.priority;
-      propsChanged = true;
-    }
-    if (data.assignee_id !== undefined && data.assignee_id !== currentProps.assignee_id) {
-      changes.push({ field: 'assignee_id', oldValue: currentProps.assignee_id || null, newValue: data.assignee_id });
-      newProps.assignee_id = data.assignee_id;
-      propsChanged = true;
-    }
-    if (data.estimate !== undefined && data.estimate !== currentProps.estimate) {
-      changes.push({ field: 'estimate', oldValue: currentProps.estimate?.toString() || null, newValue: data.estimate?.toString() || null });
-      newProps.estimate = data.estimate;
-      propsChanged = true;
-    }
-
-    // Store Claude metadata in properties for attribution tracking
-    if (data.claude_metadata) {
-      newProps.claude_metadata = {
-        ...data.claude_metadata,
-        updated_at: new Date().toISOString(),
-      };
-      propsChanged = true;
-    }
-
-    // Track the index in values array for properties (for later updates after carryover)
-    let propsValueIndex = -1;
-    if (propsChanged) {
-      updates.push(`properties = $${paramIndex++}`);
-      propsValueIndex = values.length;
-      values.push(JSON.stringify(newProps));
-    }
-
-    // Handle belongs_to association updates via junction table
-    let belongsToChanged = false;
-    let oldBelongsTo: BelongsTo[] = [];
-    let newBelongsTo: BelongsTo[] = [];
-
-    if (data.belongs_to !== undefined) {
-      // Get existing associations for comparison
-      oldBelongsTo = await getBelongsToAssociations(id);
-      newBelongsTo = data.belongs_to;
-
-      // Compare to see if associations changed
-      const oldIds = oldBelongsTo.map(bt => `${bt.type}:${bt.id}`).sort().join(',');
-      const newIds = newBelongsTo.map(bt => `${bt.type}:${bt.id}`).sort().join(',');
-
-      if (oldIds !== newIds) {
-        belongsToChanged = true;
-
-        // Track carryover when moving from a completed sprint while issue is not done
-        const oldSprintAssoc = oldBelongsTo.find(bt => bt.type === 'sprint');
-        const newSprintAssoc = newBelongsTo.find(bt => bt.type === 'sprint');
-
-        if (oldSprintAssoc && newSprintAssoc && oldSprintAssoc.id !== newSprintAssoc.id && currentProps.state !== 'done') {
-          // Check if the old sprint is completed (based on end date)
-          const oldSprintResult = await client.query<OldSprintRow>(
-            `SELECT properties->>'sprint_number' as sprint_number, w.sprint_start_date
-             FROM documents d
-             JOIN workspaces w ON d.workspace_id = w.id
-             WHERE d.id = $1 AND d.document_type = 'sprint'`,
-            [oldSprintAssoc.id]
-          );
-
-          if (oldSprintResult.rows.length > 0) {
-            const oldSprint = requireFirstRow(oldSprintResult.rows);
-            const sprintNumber = parseInt(oldSprint.sprint_number ?? '', 10);
-            const rawStartDate = oldSprint.sprint_start_date;
-            const sprintDuration = 7; // 1-week sprints
-
-            let startDate: Date;
-            if (rawStartDate instanceof Date) {
-              startDate = new Date(Date.UTC(rawStartDate.getFullYear(), rawStartDate.getMonth(), rawStartDate.getDate()));
-            } else if (typeof rawStartDate === 'string') {
-              startDate = new Date(rawStartDate + 'T00:00:00Z');
-            } else {
-              startDate = new Date();
-            }
-
-            // Calculate sprint end date
-            const sprintEndDate = new Date(startDate);
-            sprintEndDate.setUTCDate(sprintEndDate.getUTCDate() + (sprintNumber * sprintDuration) - 1);
-
-            // If the old sprint has ended, mark this as a carryover
-            if (new Date() > sprintEndDate) {
-              newProps.carryover_from_sprint_id = oldSprintAssoc.id;
-              propsChanged = true;
-            }
-          }
-        } else if (oldSprintAssoc && !newSprintAssoc) {
-          // Removing from sprint clears carryover
-          delete newProps.carryover_from_sprint_id;
-          propsChanged = true;
-        }
-
-        // Log belongs_to change
-        changes.push({
-          field: 'belongs_to',
-          oldValue: JSON.stringify(oldBelongsTo.map(bt => ({ id: bt.id, type: bt.type }))),
-          newValue: JSON.stringify(newBelongsTo.map(bt => ({ id: bt.id, type: bt.type }))),
-        });
-      }
-    }
-
-    // Re-check if properties changed (carryover may have been updated)
-    if (propsChanged && propsValueIndex === -1) {
-      // Properties weren't added yet, add now
-      updates.push(`properties = $${paramIndex++}`);
-      propsValueIndex = values.length;
-      values.push(JSON.stringify(newProps));
-    } else if (propsChanged && propsValueIndex >= 0) {
-      // Update the existing properties value at the tracked index
-      values[propsValueIndex] = JSON.stringify(newProps);
-    }
-
-    if (updates.length === 0 && !belongsToChanged) {
-      res.status(400).json({ error: 'No fields to update' });
-      return;
-    }
-
-    await client.query('BEGIN');
-
-    // Log all changes to history (within transaction)
-    const automatedBy = data.claude_metadata?.updated_by;
-    for (const change of changes) {
-      await logDocumentChange(id, change.field, change.oldValue, change.newValue, userId, automatedBy, client);
-    }
-
-    // If we have document updates, do the UPDATE
-    if (updates.length > 0) {
-      updates.push(`updated_at = now()`);
-
-      await client.query(
-        `UPDATE documents SET ${updates.join(', ')} WHERE id = $${paramIndex} AND workspace_id = $${paramIndex + 1}`,
-        [...values, id, workspaceId]
-      );
-    }
-
-    if (belongsToChanged) {
-      const actor = getActor(req);
-      for (const assoc of newBelongsTo) {
-        try {
-          await requireReferenceableDocument(
-            client,
-            actor,
-            assoc.id,
-            expectedTypeForRelationship(assoc.type)
-          );
-        } catch (error) {
-          if (error instanceof Error && error.message === 'DOCUMENT_NOT_READABLE') {
-            await client.query('ROLLBACK');
-            res.status(404).json({ error: 'Referenced document not found' });
-            return;
-          }
-          throw error;
-        }
-      }
-
-      await syncBelongsToAssociations(
-        id,
-        newBelongsTo.map((assoc) => ({ id: assoc.id, type: assoc.type })),
-        client
-      );
-    }
-
-    // Fetch the updated issue
-    const result = await client.query<IssueDocumentRow>(
-      `SELECT * FROM documents WHERE id = $1 AND workspace_id = $2`,
-      [id, workspaceId]
-    );
-
-    await client.query('COMMIT');
-
-    // Post-commit operations (non-transactional)
-
-    // Check if a NEW sprint association was added and this is the first issue in that sprint
-    if (belongsToChanged) {
-      const oldSprintIds = oldBelongsTo.filter(bt => bt.type === 'sprint').map(bt => bt.id);
-      const newSprintIds = newBelongsTo.filter(bt => bt.type === 'sprint').map(bt => bt.id);
-      const addedSprintIds = newSprintIds.filter(sprintId => !oldSprintIds.includes(sprintId));
-
-      for (const sprintId of addedSprintIds) {
-        const issueCountResult = await pool.query<CountRow>(
-          `SELECT COUNT(*) as count FROM document_associations
-           WHERE related_id = $1 AND relationship_type = 'sprint'`,
-          [sprintId]
-        );
-        const issueCount = toCount(requireFirstRow(issueCountResult.rows).count);
-
-        if (issueCount === 1) {
-          broadcastToUser(userId, 'accountability:updated', { type: 'week_issues', targetId: sprintId });
-        }
-      }
-    }
-
-    const row = requireFirstRow(result.rows);
-    const displayId = `#${row.ticket_number}`;
-
-    const issue = extractIssueFromRow(row);
-    const belongsTo = await getBelongsToAssociations(id);
-
-    // Broadcast accountability update when an action item issue is completed
-    if (isClosingIssue && wasNotClosed) {
-      const props = (row.properties ?? {}) as Partial<IssueProperties>;
-      if (props.source === 'action_items') {
-        const assigneeId = props.assignee_id || userId;
-        broadcastToUser(assigneeId, 'accountability:updated', { issueId: id, state: data.state });
-      }
-    }
-
-    res.json({ ...issue, display_id: displayId, belongs_to: belongsTo });
+    const result = await updateIssueMutation({
+      client,
+      actor: getActor(req),
+      userId,
+      workspaceId,
+      isAdmin,
+      issueId: id,
+      data: parsed.data,
+    });
+    respondIssueMutation(res, result);
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     sendInternalError(res, err, 'Update issue error:');
@@ -1011,166 +469,28 @@ const bulkUpdateSchema = z.object({
 });
 
 router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = bulkUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendValidationError(res, parsed.error);
+    return;
+  }
+
   const client = await pool.connect();
   try {
-    const parsed = bulkUpdateSchema.safeParse(req.body);
-    if (!parsed.success) {
-      sendValidationError(res, parsed.error);
-      return;
-    }
-
-    const { ids, action, updates } = parsed.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    await client.query('BEGIN');
-
-    // Verify all issues exist and user has access
-    const accessCheck = await client.query<IdRow>(
-      `SELECT id FROM documents
-       WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [ids, workspaceId, userId, isAdmin]
-    );
-
-    const accessibleIds = new Set(accessCheck.rows.map(r => r.id));
-    const failed: { id: string; error: string }[] = [];
-
-    for (const id of ids) {
-      if (!accessibleIds.has(id)) {
-        failed.push({ id, error: 'Not found or no access' });
-      }
-    }
-
-    const validIds = ids.filter(id => accessibleIds.has(id));
-
-    if (validIds.length === 0) {
-      await client.query('ROLLBACK');
-      res.status(404).json({ error: 'No valid issues found', failed });
-      return;
-    }
-
-    let result: { rows: IssueDocumentRow[] };
-
-    switch (action) {
-      case 'archive':
-        result = await client.query<IssueDocumentRow>(
-          `UPDATE documents SET archived_at = NOW(), updated_at = NOW()
-           WHERE id = ANY($1) AND workspace_id = $2
-           RETURNING *`,
-          [validIds, workspaceId]
-        );
-        break;
-
-      case 'delete':
-        result = await client.query<IssueDocumentRow>(
-          `UPDATE documents SET deleted_at = NOW(), updated_at = NOW()
-           WHERE id = ANY($1) AND workspace_id = $2
-           RETURNING *`,
-          [validIds, workspaceId]
-        );
-        break;
-
-      case 'restore':
-        result = await client.query<IssueDocumentRow>(
-          `UPDATE documents SET archived_at = NULL, deleted_at = NULL, updated_at = NOW()
-           WHERE id = ANY($1) AND workspace_id = $2
-           RETURNING *`,
-          [validIds, workspaceId]
-        );
-        break;
-
-      case 'update':
-        if (!updates || Object.keys(updates).length === 0) {
-          await client.query('ROLLBACK');
-          res.status(400).json({ error: 'Updates required for update action' });
-          return;
-        }
-
-        const setClauses: string[] = ['updated_at = NOW()'];
-        const values: unknown[] = [validIds, workspaceId];
-        let paramIdx = 3;
-
-        if (updates.state !== undefined) {
-          // Update state in properties JSONB
-          setClauses.push(`properties = jsonb_set(COALESCE(properties, '{}'), '{state}', $${paramIdx}::jsonb)`);
-          values.push(JSON.stringify(updates.state));
-          paramIdx++;
-        }
-
-        // Note: sprint_id is handled via document_associations table (see below)
-
-        if (updates.assignee_id !== undefined) {
-          // Update assignee_id in properties JSONB
-          setClauses.push(`properties = jsonb_set(COALESCE(properties, '{}'), '{assignee_id}', $${paramIdx}::jsonb)`);
-          values.push(updates.assignee_id === null ? 'null' : JSON.stringify(updates.assignee_id));
-          paramIdx++;
-        }
-
-        result = await client.query<IssueDocumentRow>(
-          `UPDATE documents SET ${setClauses.join(', ')}
-           WHERE id = ANY($1) AND workspace_id = $2
-           RETURNING *`,
-          values
-        );
-
-        if (updates.project_id !== undefined) {
-          let projectId: string | null = updates.project_id;
-          if (projectId !== null) {
-            const projectCheck = await client.query<IdRow>(
-              `SELECT id FROM documents
-               WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-                 AND deleted_at IS NULL`,
-              [projectId, workspaceId]
-            );
-            if (projectCheck.rows.length === 0) {
-              projectId = null;
-            }
-          }
-          await syncAssociationOfTypeForDocuments(validIds, 'project', projectId, client);
-        }
-
-        if (updates.sprint_id !== undefined) {
-          let sprintId: string | null = updates.sprint_id;
-          if (sprintId !== null) {
-            const sprintCheck = await client.query<IdRow>(
-              `SELECT id FROM documents
-               WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
-                 AND deleted_at IS NULL`,
-              [sprintId, workspaceId]
-            );
-            if (sprintCheck.rows.length === 0) {
-              sprintId = null;
-            }
-          }
-          await syncAssociationOfTypeForDocuments(validIds, 'sprint', sprintId, client);
-        }
-        break;
-
-      default:
-        await client.query('ROLLBACK');
-        res.status(400).json({ error: 'Invalid action' });
-        return;
-    }
-
-    await client.query('COMMIT');
-
-    // Map results to issue format
-    const updated = result.rows.map(row => {
-      const issue = extractIssueFromRow(row);
-      return {
-        ...issue,
-        display_id: `#${issue.ticket_number}`,
-        archived_at: row.archived_at,
-        deleted_at: row.deleted_at,
-      };
+    const result = await bulkUpdateIssuesMutation({
+      client,
+      userId,
+      workspaceId,
+      isAdmin,
+      ids: parsed.data.ids,
+      action: parsed.data.action,
+      updates: parsed.data.updates,
     });
-
-    res.json({ updated, failed });
+    respondIssueMutation(res, result);
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     sendInternalError(res, err, 'Bulk update issues error:');
   } finally {
     client.release();
@@ -1228,46 +548,9 @@ router.post('/:id/accept', authMiddleware, async (req: Request, res: Response) =
   try {
     const id = String(req.params.id);
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Get the issue
-    const existing = await pool.query<IssuePropertiesRow>(
-      `SELECT id, properties FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (existing.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
-      return;
-    }
-
-    const props = (requireFirstRow(existing.rows).properties ?? {}) as Partial<IssueProperties>;
-
-    // Verify the issue is in triage state
-    if (props.state !== 'triage') {
-      res.status(400).json({ error: 'Issue must be in triage state to be accepted' });
-      return;
-    }
-
-    // Update state to backlog
-    const newProps = { ...props, state: 'backlog' as const };
-    const result = await pool.query<IssueDocumentRow>(
-      `UPDATE documents
-       SET properties = $3, updated_at = now()
-       WHERE id = $1 AND workspace_id = $2
-       RETURNING *`,
-      [id, workspaceId, JSON.stringify(newProps)]
-    );
-
-    // Log the state change
-    await logDocumentChange(id, 'state', 'triage', 'backlog', userId);
-
-    const issue = extractIssueFromRow(requireFirstRow(result.rows));
-    res.json({ ...issue, display_id: `#${issue.ticket_number}` });
+    const result = await acceptIssueMutation({ issueId: id, userId, workspaceId, isAdmin });
+    respondIssueMutation(res, result);
   } catch (err) {
     sendInternalError(res, err, 'Accept issue error:');
   }
@@ -1292,49 +575,22 @@ router.post('/:id/iterations', authMiddleware, async (req: Request, res: Respons
   try {
     const { id: issueId } = req.params;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
     const parsed = createIterationSchema.safeParse(req.body);
     if (!parsed.success) {
       sendValidationError(res, parsed.error);
       return;
     }
-
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify issue exists and user can access it
-    const issueCheck = await pool.query<IdRow>(
-      `SELECT id, title FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [issueId, workspaceId, userId, isAdmin]
-    );
-
-    if (issueCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
-      return;
-    }
-
-    const { status, what_attempted, blockers_encountered } = parsed.data;
-
-    const result = await pool.query<StoredIterationRow>(
-      `INSERT INTO issue_iterations
-       (issue_id, workspace_id, status, what_attempted, blockers_encountered, author_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [issueId, workspaceId, status, what_attempted || null, blockers_encountered || null, userId]
-    );
-
-    // Get author info
-    const authorResult = await pool.query<AuthorRow>(
-      'SELECT id, name, email FROM users WHERE id = $1',
-      [userId]
-    );
-
-    const iteration = requireFirstRow(result.rows);
-    const author = requireFirstRow(authorResult.rows);
-
-    res.status(201).json(mapStoredIterationRow(iteration, author));
+    const result = await createIssueIterationMutation({
+      issueId: String(issueId),
+      userId,
+      workspaceId,
+      isAdmin,
+      status: parsed.data.status,
+      what_attempted: parsed.data.what_attempted,
+      blockers_encountered: parsed.data.blockers_encountered,
+    });
+    respondIssueMutation(res, result);
   } catch (err) {
     sendInternalError(res, err, 'Create iteration error:');
   }
@@ -1345,49 +601,17 @@ router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response
   try {
     const { id: issueId } = req.params;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Parse and validate query params
     const queryParsed = listIterationsSchema.safeParse(req.query);
     const queryParams = queryParsed.success ? queryParsed.data : {};
-
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify issue exists and user can access it
-    const issueCheck = await pool.query<IdRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [issueId, workspaceId, userId, isAdmin]
-    );
-
-    if (issueCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
-      return;
-    }
-
-    // Build query with optional filters
-    let query = `
-      SELECT i.*, u.name as author_name, u.email as author_email
-      FROM issue_iterations i
-      JOIN users u ON i.author_id = u.id
-      WHERE i.issue_id = $1 AND i.workspace_id = $2
-    `;
-    const params: unknown[] = [issueId, workspaceId];
-    let paramIndex = 3;
-
-    // Filter by status
-    if (queryParams.status) {
-      query += ` AND i.status = $${paramIndex++}`;
-      params.push(queryParams.status);
-    }
-
-    // Sort by timestamp descending (most recent first)
-    query += ' ORDER BY i.created_at DESC';
-
-    const result = await pool.query<IssueIterationRow>(query, params);
-
-    res.json(result.rows.map(mapListedIterationRow));
+    const result = await listIssueIterations(pool, {
+      issueId: String(issueId),
+      workspaceId,
+      userId,
+      isAdmin,
+      status: queryParams.status,
+    });
+    respondIssueMutation(res, result);
   } catch (err) {
     sendInternalError(res, err, 'Get iterations error:');
   }
@@ -1397,55 +621,21 @@ router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response
 router.post('/:id/reject', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
     const parsed = rejectIssueSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'Rejection reason is required' });
       return;
     }
-
-    const { reason } = parsed.data;
-
-    // Get visibility context
+    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Get the issue
-    const existing = await pool.query<IssuePropertiesRow>(
-      `SELECT id, properties FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (existing.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
-      return;
-    }
-
-    const props = (requireFirstRow(existing.rows).properties ?? {}) as Partial<IssueProperties>;
-
-    // Verify the issue is in triage state
-    if (props.state !== 'triage') {
-      res.status(400).json({ error: 'Issue must be in triage state to be rejected' });
-      return;
-    }
-
-    // Update state to cancelled and store rejection reason
-    const newProps = { ...props, state: 'cancelled' as const, rejection_reason: reason };
-    const result = await pool.query<IssueDocumentRow>(
-      `UPDATE documents
-       SET properties = $3, cancelled_at = NOW(), updated_at = now()
-       WHERE id = $1 AND workspace_id = $2
-       RETURNING *`,
-      [id, workspaceId, JSON.stringify(newProps)]
-    );
-
-    // Log the state change
-    await logDocumentChange(id, 'state', 'triage', 'cancelled', userId);
-
-    const issue = extractIssueFromRow(requireFirstRow(result.rows));
-    res.json({ ...issue, display_id: `#${issue.ticket_number}` });
+    const result = await rejectIssueMutation({
+      issueId: id,
+      userId,
+      workspaceId,
+      isAdmin,
+      reason: parsed.data.reason,
+    });
+    respondIssueMutation(res, result);
   } catch (err) {
     sendInternalError(res, err, 'Reject issue error:');
   }
