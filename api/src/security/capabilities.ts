@@ -6,7 +6,6 @@ import {
   expectedTypeForRelationship,
   getDocumentAccessContext,
   getReadableDocument,
-  requireReferenceableDocument,
   type AccessibleDocument,
   type DocumentActor,
 } from '../services/document-access.js';
@@ -130,13 +129,26 @@ async function ensureTokenScope(
   return decision(principal, false, 'token_scope_denied');
 }
 
+async function workspaceAdminDecision(
+  db: QueryRunner,
+  principal: Principal,
+  actor: DocumentActor
+): Promise<CapabilityDecision> {
+  const { isAdmin } = await getDocumentAccessContext(actor, db);
+  return decision(principal, isAdmin, isAdmin ? 'allowed' : 'not_workspace_admin');
+}
+
 export async function authorize(
   db: QueryRunner,
   principal: Principal,
   capability: Capability
 ): Promise<CapabilityDecision> {
   if (capability.resource === 'setup') {
-    return decision(principal, principal.kind === 'setup', principal.kind === 'setup' ? 'allowed' : 'setup_token_required');
+    return decision(
+      principal,
+      principal.kind === 'setup',
+      principal.kind === 'setup' ? 'allowed' : 'setup_token_required',
+    );
   }
 
   const tokenDenied = await ensureTokenScope(principal, capability);
@@ -147,17 +159,15 @@ export async function authorize(
 
   if (capability.resource === 'workspace') {
     if (capability.action === 'read') return decision(principal, true, 'allowed');
-    const { isAdmin } = await getDocumentAccessContext(actor, db);
-    return decision(principal, isAdmin, isAdmin ? 'allowed' : 'not_workspace_admin');
+    return workspaceAdminDecision(db, principal, actor);
   }
 
   if (capability.resource === 'api_token') {
-    const { isAdmin } = await getDocumentAccessContext(actor, db);
-    return decision(principal, isAdmin, isAdmin ? 'allowed' : 'not_workspace_admin');
+    return workspaceAdminDecision(db, principal, actor);
   }
 
   if (capability.resource === 'document' || capability.resource === 'collaboration') {
-    const documentId = capability.resource === 'document' ? capability.documentId : capability.documentId;
+    const { documentId } = capability;
     const expectedType = capability.resource === 'document' ? capability.expectedType : undefined;
     const document = await getReadableDocument(db, actor, documentId, expectedType);
     if (!document) return decision(principal, false, 'document_not_found');
@@ -168,15 +178,12 @@ export async function authorize(
   }
 
   if (capability.resource === 'document_reference') {
-    try {
-      const expectedType = capability.relationship === 'parent'
-        ? undefined
-        : expectedTypeForRelationship(capability.relationship);
-      const target = await requireReferenceableDocument(db, actor, capability.targetId, expectedType);
-      return decision(principal, true, 'allowed', target);
-    } catch {
-      return decision(principal, false, 'reference_not_visible');
-    }
+    const expectedType = capability.relationship === 'parent'
+      ? undefined
+      : expectedTypeForRelationship(capability.relationship);
+    const target = await getReadableDocument(db, actor, capability.targetId, expectedType);
+    if (!target) return decision(principal, false, 'reference_not_visible');
+    return decision(principal, true, 'allowed', target);
   }
 
   if (capability.resource === 'file') {

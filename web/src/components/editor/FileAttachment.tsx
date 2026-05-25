@@ -110,7 +110,7 @@ export const FileAttachmentExtension = Node.create({
 
   addOptions() {
     return {
-      documentId: undefined as string | undefined,
+      documentId: undefined,
     };
   },
 

@@ -8,7 +8,7 @@ import { basename, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { authMiddleware } from '../middleware/auth.js';
 import { getActor, getDocumentAccessContext } from '../services/document-access.js';
-import { authorize } from '../security/capabilities.js';
+import { authorize, type Capability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
 import { useS3Uploads } from '../config/runtime.js';
 import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
@@ -92,6 +92,10 @@ function safeAttachmentFilename(filename: string): string {
   return basename(filename).replace(/[\r\n"]/g, '_').trim() || 'download';
 }
 
+function authorizeRequest(req: Request, capability: Capability) {
+  return authorize(pool, principalFromRequest(req), capability);
+}
+
 // POST /api/files/upload - Get presigned URL for upload
 // For local dev: returns a mock upload URL
 // For production: would return S3 presigned URL
@@ -114,7 +118,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
     }
 
     if (documentId) {
-      const decision = await authorize(pool, principalFromRequest(req), {
+      const decision = await authorizeRequest(req, {
         resource: 'file',
         action: 'create_upload',
         documentId,
@@ -193,7 +197,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
     }
 
     if (file.document_id) {
-      const decision = await authorize(pool, principalFromRequest(req), {
+      const decision = await authorizeRequest(req, {
         resource: 'file',
         action: 'complete_upload',
         documentId: file.document_id,
@@ -288,7 +292,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
     }
 
     if (file.document_id) {
-      const decision = await authorize(pool, principalFromRequest(req), {
+      const decision = await authorizeRequest(req, {
         resource: 'file',
         action: 'complete_upload',
         documentId: file.document_id,
@@ -373,7 +377,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
 
     const file = fileResult.rows[0];
     if (file.document_id) {
-      const decision = await authorize(pool, principalFromRequest(req), {
+      const decision = await authorizeRequest(req, {
         resource: 'file',
         action: 'serve',
         documentId: file.document_id,
@@ -430,7 +434,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const file = result.rows[0];
     if (file.document_id) {
-      const decision = await authorize(pool, principalFromRequest(req), {
+      const decision = await authorizeRequest(req, {
         resource: 'file',
         action: 'read',
         documentId: file.document_id,
@@ -483,7 +487,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
     const file = fileResult.rows[0];
 
     if (file.document_id) {
-      const decision = await authorize(pool, principalFromRequest(req), {
+      const decision = await authorizeRequest(req, {
         resource: 'file',
         action: 'delete',
         documentId: file.document_id,

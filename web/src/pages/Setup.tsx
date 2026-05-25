@@ -18,7 +18,6 @@ export function SetupPage() {
 
   const navigate = useNavigate();
 
-  // Check if setup is needed
   useEffect(() => {
     async function checkSetup() {
       try {

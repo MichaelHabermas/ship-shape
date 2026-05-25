@@ -36,7 +36,7 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get all missing accountability items via inference
-    const missingItems = await checkMissingAccountability(userId, workspaceId);
+    const missingItems = await checkMissingAccountability(userId, workspaceId, req.isSuperAdmin === true);
     const principal = principalFromRequest(req);
     const visibleItems = [];
 

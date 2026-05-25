@@ -20,7 +20,7 @@ import {
   getChangedFields,
   type CAIACredentials,
 } from '../services/secrets-manager.js';
-import { sendInternalError } from '../utils/route-http.js';
+import { errorMessage, sendInternalError } from '../utils/route-http.js';
 import { getAuthenticatedUserContext } from '../utils/auth-context.js';
 
 const router = Router();
@@ -500,11 +500,6 @@ router.post('/save', authMiddleware, superAdminMiddleware, async (req: Request, 
     client_secret: newSecret,
   };
 
-  // Validate issuer discovery before saving. Unsafe issuer URLs fail closed before save.
-  console.log('[AdminCredentials] Validating credentials before save...');
-  console.log(`[AdminCredentials]   Issuer URL: ${newCredentials.issuer_url}`);
-  console.log(`[AdminCredentials]   Client ID: ${newCredentials.client_id}`);
-
   let validationWarning: string | null = null;
   try {
     await validateIssuerDiscovery(
@@ -512,29 +507,17 @@ router.post('/save', authMiddleware, superAdminMiddleware, async (req: Request, 
       newCredentials.client_id,
       newCredentials.client_secret
     );
-    console.log('[AdminCredentials] Validation passed, proceeding to save...');
   } catch (err) {
-    const error = err as Error & { cause?: unknown; code?: string };
-    const errorMessage = error.message || 'Unknown error';
-    console.error('[AdminCredentials] Validation FAILED:');
-    console.error(`[AdminCredentials]   Message: ${errorMessage}`);
-    console.error(`[AdminCredentials]   Name: ${error.name}`);
-    if (error.code) {
-      console.error(`[AdminCredentials]   Code: ${error.code}`);
-    }
-    if (error.cause) {
-      console.error('[AdminCredentials]   Cause:', error.cause);
-    }
-    if (/CAIA issuer URL/i.test(errorMessage)) {
+    const errorMessageText = errorMessage(err);
+    console.error('[AdminCredentials] Issuer validation failed:', errorMessageText);
+    if (/CAIA issuer URL/i.test(errorMessageText)) {
       res.status(400).json({
         success: false,
-        error: { message: errorMessage },
+        error: { message: errorMessageText },
       });
       return;
     }
-    // Store warning but continue with save for safe but temporarily unreachable providers.
-    validationWarning = `Issuer discovery failed: ${errorMessage}`;
-    console.log('[AdminCredentials] Proceeding to save despite validation failure...');
+    validationWarning = `Issuer discovery failed: ${errorMessageText}`;
   }
 
   // Determine which fields changed for audit logging

@@ -19,6 +19,8 @@ pnpm test:e2e:smoke
 
 Run a lane before the full suite when the change maps cleanly to one area. Lanes are triage signals, not landing proof. Docker must be running for real E2E execution because Testcontainers starts PostgreSQL per worker; `--list` is the only runner path that bypasses Docker. Use `E2E_RESULTS_DIR=...` for concurrent lanes or shards. Treat `summary.json` as progress only; final status comes from Playwright's exit code and `${E2E_RESULTS_DIR:-test-results}/playwright/.last-run.json`.
 
+**Agent triage:** After the first failure, read `test-results/e2e-run.log`. If several failures share one error (missing browser, Docker down, wrong `DATABASE_URL`), stop the suite and fix that — do not burn the full run. `scripts/e2e-preflight.sh` checks Docker + Chromium before `run-e2e.sh` starts; the runner also aborts when failures pile up with zero passes and a known infra signature.
+
 Do not make tests faster by weakening assertions, adding blind waits, or hiding failures behind conditional skips. If tests share mutable state, prefer unique seeded records; otherwise use `test.describe.configure({ mode: 'serial' })` deliberately and explain why in the test file.
 
 ## Reusable Helpers

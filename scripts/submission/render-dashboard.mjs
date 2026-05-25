@@ -17,15 +17,20 @@ import { resolve } from 'node:path';
 import {
   buildLedgerModel,
   dashboardHref,
+  findSummaryCard,
+  firstArtifactEvidence,
+  firstCommandEvidence,
   formatValue,
   renderMetricSentence,
   renderTargetOutcome,
+  summaryCardSentence,
 } from './ledger-projections.mjs';
 import {
   buildSecurityTabHtml,
   renderSecurityClientBundle,
   securityDashboardStyles,
 } from './security-dashboard/index.mjs';
+import { renderQuietStorageHelpers } from './browser-storage-client.mjs';
 
 const validateLedgerScript = fileURLToPath(new URL('./validate-ledger.mjs', import.meta.url));
 export const discoveriesPath = resolve(repoRoot, 'my-docs/evidence/discoveries.json');
@@ -35,6 +40,8 @@ export const securityDeliverablePath = resolve(
   repoRoot,
   'my-docs/evidence/security-audit/cat8-audit-deliverable.json'
 );
+
+const EMPTY = '—';
 
 function badge(status) {
   return `<span class="badge ${statusClass(status)}">${escapeHtml(statusLabel(status))}</span>`;
@@ -92,50 +99,23 @@ function categoryGateLine(category) {
   return `${category.passedTests.length}/${category.acceptance_tests.length} acceptance pass; ${result}`;
 }
 
-function claimDensity(category) {
-  const evidence = category.evidence || [];
-  const claimCount = (category.claims || []).length;
+function categoryEvidenceCounts(category) {
+  const artifactCount = (category.evidence || []).filter((item) => item.path).length;
   const boundaryCount = (category.caveats || []).length + (category.non_claims || []).length;
-  const gateCount = (category.acceptance_tests || []).length;
-  const artifactCount = evidence.filter((item) => item.path).length;
-  const manualCount = evidence.filter((item) => item.type === 'manual_observation').length;
-  const score =
-    claimCount * 2 +
-    boundaryCount * 2 +
-    artifactCount +
-    gateCount +
-    manualCount * 2;
-  const level = score >= 18 ? 'high' : score >= 12 ? 'medium' : 'low';
   return {
     artifactCount,
     boundaryCount,
-    claimCount,
-    gateCount,
-    level,
-    manualCount,
-    score,
-    text: `${level[0].toUpperCase()}${level.slice(1)} defense load`,
+    claimCount: (category.claims || []).length,
+    gateLine: `${category.passedTests.length}/${category.acceptance_tests.length}`,
   };
 }
 
-function defenseLoadReceipt(category, mode = 'compact') {
-  const density = claimDensity(category);
-  const details = `${density.score} pts · ${density.claimCount} claim${density.claimCount === 1 ? '' : 's'} · ${
-    density.boundaryCount
-  } boundaries · ${density.artifactCount} artifacts · ${density.gateCount} gates${
-    density.manualCount > 0 ? ` · ${density.manualCount} manual` : ''
-  }`;
-  const meaning =
-    density.level === 'high'
-      ? 'Proven, but review the boundary language and artifact chain before repeating the claim.'
-      : density.level === 'medium'
-        ? 'Proven, with enough supporting structure that the boundary should be checked.'
-        : 'Proven with a comparatively simple evidence path.';
+function defenseLoadReceipt(category) {
+  const counts = categoryEvidenceCounts(category);
+  const details = `${counts.claimCount} claims · ${counts.boundaryCount} boundaries · ${counts.artifactCount} artifacts · ${counts.gateLine} gates`;
   return `
-    <div class="defense-load defense-load-${escapeHtml(density.level)}">
-      <span>${escapeHtml(density.text)}</span>
+    <div class="defense-load">
       <small>${escapeHtml(details)}</small>
-      ${mode === 'full' ? `<em>${escapeHtml(meaning)}</em>` : ''}
     </div>`;
 }
 
@@ -229,28 +209,25 @@ function discoveryCountForCategory(discoveries, category) {
 }
 
 function railMetaLabels(category, discoveries, securityMeta = null) {
-  const density = claimDensity(category);
+  const counts = categoryEvidenceCounts(category);
   const metric = category.primaryTarget?.metric_id
     ? (category.derived_metrics || []).find((item) => item.id === category.primaryTarget.metric_id)
     : null;
   const delta =
     metric?.kind === 'percent_change' && typeof metric.change_percent === 'number'
       ? `${metric.change_percent <= 0 ? '-' : '+'}${formatValue(Math.abs(metric.change_percent))}%`
-      : `${category.passedTests.length}/${category.acceptance_tests.length}`;
-  const artifactCount = (category.evidence || []).filter((item) => item.path).length;
-  const boundaryCount = (category.caveats || []).length + (category.non_claims || []).length;
+      : counts.gateLine;
   const discoveryCount = discoveryCountForCategory(discoveries, category);
-  const load = density.level[0].toUpperCase();
   return {
-    overview: { compact: delta, detail: `${load} · ${delta}` },
-    evidence: { compact: `${artifactCount} art`, detail: `${load} · ${artifactCount} artifacts` },
-    crossExamine: { compact: `${density.score} pts`, detail: `${load} · ${density.score} pts` },
-    claimDiff: { compact: 'diff', detail: `${load} · before -> after` },
-    targets: { compact: `${category.passedTests.length}/${category.acceptance_tests.length}`, detail: `${load} · ${category.passedTests.length}/${category.acceptance_tests.length} gates` },
-    rubric: { compact: `${category.rubric_items.length} rub`, detail: `${load} · ${category.rubric_items.length} rubric` },
-    boundaries: { compact: `${boundaryCount} lim`, detail: `${load} · ${boundaryCount} limits` },
-    discoveries: { compact: `${discoveryCount} find`, detail: `${load} · ${discoveryCount} findings` },
-    security: securityMeta || { compact: 'console', detail: `${load} · Security console` },
+    overview: { compact: delta, detail: `${counts.gateLine} gates · ${delta}` },
+    evidence: { compact: `${counts.artifactCount} art`, detail: `${counts.artifactCount} artifacts` },
+    crossExamine: { compact: `${counts.claimCount} claims`, detail: `${counts.claimCount} claims · ${counts.gateLine} gates` },
+    claimDiff: { compact: 'diff', detail: 'before -> after' },
+    targets: { compact: counts.gateLine, detail: `${counts.gateLine} gates` },
+    rubric: { compact: `${category.rubric_items.length} rub`, detail: `${category.rubric_items.length} rubric` },
+    boundaries: { compact: `${counts.boundaryCount} lim`, detail: `${counts.boundaryCount} limits` },
+    discoveries: { compact: `${discoveryCount} find`, detail: `${discoveryCount} findings` },
+    security: securityMeta || { compact: 'console', detail: 'Security console' },
   };
 }
 
@@ -472,13 +449,32 @@ function summaryCards(category) {
     .join('');
 }
 
-function findSummaryCard(category, title) {
-  return (category.summary_cards || []).find((card) => String(card.title || '').toLowerCase() === title);
+function attackLine(category) {
+  const caveat = category.caveats?.[0];
+  const nonClaim = category.non_claims?.[0];
+  if (category.status !== 'proven') {
+    const problem = firstProblem(category);
+    return problem ? blockerLabel(problem) : EMPTY;
+  }
+  if (nonClaim) return `Does this overreach into the non-claim: ${nonClaim.replace(/\.$/, '')}?`;
+  if (caveat) return `Does this caveat weaken the claim: ${caveat.replace(/\.$/, '')}?`;
+  return EMPTY;
 }
 
-function summaryCardSentence(card) {
-  if (!card?.items?.length) return '';
-  return card.items.map((item) => `${item.label}: ${item.value}`).join(' ');
+function defenseLine(category) {
+  const claim = category.primaryClaim || category.claims?.[0];
+  const tests = category.acceptance_tests || [];
+  const passedCount = tests.filter((test) => test.result === 'pass').length;
+  const caveat = category.caveats?.[0];
+  const nonClaim = category.non_claims?.[0];
+  const scope = nonClaim || caveat;
+  const gate = tests.length ? `${passedCount}/${tests.length} acceptance gates pass` : EMPTY;
+  if (!claim) return gate;
+  return `${gate}. ${claim.statement}${scope ? ` Boundary: ${scope}` : ''}`;
+}
+
+function sourceRequirementLine(category) {
+  return `${category.source_requirement.statement} Source: ${category.source_requirement.source}`;
 }
 
 function reviewerMeaning(category) {
@@ -523,39 +519,6 @@ function claimDiffCards(categories) {
     .join('');
 }
 
-function firstCommandEvidence(category) {
-  return (category.evidence || []).find((item) => item.command) || null;
-}
-
-function firstArtifactEvidence(category) {
-  return (category.evidence || []).find((item) => item.path) || null;
-}
-
-function attackLine(category) {
-  const caveat = category.caveats?.[0];
-  const nonClaim = category.non_claims?.[0];
-  if (category.status !== 'proven') return 'What proof is still missing before this can be claimed?';
-  if (nonClaim) return `Does this overreach into the non-claim: ${nonClaim.replace(/\.$/, '')}?`;
-  if (caveat) return `Does this caveat weaken the claim: ${caveat.replace(/\.$/, '')}?`;
-  return 'What would a reviewer challenge first?';
-}
-
-function defenseLine(category) {
-  const claim = category.primaryClaim || category.claims?.[0];
-  const tests = category.acceptance_tests || [];
-  const passedCount = tests.filter((test) => test.result === 'pass').length;
-  const caveat = category.caveats?.[0];
-  const nonClaim = category.non_claims?.[0];
-  const scope = nonClaim || caveat;
-  const gate = tests.length ? `${passedCount}/${tests.length} acceptance gates pass` : 'No acceptance gates recorded';
-  if (!claim) return `${gate}; use the source requirement and evidence list before making a stronger claim.`;
-  return `${gate}. ${claim.statement}${scope ? ` Boundary: ${scope}` : ''}`;
-}
-
-function sourceRequirementLine(category) {
-  return `${category.source_requirement.statement} Source: ${category.source_requirement.source}`;
-}
-
 function crossExamineCards(categories) {
   return categories
     .map((category) => {
@@ -571,7 +534,7 @@ function crossExamineCards(categories) {
             <div>
               <p class="eyebrow">Cross-Examine Cat ${category.number}</p>
               <h2>${escapeHtml(category.title)}</h2>
-              ${defenseLoadReceipt(category, 'full')}
+              ${defenseLoadReceipt(category)}
             </div>
             ${badge(category.status)}
           </div>
@@ -598,11 +561,11 @@ function crossExamineCards(categories) {
             </div>
             <div>
               <dt>Reproduce</dt>
-              <dd>${command ? `${code(command.command)} <span>${escapeHtml(command.result ? `Result: ${command.result}` : command.description || '')}</span>` : '<span>No command evidence recorded.</span>'}</dd>
+              <dd>${command ? `${code(command.command)} <span>${escapeHtml(command.result ? `Result: ${command.result}` : command.description || '')}</span>` : `<span>${EMPTY}</span>`}</dd>
             </div>
             <div>
               <dt>Artifact</dt>
-              <dd>${artifact ? `${linkedPath(artifact.path, shortPath(artifact.path))} <span>${escapeHtml(artifact.description || '')}</span>` : '<span>No artifact path recorded.</span>'}</dd>
+              <dd>${artifact ? `${linkedPath(artifact.path, shortPath(artifact.path))} <span>${escapeHtml(artifact.description || '')}</span>` : `<span>${EMPTY}</span>`}</dd>
             </div>
           </dl>
         </article>`;
@@ -759,16 +722,16 @@ function gradingPacketRows(packet) {
           <td><strong>Cat ${row.number}</strong><span class="subtle">${escapeHtml(row.title)}</span></td>
           <td>${escapeHtml(row.sourceGate)} ${row.sourcePath ? repoLink(row.sourcePath, 'Source') : ''}</td>
           <td>${escapeHtml(row.baseline)}</td>
-          <td>${escapeHtml(row.improvement || 'Improvement proof is recorded in the ledger.')}</td>
+          <td>${escapeHtml(row.improvement || EMPTY)}</td>
           <td>
-            ${row.proof?.path ? linkedPath(row.proof.path, 'Open proof') : '<span class="subtle">See category evidence</span>'}
+            ${row.proof?.path ? linkedPath(row.proof.path, 'Open proof') : `<span class="subtle">${EMPTY}</span>`}
             ${
               row.reproduce?.command
                 ? `<small>${code(row.reproduce.command)}${row.reproduce.result ? ` · ${escapeHtml(row.reproduce.result)}` : ''}</small>`
                 : ''
             }
           </td>
-          <td>${escapeHtml(row.caveat || 'No special caveat recorded.')}</td>
+          <td>${escapeHtml(row.caveat || EMPTY)}</td>
           <td>${badge(row.status)}<small>${escapeHtml(row.verdict)}</small></td>
         </tr>`
     )
@@ -801,21 +764,21 @@ function evidencePacketSections(categories, packet) {
             </section>
             <section>
               <h3>Boundary</h3>
-              <p>${escapeHtml(row?.caveat || category.non_claims?.[0] || category.caveats?.[0] || 'No special caveat recorded.')}</p>
+              <p>${escapeHtml(row?.caveat || category.non_claims?.[0] || category.caveats?.[0] || EMPTY)}</p>
             </section>
           </div>
-          ${passPathBlock(category, row)}
+          ${passPathBlock(category)}
           <h3>Reproduce / inspect</h3>
           <ul class="check-list">
             ${
               row?.reproduce?.command
                 ? `<li><strong>${escapeHtml(row.reproduce.label)}</strong><span>${code(row.reproduce.command)}</span><small>${escapeHtml(row.reproduce.result || '')}</small></li>`
-                : '<li><strong>No command evidence recorded</strong><span>Use the linked artifact and ledger row.</span></li>'
+                : `<li><span>${EMPTY}</span></li>`
             }
             ${
               row?.proof?.path
                 ? `<li><strong>${escapeHtml(row.proof.label)}</strong><span>${linkedPath(row.proof.path, row.proof.path)}</span></li>`
-                : '<li><strong>No artifact path recorded</strong><span>Use the ledger evidence list below.</span></li>'
+                : `<li><span>${EMPTY}</span></li>`
             }
           </ul>
           <details class="appendix-details">
@@ -827,103 +790,33 @@ function evidencePacketSections(categories, packet) {
     .join('');
 }
 
-const PASS_PATHS = {
-  'cat-1-type-safety': {
-    heading: 'Pass path used: 25% meaningful type-safety reduction',
-    summary:
-      'The source requires a 25% reduction in type-safety violations, preserved functionality, and no superficial unknown swaps. This packet uses the counted syntax reduction path.',
-    facts: [
-      ['Baseline', '1340 counted syntax nodes.'],
-      ['Current', '625 counted syntax nodes, a 53.4% reduction.'],
-      ['Proof', 'pnpm type-check passed; API 509 tests and web 168 tests passed.'],
-      ['Not claimed', 'Does not claim every untyped callback or every low-risk syntax category is gone.'],
-    ],
-  },
-  'cat-2-bundle-size': {
-    heading: 'Pass path used: initial page-load code splitting',
-    summary:
-      'The source allows total bundle reduction or 20% initial page-load reduction through code splitting. This packet uses the initial page-load path.',
-    facts: [
-      ['Baseline', 'Initial entry bundle was 2025.10 KB.'],
-      ['Current', 'Initial entry bundle is 528.48 KB, a 73.9% reduction.'],
-      ['Proof', 'Before/after bundle stats and bundle-analysis artifacts are linked.'],
-      ['Not claimed', 'Does not claim total JS/CSS size decreased or every async chunk is optimized.'],
-    ],
-  },
-  'cat-3-api-response-time': {
-    heading: 'Pass path used: 2 endpoints clear P95 target',
-    summary:
-      'The source requires 20% P95 improvement on at least 2 endpoints under identical benchmark conditions. This packet uses /api/bootstrap and /api/dashboard/my-week.',
-    facts: [
-      ['Endpoint 1', 'GET /api/bootstrap improved 41.9%, 60.3%, and 45.1% at 10/25/50 concurrency.'],
-      ['Endpoint 2', 'GET /api/dashboard/my-week improved 21.1%, 37.7%, and 36.3% at 10/25/50 concurrency.'],
-      ['Proof', 'Before/after benchmark artifacts use the same data, concurrency, and command shape.'],
-      ['Not claimed', 'Does not claim every endpoint improved or production rate limiting was weakened.'],
-    ],
-  },
-  'cat-4-database-query-efficiency': {
-    heading: 'Pass path used: query-count reduction on one user flow',
-    summary:
-      'The source allows 20% fewer queries on at least one user flow or 50% improvement on the slowest query. This packet uses the query-count reduction path.',
-    facts: [
-      ['Baseline', 'Protected docs startup used 33 queries across 7 requests.'],
-      ['Current', 'Protected docs startup uses 24 queries across 1 bootstrap request, a 27.3% reduction.'],
-      ['Proof', 'Query-count artifact and before/after bootstrap EXPLAIN evidence are linked.'],
-      ['Not claimed', 'Does not claim a row-level N+1 fix or Cat 3 latency proof from Cat 4 evidence.'],
-    ],
-  },
-  'cat-5-test-coverage-quality': {
-    heading: 'Pass path used: 3 meaningful regression tests',
-    summary:
-      'The source requires 3 meaningful tests for previously weak critical paths or 3 flaky-test fixes. This packet uses the meaningful regression-test path.',
-    facts: [
-      ['Test 1', 'Overlapping comment mark removal.'],
-      ['Test 2', 'Project issue filtering.'],
-      ['Test 3', 'Private document comment visibility.'],
-      ['Proof', 'API 554 tests and web 172 tests passed; counted risk-comment locations are linked.'],
-      ['Not claimed', 'Does not claim coverage percentage improved or zero retry artifacts under every worker count.'],
-    ],
-  },
-  'cat-6-runtime-error-handling': {
-    heading: 'Pass path used: 3 documented runtime fixes',
-    summary:
-      'The source requires 3 error-handling fixes, with at least 1 real user-facing data-loss or confusion scenario. This packet counts three runtime fixes.',
-    facts: [
-      ['Fix 1', 'CSRF failure returns JSON 403 instead of HTML stack/error output.'],
-      ['Fix 2', 'Offline editor disconnect preserves draft content after reconnect.'],
-      ['Fix 3', 'AI unavailable returns controlled degraded UI without clearing editor content.'],
-      ['User-facing clause', 'Offline editor draft preservation covers real data-loss/confusion risk.'],
-      ['Proof', 'Focused runtime E2E passed 9/9 with named screenshots.'],
-      ['Not counted', 'Comments authorization, migration runner, and general route-boundary hardening are not counted as the 3 fixes.'],
-    ],
-  },
-  'cat-7-accessibility': {
-    heading: 'Pass path used: Critical/Serious fix',
-    summary:
-      'The source allows Lighthouse +10 or fixing all Critical/Serious violations on the 3 most important pages. This packet uses the second path.',
-    facts: [
-      ['Baseline', '2 critical + 40 serious axe nodes.'],
-      ['Current', '0 critical/serious violations on /docs, /documents/:id, and /projects.'],
-      ['Proof', 'pnpm a11y:closeout -- --fail-on-serious.'],
-      ['Not claimed', 'Lighthouse was not rerun; full manual keyboard/screen-reader certification is not claimed.'],
-    ],
-  },
-  'cat-8-security-audit': {
-    heading: 'Pass path used: runnable security probe plus verified fixes',
-    summary:
-      'The source requires a runnable probe, manual security review, dependency CVE coverage, and at least 2 verified vulnerabilities with before/after proof. This packet uses the probe-and-fix path.',
-    facts: [
-      ['Probe', 'Current CI-shaped probe reports 5/5 surfaces measured, 40/40 probes passed, and 0 findings.'],
-      ['Required surfaces', 'Auth/session, WebSocket validation, input sanitization, and dependency CVEs are covered.'],
-      ['Verified fixes', 'File upload validation/serving and WebSocket malformed/oversized resilience have before/after proof.'],
-      ['Manual review', 'CORS/CSP, secrets, rate limits, and verbose errors are recorded in the security evidence.'],
-      ['Not claimed', 'Clean latest probe does not close the historical SS-FIND backlog or prove remote production penetration testing.'],
-    ],
-  },
-};
+function passPathFromCategory(category) {
+  const baseline = findSummaryCard(category, 'audit baseline');
+  const closeout = findSummaryCard(category, 'closeout proof');
+  const facts = [];
+  for (const card of [baseline, closeout]) {
+    if (!card?.items?.length) continue;
+    for (const item of card.items) {
+      facts.push([item.label, item.value]);
+    }
+  }
+  for (const nonClaim of category.non_claims || []) {
+    facts.push(['Not claimed', nonClaim]);
+  }
+  if (facts.length === 0) return null;
+
+  const headingSource = category.primaryClaim?.statement || category.source_requirement?.statement || '';
+  const summarySource =
+    category.proofSummary || category.primaryClaim?.statement || category.source_requirement?.statement || '';
+  return {
+    heading: `Cat ${category.number}: ${importantSentence(headingSource)}`,
+    summary: importantSentence(summarySource),
+    facts,
+  };
+}
 
 function passPathBlock(category) {
-  const passPath = PASS_PATHS[category.id];
+  const passPath = passPathFromCategory(category);
   if (!passPath) return '';
   return `
           <section class="pass-path" aria-labelledby="${escapeHtml(category.id)}-pass-path">
@@ -1251,6 +1144,7 @@ export function renderDashboard(
       </div>
     </main>
     <script>
+      ${renderQuietStorageHelpers()}
       const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
       const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
       const railCells = Array.from(document.querySelectorAll('.rail-cell'));
@@ -1282,9 +1176,7 @@ export function renderDashboard(
           panel.hidden = !isActive;
         }
         if (shouldStore) {
-          try {
-            localStorage.setItem(activeTabStorageKey, target);
-          } catch {}
+          writeStoredString(activeTabStorageKey, target);
         }
         syncRailMeta(target);
         if (shouldFocus) tab.focus();
@@ -1314,10 +1206,7 @@ export function renderDashboard(
       }
       function activateStoredTab() {
         if (location.hash) return;
-        let storedTab = '';
-        try {
-          storedTab = localStorage.getItem(activeTabStorageKey) || '';
-        } catch {}
+        const storedTab = readStoredString(activeTabStorageKey, '');
         if (!storedTab) return;
         const tab = tabs.find((item) => item.dataset.tab === storedTab);
         if (!tab) return;
@@ -1366,10 +1255,7 @@ export function renderDashboard(
       const discoverySortStorageKey = 'ship-submission-dashboard-discovery-sort';
       let discoverySort = { key: 'impact', dir: 'desc' };
       function loadDiscoverySort() {
-        let savedSort = null;
-        try {
-          savedSort = JSON.parse(localStorage.getItem(discoverySortStorageKey) || 'null');
-        } catch {}
+        const savedSort = readStoredJson(discoverySortStorageKey, null);
         if (!savedSort || typeof savedSort !== 'object') return;
         const keys = new Set(sortButtons.map((button) => button.dataset.sort));
         if (!keys.has(savedSort.key)) return;
@@ -1377,9 +1263,7 @@ export function renderDashboard(
         discoverySort = { key: savedSort.key, dir: savedSort.dir };
       }
       function saveDiscoverySort() {
-        try {
-          localStorage.setItem(discoverySortStorageKey, JSON.stringify(discoverySort));
-        } catch {}
+        writeStoredJson(discoverySortStorageKey, discoverySort);
       }
       function discoveryValue(row, key) {
         if (key === 'index' || key === 'impact') return Number(row.dataset[key] || 0);

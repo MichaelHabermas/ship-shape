@@ -273,7 +273,6 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     res.json({ status: 'ok' });
   });
 
-  // API documentation. Public in local/dev; gated in production unless explicitly published.
   setupSwagger(app, openApiShouldRequireAuth() ? authMiddleware : undefined);
 
   // Setup routes (CSRF protected - first-time setup only)
