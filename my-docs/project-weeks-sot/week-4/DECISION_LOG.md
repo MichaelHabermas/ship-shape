@@ -8,7 +8,7 @@ Durable choices made during the audit/improvement work. This file exists so we c
 
 Status: Accepted
 
-Decision: Keep `my-docs/evidence/submission-ledger.json` as the claim source of truth, but render `my-docs/reviewer-dashboard.html` as a four-path reviewer packet: Summary, Evidence, Security, Appendix. The first screen must answer source gate, baseline, improvement proof, artifact/command, caveat, and verdict before exposing raw proof machinery.
+Decision: Keep `my-docs/evidence/submission-ledger.json` as the claim source of truth, but render `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` as a four-path reviewer packet: Summary, Evidence, Security, Appendix. The first screen must answer source gate, baseline, improvement proof, artifact/command, caveat, and verdict before exposing raw proof machinery.
 
 Why: The previous generated dashboard was defensible but reviewer-hostile: it exposed internal views such as defense load, cross-examine, claim diff, targets, rubric, boundaries, and discoveries as peer navigation choices. The source docs grade baseline completeness, before/after proof, reproducibility, and bounded claims. A grading-packet projection maps directly to that job.
 
@@ -170,7 +170,7 @@ Alternatives considered: start another architecture-deepening pass around file a
 
 Consequences: Product code is frozen unless a validation command exposes a blocker. `my-docs/evidence/submission-ledger.json` remains the claim authority. Narrative docs can explain caveats, but generated dashboard/report truth comes from `pnpm submission:render`. No staging, unstaging, or commits without explicit instruction.
 
-Evidence: `my-docs/SUBMISSION_CHECKLIST.md` now indexes deliverables, category proof, deploy smoke, final commands, and claim boundaries; `my-docs/evidence/deploy-smoke-2026-05-24.md` records the basic public Render smoke.
+Evidence: `my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md` now indexes deliverables, category proof, deploy smoke, final commands, and claim boundaries; `my-docs/evidence/deploy-smoke-2026-05-24.md` records the basic public Render smoke.
 
 **Decision Gist**: After proof is good enough, protect it; package evidence instead of reopening implementation.
 
@@ -738,7 +738,7 @@ Alternatives considered: Big-bang `weeks.ts` split first (high merge/conflict ri
 
 Consequences: No git commits in this pass unless user asks. Phase 3 splits (S8/S10) gated on Phase 1–2 integration + type-check/API tests. v3 accountability grid endpoint path unchanged (`/accountability-grid-v3`).
 
-Evidence: Parallel agents A1–A4 Phase 1; eelon agent advisory 2026-05-21; durable phase outcomes in this decision log and `my-docs/IMPROVEMENT_REPORT.md`.
+Evidence: Parallel agents A1–A4 Phase 1; eelon agent advisory 2026-05-21; durable phase outcomes in this decision log and `my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md`.
 
 **Decision Gist**: Delete dead code first, unify cross-cutting helpers second, split god files last with measurement.
 
@@ -914,11 +914,11 @@ Evidence: `pnpm openapi:generate`; `pnpm openapi:check:strict` 193 runtime / 193
 
 Status: Accepted
 
-Decision: Treat `my-docs/evidence/submission-ledger.json` as the structured source for reviewer-facing submission claims, with `my-docs/reviewer-dashboard.html` and the `IMPROVEMENT_REPORT.md` Current Ledger Truth block generated from it. Schema v2 must cover canonical Categories 1-8 and keep category-owned summary cards, targets, acceptance tests, claims, evidence, caveats, and sources together. Narrative docs can explain context, but category status and acceptance-test truth belong in the ledger first.
+Decision: Treat `my-docs/evidence/submission-ledger.json` as the structured source for reviewer-facing submission claims, with `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` and the `IMPROVEMENT_REPORT.md` Current Ledger Truth block generated from it. Schema v2 must cover canonical Categories 1-8 and keep category-owned summary cards, targets, acceptance tests, claims, evidence, caveats, and sources together. Narrative docs can explain context, but category status and acceptance-test truth belong in the ledger first.
 
 Why: `IMPROVEMENT_REPORT.md` is useful history, but prose ledgers drift and can hide partial evidence. The structured ledger makes pass/fail/warn acceptance tests explicit, keeps source requirements beside measurements, and lets the dashboard be regenerated without hand-editing reviewer output.
 
-Consequences: Evidence-changing work should update only the affected ledger categories, keep unproven claims as `partial`, `open`, `needs_fill_in`, or `not_measured`, then run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`. `pnpm submission:render` validates first and then regenerates `my-docs/reviewer-dashboard.html` plus the generated ledger block in `IMPROVEMENT_REPORT.md`. The validator blocks `proven` categories with failing required acceptance tests or incomplete required rubric items; `pnpm submission:check` blocks stale generated outputs.
+Consequences: Evidence-changing work should update only the affected ledger categories, keep unproven claims as `partial`, `open`, `needs_fill_in`, or `not_measured`, then run `pnpm submission:validate`, `pnpm submission:render`, and `pnpm submission:check`. `pnpm submission:render` validates first and then regenerates `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` plus the generated ledger block in `IMPROVEMENT_REPORT.md`. The validator blocks `proven` categories with failing required acceptance tests or incomplete required rubric items; `pnpm submission:check` blocks stale generated outputs.
 
 Evidence: `package.json` exposes `submission:validate`, `submission:render-dashboard`, `submission:render-markdown`, `submission:render`, `submission:check`, `submission:test`, and `submission:validate:strict`; `pnpm submission:validate` reports category pass/fail/warn status from `my-docs/evidence/submission-ledger.json`.
 
@@ -1362,13 +1362,13 @@ Evidence: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_
 
 Status: Accepted
 
-Decision: Publish reviewer-facing evidence through a generated static bundle at `my-docs/reviewer-evidence-bundle/`, intended for a separate Render Static Site named `ship-shape-reviewer-evidence`. Do not fold the reviewer bundle into `ship-shape-web`, AWS app deploys, or authenticated app routes.
+Decision: Publish reviewer-facing evidence through a generated static bundle at `my-docs/project-weeks-sot/week-4/reviewer-evidence-bundle/`, intended for a separate Render Static Site named `ship-shape-reviewer-evidence`. Do not fold the reviewer bundle into `ship-shape-web`, AWS app deploys, or authenticated app routes.
 
 Why: The reviewer dashboard needs live-linkable evidence without coupling proof artifacts to the React SPA, login routing, or app deploy rollback. The static bundle is a publication surface, so it gets a manifest and redaction gate instead of copying raw local reports blindly.
 
 Consequences: `pnpm submission:render` now generates the dashboard, markdown ledger block, and reviewer bundle. `pnpm submission:check` verifies generated dashboard/markdown freshness plus bundle presence/redaction. The Security tab renders latest probe results separately from the known findings backlog so “latest active probe confirmed 0 findings” cannot be read as “all security findings are closed.”
 
-Evidence: `my-docs/reviewer-evidence-bundle/index.html`, `manifest.json`, generated `my-docs/reviewer-dashboard.html` Security tab, and `my-docs/evidence/submission-ledger.json` Cat 8 evidence entry.
+Evidence: `my-docs/project-weeks-sot/week-4/reviewer-evidence-bundle/index.html`, `manifest.json`, generated `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` Security tab, and `my-docs/evidence/submission-ledger.json` Cat 8 evidence entry.
 
 **Decision Gist**: Keep reviewer evidence static, isolated, generated, and bounded by explicit non-claims.
 
@@ -1396,7 +1396,7 @@ Why: The prior Security tab duplicated static tables without the brief-aligned d
 
 Consequences: Regenerate with `pnpm submission:render` after evidence changes. `findingActiveLabel` / `enrichFindingForDisplay` in `@ship/shipshape-security` is the single source for “active backlog” display. `compliance` reads `cat8-audit-deliverable.json` `table` (not `rows`). Static `file://` dashboard remains read-only; use the console server for Run probe.
 
-Evidence: `scripts/submission/security-dashboard/`, `packages/shipshape-security/src/console/server.mjs`, `pnpm security:console`, regenerated `my-docs/reviewer-dashboard.html`.
+Evidence: `scripts/submission/security-dashboard/`, `packages/shipshape-security/src/console/server.mjs`, `pnpm security:console`, regenerated `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html`.
 
 **Decision Gist**: Generated dashboard for review; localhost console server for execution.
 

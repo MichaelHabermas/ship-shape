@@ -1394,7 +1394,7 @@ Closed the non-Cat-8 admissibility gaps that had evidence but not proof packagin
 Validation notes:
 
 - `pnpm submission:validate` passes schema/gates for Cats 2, 4, 6, and 7; Cat 3 remains partial; Cat 8 remains open by instruction.
-- `pnpm submission:render` regenerated `my-docs/reviewer-dashboard.html` and the generated ledger block in `my-docs/IMPROVEMENT_REPORT.md`.
+- `pnpm submission:render` regenerated `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` and the generated ledger block in `my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md`.
 - Focused Cat 6 E2E rerun was blocked by Docker/Testcontainers preflight in this environment; do not describe it as a fresh pass.
 
 ---
@@ -1529,7 +1529,7 @@ Folded CSO/OWASP-style authorization checks into `scripts/security-probe/` (no s
 - **Baseline:** `pnpm security:probe -- --run-id probe-v2-baseline-unfixed` on seeded dev — **10 findings**, **10 known-open**, **0 new** (registry pre-seeded), **2 resolved** (bulk-issue + dashboard probes passed; confirm against ledger intent).
 - **Preserved conceptually:** historical perimeter closeout remains represented through the stable latest security artifacts and ledger wording; the old `runs/cat8-final/` path is no longer present in-tree.
 
-Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.
+Decision: D062. Runbook: `my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md`.
 
 ---
 
@@ -1537,7 +1537,7 @@ Decision: D062. Runbook: `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`.
 
 Discovery: The reviewer dashboard already had Cat 8 proof, but security evidence was split across rubric rows, discoveries, non-claims, `latest.json`, and `security-findings.json`. A reviewer could mistake “latest probe clean” for “all known security findings closed.”
 
-Decision: Add a generated Security tab to `my-docs/reviewer-dashboard.html` and package a deterministic static bundle at `my-docs/reviewer-evidence-bundle/` for a separate Render Static Site. The tab shows latest probe metrics, evidence links, per-probe results, known SS-FIND backlog rows, rerun commands, and explicit non-claims.
+Decision: Add a generated Security tab to `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` and package a deterministic static bundle at `my-docs/project-weeks-sot/week-4/reviewer-evidence-bundle/` for a separate Render Static Site. The tab shows latest probe metrics, evidence links, per-probe results, known SS-FIND backlog rows, rerun commands, and explicit non-claims.
 
 Risk found during implementation: the bundle is a new publication surface. Raw evidence can expose local workstation paths, session-cookie examples, or DB URLs. The renderer now redacts local absolute paths, bearer tokens, session cookies, private keys, and DB URL passwords in the bundled copy and fails if those patterns remain.
 

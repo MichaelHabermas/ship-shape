@@ -44,7 +44,7 @@ EXAMPLES
   pnpm security:console
 
 Evidence: my-docs/evidence/security-audit/
-Source:   my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt
+Source:   my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt
 `;
 
 export async function runCli(argv) {

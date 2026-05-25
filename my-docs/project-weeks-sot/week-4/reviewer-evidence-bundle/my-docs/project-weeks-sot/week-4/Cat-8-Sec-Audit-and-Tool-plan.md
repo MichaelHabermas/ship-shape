@@ -1,6 +1,6 @@
 # Category 8 Security Audit Runbook
 
-Source of truth: `my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt`.
+Source of truth: `my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt`.
 
 Category 8 is delivered as **`shipshape-security`** (`@ship/shipshape-security` in this monorepo): a runnable CLI + TUI that probes the live app and manages the findings SoT.
 

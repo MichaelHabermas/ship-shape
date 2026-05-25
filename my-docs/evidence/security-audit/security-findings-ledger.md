@@ -440,7 +440,7 @@ File serve/download checks `files.workspace_id = req.workspaceId` only. No link 
 
 **Discovery log**
 
-Related to historical note in `my-docs/discovery-research-log.md` (~file authorization theme).
+Related to historical note in `my-docs/project-weeks-sot/week-4/discovery-research-log.md` (~file authorization theme).
 
 **Recommended fix**
 
@@ -1241,7 +1241,7 @@ When fixing, add probes under `scripts/security-probe/probes/`. Phase 1–2 prob
 
 ## Verified fixes (for comparison)
 
-These were found and **fixed** during Category 8 probe work. Documented in `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`:
+These were found and **fixed** during Category 8 probe work. Documented in `my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md`:
 
 | Issue | Before run | After run | Fix location |
 | --- | --- | --- | --- |

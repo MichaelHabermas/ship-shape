@@ -9,7 +9,7 @@ File serve/download checks `files.workspace_id = req.workspaceId` only. No link 
 
 **Discovery log**
 
-Related to historical note in `my-docs/discovery-research-log.md` (~file authorization theme).
+Related to historical note in `my-docs/project-weeks-sot/week-4/discovery-research-log.md` (~file authorization theme).
 
 **Recommended fix**
 

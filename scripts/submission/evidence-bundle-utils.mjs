@@ -13,6 +13,7 @@ import {
 } from './ledger-utils.mjs';
 import { evidenceBundleRequiredFiles } from './required-artifacts.mjs';
 import { securityFindingsPath, securityReportPath } from './render-dashboard.mjs';
+import { week4 } from './week4-paths.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 
@@ -105,12 +106,12 @@ async function redactBundleTextFiles() {
 
 function renderBundleIndex(manifest) {
   const links = [
-    ['Reviewer packet', 'my-docs/reviewer-dashboard.html'],
+    ['Reviewer packet', week4.dashboard],
     ['Submission ledger', 'my-docs/evidence/submission-ledger.json'],
     ['Security latest report', 'my-docs/evidence/security-audit/latest.json'],
     ['Security findings ledger', 'my-docs/evidence/security-audit/security-findings-ledger.md'],
-    ['Category 8 source brief', 'my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt'],
-    ['Improvement report', 'my-docs/IMPROVEMENT_REPORT.md'],
+    ['Category 8 source brief', week4.securityBrief],
+    ['Improvement report', week4.improvementReport],
     ['Bundle manifest', 'manifest.json'],
   ];
   return `<!doctype html>

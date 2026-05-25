@@ -3,14 +3,15 @@ import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { week4 } from './week4-paths.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 export const repoRoot = resolve(scriptDir, '../..');
 export const ledgerPath = resolve(repoRoot, 'my-docs/evidence/submission-ledger.json');
 export const schemaPath = resolve(repoRoot, 'my-docs/evidence/schema.json');
-export const dashboardPath = resolve(repoRoot, 'my-docs/reviewer-dashboard.html');
-export const reviewerBundlePath = resolve(repoRoot, 'my-docs/reviewer-evidence-bundle');
-export const improvementReportPath = resolve(repoRoot, 'my-docs/IMPROVEMENT_REPORT.md');
+export const dashboardPath = resolve(repoRoot, week4.dashboard);
+export const reviewerBundlePath = resolve(repoRoot, week4.reviewerBundle);
+export const improvementReportPath = resolve(repoRoot, week4.improvementReport);
 
 export async function readJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));

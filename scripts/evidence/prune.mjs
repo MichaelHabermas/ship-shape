@@ -7,9 +7,9 @@ import { exists, readJson, repoRelative, repoRoot } from './lib/fs-utils.mjs';
 const RUNS_DIR = resolve(repoRoot, 'my-docs/evidence-runs');
 const PROTECTION_FILES = [
   'my-docs/evidence/submission-ledger.json',
-  'my-docs/SUBMISSION_CHECKLIST.md',
-  'my-docs/IMPROVEMENT_REPORT.md',
-  'my-docs/reviewer-dashboard.html',
+  'my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md',
+  'my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md',
+  'my-docs/project-weeks-sot/week-4/reviewer-dashboard.html',
 ];
 
 async function readTextIfExists(path) {

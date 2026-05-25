@@ -1,27 +1,29 @@
 /** Canonical artifact lists for submission bundle and reviewer checks. */
 
+import { week4 } from './week4-paths.mjs';
+
 export const reviewerBundleRequiredFiles = [
   'index.html',
   'manifest.json',
-  'my-docs/reviewer-dashboard.html',
+  week4.dashboard,
   'my-docs/evidence/submission-ledger.json',
   'my-docs/evidence/security-audit/latest.json',
   'my-docs/evidence/security-audit/security-findings.json',
   'my-docs/evidence/security-audit/security-findings-ledger.md',
-  'my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt',
+  week4.securityBrief,
 ];
 
 export const evidenceBundleRequiredFiles = [
-  'my-docs/reviewer-dashboard.html',
+  week4.dashboard,
   'my-docs/evidence/submission-ledger.json',
   'my-docs/evidence/security-audit/latest.json',
   'my-docs/evidence/security-audit/latest.md',
   'my-docs/evidence/security-audit/cat8-audit-deliverable.json',
   'my-docs/evidence/security-audit/security-findings.json',
   'my-docs/evidence/security-audit/security-findings-ledger.md',
-  'my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt',
-  'my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt',
-  'my-docs/IMPROVEMENT_REPORT.md',
-  'my-docs/SUBMISSION_CHECKLIST.md',
-  'my-docs/Cat-8-Sec-Audit-and-Tool-plan.md',
+  week4.securityBrief,
+  week4.gfaBrief,
+  week4.improvementReport,
+  week4.submissionChecklist,
+  week4.cat8Plan,
 ];

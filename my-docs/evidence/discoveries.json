@@ -62,7 +62,7 @@
       "title": "API token blast radius was not the fix",
       "note": "Existing middleware already denied super-admin token escalation.",
       "status": "Rejected",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -71,7 +71,7 @@
       "title": "Association leak was not the fix",
       "note": "Current reference paths already validated workspace boundaries.",
       "status": "Rejected",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -179,7 +179,7 @@
       "title": "Rate limits polluted benchmark truth",
       "note": "Before/after proof needed a non-prod benchmark bypass.",
       "status": "Proven",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -260,7 +260,7 @@
       "title": "Ledger is the claim source",
       "note": "Dashboard and improvement report render from structured ledger truth.",
       "status": "Fixed",
-      "evidence": "my-docs/DECISION_LOG.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/DECISION_LOG.md",
       "impact": 5
     },
     {
@@ -278,7 +278,7 @@
       "title": "Boundary parsers reduce unsafe sprawl",
       "note": "JSON helpers cut lint noise without changing AST any count.",
       "status": "Deferred",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 2
     },
     {
@@ -314,7 +314,7 @@
       "title": "Use focused reruns before full proof",
       "note": "Former failures and flake cases were verified before final full run.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -323,7 +323,7 @@
       "title": "Policy-as-code auth oracle is bigger than Cat 8",
       "note": "Useful, but too broad for the closeout lane.",
       "status": "Deferred",
-      "evidence": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",
       "impact": 2
     },
     {
@@ -332,7 +332,7 @@
       "title": "Scoped API tokens are product direction",
       "note": "Route audiences and expirations are deferred past Cat 8.",
       "status": "Deferred",
-      "evidence": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",
       "impact": 2
     },
     {
@@ -359,7 +359,7 @@
       "title": "First-time setup could mint multiple super admins",
       "note": "Unlocked check-then-create flow allowed concurrent bootstrap winners.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -368,7 +368,7 @@
       "title": "Private document comments bypassed visibility",
       "note": "Workspace member could read, create, and resolve comments on hidden documents.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -377,7 +377,7 @@
       "title": "Related document metadata could leak through context",
       "note": "Associations and context needed visibility filters on joined documents.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -386,7 +386,7 @@
       "title": "WebSocket auth ignored membership revocation",
       "note": "Realtime session validation missed the REST workspace-membership check.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -395,7 +395,7 @@
       "title": "API tokens were delegated credentials",
       "note": "Token model behaved like full bearer delegation, not scoped tool access.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -404,7 +404,7 @@
       "title": "Super-admin API token route reach was probed",
       "note": "Token blast-radius risk was confirmed as a target and then denied by middleware.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -413,7 +413,7 @@
       "title": "Issue associations accepted foreign workspace targets",
       "note": "belongs_to could create impossible cross-workspace graph edges before guards.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -422,7 +422,7 @@
       "title": "File auth was workspace-wide instead of attachment-aware",
       "note": "File metadata/download/delete needed tighter document or uploader authority semantics.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -431,7 +431,7 @@
       "title": "Public feedback accepted private program ids",
       "note": "Unauthenticated feedback could target any known program id before gating.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -440,7 +440,7 @@
       "title": "Claude context could bypass private visibility",
       "note": "AI context helpers needed shared readable-document enforcement.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -449,7 +449,7 @@
       "title": "Activity exposed private entity existence",
       "note": "Activity metadata could reveal hidden entity shape through related endpoints.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -458,7 +458,7 @@
       "title": "Dashboard allocations could leak private work metadata",
       "note": "Allocation views needed a product decision on whether assignment grants visibility.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -467,7 +467,7 @@
       "title": "Team allocation writes were member-wide",
       "note": "Any workspace member could mutate allocation planning state before authority guards.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -476,7 +476,7 @@
       "title": "Week lifecycle mutations used visibility as authority",
       "note": "Start and carryover could bypass the stricter approval authority model.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -485,7 +485,7 @@
       "title": "Debug user delete was non-transactional",
       "note": "Cleanup could partially deprovision users after deleting sessions and memberships.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -494,7 +494,7 @@
       "title": "Document identity had competing models",
       "note": "Yjs rooms, browser cache, conversion, and persistence needed one document identity boundary.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -503,7 +503,7 @@
       "title": "Conversion advertised realtime redirect without notifying",
       "note": "Document conversion route needed to tell collaborators about replacement state.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -512,7 +512,7 @@
       "title": "Converted-documents list used legacy model",
       "note": "Current conversion properties were invisible to the old list query.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -521,7 +521,7 @@
       "title": "Comments OpenAPI doubled the api prefix",
       "note": "Generated clients would call /api/api comments routes before schema cleanup.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -530,7 +530,7 @@
       "title": "OpenAPI advertised search that runtime lacked",
       "note": "Contract claimed full document search before route capability existed.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -539,7 +539,7 @@
       "title": "OpenAPI looked comprehensive while missing live route families",
       "note": "Route parity needed generated checks instead of trusting artifact size.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -548,7 +548,7 @@
       "title": "defineRoute error schema drift remained",
       "note": "Some legacy 400 responses still differed from the documented wrapper shape.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -557,7 +557,7 @@
       "title": "Migration runner could fake green on numbered failures",
       "note": "already-exists recovery had to be scoped to schema bootstrap only.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -566,7 +566,7 @@
       "title": "Shadow DB restore scripts could report success after failure",
       "note": "Destructive restore pipelines masked psql errors with || true.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -575,7 +575,7 @@
       "title": "Deploy script must not auto-apply Terraform",
       "note": "Application deploy and infrastructure mutation were split behind explicit opt-in.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -584,7 +584,7 @@
       "title": "Production Terraform had competing roots",
       "note": "Root and environment Terraform paths needed one source of truth.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -593,7 +593,7 @@
       "title": "Security docs overstated CI gates",
       "note": "Repo policy claimed required GitHub Actions gates that were not tracked.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -602,7 +602,7 @@
       "title": "Accountability auto-issue docs were overclaiming",
       "note": "Docs now describe inference-only behavior instead of tracked auto-issues.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -611,7 +611,7 @@
       "title": "RACI comments needed passive-metadata wording",
       "note": "Consulted/informed fields were exposed but not workflow authority.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -620,7 +620,7 @@
       "title": "Production API bundle included tests",
       "note": "Compiled test files leaked into deploy artifact until build excludes tightened.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -629,7 +629,7 @@
       "title": "Tracked deploy artifacts bypassed ignore rules",
       "note": "Deploy zips, plans, and dev bundles were tracked despite ignore intent.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -638,7 +638,7 @@
       "title": "Route-level lazy loading was the real bundle lever",
       "note": "Entry chunk needed page-level splits, not just existing nested lazy imports.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -647,7 +647,7 @@
       "title": "API coverage gate was only a changed-file heuristic",
       "note": "The script name sounded repo-wide but only checked staged UI fetches.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -656,7 +656,7 @@
       "title": "Root lint was a no-op placeholder",
       "note": "Green lint output did not mean the repo had been linted.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -665,7 +665,7 @@
       "title": "API test setup could erase real data",
       "note": "Database safety depended on disposable test DB discipline.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 5
     },
     {
@@ -674,7 +674,7 @@
       "title": "Compare broad E2E failures against clean master",
       "note": "Dependency branches should not overclaim existing suite debt as regressions.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -683,7 +683,7 @@
       "title": "AI rate-limit message understated executable limit",
       "note": "User-facing 10/hour text diverged from a 120/hour service constant.",
       "status": "Watch",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 3
     },
     {
@@ -692,7 +692,7 @@
       "title": "Claude retro queried an impossible document shape",
       "note": "Retro context looked rich but searched for data the document model could not represent.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -701,7 +701,7 @@
       "title": "Safe patch overrides beat framework-major migrations",
       "note": "Patched transitives were handled narrowly; major upgrades became separate work.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     },
     {
@@ -710,7 +710,7 @@
       "title": "Open findings must keep their status",
       "note": "High-impact discoveries can appear in the table without being claimed fixed.",
       "status": "Fixed",
-      "evidence": "my-docs/discovery-research-log.md",
+      "evidence": "my-docs/project-weeks-sot/week-4/discovery-research-log.md",
       "impact": 4
     }
   ]
