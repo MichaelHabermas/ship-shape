@@ -30,6 +30,7 @@ import {
   renderSecurityClientBundle,
   securityDashboardStyles,
 } from './security-dashboard/index.mjs';
+import { renderQuietStorageHelpers } from './browser-storage-client.mjs';
 
 const validateLedgerScript = fileURLToPath(new URL('./validate-ledger.mjs', import.meta.url));
 export const discoveriesPath = resolve(repoRoot, 'my-docs/evidence/discoveries.json');
@@ -676,22 +677,22 @@ function verdictStrip(categories) {
   const rows = [
     {
       label: 'Claim-ready',
-      note: EMPTY,
+      note: 'Safe to lead with.',
       categories: claimReady,
     },
     {
       label: 'Evidence-backed, blocked',
-      note: EMPTY,
+      note: 'Good result, missing required artifact.',
       categories: evidenceBackedBlocked,
     },
     {
       label: 'Needs proof',
-      note: EMPTY,
+      note: 'Useful work, source gate still open.',
       categories: needsProof,
     },
     {
       label: 'Not ready',
-      note: EMPTY,
+      note: 'Placeholder lane.',
       categories: notReady,
     },
   ];
@@ -1143,6 +1144,7 @@ export function renderDashboard(
       </div>
     </main>
     <script>
+      ${renderQuietStorageHelpers()}
       const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
       const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
       const railCells = Array.from(document.querySelectorAll('.rail-cell'));
@@ -1174,9 +1176,7 @@ export function renderDashboard(
           panel.hidden = !isActive;
         }
         if (shouldStore) {
-          try {
-            localStorage.setItem(activeTabStorageKey, target);
-          } catch { /* ignore */ }
+          writeStoredString(activeTabStorageKey, target);
         }
         syncRailMeta(target);
         if (shouldFocus) tab.focus();
@@ -1206,10 +1206,7 @@ export function renderDashboard(
       }
       function activateStoredTab() {
         if (location.hash) return;
-        let storedTab = '';
-        try {
-          storedTab = localStorage.getItem(activeTabStorageKey) || '';
-        } catch { /* ignore */ }
+        const storedTab = readStoredString(activeTabStorageKey, '');
         if (!storedTab) return;
         const tab = tabs.find((item) => item.dataset.tab === storedTab);
         if (!tab) return;
@@ -1258,10 +1255,7 @@ export function renderDashboard(
       const discoverySortStorageKey = 'ship-submission-dashboard-discovery-sort';
       let discoverySort = { key: 'impact', dir: 'desc' };
       function loadDiscoverySort() {
-        let savedSort = null;
-        try {
-          savedSort = JSON.parse(localStorage.getItem(discoverySortStorageKey) || 'null');
-        } catch { /* ignore */ }
+        const savedSort = readStoredJson(discoverySortStorageKey, null);
         if (!savedSort || typeof savedSort !== 'object') return;
         const keys = new Set(sortButtons.map((button) => button.dataset.sort));
         if (!keys.has(savedSort.key)) return;
@@ -1269,9 +1263,7 @@ export function renderDashboard(
         discoverySort = { key: savedSort.key, dir: savedSort.dir };
       }
       function saveDiscoverySort() {
-        try {
-          localStorage.setItem(discoverySortStorageKey, JSON.stringify(discoverySort));
-        } catch { /* ignore */ }
+        writeStoredJson(discoverySortStorageKey, discoverySort);
       }
       function discoveryValue(row, key) {
         if (key === 'index' || key === 'impact') return Number(row.dataset[key] || 0);

@@ -5,7 +5,7 @@
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
     "branch": "deslop-1",
-    "commit": "94679c4e1522acb4408ef3e0eee320262ee0f5d8",
+    "commit": "ea475b2bd9129a0d1a96c3f71277a0d814e370a4",
     "dirtyWorktree": true
   },
   "security": {

@@ -1,6 +1,9 @@
+import { renderQuietStorageHelpers } from '../browser-storage-client.mjs';
+
 /** Browser helper functions inlined into the security console IIFE. */
 export function renderClientUtils() {
   return `
+        ${renderQuietStorageHelpers()}
         const FILTER_STORAGE_KEY = 'ship-security-console-filters-v1';
         const PREFS_STORAGE_KEY = 'ship-security-console-prefs-v1';
         let focusTrapPrevious = null;
@@ -15,35 +18,19 @@ export function renderClientUtils() {
         }
 
         function loadPrefs() {
-          try {
-            return JSON.parse(localStorage.getItem(PREFS_STORAGE_KEY) || '{}') || {};
-          } catch {
-            return {};
-          }
+          return readStoredJson(PREFS_STORAGE_KEY, {}) || {};
         }
 
         function savePrefs(prefs) {
-          try {
-            localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
-          } catch {
-            /* ignore */
-          }
+          writeStoredJson(PREFS_STORAGE_KEY, prefs);
         }
 
         function loadFilters() {
-          try {
-            return JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY) || '{}') || {};
-          } catch {
-            return {};
-          }
+          return readStoredJson(FILTER_STORAGE_KEY, {}) || {};
         }
 
         function saveFilters(filters) {
-          try {
-            localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
-          } catch {
-            /* ignore */
-          }
+          writeStoredJson(FILTER_STORAGE_KEY, filters);
         }
 
         async function copyText(text, toastEl) {

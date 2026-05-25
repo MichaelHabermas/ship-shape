@@ -42,7 +42,7 @@ export function renderManualReview(view, helpers) {
               <h4>${escapeHtml(label)}</h4>
               <span class="test-chip ${chip}">${escapeHtml(status)}</span>
             </header>
-            <p>${escapeHtml(formatManualDetail(detail).slice(0, 400) || '—')}</p>
+            <p>${escapeHtml(formatManualDetail(detail).slice(0, 400) || 'See latest.json manualReview block.')}</p>
           </article>`;
       }).join('')}
     </div>`;

@@ -19,14 +19,20 @@ declare global {
   }
 }
 
-const SESSION_EXPIRED_MESSAGES: Record<
-  Extract<SessionValidationFailure, 'absolute_timeout' | 'inactivity_timeout' | 'binding_mismatch'>,
-  string
-> = {
+type SessionExpiredReason = Extract<
+  SessionValidationFailure,
+  'absolute_timeout' | 'inactivity_timeout' | 'binding_mismatch'
+>;
+
+const SESSION_EXPIRED_MESSAGES: Record<SessionExpiredReason, string> = {
   binding_mismatch: 'Session security changed. Please log in again.',
   absolute_timeout: 'Session expired. Please log in again.',
   inactivity_timeout: 'Session expired due to inactivity',
 };
+
+function isSessionExpiredReason(reason: SessionValidationFailure): reason is SessionExpiredReason {
+  return reason in SESSION_EXPIRED_MESSAGES;
+}
 
 export async function authMiddleware(
   req: Request,
@@ -110,11 +116,7 @@ export async function authMiddleware(
         return;
       }
 
-      if (
-        validation.reason === 'absolute_timeout' ||
-        validation.reason === 'inactivity_timeout' ||
-        validation.reason === 'binding_mismatch'
-      ) {
+      if (isSessionExpiredReason(validation.reason)) {
         res.status(HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
           error: {

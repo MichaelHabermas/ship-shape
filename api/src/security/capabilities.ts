@@ -144,8 +144,11 @@ export async function authorize(
   capability: Capability
 ): Promise<CapabilityDecision> {
   if (capability.resource === 'setup') {
-    const allowed = principal.kind === 'setup';
-    return decision(principal, allowed, allowed ? 'allowed' : 'setup_token_required');
+    return decision(
+      principal,
+      principal.kind === 'setup',
+      principal.kind === 'setup' ? 'allowed' : 'setup_token_required',
+    );
   }
 
   const tokenDenied = await ensureTokenScope(principal, capability);

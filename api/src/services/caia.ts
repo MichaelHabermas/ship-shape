@@ -71,9 +71,7 @@ function getRedirectUri(): string {
   if (!baseUrl) {
     throw new Error('APP_BASE_URL environment variable is required');
   }
-  const redirectUri = `${baseUrl}/api/auth/piv/callback`;
-  console.log(`[CAIA] Using redirect_uri: ${redirectUri}`);
-  return redirectUri;
+  return `${baseUrl}/api/auth/piv/callback`;
 }
 
 /**
@@ -107,13 +105,11 @@ export async function isCAIAConfigured(): Promise<boolean> {
 export async function initializeCAIA(): Promise<void> {
   const configured = await isCAIAConfigured();
   if (!configured) {
-    console.log('CAIA not configured, skipping initialization');
     return;
   }
 
   try {
-    const config = await discoverIssuer();
-    console.log('CAIA issuer discovered:', config.serverMetadata().issuer);
+    await discoverIssuer();
   } catch (err) {
     console.error('Failed to discover CAIA issuer:', err);
     throw err;

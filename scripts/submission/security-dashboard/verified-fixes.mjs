@@ -2,7 +2,7 @@ export function renderVerifiedFixes(view, helpers) {
   const { escapeHtml, linkedPath, humanizeId } = helpers;
   const fixes = view.category?.audit_deliverable?.verified_vulnerability_fixes || [];
   if (!fixes.length) {
-    return '<p class="subtle">—</p>';
+    return '<p class="subtle">No verified vulnerability fixes recorded in the submission ledger.</p>';
   }
   return `
     <div class="security-verified-grid">

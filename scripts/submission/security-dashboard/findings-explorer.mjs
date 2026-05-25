@@ -19,7 +19,7 @@ export function renderFindingsTable(view, helpers) {
           <td>${escapeHtml([finding.owasp, finding.category].filter(Boolean).join(' / '))}</td>
           <td><span class="path" title="${escapeHtml(location)}">${escapeHtml(location)}</span></td>
           <td>${narrativePath ? linkedPath(narrativePath, finding.title || finding.id) : escapeHtml(finding.title || finding.id)}</td>
-          <td>${escapeHtml(verification ? `${verification.result} · ${verification.runId || verification.method || verification.at}` : '—')}</td>
+          <td>${escapeHtml(verification ? `${verification.result} · ${verification.runId || verification.method || verification.at}` : 'not recorded')}</td>
         </tr>`;
     })
     .join('');

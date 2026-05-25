@@ -179,7 +179,7 @@ function buildGradingRow(category) {
     status: category.status,
     sourceGate: category.source_requirement?.statement || '',
     sourcePath: category.source_requirement?.source || '',
-    baseline: summaryCardSentence(baseline) || '',
+    baseline: summaryCardSentence(baseline) || 'Audit baseline fields are recorded in the ledger.',
     improvement,
     proof: artifactEvidence
       ? {

@@ -222,7 +222,6 @@ export const FileAttachmentExtension = Node.create({
  * @param editor - TipTap editor instance
  * @param file - File to upload
  * @param signal - Optional AbortSignal for cancelling uploads on navigation/cleanup
- * @param documentId - Optional document ID to bind the upload to
  */
 async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal, documentId?: string) {
   // Check if already aborted
@@ -353,7 +352,6 @@ async function handleFileUpload(editor: Editor, file: File, signal?: AbortSignal
  * Trigger file picker for file upload
  * @param editor - TipTap editor instance
  * @param signal - Optional AbortSignal for cancelling uploads on navigation/cleanup
- * @param documentId - Optional document ID to bind the upload to
  */
 export function triggerFileUpload(editor: Editor, signal?: AbortSignal, documentId?: string) {
   // Check if already aborted
