@@ -36,6 +36,19 @@ Future application: new document command types must extend `documentCommandCapab
 
 ---
 
+## Code quality Epic 1 phase pause (2026-05-24)
+
+Decision: pause after slices 1.1–1.3, 1.5, 1.6 with Phase closeout (deslop, simplify, tests). Slice 1.4 and 1.5b remain. Human gate: **“Tell me you're done.”** before 1.4 or Epic 2.
+
+| Item | Status |
+|------|--------|
+| D081 delete `workspaceAccessMiddleware` | Done |
+| D082 setup Principal → Slice 1.5b | Deferred in plan |
+| D083 phase-2 routes Appendix D | Done |
+| Phase closeout ritual in plan | Added |
+
+---
+
 ## Code quality Slice 1.3 — mutation token scopes (2026-05-24)
 
 | Finding | Disposition |

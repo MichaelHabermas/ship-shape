@@ -20,9 +20,21 @@ Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledge
 - Deliverable: `my-docs/evidence/auth-matrix.md`
 - Orchestrator: parallel sub-agents (route inventory, god-file scan, capabilities review, probe dedupe preflight)
 
-### Next slice
+### Next slice (after human OK)
 
-- **1.4** — Merge `document-policy` into capabilities (or **1.5** after decision on `workspaceAccessMiddleware`).
+- **1.4** — Merge `document-policy` into capabilities.
+- **1.5b** — Setup `Principal` + `authorize` (deferred D082).
+
+### Slice 1.5 (2026-05-24)
+
+- Deleted `workspaceAccessMiddleware` (D081).
+- `documents.ts` reads use `loadDocumentForRead` → `authorize` read.
+- API token revoke uses `authorize` (`api_token` / `revoke`).
+- Setup Principal deferred to Slice **1.5b** (D082) — explicitly in plan.
+
+### Epic 1 phase pause (2026-05-24)
+
+Slices **0.1, 1.1–1.3, 1.5, 1.6** landed. **1.4** and **1.5b** remain. Phase closeout: type-check, **619/619** API tests, 76 focused auth tests, probe 33/33, smoke 27/27; deslop + simplify applied to auth diff.
 
 ---
 

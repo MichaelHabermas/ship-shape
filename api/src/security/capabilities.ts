@@ -16,7 +16,6 @@ import type { ApiTokenScope, Principal } from './principal.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
-/** Collapsed document capability vocabulary (D080). */
 export type DocumentCapabilityAction = 'read' | 'write' | 'governance' | 'collaborate';
 
 export type DocumentCapabilityEnforce = 'creator_or_admin' | 'workspace_admin';
@@ -82,7 +81,6 @@ export type DocumentCommandType =
   | 'convert'
   | 'delete';
 
-/** Maps document commands to collapsed capabilities plus optional session enforcement. */
 export function documentCommandCapability(command: { type: DocumentCommandType }): {
   action: DocumentCapabilityAction;
   enforce?: DocumentCapabilityEnforce;
@@ -158,10 +156,7 @@ function scopeAllows(scopes: ApiTokenScope[], capability: Capability): boolean {
   return false;
 }
 
-async function ensureTokenScope(
-  principal: Principal,
-  capability: Capability
-): Promise<CapabilityDecision | null> {
+function ensureTokenScope(principal: Principal, capability: Capability): CapabilityDecision | null {
   if (principal.kind !== 'api_token') return null;
   if (scopeAllows(principal.scopes, capability)) return null;
   return decision(principal, false, 'token_scope_denied');
@@ -196,13 +191,25 @@ async function enforceDocumentSessionRule(
     if (!policy.allowed) {
       return decision(principal, false, 'not_creator_or_admin', document);
     }
-    return decision(principal, true, 'allowed', document);
   }
 
-  if (capability.action === 'write' || capability.action === 'collaborate') {
-    return decision(principal, true, 'allowed', document);
-  }
+  return decision(principal, true, 'allowed', document);
+}
 
+async function readableDocumentDecision(
+  db: QueryRunner,
+  principal: Principal,
+  actor: DocumentActor,
+  documentId: string,
+  options: { expectedType?: DocumentType; includeArchived?: boolean } = {}
+): Promise<CapabilityDecision> {
+  const document = await getReadableDocument(db, actor, documentId, options.expectedType, {
+    includeArchived: options.includeArchived,
+  });
+  if (!document) return decision(principal, false, 'document_not_found');
+  if (!(await canReadAccountabilityDocument(db, actor, document))) {
+    return decision(principal, false, 'accountability_scope_denied');
+  }
   return decision(principal, true, 'allowed', document);
 }
 
@@ -212,14 +219,11 @@ export async function authorize(
   capability: Capability
 ): Promise<CapabilityDecision> {
   if (capability.resource === 'setup') {
-    return decision(
-      principal,
-      principal.kind === 'setup',
-      principal.kind === 'setup' ? 'allowed' : 'setup_token_required',
-    );
+    const allowed = principal.kind === 'setup';
+    return decision(principal, allowed, allowed ? 'allowed' : 'setup_token_required');
   }
 
-  const tokenDenied = await ensureTokenScope(principal, capability);
+  const tokenDenied = ensureTokenScope(principal, capability);
   if (tokenDenied) return tokenDenied;
 
   const actor = actorFromPrincipal(principal);
@@ -238,28 +242,18 @@ export async function authorize(
     if (!capability.documentId) {
       return decision(principal, true, 'allowed');
     }
-    const document = await getReadableDocument(
-      db,
-      actor,
-      capability.documentId,
-      capability.expectedType,
-      { includeArchived: capability.includeArchived },
-    );
-    if (!document) return decision(principal, false, 'document_not_found');
-    if (!(await canReadAccountabilityDocument(db, actor, document))) {
-      return decision(principal, false, 'accountability_scope_denied');
+    const readDecision = await readableDocumentDecision(db, principal, actor, capability.documentId, {
+      expectedType: capability.expectedType,
+      includeArchived: capability.includeArchived,
+    });
+    if (!readDecision.allowed || !readDecision.document) {
+      return readDecision;
     }
-    return enforceDocumentSessionRule(db, principal, actor, capability, document);
+    return enforceDocumentSessionRule(db, principal, actor, capability, readDecision.document);
   }
 
   if (capability.resource === 'collaboration') {
-    const { documentId } = capability;
-    const document = await getReadableDocument(db, actor, documentId);
-    if (!document) return decision(principal, false, 'document_not_found');
-    if (!(await canReadAccountabilityDocument(db, actor, document))) {
-      return decision(principal, false, 'accountability_scope_denied');
-    }
-    return decision(principal, true, 'allowed', document);
+    return readableDocumentDecision(db, principal, actor, capability.documentId);
   }
 
   if (capability.resource === 'document_reference') {
@@ -275,12 +269,7 @@ export async function authorize(
     if (!capability.documentId) {
       return decision(principal, true, 'allowed');
     }
-    const document = await getReadableDocument(db, actor, capability.documentId);
-    if (!document) return decision(principal, false, 'document_not_found');
-    if (!(await canReadAccountabilityDocument(db, actor, document))) {
-      return decision(principal, false, 'accountability_scope_denied');
-    }
-    return decision(principal, true, 'allowed', document);
+    return readableDocumentDecision(db, principal, actor, capability.documentId);
   }
 
   return decision(principal, false, 'anonymous');

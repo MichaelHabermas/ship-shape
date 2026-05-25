@@ -193,11 +193,8 @@ function defaultWriteCapability(documentId: string): DocumentMutationCapability 
   return { action: 'write', documentId };
 }
 
-function creatorWriteCapability(
-  documentId: string,
-  options: { includeArchived?: boolean } = {}
-): DocumentMutationCapability {
-  return { action: 'write', documentId, enforce: 'creator_or_admin', includeArchived: options.includeArchived };
+function creatorWriteCapability(documentId: string, includeArchived = false): DocumentMutationCapability {
+  return { action: 'write', documentId, enforce: 'creator_or_admin', includeArchived };
 }
 
 async function loadAccessibleDocument(
@@ -916,7 +913,7 @@ export async function deleteDocumentMutation({
   const denied = await guardMutationCapability(
     pool,
     principal,
-    creatorWriteCapability(documentId, { includeArchived: true }),
+    creatorWriteCapability(documentId, true),
   );
   if (denied) return denied;
 
@@ -954,7 +951,7 @@ export async function convertDocumentMutation({
   const denied = await guardMutationCapability(
     pool,
     principal,
-    creatorWriteCapability(documentId, { includeArchived: true }),
+    creatorWriteCapability(documentId, true),
   );
   if (denied) return denied;
 

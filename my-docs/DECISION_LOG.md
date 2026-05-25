@@ -66,6 +66,34 @@ Evidence: `vitest run api/src/security/capabilities.test.ts`; `pnpm security:pro
 
 **Decision Gist**: Four honest document capabilities; command mapper supplies enforcement hints; policy helpers stay the write-truth adapter until mutations gain token guards.
 
+### D081: Delete Unused `workspaceAccessMiddleware` (2026-05-24)
+
+Status: Accepted
+
+Decision: Remove `workspaceAccessMiddleware` from `api/src/middleware/auth.ts`. It had zero mounts; workspace member checks already flow through session workspace context and route SQL. Keep `workspaceAdminMiddleware` for admin-only workspace routes.
+
+**Decision Gist**: Adopt or delete — delete dead middleware.
+
+### D082: Defer Setup `Principal` Wiring To Slice 1.5b (2026-05-24)
+
+Status: Accepted (deferred)
+
+Decision: Leave `setup.ts` on env setup token for Wave 1. Do not construct `Principal.kind === 'setup'` yet. Schedule Slice **1.5b** in `CODE_QUALITY_REMEDIATION_PLAN.md` to wire `authorize({ resource: 'setup', action: 'initialize' })` without changing token semantics.
+
+Why: Route convergence value in 1.5 was documents reads, token revoke, and middleware cleanup. Setup bootstrap is low churn and test-isolated; deferring avoids touching production bootstrap during DRY wave.
+
+**Decision Gist**: Setup stays on env token until 1.5b; plan documents the intent so it is not forgotten.
+
+### D083: D077 Phase-2 Route Capability Backlog (2026-05-24)
+
+Status: Accepted (deferred to Epic 8)
+
+Decision: After Epic 1 document/token/files/collab convergence, migrate ad-hoc visibility SQL on `issues.ts` (first), then `projects.ts`, `programs.ts`, `team.ts`, `weeks/*`. `admin.ts` remains super-admin platform scope, not document capabilities. See Appendix D in `CODE_QUALITY_REMEDIATION_PLAN.md`.
+
+Acceptance for phase 2 complete: no new route-local workspace membership checks for document reads; sensitive writes use `authorize` or mutation guards.
+
+**Decision Gist**: Phase 1 finishes document core; phase 2 is ~75 handlers in Appendix D, starting with issues.
+
 ### D078: Close Security Findings Only Through Evidence-Backed CLI Updates (2026-05-24)
 
 Status: Accepted
