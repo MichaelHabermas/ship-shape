@@ -80,7 +80,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: parseInt(env.VITE_PORT || '5173'),
+      port: parseInt(process.env.VITE_PORT || env.VITE_PORT || '5173'),
       strictPort: true,
       proxy: proxyConfig,
     },

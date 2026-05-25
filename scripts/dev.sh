@@ -125,4 +125,5 @@ echo "  Web: http://localhost:$WEB_PORT"
 echo ""
 
 cd "$ROOT_DIR"
-pnpm --parallel --recursive run dev
+# Exclude @ship/shipshape-security-console-ui — it also runs Vite on 5173 and races @ship/web.
+pnpm --parallel --filter @ship/api --filter @ship/web --filter @ship/shared run dev

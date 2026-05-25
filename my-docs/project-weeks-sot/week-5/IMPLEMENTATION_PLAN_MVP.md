@@ -1,6 +1,6 @@
 # FleetGraph MVP Implementation Plan
 
-This plan is organized by execution slices, not sentence-level checkboxes. Each slice has a clear purpose, a finish line, and the evidence needed to call it done. Use the status line under each slice to track progress.
+This is an execution checklist for Codex. It is organized as epics with small, reviewable slices. Each slice should be completed, verified, and status-updated before moving to the next slice unless the user explicitly redirects.
 
 ## Status Legend
 
@@ -26,7 +26,7 @@ Do not weaken these constraints:
 - Do not invent `blocked` issue state or `critical` priority.
 - Use `document_associations.relationship_type = 'sprint'` for week membership.
 - Use `issue_iterations.blockers_encountered` for blocker signals.
-- If Ship has no explicit commitment marker, say “urgent/high active-week work,” not committed work.
+- If Ship has no explicit commitment marker, say "urgent/high active-week work," not committed work.
 - FleetGraph implementation is not done unless detector, graph, and decision-packet behavior are covered by golden cases, labeled scenarios, and trace/error review.
 
 ## Locked Decisions
@@ -46,43 +46,149 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 0: Preparation And Guardrails
 
-**Status:** Not started
+**Status:** Started
 
-**Goal:** Set the rules of engagement before implementation so the team does not drift, mutate the wrong surfaces, or lose the Week 5 source truth.
+**Goal:** Set the rules of engagement before implementation so Codex does not drift, mutate the wrong surfaces, or lose the Week 5 source truth.
 
-**Work Slice:** Read and pin the source docs, select the correct context profile before each implementation area, and make the human-review/file-summary rule explicit for future code edits. This slice also protects the repo workflow: do not edit `api/src/db/schema.sql` for existing tables, use numbered migrations, do not stage or commit, and use `ship_test_audit` for destructive API tests.
+### Slice 0.1: Pin The Source Truth
+
+**Status:** Done
+
+**Do:**
+
+- Read the smallest applicable context profile before implementation work.
+- Read the Week 5 source docs needed for the current slice.
+- State the MVP detector, non-goals, human gate boundary, and source-truth docs before editing code.
 
 **Done Means:**
 
-- The implementer can state the MVP detector, non-goals, human gate boundary, and source-truth docs without reopening the whole plan.
-- Future code edits follow the top-of-file summary rule: every changed code file has a truthful 1-2 line file intent comment.
-- No code, dependency, migration, staging, or commit work has happened before plan acceptance.
+- Codex can describe the FleetGraph MVP loop without reopening the whole plan.
+- The current slice references the source docs it depends on.
 
-**Notes:** Start from the smallest working vertical slice: persistence plus deterministic detector, then eval pack, graph, API, worker, UI, demo data, and verification. Do not start with chat.
+**Evidence:**
 
-## Epic 1: Dependencies, Config, And Persistence
+- Short implementation note in the working response or slice handoff.
+
+**Implementation Note (2026-05-25):** Source truth read for this slice: `docs/context-manifest.md`, `w5-specs/Week-5-GFA-FleetGraph-PRD.txt`, `w5-specs/Advisor-followup-week-5.md`, `PRESEARCH.md`, `FLEETGRAPH.md`, `ARCHITECTURE.md`, `ARCHITECTURAL_DEFENSE.md`, and `my-docs/MEMORY.md`. FleetGraph MVP is the blocked urgent/high active-week issue loop: deterministic SQL candidate selection first, one shared graph for proactive and on-demand paths, FleetGraph-owned findings/runs/drafts/traces only, permission-filtered evidence, visible finding within 5 minutes, and a human gate before any Ship mutation or communication.
+
+### Slice 0.2: Lock Repo Workflow Rules
+
+**Status:** Not started
+
+**Do:**
+
+- Confirm no staging, unstaging, or commits will happen without explicit instruction.
+- Confirm existing tables are changed through numbered migrations, not `api/src/db/schema.sql`.
+- Confirm destructive API tests use `DATABASE_URL=.../ship_test_audit`, never `ship_dev`.
+
+**Done Means:**
+
+- Implementation starts with the correct repo safety boundaries.
+
+**Evidence:**
+
+- No staged files or commits are created during implementation unless explicitly requested.
+
+### Slice 0.3: Apply File Summary Rule
+
+**Status:** Not started
+
+**Do:**
+
+- For each changed code file, ensure the top of the file has a truthful 1-2 line file intent comment when the local convention allows it.
+- Do not add noisy comments to files where the convention clearly avoids them.
+
+**Done Means:**
+
+- Changed code files are understandable at a glance without comment spam.
+
+**Evidence:**
+
+- Final diff review confirms the rule was applied only where appropriate.
+
+## Epic 1: FleetGraph State And Configuration
 
 **Status:** Not started
 
 **Goal:** Create the smallest durable FleetGraph-owned state and isolate graph/tracing dependencies from the rest of Ship.
 
-**Work Slice:** Add FleetGraph dependencies only to `api/package.json`, and keep LangGraph/tracing imports under `api/src/fleetgraph/*`. Add numbered migration `042_fleetgraph.sql` with only the required MVP tables: `fleetgraph_findings` and `fleetgraph_runs`. These tables store finding state, evidence snapshots, draft content, trace metadata, run decisions, timing, and token/cost metadata when available.
+### Slice 1.1: Add FleetGraph Dependencies
 
-**Core Shape:**
+**Status:** Not started
 
-- `fleetgraph_findings` represents open/dismissed/resolved findings.
-- `fleetgraph_runs` records proactive, on-demand, duplicate/update, quiet-exit, explain, refine, and error runs.
-- Open finding dedupe key is exactly `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}`.
-- Worker config defaults off through `FLEETGRAPH_WORKER_ENABLED=false`.
+**Do:**
+
+- Add FleetGraph dependencies only to `api/package.json`.
+- Keep LangGraph and tracing imports under `api/src/fleetgraph/*`.
+- Avoid introducing dependencies outside the graph/tracing need.
 
 **Done Means:**
 
-- Migrations run cleanly on fresh and already-migrated local databases.
-- The two tables can represent proactive create, on-demand explain, on-demand refine, duplicate/update, quiet exit, dismiss, and resolve.
-- No FleetGraph document type or unnecessary extra tables exist.
-- Empty worker ticks can be recorded without model cost.
+- Dependency additions are scoped to the API package.
+- Existing web/shared packages do not import FleetGraph graph dependencies.
 
-**Notes:** The persistence layer is not the product. The product is the action-ready finding. Do not create more schema because it feels tidy.
+**Evidence:**
+
+- Package diff shows only necessary API dependency changes.
+
+### Slice 1.2: Add Environment Configuration
+
+**Status:** Not started
+
+**Do:**
+
+- Add `FLEETGRAPH_WORKER_ENABLED=false` as the default behavior.
+- Add tracing/model configuration only where the API config pattern expects it.
+- Keep the worker off unless explicitly enabled.
+
+**Done Means:**
+
+- Local startup does not begin proactive scanning by default.
+- Empty worker ticks can be represented without model cost.
+
+**Evidence:**
+
+- Config test, startup smoke, or direct config inspection.
+
+### Slice 1.3: Add FleetGraph Migration
+
+**Status:** Not started
+
+**Do:**
+
+- Add numbered migration `042_fleetgraph.sql`.
+- Create only `fleetgraph_findings` and `fleetgraph_runs`.
+- Store finding state, evidence snapshots, draft content, trace metadata, run decisions, timing, and token/cost metadata when available.
+
+**Done Means:**
+
+- Fresh and already-migrated local databases can run migrations cleanly.
+- No new FleetGraph document type exists.
+- No unnecessary extra tables exist.
+
+**Evidence:**
+
+- Migration command output.
+- Schema inspection or targeted persistence test.
+
+### Slice 1.4: Add Persistence Helpers
+
+**Status:** Not started
+
+**Do:**
+
+- Add focused read/write helpers for findings and runs.
+- Support proactive create, duplicate/update, quiet exit, explain, refine, dismiss, resolve, and error runs.
+- Use the open-finding dedupe key `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}`.
+
+**Done Means:**
+
+- The two tables can represent every MVP run/finding state.
+- Dismiss and refine update only FleetGraph-owned state.
+
+**Evidence:**
+
+- Targeted API/unit tests or direct helper tests.
 
 ## Epic 2: Deterministic Candidate Detection
 
@@ -90,87 +196,465 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Goal:** Prove the proactive detector with cheap, testable SQL before any model reasoning.
 
-**Work Slice:** Build the blocked-important-issue detector as a bounded module. It returns candidates and quiet exits; it does not call the LLM. The detector must use existing Ship week semantics, `document_associations` for sprint/week membership, and `issue_iterations.blockers_encountered` for the blocker signal.
+### Slice 2.1: Confirm Active-Week Semantics
 
-**Candidate Rule:** A candidate qualifies only when the source is an issue document, priority is `urgent` or `high`, state is not `done` or `cancelled`, fallback ownership/assignee exists if no stronger commitment marker exists, the issue belongs to the active week via `relationship_type = 'sprint'`, the latest relevant blocker text is non-empty, and no open finding exists for the dedupe key.
+**Status:** Not started
 
-**Quiet Paths:** Inactive week, no blocker, medium/low priority, done/cancelled, missing fallback owner/assignee, duplicate open finding, and insufficient visible evidence all exit without model calls.
+**Do:**
+
+- Read the existing week routes/query code before implementing detector SQL.
+- Confirm active week membership uses `document_associations.relationship_type = 'sprint'`.
+- Do not invent a FleetGraph-only active-week concept.
+
+**Done Means:**
+
+- Detector implementation follows existing Ship week semantics.
+
+**Evidence:**
+
+- Code reference in implementation notes or test fixture setup.
+
+### Slice 2.2: Implement Positive Candidate Query
+
+**Status:** Not started
+
+**Do:**
+
+- Select only issue documents.
+- Require priority `urgent` or `high`.
+- Exclude state `done` and `cancelled`.
+- Require fallback ownership/assignee if no stronger commitment marker exists.
+- Require active-week membership via `relationship_type = 'sprint'`.
+- Require latest relevant `issue_iterations.blockers_encountered` text to be non-empty.
 
 **Done Means:**
 
 - A qualifying candidate is found deterministically from database state.
-- Negative controls quiet-exit without LLM calls.
-- Duplicate open findings are not created.
-- The detector can be invoked manually for demo/test without waiting two minutes.
 
-**Notes:** If active-week semantics are unclear, stop and read the week routes. Do not invent a separate FleetGraph concept of active week.
+**Evidence:**
 
-## Epic 3: FleetGraph Eval Pack
+- Targeted detector test or manual invocation with seeded data.
+
+### Slice 2.3: Implement Quiet Exits
+
+**Status:** Not started
+
+**Do:**
+
+- Quiet-exit inactive week, no blocker, medium/low priority, done/cancelled, missing fallback owner/assignee, duplicate open finding, and insufficient visible evidence.
+- Record quiet exits without model calls when useful for traceability.
+
+**Done Means:**
+
+- Negative controls do not call the LLM.
+- Quiet paths are distinguishable enough for debugging and trace review.
+
+**Evidence:**
+
+- Targeted detector tests proving zero model calls.
+
+### Slice 2.4: Implement Dedupe
+
+**Status:** Not started
+
+**Do:**
+
+- Use the exact dedupe key `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}`.
+- Suppress or update when an open finding already exists.
+- Do not create duplicate open findings.
+
+**Done Means:**
+
+- Re-running the detector against the same source does not create duplicate open findings.
+
+**Evidence:**
+
+- Dedupe test or manual two-run proof.
+
+### Slice 2.5: Add Manual Detector Invocation
+
+**Status:** Not started
+
+**Do:**
+
+- Provide a safe internal/manual invocation path for tests and demos.
+- Avoid waiting for the two-minute worker loop during validation.
+
+**Done Means:**
+
+- Detector can be invoked manually without enabling the worker.
+
+**Evidence:**
+
+- Test helper, dev/admin path, or local script output.
+
+## Epic 3: FleetGraph Eval Harness
 
 **Status:** Not started
 
 **Goal:** Make FleetGraph measurable before graph behavior is built.
 
-**Work Slice:** Create the evaluation spine for the graph: golden cases, labeled scenario coverage, decision-packet rubric, and first-failure trace taxonomy. This is not a product surface. It is the harness that keeps graph work honest.
+### Slice 3.1: Define Golden Case Format
 
-**Golden Cases:** Define 10-15 high-quality cases covering proactive create, inactive-week quiet exit, medium/low quiet exit, done/cancelled quiet exit, no-blocker quiet exit, duplicate update/suppress, existing finding explanation, draft refinement, restricted evidence, and human-gated action preparation. Each case names input state or fixture, graph mode, expected decision, required evidence, forbidden claims, and mutation boundary.
+**Status:** Not started
 
-**Scenario Labels:** Label cases by mode, graph branch, action class, evidence quality, permission state, and difficulty. Maintain a coverage matrix so branch gaps are visible.
+**Do:**
 
-**Decision-Packet Rubric:** Score groundedness, recipient fit, uncertainty honesty, draft usefulness, action safety, and human-gate clarity. Define pass/fail thresholds before graph work proceeds.
-
-**Trace Review Taxonomy:** First-failure categories are detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, and trace/cost metadata.
+- Define the case fields: input state or fixture, graph mode, expected decision, required evidence, forbidden claims, and mutation boundary.
+- Keep the format easy to extend as graph paths appear.
 
 **Done Means:**
 
-- Golden cases exist before graph implementation.
-- Labeled coverage matrix exists.
-- Decision-packet rubric exists with pass/fail thresholds.
-- Trace review taxonomy exists.
-- Implementation slices can cite which eval cases they satisfy.
+- New cases can be added without inventing structure each time.
 
-**Notes:** Four traces are submission evidence, not eval coverage. Ten good cases beat fifty vague ones.
+**Evidence:**
 
-## Epic 4: FleetGraph Core Graph
+- Golden case file or documented case schema.
+
+### Slice 3.2: Add Golden Cases
+
+**Status:** Not started
+
+**Do:**
+
+- Add 10-15 high-quality cases.
+- Cover proactive create, inactive-week quiet exit, medium/low quiet exit, done/cancelled quiet exit, no-blocker quiet exit, duplicate update/suppress, existing finding explanation, draft refinement, restricted evidence, and human-gated action preparation.
+
+**Done Means:**
+
+- Graph implementation slices can cite the cases they satisfy.
+
+**Evidence:**
+
+- Golden case list committed to the repo or test fixture set.
+
+### Slice 3.3: Add Scenario Labels And Coverage Matrix
+
+**Status:** Not started
+
+**Do:**
+
+- Label cases by mode, graph branch, action class, evidence quality, permission state, and difficulty.
+- Maintain a coverage matrix so branch gaps are visible.
+
+**Done Means:**
+
+- Missing graph coverage is visible before implementation proceeds too far.
+
+**Evidence:**
+
+- Coverage matrix in test/docs form.
+
+### Slice 3.4: Add Decision-Packet Rubric
+
+**Status:** Not started
+
+**Do:**
+
+- Score groundedness, recipient fit, uncertainty honesty, draft usefulness, action safety, and human-gate clarity.
+- Define pass/fail thresholds before graph work proceeds.
+
+**Done Means:**
+
+- Subjective decision quality is measurable instead of vibes-based.
+
+**Evidence:**
+
+- Rubric file or test-support document with thresholds.
+
+### Slice 3.5: Add Trace Review Taxonomy
+
+**Status:** Not started
+
+**Do:**
+
+- Use first-failure categories: detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, and trace/cost metadata.
+
+**Done Means:**
+
+- Trace failures can be classified consistently during review.
+
+**Evidence:**
+
+- Taxonomy documented beside the eval pack.
+
+## Epic 4: Shared FleetGraph Core
 
 **Status:** Not started
 
 **Goal:** Implement one shared graph core with distinct proactive and on-demand paths.
 
-**Work Slice:** Build the shared graph behind a narrow local interface such as `runFleetGraph(input)`. Routes and worker code should not know LangGraph internals. The graph normalizes triggers, resolves scope, fetches bounded context, filters visible evidence, reasons about drift, decides the action path, persists FleetGraph-owned state, and produces the output.
+### Slice 4.1: Add Narrow Graph Interface
 
-**Graph Paths:** The graph must branch across proactive vs on-demand, eligible vs resolved/quiet, create vs update/suppress, explain existing finding, refine draft, prepare human-gated action, and visible vs restricted/no-safe-output evidence.
+**Status:** Not started
 
-**Decision Packet:** Each finding should include evidence, summary, severity, confidence, recommended next human action class, draft message, proposed recipient/role rationale, uncertainty notes, trace metadata, and human gate state.
+**Do:**
+
+- Add a local interface such as `runFleetGraph(input)`.
+- Keep routes and worker code unaware of LangGraph internals.
+- Normalize proactive and on-demand triggers at the graph boundary.
 
 **Done Means:**
 
-- Epic 3 golden cases can exercise create, update/suppress, quiet exit, explain, refine draft, and needs-confirmation decisions.
-- Proactive and on-demand traces take visibly different paths.
-- Graph does not write Ship canonical document fields.
-- Routes and worker call a small graph interface, not LangGraph primitives.
+- API routes and worker can call one stable interface.
 
-**Notes:** Do not let the graph become a generic workspace assistant. It starts from a bounded source object and expands only as needed.
+**Evidence:**
 
-## Epic 5: API Routes And OpenAPI
+- Type-level API or focused unit test.
+
+### Slice 4.2: Resolve Scope And Fetch Context
+
+**Status:** Not started
+
+**Do:**
+
+- Start from a bounded source object.
+- Fetch only the context needed to decide whether the finding is actionable.
+- Do not turn the graph into a broad workspace assistant.
+
+**Done Means:**
+
+- Graph inputs produce bounded evidence bundles.
+
+**Evidence:**
+
+- Golden cases exercising scope resolution.
+
+### Slice 4.3: Filter Visible Evidence
+
+**Status:** Not started
+
+**Do:**
+
+- Filter evidence to claims visible to the current user.
+- Return restricted/no-safe-output behavior when needed.
+- Never expose raw prompts or hidden evidence.
+
+**Done Means:**
+
+- User-visible claims are backed by evidence visible to that user.
+
+**Evidence:**
+
+- Restricted evidence golden case and authorization test.
+
+### Slice 4.4: Implement Proactive Create Path
+
+**Status:** Not started
+
+**Do:**
+
+- Convert a qualifying detector candidate into a decision packet.
+- Persist the FleetGraph finding and run metadata.
+- Include evidence, summary, severity, confidence, recommended next human action class, draft message, recipient/role rationale, uncertainty notes, trace metadata, and human gate state.
+
+**Done Means:**
+
+- A qualifying candidate becomes an action-ready finding.
+
+**Evidence:**
+
+- Golden case pass and persisted finding inspection.
+
+### Slice 4.5: Implement Update/Suppress And Quiet Paths
+
+**Status:** Not started
+
+**Do:**
+
+- Support duplicate/update, suppress, resolved/quiet, and error paths.
+- Persist run decisions without creating inappropriate findings.
+
+**Done Means:**
+
+- Non-create proactive paths are explicit and testable.
+
+**Evidence:**
+
+- Golden cases for duplicate/update and quiet exit.
+
+### Slice 4.6: Implement Explain Existing Finding
+
+**Status:** Not started
+
+**Do:**
+
+- Answer why a finding was flagged from existing finding state and visible evidence.
+- Do not require the user to restate page context.
+
+**Done Means:**
+
+- On-demand explain produces grounded output for an existing finding.
+
+**Evidence:**
+
+- Golden case and trace for "why was this flagged?"
+
+### Slice 4.7: Implement Draft Refinement
+
+**Status:** Not started
+
+**Do:**
+
+- Refine only FleetGraph-owned draft content.
+- Preserve the human gate.
+- Do not mutate source issue/week/project/program data.
+
+**Done Means:**
+
+- Draft refinement changes the FleetGraph draft and nothing canonical in Ship.
+
+**Evidence:**
+
+- Golden case and persistence test.
+
+### Slice 4.8: Capture Trace Metadata
+
+**Status:** Not started
+
+**Do:**
+
+- Capture trace links or equivalent reviewer-shareable trace identifiers.
+- Capture token/cost metadata when available.
+- Make proactive and on-demand traces visibly different.
+
+**Done Means:**
+
+- Trace evidence can support reviewer inspection and failure classification.
+
+**Evidence:**
+
+- Trace metadata visible in run records.
+
+## Epic 5: API Surface And OpenAPI
 
 **Status:** Not started
 
 **Goal:** Expose FleetGraph through authenticated, documented, capability-aware API routes.
 
-**Work Slice:** Add `/api/fleetgraph` routes behind auth/CSRF and register them with OpenAPI. The MVP route set is findings read by context, on-demand explain/refine, dismiss, draft refinement, and a safely gated dev/admin manual run endpoint.
+### Slice 5.1: Add Route Shell And OpenAPI Registration
 
-**Route Boundary:** Finding reads require source issue and active week visibility. On-demand requests authorize the current context document before graph context fetch. Dismiss only updates FleetGraph finding status. Refine only updates FleetGraph-owned draft content. Manual run must not be publicly usable in production.
+**Status:** Not started
+
+**Do:**
+
+- Add `/api/fleetgraph` routes behind auth/CSRF.
+- Register routes with OpenAPI.
+- Use explicit request/response types for web consumption.
 
 **Done Means:**
 
-- Unauthenticated and cross-workspace requests fail.
-- A user without source issue/week access cannot read finding details.
-- Dismiss and refine do not mutate source issue/week.
 - OpenAPI coverage remains complete.
-- Response types are explicit enough for web consumption.
 
-**Notes:** This is a security-sensitive surface. Use the repo capability model instead of route-local shortcuts. Do not expose raw prompts/completions.
+**Evidence:**
+
+- `pnpm openapi:check` or targeted OpenAPI test.
+
+### Slice 5.2: Add Findings Read Route
+
+**Status:** Not started
+
+**Do:**
+
+- Read findings by active-week/source context.
+- Require source issue and active week visibility.
+- Prevent cross-workspace access.
+
+**Done Means:**
+
+- Authorized users can read accessible findings.
+- Unauthorized/cross-workspace users cannot.
+
+**Evidence:**
+
+- Route auth/visibility tests.
+
+### Slice 5.3: Add Explain Route
+
+**Status:** Not started
+
+**Do:**
+
+- Authorize the current context document before graph context fetch.
+- Call the shared graph interface.
+- Return grounded explain output without raw prompts/completions.
+
+**Done Means:**
+
+- A user can ask why the finding was flagged from context.
+
+**Evidence:**
+
+- Route test and golden case alignment.
+
+### Slice 5.4: Add Refine Route
+
+**Status:** Not started
+
+**Do:**
+
+- Authorize current context.
+- Call the shared graph interface.
+- Update only FleetGraph-owned draft content.
+
+**Done Means:**
+
+- Refine never mutates source issue/week documents.
+
+**Evidence:**
+
+- Route test proving source document fields are unchanged.
+
+### Slice 5.5: Add Dismiss Route
+
+**Status:** Not started
+
+**Do:**
+
+- Update only FleetGraph finding status.
+- Do not accept risk or resolve/mutate source Ship objects.
+
+**Done Means:**
+
+- Dismiss removes the actionable finding from UI without altering canonical Ship state.
+
+**Evidence:**
+
+- Route test.
+
+### Slice 5.6: Add Gated Manual Run Endpoint
+
+**Status:** Not started
+
+**Do:**
+
+- Add a safely gated dev/admin manual run endpoint for tests and demos.
+- Ensure it is not publicly usable in production.
+
+**Done Means:**
+
+- Manual runs are available for validation without weakening production security.
+
+**Evidence:**
+
+- Environment/authorization test.
+
+### Slice 5.7: Prove API Security Boundary
+
+**Status:** Not started
+
+**Do:**
+
+- Test unauthenticated, cross-workspace, restricted source, dismiss, refine, and on-demand paths.
+- Use the repo capability model instead of route-local shortcuts.
+
+**Done Means:**
+
+- The API surface is capability-aware and documented.
+
+**Evidence:**
+
+- Targeted route tests and OpenAPI check.
 
 ## Epic 6: Worker Lifecycle
 
@@ -178,41 +662,221 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Goal:** Run the proactive detector without a user present while keeping lifecycle and shutdown clean.
 
-**Work Slice:** Add a worker module with `startFleetGraphWorker()` returning a cleanup function. It starts only with `FLEETGRAPH_WORKER_ENABLED=true`, polls every 2 minutes, records heartbeat/run metadata, invokes the deterministic detector, calls the graph only for eligible candidates or due rechecks, records errors without crashing the API process, and stops cleanly during shutdown.
+### Slice 6.1: Add Disabled-By-Default Worker
 
-**Operational Boundary:** No module-level orphan intervals. Empty ticks do not call the model. A manual one-tick function exists for tests and demos. DB uniqueness handles MVP dedupe. DB lease is deferred unless deployment uses multiple API instances.
+**Status:** Not started
+
+**Do:**
+
+- Add `startFleetGraphWorker()` returning a cleanup function.
+- Start only with `FLEETGRAPH_WORKER_ENABLED=true`.
+- Avoid module-level orphan intervals.
 
 **Done Means:**
 
-- Worker is off by default.
-- Worker starts only with explicit env flag.
-- Worker stops cleanly during shutdown.
-- Manual tick works without waiting two minutes.
-- A proactive finding can appear within the 5-minute budget.
+- Worker is off by default and opt-in only.
 
-**Notes:** If multiple deployed API instances are active, DB lease is no longer polish; it is correctness work.
+**Evidence:**
 
-## Epic 7: UI: Active-Week Banner, Context Card, Chat, Human Gate
+- Startup/config test or local smoke.
+
+### Slice 6.2: Add Manual One-Tick Function
+
+**Status:** Not started
+
+**Do:**
+
+- Add a manual one-tick function for tests and demos.
+- Reuse the same detector/graph path as the interval worker.
+
+**Done Means:**
+
+- Proactive behavior can be validated without waiting two minutes.
+
+**Evidence:**
+
+- Targeted worker test.
+
+### Slice 6.3: Wire Detector To Graph
+
+**Status:** Not started
+
+**Do:**
+
+- Invoke the deterministic detector first.
+- Call the graph only for eligible candidates or due rechecks.
+- Ensure empty ticks spend zero LLM tokens.
+
+**Done Means:**
+
+- Worker respects SQL-before-model architecture.
+
+**Evidence:**
+
+- Empty tick test proving no model call.
+
+### Slice 6.4: Record Heartbeat, Runs, And Errors
+
+**Status:** Not started
+
+**Do:**
+
+- Record heartbeat/run metadata.
+- Record errors without crashing the API process.
+- Keep enough detail to support trace/error review.
+
+**Done Means:**
+
+- Operational state is visible without making the worker fragile.
+
+**Evidence:**
+
+- Worker error-path test or manual smoke.
+
+### Slice 6.5: Prove Shutdown And Five-Minute Budget
+
+**Status:** Not started
+
+**Do:**
+
+- Stop the worker cleanly during API shutdown.
+- Verify a proactive finding can appear within the 5-minute budget.
+- Reconsider DB lease if deployment uses multiple API instances.
+
+**Done Means:**
+
+- Worker lifecycle is clean and MVP latency is proven.
+
+**Evidence:**
+
+- Timed proof timestamps or lifecycle test.
+
+## Epic 7: Product Surface
 
 **Status:** Not started
 
 **Goal:** Make FleetGraph proactive and contextual without building a standalone chatbot or global dashboard.
 
-**Work Slice:** Add the active-week banner as the MVP discovery surface, plus contextual finding cards on affected issue/week surfaces, embedded chat/refine in current page context, and a human gate that clearly blocks Ship mutation or communication until approved.
+### Slice 7.1: Add Web Client API
 
-**User Experience:** The banner appears only for open actionable active-week findings and links to the affected context. The card explains what happened, why it matters, evidence, severity, confidence, recommended next action, recipient rationale, uncertainty, draft, trace metadata when safe, and human gate state. Chat can answer “why was this flagged?” and refine the draft without requiring the user to restate the page context.
+**Status:** Not started
 
-**Human Gate:** The gate shows exact proposed action, exact recipient or role, exact draft text, affected objects, evidence, why approval is required, and the blocked consequence if execution is not implemented. It must never imply something was sent, posted, moved, or updated when it was not.
+**Do:**
+
+- Add typed client calls for findings read, explain, refine, dismiss, and manual run only if needed in dev.
+- Reuse existing web API patterns.
+
+**Done Means:**
+
+- UI components do not hand-roll fetch behavior.
+
+**Evidence:**
+
+- Type-check and focused client test if local pattern supports it.
+
+### Slice 7.2: Add Active-Week Banner
+
+**Status:** Not started
+
+**Do:**
+
+- Show the banner only for open actionable active-week findings.
+- Link to the affected context.
+- Avoid a standalone `/fleetgraph` dashboard or global inbox.
 
 **Done Means:**
 
 - A PM can discover the finding from active-week context without knowing which issue to open first.
-- A user can open issue/week context and understand why FleetGraph flagged it.
-- A user can ask why it was flagged and refine the draft.
-- No Ship mutation or external communication happens without explicit, honest human approval.
-- Loading, empty, error, restricted, dismissed, and accessible keyboard states are handled.
 
-**Notes:** No standalone `/fleetgraph` chatbot, no global inbox, no generic assistant dashboard, no decorative AI panel, no snooze in MVP.
+**Evidence:**
+
+- Web test or browser smoke.
+
+### Slice 7.3: Add Contextual Finding Card
+
+**Status:** Not started
+
+**Do:**
+
+- Show what happened, why it matters, evidence, severity, confidence, recommended next action, recipient rationale, uncertainty, draft, safe trace metadata, and human gate state.
+- Handle issue/week context surfaces.
+
+**Done Means:**
+
+- A user can understand why FleetGraph flagged the issue from context.
+
+**Evidence:**
+
+- Web test or browser smoke.
+
+### Slice 7.4: Add Explain Interaction
+
+**Status:** Not started
+
+**Do:**
+
+- Let the user ask why the finding was flagged.
+- Preserve page context without requiring restatement.
+- Display grounded answers only.
+
+**Done Means:**
+
+- On-demand explain works in the page context.
+
+**Evidence:**
+
+- Web/API integration test or browser smoke.
+
+### Slice 7.5: Add Draft Refinement Interaction
+
+**Status:** Not started
+
+**Do:**
+
+- Let the user refine the draft.
+- Make clear that refinement changes only FleetGraph draft state.
+
+**Done Means:**
+
+- Draft refinement is visible without implying anything was sent or changed in Ship.
+
+**Evidence:**
+
+- Web/API integration test or browser smoke.
+
+### Slice 7.6: Add Human Gate
+
+**Status:** Not started
+
+**Do:**
+
+- Show exact proposed action, exact recipient or role, exact draft text, affected objects, evidence, why approval is required, and the blocked consequence if execution is not implemented.
+- Never imply something was sent, posted, moved, or updated when it was not.
+
+**Done Means:**
+
+- The UI clearly blocks Ship mutation or communication until approved.
+
+**Evidence:**
+
+- Web test or browser smoke.
+
+### Slice 7.7: Add UI States And Accessibility Basics
+
+**Status:** Not started
+
+**Do:**
+
+- Handle loading, empty, error, restricted, dismissed, and accessible keyboard states.
+- Keep UI contextual, not decorative.
+
+**Done Means:**
+
+- Basic user states are handled without building extra product surfaces.
+
+**Evidence:**
+
+- Web tests and browser smoke.
 
 ## Epic 8: Demo Data And Reviewer Readiness
 
@@ -220,20 +884,91 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Goal:** Make the MVP reproducible for local validation, timed proof, trace capture, and reviewer navigation.
 
-**Work Slice:** Add a repeatable demo setup or validation path that creates a realistic, submission-safe execution graph without truncating or corrupting `ship_dev`. It should include an active week, program, project, people roles, urgent/high active-week blocked issues, ownership metadata, stable reviewer URLs, and negative controls.
+### Slice 8.1: Add Repeatable Demo Setup
 
-**Demo Universe:** Include engineer/builder, PM/project owner, active week owner, program lead/director, dependency/context source, at least two urgent/high active-week issues with recent blocker iteration text, and one blocker that names a dependency or decision-maker.
+**Status:** Not started
 
-**Negative Controls:** Include inactive week, no blocker, medium/low blocker, done/cancelled urgent/high blocker, duplicate open finding, and private/restricted source case.
+**Do:**
+
+- Create a realistic, submission-safe execution graph without truncating or corrupting `ship_dev`.
+- Include active week, program, project, people roles, urgent/high active-week blocked issues, ownership metadata, and stable reviewer URLs.
 
 **Done Means:**
 
-- Fresh local/demo environment can produce happy path and quiet path.
-- Reviewer can navigate to stable issue/week URLs.
-- Demo data produces no duplicate open findings unless testing dedupe.
-- Trace capture does not expose private organic workspace data.
+- Fresh local/demo environment can produce the happy path.
 
-**Notes:** Demo readiness is not polish. The spec requires real Ship data and trace links against defined states.
+**Evidence:**
+
+- Demo setup output and stable URLs.
+
+### Slice 8.2: Add Demo Universe
+
+**Status:** Not started
+
+**Do:**
+
+- Include engineer/builder, PM/project owner, active week owner, program lead/director, and dependency/context source.
+- Include at least two urgent/high active-week issues with recent blocker iteration text.
+- Include one blocker that names a dependency or decision-maker.
+
+**Done Means:**
+
+- Demo data looks like real Ship work, not artificial unit-test dust.
+
+**Evidence:**
+
+- Seed/demo inspection or reviewer navigation.
+
+### Slice 8.3: Add Negative Controls
+
+**Status:** Not started
+
+**Do:**
+
+- Include inactive week, no blocker, medium/low blocker, done/cancelled urgent/high blocker, duplicate open finding, and private/restricted source case.
+
+**Done Means:**
+
+- Quiet paths can be demonstrated from demo data.
+
+**Evidence:**
+
+- Detector/graph run output showing quiet paths.
+
+### Slice 8.4: Capture Reviewer Traces
+
+**Status:** Not started
+
+**Do:**
+
+- Capture four trace links: proactive create, on-demand why flagged, on-demand draft refinement, and proactive duplicate/update or quiet exit.
+- Ensure traces show different graph paths.
+- Use seeded/demo-safe data only.
+
+**Done Means:**
+
+- Reviewer trace evidence is ready.
+
+**Evidence:**
+
+- Trace links added to `FLEETGRAPH.md` once implementation evidence exists.
+
+### Slice 8.5: Prepare Reviewer Navigation
+
+**Status:** Not started
+
+**Do:**
+
+- Ensure reviewer can navigate to stable issue/week URLs.
+- Ensure demo data produces no duplicate open findings unless testing dedupe.
+
+**Done Means:**
+
+- Reviewer can reproduce the MVP path without private workspace data.
+
+**Evidence:**
+
+- Local validation notes or reviewer path checklist.
 
 ## Epic 9: Tests And Verification
 
@@ -241,26 +976,131 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Goal:** Prove the FleetGraph MVP contract without relying on full E2E in this pass.
 
-**Work Slice:** Use focused API/unit/web tests, the Epic 3 eval pack, local smoke, and timed proof. Full E2E can remain skipped for now, but the MVP cannot hand off on screenshots alone.
+### Slice 9.1: Add Detector Tests
 
-**Coverage Areas:** Detector predicate and quiet paths; graph decisions aligned to golden cases; route auth, visibility, on-demand, refine, dismiss, and OpenAPI; web banner, card, chat/refine, human gate, and basic accessibility states.
+**Status:** Not started
 
-**Smoke Gates:** Run `pnpm type-check`, `pnpm build`, `pnpm openapi:check`, `pnpm docs:check`, `pnpm docs:check:paths`, and targeted API/web tests. API tests that can be destructive must use `ship_test_audit`.
+**Do:**
 
-**Timed Proof:** Record blocker write timestamp, worker tick/run timestamp, graph decision timestamp, finding persisted timestamp, and UI/API visibility timestamp. Finding must be visible within 5 minutes.
-
-**Trace Evidence:** Add four trace links to `FLEETGRAPH.md`: proactive create, on-demand why flagged, on-demand draft refinement, and proactive duplicate/update or quiet exit. The traces must show different graph paths, not the same pipeline with different metadata.
+- Cover positive predicate and quiet paths.
+- Cover duplicate suppression.
+- Prove quiet exits make zero model calls.
 
 **Done Means:**
 
-- MVP happy path passes locally.
-- Negative controls are proven.
-- Golden cases and labeled coverage matrix are current.
-- Decision-packet rubric has been applied to representative create/explain/refine outputs.
-- Trace evidence is ready for reviewer.
-- Any skipped verification is named honestly with the reason.
+- Detector behavior is deterministic and cheap.
 
-**Notes:** Targeted tests do not replace rubric scoring for subjective decision-packet quality. Timed proof and submitted traces feed the trace review taxonomy.
+**Evidence:**
+
+- Targeted detector test output.
+
+### Slice 9.2: Add Graph/Eval Tests
+
+**Status:** Not started
+
+**Do:**
+
+- Run golden cases for create, update/suppress, quiet exit, explain, refine, restricted evidence, and human-gated action preparation.
+- Apply the decision-packet rubric to representative create/explain/refine outputs.
+
+**Done Means:**
+
+- Graph decisions are measurable against the eval pack.
+
+**Evidence:**
+
+- Golden case and rubric output.
+
+### Slice 9.3: Add API Tests
+
+**Status:** Not started
+
+**Do:**
+
+- Cover auth, visibility, on-demand explain/refine, dismiss, manual run gating, and OpenAPI.
+- Use `ship_test_audit` for destructive API tests.
+
+**Done Means:**
+
+- API behavior is secure and documented.
+
+**Evidence:**
+
+- Targeted API tests and `pnpm openapi:check`.
+
+### Slice 9.4: Add Web Tests
+
+**Status:** Not started
+
+**Do:**
+
+- Cover banner, card, explain/refine, human gate, and basic accessibility states.
+- Full E2E can remain skipped for now if named honestly.
+
+**Done Means:**
+
+- UI behavior is proven beyond screenshots.
+
+**Evidence:**
+
+- Targeted web test output or browser smoke.
+
+### Slice 9.5: Run Smoke Gates
+
+**Status:** Not started
+
+**Do:**
+
+- Run `pnpm type-check`.
+- Run `pnpm build`.
+- Run `pnpm openapi:check`.
+- Run `pnpm docs:check`.
+- Run `pnpm docs:check:paths`.
+- Run targeted API/web tests.
+
+**Done Means:**
+
+- Standard local gates pass or failures are named honestly.
+
+**Evidence:**
+
+- Command outputs summarized in handoff.
+
+### Slice 9.6: Capture Timed Proof
+
+**Status:** Not started
+
+**Do:**
+
+- Record blocker write timestamp, worker tick/run timestamp, graph decision timestamp, finding persisted timestamp, and UI/API visibility timestamp.
+- Finding must be visible within 5 minutes.
+
+**Done Means:**
+
+- MVP latency claim is proven.
+
+**Evidence:**
+
+- Timed proof notes or trace metadata.
+
+### Slice 9.7: Final Handoff
+
+**Status:** Not started
+
+**Do:**
+
+- Update slice statuses.
+- Add trace links/test cases to `FLEETGRAPH.md` once implementation evidence exists.
+- Update `MEMORY.md` only for durable high-utility learnings.
+- Report skipped verification honestly with reasons.
+
+**Done Means:**
+
+- Handoff is understandable and reproducible.
+
+**Evidence:**
+
+- Final implementation summary and changed-file diff.
 
 ## Approved 10x Ideas
 
