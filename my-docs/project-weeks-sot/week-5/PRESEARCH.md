@@ -7,9 +7,9 @@
 - What events in Ship should the agent monitor proactively?
 
   **FleetGraph is a project drift operator, not an alert bot.**
-  It monitors Ship for execution drift: blocked committed work, stale blockers, missing ownership, missing progress signals, sprint carryover risk, repeated issue movement across weeks, high-priority work without project/program context, and project/program patterns that indicate a team is losing control of delivery. Raw events are only inputs. FleetGraph should care when an event changes the next useful action for a PM, engineer, or director.
+  It monitors Ship for execution drift: blocked important work, stale blockers, missing ownership, missing progress signals, sprint carryover risk, repeated issue movement across weeks, high-priority work without project/program context, and project/program patterns that indicate a team is losing control of delivery. Raw events are only inputs. FleetGraph should care when an event changes the next useful action for a PM, engineer, or director.
 
-  MVP should prove this with one sharp detector: **blocked committed work inside the active sprint/week**. The candidate condition must be deterministic before the LLM runs: an issue is in an active sprint/week, is committed or high priority, and either has a blocked status/label or recent blocker language in updates. FleetGraph surfaces the blocked-work finding within 5 minutes, then upgrades severity when there is no meaningful progress signal after the configured stale threshold. The graph gathers context, reasons about severity, creates a finding, drafts the unblock path, and asks a human only before contacting people or changing Ship's source of truth.
+  MVP should prove this with one sharp detector: **blocked important work inside the active sprint/week**. The candidate condition must be deterministic before the LLM runs: an issue is in an active sprint/week, is not done, has an owner or assignee, is either explicitly committed or high/critical priority, and has a blocked status/label or recent blocker language in updates. If Ship lacks an explicit commitment marker, FleetGraph calls the fallback "high-priority active sprint work," not committed work. FleetGraph surfaces the blocked-work finding within 5 minutes. The graph then does the manual PM work: gathers visible evidence, explains why it matters now, identifies the smallest useful audience, drafts the unblock path, and asks a human only before contacting people or changing Ship's source of truth.
 
 - What constitutes a condition worth surfacing?
 
@@ -71,15 +71,15 @@
 
 **FleetGraph should focus on project drift that Ship can prove from its own documents, issues, weeks/sprints, standups, plans, reviews, associations, and activity history.**
 
-##### **PM** - blocked committed issue is rotting inside the active sprint
+##### **PM** - blocked important issue is rotting inside the active sprint
 
-   **Trigger:** an issue in the active sprint/week is committed or high priority and has a blocked status/label or recent blocker language. Severity increases if there is no meaningful progress signal after the stale threshold.
-   **Agent detects or produces:** blocked-work finding, issue owner/assignee, affected sprint/project, linked dependency context, last useful update, severity/confidence, and a drafted unblock message.
+   **Trigger:** an issue in the active sprint/week is explicitly committed or high/critical priority, not done, owner/assignee-backed, and has a blocked status/label or recent blocker language. Severity increases if there is no meaningful progress signal after the stale threshold.
+   **Agent detects or produces:** blocked-work finding, issue owner/assignee, affected sprint/project, linked dependency context, last useful update, severity/confidence, smallest useful audience, next unblock step, and drafted unblock message/action.
    **Human decides:** send/edit the message, escalate, move the work, accept the carryover risk, or snooze.
 
 ##### **PM** - sprint commitment is silently turning into carryover
 
-   **Trigger:** active sprint/week is near its end and committed/high-priority issues remain open, especially if they are blocked, unowned, or missing recent updates.
+   **Trigger:** active sprint/week is near its end and important active issues remain open, especially if they are blocked, unowned, or missing recent updates.
    **Agent detects or produces:** likely carryover list, owners, repeated blockers, missing-update evidence, suggested re-scope options, and a recovery note.
    **Human decides:** re-scope, reassign, defer, notify owners, escalate, or accept carryover.
 
@@ -97,7 +97,7 @@
 
 ##### **PM/Director** - accountable owner has gone silent
 
-   **Trigger:** planned or committed work has an accountable person but no standup, issue update, review, or progress signal during the expected cadence.
+   **Trigger:** planned or important active work has an accountable person but no standup, issue update, review, or progress signal during the expected cadence.
    **Agent detects or produces:** missing-progress finding, last known activity, expected cadence, affected work, accountable person, and a drafted nudge.
    **Human decides:** send/edit the nudge, mark expected absence, snooze until next cadence, or escalate.
 
@@ -140,7 +140,7 @@
 - How stale is too stale for your use cases?
 
   **Newly eligible high-confidence risks are too stale if they are not visible within 5 minutes.**
-  The timed MVP path treats a blocked committed issue as eligible as soon as the blocked signal appears in Ship. Staleness is a severity upgrade, not a reason to wait silently. For sprint risk, the clock starts when the sprint/week enters the risk window and qualifying committed work remains open. For missing updates, the clock starts when the expected cadence window passes.
+  The timed MVP path treats a blocked important active issue as eligible as soon as the blocked signal appears in Ship. Staleness is a severity upgrade, not a reason to wait silently. For sprint risk, the clock starts when the sprint/week enters the risk window and qualifying important work remains open. For missing updates, the clock starts when the expected cadence window passes.
 
   On-demand answers should use fresh reads at request time. Cached context may help compare prior state, but current decisions must be based on fresh permission-checked data.
 
@@ -177,12 +177,12 @@
   3. `fetchCurrentObject`: load the anchor object first when one exists.
   4. `fetchNeighborContext`: load linked issues, docs, project/program associations, sprint/week state, owners, recent activity, prior findings, and relevant standups/plans/reviews.
   5. `filterVisibleEvidence`: enforce recipient/user visibility before reasoning output can be shown.
-  6. `reasonAboutDrift`: classify drift, severity, confidence, recurrence, likely accountable person, and next action.
+  6. `reasonAboutDrift`: classify drift, severity, confidence, recurrence, likely accountable person, smallest useful audience, and next action.
   7. `decideAction`: choose quiet exit, internal finding update, contextual answer, confirmation card, or escalation candidate.
   8. `persistFleetGraphState`: create/update findings, dedupe keys, watermarks, evidence snapshots, snoozes, and run metadata.
   9. `produceOutput`: return contextual chat answer, in-app finding, notification candidate, or human confirmation card.
 
-  Proactive mode enters with a candidate condition. On-demand mode enters with user intent. Both use the same scope resolution, fetch, evidence, reasoning, action, and output machinery. The submitted traces should prove different branches, not just different inputs through the same pipeline: for example, a proactive blocked-work run should create/update a finding, while an on-demand "why was this flagged?" run should explain an existing finding without mutating Ship's work records.
+  Proactive mode enters with a candidate condition. On-demand mode enters with user intent. Both use the same scope resolution, fetch, evidence, reasoning, action, and output machinery. The submitted traces should prove different branches, not just different inputs through the same pipeline: for example, a proactive blocked-work run should create/update a finding, an on-demand "why was this flagged?" run should explain an existing finding, an on-demand refinement run should rewrite the prepared draft, and a duplicate/resolved proactive run should exit quietly.
 
 - Which fetch nodes run in parallel?
 
@@ -237,14 +237,14 @@
   **Humans approve decisions that alter Ship's work record, accountability, or communications.**
   Confirmation is required before assigning/reassigning work, changing status/priority/sprint/week, editing documents, changing due dates, creating issues, posting comments, sending notifications, escalating, or accepting risk on behalf of the team.
 
-  FleetGraph does not need confirmation to keep its own findings accurate. It can create, update, dedupe, group, rank, resolve, reopen, route, and display FleetGraph findings autonomously. Humans approve consequences; FleetGraph should handle diagnosis, triage, evidence gathering, routing, and draft preparation without asking.
+  FleetGraph does not need confirmation to keep its own findings accurate. It can create, update, dedupe, group, rank, resolve, reopen, route, and display FleetGraph findings autonomously. Humans approve consequences; FleetGraph should handle diagnosis, triage, evidence gathering, routing, draft preparation, and draft refinement without asking.
 
 - What does the confirmation experience look like in Ship?
 
   **Confirmation should be an action card in context, not a generic chatbot exchange.**
-  FleetGraph can live in a contextual side drawer or panel, but the primary interaction should be object-aware findings and action cards. A blocked issue card should show the finding, evidence, affected objects, recipient, drafted message/action, and controls to approve, edit, snooze, dismiss, or escalate. Closing the card should not lose the underlying finding or graph context.
+  FleetGraph can live in a contextual side drawer or panel, but the primary interaction should be object-aware findings and action cards. A blocked issue card should show the finding, evidence, affected objects, recipient, drafted message/action, and controls to approve, refine, edit, snooze, dismiss, or escalate. Closing the card should not lose the underlying finding or graph context.
 
-  Chat is a power feature for explanation and follow-up. The agent's proactive value should be visible before the user starts typing.
+  Chat is a power feature for explanation, follow-up, and draft refinement. The user should be able to add context FleetGraph cannot know, disagree with the framing, change tone, or ask for a different audience without copying the draft into another LLM. The agent's proactive value should be visible before the user starts typing.
 
 - What happens if the human dismisses or snoozes?
 
@@ -268,7 +268,7 @@
   **Short-lived context can be cached for performance; decisions use fresh permission-checked state.**
   Within a run, fetched objects can be cached for that run. Across runs, FleetGraph persists watermarks, dedupe keys, finding state, snooze/dismiss state, notification/action history, evidence snapshots, and trace IDs. Recently fetched summaries may be cached for a few minutes, but must be invalidated by newer `updated_at` values, event watermarks, or explicit on-demand refresh.
 
-  Permission and visibility decisions should be checked per run. The service principal may read for proactive detection, but recipient-visible output must be filtered to what that recipient can see.
+  Permission and visibility decisions should be checked per run. The service principal may read for proactive detection, but every recipient-visible claim must be backed by evidence that recipient can see.
 
 ## Phase 3: Stack and Deployment
 
@@ -296,9 +296,9 @@
 - How does your trigger model achieve the < 5 minute detection latency goal?
 
   **The MVP latency target is met by narrowing the proactive path to bounded deterministic candidates and a 2-minute polling cadence.**
-  A newly blocked committed issue should be picked up on the next tick, enter graph reasoning immediately, and persist a UI-visible finding within the remaining time budget. Stale-blocker severity can depend on a longer threshold, but blocked-work visibility cannot. The worker should prioritize high-confidence/high-severity candidates, cap concurrent graph runs, and skip or defer low-severity candidates if it is behind.
+  A newly blocked important active issue should be picked up on the next tick, enter graph reasoning immediately, and persist a UI-visible finding within the remaining time budget. Stale-blocker severity can depend on a longer threshold, but blocked-work visibility cannot. The worker should prioritize high-confidence/high-severity candidates, cap concurrent graph runs, and skip or defer low-severity candidates if it is behind.
 
-  The SLA path for the MVP detector is intentionally narrow: blocked issue in active sprint/week -> candidate query -> bounded context fetch -> graph reasoning -> finding persisted -> UI visible.
+  The SLA path for the MVP detector is intentionally narrow: blocked important issue in active sprint/week -> candidate query -> bounded context fetch -> graph reasoning -> finding persisted -> UI visible.
 
 - What is your token budget per invocation?
 

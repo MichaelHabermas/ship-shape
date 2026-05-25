@@ -4,7 +4,7 @@
 
 FleetGraph is a project drift operator, not a chatbot and not a dashboard.
 
-The MVP proves one hard thing end to end: when Ship state changes without a user present, FleetGraph detects blocked committed work inside an active sprint/week, runs a shared graph, creates a contextual finding within 5 minutes, and stops at a human gate before it mutates Ship or contacts anyone.
+The MVP proves one hard thing end to end: when Ship state changes without a user present, FleetGraph detects blocked important work inside an active sprint/week, runs a shared graph, creates an action-ready finding within 5 minutes, and stops at a human gate before it mutates Ship or contacts anyone.
 
 That is the smallest slice that proves the assignment's real requirements:
 
@@ -16,13 +16,15 @@ That is the smallest slice that proves the assignment's real requirements:
 - observable traces
 - bounded cost and latency
 
+The finding is not the value. The value is the work FleetGraph does before the human sees it: gather visible evidence, explain why the blocker matters now, identify the smallest useful audience, prepare the next unblock step, and draft the exact message/action.
+
 ## System Shape
 
 ```mermaid
 flowchart LR
   Ship[(Ship data)] --> Worker[2-minute worker]
   Worker --> SQL[Deterministic SQL candidates]
-  SQL -->|eligible blocked committed work| Graph[Shared FleetGraph graph]
+  SQL -->|eligible blocked important work| Graph[Shared FleetGraph graph]
   SQL -->|nothing eligible| Quiet[Quiet exit]
   Graph --> Findings[(FleetGraph findings)]
   Findings --> UI[Issue / sprint context UI]
@@ -49,7 +51,7 @@ flowchart TD
   G --> H{Decision}
   H -->|No issue / low confidence| I[Quiet exit]
   H -->|Proactive finding| J[Create or update finding]
-  H -->|User asks why| K[Explain existing finding]
+  H -->|User asks why / refine draft| K[Explain or refine existing finding]
   H -->|Action affects Ship or people| L[Prepare confirmation card]
   J --> M[Filter visible evidence]
   K --> M
@@ -63,20 +65,23 @@ Proactive mode starts from a deterministic candidate. On-demand mode starts from
 
 ## MVP Detector
 
-The MVP detector is blocked committed work inside an active sprint/week.
+The MVP detector is blocked important work inside an active sprint/week.
 
 An issue is eligible only when all are true:
 
 - it belongs to an active sprint/week
-- it is committed work
+- it is explicitly committed, or it is high/critical priority active sprint work with an owner or assignee
+- it is not done
 - it has a blocked signal
 - no open FleetGraph finding already covers the same dedupe key
+
+If Ship has no explicit commitment marker, FleetGraph does not pretend high priority is commitment. It describes the fallback honestly as high-priority active sprint work.
 
 The LLM does not decide what to scan. SQL chooses candidates first. The graph only runs after deterministic filters produce a bounded candidate.
 
 ```mermaid
 flowchart LR
-  A[Active sprint issue] --> B{Committed?}
+  A[Active sprint issue] --> B{Important active work?}
   B -->|no| Q[No graph run]
   B -->|yes| C{Blocked signal?}
   C -->|no| Q
@@ -114,12 +119,12 @@ flowchart TD
   D --> E[Evidence]
   D --> F[Proposed recipient / object]
   D --> G[Exact draft or mutation]
-  D --> H[Approve / edit / snooze / dismiss / escalate]
+  D --> H[Approve / refine / edit / snooze / dismiss / escalate]
 ```
 
 This is the safety model:
 
-- FleetGraph diagnoses and prepares.
+- FleetGraph gathers evidence, chooses the smallest useful audience, drafts the next action, and can refine that draft in context.
 - Humans approve consequences.
 - Ship stays canonical.
 
@@ -136,7 +141,7 @@ flowchart LR
   C -->|no safe output| F[Quiet exit]
 ```
 
-The agent must not leak hidden document titles, private excerpts, restricted project names, or inferred confidential facts through a summary.
+The agent must not leak hidden document titles, private excerpts, restricted project names, or inferred confidential facts through a summary. Every user-visible claim must be backed by evidence visible to that user.
 
 ## Why Polling For MVP
 
@@ -162,7 +167,7 @@ Cost is candidate-driven, not project-driven.
 daily graph runs = new eligible candidates + due rechecks + on-demand invocations
 ```
 
-The cost cliff is not the 2-minute worker. The cost cliff is broad reasoning over whole workspaces and repeated duplicate processing.
+The cost cliff is not the 2-minute worker. The cost cliff is broad reasoning over whole workspaces, repeated duplicate processing, and broad on-demand chat that expands beyond the current object without scope control.
 
 Mitigations:
 
@@ -192,7 +197,7 @@ Hybrid is the right final architecture. Polling is the right MVP architecture be
 
 **Why only one detector?**
 
-Because the hard part is not inventing drift types. The hard part is proving proactive execution, shared graph routing, real data, observability, UI output, human gating, and latency. One sharp detector proves the system. More detectors reuse it.
+Because the hard part is not inventing drift types. The hard part is proving proactive execution, shared graph routing, real data, observability, UI output, human gating, and latency. One sharp detector proves the system if it does real PM work: evidence gathering, audience selection, unblock planning, draft preparation, and in-context refinement. More detectors reuse it.
 
 **What makes this a graph instead of a pipeline?**
 
@@ -204,19 +209,29 @@ It can maintain FleetGraph-owned findings and draft recommended actions. It cann
 
 **How does on-demand mode use page context?**
 
-It starts from the object the user is viewing and expands outward through linked issues, sprint/week state, project/program associations, owners, recent activity, existing findings, and visible documents.
+It starts from the object the user is viewing and expands outward through linked issues, sprint/week state, project/program associations, owners, recent activity, existing findings, and visible documents. It can explain the finding, draft the next action, or refine the draft with human-provided context.
 
 ## Defense Script
 
 Lead with this:
 
-> We are not building a general project assistant. We are building a proactive drift operator. The MVP proves the hard part: Ship state changes without a user present, FleetGraph detects a blocked committed issue through deterministic candidate selection, runs the shared graph, creates a finding within 5 minutes, and stops at a human gate before changing Ship or contacting anyone.
+> We are not building a general project assistant. We are building a proactive drift operator. The MVP proves the hard part: Ship state changes without a user present, FleetGraph detects blocked important active sprint work through deterministic candidate selection, runs the shared graph, creates an action-ready finding within 5 minutes, drafts the unblock path, and stops at a human gate before changing Ship or contacting anyone.
 
 Then defend three decisions:
 
-1. Narrow detector first.
+1. Narrow detector first, but action-ready output.
 2. Polling MVP, hybrid future.
-3. FleetGraph findings are autonomous; Ship mutations require confirmation.
+3. FleetGraph findings and draft refinement are autonomous; Ship mutations and communications require confirmation.
+
+## Direction If Time
+
+The architecture is built to become a project risk ledger and drift autopilot, but the week-five promise stays the action-ready blocked-work loop.
+
+The best stretch is draft refinement inside the confirmation card. The user should be able to say "make this softer," "add that Legal is the dependency," "rewrite this for the director," or "I disagree; frame this as a scope tradeoff." FleetGraph revises the prepared action in context without sending it, posting it, or forcing the user to copy text into another AI tool.
+
+The next stretch is a finding timeline: "flagged because," "changed since," "still blocked because," and "needs you because." That keeps the human oriented while FleetGraph does more of the context-gathering work.
+
+After that, the same graph can add detectors for carryover risk, silent owners, orphaned high-priority work, missing execution context, and repeated program-level drift. These are not separate assistants. They are new inputs into the same risk ledger and human-gated action system.
 
 ## Conclusion
 
@@ -224,6 +239,6 @@ This architecture is intentionally small where breadth would create risk, and st
 
 The system proves the assignment with one real proactive loop:
 
-Ship state changes -> deterministic candidate -> shared graph -> finding -> permission-filtered output -> human gate.
+Ship state changes -> deterministic candidate -> shared graph -> action-ready finding -> permission-filtered output -> human gate.
 
 That is the core product. Everything else is an expansion of detector coverage.

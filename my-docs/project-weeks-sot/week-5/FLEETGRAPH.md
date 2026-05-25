@@ -4,20 +4,22 @@ FleetGraph is a proactive project drift operator for Ship. It watches determinis
 
 ## MVP Scope
 
-The MVP proves one detector end to end: blocked committed work inside an active sprint/week.
+The MVP proves one detector end to end: blocked important work inside an active sprint/week becomes an action-ready unblock workflow.
 
 A Ship issue becomes a proactive FleetGraph candidate when all conditions are true:
 
 1. The issue belongs to an active sprint/week.
-2. The issue is committed work. MVP uses the narrowest existing commitment marker in Ship. If Ship has no explicit commitment marker, the fallback is intentionally conservative: active sprint/week membership, not-done status, an owner or assignee, and `priority in ('high', 'critical')`. High priority alone is not treated as commitment.
+2. The issue is important active work. MVP uses the narrowest existing commitment marker in Ship. If Ship has no explicit commitment marker, the predicate is explicit and conservative: active sprint/week membership, not-done status, an owner or assignee, and `priority in ('high', 'critical')`. In that fallback path FleetGraph describes the finding as "high-priority active sprint work," not as committed work.
 3. The issue has a blocked signal: blocked status, blocked label, or recent blocker language in issue/update text.
 4. No open FleetGraph finding already covers the same dedupe key.
 
 The LLM does not decide which issues are worth checking. SQL-level deterministic candidate selection bounds the graph before model reasoning runs.
 
+The graph's job is not to restate the SQL result. For each eligible issue, FleetGraph must produce the useful work a PM would otherwise do manually: identify why the blocker matters now, gather visible evidence, name the smallest useful audience, propose the next unblock step, draft the exact message/action, and stop at a human approval gate before contacting anyone or changing Ship.
+
 ## Agent Responsibility
 
-FleetGraph monitors Ship for execution drift that changes the next useful action for a PM, engineer, or director. For MVP, it monitors blocked committed issues in active sprint/weeks and creates contextual findings within the product.
+FleetGraph monitors Ship for execution drift that changes the next useful action for a PM, engineer, or director. For MVP, it monitors blocked important issues in active sprint/weeks and creates contextual, action-ready findings within the product.
 
 FleetGraph may autonomously:
 
@@ -38,9 +40,9 @@ FleetGraph must ask a human before:
 
 FleetGraph derives project membership from Ship's graph: issue assignees, owners, project/program associations, sprint/week ownership, document associations, recent contributors, workspace roles, PMs, leads, supervisors, admins, and directors. It routes findings to the smallest useful audience and filters evidence to avoid leaking restricted context.
 
-The MVP notification surface is an in-product FleetGraph finding card on the affected issue and sprint/week context. External comments, messages, and escalations are drafted but not sent without confirmation.
+The MVP notification surface is an in-product FleetGraph finding card on the affected issue and sprint/week context. The card should be visible as proactive output, not buried inside chat: it shows the issue is flagged, why it was flagged, what changed, and what FleetGraph recommends next. External comments, messages, and escalations are drafted but not sent without confirmation.
 
-On-demand mode starts from the current page context: object type, object ID, visible state, user role, and permissions. It uses the same graph core as proactive mode but is read/explain/draft only for MVP. Proactive mode owns finding creation and updates.
+On-demand mode starts from the current page context: object type, object ID, visible state, user role, and permissions. It uses the same graph core as proactive mode but is read/explain/draft/refine only for MVP. Proactive mode owns finding creation and updates. On-demand mode lets the user ask why the issue was flagged, what should happen next, or how to reword the prepared draft without copying the text into another AI tool.
 
 ## Graph Diagram
 
@@ -58,7 +60,7 @@ flowchart TD
   H --> I{Decision}
   I -->|Low confidence| Q
   I -->|Proactive finding| J{Finding exists?}
-  I -->|On-demand explain/draft| K[prepareContextualAnswer]
+  I -->|On-demand explain/draft/refine| K[prepareContextualAnswer]
   I -->|Action would mutate/contact| L[prepareConfirmationCard]
   J -->|New| M[createFinding]
   J -->|Duplicate/update| N[updateFinding]
@@ -80,7 +82,7 @@ Key branches:
 
 - Proactive vs. on-demand trigger.
 - Candidate still eligible vs. resolved or low confidence.
-- On-demand explanation vs. drafted action vs. proactive finding.
+- On-demand explanation/draft refinement vs. drafted action vs. proactive finding.
 - New finding vs. duplicate/update.
 - Autonomous FleetGraph state update vs. human approval required for Ship mutation or communication.
 - Recipient-visible evidence vs. restricted summary vs. quiet exit.
@@ -89,8 +91,8 @@ Key branches:
 
 | # | Role | Trigger | Agent Detects / Produces | Human Decides |
 | --- | --- | --- | --- | --- |
-| 1 | PM | Active sprint/week contains a committed high-priority issue with a blocked signal | Blocked-work finding, owner/assignee, sprint/project context, evidence, severity, confidence, draft unblock message | Send/edit message, escalate, re-scope, dismiss |
-| 2 | PM | Active sprint/week nears end with blocked committed work still open | Carryover risk explanation tied to the blocked issue and sprint/week | Re-scope, defer, notify owner, accept risk |
+| 1 | PM | Active sprint/week contains important active work with a blocked signal | Blocked-work finding, owner/assignee, sprint/project context, evidence, severity, confidence, next unblock step, draft message/action | Send/edit message, escalate, re-scope, dismiss |
+| 2 | PM | Active sprint/week nears end with blocked important work still open | Carryover risk explanation tied to the blocked issue and sprint/week | Re-scope, defer, notify owner, accept risk |
 | 3 | Engineer | Engineer opens an assigned blocked issue | Contextual explanation of why it was flagged, linked context, likely next unblock step | Ask PM, update issue, request clarification |
 | 4 | Director | Program/project view contains repeated blocked-work findings | Pattern summary across affected work, owners, and projects | Request recovery plan, intervene, dismiss |
 | 5 | PM/Director | User asks "why was this flagged?" from an issue or sprint/week page | On-demand explanation using the existing finding and current visible context | Follow up, approve a drafted action, dismiss |
@@ -103,7 +105,7 @@ MVP uses server-side polling inside the existing API process.
 
 - The FleetGraph worker starts with the API process when `FLEETGRAPH_WORKER_ENABLED=true`.
 - It ticks every 2 minutes.
-- Each tick runs deterministic SQL candidate checks for blocked committed work in active sprint/weeks.
+- Each tick runs deterministic SQL candidate checks for blocked important work in active sprint/weeks.
 - Eligible candidates enter the shared LangGraph.
 - Findings must become visible within 5 minutes of the blocked signal appearing in Ship.
 
@@ -135,15 +137,17 @@ For MVP, a blocked-work finding includes:
 - Severity and confidence.
 - Recommended next action.
 - Draft unblock message/action.
+- Proposed recipient and why they are the smallest useful audience.
+- "Needs you because" explanation for the human gate.
 - LangSmith trace link.
 
 FleetGraph may display this finding without approval. It may not send the draft, post a comment, assign work, change status, move sprint/week scope, or escalate without explicit human confirmation.
 
-The MVP human gate is a confirmation card for the drafted unblock action. The card shows the evidence, affected issue/sprint, proposed recipient, exact draft text, and the blocked action. If sending/posting is not implemented in MVP, the gate still records `needs_confirmation` and prevents accidental mutation or communication.
+The MVP human gate is a confirmation card for the drafted unblock action. The card shows the evidence, affected issue/sprint, proposed recipient, exact draft text, and the blocked action. The user can approve, dismiss, or ask FleetGraph to refine the draft in place, for example: "make it softer," "add that Legal is the dependency," or "rewrite this as a scope tradeoff." If sending/posting is not implemented in MVP, the gate still records `needs_confirmation` and prevents accidental mutation or communication.
 
 Humans may dismiss findings. FleetGraph may resolve findings when the source condition disappears, but it does not autonomously dismiss a human-visible finding as if a person rejected it. `snooze` is nice-to-have, not required for the architecture defense.
 
-Recipient output is permission-filtered after reasoning. FleetGraph may reason server-side with system attribution, but user-facing output may not reveal restricted document titles, hidden project names, private text excerpts, or inferred confidential facts. If the useful evidence is restricted, the output becomes a restricted-context summary or quiet exit.
+Recipient output is permission-filtered after reasoning. FleetGraph may reason server-side with system attribution, but every user-visible claim must be backed by evidence visible to that user. It may not reveal restricted document titles, hidden project names, private text excerpts, or inferred confidential facts. If the useful evidence is restricted, the output becomes a generic restricted-context summary or quiet exit.
 
 ## Observability
 
@@ -160,9 +164,10 @@ Each graph run records:
 
 Required trace evidence:
 
-1. Proactive blocked committed issue creates a finding.
+1. Proactive blocked important active issue creates a finding.
 2. On-demand "why was this flagged?" explains that finding from a contextual page.
-3. Optional: proactive run exits quietly because the candidate resolved or is a duplicate.
+3. On-demand draft refinement updates the proposed unblock message without mutating Ship.
+4. Proactive run exits quietly because the candidate resolved or is a duplicate.
 
 Trace debug UI is nice-to-have, not MVP. MVP persists trace metadata and includes submitted trace links in this file or submission notes.
 
@@ -186,11 +191,12 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 
 | # | Ship State | Expected Output | Trace Link |
 | --- | --- | --- | --- |
-| 1 | Active sprint/week contains committed high/critical issue with blocked signal and no existing finding | Proactive graph creates blocked-work finding within 5 minutes | To be added |
+| 1 | Active sprint/week contains important active issue with blocked signal and no existing finding | Proactive graph creates blocked-work finding within 5 minutes, with evidence, proposed recipient, next step, and draft action | To be added |
 | 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | To be added |
-| 3 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | Nice-to-have |
-| 4 | Blocked signal is removed before recheck | Proactive graph resolves or quietly exits | Nice-to-have |
-| 5 | Evidence is not visible to current user | Graph returns restricted-context output or quiet exit | Nice-to-have |
+| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | To be added |
+| 4 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | To be added |
+| 5 | Blocked signal is removed before recheck | Proactive graph resolves or quietly exits | Nice-to-have |
+| 6 | Evidence is not visible to current user | Graph returns restricted-context output or quiet exit | Nice-to-have |
 
 ## Architecture Decisions
 
@@ -198,7 +204,7 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 - Run inside the API process for MVP, with clean module boundaries for later extraction.
 - Use deterministic SQL candidate selection before LLM reasoning.
 - Persist FleetGraph-owned findings rather than mutating Ship work records.
-- Make proactive mode responsible for findings; on-demand mode explains and drafts only.
+- Make proactive mode responsible for findings; on-demand mode explains, drafts, and refines without mutating Ship.
 - Implement contextual UI first. A global FleetGraph panel is not MVP.
 - Persist trace metadata. A reviewer/debug trace UI is nice-to-have.
 - Use heartbeat/run metadata first. DB lease is not MVP for a single deployed worker, but is required if production runs multiple API instances.
@@ -223,9 +229,9 @@ Provisional scale assumptions until real usage data exists:
 
 | Scale | Assumption | Directional risk |
 | --- | --- | --- |
-| 100 users | Tens of proactive runs/day plus light on-demand use | Affordable if duplicate rechecks are cooled down |
-| 1,000 users | Hundreds of graph runs/day unless event-backed filtering is added | Needs budgets, cooldowns, and severity ranking |
-| 10,000 users | On-demand use likely dominates proactive detection cost | Needs scope narrowing and summarized context before reasoning |
+| 100 users | 10 projects, 20 active issues/project, 1-3 eligible proactive findings/day, 20-40 on-demand runs/day | Affordable if duplicate rechecks are cooled down |
+| 1,000 users | 100 projects, 20 active issues/project, 10-30 eligible proactive findings/day, 200-400 on-demand runs/day | Needs budgets, cooldowns, and severity ranking |
+| 10,000 users | 1,000 projects, 20 active issues/project, 100-300 eligible proactive findings/day, 2,000-4,000 on-demand runs/day | On-demand dominates; needs scope narrowing and summarized context before reasoning |
 
 The most dangerous cost assumption is not polling. It is broad on-demand prompts that expand from one page into whole-workspace reasoning.
 
@@ -248,3 +254,13 @@ Mitigations:
 - DB lease for multiple API instances.
 - External notifications/comments after approval.
 - Additional detectors: orphaned high-priority work, missing owner, sprint carryover risk, silent accountable owner, program-level repeated drift.
+
+## Direction If Time
+
+FleetGraph should grow toward a project risk ledger and drift autopilot, but the week-five promise stays the action-ready blocked-work loop.
+
+The first stretch is draft refinement inside the confirmation card. Users should be able to add context FleetGraph cannot know, disagree with the framing, change tone, or ask for a different audience without copying the draft into another LLM. This turns the human gate from a ceremonial approval button into a real collaboration surface.
+
+The next stretch is a finding timeline: "flagged because," "changed since," "still blocked because," and "needs you because." This keeps users oriented while the agent does more of the manual context gathering.
+
+After that, additional detectors should reuse the same graph and findings model: sprint carryover risk, silent owner, orphaned high-priority work, missing execution context, and program-level repeated drift. These should not become separate assistants. They are more ways to update the same risk ledger and prepare the next useful action.
