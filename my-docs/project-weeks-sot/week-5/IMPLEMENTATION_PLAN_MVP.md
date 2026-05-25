@@ -160,7 +160,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 1.3: Add FleetGraph Migration
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -178,6 +178,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Migration command output.
 - Schema inspection or targeted persistence test.
+
+**Implementation Note (2026-05-25):** Added numbered migration `042_fleetgraph.sql` with only `fleetgraph_findings` and `fleetgraph_runs`. The schema keeps Ship canonical by referencing source issue/week documents and storing FleetGraph-owned evidence snapshots, draft content, human-gate metadata, trace/run/token/cost/error metadata, and run decisions. Open-finding dedupe is enforced by a partial unique index on `dedupe_key` for open/needs-confirmation/error findings.
 
 ### Slice 1.4: Add Persistence Helpers
 

@@ -59,6 +59,7 @@ Repo-specific facts that prevent wrong assumptions.
 - `defineRoute` (`api/src/openapi/define-route.ts`) pilots on setup routes; new routes should migrate to it over duplicate `registerPath` + handler Zod. `defineRoute` validation failures must return `{ success: false, error: { code, message } }` (same as other routes).
 - OpenAPI path parity does not guarantee response fidelity — align schemas to handler JSON on families you migrate to `apiClient` or `expectOpenApiResponse`. Shared envelopes: `ApiErrorResponseSchema`, `SuccessResponseSchema` in `openapi/schemas/common.ts`.
 - Use `pgResult()` for row-returning mocked PostgreSQL results and `pgCommand()` for no-row command results in API tests, especially update/delete paths that drive `204` responses.
+- UUID-guarded route unit tests must use UUID-shaped IDs and mock the capability/principal boundary deliberately. Old fake IDs such as `issue-123` now correctly short-circuit through `guardDocumentIdParam()` with 404s before route behavior is exercised.
 - Treat unused-variable cleanup in tests as risky when the removed symbol fed an assertion. Preserve or strengthen the assertion, not just the lint count.
 - Always surface 10x options explicitly in any planning or tradeoff context, not only API/frontend boundaries. For this codebase, current 10x follow-ups include route/spec coverage enforcement and runtime response validation after generated OpenAPI typing.
 - Hook tests that exercise state-changing requests through `apiPost` must mock the CSRF preflight JSON response before the actual request response.
