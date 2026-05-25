@@ -118,7 +118,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 1.1: Add FleetGraph Dependencies
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -135,9 +135,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Package diff shows only necessary API dependency changes.
 
+**Implementation Note (2026-05-25):** Verified FleetGraph graph/tracing dependencies are scoped to `api/package.json`: `@langchain/langgraph` and `langsmith` are present in the API package and lockfile, with no matching dependency in `web/package.json` or `shared/package.json`. Current repo search found no LangGraph/LangSmith imports outside package metadata, so future graph code can keep imports isolated under `api/src/fleetgraph/*`. No code files were changed in this slice.
+
 ### Slice 1.2: Add Environment Configuration
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -153,6 +155,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Config test, startup smoke, or direct config inspection.
+
+**Implementation Note (2026-05-25):** Added `api/src/config/fleetgraph.ts` with inert FleetGraph env parsing. `FLEETGRAPH_WORKER_ENABLED` defaults to disabled unless set to `true` or `1`; `FLEETGRAPH_WORKER_INTERVAL_MS` defaults to `120000`; model/tracing settings are parsed but do not start graph work. Updated `api/.env.example` with FleetGraph defaults and added focused config tests.
 
 ### Slice 1.3: Add FleetGraph Migration
 
