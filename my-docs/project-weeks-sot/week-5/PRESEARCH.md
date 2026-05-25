@@ -9,7 +9,7 @@
   **FleetGraph is a project drift operator, not an alert bot.**
   It monitors Ship for execution drift: blocked important work, stale blockers, missing ownership, missing progress signals, sprint carryover risk, repeated issue movement across weeks, high-priority work without project/program context, and project/program patterns that indicate a team is losing control of delivery. Raw events are only inputs. FleetGraph should care when an event changes the next useful action for a PM, engineer, or director.
 
-  MVP should prove this with one sharp detector: **blocked important work inside the active sprint/week**. The candidate condition must be deterministic before the LLM runs: an issue is in an active sprint/week, is not done, has an owner or assignee, is either explicitly committed or high/critical priority, and has a blocked status/label or recent blocker language in updates. If Ship lacks an explicit commitment marker, FleetGraph calls the fallback "high-priority active sprint work," not committed work. FleetGraph surfaces the blocked-work finding within 5 minutes. The graph then does the manual PM work: gathers visible evidence, explains why it matters now, identifies the smallest useful audience, drafts the unblock path, and asks a human only before contacting people or changing Ship's source of truth.
+  MVP should prove this with one sharp detector: **blocked important work inside the active sprint/week**. The candidate condition must be deterministic before the LLM runs: an issue is in an active sprint/week, is not done, has an owner or assignee, is either explicitly committed or urgent/high priority, and has a real blocker signal in iteration/update data. If Ship lacks an explicit commitment marker, FleetGraph calls the fallback "urgent/high active sprint work," not committed work. FleetGraph surfaces the blocked-work finding within 5 minutes. The graph then does the manual PM work: gathers visible evidence, explains why it matters now, identifies the smallest useful audience, drafts the unblock path, and asks a human only before contacting people or changing Ship's source of truth.
 
 - What constitutes a condition worth surfacing?
 
@@ -73,7 +73,7 @@
 
 ##### **PM** - blocked important issue is rotting inside the active sprint
 
-   **Trigger:** an issue in the active sprint/week is explicitly committed or high/critical priority, not done, owner/assignee-backed, and has a blocked status/label or recent blocker language. Severity increases if there is no meaningful progress signal after the stale threshold.
+   **Trigger:** an issue in the active sprint/week is explicitly committed or urgent/high priority, not done, owner/assignee-backed, and has a real blocker signal in iteration/update data. Severity increases if there is no meaningful progress signal after the stale threshold.
    **Agent detects or produces:** blocked-work finding, issue owner/assignee, affected sprint/project, linked dependency context, last useful update, severity/confidence, smallest useful audience, next unblock step, and drafted unblock message/action.
    **Human decides:** send/edit the message, escalate, move the work, accept the carryover risk, or snooze.
 

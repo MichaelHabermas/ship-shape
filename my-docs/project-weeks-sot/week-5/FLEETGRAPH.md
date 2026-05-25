@@ -9,8 +9,8 @@ The MVP proves one detector end to end: blocked important work inside an active 
 A Ship issue becomes a proactive FleetGraph candidate when all conditions are true:
 
 1. The issue belongs to an active sprint/week.
-2. The issue is important active work. MVP uses the narrowest existing commitment marker in Ship. If Ship has no explicit commitment marker, the predicate is explicit and conservative: active sprint/week membership, not-done status, an owner or assignee, and `priority in ('high', 'critical')`. In that fallback path FleetGraph describes the finding as "high-priority active sprint work," not as committed work.
-3. The issue has a blocked signal: blocked status, blocked label, or recent blocker language in issue/update text.
+2. The issue is important active work. MVP uses the narrowest existing commitment marker in Ship. If Ship has no explicit commitment marker, the predicate is explicit and conservative: active sprint/week membership, not-done status, an owner or assignee, and `priority in ('urgent', 'high')`. In that fallback path FleetGraph describes the finding as "urgent/high active sprint work," not as committed work.
+3. The issue has a real blocker signal in `issue_iterations.blockers_encountered`.
 4. No open FleetGraph finding already covers the same dedupe key.
 
 The LLM does not decide which issues are worth checking. SQL-level deterministic candidate selection bounds the graph before model reasoning runs.
@@ -27,7 +27,7 @@ FleetGraph may autonomously:
 - Run deterministic candidate checks.
 - Invoke the shared LangGraph for eligible candidates.
 - Create, update, dedupe, suppress, and resolve FleetGraph-owned findings.
-- Persist run metadata, decision metadata, and LangSmith trace links.
+- Persist run metadata, decision metadata, and shared trace links.
 - Draft recommended next actions and unblock messages.
 
 FleetGraph must ask a human before:
@@ -40,7 +40,7 @@ FleetGraph must ask a human before:
 
 FleetGraph derives project membership from Ship's graph: issue assignees, owners, project/program associations, sprint/week ownership, document associations, recent contributors, workspace roles, PMs, leads, supervisors, admins, and directors. It routes findings to the smallest useful audience and filters evidence to avoid leaking restricted context.
 
-The MVP notification surface is an in-product FleetGraph finding card on the affected issue and sprint/week context. The card should be visible as proactive output, not buried inside chat: it shows the issue is flagged, why it was flagged, what changed, and what FleetGraph recommends next. External comments, messages, and escalations are drafted but not sent without confirmation.
+The MVP proactive surface is an in-product FleetGraph finding card on the affected issue and sprint/week context plus a lightweight active-week or navigation entry point, such as a banner, badge/count, or notification item. The finding should be visible as proactive output, not buried inside chat or discoverable only after opening the exact issue: it shows the issue is flagged, why it was flagged, what changed, and what FleetGraph recommends next. External comments, messages, and escalations are drafted but not sent without confirmation.
 
 On-demand mode starts from the current page context: object type, object ID, visible state, user role, and permissions. It uses the same graph core as proactive mode but is read/explain/draft/refine only for MVP. Proactive mode owns finding creation and updates. On-demand mode lets the user ask why the issue was flagged, what should happen next, or how to reword the prepared draft without copying the text into another AI tool.
 
@@ -139,7 +139,7 @@ For MVP, a blocked-work finding includes:
 - Draft unblock message/action.
 - Proposed recipient and why they are the smallest useful audience.
 - "Needs you because" explanation for the human gate.
-- LangSmith trace link.
+- Shared trace link.
 
 FleetGraph may display this finding without approval. It may not send the draft, post a comment, assign work, change status, move sprint/week scope, or escalate without explicit human confirmation.
 
@@ -151,7 +151,7 @@ Recipient output is permission-filtered after reasoning. FleetGraph may reason s
 
 ## Observability
 
-FleetGraph uses LangGraph and LangSmith from day one.
+FleetGraph uses LangGraph and shared observability traces from day one. LangSmith is acceptable, but any tracing system is acceptable if it provides reviewer-shareable trace links that show distinct proactive and on-demand paths.
 
 Each graph run records:
 
@@ -160,7 +160,7 @@ Each graph run records:
 - Source object type and ID.
 - Decision: `quiet_exit`, `create_finding`, `update_finding`, `explain`, `draft_action`, or `needs_confirmation`.
 - Finding ID when applicable.
-- LangSmith trace ID or URL.
+- Trace ID or URL.
 
 Required trace evidence:
 
@@ -200,7 +200,7 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 
 ## Architecture Decisions
 
-- Use LangGraph for the shared graph and LangSmith for traces.
+- Use LangGraph for the shared graph and shared trace links for reviewer evidence.
 - Run inside the API process for MVP, with clean module boundaries for later extraction.
 - Use deterministic SQL candidate selection before LLM reasoning.
 - Persist FleetGraph-owned findings rather than mutating Ship work records.

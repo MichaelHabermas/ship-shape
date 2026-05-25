@@ -70,7 +70,7 @@ The MVP detector is blocked important work inside an active sprint/week.
 An issue is eligible only when all are true:
 
 - it belongs to an active sprint/week
-- it is explicitly committed, or it is high/critical priority active sprint work with an owner or assignee
+- it is explicitly committed, or it is urgent/high priority active sprint work with an owner or assignee
 - it is not done
 - it has a blocked signal
 - no open FleetGraph finding already covers the same dedupe key
