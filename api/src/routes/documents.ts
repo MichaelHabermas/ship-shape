@@ -21,7 +21,7 @@ import {
   updateDocumentContentMutation,
   updateDocumentMutation,
 } from '../services/document-mutations.js';
-import { authorize, type DocumentCapabilityAction } from '../security/capabilities.js';
+import { authorize, capabilityDenialStatus, documentCommandCapability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
 
 const router = Router();
@@ -118,30 +118,30 @@ function extractBelongsToAssocFromRow(row: BelongsToAssocRow) {
   };
 }
 
-// Check if user can access a document (visibility check)
-async function canAccessDocument(
-  docId: string,
-  userId: string,
-  workspaceId: string
-): Promise<{ canAccess: boolean; doc: DocumentAccessRow | null }> {
+async function loadDocumentForRead(
+  req: Request,
+  documentId: string
+): Promise<{ allowed: boolean; doc: DocumentAccessRow | null }> {
+  const actor = getActor(req);
+  const decision = await authorize(pool, principalFromRequest(req), {
+    resource: 'document',
+    action: 'read',
+    documentId,
+  });
+
+  if (!decision.allowed) {
+    return { allowed: false, doc: null };
+  }
+
   const result = await pool.query<DocumentAccessRow>(
-    `SELECT d.*,
-            (d.visibility = 'workspace' OR d.created_by = $2 OR
-             (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
-     FROM documents d
-     WHERE d.id = $1 AND d.workspace_id = $3 AND d.deleted_at IS NULL`,
-    [docId, userId, workspaceId]
+    `SELECT d.*, true AS can_access
+       FROM documents d
+      WHERE d.id = $1 AND d.workspace_id = $2 AND d.deleted_at IS NULL`,
+    [documentId, actor.workspaceId]
   );
 
-  if (result.rows.length === 0) {
-    return { canAccess: false, doc: null };
-  }
-
-  const doc = result.rows[0];
-  if (!doc) {
-    return { canAccess: false, doc: null };
-  }
-  return { canAccess: doc.can_access, doc };
+  const doc = result.rows[0] ?? null;
+  return { allowed: Boolean(doc), doc };
 }
 
 async function canReadDocumentWithAccountability(
@@ -340,25 +340,13 @@ router.get('/converted/list', authMiddleware, async (req: Request, res: Response
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-    const userId = String(req.userId);
-    const workspaceId = String(req.workspaceId);
     const actor = getActor(req);
+    const { userId, workspaceId } = actor;
     const { isAdmin } = await getDocumentAccessContext(actor);
 
-    const { canAccess, doc } = await canAccessDocument(id, userId, workspaceId);
+    const { allowed, doc } = await loadDocumentForRead(req, id);
 
-    if (!doc) {
-      res.status(404).json({ error: 'Document not found' });
-      return;
-    }
-
-    if (!canAccess) {
-      // Return 404 for private docs user can't access (to not reveal existence)
-      res.status(404).json({ error: 'Document not found' });
-      return;
-    }
-
-    if (!(await canReadDocumentWithAccountability(doc, actor))) {
+    if (!allowed || !doc) {
       res.status(404).json({ error: 'Document not found' });
       return;
     }
@@ -570,6 +558,7 @@ router.patch('/:id/content', authMiddleware, async (req: Request, res: Response)
     const actor = getActor(req);
     const result = await updateDocumentContentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       content: req.body.content,
       source: 'rest',
@@ -592,6 +581,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const actor = getActor(req);
     const mutation = await createDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       input: parsed.data,
       source: 'rest',
     });
@@ -615,6 +605,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const mutation = await updateDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       patch: parsed.data,
       source: 'rest',
@@ -632,6 +623,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     const actor = getActor(req);
     const mutation = await deleteDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       source: 'rest',
     });
@@ -663,29 +655,6 @@ const documentCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('delete') }),
 ]);
 
-function capabilityForCommand(command: z.infer<typeof documentCommandSchema>): DocumentCapabilityAction {
-  switch (command.type) {
-    case 'set_governance':
-      return 'set_governance';
-    case 'set_raci':
-      return 'set_raci';
-    case 'set_workflow_status':
-      return 'set_workflow_state';
-    case 'set_visibility':
-      return 'set_visibility';
-    case 'set_parent':
-      return 'set_parent';
-    case 'set_associations':
-      return 'set_associations';
-    case 'edit_content':
-      return 'edit_content';
-    case 'convert':
-      return 'convert';
-    case 'delete':
-      return 'delete';
-  }
-}
-
 router.post('/:id/commands', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
@@ -698,20 +667,23 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     const actor = getActor(req);
     const principal = principalFromRequest(req);
     const command = parsed.data;
+    const { action, enforce } = documentCommandCapability(command);
     const decision = await authorize(pool, principal, {
       resource: 'document',
-      action: capabilityForCommand(command),
+      action,
       documentId: id,
+      enforce,
     });
 
     if (!decision.allowed) {
-      res.status(decision.reason === 'document_not_found' ? 404 : 403).json({ error: decision.reason });
+      res.status(capabilityDenialStatus(decision.reason)).json({ error: decision.reason });
       return;
     }
 
     if (command.type === 'edit_content') {
       const mutation = await updateDocumentContentMutation({
         actor,
+        principal,
         documentId: id,
         content: command.content,
         source: 'rest',
@@ -723,6 +695,7 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     if (command.type === 'convert') {
       const mutation = await convertDocumentMutation({
         actor,
+        principal,
         documentId: id,
         targetType: command.target_type,
         source: 'rest',
@@ -734,6 +707,7 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
     if (command.type === 'delete') {
       const mutation = await deleteDocumentMutation({
         actor,
+        principal,
         documentId: id,
         source: 'rest',
       });
@@ -758,8 +732,10 @@ router.post('/:id/commands', authMiddleware, async (req: Request, res: Response)
 
     const mutation = await updateDocumentMutation({
       actor,
+      principal,
       documentId: id,
       patch,
+      capability: { action, documentId: id, enforce },
       source: 'rest',
     });
     res.status(mutation.status).json(mutation.body);
@@ -782,6 +758,7 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
     const actor = getActor(req);
     const mutation = await convertDocumentMutation({
       actor,
+      principal: principalFromRequest(req),
       documentId: id,
       targetType: target_type,
       source: 'rest',
@@ -796,18 +773,11 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
 // POST /documents/:id/undo-conversion - Undo a document conversion using snapshots
 router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Response) => {
   const id = String(req.params.id);
-  const userId = String(req.userId);
-  const workspaceId = String(req.workspaceId);
+  const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
-  // First check access using canAccessDocument (outside transaction for read)
-  const { canAccess, doc: currentDoc } = await canAccessDocument(id, userId, workspaceId);
+  const { allowed, doc: currentDoc } = await loadDocumentForRead(req, id);
 
-  if (!currentDoc) {
-    res.status(404).json({ error: 'Document not found' });
-    return;
-  }
-
-  if (!canAccess) {
+  if (!allowed || !currentDoc) {
     res.status(404).json({ error: 'Document not found' });
     return;
   }

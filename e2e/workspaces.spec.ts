@@ -1,19 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { loginAsSuperAdmin, login } from './fixtures/api-auth';
 
-// Helper to login as a specific user
-async function login(page: Page, email: string, password: string) {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  await page.locator('#email').fill(email)
-  await page.locator('#password').fill(password)
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 })
-}
-
-// Helper to login as super admin
-async function loginAsSuperAdmin(page: Page) {
-  await login(page, 'dev@ship.local', 'admin123')
-}
 
 test.describe('Workspace Switcher', () => {
   test.beforeEach(async ({ page }) => {

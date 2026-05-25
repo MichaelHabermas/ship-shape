@@ -8,8 +8,8 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer, NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react';
 import { uploadFile, isAllowedFileType, getMimeTypeFromExtension, isImageFile, MAX_FILE_SIZE, MAX_FILE_SIZE_DISPLAY } from '@/services/upload';
-import { registerUpload, updateUploadProgress, unregisterUpload } from '@/services/uploadTracker';
-import { useState } from 'react';
+import { getActiveUploads, registerUpload, subscribeToUploads, updateUploadProgress, unregisterUpload } from '@/services/uploadTracker';
+import { useEffect, useState } from 'react';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -62,7 +62,22 @@ interface FileAttachmentAttrs {
 
 function FileAttachmentComponent({ node }: ReactNodeViewProps) {
   const { filename, url, size, mimeType, uploading } = node.attrs as FileAttachmentAttrs;
-  const [uploadProgress, _setUploadProgress] = useState(uploading ? 0 : 100);
+  const [uploadProgress, setUploadProgress] = useState(uploading ? 0 : 100);
+
+  useEffect(() => {
+    if (!uploading) {
+      setUploadProgress(100);
+      return;
+    }
+
+    const syncProgress = () => {
+      const match = getActiveUploads().find((upload) => upload.filename === filename);
+      setUploadProgress(match?.progress ?? 0);
+    };
+
+    syncProgress();
+    return subscribeToUploads(syncProgress);
+  }, [uploading, filename]);
 
   const fileIcon = getFileIcon(mimeType);
   const formattedSize = size ? formatFileSize(size) : '';

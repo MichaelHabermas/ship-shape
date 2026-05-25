@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginAsAdminWithUser, loginViaApi } from './fixtures/api-auth';
+
 
 /**
  * E2E test for sprint accountability items flow.
@@ -12,24 +14,9 @@ import { test, expect } from './fixtures/isolated-env';
  * test the actual inference logic.
  */
 
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
 test.describe('Week Accountability Flow', () => {
   test('allocated person without weekly_plan shows action item, creating plan removes it', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    const csrfToken = await getCsrfToken(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get user and person IDs
     const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
@@ -120,21 +107,7 @@ test.describe('Week Accountability Flow', () => {
   });
 
   test('sprint not started shows action item, starting sprint removes it', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
-
-    // Get user ID
-    const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
-    expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
-    const userId = meData.data.user.id;
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
 
     // Create a program
     const programResponse = await page.request.post(`${apiServer.url}/api/documents`, {
@@ -198,21 +171,7 @@ test.describe('Week Accountability Flow', () => {
   });
 
   test('sprint without issues shows action item, adding issue removes it', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
-
-    // Get user ID
-    const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
-    expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
-    const userId = meData.data.user.id;
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
 
     // Create a program
     const programResponse = await page.request.post(`${apiServer.url}/api/documents`, {
@@ -278,21 +237,7 @@ test.describe('Week Accountability Flow', () => {
   });
 
   test('sprint in future does not show action items', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
-
-    // Get user ID
-    const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
-    expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
-    const userId = meData.data.user.id;
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
 
     // Create a program
     const programResponse = await page.request.post(`${apiServer.url}/api/documents`, {

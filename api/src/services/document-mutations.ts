@@ -29,13 +29,14 @@ import {
   stripForbiddenGovernanceKeys,
 } from '../utils/document-governance.js';
 import { asApprovalRecord } from '../utils/approval-workflow.js';
-import {
-  decideCreatorOrAdmin,
-  decideDocumentAccess,
-  decideReferenceAccess,
-  decideWorkspaceAdmin,
-} from './document-policy.js';
 import { getDocumentAccessContext, getReadableDocument, type DocumentActor } from './document-access.js';
+import {
+  authorize,
+  authorizeDocumentMutation,
+  capabilityDenialStatus,
+  type DocumentMutationCapability,
+} from '../security/capabilities.js';
+import type { Principal } from '../security/principal.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -115,6 +116,7 @@ export type UpdateDocumentPatch = {
 
 export type CreateDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   input: {
     title: string;
     document_type: DocumentType;
@@ -131,6 +133,7 @@ export type CreateDocumentInput = {
 
 export type UpdateDocumentContentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   content: { type?: unknown; content?: unknown };
   source: 'rest' | 'collaboration' | 'system';
@@ -138,19 +141,23 @@ export type UpdateDocumentContentInput = {
 
 export type UpdateDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   patch: UpdateDocumentPatch;
+  capability?: DocumentMutationCapability;
   source: 'rest' | 'collaboration' | 'system';
 };
 
 export type DeleteDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   source: 'rest' | 'collaboration' | 'system';
 };
 
 export type ConvertDocumentInput = {
   actor: DocumentActor;
+  principal: Principal;
   documentId: string;
   targetType: 'issue' | 'project';
   source: 'rest' | 'collaboration' | 'system';
@@ -163,14 +170,40 @@ function asDocumentProperties(value: unknown): DocumentProperties {
   return value as DocumentProperties;
 }
 
+async function guardMutationCapability(
+  db: QueryRunner,
+  principal: Principal,
+  spec: DocumentMutationCapability
+): Promise<MutationResult<never> | null> {
+  const decision = await authorizeDocumentMutation(db, principal, spec);
+  if (decision.allowed) return null;
+  return {
+    ok: false,
+    status: capabilityDenialStatus(decision.reason),
+    body: { error: decision.reason },
+  };
+}
+
+function defaultWriteCapability(documentId: string): DocumentMutationCapability {
+  return { action: 'write', documentId };
+}
+
+function creatorWriteCapability(documentId: string, includeArchived = false): DocumentMutationCapability {
+  return { action: 'write', documentId, enforce: 'creator_or_admin', includeArchived };
+}
+
 async function loadAccessibleDocument(
   db: QueryRunner,
-  actor: DocumentActor,
+  principal: Principal,
   documentId: string,
   options: { includeArchived?: boolean } = {}
 ): Promise<DocumentAccessRow | null> {
-  const decision = await decideDocumentAccess(db, actor, 'write', documentId, undefined, options);
-  if (!decision.allowed || !decision.document) {
+  const decision = await authorizeDocumentMutation(db, principal, {
+    action: 'write',
+    documentId,
+    includeArchived: options.includeArchived,
+  });
+  if (!decision.allowed || !decision.document || principal.kind === 'setup') {
     return null;
   }
 
@@ -180,7 +213,7 @@ async function loadAccessibleDocument(
             archived_at, deleted_at, converted_to_id, converted_by
        FROM documents
       WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`,
-    [documentId, actor.workspaceId]
+    [documentId, principal.workspaceId]
   );
 
   return result.rows[0] ?? null;
@@ -213,12 +246,17 @@ async function removeAssociationsByRelatedId(
 
 async function validateReferences(
   db: QueryRunner,
-  actor: DocumentActor,
+  principal: Principal,
   references: Array<{ id: string; type?: 'program' | 'project' | 'sprint' | 'parent'; label: string }>
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   for (const reference of references) {
     if (!reference.type) continue;
-    const decision = await decideReferenceAccess(db, actor, reference.id, reference.type);
+    const decision = await authorize(db, principal, {
+      resource: 'document_reference',
+      action: 'link',
+      targetId: reference.id,
+      relationship: reference.type,
+    });
     if (!decision.allowed) {
       return { ok: false, error: `${reference.label} not found` };
     }
@@ -257,9 +295,13 @@ function extractedContentProperties(content: unknown) {
 
 export async function updateDocumentContentMutation({
   actor,
+  principal,
   documentId,
   content,
 }: UpdateDocumentContentInput): Promise<MutationResult<DocumentContentRow>> {
+  const denied = await guardMutationCapability(pool, principal, defaultWriteCapability(documentId));
+  if (denied) return denied;
+
   const validationError = validateTipTapContent(content);
   if (validationError) return validationError;
 
@@ -267,7 +309,7 @@ export async function updateDocumentContentMutation({
   let resubmissionTarget: { sprintId: string; reviewerUserId: string | null } | null = null;
 
   try {
-    const existing = await loadAccessibleDocument(client, actor, documentId, { includeArchived: true });
+    const existing = await loadAccessibleDocument(client, principal, documentId, { includeArchived: true });
     if (!existing) {
       return { ok: false, status: 404, body: { error: 'Document not found' } };
     }
@@ -438,8 +480,12 @@ async function projectOwnerForResponse(ownerId: unknown, workspaceId: string): P
 
 export async function createDocumentMutation({
   actor,
+  principal,
   input,
 }: CreateDocumentInput): Promise<MutationResult<DocumentAccessRow>> {
+  const denied = await guardMutationCapability(pool, principal, { action: 'write' });
+  if (denied) return denied;
+
   const client = await pool.connect();
 
   try {
@@ -491,7 +537,7 @@ export async function createDocumentMutation({
         label: `${association.type} document`,
       }))),
     ];
-    const referencesResult = await validateReferences(client, actor, references);
+    const referencesResult = await validateReferences(client, principal, references);
     if (!referencesResult.ok) {
       return { ok: false, status: 404, body: { error: referencesResult.error } };
     }
@@ -579,16 +625,25 @@ function flattenDocumentResponse(updatedDoc: DocumentAccessRow, owner: PersonOwn
 
 export async function updateDocumentMutation({
   actor,
+  principal,
   documentId,
   patch,
+  capability,
 }: UpdateDocumentInput): Promise<MutationResult<ReturnType<typeof flattenDocumentResponse>>> {
+  const denied = await guardMutationCapability(
+    pool,
+    principal,
+    capability ?? defaultWriteCapability(documentId),
+  );
+  if (denied) return denied;
+
   const client = await pool.connect();
   let contentUpdated = false;
   let visibilityChanged: { next: DocumentVisibility; previousCreatedBy: string } | null = null;
   let resubmissionTarget: { sprintId: string; reviewerUserId: string | null } | null = null;
 
   try {
-    const existing = await loadAccessibleDocument(client, actor, documentId, { includeArchived: true });
+    const existing = await loadAccessibleDocument(client, principal, documentId, { includeArchived: true });
     if (!existing) {
       return { ok: false, status: 404, body: { error: 'Document not found' } };
     }
@@ -639,14 +694,19 @@ export async function updateDocumentMutation({
         label: `${association.type} document`,
       }))),
     ];
-    const referencesResult = await validateReferences(client, actor, references);
+    const referencesResult = await validateReferences(client, principal, references);
     if (!referencesResult.ok) {
       return { ok: false, status: 404, body: { error: referencesResult.error } };
     }
 
     if (patch.visibility !== undefined && patch.visibility !== existing.visibility) {
-      const creatorDecision = await decideCreatorOrAdmin(actor, existing, 'write', client);
-      if (!creatorDecision.allowed) {
+      const visibilityDecision = await authorizeDocumentMutation(client, principal, {
+        action: 'write',
+        documentId,
+        enforce: 'creator_or_admin',
+        includeArchived: true,
+      });
+      if (!visibilityDecision.allowed) {
         return { ok: false, status: 403, body: { error: 'Only the creator or admin can change document visibility' } };
       }
     }
@@ -659,7 +719,12 @@ export async function updateDocumentMutation({
     }
 
     if (existing.document_type === 'person' && patch.properties?.reports_to !== undefined) {
-      const adminDecision = await decideWorkspaceAdmin(actor, 'write', client);
+      const adminDecision = await authorizeDocumentMutation(client, principal, {
+        action: 'governance',
+        documentId,
+        enforce: 'workspace_admin',
+        includeArchived: true,
+      });
       if (!adminDecision.allowed) {
         return { ok: false, status: 403, body: { error: 'Only workspace admins can set the reports_to field' } };
       }
@@ -733,8 +798,13 @@ export async function updateDocumentMutation({
     }
 
     if (patch.document_type !== undefined && patch.document_type !== existing.document_type) {
-      const creatorDecision = await decideCreatorOrAdmin(actor, existing, 'convert', client);
-      if (!creatorDecision.allowed) {
+      const convertDecision = await authorizeDocumentMutation(client, principal, {
+        action: 'write',
+        documentId,
+        enforce: 'creator_or_admin',
+        includeArchived: true,
+      });
+      if (!convertDecision.allowed) {
         await client.query('ROLLBACK');
         return { ok: false, status: 403, body: { error: 'Only the document creator can change its type' } };
       }
@@ -856,16 +926,19 @@ export async function updateDocumentMutation({
 
 export async function deleteDocumentMutation({
   actor,
+  principal,
   documentId,
 }: DeleteDocumentInput): Promise<MutationResult<null>> {
-  const existing = await loadAccessibleDocument(pool, actor, documentId, { includeArchived: true });
+  const denied = await guardMutationCapability(
+    pool,
+    principal,
+    creatorWriteCapability(documentId, true),
+  );
+  if (denied) return denied;
+
+  const existing = await loadAccessibleDocument(pool, principal, documentId, { includeArchived: true });
   if (!existing) {
     return { ok: false, status: 404, body: { error: 'Document not found' } };
-  }
-
-  const creatorDecision = await decideCreatorOrAdmin(actor, existing, 'delete');
-  if (!creatorDecision.allowed) {
-    return { ok: false, status: 403, body: { error: 'Only the document creator or admin can delete it' } };
   }
 
   const result = await pool.query<{ id: string }>(
@@ -885,13 +958,21 @@ export async function deleteDocumentMutation({
 
 export async function convertDocumentMutation({
   actor,
+  principal,
   documentId,
   targetType,
 }: ConvertDocumentInput): Promise<MutationResult<Record<string, unknown>>> {
+  const denied = await guardMutationCapability(
+    pool,
+    principal,
+    creatorWriteCapability(documentId, true),
+  );
+  if (denied) return denied;
+
   const client = await pool.connect();
 
   try {
-    const doc = await loadAccessibleDocument(client, actor, documentId, { includeArchived: true });
+    const doc = await loadAccessibleDocument(client, principal, documentId, { includeArchived: true });
     if (!doc) {
       return { ok: false, status: 404, body: { error: 'Document not found' } };
     }

@@ -12,6 +12,16 @@ import { principalFromRequest, type ApiTokenScope } from '../security/principal.
 const router = Router();
 export { hashToken };
 
+function denyWorkspaceAdminTokenAction(res: Response, action: 'create' | 'revoke'): void {
+  res.status(HTTP_STATUS.FORBIDDEN).json({
+    success: false,
+    error: {
+      code: ERROR_CODES.FORBIDDEN,
+      message: `Workspace admin access required to ${action} API tokens`,
+    },
+  });
+}
+
 const createTokenSchema = z.object({
   name: z.string().min(1).max(100),
   expires_in_days: z.number().int().positive().max(365).optional(),
@@ -27,7 +37,6 @@ const createTokenSchema = z.object({
   ])).optional(),
 });
 
-// POST /api/api-tokens - Generate a new API token
 router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   const { userId, workspaceId } = getAuthenticatedRouteContext(req);
   const principal = principalFromRequest(req);
@@ -51,17 +60,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
   try {
     const capability = await authorize(pool, principal, { resource: 'api_token', action: 'create' });
     if (!capability.allowed) {
-      res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        error: {
-          code: ERROR_CODES.FORBIDDEN,
-          message: 'Workspace admin access required to create API tokens',
-        },
-      });
+      denyWorkspaceAdminTokenAction(res, 'create');
       return;
     }
 
-    // Check if token with same name already exists for this user/workspace
     const existingResult = await pool.query(
       `SELECT id FROM api_tokens
        WHERE user_id = $1 AND workspace_id = $2 AND name = $3 AND revoked_at IS NULL`,
@@ -125,7 +127,6 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
   }
 });
 
-// GET /api/api-tokens - List user's API tokens (never returns the actual token)
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
@@ -164,13 +165,18 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
   }
 });
 
-// DELETE /api/api-tokens/:id - Revoke an API token
 router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+  const principal = principalFromRequest(req);
   const id = String(req.params.id);
 
   try {
-    // Verify the token belongs to this user and workspace
+    const capability = await authorize(pool, principal, { resource: 'api_token', action: 'revoke' });
+    if (!capability.allowed) {
+      denyWorkspaceAdminTokenAction(res, 'revoke');
+      return;
+    }
+
     const tokenResult = await pool.query(
       `SELECT id, name FROM api_tokens
        WHERE id = $1 AND user_id = $2 AND workspace_id = $3`,
@@ -188,7 +194,6 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
       return;
     }
 
-    // Revoke the token (soft delete - keeps audit trail)
     await pool.query(
       `UPDATE api_tokens SET revoked_at = NOW() WHERE id = $1`,
       [id]

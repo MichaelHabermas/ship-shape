@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
-import { fail, finding, pass, skip } from '../lib/result-model.mjs';
-import { runSelectedProbes } from '../lib/probe-selection.mjs';
-import { fingerprintForFinding } from '../lib/finding-registry.mjs';
-import { isDeniedStatus, memberReady, pickSprintDocument, pickProgram } from '../lib/fixtures.mjs';
+import { fail, finding, pass, skip } from '../../../packages/shipshape-security/src/core/result-model.mjs';
+import { runSelectedProbes } from '../../../packages/shipshape-security/src/core/probe-selection.mjs';
+import { fingerprintForFinding } from '../../../packages/shipshape-security/src/core/finding-registry.mjs';
+import { isDeniedStatus, memberReady, pickSprintDocument, pickProgram } from '../../../packages/shipshape-security/src/core/fixtures.mjs';
 import { longPayload, marker, sqlPayload, xssPayload } from '../fixtures/payloads.mjs';
 
 export async function inputSanitizationProbes(context) {

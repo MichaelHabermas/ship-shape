@@ -2,6 +2,78 @@
 
 ---
 
+## Wave 1 closeout — Epics 1 + 2 (2026-05-24)
+
+| Finding | Disposition |
+|---------|-------------|
+| Parallel `decide*` in `document-policy.ts` | **Resolved** D084 — `authorize` only; seed cases remain |
+| Setup env token without `Principal` | **Resolved** D082 — `setup-access.ts` + `authorize` setup |
+| Duplicate probe lib under `scripts/security-probe/lib/` | **Resolved** Epic 2.1 — package core imports |
+| 40+ duplicate e2e login helpers | **Resolved** Epic 2.2 — `e2e/fixtures/api-auth.ts` |
+| Submission artifact list duplication | **Resolved** Epic 2.3 — `required-artifacts.mjs`, `ledger-utils` |
+| Phase-2 route visibility SQL (~75 handlers) | **Deferred** D083 / Wave 2 Epic 3+ |
+
+Auth maintainability re-score: **7.5 / 10** (from 6.8). Evidence: API 620/620, smoke 27/27, probe 33/33.
+
+---
+
+## Code quality Slice 1.1 — authorization matrix (2026-05-24)
+
+Decision: inventory before Epic 1 code changes. No submission-ledger change (architecture-only).
+
+| Finding | Disposition |
+|---------|-------------|
+| Production `authorize` is read-level for session users on all document/collaboration actions | **Confirmed gap** — Slice 1.2 vocabulary + Slice 1.3 mutation/token guards |
+| 11 `authorize` call sites (files×6 not ×5); 0 `requireCapability` callers | **Documented** — `auth-matrix.md` |
+| All five mutation entrypoints use `DocumentActor` only — no token scope at entry | **Confirmed critical gap** — Slice 1.3 |
+| Triple `canAccessDocument` (documents, comments, collab wrapper) | **Confirmed** — Slice 1.5 convergence |
+| `workspaceAccessMiddleware` defined, never mounted | **Confirmed dead** — adopt or delete Slice 1.5 |
+| `setup.ts` env token vs `Principal.kind === 'setup'` never constructed | **Confirmed drift** — Slice 1.5 |
+| Phase-2 routes (~75 handlers, ~8k LOC) use visibility SQL, not capabilities | **Backlog** — Appendix D / Slice 1.6; `issues.ts` first |
+| Probe lib: 10 byte-identical script copies vs package core | **Preflight for Epic 2.1** — delete-safe after import retarget |
+
+Future application: do not add new `DocumentCapabilityAction` values until Slice 1.2 chooses honest vocabulary (inventory recommends collapse to read\|write\|governance\|collaborate for sessions).
+
+---
+
+## Code quality Slice 1.2 — honest capability vocabulary (2026-05-24)
+
+Decision: D080 option B — four document capabilities + command mapper with enforce hints.
+
+| Finding | Disposition |
+|---------|-------------|
+| Fourteen decorative document actions at facade | **Resolved** — collapsed to read/write/governance/collaborate |
+| Session delete/governance passed read gate only | **Resolved at commands path** — enforce hints + policy helpers; REST mutations still Slice 1.3 |
+| `requireCapability` / `defaultCapabilityDb` unused | **Removed** |
+| Dead `file_not_*` deny reasons | **Removed** from capability union |
+
+Future application: new document command types must extend `documentCommandCapability()` with correct action + enforce; do not reintroduce granular `DocumentCapabilityAction` strings without enforcement.
+
+---
+
+## Code quality Epic 1 phase pause (2026-05-24)
+
+Decision: pause after slices 1.1–1.3, 1.5, 1.6 with Phase closeout (deslop, simplify, tests). Slice 1.4 and 1.5b remain. Human gate: **“Tell me you're done.”** before 1.4 or Epic 2.
+
+| Item | Status |
+|------|--------|
+| D081 delete `workspaceAccessMiddleware` | Done |
+| D082 setup Principal → Slice 1.5b | Deferred in plan |
+| D083 phase-2 routes Appendix D | Done |
+| Phase closeout ritual in plan | Added |
+
+---
+
+## Code quality Slice 1.3 — mutation token scopes (2026-05-24)
+
+| Finding | Disposition |
+|---------|-------------|
+| Scoped tokens could hit REST mutations without scope check | **Fixed** — `guardMutationCapability` on all five entrypoints |
+| Delete 403 message vs capability reason drift | **Aligned** — HTTP body uses `not_creator_or_admin` |
+| Appendix D phase-2 backlog | **Populated** — Slice 1.6 |
+
+---
+
 ## Reviewer packet simplification (2026-05-24)
 
 Decision: turn the generated reviewer dashboard into a grading packet. The reviewer path is now Summary, Evidence, Security, Appendix, with source gate and proof rows first and internal machinery moved behind drilldown.

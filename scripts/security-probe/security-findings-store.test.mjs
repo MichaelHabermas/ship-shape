@@ -11,9 +11,9 @@ import {
   linkProbe,
   appendProbeVerifications,
   toFlatRegistryEntries,
-} from './lib/security-findings-store.mjs';
-import { triageFindings } from './lib/security-findings-triage.mjs';
-import { validateSecurityFindings } from './lib/security-findings-check.mjs';
+} from '../../packages/shipshape-security/src/core/security-findings-store.mjs';
+import { triageFindings } from '../../packages/shipshape-security/src/core/security-findings-triage.mjs';
+import { validateSecurityFindings } from '../../packages/shipshape-security/src/core/security-findings-check.mjs';
 
 test('fingerprintForFinding is stable', () => {
   const a = fingerprintForFinding('authorization-demo', 'probe-demo');

@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -37,15 +39,16 @@ async function createNewDocument(page: Page) {
   await expect(page.locator('textarea[placeholder="Untitled"]')).toBeVisible({ timeout: 3000 })
 }
 
-// Helper to login
-async function login(page: Page, email: string = 'dev@ship.local', password: string = 'admin123') {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  await page.locator('#email').fill(email)
-  await page.locator('#password').fill(password)
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  // Should redirect away from login page (may include query params like ?expired=true)
-  await expect(page).not.toHaveURL(/\/login($|\?)/, { timeout: 5000 })
+/** Select slash-command Image via Enter (matches images.spec.ts; avoids flaky menu clicks). */
+async function uploadImageViaSlashCommand(page: Page, filePath: string): Promise<void> {
+  const editor = page.locator('.ProseMirror')
+  await editor.click()
+  await page.keyboard.type('/image')
+  await page.waitForTimeout(500)
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await page.keyboard.press('Enter')
+  const fileChooser = await fileChooserPromise
+  await fileChooser.setFiles(filePath)
 }
 
 test.describe('Security - XSS Prevention', () => {
@@ -149,14 +152,6 @@ test.describe('Security - XSS Prevention', () => {
     await createNewDocument(page)
 
     const editor = page.locator('.ProseMirror')
-    await editor.click()
-
-    // Type /image to trigger slash command
-    await page.keyboard.type('/image')
-
-    // Wait for slash command menu to appear with Image option
-    const imageOption = page.locator('button', { hasText: 'Image' }).filter({ hasText: 'Upload' })
-    await expect(imageOption).toBeVisible({ timeout: 3000 })
 
     // Create test image with XSS payload encoded in filename (filesystem-safe)
     // The original payload: test"><script>alert("XSS")</script><img src="x
@@ -170,12 +165,7 @@ test.describe('Security - XSS Prevention', () => {
     const tmpPath = path.join(os.tmpdir(), safeFilename)
     fs.writeFileSync(tmpPath, pngBuffer)
 
-    const fileChooserPromise = page.waitForEvent('filechooser')
-    // Click the Image option in slash command menu
-    await imageOption.click()
-
-    const fileChooser = await fileChooserPromise
-    await fileChooser.setFiles(tmpPath)
+    await uploadImageViaSlashCommand(page, tmpPath)
 
     // Wait for image to appear
     await expect(editor.locator('img')).toBeVisible({ timeout: 5000 })
@@ -238,7 +228,6 @@ test.describe('Security - XSS Prevention', () => {
   })
 })
 
-// FIXME: File upload via slash command UI has changed
 test.describe('Security - File Upload Validation', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
@@ -248,25 +237,12 @@ test.describe('Security - File Upload Validation', () => {
     await createNewDocument(page)
 
     const editor = page.locator('.ProseMirror')
-    await editor.click()
-
-    // Type /image to trigger slash command
-    await page.keyboard.type('/image')
-
-    // Wait for slash command menu with Image option
-    const imageOption = page.locator('button', { hasText: 'Image' }).filter({ hasText: 'Upload' })
-    await expect(imageOption).toBeVisible({ timeout: 3000 })
 
     // Create a fake "image" that's actually HTML
     const htmlFile = path.join(os.tmpdir(), `fake-image-${Date.now()}.png`)
     fs.writeFileSync(htmlFile, '<html><script>alert("XSS")</script></html>')
 
-    const fileChooserPromise = page.waitForEvent('filechooser')
-    // Click the Image option in slash command menu
-    await imageOption.click()
-
-    const fileChooser = await fileChooserPromise
-    await fileChooser.setFiles(htmlFile)
+    await uploadImageViaSlashCommand(page, htmlFile)
 
     // Wait to see if upload is rejected or accepted
     await page.waitForTimeout(2000)
@@ -300,14 +276,6 @@ test.describe('Security - File Upload Validation', () => {
     await createNewDocument(page)
 
     const editor = page.locator('.ProseMirror')
-    await editor.click()
-
-    // Type /image to trigger slash command
-    await page.keyboard.type('/image')
-
-    // Wait for slash command menu with Image option
-    const imageOption = page.locator('button', { hasText: 'Image' }).filter({ hasText: 'Upload' })
-    await expect(imageOption).toBeVisible({ timeout: 3000 })
 
     // Try to upload a .exe file (renamed as .png)
     const timestamp = Date.now()
@@ -315,12 +283,7 @@ test.describe('Security - File Upload Validation', () => {
     // MZ header indicates Windows executable
     fs.writeFileSync(exeFile, Buffer.from([0x4D, 0x5A, 0x90, 0x00]))
 
-    const fileChooserPromise = page.waitForEvent('filechooser')
-    // Click the Image option in slash command menu
-    await imageOption.click()
-
-    const fileChooser = await fileChooserPromise
-    await fileChooser.setFiles(exeFile)
+    await uploadImageViaSlashCommand(page, exeFile)
 
     await page.waitForTimeout(2000)
 

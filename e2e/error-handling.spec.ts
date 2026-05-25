@@ -1,16 +1,9 @@
 import type { TestInfo } from '@playwright/test'
+import { login } from './fixtures/api-auth';
+
 import { test, expect, Page } from './fixtures/isolated-env'
 
 const CATEGORY_6_ARTIFACT_PREFIX = 'category-6-runtime-evidence'
-
-// Helper to login
-async function login(page: Page) {
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
 
 function collectPageErrors(page: Page) {
   const errors: string[] = []

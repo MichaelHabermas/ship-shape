@@ -50,6 +50,68 @@ Evidence: Focused API/security tests passed; file route tests passed after apply
 
 **Decision Gist**: Authorize capabilities, not routes; REST, files, tokens, setup, and realtime share one reason-coded security model.
 
+### D080: Collapsed Honest Document Capability Vocabulary (2026-05-24)
+
+Status: Accepted
+
+Decision: Collapse `DocumentCapabilityAction` to `read | write | governance | collaborate` (option B from Slice 1.2). Map `POST /api/documents/:id/commands` through `documentCommandCapability()` with optional `enforce` hints (`creator_or_admin`, `workspace_admin`) so session `authorize()` can delegate to existing `document-policy` helpers without pretending fourteen granular actions are enforced at the facade. Remove unused `requireCapability`, `defaultCapabilityDb`, and dead `CapabilityDenyReason` values (`file_not_bound`, `file_not_owned_or_admin`). Add `not_creator_or_admin` as a capability deny reason aligned with policy.
+
+Why: Slice 1.1 proved session users hit the same read gate for every former action name while writes were enforced only in mutations. Expanding fourteen parallel branches in `authorize()` would duplicate `document-policy` without making types honest. Collapse matches token scope buckets and makes read vs write vs governance meaningfully different at the capability boundary.
+
+Alternatives considered: option A — per-action checks inside `authorize()` for every legacy action name (rejected — decorative types, dual enforcement). Keeping `requireCapability` for future ergonomics (rejected — zero callers; YAGNI until a route adopts it).
+
+Consequences: Command routes must use `documentCommandCapability`, not ad-hoc action strings. Token scope mapping uses the four collapsed actions. Mutation entry token guards remain Slice 1.3. File unbound fallback stays in `files.ts` routes until a later slice wires file deny reasons. No submission-ledger change.
+
+Evidence: `vitest run api/src/security/capabilities.test.ts`; `pnpm security:probe:test` after implementation.
+
+**Decision Gist**: Four honest document capabilities; command mapper supplies enforcement hints; policy helpers stay the write-truth adapter until mutations gain token guards.
+
+### D081: Delete Unused `workspaceAccessMiddleware` (2026-05-24)
+
+Status: Accepted
+
+Decision: Remove `workspaceAccessMiddleware` from `api/src/middleware/auth.ts`. It had zero mounts; workspace member checks already flow through session workspace context and route SQL. Keep `workspaceAdminMiddleware` for admin-only workspace routes.
+
+**Decision Gist**: Adopt or delete — delete dead middleware.
+
+### D082: Setup `Principal` Wiring (2026-05-24)
+
+Status: Accepted (completed Wave 1 slice 1.5b)
+
+Decision: `api/src/security/setup-access.ts` owns setup token parsing; setup routes set `req.principal` via `setupPrincipalFromRequest()` and gate with `authorize({ resource: 'setup', action: 'initialize' })`. Invalid/missing tokens use a session stub principal so `authorize` returns `setup_token_required` without duplicating `setupTokenAccepted()` in handlers.
+
+Why: Completes D077 for bootstrap while preserving env-token semantics (dev open when token not required; production/configured token enforced).
+
+**Decision Gist**: Setup uses the same capability layer as the rest of the API; token rules unchanged.
+
+### D084: Merge Runtime Document Policy Into Capabilities (2026-05-24)
+
+Status: Accepted
+
+Decision: Remove `decideDocumentAccess`, `decideReferenceAccess`, `decideCreatorOrAdmin`, and `decideWorkspaceAdmin` from `document-policy.ts`. Keep `DOCUMENT_POLICY_CASES` and policy vocabulary types as compiler seed only. `authorize()` / `authorizeDocumentMutation()` are the sole runtime policy brain; `document-mutations.ts` calls them (no parallel `decide*` paths).
+
+Why: Slice 1.1 showed dual enforcement; leaving `decide*` alongside `authorize` was slop-on-slop. Inlining creator/admin and workspace-admin checks in `enforceDocumentSessionRule` removes the adapter hop.
+
+Consequences: Policy tests assert via `authorize()`. `auth-matrix.md` should describe capability paths, not `decide*`. No submission-ledger change.
+
+Evidence: `document-policy.test.ts` + `capabilities.test.ts` parity; full API 620/620; setup tests pass (2026-05-24).
+
+**Decision Gist**: One policy brain (`authorize`); `document-policy.ts` is vocabulary seed only.
+
+### D083: D077 Phase-2 Route Capability Backlog (2026-05-24)
+
+Status: Accepted — **phase-2 tail complete** (2026-05-24)
+
+Decision: After Epic 1 document/token/files/collab convergence, migrate ad-hoc visibility SQL on `issues.ts` (first), then `projects.ts`, `programs.ts`, `team.ts`, `weeks/*`. `admin.ts` remains super-admin platform scope, not document capabilities. See Appendix D in `CODE_QUALITY_REMEDIATION_PLAN.md`.
+
+Acceptance for phase 2 complete: no new route-local workspace membership checks for document reads; sensitive writes use `authorize` or mutation guards.
+
+**Tail complete (2026-05-24):** `issue-mutations-service` + issue route writes; all `weeks/*` `:id` handlers via `week-access`; `team` person sprint-metrics. **Deferred by design:** `GET /api/issues` list (batch visibility SQL); `team` grid/assignments/programs aggregations; child-row `VISIBILITY_FILTER` inside week handlers after parent sprint guard.
+
+Evidence: `auth-matrix.md`; remediation plan execution log D083 tail; type-check; vitest issues/projects/programs/weeks/capabilities; smoke 27/27.
+
+**Decision Gist**: Phase 1 finishes document core; phase 2 routes use capability wrappers; list/aggregation endpoints stay on visibility SQL until a dedicated perf pass.
+
 ### D078: Close Security Findings Only Through Evidence-Backed CLI Updates (2026-05-24)
 
 Status: Accepted

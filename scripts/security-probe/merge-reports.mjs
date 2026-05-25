@@ -3,8 +3,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildReport } from './lib/report.mjs';
-import { renderMarkdown } from './lib/report.mjs';
+import { buildReport } from '../../packages/shipshape-security/src/core/report.mjs';
+import { renderMarkdown } from '../../packages/shipshape-security/src/core/report.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 

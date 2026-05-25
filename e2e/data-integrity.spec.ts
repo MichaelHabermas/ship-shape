@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -34,16 +36,6 @@ async function createNewDocument(page: Page) {
 
   await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 5000 })
   await expect(page.locator('textarea[placeholder="Untitled"]')).toBeVisible({ timeout: 3000 })
-}
-
-// Helper to login
-async function login(page: Page, email: string = 'dev@ship.local', password: string = 'admin123') {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  await page.locator('#email').fill(email)
-  await page.locator('#password').fill(password)
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
 }
 
 // Create test image

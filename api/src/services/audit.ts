@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { pool } from '../db/client.js';
 
-interface AuditEventInput {
+export interface AuditEventInput {
   workspaceId?: string | null;
   /** User ID of the actor. Optional for failed login attempts where user is unknown. */
   actorUserId?: string | null;

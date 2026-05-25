@@ -1,0 +1,110 @@
+# Authorization matrix (Slice 1.1)
+
+**Date:** 2026-05-24  
+**Purpose:** Inventory every production auth gate before Epic 1 code changes.  
+**Canonical checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (Wave 1, Epic 1).  
+**Agent context:** `docs/context-manifest.md` (`security` profile) → this file + `docs/claude-reference/security.md`.
+
+**Note:** Route LOC in the D077 table below are pre–Wave 2 splits; handlers may now live in `api/src/services/*` with thinner route files.
+
+---
+
+## Summary counts
+
+| Pattern | Production count | Gap |
+|---------|------------------|-----|
+| `authorize(` call sites | **11** | Document/collaboration paths ignore per-action for session users |
+| `requireCapability` callers | **removed (Slice 1.2)** | Deleted per D080 |
+| `canAccessDocument` (local duplicates) | **3 implementations**, 7 call sites | Not unified with `authorize` |
+| `workspaceAccessMiddleware` | **1 definition**, **0 mounts** | Dead middleware |
+| `Principal.kind === 'setup'` | **0 constructors** | `setup.ts` uses env token, not capability layer |
+| Mutation entrypoints without token scope | **5** | All use `DocumentActor` only |
+
+---
+
+## Production `authorize()` call sites
+
+| # | File | Line | Resource | Action | Notes |
+|---|------|------|----------|--------|-------|
+| 1–6 | `api/src/routes/files.ts` | 121, 200, 295, 380, 437, 490 | `file` | upload/complete/serve/read/delete | Linked doc uses read-level document gate |
+| 7–8 | `api/src/collaboration/index.ts` | 146, 427 | `collaboration` | persist, join | WS parity with REST read gate |
+| 9 | `api/src/routes/documents.ts` | 701 | `document` | `capabilityForCommand(command)` | **Gap:** session path same as read |
+| 10 | `api/src/routes/api-tokens.ts` | 52 | `api_token` | create | Workspace admin |
+| 11 | `api/src/routes/accountability.ts` | 44 | `document` | read | Per-item filter in loop |
+
+**Tests only:** `capabilities.test.ts` (4 calls).
+
+---
+
+## `documents.ts` routes without `authorize`
+
+| Method | Path | Gate today | Target (Epic 1) |
+|--------|------|------------|-------------------|
+| GET | `/:id` | Local `canAccessDocument` | `authorize` read |
+| GET | `/:id/content` | Inline visibility SQL | `authorize` read |
+| PATCH | `/:id/content` | → `updateDocumentContentMutation` | Mutation + token scope |
+| POST | `/` | → `createDocumentMutation` | Mutation + token scope |
+| PATCH | `/:id` | → `updateDocumentMutation` | Mutation + token scope |
+| DELETE | `/:id` | → `deleteDocumentMutation` | Mutation + token scope |
+| POST | `/:id/convert` | → `convertDocumentMutation` | Mutation + token scope |
+| POST | `/:id/commands` | `authorize` (read-level) | Honest action + mutation parity |
+| POST | `/:id/undo-conversion` | Local `canAccessDocument` | `authorize` write |
+
+---
+
+## `document-mutations.ts` entrypoints (post D084)
+
+| Export | `authorizeDocumentMutation` at entry? | Field-level enforce |
+|--------|--------------------------------------|---------------------|
+| `updateDocumentContentMutation` | Yes (`write`) | — |
+| `createDocumentMutation` | Yes (`write`) | `authorize` `document_reference` for associations |
+| `updateDocumentMutation` | Yes (`write` or caller capability) | `creator_or_admin` (visibility/type), `governance`+`workspace_admin` (reports_to) |
+| `deleteDocumentMutation` | Yes (`write` + `creator_or_admin`) | — |
+| `convertDocumentMutation` | Yes (`write` + `creator_or_admin`) | — |
+
+`loadAccessibleDocument` uses `authorizeDocumentMutation` read gate (write action without extra enforce). No `decide*` exports remain.
+
+---
+
+## `document-policy.ts`
+
+Seed only: `DOCUMENT_POLICY_CASES` + types. Runtime policy is `authorize()` in `capabilities.ts`.
+
+---
+
+## Setup vs capabilities (post D082)
+
+| Surface | Mechanism |
+|---------|-----------|
+| `setup-access.ts` | Token parse/accept (unchanged semantics) |
+| `setup.ts` | `setupPrincipalFromRequest` → `req.principal`; `authorize({ resource: 'setup', action: 'initialize' })` |
+
+---
+
+## Flagged gaps (Slice 1.1 → 1.3)
+
+1. **Token scope on mutations** — Scoped API tokens can hit legacy REST write routes that bypass `authorize`.
+2. **Commands read-level pass** — `capabilityForCommand` maps delete/governance actions but `authorize()` treats session document actions as read.
+3. **Triple `canAccessDocument`** — `documents.ts`, `comments.ts`, collaboration wrapper.
+4. **`workspaceAccessMiddleware`** — defined in `auth.ts:269`, never mounted.
+5. **`requireCapability`** — zero callers.
+6. **Dead deny reasons** — `file_not_bound`, `file_not_owned_or_admin` never returned from `authorize()`.
+7. **Collapsed vocabulary (D080)** — `read | write | governance | collaborate`; commands map via `documentCommandCapability()`.
+
+---
+
+## D077 phase-2 route backlog (preview for Slice 1.6)
+
+| Route file | ~LOC | Handlers | Auth today | Risk |
+|------------|------|----------|------------|------|
+| `issues.ts` | 1454 | 16 | Partial `DocumentActor` | Med — finish first |
+| `projects.ts` | 1865 | 14 | Visibility SQL | Med–High |
+| `programs.ts` | 992 | 11 | Visibility SQL | Med |
+| `team.ts` | 1762 | 11 | Visibility + allocation admin | Med |
+| `admin.ts` | 2021 | 23 | Super-admin only | Epic 8 (platform) |
+
+**Epic 8 + D083 tail (2026-05-24):** `route-capability.ts` on issues/projects/programs reads; issue route writes (history, delete, accept/reject/iterations); `issue-mutations-service.ts` uses `authorize` for create/update/bulk/accept/reject/iterations; `weeks/week-access.ts` (`requireWeekRead`/`requireWeekWrite`) on all `weeks/*` `:id` handlers (sprints, reviews, approvals, standups); `team` `GET /people/:personId/sprint-metrics` uses `requirePersonRead` + self-or-admin.
+
+**Intentionally unchanged (aggregation / list N+1):** `GET /api/issues` list + bootstrap issue rows (`VISIBILITY_FILTER_SQL`); `team.ts` grid/assignments/programs list routes; child-row filters inside week handlers after parent sprint guard.
+
+None use inline `authorize()` in route files except via wrappers above. Full handler lists in remediation plan Appendix D.

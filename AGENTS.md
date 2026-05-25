@@ -19,6 +19,7 @@ Use multiple profiles only when the task clearly crosses boundaries. If no profi
 - For E2E, run `pnpm test:e2e:setup` once (or after Playwright bumps), then use `/e2e-test-runner` or `pnpm test:e2e:run` with full permissions — agent sandboxes lack Playwright browsers and report false 100% launch failures. `scripts/run-e2e.sh` preflights browsers and aborts early when failures share an infrastructure error (e.g. missing Chromium). After the first failure, read the log; if 2–3 failures share the same message, stop and fix the root cause before running the full suite. API unit tests need `DATABASE_URL=…/ship_test_audit` (never truncate `ship_dev`).
 - For `gh` (PRs, issues): default repo is **origin** (`MichaelHabermas/ship-shape`). Run `./scripts/setup-gh-default.sh` after clone; never use `US-Department-of-the-Treasury/ship` as the gh target. Treasury is remote `treasury` (fetch-only).
 - UI `localStorage` prefs are best-effort; submission/security inline scripts use `scripts/submission/browser-storage-client.mjs` (`docs/conventions/browser-storage.md`).
+- Document authorization is capability-based (`api/src/security/capabilities.ts`); `document-policy.ts` is seed data only. For auth work use the `security` profile, `my-docs/evidence/auth-matrix.md`, and the remediation checklist pointer in `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (do not duplicate that plan here).
 
 ## Feature branches
 

@@ -4,7 +4,14 @@ import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 import { validateAuthenticatedSession, type SessionValidationFailure } from '../services/session-auth.js';
 import { validateApiToken } from '../security/tokens.js';
-import { logAuditEvent } from '../services/audit.js';
+import { logAuditEvent, type AuditEventInput } from '../services/audit.js';
+import { logHotError } from '../utils/hot-log.js';
+
+function recordAuditEvent(input: AuditEventInput): void {
+  void logAuditEvent(input).catch((error) => {
+    logHotError('audit', 'Failed to log audit event', error, { action: input.action });
+  });
+}
 
 declare global {
   namespace Express {
@@ -70,7 +77,7 @@ export async function authMiddleware(
       next();
       return;
     } catch (error) {
-      console.error('API token auth error:', error);
+      logHotError('auth.token', 'API token auth failed', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         error: {
@@ -141,7 +148,7 @@ export async function authMiddleware(
       res.cookie('session_id', sessionId, sessionCookieOptions());
     }
     if (validation.bindingDecision?.level === 'suspicious') {
-      void logAuditEvent({
+      recordAuditEvent({
         workspaceId: validation.session.workspaceId ?? undefined,
         actorUserId: validation.session.userId,
         action: 'auth.session_anomaly',
@@ -166,7 +173,7 @@ export async function authMiddleware(
 
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    logHotError('auth.session', 'Session auth middleware failed', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       error: {
@@ -254,7 +261,10 @@ export async function workspaceAdminMiddleware(
 
     next();
   } catch (error) {
-    console.error('Workspace admin middleware error:', error);
+    logHotError('auth.workspace_admin', 'Workspace admin check failed', error, {
+      workspaceId,
+      userId: req.userId,
+    });
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       error: {
@@ -265,57 +275,3 @@ export async function workspaceAdminMiddleware(
   }
 }
 
-// Middleware that verifies access to a specific workspace
-export async function workspaceAccessMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  // Super-admins always have access
-  if (req.isSuperAdmin) {
-    next();
-    return;
-  }
-
-  const workspaceId = req.params.workspaceId || req.workspaceId;
-
-  if (!workspaceId) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      error: {
-        code: ERROR_CODES.VALIDATION_ERROR,
-        message: 'Workspace ID required',
-      },
-    });
-    return;
-  }
-
-  try {
-    const result = await pool.query(
-      'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
-      [workspaceId, req.userId]
-    );
-
-    if (!result.rows[0]) {
-      res.status(HTTP_STATUS.FORBIDDEN).json({
-        success: false,
-        error: {
-          code: ERROR_CODES.FORBIDDEN,
-          message: 'Access denied to this workspace',
-        },
-      });
-      return;
-    }
-
-    next();
-  } catch (error) {
-    console.error('Workspace access middleware error:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: {
-        code: ERROR_CODES.INTERNAL_ERROR,
-        message: 'Authorization check failed',
-      },
-    });
-  }
-}

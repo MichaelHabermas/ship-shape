@@ -9,23 +9,8 @@
  */
 
 import { test, expect, Page } from './fixtures/isolated-env'
+import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth';
 
-// Helper to login as super admin
-async function loginAsSuperAdmin(page: Page) {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 })
-}
-
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: Page): Promise<string> {
-  const response = await page.request.get('/api/csrf-token')
-  const data = await response.json()
-  return data.token
-}
 
 // Helper to get current workspace ID
 async function getWorkspaceId(page: Page): Promise<string> {

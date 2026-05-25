@@ -23,6 +23,25 @@ Run a lane before the full suite when the change maps cleanly to one area. Lanes
 
 Do not make tests faster by weakening assertions, adding blind waits, or hiding failures behind conditional skips. If tests share mutable state, prefer unique seeded records; otherwise use `test.describe.configure({ mode: 'serial' })` deliberately and explain why in the test file.
 
+## Authentication (mandatory)
+
+Do **not** copy-paste login flows into spec files. Import from `e2e/fixtures/api-auth.ts`:
+
+| Helper | Use when |
+|--------|----------|
+| `login(page, email?, password?)` | UI `/login` form (default admin) |
+| `loginAsAdmin(page)` | UI admin only |
+| `loginAsMember(page)` | UI member (`bob.martinez@ship.local`) |
+| `loginAsSuperAdmin(page)` | UI super-admin (same creds as admin in E2E seed) |
+| `loginViaApi(page, apiUrl)` | UI login + CSRF for `page.request` against `apiServer.url` |
+| `loginAsAdmin(page, apiUrl)` | Same as `loginViaApi` |
+| `loginAsAdminWithUser(page, apiUrl)` | Admin + CSRF + `userId` from `/api/auth/me` |
+| `loginMemberViaApi(page, apiUrl)` | Member + CSRF |
+| `getCsrfToken(page, apiUrl?)` | CSRF only (after login) |
+| `loginAndGetSessionCookieHeader(page)` | Manual `Cookie` header for rare API specs |
+
+`e2e/fixtures/app.ts` re-exports `login` and provides `authenticatedPage` for fixture-based specs.
+
 ## Reusable Helpers
 
 Import helpers from `e2e/fixtures/test-helpers.ts` instead of writing inline retry logic:

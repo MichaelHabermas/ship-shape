@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { getCsrfToken, login } from './fixtures/api-auth';
+
 
 type ReviewArtifacts = {
   sprintId: string;
@@ -6,26 +8,11 @@ type ReviewArtifacts = {
   retroId: string;
 };
 
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 });
-}
-
-async function getCsrf(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
 async function createReviewArtifacts(
   page: import('@playwright/test').Page,
   apiUrl: string
 ): Promise<ReviewArtifacts> {
-  const csrf = await getCsrf(page, apiUrl);
+  const csrf = await getCsrfToken(page, apiUrl);
 
   const meRes = await page.request.get(`${apiUrl}/api/auth/me`);
   expect(meRes.ok()).toBe(true);

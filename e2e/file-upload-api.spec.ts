@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env';
+import { getCsrfToken, loginAndGetSessionCookieHeader } from './fixtures/api-auth';
+
 
 /**
  * File Upload API Tests
@@ -6,26 +8,6 @@ import { test, expect, Page } from './fixtures/isolated-env';
  * These tests use mock/local storage for file uploads - no real S3 credentials required.
  * In development, the API uses local file storage instead of S3.
  */
-
-// Helper to login and get session cookie
-async function loginAndGetCookies(page: Page): Promise<string> {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  // Get cookies from browser context
-  const cookies = await page.context().cookies();
-  return cookies.map(c => `${c.name}=${c.value}`).join('; ');
-}
-
-// Helper to get CSRF token using dynamic API URL
-async function getCsrfToken(page: Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  const data = await response.json();
-  return data.token;
-}
 
 test.describe('File Upload API', () => {
   test('requires authentication for upload endpoint', async ({ page, apiServer }) => {
@@ -50,7 +32,7 @@ test.describe('File Upload API', () => {
   test('returns presigned upload URL when authenticated', async ({ page, apiServer }) => {
     const API_URL = apiServer.url;
     // Login first
-    await loginAndGetCookies(page);
+    await loginAndGetSessionCookieHeader(page);
 
     // Get CSRF token
     const csrfToken = await getCsrfToken(page, API_URL);
@@ -84,7 +66,7 @@ test.describe('File Upload API', () => {
   test('confirms upload and returns CDN URL', async ({ page, apiServer }) => {
     const API_URL = apiServer.url;
     // Login first
-    await loginAndGetCookies(page);
+    await loginAndGetSessionCookieHeader(page);
 
     // Get CSRF token
     const csrfToken = await getCsrfToken(page, API_URL);

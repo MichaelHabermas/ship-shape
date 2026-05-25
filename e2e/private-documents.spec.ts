@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env';
+import { loginAsAdmin, loginAsMember, getCsrfToken } from './fixtures/api-auth';
+
 
 // Helper to clear TanStack Query's IndexedDB cache
 // This is needed because TanStack Query persists to IndexedDB and won't refetch
@@ -13,35 +15,6 @@ async function clearQueryCache(page: Page) {
       }
     }
   });
-}
-
-// Helper to login as a specific user and get CSRF token
-async function login(page: Page, email: string, password: string = 'admin123') {
-  await page.context().clearCookies();
-  await page.goto('/login');
-  await page.locator('#email').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#email').fill(email);
-  await page.locator('#password').fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 });
-}
-
-// Login as dev user (admin)
-async function loginAsAdmin(page: Page) {
-  await login(page, 'dev@ship.local', 'admin123');
-}
-
-// Login as bob (member)
-async function loginAsMember(page: Page) {
-  await login(page, 'bob.martinez@ship.local', 'admin123');
-}
-
-// Helper to get CSRF token - uses relative URLs to go through vite proxy
-// This ensures consistent session handling with the browser's React app
-async function getCsrfToken(page: Page): Promise<string> {
-  const response = await page.request.get('/api/csrf-token');
-  const data = await response.json();
-  return data.token;
 }
 
 // Helper to create a document via API - uses relative URLs for proxy

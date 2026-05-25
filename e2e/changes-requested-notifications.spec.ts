@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginAsAdminWithUser, loginViaApi } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for Changes Requested Notifications.
@@ -10,32 +12,6 @@ import { test, expect } from './fixtures/isolated-env';
  * 3. After a retro has changes_requested, the accountability action-items endpoint
  *    includes a changes_requested_retro item
  */
-
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
-// Helper to login as default admin user and get context
-async function loginAsAdmin(page: import('@playwright/test').Page, apiUrl: string) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  const csrfToken = await getCsrfToken(page, apiUrl);
-
-  const meResponse = await page.request.get(`${apiUrl}/api/auth/me`);
-  expect(meResponse.ok()).toBe(true);
-  const meData = await meResponse.json();
-  const userId = meData.data.user.id;
-
-  return { csrfToken, userId };
-}
 
 // Helper to get person document ID for a user
 async function getPersonIdForUser(
@@ -55,7 +31,7 @@ async function getPersonIdForUser(
 
 test.describe('Changes Requested Notifications', () => {
   test('action-items includes changes_requested_plan after requesting plan changes', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     await getPersonIdForUser(page, apiServer.url, userId);
 
     // Get a sprint to request changes on
@@ -107,7 +83,7 @@ test.describe('Changes Requested Notifications', () => {
   });
 
   test('action-items includes changes_requested_retro after requesting retro changes', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     await getPersonIdForUser(page, apiServer.url, userId);
 
     // Get a sprint
@@ -156,7 +132,7 @@ test.describe('Changes Requested Notifications', () => {
   });
 
   test('changes_requested action items have correct structure', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get a sprint
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
@@ -193,7 +169,7 @@ test.describe('Changes Requested Notifications', () => {
   });
 
   test('requesting changes persists feedback in sprint properties', async ({ page, apiServer }) => {
-    const { csrfToken } = await loginAsAdmin(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get a sprint
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);

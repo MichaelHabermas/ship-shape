@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 
 /**
  * Drag Handle E2E Tests
@@ -8,15 +10,6 @@ import { test, expect, Page } from './fixtures/isolated-env'
  */
 
 test.describe('Drag Handle - Block Reordering', () => {
-  // Helper to login before each test
-  async function login(page: Page) {
-    await page.goto('/login')
-    await page.getByRole('textbox', { name: /email/i }).fill('dev@ship.local')
-    await page.getByRole('textbox', { name: /password/i }).fill('admin123')
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-  }
-
   // Helper to create a new document and get to the editor
   async function createNewDocument(page: Page) {
     await page.goto('/docs')

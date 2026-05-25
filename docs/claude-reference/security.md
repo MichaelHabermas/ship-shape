@@ -107,9 +107,32 @@ If user no longer has workspace access, session is deleted and `FORBIDDEN` retur
 - Requires workspace admin role OR super-admin
 - Used for workspace-specific admin operations
 
-**workspaceAccessMiddleware** (`api/src/middleware/auth.ts:320-372`):
+**workspaceAccessMiddleware** (`api/src/middleware/auth.ts`):
 - Verifies user has any membership in the workspace
 - Super-admins bypass this check
+- **Note:** defined but not mounted on routes today; prefer `authorize({ resource: 'workspace', action: 'read' })` when adding gates
+
+### Capability authorization (runtime)
+
+Production authorization for documents, files, collaboration, API tokens, and setup flows through **`authorize()`** in `api/src/security/capabilities.ts`. Callers pass a **`Principal`** (`session`, `api_token`, or `setup`).
+
+| Surface | Pattern |
+|---------|---------|
+| REST document writes | `document-mutations.ts` → `authorizeDocumentMutation()` at entry |
+| REST document reads / commands | `authorize({ resource: 'document', action: … })` in route or service |
+| Files | `authorize({ resource: 'file', … })` in `routes/files.ts` |
+| WebSocket | `authorize({ resource: 'collaboration', … })` in `collaboration/index.ts` |
+| Setup bootstrap | `setup-access.ts` token check → `setupPrincipalFromRequest()` → `authorize({ resource: 'setup', action: 'initialize' })` |
+
+**Vocabulary (D080):** document actions collapse to `read | write | governance | collaborate`; TipTap commands map via `documentCommandCapability()`.
+
+**Policy seed:** `api/src/services/document-policy.ts` holds `DOCUMENT_POLICY_CASES` and types for tests/seeds only — no runtime `decide*` exports.
+
+**Inventory / gaps:** `my-docs/evidence/auth-matrix.md` (maintained with Wave 1 Epic 1). Broader remediation waves: `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (pointer only in curated docs).
+
+**Hot-path logging:** auth and secrets errors use JSON lines from `api/src/utils/hot-log.ts` (`logHotError`). Session anomaly audit uses `recordAuditEvent()` in `auth.ts` (rejects on audit failure without failing the request).
+
+**Phase-2 route wrappers:** `api/src/security/route-capability.ts` exposes `requireIssueRead`, `requireProjectRead`, `requireProgramRead` for Appendix D handlers. Prefer these over ad-hoc `VISIBILITY_FILTER_SQL` existence checks on single-document reads.
 
 ### Document Visibility
 
@@ -127,11 +150,7 @@ export function VISIBILITY_FILTER_SQL(tableAlias: string, userIdParam: string, i
 }
 ```
 
-**Usage in routes** (`api/src/routes/issues.ts:167-168`):
-```typescript
-const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-// ... query with VISIBILITY_FILTER_SQL('d', '$2', '$3') ...
-```
+**Usage in list routes** (e.g. issues/projects): visibility SQL plus `getVisibilityContext()` until those handlers adopt `authorize()` (see auth matrix Appendix D backlog).
 
 **Real-time visibility enforcement** (`api/src/collaboration/index.ts:489-534`):
 - When document visibility changes to `private`, non-authorized WebSocket connections are closed with code `4403`
@@ -281,6 +300,7 @@ Security events are logged via `logAuditEvent()` (`api/src/services/audit.ts`):
 - `auth.login_failed` (with reason: user_not_found, invalid_password, no_workspace_access)
 - `auth.caia_login` / `auth.caia_login_failed`
 - `auth.extend_session`
+- `auth.session_anomaly` (session binding mismatch; fire-and-forget via `recordAuditEvent` in auth middleware)
 - `api_token.created` / `api_token.revoked`
 - `invite.accept_caia`
 
@@ -320,3 +340,7 @@ comply opensource --hook --staged --exclude e2e --skip-trivy
 | WS message limit | 50/sec per connection | `api/src/collaboration/index.ts:22-23` |
 | Input validation | Zod schemas | All route files |
 | Visibility filter | VISIBILITY_FILTER_SQL() | `api/src/middleware/visibility.ts:49-55` |
+| Capability gate | `authorize()` | `api/src/security/capabilities.ts` |
+| Document mutations | `authorizeDocumentMutation()` | `api/src/services/document-mutations.ts` |
+| Setup token | `setup-access.ts` | `api/src/security/setup-access.ts` |
+| Structured hot errors | `logHotError()` | `api/src/utils/hot-log.ts` |

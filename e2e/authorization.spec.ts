@@ -1,4 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env'
+import { loginAsSuperAdmin, loginAsMember, getCsrfToken, login } from './fixtures/api-auth';
+
 import type { Pool } from 'pg'
 import { randomUUID } from 'crypto'
 
@@ -10,35 +12,6 @@ import { randomUUID } from 'crypto'
  * - Role-based access control (members can't do admin things)
  * - Super-admin restrictions (non-super-admins can't access /admin)
  */
-
-// Helper to login as a specific user
-async function login(page: Page, email: string, password: string = 'admin123') {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  // Wait for login form to be ready
-  await page.locator('#email').waitFor({ state: 'visible', timeout: 15000 })
-  await page.locator('#email').fill(email)
-  await page.locator('#password').fill(password)
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 })
-}
-
-// Helper to login as super admin
-async function loginAsSuperAdmin(page: Page) {
-  await login(page, 'dev@ship.local', 'admin123')
-}
-
-// Helper to login as regular member (non-admin)
-async function loginAsMember(page: Page) {
-  await login(page, 'bob.martinez@ship.local')
-}
-
-async function getCsrfToken(page: Page): Promise<string> {
-  const csrfResponse = await page.request.get('/api/csrf-token')
-  expect(csrfResponse.status()).toBe(200)
-  const csrf = await csrfResponse.json()
-  return csrf.token
-}
 
 async function seedWorkspaceBoundaryCase(dbPool: Pool) {
   const uniqueId = randomUUID()

@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginAsAdminWithUser } from './fixtures/api-auth';
+
 
 /**
  * E2E tests for Project Weeks tab feature.
@@ -10,32 +12,6 @@ import { test, expect } from './fixtures/isolated-env';
  * 4. Verify Properties sidebar shows correct context (project and person names)
  * 5. Verify navigation back to project works
  */
-
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
-// Helper to login and get user context
-async function loginAndGetContext(page: import('@playwright/test').Page, apiUrl: string) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-  const csrfToken = await getCsrfToken(page, apiUrl);
-
-  const meResponse = await page.request.get(`${apiUrl}/api/auth/me`);
-  expect(meResponse.ok()).toBe(true);
-  const meData = await meResponse.json();
-  const userId = meData.data.user.id;
-
-  return { csrfToken, userId };
-}
 
 // Helper to get person document ID for the current user
 async function getPersonIdForUser(
@@ -109,7 +85,7 @@ async function createAllocation(
 
 test.describe('Project Weeks Tab', () => {
   test('shows allocated team members in the grid', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
 
     // Create a test project
@@ -139,7 +115,7 @@ test.describe('Project Weeks Tab', () => {
   });
 
   test('clicking cell opens weekly plan document with context', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
 
     // Create a test project
@@ -183,7 +159,7 @@ test.describe('Project Weeks Tab', () => {
   });
 
   test('project link in Properties sidebar navigates back to project', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
 
     // Create a test project
@@ -220,7 +196,7 @@ test.describe('Project Weeks Tab', () => {
 
 test.describe('Project Allocation Grid API', () => {
   test('GET /project-allocation-grid returns allocated people', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
 
     // Create project and allocation
@@ -248,7 +224,7 @@ test.describe('Project Allocation Grid API', () => {
   });
 
   test('allocation grid shows multiple weeks for same person', async ({ page, apiServer }) => {
-    const { csrfToken, userId } = await loginAndGetContext(page, apiServer.url);
+    const { csrfToken, userId } = await loginAsAdminWithUser(page, apiServer.url);
     const personId = await getPersonIdForUser(page, apiServer.url, userId);
 
     // Create project and allocations for multiple weeks

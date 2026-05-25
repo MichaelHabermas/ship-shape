@@ -2,9 +2,9 @@
  * Shared Playwright fixtures for authenticated flows and document creation.
  */
 import { test as base, expect, Page } from '@playwright/test';
+import { E2E_LOGIN_EMAIL, E2E_LOGIN_PASSWORD, login } from './api-auth.js';
 
-export const E2E_LOGIN_EMAIL = 'dev@ship.local';
-export const E2E_LOGIN_PASSWORD = 'admin123';
+export { E2E_LOGIN_EMAIL, E2E_LOGIN_PASSWORD };
 
 type AppFixtures = {
   authenticatedPage: Page;
@@ -17,15 +17,7 @@ export const test = base.extend<AppFixtures>({
   },
 });
 
-export { expect };
-
-export async function login(page: Page): Promise<void> {
-  await page.goto('/login');
-  await page.locator('#email').fill(E2E_LOGIN_EMAIL);
-  await page.locator('#password').fill(E2E_LOGIN_PASSWORD);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 15000 });
-}
+export { expect, login };
 
 export async function createWikiDoc(page: Page): Promise<string> {
   await page.goto('/docs');

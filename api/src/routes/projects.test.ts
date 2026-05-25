@@ -23,6 +23,17 @@ vi.mock('../middleware/auth.js', () => ({
   }),
 }));
 
+vi.mock('../security/route-capability.js', () => ({
+  guardDocumentIdParam: vi.fn((_res, rawId: string | string[] | undefined) =>
+    typeof rawId === 'string' ? rawId : null
+  ),
+  requireProjectRead: vi.fn().mockResolvedValue({
+    allowed: true,
+    reason: 'allowed',
+    principal: { kind: 'session', userId: 'user-123', workspaceId: 'ws-123', isSuperAdmin: false, sessionId: 'test' },
+  }),
+}));
+
 import { pool } from '../db/client.js';
 import express from 'express';
 import request from 'supertest';

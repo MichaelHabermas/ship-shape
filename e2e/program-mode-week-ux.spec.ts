@@ -12,6 +12,8 @@
  */
 
 import { test, expect, Page } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 
 // Make tests run serially to prevent race conditions with sprint creation
 test.describe.configure({ mode: 'serial' })
@@ -63,14 +65,6 @@ test.beforeEach(async ({ request }) => {
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-async function login(page: Page) {
-  await page.goto('/login')
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
 
 async function navigateToProgram(page: Page, programName: string = 'Ship Core') {
   await page.goto('/programs')

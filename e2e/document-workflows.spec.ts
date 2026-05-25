@@ -11,33 +11,14 @@
  */
 
 import { test, expect, Page } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 
 // Tests run in isolated containers with fresh database per worker
 
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-async function login(page: Page) {
-  // Navigate to login and wait for page to be stable
-  await page.goto('/login')
-  await page.waitForLoadState('networkidle')
-  await expect(page.locator('#email')).toBeVisible({ timeout: 15000 })
-
-  // Fill credentials with a small delay to ensure React is ready
-  await page.locator('#email').click()
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').click()
-  await page.locator('#password').fill('admin123')
-
-  // Verify fields are filled before clicking
-  await expect(page.locator('#email')).toHaveValue('dev@ship.local')
-  await expect(page.locator('#password')).toHaveValue('admin123')
-
-  // Click sign in and wait for redirect
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).not.toHaveURL('/login', { timeout: 30000 })
-}
 
 async function createIssue(page: Page, title: string) {
   await page.goto('/issues')

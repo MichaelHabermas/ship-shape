@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env'
+import { login } from './fixtures/api-auth';
+
 import AxeBuilder from '@axe-core/playwright'
 
 /**
@@ -9,38 +11,6 @@ import AxeBuilder from '@axe-core/playwright'
  *
  * Run: npx playwright test e2e/accessibility-remediation.spec.ts
  */
-
-// Helper to log in before tests that need auth
-// Handles both setup flow (first run) and normal login
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login')
-
-  // Wait for either setup or login form to appear (handles client-side redirect)
-  // The setup page shows "Create Admin Account", login shows "Sign in"
-  const setupButton = page.getByRole('button', { name: /create admin account/i })
-  const signInButton = page.getByRole('button', { name: 'Sign in', exact: true })
-
-  // Wait for either button to be visible
-  await expect(setupButton.or(signInButton)).toBeVisible({ timeout: 10000 })
-
-  // If setup button is visible, complete setup first
-  if (await setupButton.isVisible()) {
-    await page.locator('#name').fill('Dev User')
-    await page.locator('#email').fill('dev@ship.local')
-    await page.locator('#password').fill('admin123')
-    await page.locator('#confirmPassword').fill('admin123')
-    await setupButton.click()
-    // After setup, we should be logged in and redirected
-    await expect(page).not.toHaveURL('/setup', { timeout: 10000 })
-    return
-  }
-
-  // Normal login flow
-  await page.locator('#email').fill('dev@ship.local')
-  await page.locator('#password').fill('admin123')
-  await signInButton.click()
-  await expect(page).not.toHaveURL('/login', { timeout: 5000 })
-}
 
 // =============================================================================
 // PHASE 1: CRITICAL VIOLATIONS (12 tests)

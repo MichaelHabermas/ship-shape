@@ -1,14 +1,7 @@
 import { test, expect } from './fixtures/isolated-env';
-import type { Page } from '@playwright/test';
+import { login } from './fixtures/api-auth';
 
-// Helper functions
-async function login(page: Page) {
-  await page.goto('/login');
-  await page.fill('input[type="email"]', 'dev@ship.local');
-  await page.fill('input[type="password"]', 'admin123');
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/docs/);
-}
+import type { Page } from '@playwright/test';
 
 async function createNewDocument(page: Page) {
   await page.goto('/docs');

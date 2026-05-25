@@ -1,13 +1,7 @@
 import { test, expect, type Page } from './fixtures/isolated-env';
-import type { Pool } from 'pg';
+import { login } from './fixtures/api-auth';
 
-async function login(page: Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 });
-}
+import type { Pool } from 'pg';
 
 test.describe('Issues inline sprint assignment', () => {
   // Risk mitigated: inline sprint assignment previously sent a single-issue PATCH with `sprint_id`,

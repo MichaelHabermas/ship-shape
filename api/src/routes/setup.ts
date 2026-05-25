@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from '../db/welcomeDocument.js';
-import { isProduction } from '../config/runtime.js';
 import { defineRoute } from '../openapi/define-route.js';
 import { ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import {
@@ -11,31 +10,25 @@ import {
   SetupInitializeResponseSchema,
   SetupStatusResponseSchema,
 } from '../openapi/schemas/setup.js';
+import { authorize } from '../security/capabilities.js';
+import { setupPrincipalFromRequest } from '../security/setup-access.js';
 
 const router = Router();
 
-const SETUP_TOKEN_HEADER = 'x-setup-token';
-
-function configuredSetupToken(): string | null {
-  return process.env.SHIP_SETUP_TOKEN || process.env.SETUP_TOKEN || null;
-}
-
-function setupTokenRequired(): boolean {
-  return isProduction() || configuredSetupToken() !== null;
-}
-
-function requestSetupToken(req: { headers: Record<string, unknown> }, body?: { setup_token?: string }): string | null {
-  const header = req.headers[SETUP_TOKEN_HEADER];
-  const headerValue = Array.isArray(header) ? header[0] : header;
-  if (typeof headerValue === 'string' && headerValue.trim()) return headerValue.trim();
-  return body?.setup_token?.trim() || null;
-}
-
-function setupTokenAccepted(req: { headers: Record<string, unknown> }, body?: { setup_token?: string }): boolean {
-  if (!setupTokenRequired()) return true;
-  const expected = configuredSetupToken();
-  if (!expected) return false;
-  return requestSetupToken(req, body) === expected;
+async function ensureSetupAuthorized(
+  req: { headers: Record<string, unknown>; principal?: import('../security/principal.js').Principal },
+  body?: { setup_token?: string }
+): Promise<{ allowed: true } | { allowed: false; message: string }> {
+  const principal = setupPrincipalFromRequest(req, body);
+  req.principal = principal;
+  const decision = await authorize(pool, principal, { resource: 'setup', action: 'initialize' });
+  if (decision.allowed) {
+    return { allowed: true };
+  }
+  return {
+    allowed: false,
+    message: decision.reason === 'setup_token_required' ? 'Setup token required' : 'Setup not authorized',
+  };
 }
 
 router.get(
@@ -55,11 +48,12 @@ router.get(
         const result = await pool.query('SELECT COUNT(*) as count FROM users');
         const userCount = parseInt(result.rows[0].count);
         const needsSetup = userCount === 0;
+        const auth = await ensureSetupAuthorized(req);
 
         res.json({
           success: true,
           data: {
-            needsSetup: needsSetup && setupTokenAccepted(req),
+            needsSetup: needsSetup && auth.allowed,
           },
         });
       } catch (error) {
@@ -96,12 +90,13 @@ router.post(
     handler: async (req, res, { body }) => {
       const { email, password, name } = body;
 
-      if (!setupTokenAccepted(req, body)) {
+      const auth = await ensureSetupAuthorized(req, body);
+      if (!auth.allowed) {
         res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           error: {
             code: ERROR_CODES.FORBIDDEN,
-            message: 'Setup token required',
+            message: auth.message,
           },
         });
         return;

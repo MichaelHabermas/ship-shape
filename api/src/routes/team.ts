@@ -2,11 +2,21 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { getActor } from '../services/document-access.js';
+import { guardDocumentIdParam, requirePersonRead } from '../security/route-capability.js';
+import { getActor, requireSelfOrAdminPerson } from '../services/document-access.js';
 import { requireTeamAllocationAuthority } from '../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { hasContent } from '../utils/document-content.js';
 import { sendInternalError } from '../utils/route-http.js';
+import {
+  assignTeamMember,
+  unassignTeamMember,
+} from '../services/team-allocation-service.js';
+import {
+  buildWorkspaceSprintCalendar,
+  sprintNumberFromDate,
+  SPRINT_DURATION_DAYS,
+} from '../services/team/sprint-calendar.js';
 
 function parseMetricEstimate(estimate: string | number): number {
   if (typeof estimate === 'number') {
@@ -25,17 +35,14 @@ import {
   type AccountabilityIssueRow,
   type AccountabilityPersonRow,
   type AssignmentInferenceIssueRow,
-  type EmptyRow,
   type ExplicitAssignmentRow,
   type IdRow,
   type PersonSprintMetricsIssueRow,
   type PersonUserIdRow,
-  type ProjectWithProgramRow,
   type ReviewPersonRow,
   type ReviewSprintMapEntry,
   type ReviewSprintRow,
   type ReviewWeeklyDocRow,
-  type SprintDocumentRow,
   type TeamGridIssueRow,
   type TeamGridSprintRow,
   type TeamGridUserRow,
@@ -89,60 +96,18 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
       [workspaceId]
     );
 
-    const rawSprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const sprintDurationDays = 7; // 1-week sprints
-
     const today = new Date();
-
-    // Normalize sprint start date to midnight UTC to avoid timezone issues
-    // pg driver may return DATE as a Date object with local timezone offset
-    let startDate: Date;
-    if (rawSprintStartDate instanceof Date) {
-      // Extract just the date parts and create a UTC midnight date
-      startDate = new Date(Date.UTC(rawSprintStartDate.getFullYear(), rawSprintStartDate.getMonth(), rawSprintStartDate.getDate()));
-    } else if (typeof rawSprintStartDate === 'string') {
-      // Parse string as UTC midnight
-      startDate = new Date(rawSprintStartDate + 'T00:00:00Z');
-    } else {
-      // Fallback to today
-      startDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    }
-
-    // Calculate which sprint number we're in
-    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
-
-    // Parse query params for sprint range (default: ~quarter each way)
-    const defaultBack = 7;
-    const defaultForward = 7;
-    const fromSprint = req.query.fromSprint
-      ? Math.max(1, parseInt(req.query.fromSprint as string, 10))
-      : Math.max(1, currentSprintNumber - defaultBack);
-    const toSprint = req.query.toSprint
-      ? parseInt(req.query.toSprint as string, 10)
-      : currentSprintNumber + defaultForward;
-
-    // Generate sprint periods for requested range
-    const sprints = [];
-    for (let i = fromSprint; i <= toSprint; i++) {
-      const sprintStart = new Date(startDate);
-      sprintStart.setUTCDate(sprintStart.getUTCDate() + (i - 1) * sprintDurationDays);
-
-      const sprintEnd = new Date(sprintStart);
-      sprintEnd.setUTCDate(sprintEnd.getUTCDate() + sprintDurationDays - 1);
-
-      sprints.push({
-        number: i,
-        name: `Week ${i}`,
-        startDate: sprintStart.toISOString().split('T')[0],
-        endDate: sprintEnd.toISOString().split('T')[0],
-        isCurrent: i === currentSprintNumber,
-      });
-    }
+    const { startDate, sprints, currentSprintNumber } = buildWorkspaceSprintCalendar(workspaceResult.rows[0]?.sprint_start_date, {
+      query: {
+        fromSprint: req.query.fromSprint as string | undefined,
+        toSprint: req.query.toSprint as string | undefined,
+      },
+      today,
+    });
 
     // Get all sprints from database that fall within our date range
-    const minDate = sprints[0]?.startDate || today.toISOString().split('T')[0];
-    const maxDate = sprints[sprints.length - 1]?.endDate || today.toISOString().split('T')[0];
+    const minDate = sprints[0]?.startDate || today.toISOString().slice(0, 10);
+    const maxDate = sprints[sprints.length - 1]?.endDate || today.toISOString().slice(0, 10);
 
     await pool.query<TeamGridSprintRow>(
       `SELECT d.id, d.title as name, d.properties->>'start_date' as start_date, d.properties->>'end_date' as end_date,
@@ -182,12 +147,8 @@ router.get('/grid', authMiddleware, async (req: Request, res: Response) => {
 
     for (const issue of issuesResult.rows) {
       const userId = issue.assignee_id;
-      // Parse issue's sprint start date as UTC midnight to match startDate
       const sprintStart = new Date(issue.sprint_start + 'T00:00:00Z');
-
-      // Calculate which sprint number this issue belongs to
-      const daysSinceStart = Math.floor((sprintStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const sprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
+      const sprintNumber = sprintNumberFromDate(sprintStart, startDate, SPRINT_DURATION_DAYS);
 
       // Skip if outside our range
       if (!sprints.find(s => s.number === sprintNumber)) continue;
@@ -381,18 +342,7 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
       [workspaceId]
     );
 
-    const rawSprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const sprintDurationDays = 7;
-    const today = new Date();
-
-    let startDate: Date;
-    if (rawSprintStartDate instanceof Date) {
-      startDate = new Date(Date.UTC(rawSprintStartDate.getFullYear(), rawSprintStartDate.getMonth(), rawSprintStartDate.getDate()));
-    } else if (typeof rawSprintStartDate === 'string') {
-      startDate = new Date(rawSprintStartDate + 'T00:00:00Z');
-    } else {
-      startDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    }
+    const { startDate } = buildWorkspaceSprintCalendar(workspaceResult.rows[0]?.sprint_start_date);
 
     // Get all issues with assignees, projects, and sprint info for inferred assignments
     const issuesResult = await pool.query<AssignmentInferenceIssueRow>(
@@ -441,8 +391,7 @@ router.get('/assignments', authMiddleware, async (req: Request, res: Response) =
     for (const issue of issuesResult.rows) {
       const personId = issue.assignee_id;
       const sprintStart = new Date(issue.sprint_start + 'T00:00:00Z');
-      const daysSinceStart = Math.floor((sprintStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const sprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
+      const sprintNumber = sprintNumberFromDate(sprintStart, startDate, SPRINT_DURATION_DAYS);
       const projectId = issue.project_id;
 
       if (!personId || !projectId) continue;
@@ -523,183 +472,23 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { workspaceId } = getAuthenticatedRouteContext(req);
-    // Support both projectId (new) and programId (legacy)
     const { personId, userId, projectId, programId, sprintNumber } = req.body;
 
-    // personId is preferred (works for both pending and active users)
-    // userId is for backward compatibility
-    const ownerId = personId || userId;
-    // Support projectId (new) or programId (legacy)
-    const assignmentId = projectId || programId;
-    const isProjectAssignment = !!projectId;
+    const result = await assignTeamMember({
+      workspaceId,
+      personId,
+      userId,
+      projectId,
+      programId,
+      sprintNumber,
+    });
 
-    if (!ownerId || !assignmentId || !sprintNumber) {
-      res.status(400).json({ error: 'Missing required fields' });
+    if (!result.ok) {
+      res.status(result.status).json(result.body);
       return;
     }
 
-    // Validate personId belongs to current workspace (SECURITY: prevent cross-workspace injection)
-    let personDocId = personId;
-    if (personId) {
-      const personCheck = await pool.query<IdRow>(
-        `SELECT id FROM documents
-         WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-        [personId, workspaceId]
-      );
-      if (!personCheck.rows[0]) {
-        res.status(400).json({ error: 'Invalid personId for this workspace' });
-        return;
-      }
-    } else if (userId) {
-      // If userId was provided instead of personId, look up the person doc ID
-      const personResult = await pool.query<IdRow>(
-        `SELECT id FROM documents
-         WHERE workspace_id = $1 AND document_type = 'person'
-           AND properties->>'user_id' = $2 AND archived_at IS NULL`,
-        [workspaceId, userId]
-      );
-      if (personResult.rows[0]) {
-        personDocId = personResult.rows[0].id;
-      } else {
-        res.status(400).json({ error: 'Invalid userId for this workspace' });
-        return;
-      }
-    }
-
-    let resolvedProgramId: string | null = null;
-    let resolvedProjectId: string | null = null;
-
-    if (isProjectAssignment) {
-      // Validate projectId and get its parent program via document_associations
-      const projectCheck = await pool.query<ProjectWithProgramRow>(
-        `SELECT d.id, prog_da.related_id as program_id
-         FROM documents d
-         LEFT JOIN document_associations prog_da ON d.id = prog_da.document_id AND prog_da.relationship_type = 'program'
-         WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'`,
-        [projectId, workspaceId]
-      );
-      if (!projectCheck.rows[0]) {
-        res.status(400).json({ error: 'Invalid projectId for this workspace' });
-        return;
-      }
-      resolvedProjectId = projectId;
-      resolvedProgramId = projectCheck.rows[0].program_id; // Can be null for projects without programs
-    } else {
-      // Legacy: Validate programId belongs to current workspace
-      const programCheck = await pool.query<IdRow>(
-        `SELECT id FROM documents
-         WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'`,
-        [programId, workspaceId]
-      );
-      if (!programCheck.rows[0]) {
-        res.status(400).json({ error: 'Invalid programId for this workspace' });
-        return;
-      }
-      resolvedProgramId = programId;
-    }
-
-    // Check if person is already assigned to this exact project/sprint (prevent duplicates)
-    // Use IS NOT DISTINCT FROM for program_id to handle NULL values correctly
-    const existingAssignment = await pool.query<IdRow>(
-      `SELECT s.id
-       FROM documents s
-       WHERE s.workspace_id = $1 AND s.document_type = 'sprint'
-         AND s.properties->'assignee_ids' ? $2
-         AND (s.properties->>'sprint_number')::int = $3
-         AND s.properties->>'project_id' = $4
-         AND ($5::uuid IS NULL AND NOT EXISTS (SELECT 1 FROM document_associations WHERE document_id = s.id AND relationship_type = 'program') OR s.id IN (SELECT document_id FROM document_associations WHERE related_id = $5 AND relationship_type = 'program'))`,
-      [workspaceId, personDocId, sprintNumber, resolvedProjectId, resolvedProgramId]
-    );
-
-    if (existingAssignment.rows[0]) {
-      // Already assigned to this exact project/sprint - no-op, return success
-      res.json({ success: true, sprintId: existingAssignment.rows[0].id });
-      return;
-    }
-
-    // Enforce one allocation per person per week: remove from any OTHER project's sprint
-    // for the same sprint_number before assigning to the new one.
-    const conflictingSprints = await pool.query<SprintDocumentRow>(
-      `SELECT id, properties FROM documents
-       WHERE workspace_id = $1 AND document_type = 'sprint'
-         AND (properties->>'sprint_number')::int = $2
-         AND properties->'assignee_ids' @> to_jsonb($3::text)
-         AND (properties->>'project_id' IS DISTINCT FROM $4)`,
-      [workspaceId, sprintNumber, personDocId, resolvedProjectId]
-    );
-
-    for (const conflicting of conflictingSprints.rows) {
-      const props = conflicting.properties || {};
-      const assignees: string[] = (props.assignee_ids || []).filter((id: string) => id !== personDocId);
-      await pool.query<EmptyRow>(
-        `UPDATE documents SET properties = jsonb_set(properties, '{assignee_ids}', $1::jsonb), updated_at = now() WHERE id = $2`,
-        [JSON.stringify(assignees), conflicting.id]
-      );
-    }
-
-    // Find existing sprint for this program, project, and sprint number
-    // Use IS NOT DISTINCT FROM for program_id to handle NULL values correctly
-    let sprintResult = await pool.query<SprintDocumentRow>(
-      `SELECT id, properties FROM documents
-       WHERE workspace_id = $1 AND document_type = 'sprint'
-         AND ($2::uuid IS NULL AND NOT EXISTS (SELECT 1 FROM document_associations WHERE document_id = documents.id AND relationship_type = 'program') OR id IN (SELECT document_id FROM document_associations WHERE related_id = $2 AND relationship_type = 'program'))
-         AND (properties->>'sprint_number')::int = $3
-         AND properties->>'project_id' = $4`,
-      [workspaceId, resolvedProgramId, sprintNumber, resolvedProjectId]
-    );
-
-    let sprintId: string;
-    if (sprintResult.rows[0]) {
-      // Add person to existing sprint's assignee_ids array
-      sprintId = sprintResult.rows[0].id;
-      const currentProps = sprintResult.rows[0].properties || {};
-      const currentAssignees: string[] = currentProps.assignee_ids || [];
-
-      // Add person to array if not already present
-      if (!currentAssignees.includes(personDocId)) {
-        currentAssignees.push(personDocId);
-      }
-
-      const updatedProps = {
-        ...currentProps,
-        assignee_ids: currentAssignees,
-      };
-
-      await pool.query<EmptyRow>(
-        `UPDATE documents SET properties = $1, updated_at = now() WHERE id = $2`,
-        [JSON.stringify(updatedProps), sprintId]
-      );
-    } else {
-      // Create new sprint with assignee_ids array and project_id
-      const props: Record<string, unknown> = {
-        sprint_number: sprintNumber,
-        assignee_ids: [personDocId],
-      };
-      if (resolvedProjectId) {
-        props.project_id = resolvedProjectId;
-      }
-
-      const newSprintResult = await pool.query<IdRow>(
-        `INSERT INTO documents (workspace_id, document_type, title, properties)
-         VALUES ($1, 'sprint', $2, $3)
-         RETURNING id`,
-        [workspaceId, `Week ${sprintNumber}`, JSON.stringify(props)]
-      );
-      const createdSprint = newSprintResult.rows[0];
-      if (!createdSprint) {
-        throw new Error('Failed to create sprint');
-      }
-      sprintId = createdSprint.id;
-
-      // Create program association for the new sprint
-      await pool.query<EmptyRow>(
-        `INSERT INTO document_associations (document_id, related_id, relationship_type)
-         VALUES ($1, $2, 'program')`,
-        [sprintId, resolvedProgramId]
-      );
-    }
-
-    res.json({ success: true, sprintId });
+    res.status(result.status).json(result.body);
   } catch (err) {
     sendInternalError(res, err, 'Assign error:');
   }
@@ -723,73 +512,21 @@ router.delete('/assign', authMiddleware, async (req: Request, res: Response) => 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(currentUserId, workspaceId);
 
-    const ownerId = personId || userId;
-    if (!ownerId || !sprintNumber) {
-      res.status(400).json({ error: 'Missing required fields' });
+    const result = await unassignTeamMember({
+      workspaceId,
+      currentUserId,
+      isAdmin,
+      personId,
+      userId,
+      sprintNumber,
+    });
+
+    if (!result.ok) {
+      res.status(result.status).json(result.body);
       return;
     }
 
-    // Validate personId belongs to current workspace (SECURITY: prevent cross-workspace injection)
-    let personDocId = personId;
-    if (personId) {
-      const personCheck = await pool.query<IdRow>(
-        `SELECT id FROM documents
-         WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-        [personId, workspaceId]
-      );
-      if (!personCheck.rows[0]) {
-        res.status(400).json({ error: 'Invalid personId for this workspace' });
-        return;
-      }
-    } else if (userId) {
-      // If userId was provided instead of personId, look up the person doc ID
-      const personResult = await pool.query<IdRow>(
-        `SELECT id FROM documents
-         WHERE workspace_id = $1 AND document_type = 'person'
-           AND properties->>'user_id' = $2 AND archived_at IS NULL`,
-        [workspaceId, userId]
-      );
-      if (personResult.rows[0]) {
-        personDocId = personResult.rows[0].id;
-      } else {
-        res.status(400).json({ error: 'Invalid userId for this workspace' });
-        return;
-      }
-    }
-
-    // Find the sprint containing this person in assignee_ids for this sprint number
-    const sprintResult = await pool.query<SprintDocumentRow>(
-      `SELECT id, properties FROM documents
-       WHERE workspace_id = $1 AND document_type = 'sprint'
-         AND properties->'assignee_ids' ? $2
-         AND (properties->>'sprint_number')::int = $3
-         AND ${VISIBILITY_FILTER_SQL('documents', '$4', '$5')}`,
-      [workspaceId, personDocId, sprintNumber, currentUserId, isAdmin]
-    );
-
-    if (!sprintResult.rows[0]) {
-      res.status(404).json({ error: 'No assignment found' });
-      return;
-    }
-
-    const sprintId = sprintResult.rows[0].id;
-    const currentProps = sprintResult.rows[0].properties || {};
-
-    // Remove person from assignee_ids array (keep sprint doc even if empty - Story 5)
-    const currentAssignees: string[] = currentProps.assignee_ids || [];
-    const updatedAssignees = currentAssignees.filter((id: string) => id !== personDocId);
-
-    const updatedProps = {
-      ...currentProps,
-      assignee_ids: updatedAssignees,
-    };
-
-    await pool.query<EmptyRow>(
-      `UPDATE documents SET properties = $1, updated_at = now() WHERE id = $2`,
-      [JSON.stringify(updatedProps), sprintId]
-    );
-
-    res.json({ success: true });
+    res.status(result.status).json(result.body);
   } catch (err) {
     sendInternalError(res, err, 'Unassign error:');
   }
@@ -852,43 +589,11 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
       [workspaceId]
     );
 
-    const rawSprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const sprintDurationDays = 7; // 1-week sprints
-    const today = new Date();
-
-    let startDate: Date;
-    if (rawSprintStartDate instanceof Date) {
-      startDate = new Date(Date.UTC(rawSprintStartDate.getFullYear(), rawSprintStartDate.getMonth(), rawSprintStartDate.getDate()));
-    } else if (typeof rawSprintStartDate === 'string') {
-      startDate = new Date(rawSprintStartDate + 'T00:00:00Z');
-    } else {
-      startDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    }
-
-    // Calculate current sprint number
-    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
-
-    // Get last 6 sprints (including current)
-    const fromSprint = Math.max(1, currentSprintNumber - 5);
-    const toSprint = currentSprintNumber;
-
-    // Generate sprint info
-    const sprints = [];
-    for (let i = fromSprint; i <= toSprint; i++) {
-      const sprintStart = new Date(startDate);
-      sprintStart.setUTCDate(sprintStart.getUTCDate() + (i - 1) * sprintDurationDays);
-      const sprintEnd = new Date(sprintStart);
-      sprintEnd.setUTCDate(sprintEnd.getUTCDate() + sprintDurationDays - 1);
-
-      sprints.push({
-        number: i,
-        name: `Week ${i}`,
-        startDate: sprintStart.toISOString().split('T')[0],
-        endDate: sprintEnd.toISOString().split('T')[0],
-        isCurrent: i === currentSprintNumber,
-      });
-    }
+    const { sprints, currentSprintNumber: _currentSprint } = buildWorkspaceSprintCalendar(workspaceResult.rows[0]?.sprint_start_date, {
+      trailingSprintCount: 6,
+    });
+    const fromSprint = sprints[0]?.number ?? 1;
+    const toSprint = sprints[sprints.length - 1]?.number ?? fromSprint;
 
     // Get all people in workspace (exclude pending - they can't have assignments)
     const peopleResult = await pool.query<AccountabilityPersonRow>(
@@ -1009,29 +714,23 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
 router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { personId } = req.params;
-
-    // Get the person document to find the user_id
-    const personResult = await pool.query<PersonUserIdRow>(
-      `SELECT properties->>'user_id' as user_id
-       FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-      [personId, workspaceId]
-    );
-
-    if (!personResult.rows[0]) {
-      res.status(404).json({ error: 'Person not found' });
+    const personId = guardDocumentIdParam(res, req.params.personId, 'Person not found');
+    if (!personId || !(await requirePersonRead(req, res, personId))) {
       return;
     }
 
-    const targetUserId = personResult.rows[0].user_id;
-
-    // Check if user can view this person's metrics (self or admin)
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-    const isSelf = userId === targetUserId;
-
-    if (!isAdmin && !isSelf) {
+    const actor = getActor(req);
+    let personDoc;
+    try {
+      personDoc = await requireSelfOrAdminPerson(pool, actor, personId);
+    } catch {
       res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    const targetUserId = personDoc.properties?.user_id as string | undefined;
+    if (!targetUserId) {
+      res.status(404).json({ error: 'Person not found' });
       return;
     }
 
@@ -1041,43 +740,11 @@ router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Reque
       [workspaceId]
     );
 
-    const rawSprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const sprintDurationDays = 7; // 1-week sprints
-    const today = new Date();
-
-    let startDate: Date;
-    if (rawSprintStartDate instanceof Date) {
-      startDate = new Date(Date.UTC(rawSprintStartDate.getFullYear(), rawSprintStartDate.getMonth(), rawSprintStartDate.getDate()));
-    } else if (typeof rawSprintStartDate === 'string') {
-      startDate = new Date(rawSprintStartDate + 'T00:00:00Z');
-    } else {
-      startDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    }
-
-    // Calculate current sprint number
-    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
-
-    // Get last 6 sprints (including current)
-    const fromSprint = Math.max(1, currentSprintNumber - 5);
-    const toSprint = currentSprintNumber;
-
-    // Generate sprint info
-    const sprints = [];
-    for (let i = fromSprint; i <= toSprint; i++) {
-      const sprintStart = new Date(startDate);
-      sprintStart.setUTCDate(sprintStart.getUTCDate() + (i - 1) * sprintDurationDays);
-      const sprintEnd = new Date(sprintStart);
-      sprintEnd.setUTCDate(sprintEnd.getUTCDate() + sprintDurationDays - 1);
-
-      sprints.push({
-        number: i,
-        name: `Week ${i}`,
-        startDate: sprintStart.toISOString().split('T')[0],
-        endDate: sprintEnd.toISOString().split('T')[0],
-        isCurrent: i === currentSprintNumber,
-      });
-    }
+    const { sprints } = buildWorkspaceSprintCalendar(workspaceResult.rows[0]?.sprint_start_date, {
+      trailingSprintCount: 6,
+    });
+    const fromSprint = sprints[0]?.number ?? 1;
+    const toSprint = sprints[sprints.length - 1]?.number ?? fromSprint;
 
     // Get all issues for this person with estimates, sprint info, and completion state
     const issuesResult = await pool.query<PersonSprintMetricsIssueRow>(
@@ -1160,41 +827,12 @@ router.get('/reviews', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const rawSprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const sprintDurationDays = 7;
-    const today = new Date();
-
-    let sprintStartDate: Date;
-    if (rawSprintStartDate instanceof Date) {
-      sprintStartDate = new Date(Date.UTC(rawSprintStartDate.getFullYear(), rawSprintStartDate.getMonth(), rawSprintStartDate.getDate()));
-    } else if (typeof rawSprintStartDate === 'string') {
-      sprintStartDate = new Date(rawSprintStartDate + 'T00:00:00Z');
-    } else {
-      sprintStartDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    }
-
-    // Calculate current sprint number and range
-    const daysSinceStart = Math.floor((today.getTime() - sprintStartDate.getTime()) / (1000 * 60 * 60 * 24));
-    const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
-    const fromSprint = Math.max(1, currentSprintNumber - sprintCount + 1);
-    const toSprint = currentSprintNumber;
-
-    // Generate weeks array
-    const weeks: { number: number; name: string; startDate: string; endDate: string; isCurrent: boolean }[] = [];
-    for (let i = fromSprint; i <= toSprint; i++) {
-      const weekStart = new Date(sprintStartDate);
-      weekStart.setUTCDate(weekStart.getUTCDate() + (i - 1) * sprintDurationDays);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setUTCDate(weekEnd.getUTCDate() + sprintDurationDays - 1);
-
-      weeks.push({
-        number: i,
-        name: `Week ${i}`,
-        startDate: weekStart.toISOString().split('T')[0] || '',
-        endDate: weekEnd.toISOString().split('T')[0] || '',
-        isCurrent: i === currentSprintNumber,
-      });
-    }
+    const { sprints: weeks, currentSprintNumber } = buildWorkspaceSprintCalendar(
+      workspaceResult.rows[0]?.sprint_start_date,
+      { trailingSprintCount: sprintCount }
+    );
+    const fromSprint = weeks[0]?.number ?? 1;
+    const toSprint = weeks[weeks.length - 1]?.number ?? fromSprint;
 
     // Get all workspace people (include reports_to for My Team filter)
     const peopleResult = await pool.query<ReviewPersonRow>(
@@ -1380,43 +1018,12 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
       return;
     }
 
-    const rawSprintStartDate = workspaceResult.rows[0]?.sprint_start_date;
-    const sprintDurationDays = 7;
-    const today = new Date();
-
-    let sprintStartDate: Date;
-    if (rawSprintStartDate instanceof Date) {
-      sprintStartDate = new Date(Date.UTC(rawSprintStartDate.getFullYear(), rawSprintStartDate.getMonth(), rawSprintStartDate.getDate()));
-    } else if (typeof rawSprintStartDate === 'string') {
-      sprintStartDate = new Date(rawSprintStartDate + 'T00:00:00Z');
-    } else {
-      sprintStartDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    }
-
-    // Calculate current sprint number
-    const daysSinceStart = Math.floor((today.getTime() - sprintStartDate.getTime()) / (1000 * 60 * 60 * 24));
-    const currentSprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
-
-    // Get sprint range (last 6 sprints + current + next 2)
-    const fromSprint = Math.max(1, currentSprintNumber - 6);
-    const toSprint = currentSprintNumber + 2;
-
-    // Generate weeks array
-    const weeks: { number: number; name: string; startDate: string; endDate: string; isCurrent: boolean }[] = [];
-    for (let i = fromSprint; i <= toSprint; i++) {
-      const weekStart = new Date(sprintStartDate);
-      weekStart.setUTCDate(weekStart.getUTCDate() + (i - 1) * sprintDurationDays);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setUTCDate(weekEnd.getUTCDate() + sprintDurationDays - 1);
-
-      weeks.push({
-        number: i,
-        name: `Week ${i}`,
-        startDate: weekStart.toISOString().split('T')[0] || '',
-        endDate: weekEnd.toISOString().split('T')[0] || '',
-        isCurrent: i === currentSprintNumber,
-      });
-    }
+    const { sprints: weeks, startDate: sprintStartDate, currentSprintNumber } = buildWorkspaceSprintCalendar(
+      workspaceResult.rows[0]?.sprint_start_date,
+      { rangeDefaults: { back: 6, forward: 2 } }
+    );
+    const fromSprint = weeks[0]?.number ?? 1;
+    const toSprint = weeks[weeks.length - 1]?.number ?? fromSprint;
 
     // Get all workspace people
     const peopleResult = await pool.query<AccountabilityGridPersonRow>(
@@ -1533,8 +1140,7 @@ router.get('/accountability-grid-v3', authMiddleware, async (req: Request, res: 
     for (const issue of issuesResult.rows) {
       const personId = issue.assignee_id;
       const sprintStart = new Date(issue.sprint_start + 'T00:00:00Z');
-      const daysSinceStart = Math.floor((sprintStart.getTime() - sprintStartDate.getTime()) / (1000 * 60 * 60 * 24));
-      const sprintNumber = Math.max(1, Math.floor(daysSinceStart / sprintDurationDays) + 1);
+      const sprintNumber = sprintNumberFromDate(sprintStart, sprintStartDate, SPRINT_DURATION_DAYS);
       const projectId = issue.project_id;
 
       if (!personId || !projectId) continue;

@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { getCsrfToken, login } from './fixtures/api-auth';
+
 
 // Force serial execution — tests in this file mutate shared state (accept/reject triage issues)
 // which causes flakiness when fullyParallel allows describe blocks to interleave
@@ -14,22 +16,6 @@ test.describe.configure({ mode: 'serial' });
  * - Accept/Reject triage actions
  * - Migration of existing feedback data
  */
-
-// Helper to login
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/login');
-  await page.locator('#email').fill('dev@ship.local');
-  await page.locator('#password').fill('admin123');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 10000 });
-}
-
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  const { token } = await response.json();
-  return token;
-}
 
 // Helper to get a program ID (programs use onClick navigation with table rows)
 async function getProgramId(page: import('@playwright/test').Page): Promise<string> {

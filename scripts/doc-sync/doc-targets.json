@@ -5,6 +5,7 @@
     "docs/unified-document-model.md",
     "docs/document-model-conventions.md",
     "docs/application-architecture.md",
+    "docs/conventions/*.md",
     "docs/openapi-contract.md",
     "docs/claude-reference/**/*.md"
   ],

@@ -1,5 +1,76 @@
 # Improvement Report
 
+**Active execution checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (code-quality remediation waves; auth matrix in `my-docs/evidence/auth-matrix.md`).
+
+---
+
+## Code Quality Remediation — Slice 1.1 (2026-05-24)
+
+Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledger changes.
+
+### What we learned
+
+- **11** production `authorize()` call sites; **0** `requireCapability` callers; **5** mutation entrypoints without token-scope guards at entry.
+- Session users hit the same read-level document gate for every `DocumentCapabilityAction` at the facade; write enforcement remains in `document-mutations.ts` / `document-policy.ts`.
+- Phase-2 surface: ~75 handlers across `programs`, `projects`, `issues`, `team`, `admin` (~8k LOC) still on visibility SQL — none use `authorize()` yet.
+- Epic 2.1 preflight: 10 probe lib files byte-identical to `packages/shipshape-security/src/core/` (safe to delete after import retarget).
+
+### Evidence
+
+- Deliverable: `my-docs/evidence/auth-matrix.md`
+- Orchestrator: parallel sub-agents (route inventory, god-file scan, capabilities review, probe dedupe preflight)
+
+### Slice 1.5 (2026-05-24)
+
+- Deleted `workspaceAccessMiddleware` (D081).
+- `documents.ts` reads use `loadDocumentForRead` → `authorize` read.
+- API token revoke uses `authorize` (`api_token` / `revoke`).
+- Setup Principal deferred to Slice **1.5b** (D082) — explicitly in plan.
+
+### Wave 1 complete (2026-05-24)
+
+**Epic 1:** Slices 1.4 (D084 policy merge) + 1.5b (D082 setup principal) finished. **Epic 2:** probe dedupe, e2e `api-auth.ts`, submission DRY.
+
+**Verification:** type-check pass; API **620/620**; `capabilities`+`document-policy`+`setup` 21/21; probe 33/33; submission test+validate; smoke 27/27.
+
+**Auth maintainability:** 6.8 → **7.5 / 10** — single `authorize` brain, honest four document actions, mutations token-guarded, no duplicate probe lib or e2e login copies. D083 phase-2 tail complete (2026-05-24): route-capability on issues/projects/programs/weeks writes + issue-mutations; list/team aggregations intentionally unchanged. Remaining: god-file thinning (ongoing), Epic 9 optional.
+
+---
+
+## Code Quality Remediation — Slice 1.3 (2026-05-24)
+
+Scope: token scope guards at all document mutation entrypoints.
+
+### What changed
+
+- Every mutation (`create`, `update`, `content`, `delete`, `convert`) requires `principal` and runs `authorizeDocumentMutation()` first.
+- REST routes pass `principalFromRequest(req)`; commands pass collapsed capability spec including `governance` / `enforce`.
+- Delete/convert guards use `includeArchived` so archived conversion still returns 400, not 404.
+- API errors at the capability boundary use reason codes (`token_scope_denied`, `not_creator_or_admin`, `document_not_found`).
+
+### Evidence
+
+- New: `api/src/routes/documents-token-scope.test.ts` (3 tests)
+- `documents.test.ts`, `capabilities.test.ts` green
+
+---
+
+## Code Quality Remediation — Slice 1.2 (2026-05-24)
+
+Scope: honest capability vocabulary (D080 option B). No submission-ledger change.
+
+### What changed
+
+- Collapsed `DocumentCapabilityAction` to `read | write | governance | collaborate`.
+- Added `documentCommandCapability()` for `POST /:id/commands` with `enforce` hints wired into `authorize()` via `decideCreatorOrAdmin` / `decideWorkspaceAdmin`.
+- Removed `requireCapability`, `defaultCapabilityDb`, and dead file deny reasons; added `not_creator_or_admin`.
+
+### Evidence
+
+- `vitest run src/security/capabilities.test.ts` — 8/8 pass
+- `pnpm security:probe:test` — pass
+- `pnpm type-check` — pass
+
 ---
 
 ## Reviewer Packet Simplification (2026-05-24)

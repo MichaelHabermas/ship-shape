@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
+import { loginViaApi } from './fixtures/api-auth';
+
 
 /**
  * Critical E2E test for the accountability refactor.
@@ -14,25 +16,9 @@ import { test, expect } from './fixtures/isolated-env';
  * test the actual inference logic.
  */
 
-// Helper to get CSRF token for API requests
-async function getCsrfToken(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
-  const response = await page.request.get(`${apiUrl}/api/csrf-token`);
-  expect(response.ok()).toBe(true);
-  const { token } = await response.json();
-  return token;
-}
-
 test.describe('Accountability Owner Change', () => {
   test('sprint owner change immediately removes action items from inference', async ({ page, apiServer }) => {
-    // Login to get auth cookies
-    await page.goto('/login');
-    await page.locator('#email').fill('dev@ship.local');
-    await page.locator('#password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page).not.toHaveURL('/login', { timeout: 5000 });
-
-    // Get CSRF token for API calls
-    const csrfToken = await getCsrfToken(page, apiServer.url);
+    const { csrfToken } = await loginViaApi(page, apiServer.url);
 
     // Get user ID
     const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);

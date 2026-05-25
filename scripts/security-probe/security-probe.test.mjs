@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildConfig, parseArgs, validateRunId } from './lib/cli.mjs';
-import { buildReport } from './lib/report.mjs';
-import { runSelectedProbes } from './lib/probe-selection.mjs';
-import { MEASURED_SURFACE_COUNT } from './lib/registry.mjs';
-import { fingerprintForFinding, triageFindings } from './lib/finding-registry.mjs';
-import { shouldFailSecurityProbeRun } from './lib/ci-fail.mjs';
+import { buildConfig, parseArgs, validateRunId } from '../../packages/shipshape-security/src/core/cli.mjs';
+import { buildReport } from '../../packages/shipshape-security/src/core/report.mjs';
+import { runSelectedProbes } from '../../packages/shipshape-security/src/core/probe-selection.mjs';
+import { MEASURED_SURFACE_COUNT } from '../../packages/shipshape-security/src/core/registry.mjs';
+import { fingerprintForFinding, triageFindings } from '../../packages/shipshape-security/src/core/finding-registry.mjs';
+import { shouldFailSecurityProbeRun } from '../../packages/shipshape-security/src/core/ci-fail.mjs';
 
 test('parseArgs supports flags and values', () => {
   assert.deepEqual(parseArgs(['--quick', '--api-url', 'http://localhost:3000', '--fail-on=high']), {

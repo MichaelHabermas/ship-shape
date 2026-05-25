@@ -2,7 +2,7 @@
 
 This document captures architectural decisions and conventions for Ship's unified document model. These conventions guide implementation and ensure consistency across the codebase.
 
-> **Related**: See [Unified Document Model](./unified-document-model.md) for data model details and [Week Documentation Philosophy](./week-documentation-philosophy.md) for week workflow.
+> **Related**: See [Unified Document Model](./unified-document-model.md) for data model details, [Week Documentation Philosophy](./week-documentation-philosophy.md) for week workflow, and [Week vs sprint terminology](./conventions/week-sprint-terminology.md) for legacy `sprint_*` names vs user-facing "week".
 
 ## Core Philosophy
 
