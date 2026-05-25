@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getVisibilityContext } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { guardDocumentIdParam, requireProjectRead } from '../security/route-capability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import {
@@ -33,6 +34,19 @@ import {
 } from '../services/project-nested-service.js';
 
 const router = Router();
+
+async function guardProjectRead(
+  req: Request,
+  res: Response,
+  rawId: string | string[] | undefined
+): Promise<string | null> {
+  const id = guardDocumentIdParam(res, rawId, 'Project not found');
+  if (!id) return null;
+  if (!(await requireProjectRead(req, res, id))) {
+    return null;
+  }
+  return id;
+}
 
 function respondProject<T>(res: Response, result: ProjectServiceResult<T>): void {
   if (!result.ok) {
@@ -93,12 +107,13 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondProject(res, await getProject({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -125,11 +140,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-    if (typeof id !== 'string') {
-      res.status(400).json({ error: 'Invalid project id' });
-      return;
-    }
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const parsed = updateProjectSchema.safeParse(req.body);
     if (!parsed.success) {
       sendValidationError(res, parsed.error);
@@ -152,12 +164,13 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondProject(res, await deleteProject({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -169,12 +182,13 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 router.get('/:id/retro', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondRetro(res, await getProjectRetro({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -191,12 +205,13 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       sendValidationError(res, parsed.error);
       return;
     }
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondRetro(res, await createProjectRetro({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -214,12 +229,13 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       sendValidationError(res, parsed.error);
       return;
     }
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondRetro(res, await updateProjectRetro({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -232,12 +248,13 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
 
 router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondNested(res, await listProjectIssues({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -249,12 +266,13 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 
 router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondNested(res, await listProjectSprints({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -266,12 +284,13 @@ router.get('/:id/weeks', authMiddleware, async (req: Request, res: Response) => 
 
 router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondNested(res, await listProjectSprints({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -288,12 +307,13 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
       sendValidationError(res, parsed.error);
       return;
     }
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondNested(res, await createProjectSprint({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -306,12 +326,13 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
 
 router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondProject(res, await approveProjectPlan({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,
@@ -323,12 +344,13 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 
 router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProjectRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     respondProject(res, await approveProjectRetro({
-      projectId: id as string,
+      projectId: id,
       workspaceId,
       userId,
       isAdmin,

@@ -3,6 +3,7 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { guardDocumentIdParam, requireProgramRead } from '../security/route-capability.js';
 import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
@@ -10,6 +11,19 @@ import { formatWireDate } from '../utils/format-wire-date.js';
 import { visibleAssociatedDocumentCountSql } from '../services/document-graph-visibility.js';
 
 const router = Router();
+
+async function guardProgramRead(
+  req: Request,
+  res: Response,
+  rawId: string | string[] | undefined
+): Promise<string | null> {
+  const id = guardDocumentIdParam(res, rawId, 'Program not found');
+  if (!id) return null;
+  if (!(await requireProgramRead(req, res, id))) {
+    return null;
+  }
+  return id;
+}
 
 type ProgramProperties = {
   color?: string;
@@ -213,7 +227,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 // Get single program
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProgramRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
@@ -460,24 +475,12 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Get program issues
 router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProgramRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify program exists and user can access it
-    const programExists = await pool.query<ProgramExistsRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (programExists.rows.length === 0) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
 
     // Also filter the issues by visibility - join via document_associations
     const result = await pool.query<ProgramIssueRow>(
@@ -537,24 +540,12 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 // Get program projects (documents with document_type = 'project' that belong to this program)
 router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProgramRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify program exists and user can access it
-    const programExists = await pool.query<ProgramExistsRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (programExists.rows.length === 0) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
 
     // Fetch projects belonging to this program via document_associations
     const result = await pool.query<ProgramProjectRow>(
@@ -618,26 +609,20 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
 // Returns sprints with sprint_number and owner_id - dates/status computed on frontend
 router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProgramRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    // Verify program exists and user can access it
     const programCheck = await pool.query<ProgramExistsRow>(
       `SELECT d.id, w.sprint_start_date
        FROM documents d
        JOIN workspaces w ON d.workspace_id = w.id
-       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'program'
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
+       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'program'`,
+      [id, workspaceId]
     );
-
-    if (programCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
 
     const sprintStartDate = requireFirstRow(programCheck.rows).sprint_start_date;
     const wireStartDate = formatWireDate(sprintStartDate);
@@ -716,7 +701,8 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
 // Merge preview - returns counts of entities that will be moved
 router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const sourceId = req.params.id;
+    const sourceId = await guardProgramRead(req, res, req.params.id);
+    if (!sourceId) return;
     const targetId = req.query.target_id as string;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
@@ -727,6 +713,10 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
 
     if (sourceId === targetId) {
       res.status(400).json({ error: 'Cannot merge a program into itself' });
+      return;
+    }
+
+    if (!(await requireProgramRead(req, res, targetId))) {
       return;
     }
 

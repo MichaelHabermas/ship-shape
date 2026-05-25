@@ -100,13 +100,17 @@ Evidence: `document-policy.test.ts` + `capabilities.test.ts` parity; full API 62
 
 ### D083: D077 Phase-2 Route Capability Backlog (2026-05-24)
 
-Status: Accepted (deferred to Epic 8)
+Status: Accepted — **phase-2 tail complete** (2026-05-24)
 
 Decision: After Epic 1 document/token/files/collab convergence, migrate ad-hoc visibility SQL on `issues.ts` (first), then `projects.ts`, `programs.ts`, `team.ts`, `weeks/*`. `admin.ts` remains super-admin platform scope, not document capabilities. See Appendix D in `CODE_QUALITY_REMEDIATION_PLAN.md`.
 
 Acceptance for phase 2 complete: no new route-local workspace membership checks for document reads; sensitive writes use `authorize` or mutation guards.
 
-**Decision Gist**: Phase 1 finishes document core; phase 2 is ~75 handlers in Appendix D, starting with issues.
+**Tail complete (2026-05-24):** `issue-mutations-service` + issue route writes; all `weeks/*` `:id` handlers via `week-access`; `team` person sprint-metrics. **Deferred by design:** `GET /api/issues` list (batch visibility SQL); `team` grid/assignments/programs aggregations; child-row `VISIBILITY_FILTER` inside week handlers after parent sprint guard.
+
+Evidence: `auth-matrix.md`; remediation plan execution log D083 tail; type-check; vitest issues/projects/programs/weeks/capabilities; smoke 27/27.
+
+**Decision Gist**: Phase 1 finishes document core; phase 2 routes use capability wrappers; list/aggregation endpoints stay on visibility SQL until a dedicated perf pass.
 
 ### D078: Close Security Findings Only Through Evidence-Backed CLI Updates (2026-05-24)
 

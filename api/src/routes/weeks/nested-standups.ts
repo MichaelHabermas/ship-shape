@@ -12,6 +12,7 @@ import {
 import { broadcastToUser } from '../../collaboration/index.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import type { StandupRow } from './types.js';
+import { requireWeekRead, requireWeekWrite } from './week-access.js';
 
 const router = Router();
 
@@ -64,24 +65,10 @@ function formatStandupResponse(row: StandupRow) {
  */
 router.get('/:id/standups', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify sprint exists and user can access it
-    const sprintCheck = await pool.query(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (sprintCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Week not found' });
-      return;
-    }
 
     // Get all standups for this sprint (parent_id = sprint.id)
     const result = await pool.query(
@@ -155,7 +142,8 @@ router.get('/:id/standups', authMiddleware, async (req: Request, res: Response) 
  */
 router.post('/:id/standups', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = createStandupSchema.safeParse(req.body);
@@ -178,22 +166,6 @@ router.post('/:id/standups', authMiddleware, async (req: Request, res: Response)
         });
         return;
       }
-    }
-
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify sprint exists and user can access it
-    const sprintCheck = await pool.query(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (sprintCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Week not found' });
-      return;
     }
 
     // Create the standup document

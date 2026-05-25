@@ -12,11 +12,11 @@ Use this file to keep agent context small. Pick the smallest profile that covers
 | `frontend` | React UI, editor layout, visual behavior, client routing | `docs/document-model-conventions.md`, target web files |
 | `api-route` | REST endpoints, request/response shape, OpenAPI registration | `docs/application-architecture.md`, route files, OpenAPI registration files |
 | `collaboration` | Yjs, WebSocket sync, document editor state, mentions in collaborative content | `docs/unified-document-model.md`, `docs/claude-reference/modules/collaboration.md`, related shared protocol files |
-| `document-model` | Document types, associations, titles, properties, content model | `docs/unified-document-model.md`, `docs/document-model-conventions.md` |
+| `document-model` | Document types, associations, titles, properties, content model | `docs/unified-document-model.md`, `docs/document-model-conventions.md`, `docs/conventions/week-sprint-terminology.md` (when touching weeks/sprints) |
 | `migration` | Database schema changes or data backfills | `docs/application-architecture.md`, existing migrations, affected query files |
 | `e2e` | Adding/fixing Playwright coverage | `docs/claude-reference/testing.md`, `e2e/AGENTS.md`, affected fixtures |
 | `deploy` | Production/shadow deployment, envs, verification | `docs/application-architecture.md`, `docs/shadow-env-testing.md`, deploy scripts |
-| `security` | Auth, access control, session behavior, sensitive data | `docs/claude-reference/security.md`, affected middleware/routes/services |
+| `security` | Auth, access control, session behavior, sensitive data | `docs/claude-reference/security.md`, `my-docs/evidence/auth-matrix.md`, `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (checklist pointer), affected middleware/routes/services |
 | `docs` | Updating repo docs after behavior changes | Changed code, docs being updated |
 
 ## Profile Details
@@ -127,6 +127,7 @@ Load:
 
 - `docs/unified-document-model.md`
 - `docs/document-model-conventions.md`
+- `docs/conventions/week-sprint-terminology.md` when changing week documents, `sprint_id` filters, or `/api/weeks` vs `/sprints` routes
 - Current migrations if persistence changes.
 
 Rules:
@@ -210,14 +211,17 @@ Use for auth, authorization, sessions, cookies, access control, dependency compl
 Load:
 
 - `docs/claude-reference/security.md`
-- Affected middleware, route, and service files.
-- Existing tests around the same permission boundary.
+- `my-docs/evidence/auth-matrix.md` — production `authorize()` inventory and known gaps
+- `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` — wave/epic checklist only; do not copy into other docs
+- Affected middleware, route, and service files (`capabilities.ts`, `document-mutations.ts`, `setup-access.ts` when touching setup or mutations)
+- Existing tests around the same permission boundary (`capabilities.test.ts`, `document-policy.test.ts`)
 
 Rules:
 
 - Never use `git commit --no-verify`.
 - Preserve session timeout behavior unless the task is explicitly changing it.
-- Prefer central access checks over duplicating permission logic in routes.
+- Prefer `authorize()` / `authorizeDocumentMutation()` over duplicating visibility SQL or local `canAccessDocument` helpers in routes.
+- Runtime policy lives in `capabilities.ts`; `document-policy.ts` is seed/types only (no `decide*` at runtime).
 
 ### `docs`
 

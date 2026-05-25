@@ -10,6 +10,7 @@ import { extractText } from '../../utils/document-content.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { getActor } from '../../services/document-access.js';
 import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
+import { requireWeekRead, requireWeekWrite } from './week-access.js';
 import type {
   SprintReviewSprintData,
   SprintReviewIssueRow,
@@ -190,22 +191,19 @@ async function generatePrefilledReviewContent(sprintData: SprintReviewSprintData
 // GET /api/weeks/:id/review - Get or generate pre-filled sprint review
 router.get('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    // Verify sprint exists and user can access it
     const sprintResult = await pool.query<SprintReviewSprintRow>(
       `SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
               p.title as program_name
        FROM documents d
        LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
        LEFT JOIN documents p ON prog_da.related_id = p.id
-       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
+       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'`,
+      [id, workspaceId]
     );
 
     const sprint = sprintResult.rows.at(0);
@@ -293,7 +291,8 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
 // POST /api/weeks/:id/review - Create finalized sprint review
 router.post('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = sprintReviewSchema.safeParse(req.body);
@@ -304,15 +303,10 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
 
     const { content, title, plan_validated } = parsed.data;
 
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify sprint exists and user can access it
     const sprintCheck = await pool.query<SprintPropertiesOnlyRow>(
       `SELECT id, properties FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
+       WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'`,
+      [id, workspaceId]
     );
 
     if (sprintCheck.rows.length === 0) {
@@ -408,7 +402,8 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
 // PATCH /api/weeks/:id/review - Update existing sprint review
 router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = sprintReviewSchema.safeParse(req.body);
@@ -571,7 +566,8 @@ const carryoverSchema = z.object({
 // POST /api/weeks/:id/carryover - Move incomplete issues to another sprint
 router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id: sourceSprintId } = req.params;
+    const sourceSprintId = await requireWeekWrite(req, res, req.params.id);
+    if (!sourceSprintId) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = carryoverSchema.safeParse(req.body);
@@ -582,15 +578,16 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
 
     const { issue_ids, target_sprint_id } = parsed.data;
 
-    // Get visibility context for filtering
+    if (!(await requireWeekWrite(req, res, target_sprint_id))) {
+      return;
+    }
+
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    // 1. Validate source sprint exists
     const sourceSprintResult = await pool.query<SprintCarryoverSprintRow>(
       `SELECT d.id, d.title, d.properties FROM documents d
-       WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-      [sourceSprintId, workspaceId, userId, isAdmin]
+       WHERE d.id = $1 AND d.workspace_id = $2 AND document_type = 'sprint'`,
+      [sourceSprintId, workspaceId]
     );
 
     if (sourceSprintResult.rows.length === 0) {

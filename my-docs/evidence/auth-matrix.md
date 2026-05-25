@@ -2,7 +2,10 @@
 
 **Date:** 2026-05-24  
 **Purpose:** Inventory every production auth gate before Epic 1 code changes.  
-**Canonical checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (Wave 1, Epic 1).
+**Canonical checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (Wave 1, Epic 1).  
+**Agent context:** `docs/context-manifest.md` (`security` profile) → this file + `docs/claude-reference/security.md`.
+
+**Note:** Route LOC in the D077 table below are pre–Wave 2 splits; handlers may now live in `api/src/services/*` with thinner route files.
 
 ---
 
@@ -100,4 +103,8 @@ Seed only: `DOCUMENT_POLICY_CASES` + types. Runtime policy is `authorize()` in `
 | `team.ts` | 1762 | 11 | Visibility + allocation admin | Med |
 | `admin.ts` | 2021 | 23 | Super-admin only | Epic 8 (platform) |
 
-None use `authorize()`. Full handler lists in remediation plan Appendix D.
+**Epic 8 + D083 tail (2026-05-24):** `route-capability.ts` on issues/projects/programs reads; issue route writes (history, delete, accept/reject/iterations); `issue-mutations-service.ts` uses `authorize` for create/update/bulk/accept/reject/iterations; `weeks/week-access.ts` (`requireWeekRead`/`requireWeekWrite`) on all `weeks/*` `:id` handlers (sprints, reviews, approvals, standups); `team` `GET /people/:personId/sprint-metrics` uses `requirePersonRead` + self-or-admin.
+
+**Intentionally unchanged (aggregation / list N+1):** `GET /api/issues` list + bootstrap issue rows (`VISIBILITY_FILTER_SQL`); `team.ts` grid/assignments/programs list routes; child-row filters inside week handlers after parent sprint guard.
+
+None use inline `authorize()` in route files except via wrappers above. Full handler lists in remediation plan Appendix D.

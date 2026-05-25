@@ -2,7 +2,14 @@ import type { Pool, PoolClient } from 'pg';
 import type { BelongsTo, IssueProperties } from '@ship/shared';
 import { pool } from '../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../db/documents-repository.js';
-import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+import {
+  authorize,
+  authorizeDocumentMutation,
+  capabilityDenialStatus,
+  type DocumentMutationCapability,
+} from '../security/capabilities.js';
+import type { Principal } from '../security/principal.js';
+import type { DocumentType } from '@ship/shared';
 import {
   logDocumentChange,
   getTimestampUpdates,
@@ -13,9 +20,11 @@ import {
 import { broadcastToUser } from '../collaboration/index.js';
 import {
   expectedTypeForRelationship,
+  getDocumentAccessContext,
   requireReferenceableDocument,
   type DocumentActor,
 } from './document-access.js';
+import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import {
   mapListedIssueIterationRow,
   mapStoredIssueIterationRow,
@@ -63,6 +72,7 @@ type OldSprintRow = {
 export type CreateIssueInput = {
   client: PoolClient;
   actor: DocumentActor;
+  principal: Principal;
   userId: string;
   workspaceId: string;
   data: z.infer<typeof createIssueRequestSchema>;
@@ -71,18 +81,18 @@ export type CreateIssueInput = {
 export type UpdateIssueInput = {
   client: PoolClient;
   actor: DocumentActor;
+  principal: Principal;
   userId: string;
   workspaceId: string;
-  isAdmin: boolean;
   issueId: string;
   data: z.infer<typeof updateIssueRequestSchema>;
 };
 
 export type BulkUpdateIssuesInput = {
   client: PoolClient;
+  principal: Principal;
   userId: string;
   workspaceId: string;
-  isAdmin: boolean;
   ids: string[];
   action: 'archive' | 'delete' | 'restore' | 'update';
   updates?: {
@@ -92,6 +102,42 @@ export type BulkUpdateIssuesInput = {
     project_id?: string | null;
   };
 };
+
+async function guardIssueMutation(
+  db: QueryRunner,
+  principal: Principal,
+  spec: DocumentMutationCapability & { expectedType?: DocumentType }
+): Promise<IssueMutationResult<never> | null> {
+  const decision = await authorize(db, principal, {
+    resource: 'document',
+    action: spec.action,
+    documentId: spec.documentId,
+    enforce: spec.enforce,
+    includeArchived: spec.includeArchived,
+    expectedType: spec.expectedType,
+  });
+  if (decision.allowed) return null;
+  const status = capabilityDenialStatus(decision.reason);
+  return {
+    ok: false,
+    status,
+    body: { error: status === 404 ? 'Issue not found' : 'Forbidden' },
+  };
+}
+
+async function guardIssueCreate(
+  db: QueryRunner,
+  principal: Principal
+): Promise<IssueMutationResult<never> | null> {
+  const decision = await authorize(db, principal, { resource: 'document', action: 'write' });
+  if (decision.allowed) return null;
+  const status = capabilityDenialStatus(decision.reason);
+  return {
+    ok: false,
+    status,
+    body: { error: status === 403 ? 'Forbidden' : 'Issue not found' },
+  };
+}
 
 function toCount(value: string | number): number {
   return typeof value === 'number' ? value : Number(value);
@@ -106,7 +152,10 @@ async function workspaceAdvisoryLock(client: PoolClient, workspaceId: string): P
 export async function createIssueMutation(
   input: CreateIssueInput
 ): Promise<IssueMutationResult<Record<string, unknown>>> {
-  const { client, actor, userId, workspaceId, data } = input;
+  const { client, actor, principal, userId, workspaceId, data } = input;
+
+  const denied = await guardIssueCreate(client, principal);
+  if (denied) return denied;
   const {
     title,
     state,
@@ -207,14 +256,22 @@ export async function createIssueMutation(
 export async function updateIssueMutation(
   input: UpdateIssueInput
 ): Promise<IssueMutationResult<Record<string, unknown>>> {
-  const { client, actor, userId, workspaceId, isAdmin, issueId: id, data } = input;
+  const { client, actor, principal, userId, workspaceId, issueId: id, data } = input;
+
+  const denied = await guardIssueMutation(client, principal, {
+    action: 'write',
+    documentId: id,
+    expectedType: 'issue',
+  });
+  if (denied) return denied;
+
+  const { isAdmin } = await getDocumentAccessContext(actor, client);
 
   const existing = await client.query<IssueTitlePropertiesRow>(
     `SELECT id, title, properties
      FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [id, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'`,
+    [id, workspaceId]
   );
 
   if (existing.rows.length === 0) {
@@ -503,27 +560,25 @@ export async function updateIssueMutation(
 export async function bulkUpdateIssuesMutation(
   input: BulkUpdateIssuesInput
 ): Promise<IssueMutationResult<{ updated: Record<string, unknown>[]; failed: { id: string; error: string }[] }>> {
-  const { client, userId, workspaceId, isAdmin, ids, action, updates } = input;
+  const { client, principal, workspaceId, ids, action, updates } = input;
 
-  await client.query('BEGIN');
-
-  const accessCheck = await client.query<IdRow>(
-    `SELECT id FROM documents
-     WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'issue'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [ids, workspaceId, userId, isAdmin]
-  );
-
-  const accessibleIds = new Set(accessCheck.rows.map((r) => r.id));
   const failed: { id: string; error: string }[] = [];
+  const validIds: string[] = [];
 
   for (const id of ids) {
-    if (!accessibleIds.has(id)) {
-      failed.push({ id, error: 'Not found or no access' });
+    const denied = await guardIssueMutation(client, principal, {
+      action: 'write',
+      documentId: id,
+      expectedType: 'issue',
+    });
+    if (denied) {
+      failed.push({ id, error: denied.body.error as string });
+      continue;
     }
+    validIds.push(id);
   }
 
-  const validIds = ids.filter((id) => accessibleIds.has(id));
+  await client.query('BEGIN');
 
   if (validIds.length === 0) {
     await client.query('ROLLBACK');
@@ -644,17 +699,23 @@ export async function bulkUpdateIssuesMutation(
 
 export async function acceptIssueMutation(input: {
   issueId: string;
+  principal: Principal;
   userId: string;
   workspaceId: string;
-  isAdmin: boolean;
 }): Promise<IssueMutationResult<Record<string, unknown>>> {
-  const { issueId: id, userId, workspaceId, isAdmin } = input;
+  const { issueId: id, principal, userId, workspaceId } = input;
+
+  const denied = await guardIssueMutation(pool, principal, {
+    action: 'write',
+    documentId: id,
+    expectedType: 'issue',
+  });
+  if (denied) return denied;
 
   const existing = await pool.query<IssuePropertiesRow>(
     `SELECT id, properties FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [id, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'`,
+    [id, workspaceId]
   );
 
   if (existing.rows.length === 0) {
@@ -682,18 +743,24 @@ export async function acceptIssueMutation(input: {
 
 export async function rejectIssueMutation(input: {
   issueId: string;
+  principal: Principal;
   userId: string;
   workspaceId: string;
-  isAdmin: boolean;
   reason: string;
 }): Promise<IssueMutationResult<Record<string, unknown>>> {
-  const { issueId: id, userId, workspaceId, isAdmin, reason } = input;
+  const { issueId: id, principal, userId, workspaceId, reason } = input;
+
+  const denied = await guardIssueMutation(pool, principal, {
+    action: 'write',
+    documentId: id,
+    expectedType: 'issue',
+  });
+  if (denied) return denied;
 
   const existing = await pool.query<IssuePropertiesRow>(
     `SELECT id, properties FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [id, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'`,
+    [id, workspaceId]
   );
 
   if (existing.rows.length === 0) {
@@ -721,25 +788,21 @@ export async function rejectIssueMutation(input: {
 
 export async function createIssueIterationMutation(input: {
   issueId: string;
+  principal: Principal;
   userId: string;
   workspaceId: string;
-  isAdmin: boolean;
   status: 'pass' | 'fail' | 'in_progress';
   what_attempted?: string;
   blockers_encountered?: string;
 }): Promise<IssueMutationResult<ReturnType<typeof mapStoredIssueIterationRow>>> {
-  const { issueId, userId, workspaceId, isAdmin, status, what_attempted, blockers_encountered } = input;
+  const { issueId, principal, userId, workspaceId, status, what_attempted, blockers_encountered } = input;
 
-  const issueCheck = await pool.query<IdRow>(
-    `SELECT id, title FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [issueId, workspaceId, userId, isAdmin]
-  );
-
-  if (issueCheck.rows.length === 0) {
-    return { ok: false, status: 404, body: { error: 'Issue not found' } };
-  }
+  const denied = await guardIssueMutation(pool, principal, {
+    action: 'write',
+    documentId: issueId,
+    expectedType: 'issue',
+  });
+  if (denied) return denied;
 
   const result = await pool.query<IssueStoredIterationRow>(
     `INSERT INTO issue_iterations
@@ -763,24 +826,19 @@ export async function listIssueIterations(
   db: QueryRunner,
   input: {
     issueId: string;
+    principal: Principal;
     workspaceId: string;
-    userId: string;
-    isAdmin: boolean;
     status?: 'pass' | 'fail' | 'in_progress';
   }
 ): Promise<IssueMutationResult<ReturnType<typeof mapListedIssueIterationRow>[]>> {
-  const { issueId, workspaceId, userId, isAdmin, status } = input;
+  const { issueId, principal, workspaceId, status } = input;
 
-  const issueCheck = await db.query<IdRow>(
-    `SELECT id FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [issueId, workspaceId, userId, isAdmin]
-  );
-
-  if (issueCheck.rows.length === 0) {
-    return { ok: false, status: 404, body: { error: 'Issue not found' } };
-  }
+  const denied = await guardIssueMutation(db, principal, {
+    action: 'read',
+    documentId: issueId,
+    expectedType: 'issue',
+  });
+  if (denied) return denied;
 
   let query = `
     SELECT i.*, u.name as author_name, u.email as author_email

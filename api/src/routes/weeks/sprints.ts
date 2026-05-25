@@ -13,6 +13,7 @@ import {
   asApprovalRecord,
 } from '../../utils/approval-workflow.js';
 import { broadcastToUser } from '../../collaboration/index.js';
+import { requireWeekRead, requireWeekWrite } from './week-access.js';
 import type {
   SprintRow,
   PersonLookupRow,
@@ -327,7 +328,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 // Returns sprints owned by the user that need plan or retro
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
@@ -617,7 +619,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // When sprint_number changes, the plan snapshot is cleared and will be retaken when the new date arrives
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = updateSprintSchema.safeParse(req.body);
@@ -812,7 +815,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 // POST /api/weeks/:id/start
 router.post('/:id/start', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
@@ -932,24 +936,9 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
 // Delete sprint
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify sprint exists and user can access it
-    const existing = await pool.query<SprintExistsRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (existing.rows.length === 0) {
-      res.status(404).json({ error: 'Week not found' });
-      return;
-    }
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
 
     // Remove sprint associations from issues via document_associations
     await pool.query(
@@ -972,7 +961,8 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 // PATCH /api/weeks/:id/plan
 router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = updatePlanSchema.safeParse(req.body);
@@ -1136,7 +1126,8 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
 // Get sprint issues
 router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering
@@ -1233,7 +1224,8 @@ router.get('/:id/issues', authMiddleware, async (req: Request, res: Response) =>
 // Returns: { originalScope, currentScope, scopeChangePercent, scopeChanges }
 router.get('/:id/scope-changes', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await requireWeekRead(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Get visibility context for filtering

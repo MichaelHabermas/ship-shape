@@ -10,7 +10,7 @@ import {
 } from '../db/documents-repository.js';
 import { z } from 'zod';
 import type { IssueProperties } from '@ship/shared';
-import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+import { getVisibilityContext } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import {
@@ -26,12 +26,17 @@ import {
   getBelongsToAssociationsBatch,
 } from '../utils/document-crud.js';
 import {
-  canReadDocument,
   getActor,
   getDocumentAccessContext,
   getReadableDocument,
   type DocumentActor,
 } from '../services/document-access.js';
+import { principalFromRequest } from '../security/principal.js';
+import {
+  guardDocumentIdParam,
+  requireIssueRead,
+  requireIssueWrite,
+} from '../security/route-capability.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import {
   acceptIssueMutation,
@@ -54,7 +59,6 @@ import { requireFirstRow } from '../utils/query-rows.js';
 
 const router = Router();
 
-type IdRow = { id: string };
 type PersonIdRow = { id: string };
 type IssuePropertiesRow = {
   id: string;
@@ -246,6 +250,10 @@ router.get('/by-ticket/:number', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
+    if (!(await requireIssueRead(req, res, row.id))) {
+      return;
+    }
+
     await sendIssueDetailResponse(res, row, actor);
   } catch (err) {
     sendInternalError(res, err, 'Get issue by ticket error');
@@ -255,14 +263,13 @@ router.get('/by-ticket/:number', authMiddleware, async (req: Request, res: Respo
 // Get sub-issues (children) of an issue
 router.get('/:id/children', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = String(req.params.id);
-    const actor = getActor(req);
-    const { isAdmin } = await getDocumentAccessContext(actor);
-
-    if (!(await canReadDocument(pool, actor, id, 'issue'))) {
-      res.status(404).json({ error: 'Issue not found' });
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id || !(await requireIssueRead(req, res, id))) {
       return;
     }
+
+    const actor = getActor(req);
+    const { isAdmin } = await getDocumentAccessContext(actor);
 
     const rows = await listIssueChildren(id, actor.workspaceId, actor.userId, isAdmin);
 
@@ -288,7 +295,11 @@ router.get('/:id/children', authMiddleware, async (req: Request, res: Response) 
 // Get single issue
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = String(req.params.id);
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id || !(await requireIssueRead(req, res, id))) {
+      return;
+    }
+
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor);
 
@@ -320,6 +331,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const result = await createIssueMutation({
       client,
       actor: getActor(req),
+      principal: principalFromRequest(req),
       userId,
       workspaceId,
       data: parsed.data,
@@ -343,15 +355,15 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
   const client = await pool.connect();
   try {
-    const id = String(req.params.id);
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
     const result = await updateIssueMutation({
       client,
       actor: getActor(req),
+      principal: principalFromRequest(req),
       userId,
       workspaceId,
-      isAdmin,
       issueId: id,
       data: parsed.data,
     });
@@ -367,22 +379,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Get issue history
 router.get('/:id/history', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify issue exists and user can access it
-    const issueCheck = await pool.query<IdRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (issueCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id || !(await requireIssueRead(req, res, id))) {
       return;
     }
 
@@ -412,32 +410,16 @@ const logHistorySchema = z.object({
 
 router.post('/:id/history', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = String(req.params.id);
-    if (!id) {
-      res.status(400).json({ error: 'Issue ID required' });
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id || !(await requireIssueWrite(req, res, id))) {
       return;
     }
+
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = logHistorySchema.safeParse(req.body);
     if (!parsed.success) {
       sendValidationError(res, parsed.error);
-      return;
-    }
-
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // Verify issue exists and user can access it
-    const issueCheck = await pool.query<IdRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (issueCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Issue not found' });
       return;
     }
 
@@ -478,12 +460,11 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
     const result = await bulkUpdateIssuesMutation({
       client,
+      principal: principalFromRequest(req),
       userId,
       workspaceId,
-      isAdmin,
       ids: parsed.data.ids,
       action: parsed.data.action,
       updates: parsed.data.updates,
@@ -501,18 +482,16 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
 // System-generated accountability issues cannot be deleted
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id || !(await requireIssueWrite(req, res, id, 'creator_or_admin'))) {
+      return;
+    }
+    const { workspaceId } = getAuthenticatedRouteContext(req);
 
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // First verify user can access the issue and check if system-generated
     const accessCheck = await pool.query<IssuePropertiesRow>(
       `SELECT id, properties FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
+       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'`,
+      [id, workspaceId]
     );
 
     if (accessCheck.rows.length === 0) {
@@ -546,10 +525,15 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Accept issue (move from triage to backlog)
 router.post('/:id/accept', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = String(req.params.id);
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-    const result = await acceptIssueMutation({ issueId: id, userId, workspaceId, isAdmin });
+    const result = await acceptIssueMutation({
+      issueId: id,
+      principal: principalFromRequest(req),
+      userId,
+      workspaceId,
+    });
     respondIssueMutation(res, result);
   } catch (err) {
     sendInternalError(res, err, 'Accept issue error:');
@@ -573,19 +557,19 @@ const listIterationsSchema = z.object({
 // Create iteration entry - POST /api/issues/:id/iterations
 router.post('/:id/iterations', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id: issueId } = req.params;
+    const issueId = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!issueId) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const parsed = createIterationSchema.safeParse(req.body);
     if (!parsed.success) {
       sendValidationError(res, parsed.error);
       return;
     }
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
     const result = await createIssueIterationMutation({
-      issueId: String(issueId),
+      issueId,
+      principal: principalFromRequest(req),
       userId,
       workspaceId,
-      isAdmin,
       status: parsed.data.status,
       what_attempted: parsed.data.what_attempted,
       blockers_encountered: parsed.data.blockers_encountered,
@@ -599,16 +583,15 @@ router.post('/:id/iterations', authMiddleware, async (req: Request, res: Respons
 // Get issue iterations - GET /api/issues/:id/iterations
 router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id: issueId } = req.params;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+    const issueId = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!issueId) return;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const queryParsed = listIterationsSchema.safeParse(req.query);
     const queryParams = queryParsed.success ? queryParsed.data : {};
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
     const result = await listIssueIterations(pool, {
-      issueId: String(issueId),
+      issueId,
+      principal: principalFromRequest(req),
       workspaceId,
-      userId,
-      isAdmin,
       status: queryParams.status,
     });
     respondIssueMutation(res, result);
@@ -620,19 +603,19 @@ router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response
 // Reject issue (move from triage to cancelled with reason)
 router.post('/:id/reject', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = String(req.params.id);
+    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
+    if (!id) return;
     const parsed = rejectIssueSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'Rejection reason is required' });
       return;
     }
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
     const result = await rejectIssueMutation({
       issueId: id,
+      principal: principalFromRequest(req),
       userId,
       workspaceId,
-      isAdmin,
       reason: parsed.data.reason,
     });
     respondIssueMutation(res, result);

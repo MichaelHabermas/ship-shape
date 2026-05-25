@@ -33,7 +33,7 @@ Scope: authorization inventory only (Wave 1 Epic 1). No code or submission-ledge
 
 **Verification:** type-check pass; API **620/620**; `capabilities`+`document-policy`+`setup` 21/21; probe 33/33; submission test+validate; smoke 27/27.
 
-**Auth maintainability:** 6.8 → **7.5 / 10** — single `authorize` brain, honest four document actions, mutations token-guarded, no duplicate probe lib or e2e login copies. Remaining: Appendix D phase-2 routes (D083), god-files (Wave 2).
+**Auth maintainability:** 6.8 → **7.5 / 10** — single `authorize` brain, honest four document actions, mutations token-guarded, no duplicate probe lib or e2e login copies. D083 phase-2 tail complete (2026-05-24): route-capability on issues/projects/programs/weeks writes + issue-mutations; list/team aggregations intentionally unchanged. Remaining: god-file thinning (ongoing), Epic 9 optional.
 
 ---
 

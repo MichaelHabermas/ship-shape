@@ -22,22 +22,14 @@ import {
   broadcastAccountabilityUpdateToSprintOwner,
   getSprintOwnerReportsTo,
 } from './shared.js';
+import { requireWeekWrite } from './week-access.js';
 
 const router = Router();
-
-function parseWeekId(req: Request, res: Response): string | null {
-  const { id } = req.params;
-  if (typeof id !== 'string' || id.length === 0) {
-    res.status(400).json({ error: 'Week id is required' });
-    return null;
-  }
-  return id;
-}
 
 // POST /api/weeks/:id/approve-plan - Approve sprint plan
 router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = parseWeekId(req, res);
+    const id = await requireWeekWrite(req, res, req.params.id);
     if (!id) {
       return;
     }
@@ -126,7 +118,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 // POST /api/weeks/:id/unapprove-plan - Revoke plan approval (logged to history)
 router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = parseWeekId(req, res);
+    const id = await requireWeekWrite(req, res, req.params.id);
     if (!id) {
       return;
     }
@@ -186,7 +178,7 @@ router.post('/:id/unapprove-plan', authMiddleware, async (req: Request, res: Res
 // POST /api/weeks/:id/approve-review - Approve sprint review (rating required)
 router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = parseWeekId(req, res);
+    const id = await requireWeekWrite(req, res, req.params.id);
     if (!id) {
       return;
     }
@@ -298,7 +290,7 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
 // POST /api/weeks/:id/request-plan-changes - Request changes on sprint plan
 router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = parseWeekId(req, res);
+    const id = await requireWeekWrite(req, res, req.params.id);
     if (!id) {
       return;
     }
@@ -379,7 +371,7 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
 // POST /api/weeks/:id/request-retro-changes - Request changes on sprint retro
 router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = parseWeekId(req, res);
+    const id = await requireWeekWrite(req, res, req.params.id);
     if (!id) {
       return;
     }

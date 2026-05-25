@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { getActor } from '../services/document-access.js';
+import { guardDocumentIdParam, requirePersonRead } from '../security/route-capability.js';
+import { getActor, requireSelfOrAdminPerson } from '../services/document-access.js';
 import { requireTeamAllocationAuthority } from '../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { hasContent } from '../utils/document-content.js';
@@ -713,29 +714,23 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
 router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { personId } = req.params;
-
-    // Get the person document to find the user_id
-    const personResult = await pool.query<PersonUserIdRow>(
-      `SELECT properties->>'user_id' as user_id
-       FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-      [personId, workspaceId]
-    );
-
-    if (!personResult.rows[0]) {
-      res.status(404).json({ error: 'Person not found' });
+    const personId = guardDocumentIdParam(res, req.params.personId, 'Person not found');
+    if (!personId || !(await requirePersonRead(req, res, personId))) {
       return;
     }
 
-    const targetUserId = personResult.rows[0].user_id;
-
-    // Check if user can view this person's metrics (self or admin)
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-    const isSelf = userId === targetUserId;
-
-    if (!isAdmin && !isSelf) {
+    const actor = getActor(req);
+    let personDoc;
+    try {
+      personDoc = await requireSelfOrAdminPerson(pool, actor, personId);
+    } catch {
       res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    const targetUserId = personDoc.properties?.user_id as string | undefined;
+    if (!targetUserId) {
+      res.status(404).json({ error: 'Person not found' });
       return;
     }
 
