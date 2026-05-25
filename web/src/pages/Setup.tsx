@@ -18,14 +18,15 @@ export function SetupPage() {
 
   const navigate = useNavigate();
 
-  // Check if setup is needed
   useEffect(() => {
+    const urlSetupToken = new URLSearchParams(window.location.search).get('setup_token') ?? '';
+
     async function checkSetup() {
       try {
         const tokenData = await publicFetchJson<CsrfTokenResponse>('/api/csrf-token');
         setCsrfToken(tokenData.token);
 
-        const setupHeaders = setupToken ? { 'X-Setup-Token': setupToken } : undefined;
+        const setupHeaders = urlSetupToken ? { 'X-Setup-Token': urlSetupToken } : undefined;
         const data = await publicFetchJson<ApiResponse<SetupStatusData>>('/api/setup/status', {
           headers: setupHeaders,
         });
@@ -43,7 +44,7 @@ export function SetupPage() {
       }
     }
     checkSetup();
-  }, [navigate, setupToken]);
+  }, [navigate]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

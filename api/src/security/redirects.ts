@@ -1,7 +1,3 @@
-const SAFE_RETURN_TO_PREFIXES = [
-  '/',
-];
-
 function decodeRepeated(value: string): string | null {
   let current = value;
   for (let i = 0; i < 3; i += 1) {
@@ -22,7 +18,6 @@ export function safeRelativeReturnTo(value: unknown): string | null {
 
   const decoded = decodeRepeated(value);
   if (!decoded) return null;
-  if (!SAFE_RETURN_TO_PREFIXES.some(prefix => decoded.startsWith(prefix))) return null;
   if (!decoded.startsWith('/') || decoded.startsWith('//')) return null;
   if (decoded.includes('\\')) return null;
   if (/^\/\s*https?:/i.test(decoded)) return null;

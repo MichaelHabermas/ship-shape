@@ -139,8 +139,8 @@ export function buildGradingPacket(model) {
     title: `${model.gateSnapshot.proven}/${categories.length} categories source-gate ready`,
     lede:
       blockedCount === 0
-        ? 'All required Week 4 improvements have before/after evidence; Category 8 includes a runnable security probe and verified fixes.'
-        : `${blockedCount} categor${blockedCount === 1 ? 'y still needs' : 'ies still need'} reviewer attention before the packet is claim-ready.`,
+        ? `${categories.length}/${categories.length} categories proven in the ledger.`
+        : `${blockedCount} categor${blockedCount === 1 ? 'y is' : 'ies are'} not proven.`,
     reproduceCommands: [
       {
         label: 'Validate and regenerate',
@@ -179,7 +179,7 @@ function buildGradingRow(category) {
     status: category.status,
     sourceGate: category.source_requirement?.statement || '',
     sourcePath: category.source_requirement?.source || '',
-    baseline: summaryCardSentence(baseline) || 'Audit baseline fields are recorded in the ledger.',
+    baseline: summaryCardSentence(baseline) || '',
     improvement,
     proof: artifactEvidence
       ? {
@@ -203,17 +203,25 @@ function buildGradingRow(category) {
   };
 }
 
-function findSummaryCard(category, title) {
+export function findSummaryCard(category, title) {
   return (category.summary_cards || []).find((card) => String(card.title || '').toLowerCase() === title);
 }
 
-function summaryCardSentence(card) {
+export function summaryCardSentence(card) {
   if (!card?.items?.length) return '';
   return card.items.map((item) => `${item.label}: ${item.value}`).join(' ');
 }
 
-function firstEvidence(category, predicate) {
+export function firstEvidence(category, predicate) {
   return (category.evidence || []).find(predicate) || null;
+}
+
+export function firstCommandEvidence(category) {
+  return firstEvidence(category, (item) => item.command);
+}
+
+export function firstArtifactEvidence(category) {
+  return firstEvidence(category, (item) => item.path);
 }
 
 function renderCurrentTruth(category) {
@@ -228,7 +236,7 @@ function renderCurrentTruth(category) {
   if (failed.length > 0) {
     return `${statusLabel(category.status)}; failing acceptance ${failed.join(', ')}.`;
   }
-  return `${statusLabel(category.status)}; ${category.caveats?.[0] || 'no failing acceptance test recorded.'}`;
+  return `${statusLabel(category.status)}; ${category.caveats?.[0] || '—'}`;
 }
 
 function renderProofSummary(category, target) {

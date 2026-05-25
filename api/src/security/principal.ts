@@ -51,9 +51,12 @@ export function principalFromRequest(req: Request): Principal {
     if (!req.apiTokenScopes) {
       throw new Error('API token route is missing token scope context');
     }
+    if (!req.apiTokenId) {
+      throw new Error('API token route is missing token id');
+    }
     return {
       kind: 'api_token',
-      tokenId: req.apiTokenId ?? 'unknown-token',
+      tokenId: req.apiTokenId,
       userId: req.userId,
       workspaceId: req.workspaceId,
       isSuperAdmin: req.isSuperAdmin === true,
@@ -61,9 +64,13 @@ export function principalFromRequest(req: Request): Principal {
     };
   }
 
+  if (!req.sessionId) {
+    throw new Error('Session route is missing session id');
+  }
+
   return {
     kind: 'session',
-    sessionId: req.sessionId ?? 'unknown-session',
+    sessionId: req.sessionId,
     userId: req.userId,
     workspaceId: req.workspaceId,
     isSuperAdmin: req.isSuperAdmin === true,

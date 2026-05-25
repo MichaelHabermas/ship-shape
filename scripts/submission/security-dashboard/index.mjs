@@ -57,7 +57,7 @@ export function buildSecurityTabHtml(ledger, securityReport, securityFindings, d
             <div>
               <p class="eyebrow">Category 8 · Security audit</p>
               <h2>Security evidence</h2>
-              <p class="security-lede">${escapeHtml(source?.statement || 'Runnable probe evidence and SS-FIND workflow store.')} ${
+              <p class="security-lede">${escapeHtml(source?.statement || '—')} ${
                 source?.source ? repoLink(source.source, 'Source brief') : ''
               }</p>
             </div>

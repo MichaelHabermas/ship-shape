@@ -17,9 +17,13 @@ import { resolve } from 'node:path';
 import {
   buildLedgerModel,
   dashboardHref,
+  findSummaryCard,
+  firstArtifactEvidence,
+  firstCommandEvidence,
   formatValue,
   renderMetricSentence,
   renderTargetOutcome,
+  summaryCardSentence,
 } from './ledger-projections.mjs';
 import {
   buildSecurityTabHtml,
@@ -35,6 +39,8 @@ export const securityDeliverablePath = resolve(
   repoRoot,
   'my-docs/evidence/security-audit/cat8-audit-deliverable.json'
 );
+
+const EMPTY = '—';
 
 function badge(status) {
   return `<span class="badge ${statusClass(status)}">${escapeHtml(statusLabel(status))}</span>`;
@@ -472,13 +478,29 @@ function summaryCards(category) {
     .join('');
 }
 
-function findSummaryCard(category, title) {
-  return (category.summary_cards || []).find((card) => String(card.title || '').toLowerCase() === title);
+function attackLine(category) {
+  const caveat = category.caveats?.[0];
+  const nonClaim = category.non_claims?.[0];
+  if (category.status !== 'proven') return 'What proof is still missing before this can be claimed?';
+  if (nonClaim) return `Does this overreach into the non-claim: ${nonClaim.replace(/\.$/, '')}?`;
+  if (caveat) return `Does this caveat weaken the claim: ${caveat.replace(/\.$/, '')}?`;
+  return EMPTY;
 }
 
-function summaryCardSentence(card) {
-  if (!card?.items?.length) return '';
-  return card.items.map((item) => `${item.label}: ${item.value}`).join(' ');
+function defenseLine(category) {
+  const claim = category.primaryClaim || category.claims?.[0];
+  const tests = category.acceptance_tests || [];
+  const passedCount = tests.filter((test) => test.result === 'pass').length;
+  const caveat = category.caveats?.[0];
+  const nonClaim = category.non_claims?.[0];
+  const scope = nonClaim || caveat;
+  const gate = tests.length ? `${passedCount}/${tests.length} acceptance gates pass` : EMPTY;
+  if (!claim) return gate;
+  return `${gate}. ${claim.statement}${scope ? ` Boundary: ${scope}` : ''}`;
+}
+
+function sourceRequirementLine(category) {
+  return `${category.source_requirement.statement} Source: ${category.source_requirement.source}`;
 }
 
 function reviewerMeaning(category) {
@@ -523,39 +545,6 @@ function claimDiffCards(categories) {
     .join('');
 }
 
-function firstCommandEvidence(category) {
-  return (category.evidence || []).find((item) => item.command) || null;
-}
-
-function firstArtifactEvidence(category) {
-  return (category.evidence || []).find((item) => item.path) || null;
-}
-
-function attackLine(category) {
-  const caveat = category.caveats?.[0];
-  const nonClaim = category.non_claims?.[0];
-  if (category.status !== 'proven') return 'What proof is still missing before this can be claimed?';
-  if (nonClaim) return `Does this overreach into the non-claim: ${nonClaim.replace(/\.$/, '')}?`;
-  if (caveat) return `Does this caveat weaken the claim: ${caveat.replace(/\.$/, '')}?`;
-  return 'What would a reviewer challenge first?';
-}
-
-function defenseLine(category) {
-  const claim = category.primaryClaim || category.claims?.[0];
-  const tests = category.acceptance_tests || [];
-  const passedCount = tests.filter((test) => test.result === 'pass').length;
-  const caveat = category.caveats?.[0];
-  const nonClaim = category.non_claims?.[0];
-  const scope = nonClaim || caveat;
-  const gate = tests.length ? `${passedCount}/${tests.length} acceptance gates pass` : 'No acceptance gates recorded';
-  if (!claim) return `${gate}; use the source requirement and evidence list before making a stronger claim.`;
-  return `${gate}. ${claim.statement}${scope ? ` Boundary: ${scope}` : ''}`;
-}
-
-function sourceRequirementLine(category) {
-  return `${category.source_requirement.statement} Source: ${category.source_requirement.source}`;
-}
-
 function crossExamineCards(categories) {
   return categories
     .map((category) => {
@@ -598,11 +587,11 @@ function crossExamineCards(categories) {
             </div>
             <div>
               <dt>Reproduce</dt>
-              <dd>${command ? `${code(command.command)} <span>${escapeHtml(command.result ? `Result: ${command.result}` : command.description || '')}</span>` : '<span>No command evidence recorded.</span>'}</dd>
+              <dd>${command ? `${code(command.command)} <span>${escapeHtml(command.result ? `Result: ${command.result}` : command.description || '')}</span>` : `<span>${EMPTY}</span>`}</dd>
             </div>
             <div>
               <dt>Artifact</dt>
-              <dd>${artifact ? `${linkedPath(artifact.path, shortPath(artifact.path))} <span>${escapeHtml(artifact.description || '')}</span>` : '<span>No artifact path recorded.</span>'}</dd>
+              <dd>${artifact ? `${linkedPath(artifact.path, shortPath(artifact.path))} <span>${escapeHtml(artifact.description || '')}</span>` : `<span>${EMPTY}</span>`}</dd>
             </div>
           </dl>
         </article>`;
@@ -729,7 +718,7 @@ function verdictStrip(categories) {
     },
     {
       label: 'Not ready',
-      note: 'Placeholder lane.',
+      note: '—',
       categories: notReady,
     },
   ];
@@ -759,16 +748,16 @@ function gradingPacketRows(packet) {
           <td><strong>Cat ${row.number}</strong><span class="subtle">${escapeHtml(row.title)}</span></td>
           <td>${escapeHtml(row.sourceGate)} ${row.sourcePath ? repoLink(row.sourcePath, 'Source') : ''}</td>
           <td>${escapeHtml(row.baseline)}</td>
-          <td>${escapeHtml(row.improvement || 'Improvement proof is recorded in the ledger.')}</td>
+          <td>${escapeHtml(row.improvement || EMPTY)}</td>
           <td>
-            ${row.proof?.path ? linkedPath(row.proof.path, 'Open proof') : '<span class="subtle">See category evidence</span>'}
+            ${row.proof?.path ? linkedPath(row.proof.path, 'Open proof') : `<span class="subtle">${EMPTY}</span>`}
             ${
               row.reproduce?.command
                 ? `<small>${code(row.reproduce.command)}${row.reproduce.result ? ` · ${escapeHtml(row.reproduce.result)}` : ''}</small>`
                 : ''
             }
           </td>
-          <td>${escapeHtml(row.caveat || 'No special caveat recorded.')}</td>
+          <td>${escapeHtml(row.caveat || EMPTY)}</td>
           <td>${badge(row.status)}<small>${escapeHtml(row.verdict)}</small></td>
         </tr>`
     )
@@ -801,7 +790,7 @@ function evidencePacketSections(categories, packet) {
             </section>
             <section>
               <h3>Boundary</h3>
-              <p>${escapeHtml(row?.caveat || category.non_claims?.[0] || category.caveats?.[0] || 'No special caveat recorded.')}</p>
+              <p>${escapeHtml(row?.caveat || category.non_claims?.[0] || category.caveats?.[0] || EMPTY)}</p>
             </section>
           </div>
           ${passPathBlock(category, row)}
@@ -810,12 +799,12 @@ function evidencePacketSections(categories, packet) {
             ${
               row?.reproduce?.command
                 ? `<li><strong>${escapeHtml(row.reproduce.label)}</strong><span>${code(row.reproduce.command)}</span><small>${escapeHtml(row.reproduce.result || '')}</small></li>`
-                : '<li><strong>No command evidence recorded</strong><span>Use the linked artifact and ledger row.</span></li>'
+                : `<li><span>${EMPTY}</span></li>`
             }
             ${
               row?.proof?.path
                 ? `<li><strong>${escapeHtml(row.proof.label)}</strong><span>${linkedPath(row.proof.path, row.proof.path)}</span></li>`
-                : '<li><strong>No artifact path recorded</strong><span>Use the ledger evidence list below.</span></li>'
+                : `<li><span>${EMPTY}</span></li>`
             }
           </ul>
           <details class="appendix-details">
@@ -1284,7 +1273,7 @@ export function renderDashboard(
         if (shouldStore) {
           try {
             localStorage.setItem(activeTabStorageKey, target);
-          } catch {}
+          } catch { /* ignore */ }
         }
         syncRailMeta(target);
         if (shouldFocus) tab.focus();
@@ -1317,7 +1306,7 @@ export function renderDashboard(
         let storedTab = '';
         try {
           storedTab = localStorage.getItem(activeTabStorageKey) || '';
-        } catch {}
+        } catch { /* ignore */ }
         if (!storedTab) return;
         const tab = tabs.find((item) => item.dataset.tab === storedTab);
         if (!tab) return;
@@ -1369,7 +1358,7 @@ export function renderDashboard(
         let savedSort = null;
         try {
           savedSort = JSON.parse(localStorage.getItem(discoverySortStorageKey) || 'null');
-        } catch {}
+        } catch { /* ignore */ }
         if (!savedSort || typeof savedSort !== 'object') return;
         const keys = new Set(sortButtons.map((button) => button.dataset.sort));
         if (!keys.has(savedSort.key)) return;
@@ -1379,7 +1368,7 @@ export function renderDashboard(
       function saveDiscoverySort() {
         try {
           localStorage.setItem(discoverySortStorageKey, JSON.stringify(discoverySort));
-        } catch {}
+        } catch { /* ignore */ }
       }
       function discoveryValue(row, key) {
         if (key === 'index' || key === 'impact') return Number(row.dataset[key] || 0);

@@ -24,6 +24,7 @@ import {
   normalizeWorkspaceStartDate,
   utcToday,
 } from '@ship/shared';
+import { getDocumentAccessContext } from '../services/document-access.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 
 type WorkspaceSprintStartRow = {
@@ -32,10 +33,6 @@ type WorkspaceSprintStartRow = {
 
 type PersonIdRow = {
   id: string;
-};
-
-type WorkspaceRoleRow = {
-  role: string | null;
 };
 
 type ActiveSprintStandupRow = {
@@ -115,7 +112,8 @@ export interface AccountabilityIssue {
  */
 export async function checkMissingAccountability(
   userId: string,
-  workspaceId: string
+  workspaceId: string,
+  isSuperAdmin = false
 ): Promise<MissingAccountabilityItem[]> {
   const items: MissingAccountabilityItem[] = [];
 
@@ -149,7 +147,7 @@ export async function checkMissingAccountability(
   const today = utcToday();
   const todayStr = formatUtcDateIso(today);
   const currentSprintNumber = computeCurrentSprintNumber(workspaceStartDate, sprintDuration);
-  const isAdmin = await isWorkspaceAdminForAccountability(userId, workspaceId);
+  const { isAdmin } = await getDocumentAccessContext({ userId, workspaceId, isSuperAdmin });
 
   // Check for missing standups (current sprint, business days only)
   if (todayStr) {
@@ -188,14 +186,6 @@ export async function checkMissingAccountability(
   }
 
   return items;
-}
-
-async function isWorkspaceAdminForAccountability(userId: string, workspaceId: string): Promise<boolean> {
-  const result = await pool.query<WorkspaceRoleRow>(
-    `SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2`,
-    [workspaceId, userId]
-  );
-  return result.rows[0]?.role === 'admin';
 }
 
 /**

@@ -2,11 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { sessionCookieOptions } from '../config/session-cookies.js';
-import { validateAuthenticatedSession } from '../services/session-auth.js';
+import { validateAuthenticatedSession, type SessionValidationFailure } from '../services/session-auth.js';
 import { validateApiToken } from '../security/tokens.js';
 import { logAuditEvent } from '../services/audit.js';
 
-// Extend Express Request to include session info
 declare global {
   namespace Express {
     interface Request {
@@ -19,6 +18,15 @@ declare global {
     }
   }
 }
+
+const SESSION_EXPIRED_MESSAGES: Record<
+  Extract<SessionValidationFailure, 'absolute_timeout' | 'inactivity_timeout' | 'binding_mismatch'>,
+  string
+> = {
+  binding_mismatch: 'Session security changed. Please log in again.',
+  absolute_timeout: 'Session expired. Please log in again.',
+  inactivity_timeout: 'Session expired due to inactivity',
+};
 
 export async function authMiddleware(
   req: Request,
@@ -83,7 +91,7 @@ export async function authMiddleware(
   }
 
   try {
-    const userAgentHeader = req.get?.('user-agent') ?? req.headers?.['user-agent'];
+    const userAgentHeader = req.get('user-agent');
     const validation = await validateAuthenticatedSession(sessionId, {
       updateActivity: true,
       userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader || null,
@@ -111,12 +119,7 @@ export async function authMiddleware(
           success: false,
           error: {
             code: ERROR_CODES.SESSION_EXPIRED,
-            message:
-              validation.reason === 'binding_mismatch'
-                ? 'Session security changed. Please log in again.'
-                : validation.reason === 'absolute_timeout'
-                ? 'Session expired. Please log in again.'
-                : 'Session expired due to inactivity',
+            message: SESSION_EXPIRED_MESSAGES[validation.reason],
           },
         });
         return;

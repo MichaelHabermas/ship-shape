@@ -39,10 +39,10 @@ for arg in "${PLAYWRIGHT_ARGS[@]}"; do
   fi
 done
 
-if [ "${requires_docker}" = true ] && ! docker info >/dev/null 2>&1; then
-  echo "Docker is required for Playwright E2E tests because Testcontainers starts PostgreSQL per worker."
-  echo "Start Docker, then run this again."
-  exit 1
+if [ "${requires_docker}" = true ]; then
+  # shellcheck source=scripts/e2e-preflight.sh
+  source "${ROOT_DIR}/scripts/e2e-preflight.sh"
+  e2e_preflight
 fi
 
 mkdir -p "${RESULTS_DIR}"
@@ -73,6 +73,32 @@ terminate_tree() {
   kill "${parent}" >/dev/null 2>&1 || true
 }
 
+abort_on_infra_failure() {
+  local failed="$1"
+  local passed="$2"
+  if [ "${failed}" -lt 2 ] || [ "${passed}" -gt 0 ]; then
+    return 1
+  fi
+  if [ ! -f "${RUN_LOG}" ]; then
+    return 1
+  fi
+  local sample
+  sample="$(
+    grep -m1 -E "Executable doesn't exist|browserType\.launch:|Refusing to truncate non-test database|Docker is required" "${RUN_LOG}" 2>/dev/null || true
+  )"
+  if [ -z "${sample}" ]; then
+    return 1
+  fi
+  echo ""
+  echo "Aborting E2E: ${failed} failures, 0 passes — same infrastructure error in the log."
+  echo "${sample}"
+  echo "Fix the environment (see AGENTS.md E2E guidance), then rerun."
+  terminate_tree "${pid}"
+  cleanup_lock
+  trap - INT TERM EXIT
+  exit 1
+}
+
 mkdir -p "${RESULTS_DIR}/archive/${RUN_ID}"
 
 for path in summary.json progress.jsonl codex-e2e-run.log e2e-run.log errors playwright; do
@@ -101,6 +127,12 @@ trap cleanup INT TERM EXIT
 
 while kill -0 "${pid}" >/dev/null 2>&1; do
   E2E_RESULTS_DIR="${RESULTS_DIR}" "${ROOT_DIR}/scripts/watch-tests.sh" --once || true
+  if [ -f "${RESULTS_DIR}/summary.json" ]; then
+    read -r watch_failed watch_passed <<EOF
+$(node -e "const s=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')); console.log(Number(s.failed||0), Number(s.passed||0));" "${RESULTS_DIR}/summary.json" 2>/dev/null || echo "0 0")
+EOF
+    abort_on_infra_failure "${watch_failed}" "${watch_passed}" || true
+  fi
   sleep 5
 done
 
