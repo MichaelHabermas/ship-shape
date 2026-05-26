@@ -12,6 +12,7 @@ import './schemas/index.js';
 import '../routes/setup.js';
 import '../routes/standups.js';
 import '../routes/feedback.js';
+import '../routes/fleetgraph.js';
 
 // Re-export the registry and generator
 export { registry, generateOpenAPIDocument } from './registry.js';

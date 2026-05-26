@@ -25,6 +25,7 @@
     "type-check:e2e": "tsc --noEmit -p e2e/tsconfig.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "check:affected-ts": "node ./scripts/check-affected-ts.mjs",
     "type-safety:counts": "node ./scripts/type-safety-counts.mjs",
     "type-safety:counts:audit-baseline": "node ./scripts/type-safety-audit-baseline-counts.mjs",
     "type-safety:report": "node ./scripts/type-safety-report.mjs",

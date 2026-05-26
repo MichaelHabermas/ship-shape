@@ -5676,6 +5676,9 @@ export interface paths {
                          * @enum {string}
                          */
                         relationship_type: "program" | "project" | "sprint" | "parent";
+                        metadata?: {
+                            [key: string]: unknown;
+                        };
                     };
                 };
             };
@@ -5742,11 +5745,13 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Association removed */
-                204: {
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["DeleteAssociationResponse"];
+                    };
                 };
                 /** @description Document or association not found */
                 404: {
@@ -5790,7 +5795,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Association"][];
+                        "application/json": components["schemas"]["ReverseAssociation"][];
                     };
                 };
                 /** @description Document not found */
@@ -5838,9 +5843,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["DocumentContextResponse"];
                     };
                 };
                 /** @description Document not found */
@@ -6561,10 +6564,8 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description TipTap JSON content of the weekly plan */
-                        content: {
-                            [key: string]: unknown;
-                        };
+                        /** @description Plain text content extracted from the weekly plan */
+                        content: string;
                     };
                 };
             };
@@ -6578,12 +6579,14 @@ export interface paths {
                         "application/json": components["schemas"]["PlanAnalysisResult"] | components["schemas"]["AiAnalysisError"];
                     };
                 };
-                /** @description Rate limit exceeded (max 120 per hour) */
+                /** @description Rate limit exceeded (max 10 per hour) */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AiRateLimitError"];
+                    };
                 };
             };
         };
@@ -6616,14 +6619,10 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description TipTap JSON content of the weekly retro */
-                        retro_content: {
-                            [key: string]: unknown;
-                        };
-                        /** @description TipTap JSON content of the weekly plan for comparison */
-                        plan_content: {
-                            [key: string]: unknown;
-                        };
+                        /** @description Plain text content extracted from the weekly retro */
+                        retro_content: string;
+                        /** @description Plain text content extracted from the weekly plan for comparison */
+                        plan_content: string;
                     };
                 };
             };
@@ -6637,12 +6636,14 @@ export interface paths {
                         "application/json": components["schemas"]["RetroAnalysisResult"] | components["schemas"]["AiAnalysisError"];
                     };
                 };
-                /** @description Rate limit exceeded (max 120 per hour) */
+                /** @description Rate limit exceeded (max 10 per hour) */
                 429: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AiRateLimitError"];
+                    };
                 };
             };
         };
@@ -8345,7 +8346,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["SetupInitializeRequest"];
                 };
@@ -8450,7 +8451,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["CreateStandup"];
                 };
@@ -8608,7 +8609,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["UpdateStandup"];
                 };
@@ -8671,7 +8672,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["CreateFeedbackRequest"];
                 };
@@ -8818,6 +8819,199 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fleetgraph/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List visible FleetGraph findings for a source issue or sprint */
+        get: {
+            parameters: {
+                query?: {
+                    sourceIssueId?: string;
+                    sourceSprintId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Response 200 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FleetGraphFindingsListResponse"];
+                    };
+                };
+                /** @description Response 400 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Response 500 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fleetgraph/findings/{findingId}/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explain an existing FleetGraph finding using visible evidence */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    findingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Response 200 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FleetGraphRunResponse"];
+                    };
+                };
+                /** @description Response 400 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Response 404 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Response 500 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fleetgraph/findings/{findingId}/refine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refine a FleetGraph draft without mutating Ship source data */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    findingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        instruction: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Response 200 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FleetGraphRunResponse"];
+                    };
+                };
+                /** @description Response 400 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Response 404 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Response 500 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -11223,6 +11417,135 @@ export interface components {
             related_document_type?: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
             related_color?: string;
         };
+        ReverseAssociation: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            document_id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            related_id: string;
+            /**
+             * @description Type of document association
+             * @enum {string}
+             */
+            relationship_type: "program" | "project" | "sprint" | "parent";
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            created_at: string;
+            document_title?: string | null;
+            /**
+             * @description Type of document
+             * @enum {string|null}
+             */
+            document_document_type?: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review" | null;
+        };
+        DeleteAssociationResponse: {
+            deleted: number;
+            associations: components["schemas"]["Association"][];
+        };
+        DocumentContextResponse: {
+            current: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                title: string | null;
+                /**
+                 * @description Type of document
+                 * @enum {string}
+                 */
+                document_type: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
+                ticket_number?: number | null;
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                program_id?: string | null;
+                program_name?: string | null;
+                program_color?: string | null;
+            };
+            ancestors: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                title: string | null;
+                /**
+                 * @description Type of document
+                 * @enum {string}
+                 */
+                document_type: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
+                ticket_number?: number | null;
+                depth: number;
+            }[];
+            children: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                title: string | null;
+                /**
+                 * @description Type of document
+                 * @enum {string}
+                 */
+                document_type: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
+                ticket_number?: number | null;
+                child_count: number;
+            }[];
+            belongs_to: {
+                /**
+                 * @description Type of document association
+                 * @enum {string}
+                 */
+                type: "program" | "project" | "sprint" | "parent";
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                title: string | null;
+                /**
+                 * @description Type of document
+                 * @enum {string}
+                 */
+                document_type: "wiki" | "issue" | "program" | "project" | "sprint" | "person" | "weekly_plan" | "weekly_retro" | "standup" | "weekly_review";
+                color?: string | null;
+            }[];
+            breadcrumbs: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                title: string;
+                type: string;
+                ticket_number?: number;
+            }[];
+        };
         IssueStats: {
             total: number;
             completed: number;
@@ -11899,6 +12222,10 @@ export interface components {
             /** @enum {string} */
             error: "ai_unavailable" | "content_too_large" | "ai_parse_error";
         };
+        AiRateLimitError: {
+            /** @enum {string} */
+            error: "Rate limit exceeded. Max 10 analysis requests per hour.";
+        };
         RetroItemAnalysis: {
             plan_item: string;
             addressed: boolean;
@@ -12177,6 +12504,76 @@ export interface components {
             /** @enum {boolean} */
             success: true;
             data: components["schemas"]["AdminCreateWorkspaceData"];
+        };
+        FleetGraphEvidence: {
+            kind: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sourceDocumentId?: string;
+            /** @enum {string} */
+            sourceType?: "issue" | "sprint";
+            claim: string;
+            excerpt?: string;
+            /** @enum {string} */
+            visibility: "internal" | "actor_visible" | "restricted";
+            visibleFields: string[];
+            redactionReason?: string;
+        };
+        FleetGraphVisibleOutput: {
+            title: string;
+            summary: string;
+            evidence: components["schemas"]["FleetGraphEvidence"][];
+            humanGate: {
+                [key: string]: unknown;
+            };
+            draftContent?: {
+                [key: string]: unknown;
+            };
+            noSafeOutput?: boolean;
+        };
+        FleetGraphTrace: {
+            /** @enum {string} */
+            mode: "proactive" | "on_demand";
+            decision: string;
+            nodePath: string[];
+            traceId?: string;
+            traceUrl?: string;
+            failureCategory?: string;
+        };
+        FleetGraphFindingResponse: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            status: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sourceIssueId: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sourceSprintId: string;
+            visibleOutput: components["schemas"]["FleetGraphVisibleOutput"];
+            traceMetadata: components["schemas"]["FleetGraphTrace"];
+        };
+        FleetGraphFindingsListResponse: {
+            findings: components["schemas"]["FleetGraphFindingResponse"][];
+        };
+        FleetGraphRunResponse: {
+            decision: string;
+            finding?: components["schemas"]["FleetGraphFindingResponse"];
+            visibleOutput?: components["schemas"]["FleetGraphVisibleOutput"];
+            traceMetadata: components["schemas"]["FleetGraphTrace"];
         };
     };
     responses: never;

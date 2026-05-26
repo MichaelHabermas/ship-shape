@@ -139,3 +139,59 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph graph behavior should be implemented against the local eval pack in `api/src/fleetgraph/eval/`. The pack defines golden cases, scenario labels, coverage requirements, a decision-packet rubric, model/trace boundaries, and trace review taxonomy before LangGraph nodes are wired.
 
 **Consequence:** Epic 4 should satisfy the eval pack instead of inventing graph behavior ad hoc. New graph branches should add or update golden cases and coverage first, especially when changing user-visible claims, permission filtering, human gates, model-call boundaries, shared trace data, or mutation boundaries.
+
+## D018 - FleetGraph Core Is Decision-Oriented, Not Chat-Oriented
+
+**Date:** 2026-05-26
+
+**Decision:** Epic 4 adds one shared API-local `runFleetGraph(input)` boundary for proactive and on-demand FleetGraph work. Inputs are typed triggers and bounded source objects, not arbitrary workspace chat. Outputs are decision packets, visible output, evidence, run/finding inputs, and safe trace/token/cost/error metadata.
+
+**Consequence:** Future worker and API route code should call `runFleetGraph` instead of building separate worker and route graphs. Unknown or broad chat prompts should degrade to bounded unsupported/no-safe-output behavior rather than becoming a general workspace assistant.
+
+## D019 - Proactive Findings Persist Least-Privileged-Safe Evidence
+
+**Date:** 2026-05-26
+
+**Decision:** Proactive create/update output persists evidence and drafts that are safe for authorized source-issue viewers, and on-demand explain/refine re-check current principal visibility before returning user-visible output. Hidden source issues produce no-safe-output rather than partial hints.
+
+**Consequence:** FleetGraph must not rely on workspace-only SQL for user-visible claims. Stored finding evidence, summaries, drafts, recipient rationale, and trace metadata must not contain hidden document titles, hidden IDs, private excerpts, contact details, raw prompts, raw completions, session tokens, or API tokens.
+
+## D020 - FleetGraph Model Calls Are Hybrid And Explicitly Opt-In
+
+**Date:** 2026-05-26
+
+**Decision:** Epic 4 permits real model calls only for proactive create, and only when explicitly enabled with `FLEETGRAPH_REAL_MODEL_ENABLED=true` plus model/API-key configuration. Update, quiet, explain, refine, dismiss/resolve, and error paths remain deterministic and record zero model calls.
+
+**Consequence:** Local tests and default worker/API wiring cannot accidentally spend tokens. If future slices enable real model traces, they must preserve the trace redaction contract and record token/cost metadata when available.
+
+## D021 - FleetGraph Golden Cases Execute Against The Shared Core
+
+**Date:** 2026-05-26
+
+**Decision:** Representative FleetGraph golden cases now execute against `runFleetGraph` with mocked persistence/model behavior. The initial executable set covers proactive create, duplicate update, quiet no-blocker, explain existing finding, and restricted-source no-safe-output.
+
+**Consequence:** Future graph changes should extend executable golden cases before expanding user-visible behavior. Restricted-source on-demand explain must return a quiet/no-safe-output decision, not a normal explanation with partial hidden hints.
+
+## D022 - FleetGraph API Surface Preserves The Decision Boundary
+
+**Date:** 2026-05-26
+
+**Decision:** The first FleetGraph API routes expose source-scoped finding reads plus bounded explain/refine actions. Routes call `visibleOutputForFinding` and `runFleetGraph`; they do not import LangGraph/model internals and do not accept arbitrary workspace chat.
+
+**Consequence:** Future UI/API work should keep FleetGraph prompts anchored to a finding/source context. Unknown broad prompts should remain unsupported or no-safe-output until a specific use case is designed and covered by executable golden cases.
+
+## D023 - FleetGraph Trace Metadata Is Sanitized At API Boundaries
+
+**Date:** 2026-05-26
+
+**Decision:** Trace metadata is sanitized before API responses and when converted to JSON for run records. The sanitizer is allowlist-based: only `mode`, `decision`, `nodePath`, `traceId`, `traceUrl`, and `failureCategory` are emitted. Unknown, nested, prompt/completion-shaped, token-shaped, contact, and historical stray fields are dropped rather than making read routes fail.
+
+**Consequence:** FleetGraph trace metadata remains reviewer-safe and resilient to bad old rows. If trace payloads grow, add named allowlist fields plus concrete leak-shape tests before exposing them through API or reviewer surfaces.
+
+## D024 - Restricted FleetGraph Output Is No-Details And No-Mutation
+
+**Date:** 2026-05-26
+
+**Decision:** When actor-filtered FleetGraph evidence returns `noSafeOutput`, public routes must not serialize finding IDs, source issue/week IDs, dedupe keys, or trace details tied to the hidden source. Restricted refine requests record a quiet exit and do not update `fleetgraph_findings.draft_content`.
+
+**Consequence:** Hidden-source FleetGraph state cannot be enumerated through sprint-scoped list calls, explain responses, or refine responses. Future API/UI work must preserve this all-or-nothing privacy boundary instead of returning partial placeholders that leak hidden document existence.

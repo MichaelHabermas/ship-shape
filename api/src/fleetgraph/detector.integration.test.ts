@@ -189,17 +189,12 @@ describe('FleetGraph detector database query', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(batch.decisions).toEqual([
-      expect.objectContaining({
-        decision: 'update_finding',
-        existingFindingId: existingFinding.id,
-        candidate: expect.objectContaining({
-          issue_id: issueId,
-          sprint_id: sprintId,
-          dedupeKey: existingFinding.dedupe_key,
-        }),
-      }),
-    ]);
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.decision).toBe('update_finding');
+    expect(decisions[0]?.existingFindingId).toBe(existingFinding.id);
+    expect(decisions[0]?.candidate.issue_id).toBe(issueId);
+    expect(decisions[0]?.candidate.sprint_id).toBe(sprintId);
+    expect(decisions[0]?.candidate.dedupeKey).toBe(existingFinding.dedupe_key);
 
     const count = await pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count

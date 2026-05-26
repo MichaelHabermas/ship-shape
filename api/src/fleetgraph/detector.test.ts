@@ -153,28 +153,23 @@ describe('FleetGraph detector', () => {
       expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
       [workspaceId, [dedupeKey]]
     );
-    expect(batch.decisions).toEqual([
-      {
-        decision: 'update_finding',
-        candidate: expect.objectContaining({ issue_id: issueId }),
-        existingFindingId,
-      },
-    ]);
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.decision).toBe('update_finding');
+    expect(decisions[0]?.candidate.issue_id).toBe(issueId);
+    expect(decisions[0]?.existingFindingId).toBe(existingFindingId);
 
     const createDb = dbReturningCandidate();
     createDb.query.mockResolvedValueOnce(pgResult([]));
 
-    await expect(detectBlockedImportantIssueDecisions({
+    const createDecisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       db: createDb,
       today: new Date('2026-05-26T12:00:00Z'),
-    })).resolves.toEqual([
-      expect.objectContaining({
-        decision: 'create_finding',
-        candidate: expect.objectContaining({ issue_id: issueId }),
-        existingFindingId: null,
-      }),
-    ]);
+    });
+    expect(createDecisions).toHaveLength(1);
+    expect(createDecisions[0]?.decision).toBe('create_finding');
+    expect(createDecisions[0]?.candidate.issue_id).toBe(issueId);
+    expect(createDecisions[0]?.existingFindingId).toBeNull();
   });
 
   it('dedupes repeated candidate rows before returning decisions', async () => {
@@ -205,22 +200,12 @@ describe('FleetGraph detector', () => {
       workspaceId,
       db,
       today: new Date('2026-05-26T12:00:00Z'),
-    })).resolves.toEqual({
-      decisions: [
-        expect.objectContaining({
-          decision: 'create_finding',
-          candidate: expect.objectContaining({ issue_id: issueId }),
-          existingFindingId: null,
-        }),
-      ],
     });
 
-    expect(decisions).toEqual([
-      expect.objectContaining({
-        decision: 'create_finding',
-        candidate: expect.objectContaining({ dedupeKey }),
-      }),
-    ]);
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.decision).toBe('create_finding');
+    expect(decisions[0]?.candidate.dedupeKey).toBe(dedupeKey);
+    expect(decisions[0]?.existingFindingId).toBeNull();
   });
 
   it('does not query open findings when there are no candidates to dedupe', async () => {

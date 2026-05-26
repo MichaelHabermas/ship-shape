@@ -319,7 +319,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
      UNION ALL
      SELECT 'insufficient_visible_evidence', '0'
      ORDER BY reason`,
-    [input.workspaceId, currentSprintNumber, BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX]
+    [input.workspaceId, currentSprintNumber]
   );
 
   return result.rows.map((row) => ({
