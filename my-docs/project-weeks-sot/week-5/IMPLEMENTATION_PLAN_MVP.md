@@ -212,7 +212,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 2.1: Confirm Active-Week Semantics
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -228,9 +228,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Code reference in implementation notes or test fixture setup.
 
+**Implementation Note (2026-05-25):** Confirmed existing Ship semantics before detector SQL. Active week is derived from `workspaces.sprint_start_date` and 7-day windows into the current `properties.sprint_number`; `api/src/routes/weeks/sprints.ts` computes `currentSprintNumber` and selects week documents with `document_type = 'sprint'` plus matching `properties->>'sprint_number'`. Issue membership in a week is `document_associations` with `relationship_type = 'sprint'`: week issue reads join `document_associations` on `document_id = issue.id` and `related_id = week.id`, issue list filtering uses the same `EXISTS` pattern, and bulk issue week updates call `syncAssociationOfTypeForDocuments(..., 'sprint', sprintId)`. Blocker signals for FleetGraph come from `issue_iterations.blockers_encountered`, inserted and listed by `api/src/services/issue-mutations-service.ts`. Detector slice 2.2 should reuse those semantics directly and must not add a FleetGraph-only active-week marker.
+
 ### Slice 2.2: Implement Positive Candidate Query
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -248,6 +250,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Targeted detector test or manual invocation with seeded data.
+
+**Implementation Note (2026-05-25):** Added the shared current-week boundary for FleetGraph in `api/src/fleetgraph/current-week.ts`, backed by `@ship/shared` `computeCurrentSprintNumber(..., today)` so detector code does not copy route-local week math. Added `api/src/fleetgraph/detector.ts` positive candidate query. It selects only `document_type = 'issue'` rows in the workspace, joins active week membership through `document_associations.relationship_type = 'sprint'`, requires the week document's `properties.sprint_number` to match the resolved current week, requires `priority` in `urgent/high`, excludes `done/cancelled`, requires issue assignee or week owner fallback, and requires the latest `issue_iterations` row to have non-empty `blockers_encountered`. Candidate rows include the locked dedupe key. Evidence: focused detector SQL/unit test and DB-backed integration test.
 
 ### Slice 2.3: Implement Quiet Exits
 

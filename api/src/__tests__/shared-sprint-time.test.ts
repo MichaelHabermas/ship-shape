@@ -1,3 +1,4 @@
+// Verifies shared UTC week-window helpers used by API routes and FleetGraph.
 import { describe, it, expect } from 'vitest';
 import {
   normalizeWorkspaceStartDate,
@@ -26,6 +27,12 @@ describe('sprint-time', () => {
     alignedStart.setUTCDate(alignedStart.getUTCDate() + daysOffset);
     const sprint = computeCurrentSprintNumber(alignedStart);
     expect(sprint).toBeGreaterThanOrEqual(1);
+  });
+
+  it('computeCurrentSprintNumber accepts an explicit current date', () => {
+    const start = normalizeWorkspaceStartDate('2026-05-18');
+    const sprint = computeCurrentSprintNumber(start, 7, new Date('2026-05-26T12:00:00Z'));
+    expect(sprint).toBe(2);
   });
 
   it('formatUtcDateIso returns date portion', () => {

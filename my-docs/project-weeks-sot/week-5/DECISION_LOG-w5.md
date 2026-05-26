@@ -75,3 +75,19 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph DB guards validate new finding/run references, but document lifecycle remains canonical in Ship. If a referenced issue or week is later soft-deleted, moved, or type-mutated, FleetGraph suppresses active findings that depend on the source instead of blocking the Ship document mutation.
 
 **Consequence:** Future FleetGraph constraints may protect FleetGraph-owned rows from invalid writes, but they must not prevent normal Ship document deletes, status changes, ownership changes, week associations, or content edits. Stale FleetGraph diagnosis should be invalidated or recomputed.
+
+## D010 - FleetGraph Reuses Ship Active-Week Semantics
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph detector work must use Ship's existing week model. The active week is the current 7-day window derived from `workspaces.sprint_start_date`; active week documents are `documents.document_type = 'sprint'` rows whose `properties.sprint_number` matches that computed window. Issue membership in that week is the existing `document_associations.relationship_type = 'sprint'` association from issue document to week document.
+
+**Consequence:** Detector SQL may join these existing structures, but it must not introduce a FleetGraph-specific active-week table, marker, issue state, priority, or relationship type. Blocker evidence for the MVP detector comes from `issue_iterations.blockers_encountered`.
+
+## D011 - FleetGraph Current Week Uses Shared Date Math
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph resolves the current week through `api/src/fleetgraph/current-week.ts`, which reads `workspaces.sprint_start_date` and calls the shared `@ship/shared` sprint-time helper with an explicit current date. Detector code consumes the resolved `currentSprintNumber` instead of duplicating route-local date math.
+
+**Consequence:** Future FleetGraph proactive and on-demand paths should reuse this boundary. If Ship changes week-window calculation, update the shared helper rather than patching FleetGraph SQL independently.
