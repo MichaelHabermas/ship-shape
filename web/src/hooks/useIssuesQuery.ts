@@ -1,3 +1,4 @@
+// Issue query hooks keep issue list/detail caches coherent across CRUD and association mutations.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, assertApiData } from '@/api/client';
 import type { Issue, IssueListItem } from '@/api/schemas';

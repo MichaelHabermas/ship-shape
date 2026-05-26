@@ -10,7 +10,7 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Boundary:** FleetGraph owns diagnosis state only: findings, runs, evidence snapshots, trace metadata, and draft content. Ship remains canonical for documents, issues, weeks, associations, ownership, priority, status, and content. Any Ship mutation or contact with another person requires a human gate.
 
-**Consequence:** Future slices must not add a new document type, invent `blocked` state or `critical` priority, let the LLM choose scan scope, build separate proactive/on-demand graph cores, or surface user-visible claims without visible evidence.
+**Consequence:** Future slices must not add a new document type, invent statuses or priorities outside later explicit decisions, let the LLM choose scan scope, build separate proactive/on-demand graph cores, or surface user-visible claims without visible evidence. D035 supersedes the original "do not invent `blocked` state" wording by making `issue.state = blocked` an explicit Week 5 decision.
 
 ## D002 - Week 5 Repo Safety Boundary
 
@@ -282,4 +282,12 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Decision:** Promote blockedness into Ship's issue lifecycle model. `issue.state = blocked` is the canonical current signal that an issue cannot move forward. `issue_iterations.blockers_encountered` remains blocker history/evidence: who encountered or recorded the block, when it happened, and why.
 
-**Consequence:** Future FleetGraph detector work should use `state = blocked` as the source of truth for currently blocked work. `blockers_encountered` supplies explanation and audit history, but must not be the only signal that an issue is blocked. A blocked issue with no blocker text is still blocked and should produce a missing-evidence callout that names who marked it blocked when available. Existing blocker-history rows should not be blindly backfilled into `state = blocked` without a deliberate migration decision, because old blocker text can be stale.
+**Consequence:** Future FleetGraph detector work should use `state = blocked` as the source of truth for currently blocked work. `blockers_encountered` supplies explanation and audit history, but must not be the only signal that an issue is blocked. A blocked issue with no blocker text is still blocked and should remain detectable as missing evidence, but the issue UI does not need a separate missing-reason warning because the blocker input placeholder is enough. Existing blocker-history rows should not be blindly backfilled into `state = blocked` without a deliberate migration decision, because old blocker text can be stale.
+
+## D036 - FleetGraph Demo Evidence Is Idempotent And Local-Trace Honest
+
+**Date:** 2026-05-26
+
+**Decision:** Epic 8 reviewer readiness uses `pnpm fleetgraph:demo` as the repeatable local/demo setup path. The command upserts a named demo workspace and reviewer-safe rows, refuses non-local databases by default, prints stable reviewer URLs plus a per-run reviewer password and detector summaries, and can run `--capture-traces` to execute seeded graph paths and print local trace metadata.
+
+**Consequence:** Demo validation no longer depends on manual SQL or private workspace data. External trace URLs are recorded only when a real tracing backend provides them; local runs document safe persisted trace metadata instead of fabricated links.

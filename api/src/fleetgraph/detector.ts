@@ -109,11 +109,12 @@ async function findBlockedImportantIssueCandidates(input: {
       AND s.document_type = 'sprint'
       AND s.deleted_at IS NULL
       AND s.archived_at IS NULL
-     JOIN LATERAL (
+      JOIN LATERAL (
        SELECT iteration.id, iteration.blockers_encountered, iteration.created_at
          FROM issue_iterations iteration
         WHERE iteration.issue_id = i.id
           AND iteration.workspace_id = i.workspace_id
+          AND btrim(COALESCE(iteration.blockers_encountered, '')) <> ''
         ORDER BY iteration.created_at DESC, iteration.id DESC
         LIMIT 1
      ) latest_iteration ON TRUE
@@ -121,7 +122,8 @@ async function findBlockedImportantIssueCandidates(input: {
        AND i.document_type = 'issue'
        AND i.deleted_at IS NULL
        AND i.archived_at IS NULL
-       AND COALESCE(i.properties->>'state', 'backlog') NOT IN ('done', 'cancelled')
+       AND COALESCE(i.visibility, 'workspace') <> 'private'
+       AND COALESCE(i.properties->>'state', 'backlog') = 'blocked'
        AND i.properties->>'priority' IN ('urgent', 'high')
        AND CASE
              WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
@@ -132,7 +134,6 @@ async function findBlockedImportantIssueCandidates(input: {
          OR NULLIF(s.properties->>'owner_id', '') IS NOT NULL
          OR NULLIF(s.properties->'assignee_ids'->>0, '') IS NOT NULL
        )
-       AND btrim(COALESCE(latest_iteration.blockers_encountered, '')) <> ''
      ORDER BY
        CASE i.properties->>'priority'
          WHEN 'urgent' THEN 1
@@ -250,6 +251,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
            FROM issue_iterations iteration
           WHERE iteration.issue_id = i.id
             AND iteration.workspace_id = i.workspace_id
+            AND btrim(COALESCE(iteration.blockers_encountered, '')) <> ''
           ORDER BY iteration.created_at DESC, iteration.id DESC
           LIMIT 1
        ) latest_iteration ON TRUE
@@ -261,13 +263,49 @@ export async function findBlockedImportantIssueQuietExits(input: {
          AND i.document_type = 'issue'
          AND i.deleted_at IS NULL
          AND i.archived_at IS NULL
+       ),
+       private_blocked_context AS (
+       SELECT
+         i.workspace_id,
+         i.id AS issue_id
+       FROM documents i
+       JOIN document_associations sprint_assoc
+         ON sprint_assoc.document_id = i.id
+        AND sprint_assoc.relationship_type = 'sprint'
+       JOIN documents s
+         ON s.id = sprint_assoc.related_id
+        AND s.workspace_id = i.workspace_id
+        AND s.document_type = 'sprint'
+        AND s.deleted_at IS NULL
+        AND s.archived_at IS NULL
+       LEFT JOIN LATERAL (
+         SELECT iteration.blockers_encountered, iteration.created_at
+           FROM issue_iterations iteration
+          WHERE iteration.issue_id = i.id
+            AND iteration.workspace_id = i.workspace_id
+            AND btrim(COALESCE(iteration.blockers_encountered, '')) <> ''
+          ORDER BY iteration.created_at DESC, iteration.id DESC
+          LIMIT 1
+       ) latest_iteration ON TRUE
+       WHERE i.workspace_id = $1
+         AND i.document_type = 'issue'
+         AND i.deleted_at IS NULL
+         AND i.archived_at IS NULL
+         AND COALESCE(i.visibility, 'workspace') = 'private'
+         AND COALESCE(i.properties->>'state', 'backlog') = 'blocked'
+         AND COALESCE(i.properties->>'priority', 'medium') IN ('urgent', 'high')
+         AND CASE
+               WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
+               ELSE NULL
+             END = $2
+         AND btrim(COALESCE(latest_iteration.blockers_encountered, '')) <> ''
      ),
      classified AS (
        SELECT 'inactive_week'::text AS reason
          FROM issue_week_context
         WHERE sprint_number IS DISTINCT FROM $2
           AND issue_priority IN ('urgent', 'high')
-          AND issue_state NOT IN ('done', 'cancelled')
+          AND issue_state = 'blocked'
           AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
           AND btrim(COALESCE(blocker_text, '')) <> ''
        UNION ALL
@@ -275,7 +313,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
          FROM issue_week_context
         WHERE sprint_number = $2
           AND issue_priority IN ('urgent', 'high')
-          AND issue_state NOT IN ('done', 'cancelled')
+          AND issue_state = 'blocked'
           AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
           AND btrim(COALESCE(blocker_text, '')) = ''
        UNION ALL
@@ -283,7 +321,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
          FROM issue_week_context
         WHERE sprint_number = $2
           AND issue_priority IN ('medium', 'low')
-          AND issue_state NOT IN ('done', 'cancelled')
+          AND issue_state = 'blocked'
           AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
           AND btrim(COALESCE(blocker_text, '')) <> ''
        UNION ALL
@@ -299,32 +337,42 @@ export async function findBlockedImportantIssueQuietExits(input: {
          FROM issue_week_context
         WHERE sprint_number = $2
           AND issue_priority IN ('urgent', 'high')
-          AND issue_state NOT IN ('done', 'cancelled')
+          AND issue_state = 'blocked'
           AND issue_assignee_id IS NULL
           AND sprint_owner_id IS NULL
           AND btrim(COALESCE(blocker_text, '')) <> ''
        UNION ALL
        SELECT 'duplicate_open_finding'::text AS reason
          FROM issue_week_context
-        WHERE sprint_number = $2
-          AND issue_priority IN ('urgent', 'high')
-          AND issue_state NOT IN ('done', 'cancelled')
-          AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
-          AND btrim(COALESCE(blocker_text, '')) <> ''
-          AND duplicate_finding_id IS NOT NULL
+       WHERE sprint_number = $2
+         AND issue_priority IN ('urgent', 'high')
+         AND issue_state = 'blocked'
+         AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
+         AND btrim(COALESCE(blocker_text, '')) <> ''
+         AND duplicate_finding_id IS NOT NULL
+       UNION ALL
+       SELECT 'insufficient_visible_evidence'::text AS reason
+         FROM private_blocked_context
      )
      SELECT reason, COUNT(*)::text AS count
        FROM classified
       GROUP BY reason
-     UNION ALL
-     SELECT 'insufficient_visible_evidence', '0'
      ORDER BY reason`,
     [input.workspaceId, currentSprintNumber]
   );
 
-  return result.rows.map((row) => ({
-    reason: row.reason,
-    count: Number(row.count),
+  const countsByReason = new Map(result.rows.map((row) => [row.reason, Number(row.count)]));
+  return [
+    'done_or_cancelled',
+    'duplicate_open_finding',
+    'inactive_week',
+    'insufficient_visible_evidence',
+    'medium_low_priority',
+    'missing_fallback_owner',
+    'no_blocker',
+  ].map((reason) => ({
+    reason: reason as FleetGraphDetectorQuietExitReason,
+    count: countsByReason.get(reason as FleetGraphDetectorQuietExitReason) ?? 0,
   }));
 }
 

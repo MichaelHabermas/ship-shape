@@ -1,3 +1,4 @@
+// Issue list constants centralize table columns, filters, and badge styling.
 import type { ColumnDefinition } from '@/hooks/useColumnVisibility';
 import type { FilterTab } from '@/components/FilterTabs';
 import { ISSUE_STATE_LABELS } from '@ship/shared';
@@ -42,6 +43,7 @@ export const STATUS_COLORS: Record<string, string> = {
   backlog: 'bg-zinc-500/20 text-zinc-300',
   todo: 'bg-blue-500/20 text-blue-300',
   in_progress: 'bg-amber-500/20 text-amber-300',
+  blocked: 'bg-red-500/20 text-red-300',
   in_review: 'bg-purple-500/20 text-purple-300',
   done: 'bg-green-500/20 text-green-300',
   cancelled: 'bg-red-500/20 text-red-300',
@@ -50,7 +52,7 @@ export const STATUS_COLORS: Record<string, string> = {
 export const DEFAULT_FILTER_TABS: FilterTab[] = [
   { id: '', label: 'All' },
   { id: 'triage', label: 'Needs Triage' },
-  { id: 'todo,in_progress,in_review', label: 'Active' },
+  { id: 'todo,in_progress,blocked,in_review', label: 'Active' },
   { id: 'backlog', label: 'Backlog' },
   { id: 'done', label: 'Done' },
   { id: 'cancelled', label: 'Cancelled' },

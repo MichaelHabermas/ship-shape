@@ -24,7 +24,7 @@ function dbReturningCandidate() {
         issue_id: issueId,
         issue_title: 'Blocked issue',
         issue_ticket_number: 101,
-        issue_state: 'in_progress',
+        issue_state: 'blocked',
         issue_priority: 'urgent',
         issue_assignee_id: '55555555-5555-4555-8555-555555555555',
         sprint_id: sprintId,
@@ -61,7 +61,7 @@ describe('FleetGraph detector', () => {
     );
   });
 
-  it('selects active-week urgent/high issues whose latest iteration has blocker text', async () => {
+  it('selects active-week urgent/high blocked issues with blocker evidence', async () => {
     const db = dbReturningCandidate();
     db.query.mockResolvedValueOnce(pgResult([]));
 
@@ -74,12 +74,12 @@ describe('FleetGraph detector', () => {
 
     expect(sql).toContain("i.document_type = 'issue'");
     expect(sql).toContain("i.properties->>'priority' IN ('urgent', 'high')");
-    expect(sql).toContain("COALESCE(i.properties->>'state', 'backlog') NOT IN ('done', 'cancelled')");
+    expect(sql).toContain("COALESCE(i.properties->>'state', 'backlog') = 'blocked'");
     expect(sql).toContain("sprint_assoc.relationship_type = 'sprint'");
     expect(sql).toContain("s.properties->>'sprint_number' ~ '^\\d+$'");
     expect(sql).toContain('JOIN LATERAL');
     expect(sql).toContain('ORDER BY iteration.created_at DESC, iteration.id DESC');
-    expect(sql).toContain("btrim(COALESCE(latest_iteration.blockers_encountered, '')) <> ''");
+    expect(sql).toContain("btrim(COALESCE(iteration.blockers_encountered, '')) <> ''");
     expect(sql).toContain("NULLIF(i.properties->>'assignee_id', '') IS NOT NULL");
 
     expect(decisions[0]?.candidate).toEqual(expect.objectContaining({
@@ -124,13 +124,13 @@ describe('FleetGraph detector', () => {
     expect(sql).toContain('LEFT JOIN fleetgraph_findings');
     expect(sql).toContain(`'blocked-important-issue', ':', i.workspace_id, ':', i.id, ':', s.id`);
     expect(quietExits).toEqual([
-      { reason: 'inactive_week', count: 1 },
-      { reason: 'no_blocker', count: 2 },
-      { reason: 'medium_low_priority', count: 3 },
       { reason: 'done_or_cancelled', count: 4 },
-      { reason: 'missing_fallback_owner', count: 5 },
       { reason: 'duplicate_open_finding', count: 6 },
+      { reason: 'inactive_week', count: 1 },
       { reason: 'insufficient_visible_evidence', count: 0 },
+      { reason: 'medium_low_priority', count: 3 },
+      { reason: 'missing_fallback_owner', count: 5 },
+      { reason: 'no_blocker', count: 2 },
     ]);
   });
 
@@ -178,7 +178,7 @@ describe('FleetGraph detector', () => {
       issue_id: issueId,
       issue_title: 'Blocked issue',
       issue_ticket_number: 101,
-      issue_state: 'in_progress',
+      issue_state: 'blocked',
       issue_priority: 'urgent',
       issue_assignee_id: '55555555-5555-4555-8555-555555555555',
       sprint_id: sprintId,

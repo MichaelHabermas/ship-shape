@@ -121,7 +121,7 @@ describe('FleetGraph detector database query', () => {
       workspaceId,
       type: 'issue',
       title: 'Blocked launch issue',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
 
     await associateIssueToSprint(issueId, sprintId);
@@ -164,7 +164,7 @@ describe('FleetGraph detector database query', () => {
       workspaceId,
       type: 'issue',
       title: 'Repeated blocked issue',
-      properties: { state: 'in_progress', priority: 'high', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'high', assignee_id: userId },
     });
 
     await associateIssueToSprint(issueId, sprintId);
@@ -285,44 +285,44 @@ describe('FleetGraph detector database query', () => {
 
     const qualifyingIssueId = await issue({
       title: 'Only qualifying issue',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
     await issue({
       title: 'Inactive week',
       sprintId: inactiveSprintId,
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
     await issue({
       title: 'Medium priority',
-      properties: { state: 'in_progress', priority: 'medium', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'medium', assignee_id: userId },
     });
     await issue({
       title: 'Done issue',
       properties: { state: 'done', priority: 'urgent', assignee_id: userId },
     });
     await issue({
-      title: 'No latest blocker',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      title: 'Blocked without blocker evidence',
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       blockerText: '',
     });
     await issue({
       title: 'Missing fallback owner',
       sprintId: ownerlessSprintId,
-      properties: { state: 'in_progress', priority: 'urgent' },
+      properties: { state: 'blocked', priority: 'urgent' },
     });
     await issue({
       title: 'Deleted issue',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       deleted: true,
     });
     await issue({
       title: 'Archived issue',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       archived: true,
     });
-    await issue({
+    const latestClearedIssueId = await issue({
       title: 'Latest iteration cleared blocker',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       olderBlockerThenBlank: true,
     });
 
@@ -331,7 +331,9 @@ describe('FleetGraph detector database query', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(decisions.map((decision) => decision.candidate.issue_id)).toEqual([qualifyingIssueId]);
+    expect(decisions.map((decision) => decision.candidate.issue_id)).toEqual([qualifyingIssueId, latestClearedIssueId]);
+    expect(decisions[0]?.candidate.blocker_text).toBe('Waiting on API credentials.');
+    expect(decisions[1]?.candidate.blocker_text).toBe('Old blocker');
   });
 
   it('ignores malformed sprint numbers instead of aborting the detector', async () => {
@@ -347,7 +349,7 @@ describe('FleetGraph detector database query', () => {
       workspaceId,
       type: 'issue',
       title: 'Malformed sprint issue',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
     await associateIssueToSprint(issueId, sprintId);
     await createIteration({
@@ -410,16 +412,16 @@ describe('FleetGraph detector database query', () => {
     await quietIssue({
       title: 'Inactive week',
       sprintId: inactiveSprintId,
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
     await quietIssue({
       title: 'No blocker',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       blockerText: '',
     });
     await quietIssue({
       title: 'Medium priority',
-      properties: { state: 'in_progress', priority: 'medium', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'medium', assignee_id: userId },
     });
     await quietIssue({
       title: 'Done issue',
@@ -428,11 +430,11 @@ describe('FleetGraph detector database query', () => {
     await quietIssue({
       title: 'Missing fallback owner',
       sprintId: ownerlessSprintId,
-      properties: { state: 'in_progress', priority: 'urgent' },
+      properties: { state: 'blocked', priority: 'urgent' },
     });
     const duplicateIssueId = await quietIssue({
       title: 'Duplicate finding',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
     await saveBlockedImportantIssueFinding({
       workspaceId,
@@ -503,7 +505,7 @@ describe('FleetGraph detector database query', () => {
       workspaceId,
       type: 'issue',
       title: 'Manual detector issue',
-      properties: { state: 'in_progress', priority: 'urgent', assignee_id: userId },
+      properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
     await associateIssueToSprint(issueId, sprintId);
     await createIteration({

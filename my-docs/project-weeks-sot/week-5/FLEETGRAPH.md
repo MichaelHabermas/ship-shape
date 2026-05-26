@@ -193,10 +193,10 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 
 | # | Ship State | Expected Output | Trace Link |
 | --- | --- | --- | --- |
-| 1 | Active sprint/week contains important active issue with blocked signal and no existing finding | Proactive graph creates blocked-work finding within 5 minutes, with evidence, proposed recipient, next step, and draft action | To be added |
-| 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | To be added |
-| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | To be added |
-| 4 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | To be added |
+| 1 | Active sprint/week contains important active issue with blocked signal and no existing finding | Proactive graph creates blocked-work finding within 5 minutes, with evidence, proposed recipient, next step, and draft action | Local trace metadata from `pnpm fleetgraph:demo -- --capture-traces`: `mode=proactive`, `decision=create_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> reasonProactiveCreate -> persistFleetGraphState -> produceOutput`. The local command prints the finding id; external trace URL is not configured locally. |
+| 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | Local trace metadata: `mode=on_demand`, `decision=explain`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> produceOutput`. |
+| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | Local trace metadata: `mode=on_demand`, `decision=refine_draft`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refineDraft -> persistFleetGraphState -> produceOutput`. |
+| 4 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | Local trace metadata: `mode=proactive`, `decision=update_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refreshExistingFinding -> persistFleetGraphState -> produceOutput`. |
 | 5 | Blocked signal is removed before recheck | Proactive graph resolves or quietly exits | Nice-to-have |
 | 6 | Evidence is not visible to current user | Graph returns restricted-context output or quiet exit | Nice-to-have |
 
@@ -268,3 +268,5 @@ The first stretch is draft refinement inside the confirmation card. Users should
 The next stretch is a finding timeline: "flagged because," "changed since," "still blocked because," and "needs you because." This keeps users oriented while the agent does more of the manual context gathering.
 
 After that, additional detectors should reuse the same graph and findings model: sprint carryover risk, silent owner, orphaned high-priority work, missing execution context, and program-level repeated drift. These should not become separate assistants. They are more ways to update the same risk ledger and prepare the next useful action.
+
+Future blocker modeling should consider explicit issue-to-issue dependency links: "this issue is blocked by that issue" and automatic unblock cues when the blocking issue closes. That is useful, but it is not required for the Epic 8 reviewer demo path.

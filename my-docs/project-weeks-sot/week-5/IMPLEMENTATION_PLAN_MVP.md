@@ -988,13 +988,13 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 8: Demo Data And Reviewer Readiness
 
-**Status:** Not started
+**Status:** Implemented; awaiting final human review
 
 **Goal:** Make the MVP reproducible for local validation, timed proof, trace capture, and reviewer navigation.
 
 ### Slice 8.0: Restore Blocked-Work Input Path
 
-**Status:** Not started
+**Status:** Complete
 
 **Problem:**
 
@@ -1017,7 +1017,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
   - `what_attempted`
   - `blockers_encountered`
 - When a user changes status to `Blocked`, provide a clear place to fill in the blocker reason. Store that reason as an issue iteration `blockers_encountered` entry, not as issue body text.
-- If an issue is `blocked` with no blocker explanation, surface that as a callout: the issue is blocked but the blocker is missing, including who marked it blocked when known.
+- If an issue is `blocked` with no blocker explanation, keep it detectable as missing evidence in FleetGraph; the issue UI does not need a separate missing-reason warning beyond the blocker input placeholder.
 - Ensure the UI writes to `POST /api/issues/:id/iterations`, not standups or issue body text.
 - Update FleetGraph detector semantics so `issue.state = blocked` is the source of truth for current blocked work. `issue_iterations.blockers_encountered` supplies evidence and missing-evidence callouts, not the canonical blocked signal.
 
@@ -1026,7 +1026,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - A normal user can mark an issue as `Blocked` from the Status UI.
 - A normal user can record blocker explanation/history through issue iterations.
 - Fresh demo/local data produces FleetGraph positive candidates from `state = blocked` without manual SQL.
-- Blocked issues with missing blocker text produce a clear missing-evidence callout instead of disappearing.
+- Blocked issues with missing blocker text remain visible to missing-evidence detector paths instead of disappearing.
 - The read-only detector command returns expected positive candidates and quiet-exit controls.
 
 **Evidence:**
@@ -1036,9 +1036,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Browser/API proof that selecting `Blocked` updates issue state and records an `issue_iterations` row when blocker text is provided.
 - Focused tests for the UI/API path and detector candidate visibility.
 
+**Implementation Note (2026-05-26):** Added `blocked` to the shared issue state model and regenerated OpenAPI/web types. FleetGraph detector positive selection now requires `issue.state = blocked` and uses the latest non-empty `issue_iterations.blockers_encountered` row as evidence; `state = blocked` without blocker text is counted as `no_blocker` missing-evidence control instead of becoming a positive candidate. The issue sidebar exposes a blocked-state blocker reason entry path that writes to `POST /api/issues/:id/iterations`, and the issue list/status controls recognize `Blocked`; no separate missing-reason warning is shown in the issue UI. Verification: shared/API/web type-check, OpenAPI generation, `detector.test.ts`, `detector.integration.test.ts`, `issues.test.ts`, FleetGraph eval/golden tests, and focused web tests.
+
 ### Slice 8.1: Add Repeatable Demo Setup
 
-**Status:** Not started
+**Status:** Complete
 
 **Do:**
 
@@ -1053,9 +1055,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Demo setup output and stable URLs.
 
+**Implementation Note (2026-05-26):** Added `pnpm fleetgraph:demo`, an idempotent local/demo setup command. It creates or updates `FleetGraph Demo Workspace`, active/inactive demo weeks, reviewer-safe people/program/project/dependency context, stable issue/week URLs, and prints detector summary output plus reviewer login (`fleetgraph.reviewer@ship.local`) and a per-run demo password. The command refuses non-local `DATABASE_URL` targets unless explicitly overridden. Rerunning the command preserved the same workspace/document IDs and detector counts.
+
 ### Slice 8.2: Add Demo Universe
 
-**Status:** Not started
+**Status:** Complete
 
 **Do:**
 
@@ -1071,9 +1075,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Seed/demo inspection or reviewer navigation.
 
+**Implementation Note (2026-05-26):** Demo universe includes reviewer/admin, engineer/builder, PM/project owner, program lead/director, dependency owner/source notes, two urgent/high active-week blocked issues with recent blocker iteration text, and blockers naming Casey Dependency Owner and Morgan Project Owner.
+
 ### Slice 8.3: Add Negative Controls
 
-**Status:** Not started
+**Status:** Complete
 
 **Do:**
 
@@ -1087,9 +1093,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Detector/graph run output showing quiet paths.
 
+**Implementation Note (2026-05-26):** Demo negative controls cover urgent/high active work not blocked, blocked with no blocker explanation, medium-priority blocked work, done urgent work with blocker history, inactive-week blocked work, duplicate open finding, and a private blocked source control. Read-only detector smoke against workspace `eee97472-0e2b-400d-9de6-df17190425d6` returned `decisionCount: 3`, including two `create_finding` decisions and one `update_finding`, plus quiet counts for `done_or_cancelled`, `duplicate_open_finding`, `inactive_week`, `insufficient_visible_evidence`, `medium_low_priority`, and `no_blocker`.
+
 ### Slice 8.4: Capture Reviewer Traces
 
-**Status:** Not started
+**Status:** Complete with local trace metadata; external shared trace URLs not configured locally
 
 **Do:**
 
@@ -1105,9 +1113,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Trace links added to `FLEETGRAPH.md` once implementation evidence exists.
 
+**Implementation Note (2026-05-26):** `pnpm fleetgraph:demo -- --capture-traces` executed seeded/demo-safe proactive create/update, on-demand explain, and on-demand refine paths. Local trace metadata was captured and added to `FLEETGRAPH.md`; no external trace URL was configured in this local run, so docs record the actual metadata instead of invented links.
+
 ### Slice 8.5: Prepare Reviewer Navigation
 
-**Status:** Not started
+**Status:** Complete
 
 **Do:**
 
@@ -1121,6 +1131,8 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 **Evidence:**
 
 - Local validation notes or reviewer path checklist.
+
+**Implementation Note (2026-05-26):** `pnpm fleetgraph:demo` prints stable reviewer URLs for active week, project, dependency notes, two positive issues, missing-evidence issue, and duplicate-control issue. Full E2E remains skipped for this pass per Epic 9 scope; local browser smoke is still part of final handoff verification.
 
 ## Epic 9: Tests And Verification
 

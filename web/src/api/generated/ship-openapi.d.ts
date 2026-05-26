@@ -1041,6 +1041,20 @@ export interface paths {
                         "application/json": components["schemas"]["IssueHistoryEntry"][];
                     };
                 };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Issue not found */
                 404: {
                     headers: {
@@ -1149,7 +1163,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": {
                         /** @enum {string} */
@@ -1168,6 +1182,20 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["IssueIteration"];
                     };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Issue not found */
                 404: {
@@ -1223,7 +1251,7 @@ export interface paths {
                                  * @description Issue workflow state
                                  * @enum {string}
                                  */
-                                state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+                                state: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
                                 /**
                                  * @description Issue priority level
                                  * @enum {string}
@@ -9476,7 +9504,7 @@ export interface components {
          * @description Issue workflow state
          * @enum {string}
          */
-        IssueState: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+        IssueState: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
         /**
          * @description Issue priority level
          * @enum {string}
@@ -9504,7 +9532,7 @@ export interface components {
              * @description Issue workflow state
              * @enum {string}
              */
-            state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+            state: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
             /**
              * @description Issue priority level
              * @enum {string}
@@ -9614,7 +9642,7 @@ export interface components {
              * @description Issue workflow state
              * @enum {string}
              */
-            state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+            state: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
             /**
              * @description Issue priority level
              * @enum {string}
@@ -9715,7 +9743,7 @@ export interface components {
              * @default backlog
              * @enum {string}
              */
-            state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+            state: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
             /**
              * @default medium
              * @enum {string}
@@ -9746,7 +9774,7 @@ export interface components {
         UpdateIssue: {
             title?: string;
             /** @enum {string} */
-            state?: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+            state?: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
             /** @enum {string} */
             priority?: "urgent" | "high" | "medium" | "low" | "none";
             /** Format: uuid */
@@ -9787,7 +9815,7 @@ export interface components {
                  * @description Issue workflow state
                  * @enum {string}
                  */
-                state?: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+                state?: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
                 /**
                  * Format: uuid
                  * @description UUID identifier
@@ -9877,7 +9905,7 @@ export interface components {
                  * @description Issue workflow state
                  * @enum {string}
                  */
-                state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+                state: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
             }[];
             confirm_action: string;
         };
@@ -10020,7 +10048,7 @@ export interface components {
              * @description Issue workflow state
              * @enum {string}
              */
-            state: "triage" | "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+            state: "triage" | "backlog" | "todo" | "in_progress" | "blocked" | "in_review" | "done" | "cancelled";
             /**
              * @description Issue priority level
              * @enum {string}
