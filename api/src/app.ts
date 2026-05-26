@@ -1,3 +1,4 @@
+// Express app assembly wires middleware, security policy, and API route modules.
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -32,6 +33,7 @@ import bootstrapRoutes from './routes/bootstrap.js';
 import associationsRoutes from './routes/associations.js';
 import accountabilityRoutes from './routes/accountability.js';
 import aiRoutes from './routes/ai.js';
+import fleetgraphRoutes from './routes/fleetgraph.js';
 import weeklyPlansRoutes, { weeklyRetrosRouter } from './routes/weekly-plans.js';
 import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { authMiddleware } from './middleware/auth.js';
@@ -322,6 +324,9 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
 
   // AI analysis routes - plan and retro quality feedback (CSRF protected)
   app.use('/api/ai', conditionalCsrf, aiRoutes);
+
+  // FleetGraph routes - visible findings and bounded on-demand graph actions
+  app.use('/api/fleetgraph', conditionalCsrf, fleetgraphRoutes);
 
   // Weekly plans routes - per-person accountability documents (CSRF protected)
   app.use('/api/weekly-plans', conditionalCsrf, weeklyPlansRoutes);

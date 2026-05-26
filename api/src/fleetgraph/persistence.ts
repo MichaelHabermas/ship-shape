@@ -169,6 +169,40 @@ export async function getOpenFleetGraphFindingByDedupeKey(
   return result.rows[0] ? mapFinding(result.rows[0]) : null;
 }
 
+export async function getFleetGraphFindingById(
+  input: { workspaceId: string; findingId: string },
+  db: QueryRunner = pool
+): Promise<FleetGraphFinding | null> {
+  const result = await db.query<FleetGraphFindingRow>(
+    `SELECT *
+       FROM fleetgraph_findings
+      WHERE workspace_id = $1
+        AND id = $2
+      LIMIT 1`,
+    [input.workspaceId, input.findingId]
+  );
+
+  return result.rows[0] ? mapFinding(result.rows[0]) : null;
+}
+
+export async function listFleetGraphFindingsForSource(
+  input: { workspaceId: string; sourceIssueId?: string; sourceSprintId?: string },
+  db: QueryRunner = pool
+): Promise<FleetGraphFinding[]> {
+  const result = await db.query<FleetGraphFindingRow>(
+    `SELECT *
+       FROM fleetgraph_findings
+      WHERE workspace_id = $1
+        AND ($2::uuid IS NULL OR source_issue_id = $2::uuid)
+        AND ($3::uuid IS NULL OR source_sprint_id = $3::uuid)
+        AND status IN ('open', 'needs_confirmation', 'error')
+      ORDER BY updated_at DESC`,
+    [input.workspaceId, input.sourceIssueId ?? null, input.sourceSprintId ?? null]
+  );
+
+  return result.rows.map(mapFinding);
+}
+
 export async function saveBlockedImportantIssueFinding(
   input: SaveBlockedImportantIssueFindingInput,
   db: QueryRunner = pool
@@ -296,6 +330,24 @@ export async function resolveFleetGraphFinding(
     `UPDATE fleetgraph_findings
         SET status = 'resolved',
             resolved_at = NOW(),
+            updated_at = NOW()
+      WHERE id = $1
+        AND workspace_id = $2
+        AND status IN ('open', 'needs_confirmation', 'error')
+      RETURNING *`,
+    [input.findingId, input.workspaceId]
+  );
+
+  return result.rows[0] ? mapFinding(result.rows[0]) : null;
+}
+
+export async function suppressFleetGraphFinding(
+  input: { workspaceId: string; findingId: string },
+  db: QueryRunner = pool
+): Promise<FleetGraphFinding | null> {
+  const result = await db.query<FleetGraphFindingRow>(
+    `UPDATE fleetgraph_findings
+        SET status = 'suppressed',
             updated_at = NOW()
       WHERE id = $1
         AND workspace_id = $2

@@ -5557,6 +5557,336 @@
           "created_at"
         ]
       },
+      "ReverseAssociation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "related_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "relationship_type": {
+            "type": "string",
+            "enum": [
+              "program",
+              "project",
+              "sprint",
+              "parent"
+            ],
+            "description": "Type of document association"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime string",
+            "example": "2025-01-30T14:30:00.000Z"
+          },
+          "document_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "document_document_type": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "wiki",
+              "issue",
+              "program",
+              "project",
+              "sprint",
+              "person",
+              "weekly_plan",
+              "weekly_retro",
+              "standup",
+              "weekly_review"
+            ],
+            "description": "Type of document"
+          }
+        },
+        "required": [
+          "id",
+          "document_id",
+          "related_id",
+          "relationship_type",
+          "created_at"
+        ]
+      },
+      "DeleteAssociationResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "associations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Association"
+            }
+          }
+        },
+        "required": [
+          "deleted",
+          "associations"
+        ]
+      },
+      "DocumentContextResponse": {
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID identifier",
+                "example": "550e8400-e29b-41d4-a716-446655440000"
+              },
+              "title": {
+                "type": "string",
+                "nullable": true
+              },
+              "document_type": {
+                "type": "string",
+                "enum": [
+                  "wiki",
+                  "issue",
+                  "program",
+                  "project",
+                  "sprint",
+                  "person",
+                  "weekly_plan",
+                  "weekly_retro",
+                  "standup",
+                  "weekly_review"
+                ],
+                "description": "Type of document"
+              },
+              "ticket_number": {
+                "type": "number",
+                "nullable": true
+              },
+              "program_id": {
+                "type": "string",
+                "nullable": true,
+                "format": "uuid",
+                "description": "UUID identifier",
+                "example": "550e8400-e29b-41d4-a716-446655440000"
+              },
+              "program_name": {
+                "type": "string",
+                "nullable": true
+              },
+              "program_color": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "document_type"
+            ]
+          },
+          "ancestors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "title": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "document_type": {
+                  "type": "string",
+                  "enum": [
+                    "wiki",
+                    "issue",
+                    "program",
+                    "project",
+                    "sprint",
+                    "person",
+                    "weekly_plan",
+                    "weekly_retro",
+                    "standup",
+                    "weekly_review"
+                  ],
+                  "description": "Type of document"
+                },
+                "ticket_number": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "depth": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "document_type",
+                "depth"
+              ]
+            }
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "title": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "document_type": {
+                  "type": "string",
+                  "enum": [
+                    "wiki",
+                    "issue",
+                    "program",
+                    "project",
+                    "sprint",
+                    "person",
+                    "weekly_plan",
+                    "weekly_retro",
+                    "standup",
+                    "weekly_review"
+                  ],
+                  "description": "Type of document"
+                },
+                "ticket_number": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "child_count": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "document_type",
+                "child_count"
+              ]
+            }
+          },
+          "belongs_to": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "program",
+                    "project",
+                    "sprint",
+                    "parent"
+                  ],
+                  "description": "Type of document association"
+                },
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "title": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "document_type": {
+                  "type": "string",
+                  "enum": [
+                    "wiki",
+                    "issue",
+                    "program",
+                    "project",
+                    "sprint",
+                    "person",
+                    "weekly_plan",
+                    "weekly_retro",
+                    "standup",
+                    "weekly_review"
+                  ],
+                  "description": "Type of document"
+                },
+                "color": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "type",
+                "id",
+                "title",
+                "document_type"
+              ]
+            }
+          },
+          "breadcrumbs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "ticket_number": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "type"
+              ]
+            }
+          }
+        },
+        "required": [
+          "current",
+          "ancestors",
+          "children",
+          "belongs_to",
+          "breadcrumbs"
+        ]
+      },
       "IssueStats": {
         "type": "object",
         "properties": {
@@ -7209,6 +7539,20 @@
           "error"
         ]
       },
+      "AiRateLimitError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "Rate limit exceeded. Max 10 analysis requests per hour."
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
       "RetroItemAnalysis": {
         "type": "object",
         "properties": {
@@ -8011,6 +8355,204 @@
         "required": [
           "success",
           "data"
+        ]
+      },
+      "FleetGraphEvidence": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "sourceDocumentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "issue",
+              "sprint"
+            ]
+          },
+          "claim": {
+            "type": "string"
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "internal",
+              "actor_visible",
+              "restricted"
+            ]
+          },
+          "visibleFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "redactionReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "claim",
+          "visibility",
+          "visibleFields"
+        ]
+      },
+      "FleetGraphVisibleOutput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetGraphEvidence"
+            }
+          },
+          "humanGate": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "draftContent": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "noSafeOutput": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "evidence",
+          "humanGate"
+        ]
+      },
+      "FleetGraphTrace": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "proactive",
+              "on_demand"
+            ]
+          },
+          "decision": {
+            "type": "string"
+          },
+          "nodePath": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "traceUrl": {
+            "type": "string"
+          },
+          "failureCategory": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "decision",
+          "nodePath"
+        ]
+      },
+      "FleetGraphFindingResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sourceIssueId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sourceSprintId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "visibleOutput": {
+            "$ref": "#/components/schemas/FleetGraphVisibleOutput"
+          },
+          "traceMetadata": {
+            "$ref": "#/components/schemas/FleetGraphTrace"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "sourceIssueId",
+          "sourceSprintId",
+          "visibleOutput",
+          "traceMetadata"
+        ]
+      },
+      "FleetGraphFindingsListResponse": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetGraphFindingResponse"
+            }
+          }
+        },
+        "required": [
+          "findings"
+        ]
+      },
+      "FleetGraphRunResponse": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "finding": {
+            "$ref": "#/components/schemas/FleetGraphFindingResponse"
+          },
+          "visibleOutput": {
+            "$ref": "#/components/schemas/FleetGraphVisibleOutput"
+          },
+          "traceMetadata": {
+            "$ref": "#/components/schemas/FleetGraphTrace"
+          }
+        },
+        "required": [
+          "decision",
+          "traceMetadata"
         ]
       }
     },
@@ -13991,6 +14533,12 @@
                       "parent"
                     ],
                     "description": "Type of document association"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    }
                   }
                 },
                 "required": [
@@ -14055,8 +14603,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Association removed"
+          "200": {
+            "description": "Association removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAssociationResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Document or association not found"
@@ -14092,7 +14647,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Association"
+                    "$ref": "#/components/schemas/ReverseAssociation"
                   }
                 }
               }
@@ -14130,10 +14685,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "nullable": true
-                  }
+                  "$ref": "#/components/schemas/DocumentContextResponse"
                 }
               }
             }
@@ -14888,11 +15440,10 @@
                 "type": "object",
                 "properties": {
                   "content": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "nullable": true
-                    },
-                    "description": "TipTap JSON content of the weekly plan"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50000,
+                    "description": "Plain text content extracted from the weekly plan"
                   }
                 },
                 "required": [
@@ -14921,7 +15472,14 @@
             }
           },
           "429": {
-            "description": "Rate limit exceeded (max 120 per hour)"
+            "description": "Rate limit exceeded (max 10 per hour)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRateLimitError"
+                }
+              }
+            }
           }
         }
       }
@@ -14940,18 +15498,16 @@
                 "type": "object",
                 "properties": {
                   "retro_content": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "nullable": true
-                    },
-                    "description": "TipTap JSON content of the weekly retro"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50000,
+                    "description": "Plain text content extracted from the weekly retro"
                   },
                   "plan_content": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "nullable": true
-                    },
-                    "description": "TipTap JSON content of the weekly plan for comparison"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50000,
+                    "description": "Plain text content extracted from the weekly plan for comparison"
                   }
                 },
                 "required": [
@@ -14981,7 +15537,14 @@
             }
           },
           "429": {
-            "description": "Rate limit exceeded (max 120 per hour)"
+            "description": "Rate limit exceeded (max 10 per hour)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRateLimitError"
+                }
+              }
+            }
           }
         }
       }
@@ -16340,6 +16903,7 @@
         "summary": "Create first super admin and workspace",
         "security": [],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -16400,6 +16964,7 @@
         "summary": "Create standup (idempotent)",
         "description": "Create a standalone standup for the current user on a given date. Returns existing standup if one already exists for that date.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -16547,6 +17112,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -16659,6 +17225,7 @@
         "summary": "Submit public feedback",
         "security": [],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -16801,6 +17368,240 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FeedbackLegacyError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/findings": {
+      "get": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "List visible FleetGraph findings for a source issue or sprint",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": false,
+            "name": "sourceIssueId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": false,
+            "name": "sourceSprintId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphFindingsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/findings/{findingId}/explain": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Explain an existing FleetGraph finding using visible evidence",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "findingId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/findings/{findingId}/refine": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Refine a FleetGraph draft without mutating Ship source data",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "findingId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "instruction": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "instruction"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

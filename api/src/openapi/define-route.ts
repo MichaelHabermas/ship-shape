@@ -86,7 +86,7 @@ function registerOpenApiResponses(
           params: config.request.params,
           query: config.request.query,
           body: config.request.body
-            ? { content: { 'application/json': { schema: config.request.body } } }
+            ? { required: true, content: { 'application/json': { schema: config.request.body } } }
             : undefined,
         } as Parameters<typeof registry.registerPath>[0]['request'])
       : undefined,

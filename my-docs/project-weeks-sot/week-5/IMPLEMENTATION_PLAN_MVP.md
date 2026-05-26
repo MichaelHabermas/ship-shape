@@ -418,13 +418,15 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 4: Shared FleetGraph Core
 
-**Status:** Not started
+**Status:** Done
 
 **Goal:** Implement one shared graph core with distinct proactive and on-demand paths.
 
+**Closeout Note (2026-05-26):** Epic 4 is closed. `api/src/fleetgraph/core.ts` now exposes the shared `runFleetGraph` boundary for proactive and on-demand triggers, with bounded evidence assembly in `evidence.ts`, reviewer-safe trace metadata in `trace.ts`, and an opt-in proactive-create model adapter in `model.ts`. The core consumes detector decisions, persists only FleetGraph findings/runs/drafts/status/trace metadata through persistence helpers, re-filters on-demand evidence for the current principal, and records zero model calls for quiet/explain/refine/update paths. Verification: root type-check, build, docs strict/path checks, focused FleetGraph unit/eval tests, full FleetGraph test lane against `ship_test_audit`, and read-only detector smoke against local `ship_dev` workspace `d39a32f2-297c-40c2-b43b-efa6296c9571`.
+
 ### Slice 4.1: Add Narrow Graph Interface
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -440,9 +442,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Type-level API or focused unit test.
 
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/types.ts` and `api/src/fleetgraph/core.ts` with `runFleetGraph(input)`, typed trigger/result contracts, decision packets, evidence items, trace/token/cost metadata, and an injectable persistence port. LangGraph/model internals remain behind this FleetGraph core boundary.
+
 ### Slice 4.2: Resolve Scope And Fetch Context
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -458,9 +462,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden cases exercising scope resolution.
 
+**Implementation Note (2026-05-26):** Added bounded context assembly for detector candidates and existing findings. Epic 4 scope is issue/sprint/finding only; there is no broad workspace assistant, conversation memory, new document type, or graph-owned source-of-truth state.
+
 ### Slice 4.3: Filter Visible Evidence
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -476,9 +482,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Restricted evidence golden case and authorization test.
 
+**Implementation Note (2026-05-26):** Added `filterEvidenceForActor`, which reuses the existing capability/document-access path through `authorize()` for source issue and sprint reads. Hidden source issues produce no-safe-output with restricted evidence and no hidden excerpt/ID/title leakage. Proactive stored evidence stays least-privileged-safe for authorized source-issue viewers.
+
 ### Slice 4.4: Implement Proactive Create Path
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -494,9 +502,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case pass and persisted finding inspection.
 
+**Implementation Note (2026-05-26):** `runFleetGraph` converts `create_finding` detector decisions into human-gated decision packets with severity, confidence, summary, recommended action, draft unblock message, recipient role rationale, uncertainty notes, safe trace metadata, and run metadata. Real proactive-create model calls are opt-in via `FLEETGRAPH_REAL_MODEL_ENABLED=true` plus model/API-key config; local tests use deterministic zero-token output.
+
 ### Slice 4.5: Implement Update/Suppress And Quiet Paths
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -511,9 +521,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden cases for duplicate/update and quiet exit.
 
+**Implementation Note (2026-05-26):** `runFleetGraph` supports duplicate `update_finding`, quiet exits, status-only dismiss/resolve, suppress helper support, and error runs. Non-create paths record explicit run decisions and do not create duplicate open findings or mutate Ship source tables.
+
 ### Slice 4.6: Implement Explain Existing Finding
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -528,9 +540,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case and trace for "why was this flagged?"
 
+**Implementation Note (2026-05-26):** On-demand explain reads existing FleetGraph finding state, re-filters stored evidence for the current principal when provided, returns no-safe-output for restricted source issues, and records an `explain` run with zero model calls.
+
 ### Slice 4.7: Implement Draft Refinement
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -546,9 +560,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case and persistence test.
 
+**Implementation Note (2026-05-26):** Draft refinement updates only `fleetgraph_findings.draft_content`, keeps `human_gate.required = true`, and records a `refine_draft` run. If the actor cannot read the source issue, refine records a restricted quiet exit and does not update draft content. No Ship issue, sprint, association, comment, ownership, status, or priority fields are written.
+
 ### Slice 4.8: Capture Trace Metadata
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -564,15 +580,19 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Trace metadata visible in run records.
 
+**Implementation Note (2026-05-26):** Added reviewer-safe trace metadata helpers that persist mode, decision, node path, optional trace ID/URL, and optional failure category. Proactive create/update, quiet exit, explain, refine, dismiss/resolve, and error paths have distinct node paths. API trace serialization is allowlist-based and omits raw prompts/completions, hidden evidence, tokens, nested payloads, and contact details.
+
 ## Epic 5: API Surface And OpenAPI
 
-**Status:** Not started
+**Status:** In progress
 
 **Goal:** Expose FleetGraph through authenticated, documented, capability-aware API routes.
 
+**Progress Note (2026-05-26):** Follow-up work after Epic 4 added executable golden cases and the first FleetGraph API surface: `GET /api/fleetgraph/findings`, `POST /api/fleetgraph/findings/:findingId/explain`, and `POST /api/fleetgraph/findings/:findingId/refine`. Routes call the shared `runFleetGraph`/visible-evidence boundary, serialize actor-filtered output, omit no-safe-output findings/IDs rather than returning partial hints, sanitize trace metadata before response, and are registered in OpenAPI. Dismiss and gated manual run endpoints remain not started.
+
 ### Slice 5.1: Add Route Shell And OpenAPI Registration
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -588,9 +608,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - `pnpm openapi:check` or targeted OpenAPI test.
 
+**Implementation Note (2026-05-26):** Added `api/src/routes/fleetgraph.ts`, mounted it at `/api/fleetgraph`, imported it into OpenAPI side-effect registration, regenerated `api/openapi.json`, `api/openapi.yaml`, and `web/src/api/generated/ship-openapi.d.ts`. `pnpm openapi:check:strict` reports 197 runtime routes / 197 OpenAPI routes.
+
 ### Slice 5.2: Add Findings Read Route
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -607,9 +629,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Route auth/visibility tests.
 
+**Implementation Note (2026-05-26):** Added `GET /api/fleetgraph/findings?sourceIssueId=...|sourceSprintId=...`, which lists active findings by source and serializes visible output through `visibleOutputForFinding` for the current principal. No-safe-output findings are omitted from list responses so hidden source issue IDs and dedupe keys are not enumerable. Route tests cover actor-filtered output shape and restricted-source omission.
+
 ### Slice 5.3: Add Explain Route
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -625,9 +649,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Route test and golden case alignment.
 
+**Implementation Note (2026-05-26):** Added `POST /api/fleetgraph/findings/:findingId/explain`, which calls `runFleetGraph` with an on-demand `explain_finding` trigger and returns sanitized trace metadata plus visible output. Restricted-source explain returns quiet/no-safe-output without serializing the finding object or hidden source identifiers. Executable golden cases now prove visible explain and restricted-source quiet/no-safe-output behavior.
+
 ### Slice 5.4: Add Refine Route
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -643,9 +669,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Route test proving source document fields are unchanged.
 
+**Implementation Note (2026-05-26):** Added `POST /api/fleetgraph/findings/:findingId/refine`, which accepts only a bounded draft-refinement instruction and calls `runFleetGraph` with `refine_draft`. Restricted-source refine exits quietly without updating draft state or returning finding identifiers. Route tests prove the API remains decision-oriented rather than arbitrary workspace chat; core tests prove visible refine only updates FleetGraph draft state.
+
 ### Slice 5.5: Add Dismiss Route
 
-**Status:** Not started
+**Status:** In progress
 
 **Do:**
 
@@ -693,6 +721,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Targeted route tests and OpenAPI check.
+
+**Implementation Note (2026-05-26):** Partial proof is in place for authenticated route wiring, bounded on-demand explain/refine, actor-visible response serialization, executable restricted-source golden case, trace sanitization, and OpenAPI parity. Remaining API security proof should cover unauthenticated/cross-workspace behavior with DB-backed route tests when dismiss/manual-run endpoints are added.
 
 ## Epic 6: Worker Lifecycle
 

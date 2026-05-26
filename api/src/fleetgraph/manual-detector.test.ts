@@ -34,13 +34,13 @@ describe('manual FleetGraph detector runner', () => {
       blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
       dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
     } as const;
-    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue({
-      decisions: [{
+    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([
+      {
         decision: 'create_finding',
         existingFindingId: null,
         candidate,
-      }],
-    });
+      },
+    ]);
     vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue([
       { reason: 'no_blocker', count: 2 },
       { reason: 'insufficient_visible_evidence', count: 0 },
@@ -68,20 +68,15 @@ describe('manual FleetGraph detector runner', () => {
     expect(summary).toEqual({
       workspaceId,
       today: '2026-05-26T12:00:00.000Z',
-      candidateCount: 1,
-      candidates: [{
+      decisionCount: 1,
+      dedupeDecisions: [{
+        decision: 'create_finding',
         issueId,
         issueTitle: 'Blocked issue',
         issuePriority: 'urgent',
         sprintId,
         sprintTitle: 'Week 2',
         blockerText: 'Waiting on API credentials.',
-        dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
-      }],
-      dedupeDecisions: [{
-        decision: 'create_finding',
-        issueId,
-        sprintId,
         dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
         existingFindingId: null,
       }],
