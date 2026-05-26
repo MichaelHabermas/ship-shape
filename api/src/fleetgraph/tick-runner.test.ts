@@ -80,7 +80,13 @@ describe('FleetGraph tick runner', () => {
       traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: ['produceOutput'] },
     } as never);
 
-    const summary = await runFleetGraphTick({ mode: 'execute', workspaceId, principal, db: { query: vi.fn() } });
+    const summary = await runFleetGraphTick({
+      mode: 'execute',
+      workspaceId,
+      principal,
+      triggerReason: 'scheduled-worker',
+      db: { query: vi.fn() },
+    });
 
     expect(summary.detectorDecisions).toBe(1);
     expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
@@ -88,7 +94,7 @@ describe('FleetGraph tick runner', () => {
       principal,
       mode: 'proactive',
       trigger: { type: 'detector_decision', detectorDecision },
-      triggerReason: 'manual-run',
+      triggerReason: 'scheduled-worker',
     }), expect.any(Object));
   });
 

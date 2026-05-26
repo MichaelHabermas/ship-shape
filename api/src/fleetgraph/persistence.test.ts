@@ -9,6 +9,9 @@ import {
   refineFleetGraphDraft,
   resolveFleetGraphFinding,
   saveBlockedImportantIssueFinding,
+  startFleetGraphWorkerTick,
+  heartbeatFleetGraphWorkerTick,
+  completeFleetGraphWorkerTick,
   type FleetGraphFindingStatus,
 } from './persistence.js';
 
@@ -181,6 +184,64 @@ describe('FleetGraph persistence', () => {
       expect.arrayContaining([
         'quiet_exit',
         JSON.stringify({ reason: 'duplicate_open_finding' }),
+      ])
+    );
+  });
+
+  it('records worker tick lifecycle metadata', async () => {
+    const tickId = '88888888-8888-4888-8888-888888888888';
+    const deadlineAt = new Date('2026-05-26T12:04:00Z');
+    const db = dbReturning([{
+      id: tickId,
+      instance_id: 'worker-1',
+      status: 'running',
+      started_at: new Date('2026-05-26T12:00:00Z'),
+      heartbeat_at: new Date('2026-05-26T12:00:00Z'),
+      deadline_at: deadlineAt,
+      completed_at: null,
+      workspace_count: 0,
+      detector_decision_count: 0,
+      result_count: 0,
+      model_call_count: 0,
+      error_metadata: {},
+      audit_metadata: {},
+      created_at: new Date('2026-05-26T12:00:00Z'),
+    }]);
+
+    await startFleetGraphWorkerTick({ instanceId: 'worker-1', deadlineAt }, db);
+    await heartbeatFleetGraphWorkerTick(tickId, db);
+    await completeFleetGraphWorkerTick({
+      tickId,
+      status: 'completed',
+      workspaceCount: 2,
+      detectorDecisionCount: 1,
+      resultCount: 1,
+      modelCallCount: 0,
+      auditMetadata: { deadlineAt: deadlineAt.toISOString() },
+    }, db);
+
+    expect(db.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('INSERT INTO fleetgraph_worker_ticks'),
+      ['worker-1', deadlineAt]
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('heartbeat_at = NOW()'),
+      [tickId]
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('detector_decision_count'),
+      expect.arrayContaining([
+        tickId,
+        'completed',
+        2,
+        1,
+        1,
+        0,
+        null,
+        JSON.stringify({ deadlineAt: deadlineAt.toISOString() }),
       ])
     );
   });

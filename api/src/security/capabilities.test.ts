@@ -46,6 +46,12 @@ const governanceTokenPrincipal: Principal = {
   scopes: ['documents:read'],
 };
 
+const fleetGraphPrincipal: Principal = {
+  kind: 'fleetgraph_system',
+  workspaceId: 'workspace-1',
+  isSuperAdmin: false,
+};
+
 function dbWithRows(rows: unknown[]) {
   return {
     query: vi.fn().mockResolvedValue({ rows, rowCount: rows.length }),
@@ -178,6 +184,43 @@ describe('security capabilities', () => {
     expect(decision).toMatchObject({
       allowed: true,
       reason: 'allowed',
+    });
+  });
+
+  it('allows FleetGraph system reads in its workspace without granting writes', async () => {
+    const db = dbWithRows([workspaceWiki]);
+
+    const readDecision = await authorize(db, fleetGraphPrincipal, {
+      resource: 'document',
+      action: 'read',
+      documentId: 'doc-1',
+    });
+    const writeDecision = await authorize(dbWithRows([]), fleetGraphPrincipal, {
+      resource: 'document',
+      action: 'write',
+      documentId: 'doc-1',
+    });
+
+    expect(readDecision).toMatchObject({
+      allowed: true,
+      reason: 'allowed',
+    });
+    expect(writeDecision).toMatchObject({
+      allowed: false,
+      reason: 'not_workspace_admin',
+    });
+  });
+
+  it('denies FleetGraph system collaboration capabilities', async () => {
+    const decision = await authorize(dbWithRows([]), fleetGraphPrincipal, {
+      resource: 'collaboration',
+      action: 'persist',
+      documentId: 'doc-1',
+    });
+
+    expect(decision).toMatchObject({
+      allowed: false,
+      reason: 'not_workspace_admin',
     });
   });
 
