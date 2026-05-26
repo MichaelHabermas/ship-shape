@@ -1,3 +1,4 @@
+// API bootstrap wires Express, collaboration, FleetGraph worker, and graceful shutdown.
 import { createServer } from 'http';
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
@@ -22,6 +23,7 @@ async function main() {
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');
   const { closeDatabasePool } = await import('./db/client.js');
+  const { startFleetGraphWorker } = await import('./fleetgraph/worker.js');
 
   const PORT = process.env.PORT || 3000;
   const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
@@ -36,10 +38,12 @@ async function main() {
 
   // Setup WebSocket collaboration server
   const closeCollaboration = setupCollaboration(server, { allowedOrigin: CORS_ORIGIN });
+  const stopFleetGraphWorker = startFleetGraphWorker();
 
   const shutdownController = createShutdownController({
     server,
     cleanup: async () => {
+      await stopFleetGraphWorker();
       await closeCollaboration();
       await closeDatabasePool();
     },

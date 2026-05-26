@@ -1,3 +1,4 @@
+// Principal types describe authenticated actors for capability authorization.
 import type { Request } from 'express';
 
 export type ApiTokenScope =
@@ -28,7 +29,14 @@ export type Principal =
       scopes: ApiTokenScope[];
     }
   | {
+      kind: 'fleetgraph_system';
+      workspaceId: string;
+      isSuperAdmin: false;
+      userId?: never;
+    }
+  | {
       kind: 'setup';
+      userId?: never;
     };
 
 declare global {

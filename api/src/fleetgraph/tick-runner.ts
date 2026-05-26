@@ -49,6 +49,7 @@ export type FleetGraphTickInput =
       principal: Principal;
       today?: Date;
       limit?: number;
+      triggerReason?: string;
       db?: QueryRunner;
       graphOptions?: Omit<FleetGraphCoreOptions, 'db'>;
     };
@@ -95,7 +96,7 @@ async function runGraphExecute(
     principal: input.principal,
     mode: 'proactive',
     trigger,
-    triggerReason: 'manual-run',
+    triggerReason: input.triggerReason ?? 'manual-run',
   }, { ...input.graphOptions, db: graphDb });
 
   return input.db ? execute(db) : runWithOwnedTransaction(execute);

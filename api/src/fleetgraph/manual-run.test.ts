@@ -42,6 +42,7 @@ describe('FleetGraph manual run', () => {
       principal,
       today,
       limit: 3,
+      triggerReason: 'manual-run',
       db: undefined,
       graphOptions,
     });

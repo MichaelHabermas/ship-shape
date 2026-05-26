@@ -1,3 +1,4 @@
+// Test database setup truncates disposable API data before each integration file.
 import { beforeAll, afterAll } from 'vitest'
 import { pool } from '../db/client.js'
 
@@ -25,7 +26,7 @@ beforeAll(async () => {
   await pool.query(`TRUNCATE TABLE
     workspace_invites, sessions, files, document_links, document_history,
     comments, document_associations, document_snapshots, sprint_iterations,
-    issue_iterations, documents, audit_logs, workspace_memberships,
+    issue_iterations, fleetgraph_worker_ticks, documents, audit_logs, workspace_memberships,
     users, workspaces
     CASCADE`)
 })

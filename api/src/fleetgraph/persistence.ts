@@ -79,11 +79,32 @@ type FleetGraphRunRow = {
   created_at: Date;
 };
 
+type FleetGraphWorkerTickRow = {
+  id: string;
+  instance_id: string;
+  status: FleetGraphWorkerTickStatus;
+  started_at: Date;
+  heartbeat_at: Date;
+  deadline_at: Date;
+  completed_at: Date | null;
+  workspace_count: number;
+  detector_decision_count: number;
+  result_count: number;
+  model_call_count: number;
+  error_metadata: JsonRecord;
+  audit_metadata: JsonRecord;
+  created_at: Date;
+};
+
 export type FleetGraphFinding = Omit<FleetGraphFindingRow, 'confidence'> & {
   confidence: number;
 };
 
 export type FleetGraphRun = FleetGraphRunRow;
+
+export type FleetGraphWorkerTickStatus = 'running' | 'completed' | 'failed' | 'skipped_lock';
+
+export type FleetGraphWorkerTick = FleetGraphWorkerTickRow;
 
 export type SaveBlockedImportantIssueFindingInput = {
   workspaceId: string;
@@ -120,6 +141,17 @@ export type RecordFleetGraphRunInput = {
   costMetadata?: JsonRecord;
   errorMetadata?: JsonRecord;
   completedAt?: Date | null;
+};
+
+export type CompleteFleetGraphWorkerTickInput = {
+  tickId: string;
+  status: Exclude<FleetGraphWorkerTickStatus, 'running'>;
+  workspaceCount?: number;
+  detectorDecisionCount?: number;
+  resultCount?: number;
+  modelCallCount?: number;
+  errorMetadata?: JsonRecord;
+  auditMetadata?: JsonRecord;
 };
 
 export const BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX = 'blocked-important-issue';
@@ -398,4 +430,67 @@ export async function recordFleetGraphRun(
   );
 
   return requireFirstRow(result.rows);
+}
+
+export async function startFleetGraphWorkerTick(
+  input: { instanceId: string; deadlineAt: Date },
+  db: QueryRunner = pool
+): Promise<FleetGraphWorkerTick> {
+  const result = await db.query<FleetGraphWorkerTickRow>(
+    `INSERT INTO fleetgraph_worker_ticks (instance_id, status, deadline_at)
+     VALUES ($1, 'running', $2)
+     RETURNING *`,
+    [input.instanceId, input.deadlineAt]
+  );
+
+  return requireFirstRow(result.rows);
+}
+
+export async function heartbeatFleetGraphWorkerTick(
+  tickId: string,
+  db: QueryRunner = pool
+): Promise<FleetGraphWorkerTick | null> {
+  const result = await db.query<FleetGraphWorkerTickRow>(
+    `UPDATE fleetgraph_worker_ticks
+        SET heartbeat_at = NOW()
+      WHERE id = $1
+        AND status = 'running'
+      RETURNING *`,
+    [tickId]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function completeFleetGraphWorkerTick(
+  input: CompleteFleetGraphWorkerTickInput,
+  db: QueryRunner = pool
+): Promise<FleetGraphWorkerTick | null> {
+  const result = await db.query<FleetGraphWorkerTickRow>(
+    `UPDATE fleetgraph_worker_ticks
+        SET status = $2,
+            completed_at = NOW(),
+            heartbeat_at = NOW(),
+            workspace_count = COALESCE($3, workspace_count),
+            detector_decision_count = COALESCE($4, detector_decision_count),
+            result_count = COALESCE($5, result_count),
+            model_call_count = COALESCE($6, model_call_count),
+            error_metadata = COALESCE($7::jsonb, error_metadata),
+            audit_metadata = COALESCE($8::jsonb, audit_metadata)
+      WHERE id = $1
+        AND status = 'running'
+      RETURNING *`,
+    [
+      input.tickId,
+      input.status,
+      input.workspaceCount ?? null,
+      input.detectorDecisionCount ?? null,
+      input.resultCount ?? null,
+      input.modelCallCount ?? null,
+      input.errorMetadata ? jsonParam(input.errorMetadata) : null,
+      input.auditMetadata ? jsonParam(input.auditMetadata) : null,
+    ]
+  );
+
+  return result.rows[0] ?? null;
 }
