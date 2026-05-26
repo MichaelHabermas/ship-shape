@@ -1,3 +1,4 @@
+// Verifies capability authorization for sessions, API tokens, and setup principals.
 import { describe, expect, it, vi } from 'vitest';
 import { authorize } from './capabilities.js';
 import type { Principal } from './principal.js';
@@ -25,6 +26,15 @@ const tokenPrincipal: Principal = {
   workspaceId: 'workspace-1',
   isSuperAdmin: false,
   scopes: ['documents:read'],
+};
+
+const workspaceAdminTokenPrincipal: Principal = {
+  kind: 'api_token',
+  tokenId: 'token-admin',
+  userId: 'user-1',
+  workspaceId: 'workspace-1',
+  isSuperAdmin: false,
+  scopes: ['admin:workspace'],
 };
 
 const governanceTokenPrincipal: Principal = {
@@ -104,6 +114,42 @@ describe('security capabilities', () => {
     expect(decision).toMatchObject({
       allowed: true,
       reason: 'allowed',
+    });
+  });
+
+  it('allows admin-scoped API tokens to use workspace admin capabilities', async () => {
+    const decision = await authorize(dbWithRows([{ role: 'admin' }]), workspaceAdminTokenPrincipal, {
+      resource: 'workspace',
+      action: 'admin',
+    });
+
+    expect(decision).toMatchObject({
+      allowed: true,
+      reason: 'allowed',
+    });
+  });
+
+  it('denies admin-scoped API tokens without workspace admin membership', async () => {
+    const decision = await authorize(dbWithRows([{ role: 'member' }]), workspaceAdminTokenPrincipal, {
+      resource: 'workspace',
+      action: 'admin',
+    });
+
+    expect(decision).toMatchObject({
+      allowed: false,
+      reason: 'not_workspace_admin',
+    });
+  });
+
+  it('denies read-only API tokens for workspace admin capabilities', async () => {
+    const decision = await authorize(dbWithRows([]), tokenPrincipal, {
+      resource: 'workspace',
+      action: 'admin',
+    });
+
+    expect(decision).toMatchObject({
+      allowed: false,
+      reason: 'token_scope_denied',
     });
   });
 

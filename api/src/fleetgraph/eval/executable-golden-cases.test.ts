@@ -231,6 +231,33 @@ describe('FleetGraph executable golden cases', () => {
     }));
   });
 
+  it('executes dismiss finding as FleetGraph-only status update', async () => {
+    const testCase = requireGoldenCase('fg-dismiss-finding');
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: testCase.mode,
+      trigger: {
+        type: 'dismiss_finding',
+        findingId,
+        dismissedBy: userId,
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(port.saveFinding).not.toHaveBeenCalled();
+    expect(port.dismissFinding).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      findingId,
+      dismissedBy: userId,
+    }));
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'dismiss',
+      tokenMetadata: { modelCalls: 0 },
+    }));
+  });
+
   it('executes restricted-source hidden case as no-safe-output', async () => {
     const testCase = requireGoldenCase('fg-restricted-source-hidden');
     const port = persistence();

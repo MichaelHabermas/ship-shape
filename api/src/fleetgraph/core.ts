@@ -89,7 +89,7 @@ export async function runFleetGraph(
       case 'resolve_finding':
         return runResolveFinding(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'resolve_finding' }> }, persistence, triggerReason);
       case 'dismiss_finding':
-        return runDismissFinding(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'dismiss_finding' }> }, persistence, triggerReason);
+        return runDismissFinding(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'dismiss_finding' }> }, persistence, triggerReason, options);
       case 'error':
         return runError(input, persistence, triggerReason, input.trigger.message);
     }
@@ -413,8 +413,22 @@ async function runResolveFinding(
 async function runDismissFinding(
   input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'dismiss_finding' }> },
   persistence: FleetGraphPersistencePort,
-  triggerReason: string
+  triggerReason: string,
+  options: FleetGraphCoreOptions
 ): Promise<FleetGraphResult> {
+  const finding = await persistence.getFinding(input.workspaceId, input.trigger.findingId);
+  if (!finding) return runError(input, persistence, triggerReason, 'FleetGraph finding not found');
+
+  const { evidence, output } = await visibleOutputForFinding({
+    principal: input.principal,
+    workspaceId: input.workspaceId,
+    finding,
+    db: options.db,
+  });
+  if (output.noSafeOutput) {
+    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output);
+  }
+
   return runStatusOnly(input, persistence, triggerReason, 'dismiss', () =>
     persistence.dismissFinding({
       workspaceId: input.workspaceId,
@@ -432,6 +446,8 @@ async function runStatusOnly(
   mutate: () => Promise<FleetGraphFinding | null>
 ): Promise<FleetGraphResult> {
   const finding = await mutate();
+  if (!finding) return runError(input, persistence, triggerReason, 'FleetGraph finding not found');
+
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision,
@@ -441,11 +457,11 @@ async function runStatusOnly(
     input,
     triggerReason,
     decision,
-    findingId: finding?.id ?? null,
-    sourceIssueId: finding?.source_issue_id ?? null,
-    sourceSprintId: finding?.source_sprint_id ?? null,
-    dedupeKey: finding?.dedupe_key ?? null,
-    output: { status: finding?.status ?? 'not_found' },
+    findingId: finding.id,
+    sourceIssueId: finding.source_issue_id,
+    sourceSprintId: finding.source_sprint_id,
+    dedupeKey: finding.dedupe_key,
+    output: { status: finding.status },
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},

@@ -88,17 +88,17 @@ export async function filterEvidenceForActor(input: {
   const sourceIssueVisible = issueDecision.allowed;
   const sourceSprintVisible = sprintDecision.allowed;
 
-  if (!sourceIssueVisible) {
+  if (!sourceIssueVisible || !sourceSprintVisible) {
     return {
       sourceIssueVisible,
       sourceSprintVisible,
       noSafeOutput: true,
       evidence: [{
         kind: 'restricted',
-        claim: 'FleetGraph cannot safely explain this finding because the source issue is not visible to the current user.',
+        claim: 'FleetGraph cannot safely explain this finding because its source documents are not visible to the current user.',
         visibility: 'restricted',
         visibleFields: [],
-        redactionReason: issueDecision.reason,
+        redactionReason: !sourceIssueVisible ? issueDecision.reason : sprintDecision.reason,
       }],
     };
   }
@@ -107,18 +107,19 @@ export async function filterEvidenceForActor(input: {
     sourceIssueVisible,
     sourceSprintVisible,
     noSafeOutput: false,
-    evidence: input.evidence.map((item) => {
+    evidence: input.evidence.flatMap<FleetGraphEvidenceItem>((item) => {
+      if (item.kind === 'dedupe') return [];
       if (item.sourceType === 'sprint' && !sourceSprintVisible) {
-        return {
+        return [{
           kind: 'restricted',
           claim: 'Some sprint context is restricted for the current user.',
           visibility: 'restricted',
           visibleFields: [],
           redactionReason: sprintDecision.reason,
-        } satisfies FleetGraphEvidenceItem;
+        } satisfies FleetGraphEvidenceItem];
       }
 
-      return { ...item, visibility: 'actor_visible' };
+      return [{ ...item, visibility: 'actor_visible' }];
     }),
   };
 }

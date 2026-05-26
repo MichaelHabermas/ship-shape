@@ -195,3 +195,51 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** When actor-filtered FleetGraph evidence returns `noSafeOutput`, public routes must not serialize finding IDs, source issue/week IDs, dedupe keys, or trace details tied to the hidden source. Restricted refine requests record a quiet exit and do not update `fleetgraph_findings.draft_content`.
 
 **Consequence:** Hidden-source FleetGraph state cannot be enumerated through sprint-scoped list calls, explain responses, or refine responses. Future API/UI work must preserve this all-or-nothing privacy boundary instead of returning partial placeholders that leak hidden document existence.
+
+## D025 - FleetGraph Manual Run And Dismiss Are Admin-Gated
+
+**Date:** 2026-05-26
+
+**Decision:** FleetGraph dismiss is a shared state-changing action and requires workspace admin authority before `runFleetGraph` mutates finding status. The manual run API is also workspace-admin-only, current-workspace scoped, and disabled in production unless `FLEETGRAPH_MANUAL_RUN_API_ENABLED=true`.
+
+**Consequence:** Any source-visible member may read/explain/refine within the existing bounded rules, but only admins can remove shared actionable findings or trigger the validation/demo detector-to-graph path. The read-only manual detector CLI remains separate from the stateful manual run API.
+
+## D026 - FleetGraph Admin APIs Fail Closed On Scope, Membership, And Invalid Dates
+
+**Date:** 2026-05-26
+
+**Decision:** FleetGraph admin APIs accept `admin:workspace` API-token scope only when the token principal also resolves to workspace-admin membership. Manual-run `today` input is strict real `YYYY-MM-DD`; impossible dates are rejected instead of normalized. Dismiss status updates that affect no active row return not-found/error through the shared graph run path.
+
+**Consequence:** Bearer tokens cannot bypass workspace membership, manual-run validation cannot silently scan the wrong day, and stale/repeated dismiss attempts cannot produce false success telemetry.
+
+## D027 - FleetGraph API Contract Owns Safe Serialization
+
+**Date:** 2026-05-26
+
+**Decision:** FleetGraph route response schemas and serializers live in `api/src/fleetgraph/api-contract.ts`. Routes remain auth, validation, and orchestration shells. The contract boundary owns visible finding serialization, manual-run result serialization, trace allowlisting, no-safe-output omission, and not-found shaping.
+
+**Consequence:** API privacy behavior is tested at one boundary instead of being duplicated across routes. Restricted/no-safe-output finding actions must be indistinguishable from missing findings and must not serialize finding ids, source ids, dedupe keys, or restricted visible output.
+
+## D028 - FleetGraph Tick Runner Unifies Manual Paths
+
+**Date:** 2026-05-26
+
+**Decision:** Manual detector CLI and gated manual API now share `runFleetGraphTick`. `dryRun` mode performs detector/quiet/dedupe planning only and reports no Ship or FleetGraph mutation. `execute` mode sends detector decisions through the shared `runFleetGraph` path and writes only FleetGraph findings/runs.
+
+**Consequence:** The manual API is not a second FleetGraph implementation. Demo/validation execution stays aligned with future worker behavior, while the CLI remains the no-write inspection tool. Manual-run API responses report only safe serialized detector result counts, so restricted/no-safe-output decisions do not leak raw hidden-source counts.
+
+## D029 - Golden Cases Include Dismiss As Executable Contract
+
+**Date:** 2026-05-26
+
+**Decision:** The dismiss golden case is now executed against `runFleetGraph`, proving status-only FleetGraph writes, no create/upsert path, zero model calls, and run recording through the shared core.
+
+**Consequence:** Future changes to dismissal must preserve W5 source truth: no Ship mutation, no model reasoning, no hidden-source mutation, and no user-visible claim that risk was accepted or source conditions were resolved.
+
+## D030 - Document Graph Counts Are Actor-Visible Counts
+
+**Date:** 2026-05-26
+
+**Decision:** Program/project/week child counts and issue estimate aggregates must pass the same actor visibility predicate as child rows. Program/project/week routes use `document-graph-visibility.ts` helper SQL instead of raw association counts for visible summaries.
+
+**Consequence:** Visible parents no longer reveal hidden child issue/week/project counts, state distributions, or aggregate estimates. Future graph summaries should add helper functions rather than inlining unfiltered `COUNT(*)` snippets.

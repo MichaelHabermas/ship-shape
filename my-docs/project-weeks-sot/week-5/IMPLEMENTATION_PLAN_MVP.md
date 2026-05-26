@@ -584,11 +584,13 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 5: API Surface And OpenAPI
 
-**Status:** In progress
+**Status:** Done
 
 **Goal:** Expose FleetGraph through authenticated, documented, capability-aware API routes.
 
-**Progress Note (2026-05-26):** Follow-up work after Epic 4 added executable golden cases and the first FleetGraph API surface: `GET /api/fleetgraph/findings`, `POST /api/fleetgraph/findings/:findingId/explain`, and `POST /api/fleetgraph/findings/:findingId/refine`. Routes call the shared `runFleetGraph`/visible-evidence boundary, serialize actor-filtered output, omit no-safe-output findings/IDs rather than returning partial hints, sanitize trace metadata before response, and are registered in OpenAPI. Dismiss and gated manual run endpoints remain not started.
+**Progress Note (2026-05-26):** Follow-up work after Epic 4 added executable golden cases and the first FleetGraph API surface: `GET /api/fleetgraph/findings`, `POST /api/fleetgraph/findings/:findingId/explain`, and `POST /api/fleetgraph/findings/:findingId/refine`. Routes call the shared `runFleetGraph`/visible-evidence boundary, serialize actor-filtered output, omit no-safe-output findings/IDs rather than returning partial hints, sanitize trace metadata before response, and are registered in OpenAPI. Final Epic 5 work added admin-gated dismiss and admin/env-gated manual run.
+
+**Closeout Note (2026-05-26):** Epic 5 is closed. FleetGraph API now exposes source-scoped finding reads, bounded explain/refine, admin-gated dismiss, and admin/env-gated manual run. All routes stay behind auth/CSRF, use the shared graph/evidence/capability boundary, serialize only actor-visible output, sanitize trace metadata, and are registered in OpenAPI/generated client artifacts. Verification review tightened the closeout by adding strict manual-run date validation, explicit dismiss `403` contract coverage, admin-token membership proof, and stale-dismiss not-found behavior.
 
 ### Slice 5.1: Add Route Shell And OpenAPI Registration
 
@@ -673,7 +675,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 5.5: Add Dismiss Route
 
-**Status:** In progress
+**Status:** Done
 
 **Do:**
 
@@ -688,9 +690,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Route test.
 
+**Implementation Note (2026-05-26):** Added `POST /api/fleetgraph/findings/:findingId/dismiss`. The route calls `runFleetGraph` with `dismiss_finding`, requires workspace admin authority before changing shared FleetGraph state, and the core re-checks actor-visible source evidence before mutation. Dismiss writes only `fleetgraph_findings` status/timestamps/user plus `fleetgraph_runs`; DB-backed route tests prove non-admin members cannot dismiss, restricted/private source details do not leak, and Ship source documents remain unchanged.
+
 ### Slice 5.6: Add Gated Manual Run Endpoint
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -705,9 +709,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Environment/authorization test.
 
+**Implementation Note (2026-05-26):** Added gated `POST /api/fleetgraph/manual-run`, backed by `runFleetGraphManualTick`. The endpoint is current-workspace scoped, requires workspace admin authorization, is disabled in production unless `FLEETGRAPH_MANUAL_RUN_API_ENABLED=true`, and exercises the real deterministic detector -> shared `runFleetGraph` proactive path. The read-only CLI detector remains separate.
+
 ### Slice 5.7: Prove API Security Boundary
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -723,6 +729,10 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 - Targeted route tests and OpenAPI check.
 
 **Implementation Note (2026-05-26):** Partial proof is in place for authenticated route wiring, bounded on-demand explain/refine, actor-visible response serialization, executable restricted-source golden case, trace sanitization, and OpenAPI parity. Remaining API security proof should cover unauthenticated/cross-workspace behavior with DB-backed route tests when dismiss/manual-run endpoints are added.
+
+**Closeout Note (2026-05-26):** Epic 5 API proof now covers route shell/OpenAPI, source-scoped reads, explain, refine, admin-gated dismiss, admin/env-gated manual run, CSRF/auth enforcement, restricted-source omission, no hidden identifier/excerpt leakage, no Ship source mutation on dismiss/refine, admin-token scope plus membership gating, strict manual-run calendar-date validation, stale dismiss not-found behavior, and generated OpenAPI/client parity. Verification included API type-check, focused FleetGraph/API tests, DB-backed FleetGraph route security tests against `ship_test_audit`, full API Vitest lane through the focused command, and OpenAPI generation.
+
+**Architecture Deepening Note (2026-05-26):** Follow-up hardening extracted FleetGraph API schemas and serializers to `api/src/fleetgraph/api-contract.ts`, making the response contract the single safe-output boundary. Restricted/no-safe-output finding actions now return the same not-found shape as missing findings; manual-run restricted results omit finding ids, visible output, and raw detector counts. Golden-case execution now includes dismiss. Manual detector CLI and gated manual API share `runFleetGraphTick`, with explicit `dryRun` and `execute` modes. Detector quiet-exit SQL classifies malformed/missing sprint numbers with `IS DISTINCT FROM`. Program/project/week child counts and issue aggregate helpers now pass actor visibility through `document-graph-visibility.ts`. Routes remain thin auth/validation/orchestration shells.
 
 ## Epic 6: Worker Lifecycle
 

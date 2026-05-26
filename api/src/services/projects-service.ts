@@ -1,3 +1,4 @@
+// Project service owns project CRUD, rollups, and approval side effects.
 import { pool } from '../db/client.js';
 import {
   extractProjectFromRow,
@@ -10,6 +11,7 @@ import {
   type UserRow,
 } from '../db/projects-repository.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+import { visibleAssociatedDocumentCountSql } from './document-graph-visibility.js';
 import { checkDocumentCompleteness } from '../utils/extractHypothesis.js';
 import { logDocumentChange, syncProgramAssociation } from '../utils/document-crud.js';
 import {
@@ -76,12 +78,8 @@ export async function listProjects(
            d.converted_from_id,
            (d.properties->>'owner_id')::uuid as owner_id,
            u.name as owner_name, u.email as owner_email,
-           (SELECT COUNT(*) FROM documents s
-            JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'project'
-            WHERE s.document_type = 'sprint') as sprint_count,
-           (SELECT COUNT(*) FROM documents i
-            JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
-            WHERE i.document_type = 'issue') as issue_count,
+           (${visibleAssociatedDocumentCountSql('s', 'project', 'sprint', 'd', '$2', '$3')}) as sprint_count,
+           (${visibleAssociatedDocumentCountSql('i', 'project', 'issue', 'd', '$2', '$3')}) as issue_count,
            (${PROJECT_INFERRED_STATUS_SQL}) as inferred_status
     FROM documents d
     LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
@@ -114,12 +112,8 @@ export async function getProject(input: {
             d.converted_to_id, d.converted_from_id,
             (d.properties->>'owner_id')::uuid as owner_id,
             u.name as owner_name, u.email as owner_email,
-            (SELECT COUNT(*) FROM documents s
-             JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'project'
-             WHERE s.document_type = 'sprint') as sprint_count,
-            (SELECT COUNT(*) FROM documents i
-             JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
-             WHERE i.document_type = 'issue') as issue_count,
+            (${visibleAssociatedDocumentCountSql('s', 'project', 'sprint', 'd', '$3', '$4')}) as sprint_count,
+            (${visibleAssociatedDocumentCountSql('i', 'project', 'issue', 'd', '$3', '$4')}) as issue_count,
             (${PROJECT_INFERRED_STATUS_SQL}) as inferred_status
      FROM documents d
      LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
@@ -371,18 +365,14 @@ export async function updateProject(input: {
             d.converted_from_id,
             (d.properties->>'owner_id')::uuid as owner_id,
             u.name as owner_name, u.email as owner_email,
-            (SELECT COUNT(*) FROM documents s
-             JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'project'
-             WHERE s.document_type = 'sprint') as sprint_count,
-            (SELECT COUNT(*) FROM documents i
-             JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'project'
-             WHERE i.document_type = 'issue') as issue_count,
+            (${visibleAssociatedDocumentCountSql('s', 'project', 'sprint', 'd', '$3', '$4')}) as sprint_count,
+            (${visibleAssociatedDocumentCountSql('i', 'project', 'issue', 'd', '$3', '$4')}) as issue_count,
             (${PROJECT_INFERRED_STATUS_SQL}) as inferred_status
      FROM documents d
      LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
      LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
-     WHERE d.id = $1 AND d.document_type = 'project'`,
-    [projectId]
+     WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'`,
+    [projectId, workspaceId, userId, isAdmin]
   );
 
   const updatedProject = result.rows[0];

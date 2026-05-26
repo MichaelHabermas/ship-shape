@@ -1,3 +1,4 @@
+// Week routes expose sprint document workflows and visibility-filtered rollups.
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ import {
   asApprovalRecord,
 } from '../../utils/approval-workflow.js';
 import { broadcastToUser } from '../../collaboration/index.js';
+import { visibleAssociatedIssueCountSql } from '../../services/document-graph-visibility.js';
 import { requireWeekRead, requireWeekWrite } from './week-access.js';
 import type {
   SprintRow,
@@ -35,6 +37,14 @@ import type {
 } from './types.js';
 
 const router = Router();
+
+function visibleSprintIssueCountSql(
+  userIdParam: string,
+  isAdminParam: string,
+  issueFilter = 'TRUE'
+): string {
+  return visibleAssociatedIssueCountSql('i', 'sprint', 'd', userIdParam, isAdminParam, issueFilter);
+}
 
 router.get('/lookup-person', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -276,15 +286,9 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
               (SELECT op.properties->>'reports_to' FROM documents op WHERE d.properties->>'owner_id' IS NOT NULL AND op.id = (d.properties->>'owner_id')::uuid AND op.document_type = 'person' AND op.workspace_id = d.workspace_id) as owner_reports_to,
               $5::timestamp as workspace_sprint_start_date,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' = 'done') as completed_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' IN ('in_progress', 'in_review')) as started_count,
+              (${visibleSprintIssueCountSql('$3', '$4')}) as issue_count,
+              (${visibleSprintIssueCountSql('$3', '$4', "i.properties->>'state' = 'done'")}) as completed_count,
+              (${visibleSprintIssueCountSql('$3', '$4', "i.properties->>'state' IN ('in_progress', 'in_review')")}) as started_count,
               (SELECT COUNT(*) > 0 FROM documents pl WHERE pl.parent_id = d.id AND pl.document_type = 'weekly_plan') as has_plan,
               (SELECT COUNT(*) > 0 FROM documents rt
                JOIN document_associations rda ON rda.document_id = rt.id AND rda.related_id = d.id AND rda.relationship_type = 'sprint'
@@ -342,15 +346,9 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
               (SELECT op.properties->>'reports_to' FROM documents op WHERE d.properties->>'owner_id' IS NOT NULL AND op.id = (d.properties->>'owner_id')::uuid AND op.document_type = 'person' AND op.workspace_id = d.workspace_id) as owner_reports_to,
               w.sprint_start_date as workspace_sprint_start_date,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' = 'done') as completed_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' IN ('in_progress', 'in_review')) as started_count,
+              (${visibleSprintIssueCountSql('$3', '$4')}) as issue_count,
+              (${visibleSprintIssueCountSql('$3', '$4', "i.properties->>'state' = 'done'")}) as completed_count,
+              (${visibleSprintIssueCountSql('$3', '$4', "i.properties->>'state' IN ('in_progress', 'in_review')")}) as started_count,
               (SELECT COUNT(*) > 0 FROM documents pl WHERE pl.parent_id = d.id AND pl.document_type = 'weekly_plan') as has_plan,
               (SELECT COUNT(*) > 0 FROM documents rt
                JOIN document_associations rda ON rda.document_id = rt.id AND rda.related_id = d.id AND rda.relationship_type = 'sprint'
@@ -390,7 +388,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     // Take snapshot when: sprint is active (start_date reached) AND no snapshot exists yet
     if (workspaceStartDate && isSprintActive(sprintNumber, workspaceStartDate) && !props.planned_issue_ids) {
       // Take the snapshot
-      const sprintId = id as string; // Safe: Express route param is always a string
+      const sprintId = id;
       const plannedIssueIds = await takeSprintSnapshot(sprintId);
       const snapshotTakenAt = new Date().toISOString();
 
@@ -772,15 +770,9 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
               (SELECT op.properties->>'reports_to' FROM documents op WHERE d.properties->>'owner_id' IS NOT NULL AND op.id = (d.properties->>'owner_id')::uuid AND op.document_type = 'person' AND op.workspace_id = d.workspace_id) as owner_reports_to,
               w.sprint_start_date as workspace_sprint_start_date,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' = 'done') as completed_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' IN ('in_progress', 'in_review')) as started_count,
+              (${visibleSprintIssueCountSql('$2', '$3')}) as issue_count,
+              (${visibleSprintIssueCountSql('$2', '$3', "i.properties->>'state' = 'done'")}) as completed_count,
+              (${visibleSprintIssueCountSql('$2', '$3', "i.properties->>'state' IN ('in_progress', 'in_review')")}) as started_count,
               (SELECT COUNT(*) > 0 FROM documents pl WHERE pl.parent_id = d.id AND pl.document_type = 'weekly_plan') as has_plan,
               (SELECT COUNT(*) > 0 FROM documents rt
                JOIN document_associations rda ON rda.document_id = rt.id AND rda.related_id = d.id AND rda.relationship_type = 'sprint'
@@ -796,8 +788,8 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
-       WHERE d.id = $1 AND d.document_type = 'sprint'`,
-      [id]
+	       WHERE d.id = $1 AND d.document_type = 'sprint'`,
+      [id, userId, isAdmin]
     );
 
     const updatedRow = result.rows[0];
@@ -839,7 +831,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
     }
 
     const actor = getActor(req);
-    const auth = await requireWeekLifecycleAuthority(pool, actor, id as string, 'start_week');
+    const auth = await requireWeekLifecycleAuthority(pool, actor, id, 'start_week');
     if (!auth.authorized) {
       res.status(403).json({ error: auth.error });
       return;
@@ -861,7 +853,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
     }
 
     // Take the scope snapshot
-    const sprintId = id as string;
+    const sprintId = id;
     const plannedIssueIds = await takeSprintSnapshot(sprintId);
     const snapshotTakenAt = new Date().toISOString();
 
@@ -879,7 +871,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
     );
 
     // Broadcast celebration when sprint is started
-    broadcastToUser(userId, 'accountability:updated', { type: 'week_start', targetId: id as string });
+    broadcastToUser(userId, 'accountability:updated', { type: 'week_start', targetId: id });
 
     // Re-query to get full sprint with owner info
     const result = await pool.query<SprintRow>(
@@ -889,15 +881,9 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
               (SELECT op.properties->>'reports_to' FROM documents op WHERE d.properties->>'owner_id' IS NOT NULL AND op.id = (d.properties->>'owner_id')::uuid AND op.document_type = 'person' AND op.workspace_id = d.workspace_id) as owner_reports_to,
               w.sprint_start_date as workspace_sprint_start_date,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' = 'done') as completed_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' IN ('in_progress', 'in_review')) as started_count,
+              (${visibleSprintIssueCountSql('$2', '$3')}) as issue_count,
+              (${visibleSprintIssueCountSql('$2', '$3', "i.properties->>'state' = 'done'")}) as completed_count,
+              (${visibleSprintIssueCountSql('$2', '$3', "i.properties->>'state' IN ('in_progress', 'in_review')")}) as started_count,
               (SELECT COUNT(*) > 0 FROM documents pl WHERE pl.parent_id = d.id AND pl.document_type = 'weekly_plan') as has_plan,
               (SELECT COUNT(*) > 0 FROM documents rt
                JOIN document_associations rda ON rda.document_id = rt.id AND rda.related_id = d.id AND rda.relationship_type = 'sprint'
@@ -913,8 +899,8 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
-       WHERE d.id = $1 AND d.document_type = 'sprint'`,
-      [id]
+	       WHERE d.id = $1 AND d.document_type = 'sprint'`,
+      [id, userId, isAdmin]
     );
 
     const sprintRow = result.rows[0];
@@ -938,8 +924,6 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = await requireWeekWrite(req, res, req.params.id);
     if (!id) return;
-    const { workspaceId } = getAuthenticatedRouteContext(req);
-
     // Remove sprint associations from issues via document_associations
     await pool.query(
       `DELETE FROM document_associations WHERE related_id = $1 AND relationship_type = 'sprint'`,
@@ -1001,7 +985,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     if (data.plan !== undefined && data.plan !== currentProps.plan) {
       // Initialize history if doesn't exist
       const currentHistory = Array.isArray(currentProps.plan_history)
-        ? [...currentProps.plan_history]
+        ? [...(currentProps.plan_history as unknown[])]
         : [];
 
       // If there was a previous plan, add it to history
@@ -1050,7 +1034,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     // Log changes to document_history for approval workflow tracking
     if (data.plan !== undefined && data.plan !== currentProps.plan) {
       await logDocumentChange(
-        id as string,
+        id,
         'plan',
         currentProps.plan || null,
         data.plan || null,
@@ -1062,7 +1046,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
       const newCriteria = data.success_criteria ? JSON.stringify(data.success_criteria) : null;
       if (oldCriteria !== newCriteria) {
         await logDocumentChange(
-          id as string,
+          id,
           'success_criteria',
           oldCriteria,
           newCriteria,
@@ -1073,7 +1057,7 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
 
     // Broadcast celebration when plan is added
     if (data.plan && data.plan.trim() !== '') {
-      broadcastToUser(userId, 'accountability:updated', { type: 'weekly_plan', targetId: id as string });
+      broadcastToUser(userId, 'accountability:updated', { type: 'weekly_plan', targetId: id });
     }
 
     // Re-query to get full sprint with owner info
@@ -1084,15 +1068,9 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
               (SELECT op.properties->>'reports_to' FROM documents op WHERE d.properties->>'owner_id' IS NOT NULL AND op.id = (d.properties->>'owner_id')::uuid AND op.document_type = 'person' AND op.workspace_id = d.workspace_id) as owner_reports_to,
               w.sprint_start_date as workspace_sprint_start_date,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' = 'done') as completed_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' IN ('in_progress', 'in_review')) as started_count,
+              (${visibleSprintIssueCountSql('$2', '$3')}) as issue_count,
+              (${visibleSprintIssueCountSql('$2', '$3', "i.properties->>'state' = 'done'")}) as completed_count,
+              (${visibleSprintIssueCountSql('$2', '$3', "i.properties->>'state' IN ('in_progress', 'in_review')")}) as started_count,
               (SELECT COUNT(*) > 0 FROM documents pl WHERE pl.parent_id = d.id AND pl.document_type = 'weekly_plan') as has_plan,
               (SELECT COUNT(*) > 0 FROM documents rt
                JOIN document_associations rda ON rda.document_id = rt.id AND rda.related_id = d.id AND rda.relationship_type = 'sprint'
@@ -1108,8 +1086,8 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
        LEFT JOIN documents p ON prog_da.related_id = p.id
        JOIN workspaces w ON d.workspace_id = w.id
        LEFT JOIN users u ON (d.properties->'assignee_ids'->>0)::uuid = u.id
-       WHERE d.id = $1 AND d.document_type = 'sprint'`,
-      [id]
+	       WHERE d.id = $1 AND d.document_type = 'sprint'`,
+      [id, userId, isAdmin]
     );
 
     const updatedRow = result.rows[0];

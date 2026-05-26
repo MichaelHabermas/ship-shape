@@ -1,3 +1,4 @@
+// Document graph visibility helpers keep child rows and counts actor-filtered.
 import type { Pool, PoolClient } from 'pg';
 import type { DocumentType } from '@ship/shared';
 import {
@@ -51,6 +52,44 @@ export function visibleAssociatedDocumentCountSql(
            AND da_${childAlias}.relationship_type = '${relationshipType}'
          WHERE ${childAlias}.workspace_id = ${parentAlias}.workspace_id
            AND ${childAlias}.document_type = '${childType}'
+           AND ${visibleDocumentPredicate(childAlias, userIdParam, isAdminParam)}`;
+}
+
+export function visibleAssociatedIssueCountSql(
+  childAlias: string,
+  relationshipType: 'program' | 'project' | 'sprint',
+  parentAlias: string,
+  userIdParam: string,
+  isAdminParam: string,
+  issueFilter = 'TRUE'
+): string {
+  return `SELECT COUNT(*)::int
+          FROM documents ${childAlias}
+          JOIN document_associations da_${childAlias}
+            ON da_${childAlias}.document_id = ${childAlias}.id
+           AND da_${childAlias}.related_id = ${parentAlias}.id
+           AND da_${childAlias}.relationship_type = '${relationshipType}'
+         WHERE ${childAlias}.workspace_id = ${parentAlias}.workspace_id
+           AND ${childAlias}.document_type = 'issue'
+           AND (${issueFilter})
+           AND ${visibleDocumentPredicate(childAlias, userIdParam, isAdminParam)}`;
+}
+
+export function visibleAssociatedIssueEstimateSumSql(
+  childAlias: string,
+  relationshipType: 'program' | 'project' | 'sprint',
+  parentAlias: string,
+  userIdParam: string,
+  isAdminParam: string
+): string {
+  return `SELECT COALESCE(SUM((${childAlias}.properties->>'estimate')::numeric), 0)
+          FROM documents ${childAlias}
+          JOIN document_associations da_${childAlias}
+            ON da_${childAlias}.document_id = ${childAlias}.id
+           AND da_${childAlias}.related_id = ${parentAlias}.id
+           AND da_${childAlias}.relationship_type = '${relationshipType}'
+         WHERE ${childAlias}.workspace_id = ${parentAlias}.workspace_id
+           AND ${childAlias}.document_type = 'issue'
            AND ${visibleDocumentPredicate(childAlias, userIdParam, isAdminParam)}`;
 }
 
