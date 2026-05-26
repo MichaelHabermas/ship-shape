@@ -206,9 +206,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 2: Deterministic Candidate Detection
 
-**Status:** Started
+**Status:** Done
 
 **Goal:** Prove the proactive detector with cheap, testable SQL before any model reasoning.
+
+**Closeout Note (2026-05-25):** Epic 2 is closed. FleetGraph now has deterministic detector semantics before any graph/model reasoning: active-week resolution reuses Ship's `workspaces.sprint_start_date` + `properties.sprint_number` model, positive candidates come from SQL over real Ship issue/week/iteration tables, quiet exits are classified and can be recorded with zero model calls/cost when the worker/graph invokes the recorder, open findings dedupe through the locked `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}` key, and a read-only manual command (`pnpm fleetgraph:detector -- --workspace-id <uuid>`) avoids waiting for the two-minute worker loop. Verification covered docs strict check, type-check, build, diff hygiene, focused FleetGraph tests, DB-backed positive/negative detector controls, DB-backed quiet-exit classification, DB-backed dedupe proof, DB-backed manual no-write proof, manual command smoke against a migrated disposable DB, and the full API suite.
 
 ### Slice 2.1: Confirm Active-Week Semantics
 
@@ -271,7 +273,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Targeted detector tests proving zero model calls.
 
-**Implementation Note (2026-05-25):** Added quiet-exit classification in `api/src/fleetgraph/detector.ts` for inactive week, no blocker, medium/low priority, done/cancelled, missing fallback owner/assignee, duplicate open finding, and the placeholder insufficient-visible-evidence bucket. Quiet exits are computed through deterministic SQL after resolving the shared current week, with no graph/model boundary. Added `recordBlockedImportantIssueQuietExitRun` to persist nonzero quiet-exit summaries as `fleetgraph_runs.decision = 'quiet_exit'` with `token_metadata.modelCalls = 0` and `cost_metadata.modelCostUsd = 0`, without creating findings or mutating Ship records. Duplicate detection is classification only here; suppression/update behavior remains slice 2.4.
+**Implementation Note (2026-05-25):** Added quiet-exit classification in `api/src/fleetgraph/detector.ts` for inactive week, no blocker, medium/low priority, done/cancelled, missing fallback owner/assignee, duplicate open finding, and the placeholder insufficient-visible-evidence bucket. Quiet exits are computed through deterministic SQL after resolving the shared current week, with no graph/model boundary. Added `recordBlockedImportantIssueQuietExitRun` to persist quiet-exit summaries, including all-zero summaries, as `fleetgraph_runs.decision = 'quiet_exit'` with `token_metadata.modelCalls = 0` and `cost_metadata.modelCostUsd = 0`, without creating findings or mutating Ship records. Duplicate quiet-exit detection uses the same locked dedupe key semantics as positive dedupe planning. Duplicate detection is classification only here; suppression/update behavior remains slice 2.4.
 
 ### Slice 2.4: Implement Dedupe
 
@@ -291,11 +293,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Dedupe test or manual two-run proof.
 
-**Implementation Note (2026-05-25):** Added `planBlockedImportantIssueDedupeDecisions` in `api/src/fleetgraph/detector.ts`. It uses the exact locked dedupe key already attached to candidates, reads open FleetGraph findings by `workspace_id` and `dedupe_key`, and returns `create_finding` when no active finding exists or `update_finding` with the existing finding id when one does. The persistence upsert/partial unique index remains the final database guard, but the detector now exposes the duplicate path before any graph create path can accidentally treat a rerun as a fresh finding. Evidence: detector unit tests for create/update/no-candidate paths and DB-backed rerun proof that one existing open finding produces an `update_finding` decision and leaves one open row.
+**Implementation Note (2026-05-25):** Added the safer consumer boundary `detectBlockedImportantIssueDecisions` in `api/src/fleetgraph/detector.ts`. The batch boundary exposes only `create_finding` / `update_finding` decisions, each carrying its candidate; raw candidate selection and dedupe planning stay private to the detector module. Dedupe uses the exact locked key already attached to candidates, reads open FleetGraph findings by `workspace_id` and `dedupe_key`, and returns `update_finding` with the existing finding id when one exists. The persistence upsert/partial unique index remains the final database guard, but future graph/worker code should consume the decision batch instead of raw candidate rows. Evidence: detector unit tests for create/update/no-candidate paths, decision-batch tests, and DB-backed rerun proof that one existing open finding produces an `update_finding` decision and leaves one open row.
 
 ### Slice 2.5: Add Manual Detector Invocation
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -309,6 +311,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Test helper, dev/admin path, or local script output.
+
+**Implementation Note (2026-05-25):** Added a read-only manual detector path: `pnpm fleetgraph:detector -- --workspace-id <uuid> [--today YYYY-MM-DD] [--limit N]`. The root script delegates to the API package script, which runs `api/src/scripts/fleetgraph-detector.ts` and summarizes positive candidates, dedupe decisions, and quiet exits without enabling the worker, creating findings, recording runs, mutating Ship/FleetGraph records, or calling a model. `--today` is strict UTC `YYYY-MM-DD` input. The reusable module is `api/src/fleetgraph/manual-detector.ts`; focused tests pin `modelCalls: 0`, `mutatesShip: false`, and `mutatesFleetGraph: false`, with DB-backed proof that manual execution writes no Ship, finding, or run rows.
 
 ## Epic 3: FleetGraph Eval Harness
 

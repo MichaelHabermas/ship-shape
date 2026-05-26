@@ -122,6 +122,8 @@ export type RecordFleetGraphRunInput = {
   completedAt?: Date | null;
 };
 
+export const BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX = 'blocked-important-issue';
+
 function mapFinding(row: FleetGraphFindingRow): FleetGraphFinding {
   return {
     ...row,
@@ -138,7 +140,7 @@ export function blockedImportantIssueDedupeKey(input: {
   issueId: string;
   sprintId: string;
 }): string {
-  return `blocked-important-issue:${input.workspaceId}:${input.issueId}:${input.sprintId}`;
+  return `${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:${input.workspaceId}:${input.issueId}:${input.sprintId}`;
 }
 
 export async function getOpenFleetGraphFindingByDedupeKey(

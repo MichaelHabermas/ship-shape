@@ -72,6 +72,12 @@ Seeds the database with test data.
 - Idempotent: safe to run multiple times
 - Script: `api/src/db/seed.ts`
 
+### `pnpm fleetgraph:detector -- --workspace-id <uuid> [--today YYYY-MM-DD] [--limit N]`
+Runs the deterministic FleetGraph detector manually without enabling the worker.
+- Read-only: does not create findings, record runs, mutate Ship source records, or call a model
+- Use against a migrated database; missing FleetGraph tables means migrations have not run
+- `--workspace-id` must be a UUID; `--today` is parsed as a strict UTC calendar date for repeatable active-week checks
+
 ---
 
 ## Test Commands

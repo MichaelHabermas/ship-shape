@@ -17,6 +17,7 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "search:reindex": "tsx src/scripts/reindex-search.ts",
+    "fleetgraph:detector": "tsx src/scripts/fleetgraph-detector.ts",
     "db:orphan-check": "tsx src/db/scripts/orphan-diagnostic.ts",
     "openapi:generate": "tsx src/scripts/generate-openapi.ts",
     "mcp": "tsx src/mcp/server.ts"

@@ -1,6 +1,10 @@
 // FleetGraph deterministic detectors select candidate work before graph reasoning.
 import { pool } from '../db/client.js';
-import { blockedImportantIssueDedupeKey, recordFleetGraphRun } from './persistence.js';
+import {
+  BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX,
+  blockedImportantIssueDedupeKey,
+  recordFleetGraphRun,
+} from './persistence.js';
 import { resolveFleetGraphCurrentWeek } from './current-week.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
@@ -46,6 +50,10 @@ export type BlockedImportantIssueDedupeDecision = {
   existingFindingId: string | null;
 };
 
+export type BlockedImportantIssueDecisionBatch = {
+  decisions: BlockedImportantIssueDedupeDecision[];
+};
+
 function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
   return {
     ...row,
@@ -57,7 +65,7 @@ function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantI
   };
 }
 
-export async function findBlockedImportantIssueCandidates(input: {
+async function findBlockedImportantIssueCandidates(input: {
   workspaceId: string;
   db?: QueryRunner;
   today?: Date;
@@ -80,7 +88,10 @@ export async function findBlockedImportantIssueCandidates(input: {
        NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
        s.id AS sprint_id,
        s.title AS sprint_title,
-       (s.properties->>'sprint_number')::int AS sprint_number,
+       CASE
+         WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
+         ELSE NULL
+       END AS sprint_number,
        COALESCE(
          NULLIF(s.properties->>'owner_id', ''),
          NULLIF(s.properties->'assignee_ids'->>0, '')
@@ -112,7 +123,10 @@ export async function findBlockedImportantIssueCandidates(input: {
        AND i.archived_at IS NULL
        AND COALESCE(i.properties->>'state', 'backlog') NOT IN ('done', 'cancelled')
        AND i.properties->>'priority' IN ('urgent', 'high')
-       AND (s.properties->>'sprint_number')::int = $2
+       AND CASE
+             WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
+             ELSE NULL
+           END = $2
        AND (
          NULLIF(i.properties->>'assignee_id', '') IS NOT NULL
          OR NULLIF(s.properties->>'owner_id', '') IS NOT NULL
@@ -134,15 +148,27 @@ export async function findBlockedImportantIssueCandidates(input: {
   return result.rows.map(mapCandidate);
 }
 
-export async function planBlockedImportantIssueDedupeDecisions(input: {
+function uniqueCandidatesByDedupeKey(
+  candidates: BlockedImportantIssueCandidate[]
+): BlockedImportantIssueCandidate[] {
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    if (seen.has(candidate.dedupeKey)) return false;
+    seen.add(candidate.dedupeKey);
+    return true;
+  });
+}
+
+async function planBlockedImportantIssueDedupeDecisions(input: {
   workspaceId: string;
   candidates: BlockedImportantIssueCandidate[];
   db?: QueryRunner;
 }): Promise<BlockedImportantIssueDedupeDecision[]> {
-  if (input.candidates.length === 0) return [];
+  const candidates = uniqueCandidatesByDedupeKey(input.candidates);
+  if (candidates.length === 0) return [];
 
   const db = input.db ?? pool;
-  const dedupeKeys = [...new Set(input.candidates.map((candidate) => candidate.dedupeKey))];
+  const dedupeKeys = candidates.map((candidate) => candidate.dedupeKey);
   const result = await db.query<{ id: string; dedupe_key: string }>(
     `SELECT id, dedupe_key
        FROM fleetgraph_findings
@@ -155,7 +181,7 @@ export async function planBlockedImportantIssueDedupeDecisions(input: {
     result.rows.map((row) => [row.dedupe_key, row.id])
   );
 
-  return input.candidates.map((candidate) => {
+  return candidates.map((candidate) => {
     const existingFindingId = openFindingIdByDedupeKey.get(candidate.dedupeKey) ?? null;
     return {
       decision: existingFindingId ? 'update_finding' : 'create_finding',
@@ -163,6 +189,24 @@ export async function planBlockedImportantIssueDedupeDecisions(input: {
       existingFindingId,
     };
   });
+}
+
+export async function detectBlockedImportantIssueDecisions(input: {
+  workspaceId: string;
+  db?: QueryRunner;
+  today?: Date;
+  limit?: number;
+}): Promise<BlockedImportantIssueDecisionBatch> {
+  const candidates = await findBlockedImportantIssueCandidates(input);
+  const decisions = await planBlockedImportantIssueDedupeDecisions({
+    workspaceId: input.workspaceId,
+    candidates,
+    db: input.db,
+  });
+
+  return {
+    decisions,
+  };
 }
 
 export async function findBlockedImportantIssueQuietExits(input: {
@@ -185,7 +229,10 @@ export async function findBlockedImportantIssueQuietExits(input: {
          COALESCE(i.properties->>'priority', 'medium') AS issue_priority,
          NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
          s.id AS sprint_id,
-         (s.properties->>'sprint_number')::int AS sprint_number,
+         CASE
+           WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
+           ELSE NULL
+         END AS sprint_number,
          COALESCE(
            NULLIF(s.properties->>'owner_id', ''),
            NULLIF(s.properties->'assignee_ids'->>0, '')
@@ -212,8 +259,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
        ) latest_iteration ON TRUE
        LEFT JOIN fleetgraph_findings blocked_finding
          ON blocked_finding.workspace_id = i.workspace_id
-        AND blocked_finding.source_issue_id = i.id
-        AND blocked_finding.source_sprint_id = s.id
+        AND blocked_finding.dedupe_key = CONCAT($3::text, ':', i.workspace_id, ':', i.id, ':', s.id)
         AND blocked_finding.status IN ('open', 'needs_confirmation', 'error')
        WHERE i.workspace_id = $1
          AND i.document_type = 'issue'
@@ -277,7 +323,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
      UNION ALL
      SELECT 'insufficient_visible_evidence', '0'
      ORDER BY reason`,
-    [input.workspaceId, currentSprintNumber]
+    [input.workspaceId, currentSprintNumber, BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX]
   );
 
   return result.rows.map((row) => ({
@@ -291,16 +337,13 @@ export async function recordBlockedImportantIssueQuietExitRun(input: {
   quietExits: FleetGraphDetectorQuietExit[];
   db?: QueryRunner;
 }): Promise<void> {
-  const nonzeroQuietExits = input.quietExits.filter((quietExit) => quietExit.count > 0);
-  if (nonzeroQuietExits.length === 0) return;
-
   await recordFleetGraphRun({
     workspaceId: input.workspaceId,
     mode: 'proactive',
     triggerReason: 'blocked-important-issue-detector',
     decision: 'quiet_exit',
     outputSnapshot: {
-      quietExits: nonzeroQuietExits,
+      quietExits: input.quietExits,
     },
     tokenMetadata: {
       modelCalls: 0,
