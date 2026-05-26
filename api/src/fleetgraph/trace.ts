@@ -40,7 +40,7 @@ export function sanitizeFleetGraphTraceMetadata(metadata: JsonRecord): JsonRecor
     sanitized.nodePath = metadata.nodePath.filter((node): node is string => typeof node === 'string');
   }
   if (typeof metadata.traceId === 'string') sanitized.traceId = metadata.traceId;
-  if (typeof metadata.traceUrl === 'string') sanitized.traceUrl = metadata.traceUrl;
+  if (typeof metadata.traceUrl === 'string' && isSafeTraceUrl(metadata.traceUrl)) sanitized.traceUrl = metadata.traceUrl;
   if (typeof metadata.failureCategory === 'string') sanitized.failureCategory = metadata.failureCategory;
 
   return sanitized;
@@ -70,4 +70,8 @@ export function traceMetadataForResponse(
 
 function isTraceMode(value: unknown): value is FleetGraphRunMode {
   return value === 'proactive' || value === 'on_demand';
+}
+
+function isSafeTraceUrl(value: string): boolean {
+  return value.startsWith('/') && !value.startsWith('//');
 }

@@ -5,6 +5,8 @@ import {
   evidenceFromDetectorCandidate,
   filterEvidenceForActor,
   getFindingForGraph,
+  recommendedActionForVisibleOutput,
+  recipientRationaleForRole,
   visibleOutputForFinding,
 } from './evidence.js';
 import { generateProactiveCreateText } from './model.js';
@@ -156,12 +158,12 @@ async function runDetectorDecision(
     title: packet.title,
     summary: packet.summary,
     evidenceSnapshot: evidenceBundle.evidence,
-    recommendedAction: packet.recommendedAction,
+    recommendedAction: recommendedActionForVisibleOutput(packet.recommendedAction),
     draftContent: packet.draftContent,
     proposedRecipient: packet.proposedRecipient,
     humanGate: packet.humanGate,
     traceMetadata: traceMetadataJson(traceMetadata),
-    runMetadata: { detectorDecision: detectorDecision.decision },
+    runMetadata: { detectorDecision: detectorDecision.decision, uncertaintyNotes: packet.uncertaintyNotes },
   };
   const finding = await persistence.saveFinding(findingInput);
   const visibleOutput = visibleOutputFromPacket(packet, evidenceBundle.evidence);
@@ -574,6 +576,11 @@ function visibleOutputFromPacket(
   return {
     title: packet.title,
     summary: packet.summary,
+    severity: packet.severity,
+    confidence: packet.confidence,
+    recommendedAction: packet.recommendedAction,
+    recipientRationale: recipientRationaleForRole(packet.proposedRecipient.role),
+    uncertaintyNotes: packet.uncertaintyNotes,
     evidence,
     humanGate: packet.humanGate,
     draftContent: packet.draftContent,

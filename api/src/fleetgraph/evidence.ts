@@ -4,7 +4,7 @@ import { pool } from '../db/client.js';
 import { authorize } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
 import type { BlockedImportantIssueCandidate } from './detector.js';
-import { getFleetGraphFindingById, type FleetGraphFinding } from './persistence.js';
+import { getFleetGraphFindingById, type FleetGraphFinding, type JsonRecord } from './persistence.js';
 import type { FleetGraphEvidenceItem, FleetGraphVisibleOutput } from './types.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
@@ -171,9 +171,36 @@ export async function visibleOutputForFinding(input: {
     output: {
       title: input.finding.title,
       summary: input.finding.summary,
+      severity: input.finding.severity,
+      confidence: input.finding.confidence,
+      recommendedAction: recommendedActionForVisibleOutput(input.finding.recommended_action),
+      recipientRationale: recipientRationaleForRole(input.finding.proposed_recipient.role),
+      uncertaintyNotes: Array.isArray(input.finding.run_metadata.uncertaintyNotes)
+        ? input.finding.run_metadata.uncertaintyNotes.filter((note): note is string => typeof note === 'string')
+        : undefined,
       evidence: evidenceBundle.evidence,
       humanGate: input.finding.human_gate,
       draftContent: input.finding.draft_content,
     },
   };
+}
+
+export function recipientRationaleForRole(role: unknown): string | undefined {
+  if (role === 'issue_assignee') {
+    return 'Recipient is the issue assignee, falling back to the sprint owner.';
+  }
+  if (role === 'sprint_owner') {
+    return 'Recipient is the sprint owner because the issue has no assignee.';
+  }
+  return undefined;
+}
+
+export function recommendedActionForVisibleOutput(action: JsonRecord | undefined): JsonRecord | undefined {
+  if (!action) return undefined;
+  const safe: JsonRecord = {};
+  for (const key of ['label', 'text', 'summary']) {
+    const value = action[key];
+    if (typeof value === 'string' && value.trim()) safe[key] = value;
+  }
+  return Object.keys(safe).length > 0 ? safe : undefined;
 }

@@ -17,9 +17,20 @@ export const FleetGraphEvidenceSchema = z.object({
   redactionReason: z.string().optional(),
 }).openapi('FleetGraphEvidence');
 
+export const FleetGraphRecommendedActionSchema = z.object({
+  label: z.string().optional(),
+  text: z.string().optional(),
+  summary: z.string().optional(),
+}).openapi('FleetGraphRecommendedAction');
+
 export const FleetGraphVisibleOutputSchema = z.object({
   title: z.string(),
   summary: z.string(),
+  severity: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  confidence: z.number().optional(),
+  recommendedAction: FleetGraphRecommendedActionSchema.optional(),
+  recipientRationale: z.string().optional(),
+  uncertaintyNotes: z.array(z.string()).optional(),
   evidence: z.array(FleetGraphEvidenceSchema),
   humanGate: z.record(z.unknown()),
   draftContent: z.record(z.unknown()).optional(),
@@ -75,15 +86,34 @@ export const fleetGraphErrorSchemas = {
   error: ErrorResponseSchema,
 };
 
+function recommendedActionForResponse(action: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!action) return undefined;
+  const safe: Record<string, unknown> = {};
+  for (const key of ['label', 'text', 'summary']) {
+    const value = action[key];
+    if (typeof value === 'string' && value.trim()) safe[key] = value;
+  }
+  return Object.keys(safe).length > 0 ? safe : undefined;
+}
+
 export function serializeFleetGraphVisibleOutput(
   output: FleetGraphVisibleOutput
 ): z.infer<typeof FleetGraphVisibleOutputSchema> {
   return {
-    ...output,
+    title: output.title,
+    summary: output.summary,
+    severity: output.severity,
+    confidence: output.confidence,
+    recommendedAction: recommendedActionForResponse(output.recommendedAction),
+    recipientRationale: output.recipientRationale,
+    uncertaintyNotes: output.uncertaintyNotes,
     evidence: output.evidence.map((item) => ({
       ...item,
       visibleFields: [...item.visibleFields],
     })),
+    humanGate: output.humanGate,
+    draftContent: output.draftContent,
+    noSafeOutput: output.noSafeOutput,
   };
 }
 
