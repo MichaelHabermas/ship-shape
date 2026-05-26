@@ -255,6 +255,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Implementation Note (2026-05-25):** `api/src/fleetgraph/current-week.ts` + positive candidate SQL in `api/src/fleetgraph/detector.ts` (urgent/high, active week, latest blocker text, dedupe key on each row).
 
+**Correction Note (2026-05-26):** Slice 2.2 proved detector behavior through tests, but did not satisfy the stronger PRD requirement that the demo database contain discoverable blocked-work data. Current `ship_dev` has urgent/high active-week issues but zero non-empty `issue_iterations.blockers_encountered` rows, so a live manual detector run finds no positive candidates. Epic 8 must close this by adding seeded blocked-work cases and a UI path for logging issue-level blockers.
+
 ### Slice 2.3: Implement Quiet Exits
 
 **Status:** Done
@@ -961,6 +963,42 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Status:** Not started
 
 **Goal:** Make the MVP reproducible for local validation, timed proof, trace capture, and reviewer navigation.
+
+### Slice 8.0: Restore Blocked-Work Input Path
+
+**Status:** Not started
+
+**Problem:**
+
+FleetGraph detects blocked work from `issue_iterations.blockers_encountered`, but current dev/demo seed data has no non-empty blocker rows, and the web UI does not expose a clear issue-level progress/blocker path that writes to `POST /api/issues/:id/iterations`.
+
+**Do:**
+
+- Add repeatable demo seed data with at least two urgent/high active-week issues whose latest issue iteration has non-empty `blockers_encountered`.
+- Add negative controls:
+  - urgent/high active-week issue with no blocker.
+  - medium/low active-week issue with blocker.
+  - done/cancelled urgent/high issue with blocker.
+  - inactive-week urgent/high issue with blocker.
+- Add or expose an issue-detail UI path for logging an issue iteration with:
+  - `status`
+  - `what_attempted`
+  - `blockers_encountered`
+- Ensure the UI writes to `POST /api/issues/:id/iterations`, not standups or issue body text.
+- Ensure FleetGraph detector sees UI-created blocker rows without special casing.
+
+**Done Means:**
+
+- A normal user can mark an issue as blocked from the UI by logging an issue iteration with blocker text.
+- Fresh demo/local data produces FleetGraph positive candidates without manual SQL.
+- The read-only detector command returns expected positive candidates and quiet-exit controls.
+
+**Evidence:**
+
+- Seed/demo inspection showing non-empty `issue_iterations.blockers_encountered`.
+- Manual detector output showing `decisionCount >= 2`.
+- Browser/API proof that creating a blocker from the issue UI creates an `issue_iterations` row.
+- Focused tests for the UI/API path and detector candidate visibility.
 
 ### Slice 8.1: Add Repeatable Demo Setup
 
