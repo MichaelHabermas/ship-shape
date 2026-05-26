@@ -316,13 +316,15 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 3: FleetGraph Eval Harness
 
-**Status:** Not started
+**Status:** Done
 
 **Goal:** Make FleetGraph measurable before graph behavior is built.
 
+**Closeout Note (2026-05-26):** Epic 3 is closed. Graph contract lives in `api/src/fleetgraph/eval/` (see slice notes below). Verification: focused eval Vitest and root type-check.
+
 ### Slice 3.1: Define Golden Case Format
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -337,9 +339,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case file or documented case schema.
 
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/eval/types.ts` with the golden-case contract: mode, input state, expected decision, required evidence, forbidden claims, mutation/model/trace boundaries, labels, and rubric expectations. Decisions align to existing FleetGraph run decisions.
+
 ### Slice 3.2: Add Golden Cases
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -354,9 +358,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case list committed to the repo or test fixture set.
 
+**Implementation Note (2026-05-26):** Added 15 cases in `api/src/fleetgraph/eval/golden-cases.ts`, covering proactive create/update/resolve, inactive-week, medium/low, done/cancelled, no-blocker, existing-finding explain, draft refinement, restricted neighbor/source/recipient evidence, human-gated action preparation, dismiss, and context-fetch error behavior.
+
 ### Slice 3.3: Add Scenario Labels And Coverage Matrix
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -371,9 +377,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Coverage matrix in test/docs form.
 
+**Implementation Note (2026-05-26):** Added labels by mode, branch, action class, evidence quality, permission state, and difficulty, plus `api/src/fleetgraph/eval/coverage.ts` with required MVP branch coverage and case IDs. Eval tests now enforce mode/branch label consistency.
+
 ### Slice 3.4: Add Decision-Packet Rubric
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -388,13 +396,15 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Rubric file or test-support document with thresholds.
 
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/eval/rubric.ts` with deterministic 0-4 thresholds for groundedness, recipient fit, uncertainty honesty, draft usefulness, action safety, and human-gate clarity. Groundedness, action safety, and human-gate clarity are required at the highest threshold for human-gated decisions.
+
 ### Slice 3.5: Add Trace Review Taxonomy
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
-- Use first-failure categories: detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, and trace/cost metadata.
+- Use first-failure categories: detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, trace safety, and trace/cost metadata.
 
 **Done Means:**
 
@@ -403,6 +413,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Taxonomy documented beside the eval pack.
+
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/eval/trace-taxonomy.ts` with first-failure categories for detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, trace safety, and trace/cost metadata.
 
 ## Epic 4: Shared FleetGraph Core
 
@@ -1143,4 +1155,4 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Final Handoff Standard
 
-Before human handoff, `IMPLEMENTATION_PLAN_MVP.md` should show the current slice statuses, `FLEETGRAPH.md` should contain trace links/test cases once implementation evidence exists, `MEMORY.md` should be updated only for durable high-utility learnings, no code file should violate the summary-comment rule, no unrelated code should be changed, no staging/unstaging/commit should happen without explicit instruction, and verification should be reported honestly.
+Before human handoff, `IMPLEMENTATION_PLAN_MVP.md` should show the current slice statuses, root submission deliverables (`PRESEARCH.md` and `FLEETGRAPH.md`) should be present or deliberately synced from `my-docs/project-weeks-sot/week-5/`, `FLEETGRAPH.md` should contain trace links/test cases once implementation evidence exists, `MEMORY.md` should be updated only for durable high-utility learnings, no code file should violate the summary-comment rule, no unrelated code should be changed, no staging/unstaging/commit should happen without explicit instruction, and verification should be reported honestly.

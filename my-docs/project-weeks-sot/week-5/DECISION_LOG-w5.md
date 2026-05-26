@@ -131,3 +131,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph graph/worker/manual consumers should use `detectBlockedImportantIssueDecisions`, which returns only dedupe decisions. Each decision carries the candidate it applies to. Raw candidate selection and dedupe planning remain private detector-module implementation details.
 
 **Consequence:** Future graph integration has one safer boundary to consume and cannot accidentally receive raw positive candidates without their dedupe decision.
+
+## D017 - FleetGraph Eval Pack Is The Graph Contract
+
+**Date:** 2026-05-26
+
+**Decision:** FleetGraph graph behavior should be implemented against the local eval pack in `api/src/fleetgraph/eval/`. The pack defines golden cases, scenario labels, coverage requirements, a decision-packet rubric, model/trace boundaries, and trace review taxonomy before LangGraph nodes are wired.
+
+**Consequence:** Epic 4 should satisfy the eval pack instead of inventing graph behavior ad hoc. New graph branches should add or update golden cases and coverage first, especially when changing user-visible claims, permission filtering, human gates, model-call boundaries, shared trace data, or mutation boundaries.

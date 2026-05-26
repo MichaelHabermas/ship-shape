@@ -155,6 +155,7 @@ Places where a small, focused change creates outsized value.
 - FleetGraph quiet-exit invariant (2026-05-25): negative detector paths are deterministic SQL/run metadata with zero model calls and zero model cost. Quiet exits may write `fleetgraph_runs`, but must not create findings or mutate Ship records.
 - FleetGraph dedupe invariant (2026-05-25): graph/worker code should consume `detectBlockedImportantIssueDecisions`, not raw candidate rows. Raw candidate/planner functions stay private to the detector module; the decision batch exposes only `create_finding`/`update_finding` decisions, each carrying its candidate. Existing active findings become `update_finding`, not a second open finding.
 - FleetGraph manual detector command (2026-05-25): use `pnpm fleetgraph:detector -- --workspace-id <uuid> [--today YYYY-MM-DD] [--limit N]` for read-only candidate/quiet/dedupe validation without worker startup, Ship mutation, FleetGraph mutation, run recording, or model calls. `--today` is strict `YYYY-MM-DD`; invalid calendar dates must not be normalized.
+- FleetGraph eval invariant (2026-05-26): implement graph behavior against `api/src/fleetgraph/eval/` golden cases, coverage matrix, rubric, model/trace boundaries, and trace taxonomy. Add/update eval cases before changing graph branches, user-visible claims, permission filtering, human gates, model-call boundaries, trace data, or mutation boundaries.
 
 ## Sharp Edges
 

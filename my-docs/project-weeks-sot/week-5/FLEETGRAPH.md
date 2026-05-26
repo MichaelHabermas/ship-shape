@@ -158,9 +158,11 @@ Each graph run records:
 - Mode: `proactive` or `on_demand`.
 - Trigger reason.
 - Source object type and ID.
-- Decision: `quiet_exit`, `create_finding`, `update_finding`, `explain`, `draft_action`, or `needs_confirmation`.
+- Decision: `quiet_exit`, `create_finding`, `update_finding`, `explain`, `refine_draft`, `needs_confirmation`, `dismiss`, `resolve`, or `error`.
 - Finding ID when applicable.
 - Trace ID or URL.
+
+Shared reviewer traces must use seeded/demo-safe data or redacted metadata. Trace links must not expose raw prompts, raw completions, hidden document IDs/titles, private excerpts, contact details, session tokens, or user tokens.
 
 Required trace evidence:
 
