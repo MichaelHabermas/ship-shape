@@ -55,7 +55,7 @@ function deterministicDraft(candidate: BlockedImportantIssueCandidate): string {
   return `Can you confirm the current unblock path for ${candidate.issue_title}? FleetGraph found this blocker in the active week: ${candidate.blocker_text}`;
 }
 
-function deterministicProactiveCreateText(candidate: BlockedImportantIssueCandidate): FleetGraphProactiveCreateModelResult {
+export function deterministicProactiveCreateText(candidate: BlockedImportantIssueCandidate): FleetGraphProactiveCreateModelResult {
   return {
     summary: deterministicSummary(candidate),
     draftMessage: deterministicDraft(candidate),

@@ -99,7 +99,7 @@ export function documentCommandCapability(command: { type: DocumentCommandType }
 }
 
 function actorFromPrincipal(principal: Principal): DocumentActor | null {
-  if (principal.kind === 'setup') return null;
+  if (principal.kind === 'setup' || principal.kind === 'fleetgraph_system') return null;
   return {
     userId: principal.userId,
     workspaceId: principal.workspaceId,
@@ -220,6 +220,37 @@ async function readableDocumentDecision(
   return decision(principal, true, 'allowed', document);
 }
 
+async function fleetGraphSystemDocumentDecision(
+  db: QueryRunner,
+  principal: Extract<Principal, { kind: 'fleetgraph_system' }>,
+  capability: Extract<Capability, { resource: 'document' }>
+): Promise<CapabilityDecision> {
+  if (capability.action !== 'read') {
+    return decision(principal, false, 'not_workspace_admin');
+  }
+
+  const result = await db.query<AccessibleDocument>(
+    `SELECT d.id, d.title, d.document_type, d.workspace_id, d.created_by,
+            d.visibility, d.properties, d.archived_at, d.deleted_at
+       FROM documents d
+      WHERE d.id = $1
+        AND d.workspace_id = $2
+        AND d.deleted_at IS NULL
+        AND ($3::text IS NULL OR d.document_type::text = $3)
+        AND ($4::boolean = TRUE OR d.archived_at IS NULL)`,
+    [
+      capability.documentId,
+      principal.workspaceId,
+      'expectedType' in capability ? capability.expectedType ?? null : null,
+      'includeArchived' in capability ? capability.includeArchived === true : false,
+    ]
+  );
+  const document = result.rows[0];
+  if (!document) return decision(principal, false, 'document_not_found');
+
+  return decision(principal, true, 'allowed', document);
+}
+
 export async function authorize(
   db: QueryRunner,
   principal: Principal,
@@ -232,6 +263,25 @@ export async function authorize(
 
   const tokenDenied = ensureTokenScope(principal, capability);
   if (tokenDenied) return tokenDenied;
+
+  if (principal.kind === 'fleetgraph_system') {
+    if (capability.resource === 'workspace') {
+      return decision(
+        principal,
+        capability.action === 'read',
+        capability.action === 'read' ? 'allowed' : 'not_workspace_admin'
+      );
+    }
+    if (capability.resource === 'document') {
+      if (capability.action !== 'read') return decision(principal, false, 'not_workspace_admin');
+      if (!capability.documentId) return decision(principal, true, 'allowed');
+      return fleetGraphSystemDocumentDecision(db, principal, capability);
+    }
+    if (capability.resource === 'collaboration') {
+      return decision(principal, false, 'not_workspace_admin');
+    }
+    return decision(principal, false, 'not_workspace_admin');
+  }
 
   const actor = actorFromPrincipal(principal);
   if (!actor) return decision(principal, false, 'anonymous');

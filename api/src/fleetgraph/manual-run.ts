@@ -29,6 +29,7 @@ export async function runFleetGraphManualTick(input: RunFleetGraphManualInput): 
     principal: input.principal,
     today: input.today,
     limit: input.limit,
+    triggerReason: 'manual-run',
     db: input.db,
     graphOptions: input.graphOptions,
   });
