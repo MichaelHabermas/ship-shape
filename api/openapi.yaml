@@ -6312,6 +6312,15 @@ components:
       required:
         - success
         - data
+    FleetGraphRecommendedAction:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+        summary:
+          type: string
     FleetGraphEvidence:
       type: object
       properties:
@@ -6355,6 +6364,23 @@ components:
           type: string
         summary:
           type: string
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        confidence:
+          type: number
+        recommendedAction:
+          $ref: "#/components/schemas/FleetGraphRecommendedAction"
+        recipientRationale:
+          type: string
+        uncertaintyNotes:
+          type: array
+          items:
+            type: string
         evidence:
           type: array
           items:
