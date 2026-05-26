@@ -1,3 +1,4 @@
+// Capability authorization maps principals and scopes to workspace/document decisions.
 import type { Pool, PoolClient } from 'pg';
 import type { BelongsToType, DocumentType } from '@ship/shared';
 import {
@@ -118,7 +119,9 @@ function decision(
 function scopeAllows(scopes: ApiTokenScope[], capability: Capability): boolean {
   if (scopes.includes('legacy:full')) return true;
 
-  if (capability.resource === 'workspace') return capability.action === 'read';
+  if (capability.resource === 'workspace') {
+    return capability.action === 'read' || scopes.includes('admin:workspace');
+  }
   if (capability.resource === 'api_token') return false;
   if (capability.resource === 'setup') return false;
 

@@ -1,3 +1,4 @@
+// Route capability helpers centralize document ID guards and authorization responses.
 import type { Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import {
@@ -5,8 +6,11 @@ import {
   capabilityDenialStatus,
   type Capability,
   type CapabilityDecision,
+  type DocumentCapabilityAction,
+  type DocumentCapabilityEnforce,
 } from './capabilities.js';
 import { principalFromRequest } from './principal.js';
+import type { DocumentType } from '@ship/shared';
 
 const DOCUMENT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -57,17 +61,37 @@ export async function requireDocumentCapability(
   return decision;
 }
 
+export async function requireDocument(
+  req: Request,
+  res: Response,
+  input: {
+    type: DocumentType;
+    action: DocumentCapabilityAction;
+    id: string;
+    enforce?: DocumentCapabilityEnforce;
+    notFoundMessage?: string;
+  }
+): Promise<CapabilityDecision | null> {
+  return requireDocumentCapability(
+    req,
+    res,
+    {
+      resource: 'document',
+      action: input.action,
+      documentId: input.id,
+      expectedType: input.type,
+      ...(input.enforce ? { enforce: input.enforce } : {}),
+    },
+    input.notFoundMessage ?? 'Not found'
+  );
+}
+
 export async function requireIssueRead(
   req: Request,
   res: Response,
   issueId: string
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    { resource: 'document', action: 'read', documentId: issueId, expectedType: 'issue' },
-    'Issue not found'
-  );
+  return requireDocument(req, res, { type: 'issue', action: 'read', id: issueId, notFoundMessage: 'Issue not found' });
 }
 
 export async function requireProjectRead(
@@ -75,12 +99,7 @@ export async function requireProjectRead(
   res: Response,
   projectId: string
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    { resource: 'document', action: 'read', documentId: projectId, expectedType: 'project' },
-    'Project not found'
-  );
+  return requireDocument(req, res, { type: 'project', action: 'read', id: projectId, notFoundMessage: 'Project not found' });
 }
 
 export async function requireProgramRead(
@@ -88,12 +107,7 @@ export async function requireProgramRead(
   res: Response,
   programId: string
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    { resource: 'document', action: 'read', documentId: programId, expectedType: 'program' },
-    'Program not found'
-  );
+  return requireDocument(req, res, { type: 'program', action: 'read', id: programId, notFoundMessage: 'Program not found' });
 }
 
 export async function requireSprintRead(
@@ -101,12 +115,7 @@ export async function requireSprintRead(
   res: Response,
   sprintId: string
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    { resource: 'document', action: 'read', documentId: sprintId, expectedType: 'sprint' },
-    'Week not found'
-  );
+  return requireDocument(req, res, { type: 'sprint', action: 'read', id: sprintId, notFoundMessage: 'Week not found' });
 }
 
 export async function requireSprintWrite(
@@ -114,12 +123,7 @@ export async function requireSprintWrite(
   res: Response,
   sprintId: string
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    { resource: 'document', action: 'write', documentId: sprintId, expectedType: 'sprint' },
-    'Week not found'
-  );
+  return requireDocument(req, res, { type: 'sprint', action: 'write', id: sprintId, notFoundMessage: 'Week not found' });
 }
 
 export async function requireIssueWrite(
@@ -128,18 +132,7 @@ export async function requireIssueWrite(
   issueId: string,
   enforce?: 'creator_or_admin'
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    {
-      resource: 'document',
-      action: 'write',
-      documentId: issueId,
-      expectedType: 'issue',
-      ...(enforce ? { enforce } : {}),
-    },
-    'Issue not found'
-  );
+  return requireDocument(req, res, { type: 'issue', action: 'write', id: issueId, enforce, notFoundMessage: 'Issue not found' });
 }
 
 export async function requirePersonRead(
@@ -147,12 +140,7 @@ export async function requirePersonRead(
   res: Response,
   personId: string
 ): Promise<CapabilityDecision | null> {
-  return requireDocumentCapability(
-    req,
-    res,
-    { resource: 'document', action: 'read', documentId: personId, expectedType: 'person' },
-    'Person not found'
-  );
+  return requireDocument(req, res, { type: 'person', action: 'read', id: personId, notFoundMessage: 'Person not found' });
 }
 
 export async function guardSprintAccess(

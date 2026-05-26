@@ -265,7 +265,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
      classified AS (
        SELECT 'inactive_week'::text AS reason
          FROM issue_week_context
-        WHERE sprint_number <> $2
+        WHERE sprint_number IS DISTINCT FROM $2
           AND issue_priority IN ('urgent', 'high')
           AND issue_state NOT IN ('done', 'cancelled')
           AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)

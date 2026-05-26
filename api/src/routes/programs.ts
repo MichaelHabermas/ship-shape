@@ -1,3 +1,4 @@
+// Program routes expose program documents and visibility-filtered child graph summaries.
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
@@ -8,7 +9,12 @@ import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { formatWireDate } from '../utils/format-wire-date.js';
-import { visibleAssociatedDocumentCountSql } from '../services/document-graph-visibility.js';
+import {
+  visibleAssociatedDocumentCountSql,
+  visibleAssociatedIssueCountSql,
+  visibleAssociatedIssueEstimateSumSql,
+  visibleDocumentPredicate,
+} from '../services/document-graph-visibility.js';
 
 const router = Router();
 
@@ -28,6 +34,7 @@ async function guardProgramRead(
 type ProgramProperties = {
   color?: string;
   emoji?: string | null;
+  prefix?: string;
   owner_id?: string | null;
   accountable_id?: string | null;
   consulted_ids?: string[];
@@ -552,12 +559,8 @@ router.get('/:id/projects', authMiddleware, async (req: Request, res: Response) 
       `SELECT d.id, d.title, d.properties, $1::uuid as program_id, d.archived_at, d.created_at, d.updated_at,
               (d.properties->>'owner_id')::uuid as owner_id,
               u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents s
-               JOIN document_associations sda ON sda.document_id = s.id AND sda.related_id = d.id AND sda.relationship_type = 'project'
-               WHERE s.document_type = 'sprint') as sprint_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'project'
-               WHERE i.document_type = 'issue') as issue_count
+              (${visibleAssociatedDocumentCountSql('s', 'project', 'sprint', 'd', '$2', '$3')}) as sprint_count,
+              (${visibleAssociatedDocumentCountSql('i', 'project', 'issue', 'd', '$2', '$3')}) as issue_count
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
        LEFT JOIN users u ON u.id = (d.properties->>'owner_id')::uuid
@@ -636,18 +639,10 @@ router.get('/:id/sprints', authMiddleware, async (req: Request, res: Response) =
     const result = await pool.query<ProgramSprintRow>(
       `SELECT d.id, d.title as name, d.properties,
               u.id as owner_id, u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' = 'done') as completed_count,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue' AND i.properties->>'state' IN ('in_progress', 'in_review')) as started_count,
-              (SELECT COALESCE(SUM((i.properties->>'estimate')::numeric), 0) FROM documents i
-               JOIN document_associations ida ON ida.document_id = i.id AND ida.related_id = d.id AND ida.relationship_type = 'sprint'
-               WHERE i.document_type = 'issue') as total_estimate_hours,
+              (${visibleAssociatedIssueCountSql('i', 'sprint', 'd', '$2', '$3')}) as issue_count,
+              (${visibleAssociatedIssueCountSql('i', 'sprint', 'd', '$2', '$3', "i.properties->>'state' = 'done'")}) as completed_count,
+              (${visibleAssociatedIssueCountSql('i', 'sprint', 'd', '$2', '$3', "i.properties->>'state' IN ('in_progress', 'in_review')")}) as started_count,
+              (${visibleAssociatedIssueEstimateSumSql('i', 'sprint', 'd', '$2', '$3')}) as total_estimate_hours,
               (SELECT COUNT(*) > 0 FROM documents p WHERE p.parent_id = d.id AND p.document_type = 'weekly_plan') as has_plan,
               (SELECT COUNT(*) > 0 FROM documents r WHERE r.parent_id = d.id AND r.document_type = 'weekly_retro') as has_retro,
               (SELECT created_at FROM documents p WHERE p.parent_id = d.id AND p.document_type = 'weekly_plan' LIMIT 1) as plan_created_at,
@@ -756,14 +751,15 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
       `SELECT d.document_type, COUNT(*) as count
        FROM documents d
        JOIN document_associations da ON da.document_id = d.id AND da.related_id = $1 AND da.relationship_type = 'program'
+       WHERE ${visibleDocumentPredicate('d', '$2', '$3')}
        GROUP BY d.document_type`,
-      [sourceId]
+      [sourceId, userId, isAdmin]
     );
 
     // Count direct child documents (parent_id pointing at source program)
     const childDocsResult = await pool.query<CountRow>(
-      `SELECT COUNT(*) as count FROM documents WHERE parent_id = $1`,
-      [sourceId]
+      `SELECT COUNT(*) as count FROM documents d WHERE d.parent_id = $1 AND ${visibleDocumentPredicate('d', '$2', '$3')}`,
+      [sourceId, userId, isAdmin]
     );
 
     const counts: Record<string, number> = {
@@ -781,8 +777,8 @@ router.get('/:id/merge-preview', authMiddleware, async (req: Request, res: Respo
 
     // Check for conflicts
     const conflicts: Array<{ type: string; message: string }> = [];
-    const sourcePrefix = sourceProgram.properties?.prefix;
-    const targetPrefix = targetProgram.properties?.prefix;
+    const sourcePrefix = typeof sourceProgram.properties?.prefix === 'string' ? sourceProgram.properties.prefix : null;
+    const targetPrefix = typeof targetProgram.properties?.prefix === 'string' ? targetProgram.properties.prefix : null;
     if (sourcePrefix && targetPrefix) {
       conflicts.push({
         type: 'prefix_conflict',
@@ -958,16 +954,12 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
       `SELECT d.id, d.title, d.properties, d.archived_at, d.created_at, d.updated_at,
               COALESCE((d.properties->>'owner_id')::uuid, d.created_by) as owner_id,
               u.name as owner_name, u.email as owner_email,
-              (SELECT COUNT(*) FROM documents i
-               JOIN document_associations da ON da.document_id = i.id AND da.related_id = d.id AND da.relationship_type = 'program'
-               WHERE i.document_type = 'issue') as issue_count,
-              (SELECT COUNT(*) FROM documents s
-               JOIN document_associations da ON da.document_id = s.id AND da.related_id = d.id AND da.relationship_type = 'program'
-               WHERE s.document_type = 'sprint') as sprint_count
+              (${visibleAssociatedDocumentCountSql('i', 'program', 'issue', 'd', '$2', '$3')}) as issue_count,
+              (${visibleAssociatedDocumentCountSql('s', 'program', 'sprint', 'd', '$2', '$3')}) as sprint_count
        FROM documents d
        LEFT JOIN users u ON u.id = COALESCE((d.properties->>'owner_id')::uuid, d.created_by)
        WHERE d.id = $1 AND d.document_type = 'program'`,
-      [targetId]
+      [targetId, userId, isAdmin]
     );
 
     res.json(extractProgramFromRow(requireFirstRow(result.rows)));
