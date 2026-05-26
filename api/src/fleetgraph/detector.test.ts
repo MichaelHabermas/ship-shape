@@ -153,7 +153,7 @@ describe('FleetGraph detector', () => {
       expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
       [workspaceId, [dedupeKey]]
     );
-    expect(decisions).toEqual([
+    expect(batch.decisions).toEqual([
       {
         decision: 'update_finding',
         candidate: expect.objectContaining({ issue_id: issueId }),
@@ -205,6 +205,14 @@ describe('FleetGraph detector', () => {
       workspaceId,
       db,
       today: new Date('2026-05-26T12:00:00Z'),
+    })).resolves.toEqual({
+      decisions: [
+        expect.objectContaining({
+          decision: 'create_finding',
+          candidate: expect.objectContaining({ issue_id: issueId }),
+          existingFindingId: null,
+        }),
+      ],
     });
 
     expect(decisions).toEqual([

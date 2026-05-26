@@ -50,6 +50,10 @@ export type BlockedImportantIssueDedupeDecision = {
   existingFindingId: string | null;
 };
 
+export type BlockedImportantIssueDecisionBatch = {
+  decisions: BlockedImportantIssueDedupeDecision[];
+};
+
 function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
   return {
     ...row,
@@ -315,7 +319,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
      UNION ALL
      SELECT 'insufficient_visible_evidence', '0'
      ORDER BY reason`,
-    [input.workspaceId, currentSprintNumber]
+    [input.workspaceId, currentSprintNumber, BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX]
   );
 
   return result.rows.map((row) => ({

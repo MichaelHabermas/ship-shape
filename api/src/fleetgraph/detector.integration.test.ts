@@ -189,7 +189,7 @@ describe('FleetGraph detector database query', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(decisions).toEqual([
+    expect(batch.decisions).toEqual([
       expect.objectContaining({
         decision: 'update_finding',
         existingFindingId: existingFinding.id,
