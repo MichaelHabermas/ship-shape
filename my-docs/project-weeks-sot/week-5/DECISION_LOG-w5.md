@@ -91,3 +91,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph resolves the current week through `api/src/fleetgraph/current-week.ts`, which reads `workspaces.sprint_start_date` and calls the shared `@ship/shared` sprint-time helper with an explicit current date. Detector code consumes the resolved `currentSprintNumber` instead of duplicating route-local date math.
 
 **Consequence:** Future FleetGraph proactive and on-demand paths should reuse this boundary. If Ship changes week-window calculation, update the shared helper rather than patching FleetGraph SQL independently.
+
+## D012 - FleetGraph Quiet Exits Are Deterministic Run Metadata
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph detector quiet exits are classified before graph/model reasoning. Nonzero quiet-exit summaries may be recorded as `fleetgraph_runs` rows with zero model calls and zero model cost, but they must not create findings or mutate Ship source records.
+
+**Consequence:** Negative detector paths remain reviewable without token spend. Duplicate open finding is only classified in slice 2.3; actual duplicate suppression/update behavior belongs to slice 2.4.

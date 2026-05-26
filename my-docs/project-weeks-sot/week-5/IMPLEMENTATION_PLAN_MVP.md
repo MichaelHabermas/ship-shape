@@ -255,7 +255,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 2.3: Implement Quiet Exits
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -270,6 +270,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Targeted detector tests proving zero model calls.
+
+**Implementation Note (2026-05-25):** Added quiet-exit classification in `api/src/fleetgraph/detector.ts` for inactive week, no blocker, medium/low priority, done/cancelled, missing fallback owner/assignee, duplicate open finding, and the placeholder insufficient-visible-evidence bucket. Quiet exits are computed through deterministic SQL after resolving the shared current week, with no graph/model boundary. Added `recordBlockedImportantIssueQuietExitRun` to persist nonzero quiet-exit summaries as `fleetgraph_runs.decision = 'quiet_exit'` with `token_metadata.modelCalls = 0` and `cost_metadata.modelCostUsd = 0`, without creating findings or mutating Ship records. Duplicate detection is classification only here; suppression/update behavior remains slice 2.4.
 
 ### Slice 2.4: Implement Dedupe
 

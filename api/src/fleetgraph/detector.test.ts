@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../test/pg-result.js';
 import {
   findBlockedImportantIssueCandidates,
+  findBlockedImportantIssueQuietExits,
+  recordBlockedImportantIssueQuietExitRun,
 } from './detector.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
@@ -82,5 +84,109 @@ describe('FleetGraph detector', () => {
         dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
       }),
     ]);
+  });
+
+  it('classifies quiet exits without invoking a model boundary', async () => {
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-18' }]))
+        .mockResolvedValueOnce(pgResult([
+          { reason: 'inactive_week', count: '1' },
+          { reason: 'no_blocker', count: '2' },
+          { reason: 'medium_low_priority', count: '3' },
+          { reason: 'done_or_cancelled', count: '4' },
+          { reason: 'missing_fallback_owner', count: '5' },
+          { reason: 'duplicate_open_finding', count: '6' },
+          { reason: 'insufficient_visible_evidence', count: '0' },
+        ])),
+    };
+
+    const quietExits = await findBlockedImportantIssueQuietExits({
+      workspaceId,
+      db,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+    const sql = db.query.mock.calls[1]?.[0] as string;
+
+    expect(db.query).toHaveBeenCalledTimes(2);
+    expect(sql).toContain('issue_week_context AS');
+    expect(sql).toContain('classified AS');
+    expect(sql).toContain('inactive_week');
+    expect(sql).toContain('no_blocker');
+    expect(sql).toContain('medium_low_priority');
+    expect(sql).toContain('done_or_cancelled');
+    expect(sql).toContain('missing_fallback_owner');
+    expect(sql).toContain('duplicate_open_finding');
+    expect(sql).toContain('insufficient_visible_evidence');
+    expect(sql).toContain('LEFT JOIN fleetgraph_findings');
+    expect(quietExits).toEqual([
+      { reason: 'inactive_week', count: 1 },
+      { reason: 'no_blocker', count: 2 },
+      { reason: 'medium_low_priority', count: 3 },
+      { reason: 'done_or_cancelled', count: 4 },
+      { reason: 'missing_fallback_owner', count: 5 },
+      { reason: 'duplicate_open_finding', count: 6 },
+      { reason: 'insufficient_visible_evidence', count: 0 },
+    ]);
+  });
+
+  it('records nonzero quiet exits as a zero-model run', async () => {
+    const db = {
+      query: vi.fn().mockResolvedValue(pgResult([{
+        id: '66666666-6666-4666-8666-666666666666',
+        workspace_id: workspaceId,
+        finding_id: null,
+        source_issue_id: null,
+        source_sprint_id: null,
+        mode: 'proactive',
+        trigger_reason: 'blocked-important-issue-detector',
+        decision: 'quiet_exit',
+        dedupe_key: null,
+        input_snapshot: {},
+        evidence_snapshot: [],
+        output_snapshot: {},
+        trace_metadata: {},
+        token_metadata: {},
+        cost_metadata: {},
+        error_metadata: {},
+        started_at: new Date(),
+        completed_at: new Date(),
+        created_at: new Date(),
+      }])),
+    };
+
+    await recordBlockedImportantIssueQuietExitRun({
+      workspaceId,
+      quietExits: [
+        { reason: 'no_blocker', count: 2 },
+        { reason: 'insufficient_visible_evidence', count: 0 },
+      ],
+      db,
+    });
+
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO fleetgraph_runs'),
+      expect.arrayContaining([
+        workspaceId,
+        'proactive',
+        'blocked-important-issue-detector',
+        'quiet_exit',
+        JSON.stringify({ quietExits: [{ reason: 'no_blocker', count: 2 }] }),
+        JSON.stringify({ modelCalls: 0 }),
+        JSON.stringify({ modelCostUsd: 0 }),
+      ])
+    );
+  });
+
+  it('does not record an all-zero quiet-exit summary', async () => {
+    const db = { query: vi.fn() };
+
+    await recordBlockedImportantIssueQuietExitRun({
+      workspaceId,
+      quietExits: [{ reason: 'insufficient_visible_evidence', count: 0 }],
+      db,
+    });
+
+    expect(db.query).not.toHaveBeenCalled();
   });
 });
