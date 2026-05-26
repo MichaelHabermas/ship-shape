@@ -206,9 +206,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 2: Deterministic Candidate Detection
 
-**Status:** Started
+**Status:** Done
 
 **Goal:** Prove the proactive detector with cheap, testable SQL before any model reasoning.
+
+**Closeout Note (2026-05-25):** Epic 2 is closed. FleetGraph now has deterministic detector semantics before any graph/model reasoning: active-week resolution reuses Ship's `workspaces.sprint_start_date` + `properties.sprint_number` model, positive candidates come from SQL over real Ship issue/week/iteration tables, quiet exits are classified and can be recorded with zero model calls/cost when the worker/graph invokes the recorder, open findings dedupe through the locked `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}` key, and a read-only manual command (`pnpm fleetgraph:detector -- --workspace-id <uuid>`) avoids waiting for the two-minute worker loop. Verification covered docs strict check, type-check, build, diff hygiene, focused FleetGraph tests, DB-backed positive/negative detector controls, DB-backed quiet-exit classification, DB-backed dedupe proof, DB-backed manual no-write proof, manual command smoke against a migrated disposable DB, and the full API suite.
 
 ### Slice 2.1: Confirm Active-Week Semantics
 
@@ -228,7 +230,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Code reference in implementation notes or test fixture setup.
 
-**Implementation Note (2026-05-25):** Confirmed existing Ship semantics before detector SQL. Active week is derived from `workspaces.sprint_start_date` and 7-day windows into the current `properties.sprint_number`; `api/src/routes/weeks/sprints.ts` computes `currentSprintNumber` and selects week documents with `document_type = 'sprint'` plus matching `properties->>'sprint_number'`. Issue membership in a week is `document_associations` with `relationship_type = 'sprint'`: week issue reads join `document_associations` on `document_id = issue.id` and `related_id = week.id`, issue list filtering uses the same `EXISTS` pattern, and bulk issue week updates call `syncAssociationOfTypeForDocuments(..., 'sprint', sprintId)`. Blocker signals for FleetGraph come from `issue_iterations.blockers_encountered`, inserted and listed by `api/src/services/issue-mutations-service.ts`. Detector slice 2.2 should reuse those semantics directly and must not add a FleetGraph-only active-week marker.
+**Implementation Note (2026-05-25):** Confirmed Ship active-week semantics (`workspaces.sprint_start_date`, `document_associations.relationship_type = 'sprint'`, `issue_iterations.blockers_encountered`). See `api/src/routes/weeks/sprints.ts` and `api/src/fleetgraph/current-week.ts`.
 
 ### Slice 2.2: Implement Positive Candidate Query
 
@@ -251,7 +253,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Targeted detector test or manual invocation with seeded data.
 
-**Implementation Note (2026-05-25):** Added the shared current-week boundary for FleetGraph in `api/src/fleetgraph/current-week.ts`, backed by `@ship/shared` `computeCurrentSprintNumber(..., today)` so detector code does not copy route-local week math. Added `api/src/fleetgraph/detector.ts` positive candidate query. It selects only `document_type = 'issue'` rows in the workspace, joins active week membership through `document_associations.relationship_type = 'sprint'`, requires the week document's `properties.sprint_number` to match the resolved current week, requires `priority` in `urgent/high`, excludes `done/cancelled`, requires issue assignee or week owner fallback, and requires the latest `issue_iterations` row to have non-empty `blockers_encountered`. Candidate rows include the locked dedupe key. Evidence: focused detector SQL/unit test and DB-backed integration test.
+**Implementation Note (2026-05-25):** `api/src/fleetgraph/current-week.ts` + positive candidate SQL in `api/src/fleetgraph/detector.ts` (urgent/high, active week, latest blocker text, dedupe key on each row).
 
 ### Slice 2.3: Implement Quiet Exits
 
@@ -271,7 +273,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Targeted detector tests proving zero model calls.
 
-**Implementation Note (2026-05-25):** Added quiet-exit classification in `api/src/fleetgraph/detector.ts` for inactive week, no blocker, medium/low priority, done/cancelled, missing fallback owner/assignee, duplicate open finding, and the placeholder insufficient-visible-evidence bucket. Quiet exits are computed through deterministic SQL after resolving the shared current week, with no graph/model boundary. Added `recordBlockedImportantIssueQuietExitRun` to persist nonzero quiet-exit summaries as `fleetgraph_runs.decision = 'quiet_exit'` with `token_metadata.modelCalls = 0` and `cost_metadata.modelCostUsd = 0`, without creating findings or mutating Ship records. Duplicate detection is classification only here; suppression/update behavior remains slice 2.4.
+**Implementation Note (2026-05-25):** Quiet-exit SQL + `recordBlockedImportantIssueQuietExitRun` in `api/src/fleetgraph/detector.ts` (zero model calls/cost, no Ship mutations).
 
 ### Slice 2.4: Implement Dedupe
 
@@ -291,11 +293,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Dedupe test or manual two-run proof.
 
-**Implementation Note (2026-05-25):** Added `planBlockedImportantIssueDedupeDecisions` in `api/src/fleetgraph/detector.ts`. It uses the exact locked dedupe key already attached to candidates, reads open FleetGraph findings by `workspace_id` and `dedupe_key`, and returns `create_finding` when no active finding exists or `update_finding` with the existing finding id when one does. The persistence upsert/partial unique index remains the final database guard, but the detector now exposes the duplicate path before any graph create path can accidentally treat a rerun as a fresh finding. Evidence: detector unit tests for create/update/no-candidate paths and DB-backed rerun proof that one existing open finding produces an `update_finding` decision and leaves one open row.
+**Implementation Note (2026-05-25):** `detectBlockedImportantIssueDecisions` returns `create_finding` / `update_finding` decisions with locked dedupe key; DB partial unique index is the final guard.
 
 ### Slice 2.5: Add Manual Detector Invocation
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -310,15 +312,19 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Test helper, dev/admin path, or local script output.
 
+**Implementation Note (2026-05-25):** `pnpm fleetgraph:detector -- --workspace-id <uuid> [--today YYYY-MM-DD] [--limit N]` via `api/src/scripts/fleetgraph-detector.ts` and `api/src/fleetgraph/manual-detector.ts` (read-only; no worker, findings, runs, or model).
+
 ## Epic 3: FleetGraph Eval Harness
 
-**Status:** Not started
+**Status:** Done
 
 **Goal:** Make FleetGraph measurable before graph behavior is built.
 
+**Closeout Note (2026-05-26):** Epic 3 is closed. Graph contract lives in `api/src/fleetgraph/eval/` (see slice notes below). Verification: focused eval Vitest and root type-check.
+
 ### Slice 3.1: Define Golden Case Format
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -333,9 +339,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case file or documented case schema.
 
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/eval/types.ts` with the golden-case contract: mode, input state, expected decision, required evidence, forbidden claims, mutation/model/trace boundaries, labels, and rubric expectations. Decisions align to existing FleetGraph run decisions.
+
 ### Slice 3.2: Add Golden Cases
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -350,9 +358,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Golden case list committed to the repo or test fixture set.
 
+**Implementation Note (2026-05-26):** Added 15 cases in `api/src/fleetgraph/eval/golden-cases.ts`, covering proactive create/update/resolve, inactive-week, medium/low, done/cancelled, no-blocker, existing-finding explain, draft refinement, restricted neighbor/source/recipient evidence, human-gated action preparation, dismiss, and context-fetch error behavior.
+
 ### Slice 3.3: Add Scenario Labels And Coverage Matrix
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -367,9 +377,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Coverage matrix in test/docs form.
 
+**Implementation Note (2026-05-26):** Added labels by mode, branch, action class, evidence quality, permission state, and difficulty, plus `api/src/fleetgraph/eval/coverage.ts` with required MVP branch coverage and case IDs. Eval tests now enforce mode/branch label consistency.
+
 ### Slice 3.4: Add Decision-Packet Rubric
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -384,13 +396,15 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Rubric file or test-support document with thresholds.
 
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/eval/rubric.ts` with deterministic 0-4 thresholds for groundedness, recipient fit, uncertainty honesty, draft usefulness, action safety, and human-gate clarity. Groundedness, action safety, and human-gate clarity are required at the highest threshold for human-gated decisions.
+
 ### Slice 3.5: Add Trace Review Taxonomy
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
-- Use first-failure categories: detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, and trace/cost metadata.
+- Use first-failure categories: detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, trace safety, and trace/cost metadata.
 
 **Done Means:**
 
@@ -399,6 +413,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Taxonomy documented beside the eval pack.
+
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/eval/trace-taxonomy.ts` with first-failure categories for detector, scope resolution, evidence filtering, recipient selection, reasoning, draft quality, UI/gate, trace safety, and trace/cost metadata.
 
 ## Epic 4: Shared FleetGraph Core
 
@@ -1139,4 +1155,4 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Final Handoff Standard
 
-Before human handoff, `IMPLEMENTATION_PLAN_MVP.md` should show the current slice statuses, `FLEETGRAPH.md` should contain trace links/test cases once implementation evidence exists, `MEMORY.md` should be updated only for durable high-utility learnings, no code file should violate the summary-comment rule, no unrelated code should be changed, no staging/unstaging/commit should happen without explicit instruction, and verification should be reported honestly.
+Before human handoff, `IMPLEMENTATION_PLAN_MVP.md` should show the current slice statuses, root submission deliverables (`PRESEARCH.md` and `FLEETGRAPH.md`) should be present or deliberately synced from `my-docs/project-weeks-sot/week-5/`, `FLEETGRAPH.md` should contain trace links/test cases once implementation evidence exists, `MEMORY.md` should be updated only for durable high-utility learnings, no code file should violate the summary-comment rule, no unrelated code should be changed, no staging/unstaging/commit should happen without explicit instruction, and verification should be reported honestly.

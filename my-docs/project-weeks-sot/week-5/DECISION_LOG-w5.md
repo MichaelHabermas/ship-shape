@@ -107,3 +107,35 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph candidate reruns resolve through the locked dedupe key `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}` before graph create behavior. If no active finding exists, the detector plans `create_finding`; if an open/needs-confirmation/error finding exists, it plans `update_finding` with the existing finding id.
 
 **Consequence:** The graph/worker should consume the detector decision instead of blindly creating findings. The persistence upsert and partial unique index remain a final guard, not the only dedupe mechanism.
+
+## D014 - Manual Detector Invocation Is Read-Only
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph manual detector validation runs through `pnpm fleetgraph:detector -- --workspace-id <uuid>`. It summarizes candidates, dedupe decisions, and quiet exits, but does not enable the worker, create findings, record runs, call a model, or mutate Ship source records.
+
+**Consequence:** Demo and validation runs can happen without waiting for the two-minute worker loop and without spending tokens. Future manual commands that write FleetGraph state must be separate and explicit.
+
+## D015 - Manual Detector Dates And No-Write Contract
+
+**Date:** 2026-05-25
+
+**Decision:** Manual detector `--workspace-id` input must be a UUID, and `--today` input is strict `YYYY-MM-DD` UTC calendar input; invalid dates like `2026-02-31` are rejected instead of relying on JavaScript date normalization. The manual summary reports both `mutatesShip: false` and `mutatesFleetGraph: false`.
+
+**Consequence:** Manual validation cannot silently scan the wrong active week and cannot be mistaken for a worker/graph path that records FleetGraph run state. Worker code can still call quiet-exit run recording explicitly when it needs a zero-token ledger row.
+
+## D016 - Detector Consumers Use Decision Batches
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph graph/worker/manual consumers should use `detectBlockedImportantIssueDecisions`, which returns only dedupe decisions. Each decision carries the candidate it applies to. Raw candidate selection and dedupe planning remain private detector-module implementation details.
+
+**Consequence:** Future graph integration has one safer boundary to consume and cannot accidentally receive raw positive candidates without their dedupe decision.
+
+## D017 - FleetGraph Eval Pack Is The Graph Contract
+
+**Date:** 2026-05-26
+
+**Decision:** FleetGraph graph behavior should be implemented against the local eval pack in `api/src/fleetgraph/eval/`. The pack defines golden cases, scenario labels, coverage requirements, a decision-packet rubric, model/trace boundaries, and trace review taxonomy before LangGraph nodes are wired.
+
+**Consequence:** Epic 4 should satisfy the eval pack instead of inventing graph behavior ad hoc. New graph branches should add or update golden cases and coverage first, especially when changing user-visible claims, permission filtering, human gates, model-call boundaries, shared trace data, or mutation boundaries.
