@@ -1,4 +1,7 @@
 import { repoPathExists, statusLabel } from './ledger-utils.mjs';
+import { week4 } from './week4-paths.mjs';
+
+const dashboardDirPrefix = `${week4.root}/`;
 
 export function formatValue(value) {
   if (value === null || value === undefined) return 'N/A';
@@ -16,7 +19,16 @@ export function formatPercent(value) {
 
 export function dashboardHref(repoPath) {
   if (!repoPath || !repoPathExists(repoPath)) return null;
-  return repoPath.startsWith('my-docs/') ? repoPath.slice('my-docs/'.length) : `../${repoPath}`;
+  if (repoPath.startsWith(dashboardDirPrefix)) {
+    return repoPath.slice(dashboardDirPrefix.length);
+  }
+  if (repoPath.startsWith('my-docs/')) {
+    return `../../../${repoPath.slice('my-docs/'.length)}`;
+  }
+  if (repoPath.startsWith('test-results/') || repoPath.startsWith('packages/')) {
+    return `../../../../${repoPath}`;
+  }
+  return `../../../../${repoPath}`;
 }
 
 export function buildLedgerModel(ledger) {

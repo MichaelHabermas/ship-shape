@@ -345,7 +345,7 @@ Override with: `PLAYWRIGHT_WORKERS=2 pnpm test:e2e:run`
 
 ## Snapshot: May 20, 2026 Local E2E Findings
 
-This is historical diagnostic context, not current submission status. For current GFA submission evidence, use `my-docs/evidence/submission-ledger.json`, `my-docs/SUBMISSION_CHECKLIST.md`, and the generated reviewer dashboard.
+This is historical diagnostic context, not current submission status. For current GFA submission evidence, use `my-docs/evidence/submission-ledger.json`, `my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md`, and `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html`.
 
 Last full local run: May 20, 2026 via `pnpm test:e2e:run`.
 

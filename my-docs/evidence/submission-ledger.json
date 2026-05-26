@@ -37,10 +37,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "Eliminate 25% of type safety violations. Every fix must preserve existing functionality; all tests still pass. Superficial fixes do not count. Replacing any with unknown without proper type narrowing is not an improvement; fixes must include correct, meaningful types that reflect the actual data.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "fields": {
           "total_any_types": 278,
           "total_type_assertions": 713,
@@ -235,7 +235,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/AUDIT_REPORT.md",
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
           "artifact": "my-docs/evidence/cat1-baseline-ast-counts-5731a92.json"
         },
         {
@@ -438,7 +438,7 @@
         {
           "id": "cat1-audit-methodology",
           "type": "methodology",
-          "path": "my-docs/AUDIT_REPORT.md",
+          "path": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
           "description": "Category 1 methodology defines the TypeScript AST counter used as the official denominator."
         },
         {
@@ -465,7 +465,7 @@
         {
           "id": "cat1-meaningful-boundary-narrowing",
           "type": "methodology",
-          "path": "my-docs/IMPROVEMENT_REPORT.md",
+          "path": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
           "description": "Category 1 work centered on shared boundary schemas, route aliases derived from @ship/shared, request validation, typed client/server contracts, API query coercion, approval JSONB guards, API status errors, and API-response-to-editor mappers rather than replacing any with unknown."
         },
         {
@@ -487,8 +487,8 @@
         "Does not claim every untyped callback parameter has been eliminated."
       ],
       "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
         "my-docs/MEMORY.md"
       ],
       "summary_cards": [
@@ -568,10 +568,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "15% reduction in total production bundle size, or implement code splitting that reduces initial page load bundle by 20%. Provide before/after bundle analysis output. Removing functionality to shrink the bundle does not count.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "fields": {
           "total_production_bundle_kb": 2262.65,
           "full_dist_kb": 3351.53,
@@ -714,7 +714,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
           "id": "cat2-latest-bundle",
@@ -902,8 +902,8 @@
         "Does not claim every large async chunk is optimized."
       ],
       "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
         "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
         "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html"
       ]
@@ -915,10 +915,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "20% reduction in P95 response time on at least 2 endpoints, with before/after benchmarks run under identical conditions. Document the root cause of each bottleneck.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "seed_data_scale": {
           "documents_total": 3847,
           "wiki_documents": 1008,
@@ -1572,8 +1572,8 @@
         "Does not claim payload-byte reduction alone is equivalent to P95 latency improvement."
       ],
       "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
         "my-docs/MEMORY.md",
         "scripts/seed-audit-load.mjs",
         "my-docs/evidence/artifacts/cat3-large-fixture-current.json"
@@ -1658,10 +1658,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "20% reduction in total query count on at least one user flow, or 50% improvement on the slowest query. Provide before/after EXPLAIN ANALYZE output. Document what was inefficient and why your change fixes it.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "fields": {
           "user_flows": [
             {
@@ -1807,7 +1807,7 @@
           },
           "origin": "report_extracted",
           "confidence": "report_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
           "id": "cat4-docs-startup-before",
@@ -1823,7 +1823,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         },
         {
           "id": "cat4-docs-startup-after",
@@ -1839,7 +1839,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         },
         {
           "id": "cat4-current-explain",
@@ -1856,7 +1856,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         },
         {
           "id": "cat4-search-content-after",
@@ -1874,7 +1874,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         }
       ],
       "derived_metrics": [
@@ -2039,9 +2039,9 @@
         "Does not claim Cat 3 latency improvement from Cat 4 evidence."
       ],
       "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md",
-        "my-docs/DECISION_LOG.md"
+        "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/DECISION_LOG.md"
       ]
     },
     {
@@ -2051,10 +2051,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "Add meaningful tests for 3 previously untested critical paths, or fix 3 flaky tests with documented root cause analysis. Meaningful tests catch real regressions and each test must include a comment explaining the risk it mitigates.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "fields": {
           "total_tests": 1471,
           "pass_fail_flaky": {
@@ -2188,7 +2188,7 @@
           },
           "origin": "report_extracted",
           "confidence": "report_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
           "id": "cat5-latest-unit-suites",
@@ -2203,7 +2203,7 @@
           },
           "origin": "artifact_parsed",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         },
         {
           "id": "cat5-focused-e2e-tree-selector",
@@ -2217,7 +2217,7 @@
           },
           "origin": "report_extracted",
           "confidence": "report_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         },
         {
           "id": "cat5-full-e2e-green-run",
@@ -2363,7 +2363,7 @@
         {
           "id": "cat5-risk-comment-locations",
           "type": "methodology",
-          "path": "my-docs/IMPROVEMENT_REPORT.md",
+          "path": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
           "description": "Counted risk comments live in web/src/components/editor/CommentMark.test.ts:27, api/src/routes/issues.test.ts:172, and api/src/routes/documents-visibility.test.ts:302."
         }
       ],
@@ -2376,7 +2376,7 @@
         "Does not claim code coverage percentage improved.",
         "Does not count stale selector cleanup as one of the three meaningful regression tests."
       ],
-      "sources": ["my-docs/AUDIT_REPORT.md", "my-docs/IMPROVEMENT_REPORT.md"]
+      "sources": ["my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md", "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"]
     },
     {
       "id": "cat-6-runtime-error-handling",
@@ -2385,10 +2385,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "Fix 3 error handling gaps. At least one must involve a real user-facing data loss or confusion scenario. Each fix requires reproduction steps, before/after behavior, and a screenshot or recording.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "fields": {
           "console_errors_during_normal_usage": 0,
           "unhandled_promise_rejections_server": "No process-level unhandledRejection / uncaughtException handlers found",
@@ -2511,7 +2511,7 @@
           },
           "origin": "report_extracted",
           "confidence": "report_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
           "id": "cat6-runtime-e2e-closeout",
@@ -2525,7 +2525,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         },
         {
           "id": "cat6-process-handler-unit-tests",
@@ -2788,8 +2788,8 @@
         "Does not claim every possible component error-boundary gap is fixed; only the route boundary and targeted optional-surface islands are covered."
       ],
       "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
         "my-docs/MEMORY.md"
       ],
       "fix_records": [
@@ -2832,10 +2832,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "Achieve a Lighthouse accessibility score improvement of 10+ points on the lowest-scoring page, or fix all Critical/Serious violations on the 3 most important pages. Provide before/after Lighthouse reports or axe scan output as evidence.",
-        "source": "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt"
+        "source": "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/AUDIT_REPORT.md",
+        "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "fields": {
           "lighthouse_accessibility_score_per_page": {
             "/login": 98,
@@ -2951,7 +2951,7 @@
           },
           "origin": "report_extracted",
           "confidence": "report_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
           "id": "cat7-baseline-axe",
@@ -2966,7 +2966,7 @@
           },
           "origin": "report_extracted",
           "confidence": "report_backed",
-          "source": "my-docs/AUDIT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
           "id": "cat7-closeout-axe",
@@ -3001,7 +3001,7 @@
           },
           "origin": "report_extracted",
           "confidence": "artifact_backed",
-          "source": "my-docs/IMPROVEMENT_REPORT.md"
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         }
       ],
       "derived_metrics": [
@@ -3123,8 +3123,8 @@
         "Does not claim full manual keyboard/screen-reader certification."
       ],
       "sources": [
-        "my-docs/AUDIT_REPORT.md",
-        "my-docs/IMPROVEMENT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+        "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
         "my-docs/MEMORY.md"
       ],
       "summary_cards": [
@@ -3208,10 +3208,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof.",
-        "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt"
+        "source": "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+        "source": "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
         "probe_tool": {
           "command": "pnpm exec shipshape-security run",
           "fresh_instance_runbook": "Run pnpm exec shipshape-security ci for a fresh-instance gate, or pnpm dev then pnpm exec shipshape-security run. Optional: --quick, --probe <id>, --cat8-perimeter (4 surfaces).",
@@ -3858,13 +3858,13 @@
         {
           "id": "cat8-security-brief",
           "type": "source_doc",
-          "path": "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
+          "path": "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
           "description": "Category 8 source brief defining required probe/manual review/fix proof."
         },
         {
           "id": "cat8-reviewer-evidence-bundle",
           "type": "artifact",
-          "path": "my-docs/reviewer-evidence-bundle/index.html",
+          "path": "my-docs/project-weeks-sot/week-4/reviewer-evidence-bundle/index.html",
           "description": "Self-contained static reviewer evidence bundle for separate Render Static Site deployment; includes generated dashboard, manifest, source briefs, and curated security evidence."
         },
         {
@@ -4018,7 +4018,7 @@
         {
           "id": "cat8-security-runbook",
           "type": "source_doc",
-          "path": "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+          "path": "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",
           "description": "Category 8 implementation and rerun runbook."
         },
         {
@@ -4052,12 +4052,12 @@
         "Does not claim future dependency advisories will remain zero without rerunning pnpm security:probe."
       ],
       "sources": [
-        "my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt",
-        "my-docs/SOURCE-OF-TRUTH/GFA-Week-4-ShipShape.txt",
+        "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
+        "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt",
         "my-docs/evidence/security-audit/latest.json",
-        "my-docs/Cat-8-Sec-Audit-and-Tool-plan.md",
+        "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",
         "my-docs/MEMORY.md",
-        "my-docs/DECISION_LOG.md"
+        "my-docs/project-weeks-sot/week-4/DECISION_LOG.md"
       ]
     }
   ]

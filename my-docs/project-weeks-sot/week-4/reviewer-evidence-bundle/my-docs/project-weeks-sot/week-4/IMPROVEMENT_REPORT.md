@@ -79,7 +79,7 @@ Scope: reviewer-facing evidence packaging only. This pass changes the generated 
 
 ### What changed
 
-- Reframed `my-docs/reviewer-dashboard.html` as a generated reviewer packet: Summary, Evidence, Security, and Appendix.
+- Reframed `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` as a generated reviewer packet: Summary, Evidence, Security, and Appendix.
 - Added a grading-packet projection so the first screen maps each category to source gate, baseline, improvement proof, artifact/command, caveat, and verdict.
 - Moved internal proof machinery (`Targets`, `Rubric`, `Boundaries`, `Discoveries`, cross-examine/claim-diff views) out of top-level navigation and into Evidence or Appendix.
 - Reordered Category 8 so verified fixes and runnable probe proof precede raw deliverable/probe tables.
@@ -164,7 +164,7 @@ Scope: reviewer-facing evidence packaging only. Product code is frozen because t
 
 ### What changed
 
-- Promoted `my-docs/SUBMISSION_CHECKLIST.md` from a stale placeholder into the reviewer-facing index for deliverables, category proof, deploy status, final verification commands, and claim boundaries.
+- Promoted `my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md` from a stale placeholder into the reviewer-facing index for deliverables, category proof, deploy status, final verification commands, and claim boundaries.
 - Added basic public deploy smoke evidence at `my-docs/evidence/deploy-smoke-2026-05-24.md` for `https://ship-shape-web.onrender.com/` reaching `/login`.
 - Kept category status, acceptance results, measurements, and claim basis unchanged. The ledger may still gain reviewer-packaging artifact references when generated evidence bundle paths change.
 - Kept generated dashboard/report truth ledger-first; run `pnpm submission:render` after final ledger edits, not by hand.
@@ -374,7 +374,7 @@ The pass reduced `pnpm audit` from known Vite/Rollup/Testcontainers/SVGO/uuid an
 - `pnpm lint`: pass with existing warning volume, 0 errors / 5452 warnings.
 - `pnpm build`: pass; existing Vite chunk-size warnings remain.
 - Disposable DB `ship_shape_dep_cleanup_test`: migration pass, 43 migrations applied.
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_shape_dep_cleanup_test pnpm test`: 30 files / 477 tests passed.
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_shape_dep_cleanup_test pnpm test`: 30 files / 477 tests passed.
 - `pnpm --filter @ship/web test`: 19 files / 158 tests passed; expected hook-error assertion output still prints during the suite.
 - `pnpm --filter @ship/api openapi:generate`: pass; no tracked OpenAPI diff.
 - `E2E_RESULTS_DIR=test-results/dep-cleanup-smoke PLAYWRIGHT_WORKERS=2 pnpm test:e2e:smoke`: 27/27 passed.
@@ -405,7 +405,7 @@ This pass started from the remaining cart-before-horse work: fake-green rails, b
 
 This report is a work ledger, not a final source-of-truth completion claim. At this pass, Categories 3 and 4 remained intentionally incomplete until measured before/after improvements were made; later sections record the partial Category 3 benchmark evidence and Category 4 flow-level query-count proof. Category 5 now satisfies the full "3 meaningful tests or 3 flaky fixes" source requirement.
 
-Durable choices from this pass are tracked in `my-docs/DECISION_LOG.md` so the rationale, alternatives, consequences, and evidence remain reviewable.
+Durable choices from this pass are tracked in `my-docs/project-weeks-sot/week-4/DECISION_LOG.md` so the rationale, alternatives, consequences, and evidence remain reviewable.
 
 ## Evidence-Runner And Trust Pass Summary
 
@@ -440,13 +440,13 @@ Claim boundaries unchanged: Category 2 proof remains initial-entry/code-splittin
 | Area | Target | Latest Result | Evidence |
 | ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Type safety | Remove real `any`, high-risk `as` casts, and non-null assertions at API/Web boundaries | Shared boundary schemas added; high-risk route aliases derive more from `@ship/shared`; current AST scan is 91 total / 1 production `any`, 460 total / 346 production `as`, and 71 total / 35 production non-null assertions | `pnpm type-check`, `pnpm type-safety:counts` |
-| Boundary contracts | Keep shared/runtime/OpenAPI document concepts aligned           | Added shared/runtime/OpenAPI/DB drift coverage for document and visibility values; OpenAPI regenerated after bootstrap/search schema additions                                                                | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/bootstrap.test.ts src/schemas/document-boundary.test.ts src/routes/search.test.ts src/routes/documents-visibility.test.ts --config /dev/null`, OpenAPI YAML/JSON parse |
+| Boundary contracts | Keep shared/runtime/OpenAPI document concepts aligned           | Added shared/runtime/OpenAPI/DB drift coverage for document and visibility values; OpenAPI regenerated after bootstrap/search schema additions                                                                | `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/bootstrap.test.ts src/schemas/document-boundary.test.ts src/routes/search.test.ts src/routes/documents-visibility.test.ts --config /dev/null`, OpenAPI YAML/JSON parse |
 | Rails safety       | Remove fake-green execution paths                               | Raw E2E entrypoint now guides to `test:e2e:run`; DB-copy restore failures are no longer masked; API benchmark runner added for repeatable endpoint evidence                                                   | `pnpm test:e2e`, `pnpm test:e2e:run -- --list`, `node --check scripts/benchmark-api.mjs` |
-| Bootstrap/search   | Reduce request fanout and add real document content search | Added `/api/bootstrap`; command palette still calls title-only `/api/search/documents`; `/docs` now calls full-content `/api/search/content` backed by `document_search_index` | `DATABASE_URL=postgresql://ship:ship_dev_password@127.0.0.1:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/search.test.ts --config /dev/null`: 1 file / 26 tests passed; `test-results/perf/query-count-api-2026-05-21T15-33-21-438Z.json`; `test-results/perf/explain-performance-2026-05-21T15-33-25-144Z.json`; `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json` |
+| Bootstrap/search   | Reduce request fanout and add real document content search | Added `/api/bootstrap`; command palette still calls title-only `/api/search/documents`; `/docs` now calls full-content `/api/search/content` backed by `document_search_index` | `DATABASE_URL=postgresql://[redacted]:[redacted]@127.0.0.1:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/search.test.ts --config /dev/null`: 1 file / 26 tests passed; `test-results/perf/query-count-api-2026-05-21T15-33-21-438Z.json`; `test-results/perf/explain-performance-2026-05-21T15-33-25-144Z.json`; `test-results/benchmarks/content-search-api-2026-05-21T15-35-00.json` |
 | Evidence rails | Make submission proof repeatable and honest | Added `pnpm evidence:run`, `pnpm evidence:compare`, `pnpm perf:seed-audit-load`, `pnpm perf:query-count-api`, and `pnpm perf:explain`; final-review evidence run now fails the manifest when a nested claim fails | `pnpm evidence:run -- --phase final-review --run-id codex-final-review`; `pnpm evidence:compare codex-final-check codex-final-review`; `node --check scripts/{seed-audit-load,query-count-api,explain-performance}.mjs` |
 | Bundle splitting   | Reduce initial entry chunk via route-level lazy loading         | Entry chunk is around 517.8 KB after route-level lazy loading; build hash varies by rebuild; 295 JS/CSS chunks emitted in the last checked web build                                                             | `pnpm build:web`, dist asset byte count |
 | Verification       | Preserve build/type correctness | Type-check, API build, and web build pass | `pnpm type-check`, `pnpm build:api`, `pnpm build:web` |
-| Test state         | Restore trust in normal unit gates                              | Category 5 now has three meaningful regressions; full API and web unit suites pass; stale accessibility tree selector now passes its focused E2E rerun | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test`, `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"` |
+| Test state         | Restore trust in normal unit gates                              | Category 5 now has three meaningful regressions; full API and web unit suites pass; stale accessibility tree selector now passes its focused E2E rerun | `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`, `pnpm --filter @ship/web test`, `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"` |
 
 ---
 
@@ -510,22 +510,22 @@ Official before/after type-safety syntax counts use the TypeScript AST audit cou
 - `pnpm type-check`: pass after structural boundary changes.
 - `pnpm --filter @ship/api exec vitest run src/schemas/document-boundary.test.ts --config /dev/null`: 2 tests passed.
 - Focused integration rerun with local PostgreSQL access: `pnpm --filter @ship/api exec vitest run src/schemas/document-boundary.test.ts src/routes/search.test.ts src/routes/documents-visibility.test.ts --config /dev/null`: 3 files passed, 41 tests passed.
-- Post-reset focused route/contract rerun against a temporary disposable Postgres container: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/bootstrap.test.ts src/schemas/document-boundary.test.ts src/routes/search.test.ts src/routes/documents-visibility.test.ts --config /dev/null`: 4 files passed, 43 tests passed.
-- Evidence-runner focused boundary rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/documents-visibility.test.ts src/schemas/document-boundary.test.ts`: 3 files passed, 51 tests passed.
+- Post-reset focused route/contract rerun against a temporary disposable Postgres container: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/bootstrap.test.ts src/schemas/document-boundary.test.ts src/routes/search.test.ts src/routes/documents-visibility.test.ts --config /dev/null`: 4 files passed, 43 tests passed.
+- Evidence-runner focused boundary rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/documents-visibility.test.ts src/schemas/document-boundary.test.ts`: 3 files passed, 51 tests passed.
 - `pnpm --filter @ship/api type-check`: pass.
 - 2026-05-21 | official AST counter | `web/src`, `api/src`, `shared/src`, `e2e`; production excludes tests | `any` 230/32 -> 210/12, `as` 653/449 -> 649/445, non-null 356/323 -> 306/273 | pass | measured with the `AUDIT_REPORT.md` TypeScript AST counter.
 - 2026-05-21 | `pnpm exec eslint web/src api/src shared/src --ext .ts,.tsx --format json` | source worklist | 5723 total / 4119 production warnings -> 5380 total / 3818 production warnings; `no-unused-vars` 92 total / 78 production -> 0 | pass with warnings only | `/private/tmp/ship-shape-eslint-final2.json`.
 - 2026-05-21 | `pnpm type-check` | all workspaces | pass -> pass | pass | shared, API, and web type-checks completed.
-- 2026-05-21 | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/workspaces.test.ts src/routes/backlinks.test.ts src/routes/auth.test.ts src/__tests__/extractHypothesis.test.ts src/__tests__/auth.test.ts` | focused touched API behavior | blocked in sandbox, then 5 files / 109 tests passed with local PostgreSQL approval | pass | disposable `ship_test_audit` database.
+- 2026-05-21 | `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/workspaces.test.ts src/routes/backlinks.test.ts src/routes/auth.test.ts src/__tests__/extractHypothesis.test.ts src/__tests__/auth.test.ts` | focused touched API behavior | blocked in sandbox, then 5 files / 109 tests passed with local PostgreSQL approval | pass | disposable `ship_test_audit` database.
 - 2026-05-22 | `pnpm type-safety:counts` | `api/src`, `web/src`, `shared/src`, `e2e`; production excludes tests | previous latest `any` 102/12, `as` 552/454, non-null 286/254 -> `any` 91/1, `as` 575/461, non-null 71/35 | pass | measured by repo-local TypeScript AST counter added in this pass.
 - 2026-05-22 | `pnpm type-check` | all workspaces | pass -> pass | pass | shared, API, and web type-checks completed after the non-null assertion sweep.
-- 2026-05-22 | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm test` | API suite | pass -> pass | pass | 36 files / 509 tests passed after the non-null assertion sweep.
+- 2026-05-22 | `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm test` | API suite | pass -> pass | pass | 36 files / 509 tests passed after the non-null assertion sweep.
 - 2026-05-22 | `pnpm type-safety:counts` | `api/src`, `web/src`, `shared/src`, `e2e`; production excludes tests | previous latest `any` 91/1, `as` 575/461, non-null 71/35 -> `any` 91/1, `as` 460/346, non-null 71/35 | pass | meaningful `as` reduction focused on API query/property boundaries and frontend document/API boundaries.
 - 2026-05-22 | `pnpm type-check` | all workspaces | pass -> pass | pass | shared, API, and web type-checks completed after the meaningful `as` reduction pass.
 - 2026-05-22 | `pnpm --filter @ship/web exec vitest run src/lib/document-view-mapper.test.ts src/lib/document-tabs.test.ts` | frontend document mapper/tab boundary | new focused coverage -> 2 files / 25 tests passed | pass | mapper tests assert `belongs_to` wins over legacy relationship fields.
-- 2026-05-22 | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/search.test.ts src/routes/documents.test.ts src/routes/issues.test.ts src/routes/weeks.test.ts` | API route/query/document boundary | focused route coverage -> 4 files / 108 tests passed | pass | rerun required local PostgreSQL sandbox approval.
+- 2026-05-22 | `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/search.test.ts src/routes/documents.test.ts src/routes/issues.test.ts src/routes/weeks.test.ts` | API route/query/document boundary | focused route coverage -> 4 files / 108 tests passed | pass | rerun required local PostgreSQL sandbox approval.
 - 2026-05-22 | `pnpm --filter @ship/web test` | full web suite | pass -> pass | pass | 21 files / 168 tests passed; expected `useSelectionPersistence` error output remains part of the assertion noise.
-- 2026-05-22 | `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` | full API suite | pass -> pass | pass | 36 files / 509 tests passed; rerun required local PostgreSQL sandbox approval.
+- 2026-05-22 | `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test` | full API suite | pass -> pass | pass | 36 files / 509 tests passed; rerun required local PostgreSQL sandbox approval.
 
 ---
 
@@ -682,8 +682,8 @@ Render `ship-shape-db` was separately seeded with a large synthetic deployed fix
 
 ### Evidence
 
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api db:migrate`: pass.
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/setup.test.ts src/routes/openapi-contract.test.ts`: 2 files / 5 tests passed.
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api db:migrate`: pass.
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/setup.test.ts src/routes/openapi-contract.test.ts`: 2 files / 5 tests passed.
 - `pnpm type-check`: pass.
 
 ### Claim Boundary
@@ -723,24 +723,24 @@ This is security/trust foundation work. It closes the known first-run race risk,
 
 ### Evidence
 
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
 - Live-fire verification against a real dev DB was not run; the reviewer blocked it as unsafe because a broken guard could wipe real dev data.
-- Historical second-pass API verification initially failed while local PostgreSQL was down. After starting the local PostgreSQL service, `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed with 28 files and 451 tests. Current API verification after the project-filter regression test is 452 passing tests.
+- Historical second-pass API verification initially failed while local PostgreSQL was down. After starting the local PostgreSQL service, `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test` passed with 28 files and 451 tests. Current API verification after the project-filter regression test is 452 passing tests.
 - Migration command caveat resolved for the currently observed schema/migration split-brain: `010_oauth_state.sql`, `025_prevent_circular_parent.sql`, `033_sprint_to_week_rename.sql`, and `035_add_comments.sql` are now idempotent enough for `schema.sql` + numbered migrations to complete on the Docker-backed `ship_dev` and sidecar `ship_test_audit` databases.
 - `pnpm --filter @ship/web test`: 17 files passed, 152 tests passed.
 - `pnpm --filter @ship/web exec vitest run web/src/lib/document-tabs.test.ts web/src/components/editor/DetailsExtension.test.ts web/src/hooks/useSessionTimeout.test.ts web/src/components/editor/CommentMark.test.ts`: 4 files passed, 67 tests passed.
-- Correctness review targeted API rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/associations-regression.test.ts src/routes/auth.test.ts`: 3 files passed, 50 tests passed.
+- Correctness review targeted API rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/associations-regression.test.ts src/routes/auth.test.ts`: 3 files passed, 50 tests passed.
 - Correctness review targeted web rerun: `pnpm --filter @ship/web exec vitest run src/components/editor/CommentMark.test.ts src/hooks/useSessionTimeout.test.ts src/components/editor/DetailsExtension.test.ts src/lib/document-tabs.test.ts`: 4 files passed, 67 tests passed. Existing React `act(...)` warnings remain in `useSessionTimeout.test.ts`.
 - `ruby -e "require 'yaml'; YAML.load_file('api/openapi.yaml')"`: generated OpenAPI YAML parses after fixing the local YAML writer.
-- Final API rerun after correctness fixes: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
+- Final API rerun after correctness fixes: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 28 files passed, 452 tests passed.
 - Focused inline-comment E2E rerun was not rerun during closeout; unit-level inline comment regression remains covered by `CommentMark.test.ts`, and the closeout E2E slot was used for the stale accessibility tree selector proof.
 - Separate full E2E baseline: `E2E_RESULTS_DIR=test-results/full-run pnpm test:e2e:run` completed in 6.6 minutes with 862 passed, 1 failed, and 6 flaky. The hard failure was `e2e/accessibility-remediation.spec.ts` / "navigating to nested document auto-expands tree ancestors"; screenshot and accessibility snapshot showed seeded nested documents visible in the sidebar, while the assertion searched for a nested `ul` under the expanded item. Current tree semantics expose nested items through ARIA `group` structure, so this is likely a stale test-shape/selector issue rather than evidence that the runner work regressed product behavior.
-- Evidence-runner focused API rerun after adding the private comment visibility regression: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/documents-visibility.test.ts src/schemas/document-boundary.test.ts`: 3 files passed, 51 tests passed. Initial sandboxed attempt failed with `EPERM` connecting to local PostgreSQL; the approved local-Postgres rerun passed.
+- Evidence-runner focused API rerun after adding the private comment visibility regression: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/issues.test.ts src/routes/documents-visibility.test.ts src/schemas/document-boundary.test.ts`: 3 files passed, 51 tests passed. Initial sandboxed attempt failed with `EPERM` connecting to local PostgreSQL; the approved local-Postgres rerun passed.
 - Evidence-runner focused web rerun: `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
-- Full API suite rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: latest verified count 35 files passed, 501 tests passed.
+- Full API suite rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: latest verified count 35 files passed, 501 tests passed.
 - Full web suite rerun: `pnpm --filter @ship/web test`: latest verified count 20 files passed, 165 tests passed. Existing React `act(...)` warnings remain in `useSessionTimeout.test.ts`.
 - Focused E2E rerun for the tree selector passed: `E2E_RESULTS_DIR=test-results/a11y-tree-closeout pnpm test:e2e:run e2e/accessibility-remediation.spec.ts -g "navigating to nested document auto-expands tree ancestors"`: 1 passed / 0 failed.
-- Latest closeout API suite rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 46 files passed, 554 tests passed.
+- Latest closeout API suite rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: 46 files passed, 554 tests passed.
 - Latest closeout web suite rerun: `pnpm --filter @ship/web test`: 22 files passed, 172 tests passed.
 - Latest full E2E closeout rerun: `PLAYWRIGHT_WORKERS=2 E2E_RESULTS_DIR=test-results/cat5-full-green-check pnpm test:e2e:run`: 872 passed / 0 failed. Retry artifact logs remain recorded as flake follow-up context.
 
@@ -786,7 +786,7 @@ This is security/trust foundation work. It closes the known first-run race risk,
 - Missing-CSRF probe against local API returned `403`, `content-type: application/json; charset=utf-8`, body `{"error":"Invalid or missing CSRF token"}`.
 - `pnpm --filter @ship/web exec vitest run src/components/editor/BacklinksPanel.test.tsx src/components/editor/CommentMark.test.ts`: 2 files passed, 4 tests passed.
 - Focused E2E runtime run: `E2E_RESULTS_DIR=test-results/category-6-runtime-easy-wins PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts`: 9 passed / 0 failed (2026-05-23 refresh).
-- API shutdown unit tests: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts`: 7 passed / 0 failed.
+- API shutdown unit tests: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/runtime/shutdown.test.ts`: 7 passed / 0 failed.
 - Frontend boundary component tests: `pnpm --filter @ship/web exec vitest run src/components/ui/ErrorBoundary.test.tsx`: 6 passed / 0 failed.
 - Focused boundary E2E proof: `E2E_RESULTS_DIR=test-results/category-6-boundary-evidence PLAYWRIGHT_WORKERS=1 pnpm test:e2e:run e2e/error-handling.spec.ts --grep "error boundary"`: 1 passed / 0 failed; screenshot `test-results/category-6-boundary-evidence/playwright/error-handling-Error-Handl-047a6-tains-route-render-failures-chromium/category-6-runtime-evidence-error-boundary-route-viewport.png`.
 - Category 6 screenshot artifacts were captured under `test-results/category-6-runtime-easy-wins/playwright/` (2026-05-23 refresh) and the prior closeout dir `test-results/category-6-runtime-evidence-final2/playwright/`, including `category-6-runtime-evidence-api-500-documents-list-viewport.png`, `category-6-runtime-evidence-offline-editor-preserves-draft-viewport.png`, `category-6-runtime-evidence-csrf-json-editor-usable-viewport.png`, `category-6-runtime-evidence-concurrent-api-errors-nonblank-viewport.png`, and `category-6-runtime-evidence-error-boundary-route-viewport.png` plus matching full-page screenshots where the test captures them.
@@ -873,24 +873,24 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 - 2026-05-21 | `pnpm openapi:generate` | root OpenAPI pipeline | no generated web type artifact -> `web/src/api/generated/ship-openapi.d.ts` generated | pass with sandbox escalation for `tsx` IPC | `api/openapi.json`, `api/openapi.yaml`, `web/src/api/generated/ship-openapi.d.ts`.
 - 2026-05-21 | `pnpm openapi:check` | runtime route/OpenAPI contract | initial report-only check after duplicate-mount cleanup: 195 runtime routes, 121 OpenAPI operations, 82 missing, 8 stale after files and auth route-family coverage; later rows record full parity | pass/report-only at that point | `scripts/check-openapi-routes.mjs`.
 - 2026-05-21 | `pnpm type-check` | shared/api/web | previous pass -> pass | pass | terminal output.
-- 2026-05-21 | `env DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/services/accountability.test.ts src/__tests__/auth.test.ts src/__tests__/activity.test.ts src/routes/projects.test.ts src/routes/iterations.test.ts` | touched API test helper batch | default sandbox/db guard failure -> 5 files / 62 tests passed with local DB escalation | pass | terminal output.
+- 2026-05-21 | `env DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/services/accountability.test.ts src/__tests__/auth.test.ts src/__tests__/activity.test.ts src/routes/projects.test.ts src/routes/iterations.test.ts` | touched API test helper batch | default sandbox/db guard failure -> 5 files / 62 tests passed with local DB escalation | pass | terminal output.
 - 2026-05-21 | `pnpm exec eslint web/src api/src shared/src --ext .ts,.tsx --format json` | source worklist | 5380 total / 3818 production after prior sweep -> 4982 total / 3629 production; `no-unused-vars` remains 0 | pass with warnings | `/private/tmp/ship-shape-eslint-current-after-audit.json`.
 - 2026-05-21 | AST counter | repo | any 210 total / 12 production; as 649 / 445; non-null 306 / 273 after prior sweep -> any 102 / 12; as 552 / 454; non-null 286 / 254 | measured | terminal output.
 - 2026-05-21 | `pnpm exec eslint e2e --ext .ts --format json` | e2e | 43 unused-vars warnings in previous discovery -> 0 unused-vars; 23 total warnings remain | pass with warnings | worker report.
 - 2026-05-21 | touched-file eslint | typed client, programs route, API test helper batch | explicit `any` pg mocks present in targeted tests -> 0 explicit-any in touched test files; touched-file lint 0 errors / 80 warnings | pass with warnings | terminal output.
 - 2026-05-21 | correctness review | typed-client and E2E cleanup | missing typed-client CSRF retry compatibility and weakened E2E assertions -> CSRF retry accepts the current server `{ error: string }` shape, typed CSRF cache clears with legacy logout, and assertion coverage was restored in the touched E2E specs | fixed | `web/src/api/client.ts`, `web/src/lib/api.ts`, `e2e/accessibility-remediation.spec.ts`, `e2e/toc.spec.ts`, `e2e/team-mode.spec.ts`, `e2e/syntax-highlighting.spec.ts`, `e2e/program-mode-week-ux.spec.ts`.
 - 2026-05-21 | `pnpm openapi:generate` | comments update schema | `UpdateComment.resolved_at?: string | unknown | unknown` -> `UpdateComment.resolved_at?: string | null` | pass with sandbox escalation for `tsx` IPC | `api/src/openapi/schemas/comments.ts`, `web/src/api/generated/ship-openapi.d.ts`.
-- 2026-05-21 | `env DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/__tests__/auth.test.ts src/routes/projects.test.ts src/routes/iterations.test.ts src/services/accountability.test.ts src/__tests__/activity.test.ts` | touched API test helper batch | ambient `ship_dev` guard / sandbox local-DB block -> 5 files / 62 tests passed with disposable DB and escalation | pass | terminal output.
+- 2026-05-21 | `env DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/__tests__/auth.test.ts src/routes/projects.test.ts src/routes/iterations.test.ts src/services/accountability.test.ts src/__tests__/activity.test.ts` | touched API test helper batch | ambient `ship_dev` guard / sandbox local-DB block -> 5 files / 62 tests passed with disposable DB and escalation | pass | terminal output.
 - 2026-05-21 | `pnpm openapi:check` | current report-only rerun | OpenAPI coverage complete after contract completion pass | pass/report-only | 195 runtime routes, 195 OpenAPI operations, 0 missing, 0 stale.
-- 2026-05-21 | `env DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/openapi-contract.test.ts src/routes/files.test.ts src/__tests__/auth.test.ts src/routes/projects.test.ts src/routes/iterations.test.ts src/services/accountability.test.ts src/__tests__/activity.test.ts` | OpenAPI response contract smoke plus touched API tests | no test-time response validation helper -> 7 files / 71 tests passed with disposable DB and escalation | pass | terminal output.
+- 2026-05-21 | `env DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/routes/openapi-contract.test.ts src/routes/files.test.ts src/__tests__/auth.test.ts src/routes/projects.test.ts src/routes/iterations.test.ts src/services/accountability.test.ts src/__tests__/activity.test.ts` | OpenAPI response contract smoke plus touched API tests | no test-time response validation helper -> 7 files / 71 tests passed with disposable DB and escalation | pass | terminal output.
 - 2026-05-21 | `pnpm exec eslint api/src/test/openapi-response.ts api/src/routes/openapi-contract.test.ts api/src/openapi/schemas/files.ts web/src/api/client.ts web/src/hooks/useCommentsQuery.ts --ext .ts,.tsx` | new typed-client and OpenAPI contract helpers | new helper warnings -> 0 errors / 0 warnings | pass | terminal output.
 - 2026-05-21 | `pnpm openapi:generate` | files route-family coverage | file local-upload/confirm/serve missing and stale attach path present -> generated OpenAPI and frontend types include files runtime routes and remove file attach stale operation | pass with sandbox escalation for `tsx` IPC | `api/src/openapi/schemas/files.ts`, `api/openapi.json`, `api/openapi.yaml`, `web/src/api/generated/ship-openapi.d.ts`.
 - Typed no-row helper evidence: `api/src/test/pg-result.ts` defines `pgCommand(rowCount, command = 'UPDATE')`, and `api/src/routes/projects.test.ts` uses it for update/delete mocks including the delete path that expects `204`.
 - OpenAPI path inspection: comments paths now appear as `/documents/{id}/comments` and `/comments/{id}`; no `/api/documents/{id}/comments` or `/api/comments/{id}` double-prefix matches remain.
 - Full-content search follow-up added distinct `/api/search/content`; `/api/search/documents` remains the title-only command-palette endpoint.
 - OpenAPI YAML now parses and passes `pnpm exec prettier --check api/openapi.yaml` after fixing the generator's multiline YAML output.
-- Docker-backed migration rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_dev pnpm --filter @ship/api db:migrate` passes.
-- Sidecar DB migration rerun: `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api db:migrate` passes.
+- Docker-backed migration rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_dev pnpm --filter @ship/api db:migrate` passes.
+- Sidecar DB migration rerun: `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api db:migrate` passes.
 - `pnpm build:api`: pass.
 - `find api/dist -path '*test*' -o -path '*__tests__*'`: no output.
 - `./scripts/check-api-coverage.sh --staged`: pass; no staged JS/TS files to scan.
@@ -932,7 +932,7 @@ Targeted axe scan using `@axe-core/playwright` against local dev pages after log
 
 - 2026-05-21 | `pnpm type-check` | shared/api/web | pass after route/service/migration implementation | pass | terminal output.
 - 2026-05-21 | `pnpm --filter @ship/api test -- src/middleware/auth.test.ts src/routes/api-tokens.test.ts src/routes/documents-visibility.test.ts src/routes/associations-regression.test.ts src/routes/feedback-authorization.test.ts src/__tests__/activity.test.ts` | focused authz tests | blocked by database safety guard because `DATABASE_URL` pointed at non-disposable `ship_dev` | blocked, not a code failure | setup refused destructive truncation.
-- 2026-05-21 | `env DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test -- src/__tests__/auth.test.ts src/routes/api-tokens.test.ts src/routes/documents-visibility.test.ts src/routes/associations-regression.test.ts src/__tests__/activity.test.ts` | focused authz-adjacent API batch after adversarial fixes | sandbox local-DB block on first try -> rerun with local DB access | pass | 34 files / 498 tests passed.
+- 2026-05-21 | `env DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test -- src/__tests__/auth.test.ts src/routes/api-tokens.test.ts src/routes/documents-visibility.test.ts src/routes/associations-regression.test.ts src/__tests__/activity.test.ts` | focused authz-adjacent API batch after adversarial fixes | sandbox local-DB block on first try -> rerun with local DB access | pass | 34 files / 498 tests passed.
 - 2026-05-21 | `pnpm --filter @ship/api db:migrate` | migrations 039 and 040 | sandbox `tsx` IPC block on first try -> rerun with local DB access | pass | migrations applied to local dev DB.
 - 2026-05-21 | `pnpm openapi:generate` and `pnpm openapi:check` | generated API contract | `tsx` IPC block on first generate try -> rerun succeeded; later contract completion brought coverage to parity | pass/report-only | 195 runtime routes, 195 OpenAPI operations, 0 missing, 0 stale.
 - 2026-05-21 | `pnpm openapi:check:strict` + contract completion pass | OpenAPI route/spec parity | removed 8 stale ops; added admin/setup/feedback/invites/caia-auth and partial-family paths; strict gate 0 missing / 0 stale | pass | `docs/openapi-contract.md`; `defineRoute` pilot on setup; contract tests on `ship_test_audit`.
@@ -964,7 +964,7 @@ This hardening is security and correctness work. It does not complete a Week 4 G
 - `pnpm type-check`: pass.
 - `pnpm openapi:generate`: pass after sandbox escalation for `tsx` IPC.
 - `pnpm openapi:check:strict`: pass; 193 runtime routes / 193 OpenAPI routes / 0 missing / 0 stale.
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/feedback.test.ts src/routes/setup.test.ts`: pass; 3 files / 11 tests.
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/feedback.test.ts src/routes/setup.test.ts`: pass; 3 files / 11 tests.
 - `pnpm build`: pass.
 - `pnpm perf:query-count-api`: pass; wrote `test-results/perf/query-count-api-2026-05-22T15-50-29-330Z.json`. `/api/dashboard/my-week`: 5 queries, 13ms elapsed in the query-count harness, 1345 response bytes.
 - `pnpm perf:explain`: pass; wrote `test-results/perf/explain-performance-2026-05-22T15-50-50-539Z.json`.
@@ -988,7 +988,7 @@ Category 3 remains **partial**. `/api/dashboard/my-week` has follow-up measureme
 
 - Expanded `my-docs/evidence/submission-ledger.json` to schema v2 with canonical Categories 1-8, category-local IDs, summary cards, targets, acceptance tests, evidence, caveats, and source references.
 - Updated `my-docs/evidence/schema.json` as the shape reference plus `pnpm submission:validate` as the executable enforcement rail for ledger shape, artifact paths, status consistency, target/claim references, canonical category coverage, and Security 8 required fields.
-- Added shared ledger projections for dashboard/report views, updated `pnpm submission:render-dashboard`, added `pnpm submission:render-markdown`, and made `pnpm submission:render` validate first before regenerating `my-docs/reviewer-dashboard.html` plus this report's generated Current Ledger Truth block.
+- Added shared ledger projections for dashboard/report views, updated `pnpm submission:render-dashboard`, added `pnpm submission:render-markdown`, and made `pnpm submission:render` validate first before regenerating `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` plus this report's generated Current Ledger Truth block.
 - Added `pnpm submission:check` as the drift gate so stale generated dashboard/report output fails instead of silently diverging from the ledger.
 
 ### Current Ledger Truth
@@ -1043,7 +1043,7 @@ Parallel review found two correctness issues in the Category 1 cast-reduction br
 - Runtime query parsing helpers moved from `api/src/openapi/schemas/query-helpers.ts` to `api/src/utils/query-params.ts`. OpenAPI schema modules now keep only schema constants, so route runtime behavior no longer depends on the OpenAPI layer.
 - Added focused tests for unsupported document-type mapping, query param coercion/clamping, and approval-record JSONB parsing.
 
-Evidence: `pnpm type-check`; `pnpm --filter @ship/web exec vitest run src/lib/document-view-mapper.test.ts` (5/5); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/search.test.ts` (30/30); `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/utils/__tests__/query-params.test.ts src/utils/__tests__/approval-workflow.test.ts` (7/7).
+Evidence: `pnpm type-check`; `pnpm --filter @ship/web exec vitest run src/lib/document-view-mapper.test.ts` (5/5); `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/openapi/define-route.test.ts src/routes/search.test.ts` (30/30); `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api exec vitest run src/utils/__tests__/query-params.test.ts src/utils/__tests__/approval-workflow.test.ts` (7/7).
 
 ---
 
@@ -1268,7 +1268,7 @@ Verification:
 - `pnpm type-check`: pass
 - `pnpm openapi:check:strict`: pass (194/194)
 - `pnpm security:probe:test`: pass (32/32)
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 595 tests
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 595 tests
 
 Decision: D079, D080.
 
@@ -1278,7 +1278,7 @@ Additional verification:
 
 - `pnpm type-check`: pass
 - `pnpm openapi:check:strict`: pass (194/194)
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 600 tests
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 51 files / 600 tests
 - `pnpm security:probe:test`: pass (32/32)
 - `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-150803`, 5/5 surfaces, 40 probes, 0 findings
 
@@ -1294,7 +1294,7 @@ Verification:
 
 - `pnpm type-check`: pass
 - `pnpm openapi:check:strict`: pass (194/194)
-- `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 54 files / 611 tests
+- `DATABASE_URL=postgresql://[redacted]:[redacted]@localhost:5432/ship_test_audit pnpm --filter @ship/api test`: pass, 54 files / 611 tests
 - `pnpm --filter @ship/web test`: pass, 24 files / 179 tests
 - `pnpm security:probe:test`: pass, 33 tests
 - `pnpm security:probe:ci`: pass, run `security-probe-ci-20260524-153908`, 5/5 surfaces, 40 probes, 0 findings

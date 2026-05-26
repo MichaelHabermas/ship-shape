@@ -21,8 +21,8 @@ Use this skill when auditing ShipShape for weird, high-signal findings that chan
 - `AGENTS.md`
 - `my-docs/DISCOVERY.md`
 - `my-docs/MEMORY.md`
-- `my-docs/AUDIT_REPORT.md`
-- `my-docs/IMPROVEMENT_REPORT.md`
+- `my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md`
+- `my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md`
 - root, `api`, `web`, and `shared` `package.json`
 - `scripts/`
 - `.husky/`, `.github/` if present

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "bundleGeneratedAt": "2026-05-24T20:46:29.901Z",
+  "generator": "scripts/submission/evidence-bundle-utils.mjs",
+  "generatorCommand": "pnpm submission:render-bundle",
+  "git": {
+    "branch": "master",
+    "commit": "1b837c69475105e31771ca446df2e412f3b19587",
+    "dirtyWorktree": true
+  },
+  "security": {
+    "runId": "security-probe-ci-20260524-154623",
+    "mode": "local-active",
+    "apiUrl": "http://127.0.0.1:3099",
+    "webUrl": "http://localhost:5199",
+    "latestConfirmedFindings": 0,
+    "triageCounts": {
+      "knownOpen": 0,
+      "resolved": 0,
+      "new": 0,
+      "regression": 0
+    }
+  },
+  "sourcePaths": [
+    "my-docs/project-weeks-sot/week-4/reviewer-dashboard.html",
+    "my-docs/evidence/submission-ledger.json",
+    "my-docs/evidence/security-audit/latest.json",
+    "my-docs/evidence/security-audit/latest.md",
+    "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
+    "my-docs/evidence/security-audit/security-findings.json",
+    "my-docs/evidence/security-audit/security-findings-ledger.md",
+    "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
+    "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt",
+    "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+    "my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md",
+    "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md"
+  ],
+  "includedArtifacts": [
+    "my-docs/project-weeks-sot/week-4/reviewer-dashboard.html",
+    "my-docs/evidence/submission-ledger.json",
+    "my-docs/evidence/security-audit/latest.json",
+    "my-docs/evidence/security-audit/latest.md",
+    "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
+    "my-docs/evidence/security-audit/security-findings.json",
+    "my-docs/evidence/security-audit/security-findings-ledger.md",
+    "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
+    "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt",
+    "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+    "my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md",
+    "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",
+    "index.html"
+  ],
+  "redaction": {
+    "localPathsRedacted": true,
+    "obviousSecretScan": "passed"
+  }
+}

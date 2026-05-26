@@ -122,7 +122,7 @@ const dependencyList = buildDependencyList(baselineDeps);
 
 const deliverable = {
   schemaVersion: 1,
-  source: 'my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt',
+  source: 'my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt',
   generatedAt: new Date().toISOString(),
   explanation: {
     empty_findings_mean:

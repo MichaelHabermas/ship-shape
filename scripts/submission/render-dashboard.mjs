@@ -31,6 +31,7 @@ import {
   securityDashboardStyles,
 } from './security-dashboard/index.mjs';
 import { renderQuietStorageHelpers } from './browser-storage-client.mjs';
+import { week4 } from './week4-paths.mjs';
 
 const validateLedgerScript = fileURLToPath(new URL('./validate-ledger.mjs', import.meta.url));
 export const discoveriesPath = resolve(repoRoot, 'my-docs/evidence/discoveries.json');
@@ -848,7 +849,7 @@ function appendixPanel(categories, discoveries) {
 
           <h3>Discoveries</h3>
           <div class="discovery-head">
-            <p>Short list of findings, decisions, fixes, and follow-up signals. Full log: ${repoLink('my-docs/discovery-research-log.md', 'discovery-research-log.md')}.</p>
+            <p>Short list of findings, decisions, fixes, and follow-up signals. Full log: ${repoLink(week4.discoveryLog, 'discovery-research-log.md')}.</p>
             <div class="chip-list">${discoverySummary(discoveries)}</div>
           </div>
           <div class="table-wrap"><table class="discoveries-table"><thead><tr><th><button class="sort-button" type="button" data-sort="index">#</button></th><th><button class="sort-button" type="button" data-sort="impact">Impact</button></th><th><button class="sort-button" type="button" data-sort="area">Area</button></th><th><button class="sort-button" type="button" data-sort="type">Type</button></th><th>Discovery</th><th>Consequence</th><th><button class="sort-button" type="button" data-sort="status">Status</button></th><th>Evidence</th></tr></thead><tbody>${discoveryRows(discoveries)}</tbody></table></div>

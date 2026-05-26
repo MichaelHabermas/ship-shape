@@ -71,7 +71,7 @@ When fixing, add probes under `scripts/security-probe/probes/`. Phase 1–2 prob
 
 ## Verified fixes (for comparison)
 
-These were found and **fixed** during Category 8 probe work. Documented in `my-docs/Cat-8-Sec-Audit-and-Tool-plan.md`:
+These were found and **fixed** during Category 8 probe work. Documented in `my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md`:
 
 | Issue | Before run | After run | Fix location |
 | --- | --- | --- | --- |

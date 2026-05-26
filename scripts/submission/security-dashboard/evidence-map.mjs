@@ -1,3 +1,5 @@
+import { week4 } from '../week4-paths.mjs';
+
 export function renderSecurityEvidenceMap(view, helpers) {
   const { escapeHtml, linkedPath, humanizeId, shortPath } = helpers;
   const categoryEvidence = view.category?.evidence || [];
@@ -30,7 +32,7 @@ export function renderSecurityEvidenceMap(view, helpers) {
     .join('');
   const extra = [
     linkedPath('my-docs/evidence/security-audit/cat8-audit-deliverable.json', 'cat8-audit-deliverable.json'),
-    linkedPath('my-docs/Cat-8-Sec-Audit-and-Tool-plan.md', 'Cat-8 runbook'),
+    linkedPath(week4.cat8Plan, 'Cat-8 runbook'),
     linkedPath('packages/shipshape-security/README.md', 'shipshape-security README'),
   ].join(' · ');
   return `

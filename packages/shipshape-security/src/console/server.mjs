@@ -20,7 +20,10 @@ import { createJobQueue } from './job-queue.mjs';
 import { loadSecurityConsolePayload } from './payload-api.mjs';
 import { safeNarrativePath } from './narrative-paths.mjs';
 
-const dashboardPath = resolve(repoRoot, 'my-docs/reviewer-dashboard.html');
+const dashboardPath = resolve(
+  repoRoot,
+  'my-docs/project-weeks-sot/week-4/reviewer-dashboard.html'
+);
 const renderDashboardScript = resolve(repoRoot, 'scripts/submission/render-dashboard.mjs');
 const consoleUiDist = resolve(repoRoot, 'packages/shipshape-security/console-ui/dist');
 const defaultPort = Number(process.env.SHIP_SECURITY_CONSOLE_PORT || 9876);

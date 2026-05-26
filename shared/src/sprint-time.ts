@@ -1,3 +1,4 @@
+// Shared UTC week-window helpers for workspace sprint/week calculations.
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 /** Normalize workspace.sprint_start_date to UTC midnight. */
@@ -21,9 +22,9 @@ export function utcToday(): Date {
 /** 1-based sprint number from workspace start date. */
 export function computeCurrentSprintNumber(
   workspaceStartDate: Date,
-  sprintDurationDays = 7
+  sprintDurationDays = 7,
+  today = utcToday()
 ): number {
-  const today = utcToday();
   const daysSinceStart = Math.floor(
     (today.getTime() - workspaceStartDate.getTime()) / MS_PER_DAY
   );

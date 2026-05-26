@@ -224,12 +224,12 @@ This fork includes reviewer-facing evidence for the ShipShape audit and improvem
 
 | Artifact | Purpose |
 |----------|---------|
-| [`my-docs/SUBMISSION_CHECKLIST.md`](./my-docs/SUBMISSION_CHECKLIST.md) | Start-here checklist, proof map, deploy smoke, and final verification commands |
-| [`my-docs/reviewer-dashboard.html`](./my-docs/reviewer-dashboard.html) | Generated visual dashboard for Categories 1-8 |
+| [`my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md`](./my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md) | Start-here checklist, proof map, deploy smoke, and final verification commands |
+| [`my-docs/project-weeks-sot/week-4/reviewer-dashboard.html`](./my-docs/project-weeks-sot/week-4/reviewer-dashboard.html) | Generated visual dashboard for Categories 1-8 |
 | [`my-docs/evidence/submission-ledger.json`](./my-docs/evidence/submission-ledger.json) | Structured source of truth for category claims |
-| [`my-docs/IMPROVEMENT_REPORT.md`](./my-docs/IMPROVEMENT_REPORT.md) | Narrative improvement history and claim boundaries |
-| [`my-docs/AUDIT_REPORT.md`](./my-docs/AUDIT_REPORT.md) | Baseline audit report |
-| [`my-docs/discovery-research-log.md`](./my-docs/discovery-research-log.md) | Discovery write-up and disposition log |
+| [`my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md`](./my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md) | Narrative improvement history and claim boundaries |
+| [`my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md`](./my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md) | Baseline audit report |
+| [`my-docs/project-weeks-sot/week-4/discovery-research-log.md`](./my-docs/project-weeks-sot/week-4/discovery-research-log.md) | Discovery write-up and disposition log |
 | [`my-docs/AI_COST_ANALYSIS.md`](./my-docs/AI_COST_ANALYSIS.md) | AI usage, cost basis, and reflection |
 
 Submission gates:

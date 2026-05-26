@@ -2,7 +2,7 @@
 
 ShipShape **Category 8** security audit tool: live probe harness, findings SoT (`security-findings.json`), CLI, and reviewer **Security Console** (dashboard tab + `pnpm security:console`).
 
-Source brief: `my-docs/SOURCE-OF-TRUTH/Shipshape-Security-Audit.txt`
+Source brief: `my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt`
 
 ## Install
 
