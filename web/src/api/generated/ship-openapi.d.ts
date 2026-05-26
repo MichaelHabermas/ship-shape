@@ -12667,6 +12667,11 @@ export interface components {
             success: true;
             data: components["schemas"]["AdminCreateWorkspaceData"];
         };
+        FleetGraphRecommendedAction: {
+            label?: string;
+            text?: string;
+            summary?: string;
+        };
         FleetGraphEvidence: {
             kind: string;
             /**
@@ -12687,6 +12692,12 @@ export interface components {
         FleetGraphVisibleOutput: {
             title: string;
             summary: string;
+            /** @enum {string} */
+            severity?: "low" | "medium" | "high" | "urgent";
+            confidence?: number;
+            recommendedAction?: components["schemas"]["FleetGraphRecommendedAction"];
+            recipientRationale?: string;
+            uncertaintyNotes?: string[];
             evidence: components["schemas"]["FleetGraphEvidence"][];
             humanGate: {
                 [key: string]: unknown;
