@@ -1,7 +1,7 @@
 // Issue query hooks keep issue list/detail caches coherent across CRUD and association mutations.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, assertApiData } from '@/api/client';
-import type { Issue, IssueListItem } from '@/api/schemas';
+import type { BulkUpdateIssuesResponse, BulkUpdatedIssue, Issue, IssueListItem } from '@/api/schemas';
 import type {
   CascadeWarning,
   IncompleteChild,
@@ -50,9 +50,16 @@ type IssueWithAssociations = {
   belongs_to?: BelongsTo[];
 };
 
-function issueToListItem(issue: Issue): IssueListItem {
-  const { content: _content, ...listItem } = issue;
-  return listItem as IssueListItem;
+function issueToListItem(issue: Issue | BulkUpdatedIssue): IssueListItem {
+  const listItem = 'content' in issue
+    ? (({ content: _content, ...rest }) => rest)(issue)
+    : issue;
+  return {
+    ...listItem,
+    assignee_id: listItem.assignee_id ?? undefined,
+    assignee_name: listItem.assignee_name ?? undefined,
+    estimate: listItem.estimate ?? undefined,
+  };
 }
 // Helper to extract association ID by type
 export function getAssociationId(issue: IssueWithAssociations, type: BelongsToType): string | null {
@@ -254,12 +261,7 @@ interface BulkUpdateRequest {
   };
 }
 
-interface BulkUpdateResponse {
-  updated: Issue[];
-  failed: { id: string; error: string }[];
-}
-
-async function bulkUpdateIssuesApi(data: BulkUpdateRequest): Promise<BulkUpdateResponse> {
+async function bulkUpdateIssuesApi(data: BulkUpdateRequest): Promise<BulkUpdateIssuesResponse> {
   const result = await apiClient.POST('/issues/bulk', { body: data });
   return assertApiData(result, 'Failed to bulk update issues');
 }
@@ -320,7 +322,7 @@ export function useBulkUpdateIssues() {
         }
 
         const next = old
-          .map((issue) => (updatedById.has(issue.id) ? updatedById.get(issue.id)! : issue))
+          .map((issue) => updatedById.get(issue.id) ?? issue)
           .filter((issue) => !failedIds.has(issue.id) || issueMatchesFilters(issue, filters));
 
         return next;

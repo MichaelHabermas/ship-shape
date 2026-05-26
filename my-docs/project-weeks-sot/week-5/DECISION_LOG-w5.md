@@ -291,3 +291,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Epic 8 reviewer readiness uses `pnpm fleetgraph:demo` as the repeatable local/demo setup path. The command upserts a named demo workspace and reviewer-safe rows, refuses non-local databases by default, prints stable reviewer URLs plus a per-run reviewer password and detector summaries, and can run `--capture-traces` to execute seeded graph paths and print local trace metadata.
 
 **Consequence:** Demo validation no longer depends on manual SQL or private workspace data. External trace URLs are recorded only when a real tracing backend provides them; local runs document safe persisted trace metadata instead of fabricated links.
+
+## D037 - Issue Bulk Mutations Preserve Single-Item Invariants
+
+**Date:** 2026-05-26
+
+**Decision:** Bulk issue mutation responses must return refreshed associations for updated rows, and bulk week assignment must enforce the same positive-estimate requirement as single issue update on a per-item basis. Single and bulk delete are standardized on soft delete, while system-generated accountability issues remain undeletable in both paths.
+
+**Consequence:** Clients can trust bulk responses without refetching to recover project/week membership, failed unestimated sprint assignments do not silently create planning associations, and delete semantics stay consistent with restore/history expectations. Later cleanup candidates are documented rather than removed in this pass: legacy sprint iterations, headless document commands, issue API primitives without product UI, and one-off migration scripts.

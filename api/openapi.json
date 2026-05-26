@@ -1440,6 +1440,78 @@
           "action"
         ]
       },
+      "BulkUpdatedIssue": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/IssueListItem"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "belongs_to": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BelongsToResponse"
+                },
+                "description": "Refreshed associated documents after the bulk operation."
+              },
+              "archived_at": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time",
+                "description": "ISO 8601 datetime string",
+                "example": "2025-01-30T14:30:00.000Z"
+              },
+              "deleted_at": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time",
+                "description": "ISO 8601 datetime string",
+                "example": "2025-01-30T14:30:00.000Z"
+              }
+            },
+            "required": [
+              "belongs_to"
+            ]
+          }
+        ]
+      },
+      "BulkUpdateIssuesResponse": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkUpdatedIssue"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "error": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "error"
+              ]
+            }
+          }
+        },
+        "required": [
+          "updated",
+          "failed"
+        ]
+      },
       "IssueHistoryEntry": {
         "type": "object",
         "properties": {
@@ -9526,7 +9598,7 @@
           "Issues"
         ],
         "summary": "Delete issue",
-        "description": "Delete an issue. System-generated accountability issues cannot be deleted.",
+        "description": "Soft-delete an issue. System-generated accountability issues cannot be deleted.",
         "parameters": [
           {
             "schema": {
@@ -9655,40 +9727,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "updated": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Issue"
-                      }
-                    },
-                    "failed": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid",
-                            "description": "UUID identifier",
-                            "example": "550e8400-e29b-41d4-a716-446655440000"
-                          },
-                          "error": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "error"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "updated",
-                    "failed"
-                  ]
+                  "$ref": "#/components/schemas/BulkUpdateIssuesResponse"
                 }
               }
             }

@@ -646,7 +646,7 @@ export interface paths {
         post?: never;
         /**
          * Delete issue
-         * @description Delete an issue. System-generated accountability issues cannot be deleted.
+         * @description Soft-delete an issue. System-generated accountability issues cannot be deleted.
          */
         delete: {
             parameters: {
@@ -871,18 +871,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            updated: components["schemas"]["Issue"][];
-                            failed: {
-                                /**
-                                 * Format: uuid
-                                 * @description UUID identifier
-                                 * @example 550e8400-e29b-41d4-a716-446655440000
-                                 */
-                                id: string;
-                                error: string;
-                            }[];
-                        };
+                        "application/json": components["schemas"]["BulkUpdateIssuesResponse"];
                     };
                 };
             };
@@ -9835,6 +9824,34 @@ export interface components {
                  */
                 project_id?: string | null;
             };
+        };
+        BulkUpdatedIssue: components["schemas"]["IssueListItem"] & {
+            /** @description Refreshed associated documents after the bulk operation. */
+            belongs_to: components["schemas"]["BelongsToResponse"][];
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            archived_at?: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 datetime string
+             * @example 2025-01-30T14:30:00.000Z
+             */
+            deleted_at?: string | null;
+        };
+        BulkUpdateIssuesResponse: {
+            updated: components["schemas"]["BulkUpdatedIssue"][];
+            failed: {
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                id: string;
+                error: string;
+            }[];
         };
         IssueHistoryEntry: {
             /**

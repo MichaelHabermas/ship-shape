@@ -843,7 +843,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 7: Product Surface
 
-**Status:** Implemented; awaiting human review
+**Status:** Done
 
 **Goal:** Make FleetGraph proactive and contextual without building a standalone chatbot or global dashboard.
 
@@ -982,13 +982,13 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Implementation Note (2026-05-26):** Added loading/error/no-visible-finding state handling through `FleetGraphStatePanel` for rendered FleetGraph surfaces while keeping no-finding issue/week contexts silent by default. Focused web coverage now exercises banner links, card/gate language, finding-bound explain/refine calls, dismiss/explain error copy, and normalized API visible output. Browser smoke logged in locally, loaded `/issues`, opened an issue document, and opened a week issues tab without FleetGraph UI runtime errors; current demo data has no visible findings until Epic 8 seeds blocked-work cases. Full E2E remains intentionally skipped for this pass.
 
-**Closeout Note (2026-05-26):** Epic 7 implementation is complete and awaiting human review. FleetGraph product UI now consumes a single normalized web finding view, surfaces active-week findings in week issue context, surfaces issue findings in the issue document editor context, supports finding-bound explain/refine/dismiss interactions, and renders a non-executing human gate that blocks Ship mutation/contact claims. Verification covered changed-file TS/lint, web type-check, root type-check, root build, OpenAPI parity, docs strict/path checks, focused FleetGraph web component tests, focused FleetGraph eval/golden tests against `ship_test_audit`, and browser smoke. Demo-positive visual proof remains Epic 8 because current local seed data has no non-empty `issue_iterations.blockers_encountered` rows.
+**Closeout Note (2026-05-26):** Epic 7 is closed. FleetGraph product UI consumes a single normalized web finding view, surfaces active-week findings in week issue context, surfaces issue findings in the issue document editor context, supports finding-bound explain/refine/dismiss interactions, and renders a non-executing human gate that blocks Ship mutation/contact claims. Verification covered web type-check, root type-check, root build, OpenAPI parity, docs strict/path checks, focused FleetGraph web component tests, focused FleetGraph eval/golden tests against `ship_test_audit`, authenticated browser smoke, demo-positive visual proof, and manual reduced-height review of the `Why flagged?` panel after the scroll fix.
 
 **Follow-up Note (2026-05-26):** Small code-health cleanup to preserve after human review: move Express request augmentation typing out of `scripts/check-affected-ts.mjs` coupling and into a normal `.d.ts`/type boundary so affected-TS checking does not need script-level awareness of API middleware typing.
 
 ## Epic 8: Demo Data And Reviewer Readiness
 
-**Status:** Implemented; awaiting final human review
+**Status:** Done
 
 **Goal:** Make the MVP reproducible for local validation, timed proof, trace capture, and reviewer navigation.
 
@@ -1134,15 +1134,17 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 **Implementation Note (2026-05-26):** `pnpm fleetgraph:demo` prints stable reviewer URLs for active week, project, dependency notes, two positive issues, missing-evidence issue, and duplicate-control issue. Full E2E remains skipped for this pass per Epic 9 scope; local browser smoke is still part of final handoff verification.
 
+**Closeout Note (2026-05-26):** Epic 8 is closed. `pnpm fleetgraph:demo -- --capture-traces` produced seeded/demo-safe proactive create/update plus on-demand explain/refine evidence, stable reviewer navigation, active-week demo data, and visible findings in the local product surface. A demo-readiness issue where the current demo week was seeded as planning was fixed so the active-week FleetGraph surface appears immediately after setup.
+
 ## Epic 9: Tests And Verification
 
-**Status:** Not started
+**Status:** Done
 
 **Goal:** Prove the FleetGraph MVP contract without relying on full E2E in this pass.
 
 ### Slice 9.1: Add Detector Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1158,9 +1160,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Targeted detector test output.
 
+**Implementation Note (2026-05-26):** Covered through focused FleetGraph detector/eval tests and the DB-backed demo smoke that returned positive create decisions, duplicate/update behavior, and quiet counts for inactive, done/cancelled, insufficient-evidence, medium/low, and no-blocker controls.
+
 ### Slice 9.2: Add Graph/Eval Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1175,9 +1179,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Golden case and rubric output.
 
+**Implementation Note (2026-05-26):** Focused FleetGraph graph/eval tests passed against `ship_test_audit`; demo trace capture exercised proactive create, proactive duplicate/update, on-demand explain, and on-demand draft refinement paths with safe trace metadata.
+
 ### Slice 9.3: Add API Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1192,9 +1198,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Targeted API tests and `pnpm openapi:check`.
 
+**Implementation Note (2026-05-26):** Targeted API suite passed against `ship_test_audit`: `src/fleetgraph`, `src/routes/fleetgraph.test.ts`, `src/routes/fleetgraph.integration.test.ts`, and `src/routes/issues.test.ts` ran 750 tests across 72 files. `pnpm openapi:check:strict` also passed with runtime/OpenAPI parity at 199 routes.
+
 ### Slice 9.4: Add Web Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1209,9 +1217,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Targeted web test output or browser smoke.
 
+**Implementation Note (2026-05-26):** Focused web tests passed for `FleetGraphFindingCard` coverage: 186 tests across 25 files. Browser smoke verified active-week findings, issue-context finding cards, explain/refine interactions, and reduced-height scrolling for the `Why flagged?` panel.
+
 ### Slice 9.5: Run Smoke Gates
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1230,9 +1240,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Command outputs summarized in handoff.
 
+**Implementation Note (2026-05-26):** Smoke gates passed: `pnpm type-check`, `pnpm build`, `pnpm openapi:check:strict`, `pnpm docs:check:strict`, `pnpm docs:check:paths`, focused API tests, and focused web tests. Build emitted only existing Vite chunk-size warnings.
+
 ### Slice 9.6: Capture Timed Proof
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1247,9 +1259,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Timed proof notes or trace metadata.
 
+**Implementation Note (2026-05-26):** Timed proof captured from local demo data. For finding `6b8a0065-cda3-4750-acb4-bfc05e4d9d77`, the blocker iteration was written at `2026-05-26T22:54:33.766Z`, FleetGraph run/finding creation happened at `2026-05-26T22:54:33.793Z`, and the authenticated reviewer API returned the visible finding with status 200. A second finding `d83c4933-08fc-479d-af04-369998d3fdfa` was detected 60.03 seconds after its blocker iteration, still inside the 5-minute MVP bar.
+
 ### Slice 9.7: Final Handoff
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1265,6 +1279,8 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 **Evidence:**
 
 - Final implementation summary and changed-file diff.
+
+**Implementation Note (2026-05-26):** Root `PRESEARCH.md` and `FLEETGRAPH.md` are present, docs checks pass, verification is recorded above, and no staging, unstaging, or commit was performed.
 
 ## Approved 10x Ideas
 

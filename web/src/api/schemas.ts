@@ -1,3 +1,4 @@
+// API schema aliases expose generated OpenAPI component types to the web client.
 import type { components } from './generated/ship-openapi';
 
 export type { ApiError, ApiResponse } from '@ship/shared';
@@ -11,6 +12,8 @@ export type DocumentSearchResponse = components['schemas']['DocumentSearchRespon
 
 export type IssueListItem = components['schemas']['IssueListItem'];
 export type Issue = components['schemas']['Issue'];
+export type BulkUpdatedIssue = components['schemas']['BulkUpdatedIssue'];
+export type BulkUpdateIssuesResponse = components['schemas']['BulkUpdateIssuesResponse'];
 export type Project = components['schemas']['Project'];
 export type ProjectIssueListItem = components['schemas']['ProjectIssueListItem'];
 export type ProjectWeekListItem = components['schemas']['ProjectWeekListItem'];

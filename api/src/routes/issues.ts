@@ -416,7 +416,7 @@ router.post('/:id/history', authMiddleware, async (req: Request, res: Response) 
       return;
     }
 
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+    const { userId } = getAuthenticatedRouteContext(req);
 
     const parsed = logHistorySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -491,7 +491,8 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const accessCheck = await pool.query<IssuePropertiesRow>(
       `SELECT id, properties FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'`,
+       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
+         AND deleted_at IS NULL`,
       [id, workspaceId]
     );
 
@@ -511,11 +512,17 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    // Now delete it
-    await pool.query(
-      'DELETE FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = \'issue\'',
+    const deleteResult = await pool.query(
+      `UPDATE documents
+       SET deleted_at = NOW(), updated_at = NOW()
+       WHERE id = $1 AND workspace_id = $2 AND document_type = 'issue'
+         AND deleted_at IS NULL`,
       [id, workspaceId]
     );
+    if (deleteResult.rowCount === 0) {
+      res.status(404).json({ error: 'Issue not found' });
+      return;
+    }
 
     res.status(204).send();
   } catch (err) {

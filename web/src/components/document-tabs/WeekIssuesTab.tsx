@@ -17,7 +17,7 @@ export default function SprintIssuesTab({ documentId, document }: DocumentTabPro
   const programId = getDocumentProgramId(document) ?? undefined;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-auto pb-20">
       <FleetGraphWeekSurface sprintId={documentId} />
       <IssuesList
         // Lock to this sprint - shows only issues assigned to this sprint

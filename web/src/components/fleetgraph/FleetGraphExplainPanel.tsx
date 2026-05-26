@@ -41,7 +41,7 @@ export function FleetGraphExplainPanel({ findingId }: { findingId: string }) {
       )}
 
       {output && (
-        <div className="mt-3 rounded border border-border bg-border/20 p-3">
+        <div className="mt-3 max-h-64 overflow-auto rounded border border-border bg-border/20 p-3">
           <p className="text-sm font-medium text-foreground">{output.title}</p>
           <p className="mt-1 text-sm leading-6 text-muted">{output.summary}</p>
           {output.evidence.length > 0 && (
