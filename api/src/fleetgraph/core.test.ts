@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../test/pg-result.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from './core.js';
-import { evidenceFromDetectorCandidate, filterEvidenceForActor } from './evidence.js';
+import { evidenceFromDetectorCandidate, filterEvidenceForActor, visibleOutputForFinding } from './evidence.js';
 import {
   blockedImportantIssueDedupeKey,
   type FleetGraphFinding,
@@ -438,5 +438,24 @@ describe('FleetGraph shared core', () => {
     expect(bundle.noSafeOutput).toBe(false);
     expect(bundle.evidence.some((item) => item.kind === 'dedupe')).toBe(false);
     expect(JSON.stringify(bundle.evidence)).not.toContain(dedupeKey);
+  });
+
+  it('maps persisted finding fields into safe visible output', async () => {
+    const { output } = await visibleOutputForFinding({
+      workspaceId,
+      finding: finding({
+        recommended_action: { label: 'Confirm the unblock path', internalTargetUserId: 'hidden-user' },
+        proposed_recipient: { role: 'issue_assignee', userId },
+        run_metadata: { uncertaintyNotes: ['A human must confirm the current unblock path.'] },
+      }),
+    });
+
+    expect(output.severity).toBe('urgent');
+    expect(output.confidence).toBe(0.86);
+    expect(output.recommendedAction?.label).toBe('Confirm the unblock path');
+    expect(output.recipientRationale).toBe('Recipient is the issue assignee, falling back to the sprint owner.');
+    expect(output.uncertaintyNotes).toEqual(['A human must confirm the current unblock path.']);
+    expect(JSON.stringify(output)).not.toContain(userId);
+    expect(JSON.stringify(output)).not.toContain('hidden-user');
   });
 });

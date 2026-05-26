@@ -47,6 +47,11 @@ function visibleOutput(overrides: Partial<FleetGraphVisibleOutput> = {}): FleetG
   return {
     title: 'Blocked work',
     summary: 'Visible summary',
+    severity: 'urgent',
+    confidence: 0.86,
+    recommendedAction: { label: 'Confirm the unblock path', internalTargetUserId: 'hidden-user' },
+    recipientRationale: 'Recipient is the issue assignee, falling back to the sprint owner.',
+    uncertaintyNotes: ['A human must confirm the current unblock path.'],
     evidence: [{
       kind: 'source_issue',
       sourceDocumentId: issueId,
@@ -80,7 +85,10 @@ describe('FleetGraph API contract', () => {
     const response = fleetGraphRunResponse(result());
 
     expect(response.finding?.id).toBe(findingId);
+    expect(response.finding?.visibleOutput.recommendedAction?.label).toBe('Confirm the unblock path');
+    expect(response.finding?.visibleOutput.recipientRationale).toContain('issue assignee');
     expect(JSON.stringify(response)).not.toContain('blocked-important-issue');
+    expect(JSON.stringify(response)).not.toContain('hidden-user');
   });
 
   it('treats no-safe-output findings as unsafe to serialize', () => {

@@ -32,4 +32,17 @@ describe('FleetGraph trace metadata sanitizer', () => {
       nodePath: ['produceOutput'],
     });
   });
+
+  it('drops unsafe trace URLs', () => {
+    expect(sanitizeFleetGraphTraceMetadata({
+      mode: 'on_demand',
+      decision: 'explain',
+      nodePath: ['produceOutput'],
+      traceUrl: 'javascript:alert(1)',
+    })).toEqual({
+      mode: 'on_demand',
+      decision: 'explain',
+      nodePath: ['produceOutput'],
+    });
+  });
 });
