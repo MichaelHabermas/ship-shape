@@ -48,6 +48,30 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-25
 
-**Decision:** FleetGraph durable state starts with exactly two tables: `fleetgraph_findings` and `fleetgraph_runs`. Findings reference Ship issue/week documents and keep FleetGraph-owned status, evidence snapshots, draft content, trace metadata, and human-gate metadata. Runs record proactive/on-demand decisions, quiet exits, errors, and token/cost metadata.
+**Decision:** FleetGraph durable state starts with exactly two tables: `fleetgraph_findings` and `fleetgraph_runs`. Findings reference Ship issue/week documents in the same workspace and keep FleetGraph-owned status, evidence snapshots, draft content, trace metadata, and human-gate metadata. Runs record proactive/on-demand decisions, quiet exits, errors, and token/cost metadata.
 
 **Consequence:** FleetGraph must not create document types or shadow Ship fields for status, priority, ownership, or week membership. Future helpers should preserve the open-finding dedupe key `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}` and write Ship consequences only after a human gate.
+
+## D007 - FleetGraph Persistence Boundary
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph persistence helpers live under `api/src/fleetgraph/` and accept a generic query runner. The helpers expose narrow operations for findings and runs: workspace-scoped dedupe lookup, blocked-important-issue create/update, draft refinement, dismiss, resolve, and run recording.
+
+**Consequence:** Worker, graph, and route code should call these helpers instead of writing ad hoc SQL against FleetGraph tables. These helpers may update only FleetGraph-owned tables; Ship mutations stay behind separate human-gated paths.
+
+## D008 - Epic 1 Stops Before Graph Execution
+
+**Date:** 2026-05-25
+
+**Decision:** Epic 1 is complete at the state/config boundary: dependencies, inert env config, FleetGraph-owned tables, and persistence helpers. It does not start the worker, implement detector SQL, call LangGraph, or spend model tokens.
+
+**Consequence:** Epic 2 must begin with deterministic candidate detection and active-week semantics before any graph execution is wired. Any future worker startup must remain behind `FLEETGRAPH_WORKER_ENABLED` and must produce zero-token quiet ticks when SQL finds no candidates.
+
+## D009 - FleetGraph Suppresses, Never Blocks, Ship Source Changes
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph DB guards validate new finding/run references, but document lifecycle remains canonical in Ship. If a referenced issue or week is later soft-deleted, moved, or type-mutated, FleetGraph suppresses active findings that depend on the source instead of blocking the Ship document mutation.
+
+**Consequence:** Future FleetGraph constraints may protect FleetGraph-owned rows from invalid writes, but they must not prevent normal Ship document deletes, status changes, ownership changes, week associations, or content edits. Stale FleetGraph diagnosis should be invalidated or recomputed.

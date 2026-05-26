@@ -31,8 +31,32 @@ CREATE TABLE IF NOT EXISTS fleetgraph_findings (
   dismissed_at TIMESTAMPTZ,
   dismissed_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT fleetgraph_findings_status_timestamps_check CHECK (
+    (status = 'resolved' AND resolved_at IS NOT NULL AND dismissed_at IS NULL AND dismissed_by IS NULL)
+    OR (status = 'dismissed' AND dismissed_at IS NOT NULL AND dismissed_by IS NOT NULL AND resolved_at IS NULL)
+    OR (status IN ('open', 'needs_confirmation', 'error') AND resolved_at IS NULL AND dismissed_at IS NULL AND dismissed_by IS NULL)
+    OR status = 'suppressed'
+  )
 );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'fleetgraph_findings_status_timestamps_check'
+  ) THEN
+    ALTER TABLE fleetgraph_findings
+      ADD CONSTRAINT fleetgraph_findings_status_timestamps_check CHECK (
+        (status = 'resolved' AND resolved_at IS NOT NULL AND dismissed_at IS NULL AND dismissed_by IS NULL)
+        OR (status = 'dismissed' AND dismissed_at IS NOT NULL AND dismissed_by IS NOT NULL AND resolved_at IS NULL)
+        OR (status IN ('open', 'needs_confirmation', 'error') AND resolved_at IS NULL AND dismissed_at IS NULL AND dismissed_by IS NULL)
+        OR status = 'suppressed'
+      );
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS fleetgraph_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -81,6 +105,190 @@ CREATE INDEX IF NOT EXISTS idx_fleetgraph_runs_finding
 
 CREATE INDEX IF NOT EXISTS idx_fleetgraph_runs_decision
   ON fleetgraph_runs(decision, created_at DESC);
+
+CREATE OR REPLACE FUNCTION validate_fleetgraph_finding_reference()
+RETURNS TRIGGER AS $$
+DECLARE
+  issue_workspace UUID;
+  issue_type document_type;
+  issue_deleted_at TIMESTAMPTZ;
+  sprint_workspace UUID;
+  sprint_type document_type;
+  sprint_deleted_at TIMESTAMPTZ;
+BEGIN
+  SELECT workspace_id, document_type, deleted_at
+  INTO issue_workspace, issue_type, issue_deleted_at
+  FROM documents
+  WHERE id = NEW.source_issue_id;
+
+  SELECT workspace_id, document_type, deleted_at
+  INTO sprint_workspace, sprint_type, sprint_deleted_at
+  FROM documents
+  WHERE id = NEW.source_sprint_id;
+
+  IF issue_workspace IS NULL THEN
+    RAISE EXCEPTION 'FleetGraph source issue % does not exist', NEW.source_issue_id;
+  END IF;
+
+  IF sprint_workspace IS NULL THEN
+    RAISE EXCEPTION 'FleetGraph source sprint % does not exist', NEW.source_sprint_id;
+  END IF;
+
+  IF issue_deleted_at IS NOT NULL THEN
+    RAISE EXCEPTION 'FleetGraph source issue % is deleted', NEW.source_issue_id;
+  END IF;
+
+  IF sprint_deleted_at IS NOT NULL THEN
+    RAISE EXCEPTION 'FleetGraph source sprint % is deleted', NEW.source_sprint_id;
+  END IF;
+
+  IF issue_workspace <> NEW.workspace_id OR sprint_workspace <> NEW.workspace_id THEN
+    RAISE EXCEPTION 'FleetGraph source documents must be in the finding workspace';
+  END IF;
+
+  IF issue_type <> 'issue' THEN
+    RAISE EXCEPTION 'FleetGraph source issue must be an issue document';
+  END IF;
+
+  IF sprint_type <> 'sprint' THEN
+    RAISE EXCEPTION 'FleetGraph source sprint must be a sprint document';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS validate_fleetgraph_finding_reference_trigger ON fleetgraph_findings;
+CREATE TRIGGER validate_fleetgraph_finding_reference_trigger
+BEFORE INSERT OR UPDATE OF workspace_id, source_issue_id, source_sprint_id ON fleetgraph_findings
+FOR EACH ROW
+EXECUTE FUNCTION validate_fleetgraph_finding_reference();
+
+CREATE OR REPLACE FUNCTION validate_fleetgraph_run_reference()
+RETURNS TRIGGER AS $$
+DECLARE
+  finding_workspace UUID;
+  issue_workspace UUID;
+  issue_type document_type;
+  issue_deleted_at TIMESTAMPTZ;
+  sprint_workspace UUID;
+  sprint_type document_type;
+  sprint_deleted_at TIMESTAMPTZ;
+BEGIN
+  IF NEW.finding_id IS NOT NULL THEN
+    SELECT workspace_id
+    INTO finding_workspace
+    FROM fleetgraph_findings
+    WHERE id = NEW.finding_id;
+
+    IF finding_workspace IS NULL THEN
+      RAISE EXCEPTION 'FleetGraph finding % does not exist', NEW.finding_id;
+    END IF;
+
+    IF finding_workspace <> NEW.workspace_id THEN
+      RAISE EXCEPTION 'FleetGraph run finding must be in the run workspace';
+    END IF;
+  END IF;
+
+  IF NEW.source_issue_id IS NOT NULL THEN
+    SELECT workspace_id, document_type, deleted_at
+    INTO issue_workspace, issue_type, issue_deleted_at
+    FROM documents
+    WHERE id = NEW.source_issue_id;
+
+    IF issue_workspace IS NULL THEN
+      RAISE EXCEPTION 'FleetGraph run source issue % does not exist', NEW.source_issue_id;
+    END IF;
+
+    IF issue_deleted_at IS NOT NULL THEN
+      RAISE EXCEPTION 'FleetGraph run source issue % is deleted', NEW.source_issue_id;
+    END IF;
+
+    IF issue_workspace <> NEW.workspace_id THEN
+      RAISE EXCEPTION 'FleetGraph run source issue must be in the run workspace';
+    END IF;
+
+    IF issue_type <> 'issue' THEN
+      RAISE EXCEPTION 'FleetGraph run source issue must be an issue document';
+    END IF;
+  END IF;
+
+  IF NEW.source_sprint_id IS NOT NULL THEN
+    SELECT workspace_id, document_type, deleted_at
+    INTO sprint_workspace, sprint_type, sprint_deleted_at
+    FROM documents
+    WHERE id = NEW.source_sprint_id;
+
+    IF sprint_workspace IS NULL THEN
+      RAISE EXCEPTION 'FleetGraph run source sprint % does not exist', NEW.source_sprint_id;
+    END IF;
+
+    IF sprint_deleted_at IS NOT NULL THEN
+      RAISE EXCEPTION 'FleetGraph run source sprint % is deleted', NEW.source_sprint_id;
+    END IF;
+
+    IF sprint_workspace <> NEW.workspace_id THEN
+      RAISE EXCEPTION 'FleetGraph run source sprint must be in the run workspace';
+    END IF;
+
+    IF sprint_type <> 'sprint' THEN
+      RAISE EXCEPTION 'FleetGraph run source sprint must be a sprint document';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS validate_fleetgraph_run_reference_trigger ON fleetgraph_runs;
+CREATE TRIGGER validate_fleetgraph_run_reference_trigger
+BEFORE INSERT OR UPDATE OF workspace_id, finding_id, source_issue_id, source_sprint_id ON fleetgraph_runs
+FOR EACH ROW
+EXECUTE FUNCTION validate_fleetgraph_run_reference();
+
+CREATE OR REPLACE FUNCTION suppress_invalid_fleetgraph_findings_on_document_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE fleetgraph_findings
+     SET status = 'suppressed',
+         updated_at = NOW(),
+         run_metadata = run_metadata || jsonb_build_object(
+           'suppressed_reason', 'source_issue_invalidated',
+           'suppressed_at', NOW()
+         )
+   WHERE source_issue_id = NEW.id
+     AND status IN ('open', 'needs_confirmation', 'error')
+     AND (
+       NEW.workspace_id <> workspace_id
+       OR NEW.document_type <> 'issue'
+       OR (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
+     );
+
+  UPDATE fleetgraph_findings
+     SET status = 'suppressed',
+         updated_at = NOW(),
+         run_metadata = run_metadata || jsonb_build_object(
+           'suppressed_reason', 'source_sprint_invalidated',
+           'suppressed_at', NOW()
+         )
+   WHERE source_sprint_id = NEW.id
+     AND status IN ('open', 'needs_confirmation', 'error')
+     AND (
+       NEW.workspace_id <> workspace_id
+       OR NEW.document_type <> 'sprint'
+       OR (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
+     );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS guard_fleetgraph_source_document_mutation_trigger ON documents;
+DROP TRIGGER IF EXISTS suppress_invalid_fleetgraph_findings_on_document_mutation_trigger ON documents;
+CREATE TRIGGER suppress_invalid_fleetgraph_findings_on_document_mutation_trigger
+AFTER UPDATE OF workspace_id, document_type, deleted_at ON documents
+FOR EACH ROW
+EXECUTE FUNCTION suppress_invalid_fleetgraph_findings_on_document_mutation();
 
 COMMENT ON TABLE fleetgraph_findings IS 'FleetGraph-owned diagnosis findings. Does not replace Ship document, issue, week, or ownership state.';
 COMMENT ON TABLE fleetgraph_runs IS 'FleetGraph run ledger for proactive, on-demand, quiet, trace, token, cost, and error metadata.';

@@ -112,9 +112,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 1: FleetGraph State And Configuration
 
-**Status:** Not started
+**Status:** Done
 
 **Goal:** Create the smallest durable FleetGraph-owned state and isolate graph/tracing dependencies from the rest of Ship.
+
+**Closeout Note (2026-05-25):** Epic 1 is closed. FleetGraph graph/tracing dependencies are scoped to the API package; worker config is inert by default; migration `042_fleetgraph.sql` creates only `fleetgraph_findings` and `fleetgraph_runs`; DB guards enforce same-workspace issue/sprint references and suppress stale FleetGraph findings without blocking Ship document changes; persistence helpers write only FleetGraph-owned state and derive the locked blocked-work dedupe key. Verification covered docs strict check, type-check, API tests against `ship_test_audit`, build, migration apply/schema inspection, focused config tests, focused persistence tests, DB-backed FleetGraph guard tests, and `git diff --check`.
 
 ### Slice 1.1: Add FleetGraph Dependencies
 
@@ -179,11 +181,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 - Migration command output.
 - Schema inspection or targeted persistence test.
 
-**Implementation Note (2026-05-25):** Added numbered migration `042_fleetgraph.sql` with only `fleetgraph_findings` and `fleetgraph_runs`. The schema keeps Ship canonical by referencing source issue/week documents and storing FleetGraph-owned evidence snapshots, draft content, human-gate metadata, trace/run/token/cost/error metadata, and run decisions. Open-finding dedupe is enforced by a partial unique index on `dedupe_key` for open/needs-confirmation/error findings.
+**Implementation Note (2026-05-25):** Added numbered migration `042_fleetgraph.sql` with only `fleetgraph_findings` and `fleetgraph_runs`. The schema keeps Ship canonical by validating source issue/week references, suppressing stale active findings after source document invalidation, and storing FleetGraph-owned evidence snapshots, draft content, human-gate metadata, trace/run/token/cost/error metadata, and run decisions. Open-finding dedupe is enforced by a partial unique index on `dedupe_key` for open/needs-confirmation/error findings.
 
 ### Slice 1.4: Add Persistence Helpers
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -199,6 +201,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Targeted API/unit tests or direct helper tests.
+
+**Implementation Note (2026-05-25):** Added `api/src/fleetgraph/persistence.ts` with focused helpers for the locked blocked-work dedupe key, scoped open-finding lookup, blocked-important-issue finding create/update, draft refinement, dismiss, resolve, and run recording. Helpers accept a generic query runner, write only `fleetgraph_findings` / `fleetgraph_runs`, and keep Ship source records untouched. Added focused unit tests plus DB-backed FleetGraph guard tests.
 
 ## Epic 2: Deterministic Candidate Detection
 
