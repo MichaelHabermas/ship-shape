@@ -1,4 +1,6 @@
+// WeekIssuesTab shows active/completed week issues and contextual FleetGraph findings.
 import { IssuesList, DEFAULT_FILTER_TABS } from '@/components/IssuesList';
+import { FleetGraphWeekSurface } from '@/components/fleetgraph/FleetGraphWeekSurface';
 import type { DocumentTabProps } from '@/lib/document-tabs';
 import { getDocumentProgramId } from '@/lib/document-view-mapper';
 
@@ -16,6 +18,7 @@ export default function SprintIssuesTab({ documentId, document }: DocumentTabPro
 
   return (
     <div className="flex h-full flex-col">
+      <FleetGraphWeekSurface sprintId={documentId} />
       <IssuesList
         // Lock to this sprint - shows only issues assigned to this sprint
         lockedSprintId={documentId}

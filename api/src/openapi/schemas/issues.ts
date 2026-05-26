@@ -522,6 +522,12 @@ registry.registerPath({
         },
       },
     },
+    400: {
+      description: 'Validation error',
+    },
+    403: {
+      description: 'Forbidden',
+    },
     404: {
       description: 'Issue not found',
     },
@@ -568,6 +574,7 @@ registry.registerPath({
       id: UuidSchema,
     }),
     body: {
+      required: true,
       content: {
         'application/json': {
           schema: z.object({
@@ -587,6 +594,12 @@ registry.registerPath({
           schema: IssueIterationSchema,
         },
       },
+    },
+    400: {
+      description: 'Validation error',
+    },
+    403: {
+      description: 'Forbidden',
     },
     404: {
       description: 'Issue not found',

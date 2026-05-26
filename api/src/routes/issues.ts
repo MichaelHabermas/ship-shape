@@ -1,3 +1,4 @@
+// Issue routes expose document-backed issue CRUD, history, bulk actions, and iteration evidence.
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import {
@@ -587,12 +588,15 @@ router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response
     if (!issueId) return;
     const { workspaceId } = getAuthenticatedRouteContext(req);
     const queryParsed = listIterationsSchema.safeParse(req.query);
-    const queryParams = queryParsed.success ? queryParsed.data : {};
+    if (!queryParsed.success) {
+      sendValidationError(res, queryParsed.error);
+      return;
+    }
     const result = await listIssueIterations(pool, {
       issueId,
       principal: principalFromRequest(req),
       workspaceId,
-      status: queryParams.status,
+      status: queryParsed.data.status,
     });
     respondIssueMutation(res, result);
   } catch (err) {

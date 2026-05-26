@@ -62,14 +62,22 @@ function packageFor(file) {
 
 function writeTempTsconfig(config, files) {
   const tempPath = path.join(repoRoot, config.root, '.tsconfig.affected.tmp.json');
-  const relativeFiles = files.map((file) => path.relative(path.join(repoRoot, config.root), path.join(repoRoot, file)));
+  const packageRoot = path.join(repoRoot, config.root);
+  const relativeFiles = files.map((file) => path.relative(packageRoot, path.join(repoRoot, file)));
+  if (config.name === 'api' && !relativeFiles.includes('src/middleware/auth.ts')) {
+    relativeFiles.push('src/middleware/auth.ts');
+  }
+  const compilerOptions = {
+    noEmit: true,
+    rootDir: undefined,
+    outDir: undefined,
+  };
+  if (config.name === 'web') {
+    compilerOptions.types = ['vite/client', 'node'];
+  }
   writeFileSync(tempPath, JSON.stringify({
     extends: './tsconfig.json',
-    compilerOptions: {
-      noEmit: true,
-      rootDir: undefined,
-      outDir: undefined,
-    },
+    compilerOptions,
     include: relativeFiles,
     exclude: ['node_modules', 'dist', 'build'],
   }, null, 2));

@@ -1,3 +1,4 @@
+// UnifiedEditor adapts document editing, sidebars, banners, and collaboration per document type.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Editor } from '@/components/Editor';
@@ -10,6 +11,7 @@ import type { SelectableDocumentType, ConversionDocumentType } from '@ship/share
 import { useAuth } from '@/hooks/useAuth';
 import { PlanQualityBanner, RetroQualityBanner } from '@/components/PlanQualityBanner';
 import { ResilientSection } from '@/components/ui/ResilientSection';
+import { FleetGraphIssueSurface } from '@/components/fleetgraph/FleetGraphIssueSurface';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Person } from '@/components/PersonCombobox';
 import type {
@@ -348,7 +350,10 @@ export function UnifiedEditor({
     setAiScoringAnalysis(analysis ? { retroAnalysis: analysis } : null);
   }, []);
 
-  const qualityBanner = useMemo(() => {
+  const contentBanner = useMemo(() => {
+    if (document.document_type === 'issue') {
+      return <FleetGraphIssueSurface issueId={document.id} />;
+    }
     if (document.document_type === 'weekly_plan') {
       return (
         <ResilientSection
@@ -401,7 +406,7 @@ export function UnifiedEditor({
       sidebar={sidebar}
       documentType={document.document_type}
       onPlanChange={document.document_type === 'sprint' || document.document_type === 'project' ? handlePlanChange : undefined}
-      contentBanner={qualityBanner}
+      contentBanner={contentBanner}
       onContentChange={isWeeklyDoc ? setEditorContent : undefined}
       aiScoringAnalysis={isWeeklyDoc ? aiScoringAnalysis : undefined}
       titleSuffix={titleSuffix}

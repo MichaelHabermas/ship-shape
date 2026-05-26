@@ -1,3 +1,4 @@
+// Issues API tests cover document-backed issue CRUD, filters, state changes, and iteration evidence.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
@@ -569,6 +570,19 @@ describe('Issues API', () => {
       expect(res.body.state).toBe('in_review')
     })
 
+    it('should transition to blocked', async () => {
+      const res = await request(app)
+        .patch(`/api/issues/${testIssueId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          state: 'blocked',
+        })
+
+      expect(res.status).toBe(200)
+      expect(res.body.state).toBe('blocked')
+    })
+
     it('should transition from in_review to done', async () => {
       const res = await request(app)
         .patch(`/api/issues/${testIssueId}`)
@@ -580,6 +594,75 @@ describe('Issues API', () => {
 
       expect(res.status).toBe(200)
       expect(res.body.state).toBe('done')
+    })
+  })
+
+  describe('Issue Iterations', () => {
+    let testIssueId: string
+
+    beforeAll(async () => {
+      const issueResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', 'Blocked Evidence Issue', 'workspace', $2, $3)
+         RETURNING id`,
+        [testWorkspaceId, testUserId, JSON.stringify({ state: 'blocked', priority: 'urgent' })]
+      )
+      testIssueId = issueResult.rows[0].id
+    })
+
+    it('should record blocker evidence on an issue iteration', async () => {
+      const res = await request(app)
+        .post(`/api/issues/${testIssueId}/iterations`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          status: 'in_progress',
+          what_attempted: 'Marked blocked from issue status UI',
+          blockers_encountered: 'Waiting on procurement approval.',
+        })
+
+      expect(res.status).toBe(201)
+      expect(res.body.status).toBe('in_progress')
+      expect(res.body.blockers_encountered).toBe('Waiting on procurement approval.')
+      expect(res.body.author).toEqual(expect.objectContaining({
+        id: testUserId,
+        name: 'Issues Test User',
+      }))
+    })
+
+    it('should list issue iterations with blocker evidence newest first', async () => {
+      const res = await request(app)
+        .get(`/api/issues/${testIssueId}/iterations`)
+        .set('Cookie', sessionCookie)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual([
+        expect.objectContaining({
+          issue_id: testIssueId,
+          status: 'in_progress',
+          blockers_encountered: 'Waiting on procurement approval.',
+        }),
+      ])
+    })
+
+    it('should reject invalid issue iteration status filters', async () => {
+      const res = await request(app)
+        .get(`/api/issues/${testIssueId}/iterations?status=blocked`)
+        .set('Cookie', sessionCookie)
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toBe('Invalid input')
+    })
+
+    it('should reject invalid issue iteration payloads', async () => {
+      const res = await request(app)
+        .post(`/api/issues/${testIssueId}/iterations`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ status: 'blocked' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toBe('Invalid input')
     })
   })
 })

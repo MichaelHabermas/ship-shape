@@ -1,8 +1,10 @@
+// Issue list context menu applies bulk issue actions from the current selection.
 import type { IssueListItem } from '@/api/schemas';
 import { ArchiveIcon } from '@/components/icons/ArchiveIcon';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubmenu } from '@/components/ui/ContextMenu';
 import type { UseSelectionReturn } from '@/components/SelectableList';
 import { ArrowUpRightIcon, TrashIcon } from '@/components/issues/issue-badges';
+import { ISSUE_STATE_OPTIONS } from '@ship/shared';
 
 export interface IssuesListContextMenuProps {
   x: number;
@@ -41,10 +43,11 @@ export function IssuesListContextMenu({
         Archive
       </ContextMenuItem>
       <ContextMenuSubmenu label="Change Status">
-        <ContextMenuItem onClick={() => onChangeStatus('backlog')}>Backlog</ContextMenuItem>
-        <ContextMenuItem onClick={() => onChangeStatus('todo')}>Todo</ContextMenuItem>
-        <ContextMenuItem onClick={() => onChangeStatus('in_progress')}>In Progress</ContextMenuItem>
-        <ContextMenuItem onClick={() => onChangeStatus('done')}>Done</ContextMenuItem>
+        {ISSUE_STATE_OPTIONS.map((state) => (
+          <ContextMenuItem key={state.value} onClick={() => onChangeStatus(state.value)}>
+            {state.label}
+          </ContextMenuItem>
+        ))}
       </ContextMenuSubmenu>
       <ContextMenuSubmenu label="Move to Week">
         <ContextMenuItem onClick={() => onMoveToSprint(null)}>No Week</ContextMenuItem>

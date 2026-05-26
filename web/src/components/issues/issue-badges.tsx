@@ -1,3 +1,4 @@
+// Issue badges render compact visual labels for status, priority, and source.
 import { ISSUE_PRIORITY_LABELS } from '@ship/shared';
 import type { IssueListItem } from '@/api/schemas';
 import { cn } from '@/lib/cn';
@@ -47,6 +48,13 @@ function StatusIcon({ state }: { state: string }) {
         <svg {...iconProps} viewBox="0 0 16 16" fill="none" stroke="currentColor">
           <circle cx="8" cy="8" r="6" strokeWidth="1.5" />
           <path d="M8 2 A6 6 0 1 1 2 8" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'blocked':
+      return (
+        <svg {...iconProps} viewBox="0 0 16 16" fill="none" stroke="currentColor">
+          <circle cx="8" cy="8" r="6" strokeWidth="1.5" />
+          <path d="M5 8h6" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       );
     case 'in_review':

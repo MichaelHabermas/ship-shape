@@ -1,3 +1,4 @@
+// Shared document boundary schemas validate API payloads against canonical document enums.
 import { z } from 'zod';
 import {
   ACCOUNTABILITY_TYPE_VALUES,

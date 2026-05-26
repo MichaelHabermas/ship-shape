@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+// Issue properties sidebar edits lifecycle fields, associations, and blocker evidence.
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Combobox } from '@/components/ui/Combobox';
 import { MultiAssociationChips } from '@/components/ui/MultiAssociationChips';
 import { PropertyRow } from '@/components/ui/PropertyRow';
@@ -25,6 +26,19 @@ interface Issue {
   converted_from_id?: string | null;
   /** Multi-parent associations via junction table */
   belongs_to?: BelongsTo[];
+}
+
+interface IssueIteration {
+  id: string;
+  status: 'pass' | 'fail' | 'in_progress';
+  what_attempted: string | null;
+  blockers_encountered: string | null;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  created_at: string;
 }
 
 interface TeamMember {
@@ -104,6 +118,13 @@ export function IssueSidebar({
   const [sprintError, setSprintError] = useState<string | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [iterations, setIterations] = useState<IssueIteration[]>([]);
+  const [iterationsLoading, setIterationsLoading] = useState(false);
+  const [iterationError, setIterationError] = useState<string | null>(null);
+  const [blockerReason, setBlockerReason] = useState('');
+  const [blockerSaving, setBlockerSaving] = useState(false);
+  const activeIssueIdRef = useRef(issue.id);
+  const iterationRequestRef = useRef(0);
   // Cascade warning state for closing parent with incomplete children
   const [cascadeWarning, setCascadeWarning] = useState<{
     open: boolean;
@@ -113,6 +134,18 @@ export function IssueSidebar({
 
   // Get current associations from issue - memoize to prevent infinite re-renders
   const belongsTo = useMemo(() => issue.belongs_to || [], [issue.belongs_to]);
+  const blockerIterations = useMemo(
+    () => iterations.filter((iteration) => iteration.blockers_encountered?.trim()),
+    [iterations]
+  );
+  const latestBlockerIteration = blockerIterations[0] ?? null;
+
+  useEffect(() => {
+    activeIssueIdRef.current = issue.id;
+    setBlockerReason('');
+    setBlockerSaving(false);
+    setIterationsLoading(false);
+  }, [issue.id]);
 
   // Handle state change with cascade warning detection
   const handleStateChange = async (newState: string) => {
@@ -127,6 +160,80 @@ export function IssueSidebar({
         });
       } else {
         throw error;
+      }
+    }
+  };
+
+  const loadIssueIterations = useCallback(async () => {
+    const requestId = iterationRequestRef.current + 1;
+    iterationRequestRef.current = requestId;
+    const issueId = issue.id;
+
+    const shouldApplyResult = () => (
+      iterationRequestRef.current === requestId && activeIssueIdRef.current === issueId
+    );
+
+    if (issue.state !== 'blocked') {
+      if (shouldApplyResult()) {
+        setIterations([]);
+        setIterationError(null);
+      }
+      return;
+    }
+
+    setIterationsLoading(true);
+    setIterationError(null);
+    try {
+      const response = await fetch(`${API_URL}/api/issues/${issueId}/iterations`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to load blocker history');
+      }
+      const data = await readJson<IssueIteration[]>(response);
+      if (shouldApplyResult()) {
+        setIterations(data);
+      }
+    } catch (error) {
+      if (shouldApplyResult()) {
+        setIterations([]);
+        setIterationError(error instanceof Error ? error.message : 'Failed to load blocker history');
+      }
+    } finally {
+      if (shouldApplyResult()) {
+        setIterationsLoading(false);
+      }
+    }
+  }, [issue.id, issue.state]);
+
+  const handleSaveBlockerReason = async () => {
+    const trimmed = blockerReason.trim();
+    if (!trimmed) return;
+    const issueId = issue.id;
+    const shouldApplyResult = () => activeIssueIdRef.current === issueId;
+
+    setBlockerSaving(true);
+    setIterationError(null);
+    try {
+      const response = await apiPost(`/api/issues/${issueId}/iterations`, {
+        status: 'in_progress',
+        what_attempted: 'Marked blocked from issue status UI',
+        blockers_encountered: trimmed,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to save blocker reason');
+      }
+      if (shouldApplyResult()) {
+        setBlockerReason('');
+        await loadIssueIterations();
+      }
+    } catch (error) {
+      if (shouldApplyResult()) {
+        setIterationError(error instanceof Error ? error.message : 'Failed to save blocker reason');
+      }
+    } finally {
+      if (shouldApplyResult()) {
+        setBlockerSaving(false);
       }
     }
   };
@@ -183,6 +290,10 @@ export function IssueSidebar({
 
     return () => { cancelled = true; };
   }, [belongsTo]);
+
+  useEffect(() => {
+    loadIssueIterations();
+  }, [loadIssueIterations]);
 
   // Add association via junction table API
   const handleAddAssociation = useCallback(async (relatedId: string, type: BelongsToType) => {
@@ -340,6 +451,39 @@ export function IssueSidebar({
           ))}
         </select>
       </PropertyRow>
+
+      {issue.state === 'blocked' && (
+        <div className="rounded border border-amber-500/30 bg-amber-500/10 p-3">
+          <p className="text-sm font-medium text-amber-200">Blocked</p>
+          {latestBlockerIteration ? (
+            <p className="mt-1 text-xs text-amber-100/80">
+              Latest blocker from {latestBlockerIteration.author.name}: {latestBlockerIteration.blockers_encountered}
+            </p>
+          ) : null}
+          <textarea
+            value={blockerReason}
+            onChange={(event) => setBlockerReason(event.target.value)}
+            placeholder="What is blocking this issue?"
+            aria-label="Blocker reason"
+            rows={3}
+            className="mt-3 w-full rounded border border-amber-500/30 bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-amber-400"
+          />
+          <button
+            type="button"
+            onClick={handleSaveBlockerReason}
+            disabled={!blockerReason.trim() || blockerSaving}
+            className="mt-2 w-full rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+          >
+            {blockerSaving ? 'Saving...' : 'Record blocker reason'}
+          </button>
+          {iterationsLoading && (
+            <p className="mt-2 text-xs text-muted" role="status" aria-live="polite">Loading blocker history...</p>
+          )}
+          {iterationError && (
+            <p className="mt-2 text-xs text-red-300" role="alert">{iterationError}</p>
+          )}
+        </div>
+      )}
 
       <PropertyRow label="Priority" highlighted={isHighlighted('priority')}>
         <select

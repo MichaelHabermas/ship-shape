@@ -536,6 +536,7 @@ components:
         - backlog
         - todo
         - in_progress
+        - blocked
         - in_review
         - done
         - cancelled
@@ -574,6 +575,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -736,6 +738,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -881,6 +884,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -965,6 +969,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -1078,6 +1083,7 @@ components:
                 - backlog
                 - todo
                 - in_progress
+                - blocked
                 - in_review
                 - done
                 - cancelled
@@ -1215,6 +1221,7 @@ components:
                   - backlog
                   - todo
                   - in_progress
+                  - blocked
                   - in_review
                   - done
                   - cancelled
@@ -1471,6 +1478,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -6312,6 +6320,15 @@ components:
       required:
         - success
         - data
+    FleetGraphRecommendedAction:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+        summary:
+          type: string
     FleetGraphEvidence:
       type: object
       properties:
@@ -6355,6 +6372,23 @@ components:
           type: string
         summary:
           type: string
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        confidence:
+          type: number
+        recommendedAction:
+          $ref: "#/components/schemas/FleetGraphRecommendedAction"
+        recipientRationale:
+          type: string
+        uncertaintyNotes:
+          type: array
+          items:
+            type: string
         evidence:
           type: array
           items:
@@ -7262,6 +7296,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/IssueHistoryEntry"
+        400:
+          description: Validation error
+        403:
+          description: Forbidden
         404:
           description: Issue not found
     post:
@@ -7346,6 +7384,7 @@ paths:
           name: id
           in: path
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7372,6 +7411,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/IssueIteration"
+        400:
+          description: Validation error
+        403:
+          description: Forbidden
         404:
           description: Issue not found
   /issues/action-items:
@@ -7407,6 +7450,7 @@ paths:
                             - backlog
                             - todo
                             - in_progress
+                            - blocked
                             - in_review
                             - done
                             - cancelled

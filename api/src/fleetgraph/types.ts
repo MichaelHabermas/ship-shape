@@ -28,6 +28,11 @@ export type FleetGraphEvidenceItem = {
 export type FleetGraphVisibleOutput = {
   title: string;
   summary: string;
+  severity?: FleetGraphSeverity;
+  confidence?: number;
+  recommendedAction?: JsonRecord;
+  recipientRationale?: string;
+  uncertaintyNotes?: string[];
   evidence: FleetGraphEvidenceItem[];
   humanGate: JsonRecord;
   draftContent?: JsonRecord;
