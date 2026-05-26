@@ -206,7 +206,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 2: Deterministic Candidate Detection
 
-**Status:** Not started
+**Status:** Started
 
 **Goal:** Prove the proactive detector with cheap, testable SQL before any model reasoning.
 
