@@ -143,6 +143,14 @@ export function blockedImportantIssueDedupeKey(input: {
   return `${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:${input.workspaceId}:${input.issueId}:${input.sprintId}`;
 }
 
+export function sqlBlockedImportantIssueDedupeKey(
+  workspaceColumn: string,
+  issueColumn: string,
+  sprintColumn: string,
+): string {
+  return `CONCAT('${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}', ':', ${workspaceColumn}, ':', ${issueColumn}, ':', ${sprintColumn})`;
+}
+
 export async function getOpenFleetGraphFindingByDedupeKey(
   workspaceId: string,
   dedupeKey: string,

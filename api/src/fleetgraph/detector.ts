@@ -1,9 +1,9 @@
 // FleetGraph deterministic detectors select candidate work before graph reasoning.
 import { pool } from '../db/client.js';
 import {
-  BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX,
   blockedImportantIssueDedupeKey,
   recordFleetGraphRun,
+  sqlBlockedImportantIssueDedupeKey,
 } from './persistence.js';
 import { resolveFleetGraphCurrentWeek } from './current-week.js';
 
@@ -48,10 +48,6 @@ export type BlockedImportantIssueDedupeDecision = {
   decision: 'create_finding' | 'update_finding';
   candidate: BlockedImportantIssueCandidate;
   existingFindingId: string | null;
-};
-
-export type BlockedImportantIssueDecisionBatch = {
-  decisions: BlockedImportantIssueDedupeDecision[];
 };
 
 function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
@@ -196,17 +192,13 @@ export async function detectBlockedImportantIssueDecisions(input: {
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<BlockedImportantIssueDecisionBatch> {
+}): Promise<BlockedImportantIssueDedupeDecision[]> {
   const candidates = await findBlockedImportantIssueCandidates(input);
-  const decisions = await planBlockedImportantIssueDedupeDecisions({
+  return planBlockedImportantIssueDedupeDecisions({
     workspaceId: input.workspaceId,
     candidates,
     db: input.db,
   });
-
-  return {
-    decisions,
-  };
 }
 
 export async function findBlockedImportantIssueQuietExits(input: {
@@ -259,7 +251,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
        ) latest_iteration ON TRUE
        LEFT JOIN fleetgraph_findings blocked_finding
          ON blocked_finding.workspace_id = i.workspace_id
-        AND blocked_finding.dedupe_key = CONCAT($3::text, ':', i.workspace_id, ':', i.id, ':', s.id)
+        AND blocked_finding.dedupe_key = ${sqlBlockedImportantIssueDedupeKey('i.workspace_id', 'i.id', 's.id')}
         AND blocked_finding.status IN ('open', 'needs_confirmation', 'error')
        WHERE i.workspace_id = $1
          AND i.document_type = 'issue'
@@ -323,7 +315,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
      UNION ALL
      SELECT 'insufficient_visible_evidence', '0'
      ORDER BY reason`,
-    [input.workspaceId, currentSprintNumber, BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX]
+    [input.workspaceId, currentSprintNumber]
   );
 
   return result.rows.map((row) => ({

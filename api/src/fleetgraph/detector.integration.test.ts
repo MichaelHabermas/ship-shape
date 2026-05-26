@@ -132,12 +132,12 @@ describe('FleetGraph detector database query', () => {
       blockerText: 'Waiting on API credentials.',
     });
 
-    const batch = await detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(batch.decisions.map((decision) => decision.candidate)).toEqual([
+    expect(decisions.map((decision) => decision.candidate)).toEqual([
       expect.objectContaining({
         workspace_id: workspaceId,
         issue_id: issueId,
@@ -184,12 +184,12 @@ describe('FleetGraph detector database query', () => {
       summary: 'Issue has a blocker in the active week.',
     });
 
-    const batch = await detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(batch.decisions).toEqual([
+    expect(decisions).toEqual([
       expect.objectContaining({
         decision: 'update_finding',
         existingFindingId: existingFinding.id,
@@ -331,12 +331,12 @@ describe('FleetGraph detector database query', () => {
       olderBlockerThenBlank: true,
     });
 
-    const batch = await detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(batch.decisions.map((decision) => decision.candidate.issue_id)).toEqual([qualifyingIssueId]);
+    expect(decisions.map((decision) => decision.candidate.issue_id)).toEqual([qualifyingIssueId]);
   });
 
   it('ignores malformed sprint numbers instead of aborting the detector', async () => {
@@ -365,7 +365,7 @@ describe('FleetGraph detector database query', () => {
     await expect(detectBlockedImportantIssueDecisions({
       workspaceId,
       today: new Date('2026-05-26T12:00:00Z'),
-    })).resolves.toEqual({ decisions: [] });
+    })).resolves.toEqual([]);
   });
 
   it('classifies quiet exits against real Ship rows', async () => {
@@ -527,7 +527,7 @@ describe('FleetGraph detector database query', () => {
 
     const afterCounts = await readDetectorTableCounts(workspaceId, userId);
 
-    expect(summary.candidateCount).toBe(1);
+    expect(summary.decisionCount).toBe(1);
     expect(summary.modelCalls).toBe(0);
     expect(summary.mutatesShip).toBe(false);
     expect(summary.mutatesFleetGraph).toBe(false);

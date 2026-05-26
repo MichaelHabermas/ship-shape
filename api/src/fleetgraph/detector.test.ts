@@ -6,12 +6,14 @@ import {
   findBlockedImportantIssueQuietExits,
   recordBlockedImportantIssueQuietExitRun,
 } from './detector.js';
+import { blockedImportantIssueDedupeKey } from './persistence.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
 const sprintId = '33333333-3333-4333-8333-333333333333';
 const iterationId = '44444444-4444-4444-8444-444444444444';
 const existingFindingId = '77777777-7777-4777-8777-777777777777';
+const dedupeKey = blockedImportantIssueDedupeKey({ workspaceId, issueId, sprintId });
 
 function dbReturningCandidate() {
   return {
@@ -63,7 +65,7 @@ describe('FleetGraph detector', () => {
     const db = dbReturningCandidate();
     db.query.mockResolvedValueOnce(pgResult([]));
 
-    const batch = await detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       db,
       today: new Date('2026-05-26T12:00:00Z'),
@@ -80,14 +82,14 @@ describe('FleetGraph detector', () => {
     expect(sql).toContain("btrim(COALESCE(latest_iteration.blockers_encountered, '')) <> ''");
     expect(sql).toContain("NULLIF(i.properties->>'assignee_id', '') IS NOT NULL");
 
-    expect(batch.decisions[0]?.candidate).toEqual(expect.objectContaining({
+    expect(decisions[0]?.candidate).toEqual(expect.objectContaining({
       issue_id: issueId,
       sprint_id: sprintId,
-      dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
+      dedupeKey,
     }));
   });
 
-  it('classifies quiet exits without invoking a model boundary', async () => {
+  it('classifies quiet exits deterministically', async () => {
     const db = {
       query: vi.fn()
         .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-18' }]))
@@ -120,6 +122,7 @@ describe('FleetGraph detector', () => {
     expect(sql).toContain('duplicate_open_finding');
     expect(sql).toContain('insufficient_visible_evidence');
     expect(sql).toContain('LEFT JOIN fleetgraph_findings');
+    expect(sql).toContain(`'blocked-important-issue', ':', i.workspace_id, ':', i.id, ':', s.id`);
     expect(quietExits).toEqual([
       { reason: 'inactive_week', count: 1 },
       { reason: 'no_blocker', count: 2 },
@@ -131,40 +134,14 @@ describe('FleetGraph detector', () => {
     ]);
   });
 
-  it('plans update when an open finding exists for the exact dedupe key', async () => {
+  it('plans create and update dedupe decisions from open findings', async () => {
     const db = dbReturningCandidate();
     db.query.mockResolvedValueOnce(pgResult([{
       id: existingFindingId,
-      dedupe_key: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
+      dedupe_key: dedupeKey,
     }]));
 
-    const batch = await detectBlockedImportantIssueDecisions({
-      workspaceId,
-      db,
-      today: new Date('2026-05-26T12:00:00Z'),
-    });
-
-    expect(db.query).toHaveBeenLastCalledWith(
-      expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
-      [workspaceId, [`blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`]]
-    );
-    expect(batch.decisions).toEqual([
-      {
-        decision: 'update_finding',
-        candidate: expect.objectContaining({ issue_id: issueId }),
-        existingFindingId,
-      },
-    ]);
-  });
-
-  it('returns dedupe decisions through one safe detector boundary', async () => {
-    const db = dbReturningCandidate();
-    db.query.mockResolvedValueOnce(pgResult([{
-      id: existingFindingId,
-      dedupe_key: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
-    }]));
-
-    const batch = await detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       db,
       today: new Date('2026-05-26T12:00:00Z'),
@@ -172,19 +149,32 @@ describe('FleetGraph detector', () => {
     });
 
     expect(db.query).toHaveBeenCalledWith(expect.any(String), [workspaceId, 2, 10]);
-    expect(db.query).toHaveBeenCalledWith(
-      expect.stringContaining('dedupe_key = ANY'),
-      expect.arrayContaining([workspaceId, [`blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`]])
+    expect(db.query).toHaveBeenLastCalledWith(
+      expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
+      [workspaceId, [dedupeKey]]
     );
-    expect(batch).toEqual({
-      decisions: [
-        expect.objectContaining({
-          decision: 'update_finding',
-          existingFindingId,
-          candidate: expect.objectContaining({ issue_id: issueId }),
-        }),
-      ],
-    });
+    expect(decisions).toEqual([
+      {
+        decision: 'update_finding',
+        candidate: expect.objectContaining({ issue_id: issueId }),
+        existingFindingId,
+      },
+    ]);
+
+    const createDb = dbReturningCandidate();
+    createDb.query.mockResolvedValueOnce(pgResult([]));
+
+    await expect(detectBlockedImportantIssueDecisions({
+      workspaceId,
+      db: createDb,
+      today: new Date('2026-05-26T12:00:00Z'),
+    })).resolves.toEqual([
+      expect.objectContaining({
+        decision: 'create_finding',
+        candidate: expect.objectContaining({ issue_id: issueId }),
+        existingFindingId: null,
+      }),
+    ]);
   });
 
   it('dedupes repeated candidate rows before returning decisions', async () => {
@@ -211,39 +201,18 @@ describe('FleetGraph detector', () => {
         .mockResolvedValueOnce(pgResult([])),
     };
 
-    const batch = await detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       db,
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(batch.decisions).toEqual([
+    expect(decisions).toEqual([
       expect.objectContaining({
         decision: 'create_finding',
-        candidate: expect.objectContaining({
-          dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
-        }),
+        candidate: expect.objectContaining({ dedupeKey }),
       }),
     ]);
-  });
-
-  it('plans create when no open finding exists for the exact dedupe key', async () => {
-    const db = dbReturningCandidate();
-    db.query.mockResolvedValueOnce(pgResult([]));
-
-    await expect(detectBlockedImportantIssueDecisions({
-      workspaceId,
-      db,
-      today: new Date('2026-05-26T12:00:00Z'),
-    })).resolves.toEqual({
-      decisions: [
-        expect.objectContaining({
-          decision: 'create_finding',
-          candidate: expect.objectContaining({ issue_id: issueId }),
-          existingFindingId: null,
-        }),
-      ],
-    });
   });
 
   it('does not query open findings when there are no candidates to dedupe', async () => {
@@ -257,63 +226,24 @@ describe('FleetGraph detector', () => {
       workspaceId,
       db,
       today: new Date('2026-05-26T12:00:00Z'),
-    })).resolves.toEqual({ decisions: [] });
+    })).resolves.toEqual([]);
 
     expect(db.query).toHaveBeenCalledTimes(2);
   });
 
-  it('records nonzero quiet exits as a zero-model run', async () => {
-    const db = {
-      query: vi.fn().mockResolvedValue(pgResult([{
-        id: '66666666-6666-4666-8666-666666666666',
-        workspace_id: workspaceId,
-        finding_id: null,
-        source_issue_id: null,
-        source_sprint_id: null,
-        mode: 'proactive',
-        trigger_reason: 'blocked-important-issue-detector',
-        decision: 'quiet_exit',
-        dedupe_key: null,
-        input_snapshot: {},
-        evidence_snapshot: [],
-        output_snapshot: {},
-        trace_metadata: {},
-        token_metadata: {},
-        cost_metadata: {},
-        error_metadata: {},
-        started_at: new Date(),
-        completed_at: new Date(),
-        created_at: new Date(),
-      }])),
-    };
-
-    await recordBlockedImportantIssueQuietExitRun({
-      workspaceId,
+  it.each([
+    {
+      label: 'nonzero quiet exits',
       quietExits: [
-        { reason: 'no_blocker', count: 2 },
-        { reason: 'insufficient_visible_evidence', count: 0 },
+        { reason: 'no_blocker' as const, count: 2 },
+        { reason: 'insufficient_visible_evidence' as const, count: 0 },
       ],
-      db,
-    });
-
-    expect(db.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO fleetgraph_runs'),
-      expect.arrayContaining([
-        workspaceId,
-        'proactive',
-        'blocked-important-issue-detector',
-        'quiet_exit',
-        JSON.stringify({ quietExits: [
-          { reason: 'no_blocker', count: 2 },
-          { reason: 'insufficient_visible_evidence', count: 0 },
-        ] }),
-        JSON.stringify({ modelCalls: 0 }),
-        JSON.stringify({ modelCostUsd: 0 }),
-      ])
-    );
-  });
-
-  it('records an all-zero quiet-exit summary as a zero-model run ledger', async () => {
+    },
+    {
+      label: 'all-zero quiet exits',
+      quietExits: [{ reason: 'insufficient_visible_evidence' as const, count: 0 }],
+    },
+  ])('records $label without model calls', async ({ quietExits }) => {
     const db = {
       query: vi.fn().mockResolvedValue(pgResult([{
         id: '66666666-6666-4666-8666-666666666666',
@@ -340,7 +270,7 @@ describe('FleetGraph detector', () => {
 
     await recordBlockedImportantIssueQuietExitRun({
       workspaceId,
-      quietExits: [{ reason: 'insufficient_visible_evidence', count: 0 }],
+      quietExits,
       db,
     });
 
@@ -351,7 +281,7 @@ describe('FleetGraph detector', () => {
         'proactive',
         'blocked-important-issue-detector',
         'quiet_exit',
-        JSON.stringify({ quietExits: [{ reason: 'insufficient_visible_evidence', count: 0 }] }),
+        JSON.stringify({ quietExits }),
         JSON.stringify({ modelCalls: 0 }),
         JSON.stringify({ modelCostUsd: 0 }),
       ])
