@@ -3,7 +3,11 @@ import { randomUUID } from 'crypto';
 import { describe, expect, it } from 'vitest';
 import { pool } from '../db/client.js';
 import { requireFirstRow } from '../utils/query-rows.js';
-import { findBlockedImportantIssueCandidates } from './detector.js';
+import {
+  findBlockedImportantIssueCandidates,
+  planBlockedImportantIssueDedupeDecisions,
+} from './detector.js';
+import { saveBlockedImportantIssueFinding } from './persistence.js';
 
 async function createWorkspace(): Promise<string> {
   const result = await pool.query<{ id: string }>(
@@ -89,5 +93,73 @@ describe('FleetGraph detector database query', () => {
         dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
       }),
     ]);
+  });
+
+  it('plans update on rerun when an open finding already exists', async () => {
+    const workspaceId = await createWorkspace();
+    const userId = await createUser();
+    const sprintId = await createDocument({
+      workspaceId,
+      type: 'sprint',
+      title: 'Week 2',
+      properties: { sprint_number: 2, owner_id: userId },
+    });
+    const issueId = await createDocument({
+      workspaceId,
+      type: 'issue',
+      title: 'Repeated blocked issue',
+      properties: { state: 'in_progress', priority: 'high', assignee_id: userId },
+    });
+
+    await pool.query(
+      `INSERT INTO document_associations (document_id, related_id, relationship_type)
+       VALUES ($1, $2, 'sprint')`,
+      [issueId, sprintId]
+    );
+    await pool.query(
+      `INSERT INTO issue_iterations
+       (issue_id, workspace_id, status, what_attempted, blockers_encountered, author_id)
+       VALUES ($1, $2, 'in_progress', $3, $4, $5)`,
+      [issueId, workspaceId, 'Tried repro', 'Blocked on access review.', userId]
+    );
+    const existingFinding = await saveBlockedImportantIssueFinding({
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      severity: 'high',
+      confidence: 0.8,
+      title: 'Repeated blocked issue',
+      summary: 'Issue has a blocker in the active week.',
+    });
+
+    const candidates = await findBlockedImportantIssueCandidates({
+      workspaceId,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+    const decisions = await planBlockedImportantIssueDedupeDecisions({
+      workspaceId,
+      candidates,
+    });
+
+    expect(decisions).toEqual([
+      expect.objectContaining({
+        decision: 'update_finding',
+        existingFindingId: existingFinding.id,
+        candidate: expect.objectContaining({
+          issue_id: issueId,
+          sprint_id: sprintId,
+          dedupeKey: existingFinding.dedupe_key,
+        }),
+      }),
+    ]);
+
+    const count = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+         FROM fleetgraph_findings
+        WHERE dedupe_key = $1
+          AND status IN ('open', 'needs_confirmation', 'error')`,
+      [existingFinding.dedupe_key]
+    );
+    expect(count.rows[0]?.count).toBe('1');
   });
 });

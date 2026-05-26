@@ -4,6 +4,7 @@ import { pgResult } from '../test/pg-result.js';
 import {
   findBlockedImportantIssueCandidates,
   findBlockedImportantIssueQuietExits,
+  planBlockedImportantIssueDedupeDecisions,
   recordBlockedImportantIssueQuietExitRun,
 } from './detector.js';
 
@@ -128,6 +129,71 @@ describe('FleetGraph detector', () => {
       { reason: 'duplicate_open_finding', count: 6 },
       { reason: 'insufficient_visible_evidence', count: 0 },
     ]);
+  });
+
+  it('plans update when an open finding exists for the exact dedupe key', async () => {
+    const db = dbReturningCandidate();
+    const candidates = await findBlockedImportantIssueCandidates({
+      workspaceId,
+      db,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+    db.query.mockResolvedValueOnce(pgResult([{
+      id: '77777777-7777-4777-8777-777777777777',
+      dedupe_key: candidates[0]?.dedupeKey,
+    }]));
+
+    const decisions = await planBlockedImportantIssueDedupeDecisions({
+      workspaceId,
+      candidates,
+      db,
+    });
+
+    expect(db.query).toHaveBeenLastCalledWith(
+      expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
+      [workspaceId, [candidates[0]?.dedupeKey]]
+    );
+    expect(decisions).toEqual([
+      {
+        decision: 'update_finding',
+        candidate: candidates[0],
+        existingFindingId: '77777777-7777-4777-8777-777777777777',
+      },
+    ]);
+  });
+
+  it('plans create when no open finding exists for the exact dedupe key', async () => {
+    const db = dbReturningCandidate();
+    const candidates = await findBlockedImportantIssueCandidates({
+      workspaceId,
+      db,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+    db.query.mockResolvedValueOnce(pgResult([]));
+
+    await expect(planBlockedImportantIssueDedupeDecisions({
+      workspaceId,
+      candidates,
+      db,
+    })).resolves.toEqual([
+      {
+        decision: 'create_finding',
+        candidate: candidates[0],
+        existingFindingId: null,
+      },
+    ]);
+  });
+
+  it('skips the database when there are no candidates to dedupe', async () => {
+    const db = { query: vi.fn() };
+
+    await expect(planBlockedImportantIssueDedupeDecisions({
+      workspaceId,
+      candidates: [],
+      db,
+    })).resolves.toEqual([]);
+
+    expect(db.query).not.toHaveBeenCalled();
   });
 
   it('records nonzero quiet exits as a zero-model run', async () => {

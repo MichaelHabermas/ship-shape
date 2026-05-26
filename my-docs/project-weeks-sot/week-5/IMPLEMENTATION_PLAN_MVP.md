@@ -275,7 +275,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ### Slice 2.4: Implement Dedupe
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -290,6 +290,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Dedupe test or manual two-run proof.
+
+**Implementation Note (2026-05-25):** Added `planBlockedImportantIssueDedupeDecisions` in `api/src/fleetgraph/detector.ts`. It uses the exact locked dedupe key already attached to candidates, reads open FleetGraph findings by `workspace_id` and `dedupe_key`, and returns `create_finding` when no active finding exists or `update_finding` with the existing finding id when one does. The persistence upsert/partial unique index remains the final database guard, but the detector now exposes the duplicate path before any graph create path can accidentally treat a rerun as a fresh finding. Evidence: detector unit tests for create/update/no-candidate paths and DB-backed rerun proof that one existing open finding produces an `update_finding` decision and leaves one open row.
 
 ### Slice 2.5: Add Manual Detector Invocation
 

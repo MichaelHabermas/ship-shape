@@ -99,3 +99,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph detector quiet exits are classified before graph/model reasoning. Nonzero quiet-exit summaries may be recorded as `fleetgraph_runs` rows with zero model calls and zero model cost, but they must not create findings or mutate Ship source records.
 
 **Consequence:** Negative detector paths remain reviewable without token spend. Duplicate open finding is only classified in slice 2.3; actual duplicate suppression/update behavior belongs to slice 2.4.
+
+## D013 - FleetGraph Dedupe Is An Explicit Detector Decision
+
+**Date:** 2026-05-25
+
+**Decision:** FleetGraph candidate reruns resolve through the locked dedupe key `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}` before graph create behavior. If no active finding exists, the detector plans `create_finding`; if an open/needs-confirmation/error finding exists, it plans `update_finding` with the existing finding id.
+
+**Consequence:** The graph/worker should consume the detector decision instead of blindly creating findings. The persistence upsert and partial unique index remain a final guard, not the only dedupe mechanism.

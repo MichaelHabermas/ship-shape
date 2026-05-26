@@ -153,6 +153,7 @@ Places where a small, focused change creates outsized value.
 - FleetGraph active-week invariant (2026-05-25): reuse Ship's week semantics. Active week is computed from `workspaces.sprint_start_date` into current `properties.sprint_number`; issue/week membership is `document_associations.relationship_type = 'sprint'`; MVP blocker signal is `issue_iterations.blockers_encountered`. Do not add FleetGraph-only active-week markers.
 - FleetGraph detector boundary (2026-05-25): use `api/src/fleetgraph/current-week.ts` plus shared sprint-time helpers for current week resolution. Positive candidates come from deterministic SQL in `api/src/fleetgraph/detector.ts`; do not duplicate route-local week math or let model reasoning choose scan scope.
 - FleetGraph quiet-exit invariant (2026-05-25): negative detector paths are deterministic SQL/run metadata with zero model calls and zero model cost. Quiet exits may write `fleetgraph_runs`, but must not create findings or mutate Ship records.
+- FleetGraph dedupe invariant (2026-05-25): detector candidates carry the exact `blocked-important-issue:{workspace_id}:{issue_id}:{sprint_id}` key and must pass through `planBlockedImportantIssueDedupeDecisions` before graph create behavior. Existing active findings become `update_finding`, not a second open finding.
 
 ## Sharp Edges
 

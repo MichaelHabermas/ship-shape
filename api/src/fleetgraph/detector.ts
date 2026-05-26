@@ -40,6 +40,12 @@ export type FleetGraphDetectorQuietExit = {
   count: number;
 };
 
+export type BlockedImportantIssueDedupeDecision = {
+  decision: 'create_finding' | 'update_finding';
+  candidate: BlockedImportantIssueCandidate;
+  existingFindingId: string | null;
+};
+
 function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
   return {
     ...row,
@@ -126,6 +132,37 @@ export async function findBlockedImportantIssueCandidates(input: {
   );
 
   return result.rows.map(mapCandidate);
+}
+
+export async function planBlockedImportantIssueDedupeDecisions(input: {
+  workspaceId: string;
+  candidates: BlockedImportantIssueCandidate[];
+  db?: QueryRunner;
+}): Promise<BlockedImportantIssueDedupeDecision[]> {
+  if (input.candidates.length === 0) return [];
+
+  const db = input.db ?? pool;
+  const dedupeKeys = [...new Set(input.candidates.map((candidate) => candidate.dedupeKey))];
+  const result = await db.query<{ id: string; dedupe_key: string }>(
+    `SELECT id, dedupe_key
+       FROM fleetgraph_findings
+      WHERE workspace_id = $1
+        AND dedupe_key = ANY($2::text[])
+        AND status IN ('open', 'needs_confirmation', 'error')`,
+    [input.workspaceId, dedupeKeys]
+  );
+  const openFindingIdByDedupeKey = new Map(
+    result.rows.map((row) => [row.dedupe_key, row.id])
+  );
+
+  return input.candidates.map((candidate) => {
+    const existingFindingId = openFindingIdByDedupeKey.get(candidate.dedupeKey) ?? null;
+    return {
+      decision: existingFindingId ? 'update_finding' : 'create_finding',
+      candidate,
+      existingFindingId,
+    };
+  });
 }
 
 export async function findBlockedImportantIssueQuietExits(input: {
