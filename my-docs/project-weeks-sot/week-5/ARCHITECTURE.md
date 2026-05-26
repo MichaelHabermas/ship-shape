@@ -220,7 +220,7 @@ flowchart LR
 
 1. Issue in an **active sprint/week**
 2. **Important active work:** explicit commitment marker in Ship, *or* conservative fallback: not done, owner/assignee, `priority in ('urgent','high')` — described honestly as "urgent/high active sprint work," not "committed"
-3. **Blocked signal:** recent blocker text in `issue_iterations.blockers_encountered`
+3. **Blocked signal:** `issue.state = blocked`; recent `issue_iterations.blockers_encountered` text is supporting explanation/history when present.
 4. **No open finding** for the same dedupe key
 
 The LLM does **not** choose what to scan. SQL bounds cost and latency before any model call.

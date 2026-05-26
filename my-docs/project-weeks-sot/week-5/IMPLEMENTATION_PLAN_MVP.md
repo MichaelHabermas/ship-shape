@@ -23,9 +23,9 @@ Do not weaken these constraints:
 - User-visible claims must be backed by evidence visible to that user.
 - Shared traces must use seeded/demo-safe data.
 - Do not add a new `document_type`.
-- Do not invent `blocked` issue state or `critical` priority.
+- Add `blocked` as a real issue lifecycle state; do not invent `critical` priority.
 - Use `document_associations.relationship_type = 'sprint'` for week membership.
-- Use `issue_iterations.blockers_encountered` for blocker signals.
+- Use `issue.state = blocked` as the canonical current blocked signal. Use `issue_iterations.blockers_encountered` as blocker history/evidence: who marked or encountered the block, when, and why.
 - If Ship has no explicit commitment marker, say "urgent/high active-week work," not committed work.
 - FleetGraph implementation is not done unless detector, graph, and decision-packet behavior are covered by golden cases, labeled scenarios, and trace/error review.
 
@@ -738,7 +738,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 6: Worker Lifecycle
 
-**Status:** Implemented; verification in progress
+**Status:** Done
 
 **Goal:** Run the proactive detector without a user present while keeping lifecycle and shutdown clean.
 
@@ -843,13 +843,13 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 7: Product Surface
 
-**Status:** Not started
+**Status:** Implemented; awaiting human review
 
 **Goal:** Make FleetGraph proactive and contextual without building a standalone chatbot or global dashboard.
 
 ### Slice 7.1: Add Web Client API
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -864,9 +864,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Type-check and focused client test if local pattern supports it.
 
+**Implementation Note (2026-05-26):** Added `web/src/hooks/useFleetGraphQuery.ts` using the generated OpenAPI client. The hook normalizes API findings into one `FleetGraphFindingView` so UI components do not reinterpret flexible `visibleOutput.humanGate` / `draftContent` JSON independently. It supports source issue/sprint reads plus explain, refine, and dismiss mutations; no manual-run product UI was added.
+
 ### Slice 7.2: Add Active-Week Banner
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -882,9 +884,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Web test or browser smoke.
 
+**Implementation Note (2026-05-26):** Added `FleetGraphActiveWeekBanner` and mounted sprint-scoped FleetGraph findings in `WeekIssuesTab` through `FleetGraphWeekSurface`. The banner links to affected issues and stays contextual to the week; no standalone FleetGraph route, dashboard, or global inbox was introduced.
+
 ### Slice 7.3: Add Contextual Finding Card
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -899,9 +903,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Web test or browser smoke.
 
+**Implementation Note (2026-05-26):** Added `FleetGraphFindingCard` and issue/week surfaces. Issue documents now render visible source-issue findings as an editor content banner, and active/completed week issue tabs render sprint-scoped findings above the issue list. The card shows safe API output only: summary, evidence, severity/confidence, next action, recipient rationale, uncertainty, draft text, trace metadata, and gate state.
+
 ### Slice 7.4: Add Explain Interaction
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -917,9 +923,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Web/API integration test or browser smoke.
 
+**Implementation Note (2026-05-26):** Added `FleetGraphExplainPanel`, which calls the bounded finding explain endpoint and renders the returned grounded visible output. Restricted/not-found responses are displayed as no visible finding rather than hinting hidden source data exists.
+
 ### Slice 7.5: Add Draft Refinement Interaction
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -934,9 +942,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Web/API integration test or browser smoke.
 
+**Implementation Note (2026-05-26):** Added `FleetGraphDraftRefiner`, which accepts a bounded instruction and calls the refine endpoint. The UI states explicitly say refinement changes only FleetGraph-owned draft text and does not send, post, or mutate Ship.
+
 ### Slice 7.6: Add Human Gate
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -951,9 +961,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Web test or browser smoke.
 
+**Implementation Note (2026-05-26):** Added `FleetGraphHumanGate`, which shows why approval is required and the blocked consequence. The execution button is disabled and labeled `Prepared only - nothing sent`, preserving the MVP human-gate boundary and avoiding any implication that a message, comment, status change, assignment, sprint move, or source update occurred.
+
 ### Slice 7.7: Add UI States And Accessibility Basics
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -968,6 +980,12 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Web tests and browser smoke.
 
+**Implementation Note (2026-05-26):** Added loading/error/no-visible-finding state handling through `FleetGraphStatePanel` for rendered FleetGraph surfaces while keeping no-finding issue/week contexts silent by default. Focused web coverage now exercises banner links, card/gate language, finding-bound explain/refine calls, dismiss/explain error copy, and normalized API visible output. Browser smoke logged in locally, loaded `/issues`, opened an issue document, and opened a week issues tab without FleetGraph UI runtime errors; current demo data has no visible findings until Epic 8 seeds blocked-work cases. Full E2E remains intentionally skipped for this pass.
+
+**Closeout Note (2026-05-26):** Epic 7 implementation is complete and awaiting human review. FleetGraph product UI now consumes a single normalized web finding view, surfaces active-week findings in week issue context, surfaces issue findings in the issue document editor context, supports finding-bound explain/refine/dismiss interactions, and renders a non-executing human gate that blocks Ship mutation/contact claims. Verification covered changed-file TS/lint, web type-check, root type-check, root build, OpenAPI parity, docs strict/path checks, focused FleetGraph web component tests, focused FleetGraph eval/golden tests against `ship_test_audit`, and browser smoke. Demo-positive visual proof remains Epic 8 because current local seed data has no non-empty `issue_iterations.blockers_encountered` rows.
+
+**Follow-up Note (2026-05-26):** Small code-health cleanup to preserve after human review: move Express request augmentation typing out of `scripts/check-affected-ts.mjs` coupling and into a normal `.d.ts`/type boundary so affected-TS checking does not need script-level awareness of API middleware typing.
+
 ## Epic 8: Demo Data And Reviewer Readiness
 
 **Status:** Not started
@@ -980,34 +998,42 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Problem:**
 
-FleetGraph detects blocked work from `issue_iterations.blockers_encountered`, but current dev/demo seed data has no non-empty blocker rows, and the web UI does not expose a clear issue-level progress/blocker path that writes to `POST /api/issues/:id/iterations`.
+FleetGraph currently detects blocked work from `issue_iterations.blockers_encountered`, but the product model should make blockedness explicit: `issue.state = blocked` is the current lifecycle state, and `issue_iterations.blockers_encountered` is the history/evidence explaining each block. Current dev/demo seed data has no first-class blocked issues or non-empty blocker rows, and the web UI does not expose a clear issue-level path for marking an issue blocked and recording why.
 
 **Do:**
 
-- Add repeatable demo seed data with at least two urgent/high active-week issues whose latest issue iteration has non-empty `blockers_encountered`.
+- Add `blocked` to the canonical issue state model and expose it in issue status UI.
+- When an issue is marked `blocked`, record who changed it and when through existing issue history.
+- Add repeatable demo seed data with at least two urgent/high active-week issues whose `state = blocked`.
+- For seeded blocked issues, include at least one recent issue iteration with non-empty `blockers_encountered` explaining the block.
 - Add negative controls:
-  - urgent/high active-week issue with no blocker.
-  - medium/low active-week issue with blocker.
-  - done/cancelled urgent/high issue with blocker.
-  - inactive-week urgent/high issue with blocker.
+  - urgent/high active-week issue that is not blocked.
+  - urgent/high active-week issue with `state = blocked` but no blocker explanation.
+  - medium/low active-week issue with `state = blocked`.
+  - done/cancelled urgent/high issue with blocker history.
+  - inactive-week urgent/high issue with `state = blocked`.
 - Add or expose an issue-detail UI path for logging an issue iteration with:
   - `status`
   - `what_attempted`
   - `blockers_encountered`
+- When a user changes status to `Blocked`, provide a clear place to fill in the blocker reason. Store that reason as an issue iteration `blockers_encountered` entry, not as issue body text.
+- If an issue is `blocked` with no blocker explanation, surface that as a callout: the issue is blocked but the blocker is missing, including who marked it blocked when known.
 - Ensure the UI writes to `POST /api/issues/:id/iterations`, not standups or issue body text.
-- Ensure FleetGraph detector sees UI-created blocker rows without special casing.
+- Update FleetGraph detector semantics so `issue.state = blocked` is the source of truth for current blocked work. `issue_iterations.blockers_encountered` supplies evidence and missing-evidence callouts, not the canonical blocked signal.
 
 **Done Means:**
 
-- A normal user can mark an issue as blocked from the UI by logging an issue iteration with blocker text.
-- Fresh demo/local data produces FleetGraph positive candidates without manual SQL.
+- A normal user can mark an issue as `Blocked` from the Status UI.
+- A normal user can record blocker explanation/history through issue iterations.
+- Fresh demo/local data produces FleetGraph positive candidates from `state = blocked` without manual SQL.
+- Blocked issues with missing blocker text produce a clear missing-evidence callout instead of disappearing.
 - The read-only detector command returns expected positive candidates and quiet-exit controls.
 
 **Evidence:**
 
-- Seed/demo inspection showing non-empty `issue_iterations.blockers_encountered`.
+- Seed/demo inspection showing `state = blocked` issues and blocker-history rows where expected.
 - Manual detector output showing `decisionCount >= 2`.
-- Browser/API proof that creating a blocker from the issue UI creates an `issue_iterations` row.
+- Browser/API proof that selecting `Blocked` updates issue state and records an `issue_iterations` row when blocker text is provided.
 - Focused tests for the UI/API path and detector candidate visibility.
 
 ### Slice 8.1: Add Repeatable Demo Setup

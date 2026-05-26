@@ -267,3 +267,19 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Keep the API-process polling worker as the Epic 6 MVP, but record a dedicated FleetGraph worker process with durable `fleetgraph_jobs` as the preferred 10x path once API horizontal scaling, stricter SLA proof, or operational reliability pressure appears.
 
 **Consequence:** The next reliability step is not more timers inside API replicas. It is a separate worker that claims durable jobs, records queue/execution latency separately, supports retry/backoff/dead-letter cleanup, and becomes the landing zone for future event triggers. This adds deployment and lease-state complexity, so it stays deferred until the MVP worker proves the product loop.
+
+## D034 - FleetGraph Product Surface Stays Contextual And Non-Executing
+
+**Date:** 2026-05-26
+
+**Decision:** Epic 7 surfaces FleetGraph only inside the current Ship context: issue documents and active/completed week issue tabs. The web client normalizes API responses into one `FleetGraphFindingView`, then renders active-week banners, finding cards, explain/refine controls, and a disabled human-gate consequence control from that view. The API visible-output contract is explicit-allowlist only: severity, confidence, recommended-action label/text/summary, server-owned recipient rationale copy, uncertainty notes, evidence, draft content, human-gate metadata, and relative trace links only.
+
+**Consequence:** The UI must not grow a standalone FleetGraph dashboard, global inbox, or broad chatbot without a new spec decision. Explain/refine remain finding-bound on-demand actions. The human gate may prepare text and show the blocked consequence, but it must not imply anything was sent, posted, assigned, moved, updated, accepted, or escalated until a future confirmed execution API exists. Recipient identities, arbitrary persisted action JSON, unsafe trace URLs, and hidden graph internals stay out of visible output unless a future authorization decision explicitly makes them safe.
+
+## D035 - Blocked Is A First-Class Issue State
+
+**Date:** 2026-05-26
+
+**Decision:** Promote blockedness into Ship's issue lifecycle model. `issue.state = blocked` is the canonical current signal that an issue cannot move forward. `issue_iterations.blockers_encountered` remains blocker history/evidence: who encountered or recorded the block, when it happened, and why.
+
+**Consequence:** Future FleetGraph detector work should use `state = blocked` as the source of truth for currently blocked work. `blockers_encountered` supplies explanation and audit history, but must not be the only signal that an issue is blocked. A blocked issue with no blocker text is still blocked and should produce a missing-evidence callout that names who marked it blocked when available. Existing blocker-history rows should not be blindly backfilled into `state = blocked` without a deliberate migration decision, because old blocker text can be stale.

@@ -58,11 +58,11 @@
 - LangGraph and LangSmith, or equivalent graph execution and shared tracing, are required for MVP evidence.
 - The current API package does not already include LangGraph/LangSmith dependencies; adding graph/tracing dependencies is part of implementation, not a configuration toggle.
 - Deterministic SQL candidate selection must run before model reasoning.
-- The model receives bounded context only: source issue, active week, latest blocker iteration, assignee/owner display context, existing FleetGraph finding state, and permission-filtered evidence.
+- The model receives bounded context only: source issue, active week, current blocked state, latest blocker iteration when present, assignee/owner display context, existing FleetGraph finding state, and permission-filtered evidence.
 
 **Evaluation Strategy:**
 
-- Candidate detection: urgent/high active-week issues with `issue_iterations.blockers_encountered` qualify; non-urgent/non-high, inactive-week, done/cancelled, and no-blocker issues do not.
+- Candidate detection: urgent/high active-week issues with `issue.state = blocked` qualify. `issue_iterations.blockers_encountered` provides explanation/history for the block. Non-urgent/non-high, inactive-week, done/cancelled, and unblocked issues do not qualify.
 - Evidence grounding: every user-visible claim must map to source issue/week/iteration evidence visible to the current user.
 - Trace evidence: one proactive trace must create or update a finding; one on-demand trace must explain or refine an existing finding. Preferred MVP evidence is three traces: proactive create, on-demand explain/refine, and proactive duplicate/update or quiet exit.
 - Quiet exits: duplicate and resolved/non-qualifying candidates must produce quiet/update traces without duplicate open findings.
@@ -153,7 +153,7 @@ A proactive candidate qualifies when all are true:
 - Issue state is not `done` or `cancelled`.
 - Issue is associated to the active week through `document_associations.relationship_type = 'sprint'`.
 - The associated week is the current active week using existing workspace/week semantics.
-- The issue has a recent blocker signal in `issue_iterations.blockers_encountered`.
+- The issue has `state = blocked`. Recent `issue_iterations.blockers_encountered` text is used as blocker evidence when present.
 - No open finding already exists for the same dedupe key.
 
 **Integration Points:**
@@ -198,7 +198,7 @@ Required demo universe:
   - active week owner
   - program lead/director
   - dependency/context source
-- At least two urgent/high active-week issues with assignees and recent `issue_iterations.blockers_encountered` text.
+- At least two urgent/high active-week issues with assignees and `state = blocked`; at least one includes recent `issue_iterations.blockers_encountered` text explaining the block.
 - At least one blocker that names a dependency or decision-maker, such as Legal, Platform credentials, PM scope decision, or unclear acceptance criteria.
 - Project/program/issue/week ownership fields populated enough for FleetGraph to identify builder, work owner, week owner, decision-maker, context source, and dependency candidate roles.
 - Recent activity timestamps so the worker candidate query can see the seeded blockers.
@@ -208,8 +208,9 @@ Required demo universe:
 Required negative controls:
 
 - Urgent/high issue in a non-active week.
-- Active-week urgent/high issue with no blocker iteration.
-- Active-week medium/low issue with a blocker iteration.
+- Active-week urgent/high issue that is not blocked.
+- Active-week urgent/high issue with `state = blocked` but no blocker iteration.
+- Active-week medium/low issue with `state = blocked`.
 - Done/cancelled urgent/high issue with blocker text.
 - Candidate that already has an open FleetGraph finding for the dedupe key.
 - Private or restricted source issue/week that one test user cannot read.
@@ -217,7 +218,7 @@ Required negative controls:
 Demo data expectations:
 
 - Seeded issue priorities must use real values: `urgent` or `high`, not `critical`.
-- Seeded issue states must use real values and must not invent a `blocked` state.
+- Seeded issue states must use real values, including the new first-class `blocked` state once implemented.
 - Week membership must use `document_associations.relationship_type = 'sprint'`, not legacy columns.
 - Blockers must be in `issue_iterations.blockers_encountered`, not only in issue body text.
 - The worker flag should stay off by default except in demo/test environments.
@@ -247,7 +248,7 @@ MVP vs final boundary:
 **Technical Risks:**
 
 - LangGraph/LangSmith integration is not already present in the API package.
-- "Blocked" is not a canonical issue state; MVP must use `issue_iterations.blockers_encountered`, not a nonexistent enum value.
+- `Blocked` becomes a canonical issue state. MVP detection must use `issue.state = blocked` for current blockedness and `issue_iterations.blockers_encountered` for explanation/history.
 - Permission-filtered summaries can leak restricted context if implemented casually.
 - Multi-instance API workers require a DB lease post-MVP; MVP assumes one worker process plus DB uniqueness.
 - Broad on-demand prompts can create cost and privacy cliffs; MVP only explains/refines existing contextual findings.
@@ -255,7 +256,7 @@ MVP vs final boundary:
 
 **Implementation Acceptance Tests:**
 
-- Qualifying urgent/high active-week issue with `blockers_encountered` creates an open finding within 5 minutes.
+- Qualifying urgent/high active-week issue with `state = blocked` creates an open finding within 5 minutes. Missing blocker explanation creates a callout instead of suppressing the finding.
 - Finding is discoverable from the affected issue/week context and from a lightweight proactive UI surface.
 - Duplicate candidate produces update/quiet trace, not a duplicate open finding.
 - On-demand "why was this flagged?" explains the existing finding.

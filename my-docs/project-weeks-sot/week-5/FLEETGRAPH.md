@@ -10,7 +10,7 @@ A Ship issue becomes a proactive FleetGraph candidate when all conditions are tr
 
 1. The issue belongs to an active sprint/week.
 2. The issue is important active work. MVP uses the narrowest existing commitment marker in Ship. If Ship has no explicit commitment marker, the predicate is explicit and conservative: active sprint/week membership, not-done status, an owner or assignee, and `priority in ('urgent', 'high')`. In that fallback path FleetGraph describes the finding as "urgent/high active sprint work," not as committed work.
-3. The issue has a real blocker signal in `issue_iterations.blockers_encountered`.
+3. The issue has `state = blocked`; `issue_iterations.blockers_encountered` supplies blocker explanation/history when present.
 4. No open FleetGraph finding already covers the same dedupe key.
 
 The LLM does not decide which issues are worth checking. SQL-level deterministic candidate selection bounds the graph before model reasoning runs.
