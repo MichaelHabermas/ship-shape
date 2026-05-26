@@ -210,6 +210,7 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 - Implement contextual UI first. A global FleetGraph panel is not MVP.
 - Persist trace metadata. A reviewer/debug trace UI is nice-to-have.
 - Use heartbeat/run metadata first. DB lease is not MVP for a single deployed worker, but is required if production runs multiple API instances.
+- Keep a dedicated FleetGraph worker process with durable `fleetgraph_jobs` as the preferred post-MVP reliability path once API horizontal scaling or operational SLA pressure appears.
 
 ## Cost Analysis
 
@@ -250,6 +251,7 @@ Mitigations:
 ## Non-MVP / Later
 
 - Hybrid event + polling trigger model.
+- Dedicated FleetGraph worker process with durable job claiming, retries, lease expiry, and dead-letter/cleanup policy.
 - Global FleetGraph panel.
 - Trace/debug reviewer UI.
 - Snooze support.

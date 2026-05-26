@@ -243,3 +243,27 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Program/project/week child counts and issue estimate aggregates must pass the same actor visibility predicate as child rows. Program/project/week routes use `document-graph-visibility.ts` helper SQL instead of raw association counts for visible summaries.
 
 **Consequence:** Visible parents no longer reveal hidden child issue/week/project counts, state distributions, or aggregate estimates. Future graph summaries should add helper functions rather than inlining unfiltered `COUNT(*)` snippets.
+
+## D031 - FleetGraph Worker Uses System Attribution And Advisory Locking
+
+**Date:** 2026-05-26
+
+**Decision:** Scheduled FleetGraph execution uses a narrow `fleetgraph_system` principal per workspace, not a borrowed human session. The API-process worker is opt-in, uses recursive deadline-based scheduling, records worker tick metadata in `fleetgraph_worker_ticks`, and takes a Postgres advisory lock before scanning workspaces.
+
+**Consequence:** Proactive FleetGraph can run without a user present while preserving the existing rule that recipient-visible output must be filtered before display. Multi-instance API deployments avoid duplicate scheduled scans without introducing a queue. Worker tick rows provide backend latency proof, but UI-observed surfacing remains an Epic 7 proof requirement.
+
+## D032 - FleetGraph Worker Stays Deterministic At The Model Boundary
+
+**Date:** 2026-05-26
+
+**Decision:** The no-user-present FleetGraph worker injects the deterministic proactive-create text generator into `runFleetGraphTick`, even when real proactive-create model calls are enabled for other paths.
+
+**Consequence:** Worker scans cannot accidentally send blocker/evidence text to an external model because an environment flag was enabled for manual or future interactive flows. A future explicit worker-model policy can replace this, but it must update the no-user-present privacy proof, token accounting, and golden cases together.
+
+## D033 - Dedicated FleetGraph Worker Is The Post-MVP Reliability Path
+
+**Date:** 2026-05-26
+
+**Decision:** Keep the API-process polling worker as the Epic 6 MVP, but record a dedicated FleetGraph worker process with durable `fleetgraph_jobs` as the preferred 10x path once API horizontal scaling, stricter SLA proof, or operational reliability pressure appears.
+
+**Consequence:** The next reliability step is not more timers inside API replicas. It is a separate worker that claims durable jobs, records queue/execution latency separately, supports retry/backoff/dead-letter cleanup, and becomes the landing zone for future event triggers. This adds deployment and lease-state complexity, so it stays deferred until the MVP worker proves the product loop.

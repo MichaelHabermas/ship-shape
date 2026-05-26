@@ -738,13 +738,13 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 6: Worker Lifecycle
 
-**Status:** Not started
+**Status:** Implemented; verification in progress
 
 **Goal:** Run the proactive detector without a user present while keeping lifecycle and shutdown clean.
 
 ### Slice 6.1: Add Disabled-By-Default Worker
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -760,9 +760,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Startup/config test or local smoke.
 
+**Implementation Note (2026-05-26):** Added `api/src/fleetgraph/worker.ts` with `startFleetGraphWorker()` behind `FLEETGRAPH_WORKER_ENABLED`, recursive timeout scheduling, no module-level interval, and idempotent cleanup. `api/src/index.ts` starts the worker after collaboration setup and stops it before closing the DB pool.
+
 ### Slice 6.2: Add Manual One-Tick Function
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -777,9 +779,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Targeted worker test.
 
+**Implementation Note (2026-05-26):** The worker uses `runFleetGraphTick({ mode: 'execute' })` directly with `triggerReason: 'scheduled-worker'`. Manual API execution remains a thin `runFleetGraphManualTick()` wrapper with `triggerReason: 'manual-run'`.
+
 ### Slice 6.3: Wire Detector To Graph
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -795,9 +799,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Empty tick test proving no model call.
 
+**Implementation Note (2026-05-26):** Worker ticks enumerate bounded active workspaces, build a `fleetgraph_system` principal per workspace, and pass a small candidate limit into the shared tick runner. Worker execution injects deterministic proactive-create text so no-user-present scans remain zero-model-call even if real model calls are enabled elsewhere. Worker tests prove the system principal path and zero model-call accounting for deterministic worker execution.
+
 ### Slice 6.4: Record Heartbeat, Runs, And Errors
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -813,9 +819,11 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 - Worker error-path test or manual smoke.
 
+**Implementation Note (2026-05-26):** Added migration `043_fleetgraph_worker_ticks.sql` and persistence helpers for worker tick start, heartbeat, completion, failure, and skipped-lock metadata. Worker ticks use a Postgres advisory lock so multiple API instances do not duplicate scheduled scans; per-workspace errors are contained, logged, and recorded while preserving partial tick counts.
+
 ### Slice 6.5: Prove Shutdown And Five-Minute Budget
 
-**Status:** Not started
+**Status:** Implemented
 
 **Do:**
 
@@ -830,6 +838,8 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 **Evidence:**
 
 - Timed proof timestamps or lifecycle test.
+
+**Implementation Note (2026-05-26):** Worker cleanup clears pending timers and waits for in-flight work before shutdown continues, so the DB pool is not closed under an active tick. Worker tick metadata records `started_at`, `deadline_at`, `completed_at`, selected/attempted workspace counts, detector decision counts, result counts, model calls, and audit metadata for backend latency proof. Full UI-observed 5-minute proof remains Epic 7/product-surface dependent.
 
 ## Epic 7: Product Surface
 
@@ -1224,10 +1234,12 @@ FleetGraph detects blocked work from `issue_iterations.blockers_encountered`, bu
 - Active-week banner as proactive surface: satisfies discoverability without creating a global inbox.
 - Trace-first implementation: required for grading and prevents last-minute fake observability.
 - FleetGraph Eval Pack before graph implementation: turns graph behavior from vibes into measurable golden cases, coverage, rubrics, and trace review.
+- Dedicated FleetGraph worker/job table after polling MVP: move scheduled scans out of API request processes into a separate worker process that claims durable `fleetgraph_jobs` rows. This removes replica timer races, separates queue latency from execution latency for SLA proof, gives retry/backoff/dead-letter visibility, and becomes the natural landing zone for event triggers. Defer until API horizontal scaling or operational FleetGraph reliability makes the added process/schema/lease complexity worth it.
 
 ## Deferred Ideas
 
 - Hybrid event + polling trigger model: better long-term latency/cost, too much event plumbing for MVP.
+- Dedicated FleetGraph worker process with durable jobs: cleaner than every API instance scheduling and losing the advisory-lock race, but requires worker deployment, job claiming, lease expiry, retry/backoff, cleanup, and missing-worker monitoring.
 - Project risk ledger with more detectors: correct product direction after blocked-work loop works.
 - Agent-native project drift substrate where every document mutation emits typed graph facts: powerful, too big for Week 5 MVP.
 
