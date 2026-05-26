@@ -536,6 +536,7 @@ components:
         - backlog
         - todo
         - in_progress
+        - blocked
         - in_review
         - done
         - cancelled
@@ -574,6 +575,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -736,6 +738,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -881,6 +884,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -965,6 +969,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -1078,6 +1083,7 @@ components:
                 - backlog
                 - todo
                 - in_progress
+                - blocked
                 - in_review
                 - done
                 - cancelled
@@ -1215,6 +1221,7 @@ components:
                   - backlog
                   - todo
                   - in_progress
+                  - blocked
                   - in_review
                   - done
                   - cancelled
@@ -1471,6 +1478,7 @@ components:
             - backlog
             - todo
             - in_progress
+            - blocked
             - in_review
             - done
             - cancelled
@@ -7288,6 +7296,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/IssueHistoryEntry"
+        400:
+          description: Validation error
+        403:
+          description: Forbidden
         404:
           description: Issue not found
     post:
@@ -7372,6 +7384,7 @@ paths:
           name: id
           in: path
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7398,6 +7411,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/IssueIteration"
+        400:
+          description: Validation error
+        403:
+          description: Forbidden
         404:
           description: Issue not found
   /issues/action-items:
@@ -7433,6 +7450,7 @@ paths:
                             - backlog
                             - todo
                             - in_progress
+                            - blocked
                             - in_review
                             - done
                             - cancelled

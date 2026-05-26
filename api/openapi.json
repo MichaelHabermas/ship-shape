@@ -719,6 +719,7 @@
           "backlog",
           "todo",
           "in_progress",
+          "blocked",
           "in_review",
           "done",
           "cancelled"
@@ -765,6 +766,7 @@
               "backlog",
               "todo",
               "in_progress",
+              "blocked",
               "in_review",
               "done",
               "cancelled"
@@ -961,6 +963,7 @@
               "backlog",
               "todo",
               "in_progress",
+              "blocked",
               "in_review",
               "done",
               "cancelled"
@@ -1139,6 +1142,7 @@
               "backlog",
               "todo",
               "in_progress",
+              "blocked",
               "in_review",
               "done",
               "cancelled"
@@ -1246,6 +1250,7 @@
               "backlog",
               "todo",
               "in_progress",
+              "blocked",
               "in_review",
               "done",
               "cancelled"
@@ -1399,6 +1404,7 @@
                   "backlog",
                   "todo",
                   "in_progress",
+                  "blocked",
                   "in_review",
                   "done",
                   "cancelled"
@@ -1577,6 +1583,7 @@
                     "backlog",
                     "todo",
                     "in_progress",
+                    "blocked",
                     "in_review",
                     "done",
                     "cancelled"
@@ -1902,6 +1909,7 @@
               "backlog",
               "todo",
               "in_progress",
+              "blocked",
               "in_review",
               "done",
               "cancelled"
@@ -9822,6 +9830,12 @@
               }
             }
           },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Issue not found"
           }
@@ -9950,6 +9964,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -9989,6 +10004,12 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "Issue not found"
@@ -10032,6 +10053,7 @@
                               "backlog",
                               "todo",
                               "in_progress",
+                              "blocked",
                               "in_review",
                               "done",
                               "cancelled"
