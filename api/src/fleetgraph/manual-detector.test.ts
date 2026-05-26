@@ -56,15 +56,15 @@ describe('manual FleetGraph detector runner', () => {
       limit: 5,
     });
 
-    expect(detectBlockedImportantIssueDecisions).toHaveBeenCalledWith({
+    expect(detectBlockedImportantIssueDecisions).toHaveBeenCalledWith(expect.objectContaining({
       workspaceId,
       today,
       limit: 5,
-    });
-    expect(findBlockedImportantIssueQuietExits).toHaveBeenCalledWith({
+    }));
+    expect(findBlockedImportantIssueQuietExits).toHaveBeenCalledWith(expect.objectContaining({
       workspaceId,
       today,
-    });
+    }));
     expect(summary).toEqual({
       workspaceId,
       today: '2026-05-26T12:00:00.000Z',

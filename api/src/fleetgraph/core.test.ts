@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../test/pg-result.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from './core.js';
-import { filterEvidenceForActor } from './evidence.js';
+import { evidenceFromDetectorCandidate, filterEvidenceForActor } from './evidence.js';
 import {
   blockedImportantIssueDedupeKey,
   type FleetGraphFinding,
@@ -128,6 +128,76 @@ function requireMockInput<TArgs extends unknown[]>(
   return input;
 }
 
+function readableSourceDb() {
+  return {
+    query: vi.fn()
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
+      .mockResolvedValueOnce(pgResult([{
+        id: issueId,
+        title: 'Blocked issue',
+        document_type: 'issue',
+        workspace_id: workspaceId,
+        created_by: userId,
+        visibility: 'workspace',
+        properties: { priority: 'urgent', state: 'in_progress' },
+        archived_at: null,
+        deleted_at: null,
+      }]))
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
+      .mockResolvedValueOnce(pgResult([{
+        id: sprintId,
+        title: 'Week 2',
+        document_type: 'sprint',
+        workspace_id: workspaceId,
+        created_by: userId,
+        visibility: 'workspace',
+        properties: { sprint_number: 2 },
+        archived_at: null,
+        deleted_at: null,
+      }])),
+  };
+}
+
+function restrictedSourceDb() {
+  return {
+    query: vi.fn()
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
+      .mockResolvedValueOnce(pgResult([]))
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
+      .mockResolvedValueOnce(pgResult([{
+        id: sprintId,
+        title: 'Week 2',
+        document_type: 'sprint',
+        workspace_id: workspaceId,
+        created_by: userId,
+        visibility: 'workspace',
+        properties: { sprint_number: 2 },
+        archived_at: null,
+        deleted_at: null,
+      }])),
+  };
+}
+
+function restrictedSprintDb() {
+  return {
+    query: vi.fn()
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
+      .mockResolvedValueOnce(pgResult([{
+        id: issueId,
+        title: 'Blocked issue',
+        document_type: 'issue',
+        workspace_id: workspaceId,
+        created_by: userId,
+        visibility: 'workspace',
+        properties: { priority: 'urgent', state: 'in_progress' },
+        archived_at: null,
+        deleted_at: null,
+      }]))
+      .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
+      .mockResolvedValueOnce(pgResult([])),
+  };
+}
+
 describe('FleetGraph shared core', () => {
   it('turns a proactive create detector decision into a human-gated finding and run', async () => {
     const port = persistence();
@@ -143,7 +213,7 @@ describe('FleetGraph shared core', () => {
           existingFindingId: null,
         },
       },
-    }, { persistence: port });
+    }, { persistence: port, db: readableSourceDb() });
 
     expect(result.decision).toBe('create_finding');
     const savedInput = requireMockInput(vi.mocked(port.saveFinding));
@@ -177,7 +247,7 @@ describe('FleetGraph shared core', () => {
           existingFindingId: findingId,
         },
       },
-    }, { persistence: port });
+    }, { persistence: port, db: readableSourceDb() });
 
     expect(result.decision).toBe('update_finding');
     expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
@@ -191,9 +261,10 @@ describe('FleetGraph shared core', () => {
 
     const result = await runFleetGraph({
       workspaceId,
+      principal,
       mode: 'on_demand',
       trigger: { type: 'explain_finding', findingId },
-    }, { persistence: port });
+    }, { persistence: port, db: readableSourceDb() });
 
     expect(result.decision).toBe('explain');
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
@@ -208,13 +279,14 @@ describe('FleetGraph shared core', () => {
 
     const result = await runFleetGraph({
       workspaceId,
+      principal,
       mode: 'on_demand',
       trigger: {
         type: 'refine_draft',
         findingId,
         instruction: 'Make it shorter.',
       },
-    }, { persistence: port });
+    }, { persistence: port, db: readableSourceDb() });
 
     expect(result.decision).toBe('refine_draft');
     const refineInput = requireMockInput(vi.mocked(port.refineDraft));
@@ -226,23 +298,6 @@ describe('FleetGraph shared core', () => {
 
   it('does not refine draft state when the actor cannot read the source issue', async () => {
     const port = persistence();
-    const db = {
-      query: vi.fn()
-        .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
-        .mockResolvedValueOnce(pgResult([]))
-        .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
-        .mockResolvedValueOnce(pgResult([{
-          id: sprintId,
-          title: 'Week 2',
-          document_type: 'sprint',
-          workspace_id: workspaceId,
-          created_by: userId,
-          visibility: 'workspace',
-          properties: { sprint_number: 2 },
-          archived_at: null,
-          deleted_at: null,
-        }])),
-    };
 
     const result = await runFleetGraph({
       workspaceId,
@@ -253,7 +308,7 @@ describe('FleetGraph shared core', () => {
         findingId,
         instruction: 'Reveal the blocker.',
       },
-    }, { persistence: port, db });
+    }, { persistence: port, db: restrictedSourceDb() });
 
     expect(result.decision).toBe('quiet_exit');
     expect(result.visibleOutput?.noSafeOutput).toBe(true);
@@ -264,25 +319,69 @@ describe('FleetGraph shared core', () => {
     }));
   });
 
-  it('restricts output when the current actor cannot read the source issue', async () => {
-    const db = {
-      query: vi.fn()
-        .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
-        .mockResolvedValueOnce(pgResult([]))
-        .mockResolvedValueOnce(pgResult([{ role: 'member' }]))
-        .mockResolvedValueOnce(pgResult([{
-          id: sprintId,
-          title: 'Week 2',
-          document_type: 'sprint',
-          workspace_id: workspaceId,
-          created_by: userId,
-          visibility: 'workspace',
-          properties: { sprint_number: 2 },
-          archived_at: null,
-          deleted_at: null,
-        }])),
-    };
+  it('does not dismiss a finding when the actor cannot read the source issue', async () => {
+    const port = persistence();
 
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'dismiss_finding',
+        findingId,
+        dismissedBy: userId,
+      },
+    }, { persistence: port, db: restrictedSourceDb() });
+
+    expect(result.decision).toBe('quiet_exit');
+    expect(result.visibleOutput?.noSafeOutput).toBe(true);
+    expect(port.dismissFinding).not.toHaveBeenCalled();
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'quiet_exit',
+    }));
+  });
+
+  it('returns a not-found error before dismiss mutation when a finding is missing', async () => {
+    const port = persistence();
+    vi.mocked(port.getFinding).mockResolvedValueOnce(null);
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: {
+        type: 'dismiss_finding',
+        findingId,
+        dismissedBy: userId,
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe('error');
+    expect(result.errorMetadata.category).toBe('not_found');
+    expect(port.dismissFinding).not.toHaveBeenCalled();
+  });
+
+  it('returns an error instead of dismiss success when the status update affects no row', async () => {
+    const port = persistence();
+    vi.mocked(port.dismissFinding).mockResolvedValueOnce(null);
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: {
+        type: 'dismiss_finding',
+        findingId,
+        dismissedBy: userId,
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe('error');
+    expect(result.errorMetadata.category).toBe('not_found');
+    expect(port.recordRun).toHaveBeenLastCalledWith(expect.objectContaining({
+      decision: 'error',
+    }));
+  });
+
+  it('restricts output when the current actor cannot read the source issue', async () => {
     const bundle = await filterEvidenceForActor({
       principal,
       workspaceId,
@@ -297,7 +396,7 @@ describe('FleetGraph shared core', () => {
         visibility: 'internal',
         visibleFields: ['blockers_encountered'],
       }],
-      db,
+      db: restrictedSourceDb(),
     });
 
     expect(bundle.noSafeOutput).toBe(true);
@@ -309,5 +408,35 @@ describe('FleetGraph shared core', () => {
       }),
     ]);
     expect(JSON.stringify(bundle.evidence)).not.toContain('secret');
+  });
+
+  it('restricts output when the current actor cannot read the source sprint', async () => {
+    const bundle = await filterEvidenceForActor({
+      principal,
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      evidence: evidenceFromDetectorCandidate(candidate),
+      db: restrictedSprintDb(),
+    });
+
+    expect(bundle.noSafeOutput).toBe(true);
+    expect(JSON.stringify(bundle.evidence)).not.toContain(sprintId);
+    expect(JSON.stringify(bundle.evidence)).not.toContain(dedupeKey);
+  });
+
+  it('strips dedupe evidence before actor-visible output', async () => {
+    const bundle = await filterEvidenceForActor({
+      principal,
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      evidence: evidenceFromDetectorCandidate(candidate),
+      db: readableSourceDb(),
+    });
+
+    expect(bundle.noSafeOutput).toBe(false);
+    expect(bundle.evidence.some((item) => item.kind === 'dedupe')).toBe(false);
+    expect(JSON.stringify(bundle.evidence)).not.toContain(dedupeKey);
   });
 });

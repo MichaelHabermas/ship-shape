@@ -3,8 +3,11 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fleetgraphRoutes from './fleetgraph.js';
+import { fleetGraphConfig } from '../config/fleetgraph.js';
+import { authorizeRequest } from '../security/route-capability.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
+import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
 import { listFleetGraphFindingsForSource, type FleetGraphFinding } from '../fleetgraph/persistence.js';
 import type { FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 
@@ -34,8 +37,20 @@ vi.mock('../fleetgraph/core.js', () => ({
   runFleetGraph: vi.fn(),
 }));
 
+vi.mock('../config/fleetgraph.js', () => ({
+  fleetGraphConfig: vi.fn(() => ({ manualRunApiEnabled: true })),
+}));
+
+vi.mock('../security/route-capability.js', () => ({
+  authorizeRequest: vi.fn(),
+}));
+
 vi.mock('../fleetgraph/evidence.js', () => ({
   visibleOutputForFinding: vi.fn(),
+}));
+
+vi.mock('../fleetgraph/manual-run.js', () => ({
+  runFleetGraphManualTick: vi.fn(),
 }));
 
 vi.mock('../fleetgraph/persistence.js', () => ({
@@ -52,9 +67,19 @@ type FleetGraphFindingsTestBody = {
 type FleetGraphRunTestBody = {
   decision: string;
   finding?: unknown;
-  visibleOutput: {
+  visibleOutput?: {
     noSafeOutput?: boolean;
   };
+};
+
+type FleetGraphManualRunTestBody = {
+  mode: 'proactive';
+  detectorDecisions: number;
+  results: Array<{
+    decision: string;
+    findingId?: string;
+    visibleOutput?: { noSafeOutput?: boolean };
+  }>;
 };
 
 function app() {
@@ -64,7 +89,7 @@ function app() {
   return testApp;
 }
 
-function finding(): FleetGraphFinding {
+function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding {
   return {
     id: findingId,
     workspace_id: workspaceId,
@@ -90,6 +115,7 @@ function finding(): FleetGraphFinding {
     dismissed_by: null,
     created_at: new Date(),
     updated_at: new Date(),
+    ...overrides,
   };
 }
 
@@ -109,11 +135,24 @@ function visibleOutput(): FleetGraphVisibleOutput {
   };
 }
 
+function restrictedVisibleOutput(): FleetGraphVisibleOutput {
+  return {
+    title: 'FleetGraph output restricted',
+    summary: 'FleetGraph cannot show this finding because the source issue is not visible to the current actor.',
+    evidence: [],
+    humanGate: { required: false },
+    noSafeOutput: true,
+  };
+}
+
 describe('FleetGraph routes', () => {
   beforeEach(() => {
     vi.mocked(listFleetGraphFindingsForSource).mockReset();
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(runFleetGraph).mockReset();
+    vi.mocked(runFleetGraphManualTick).mockReset();
+    vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: true } as never);
+    vi.mocked(authorizeRequest).mockResolvedValue({ allowed: true, reason: 'allowed' } as never);
   });
 
   it('lists findings with actor-filtered visible output', async () => {
@@ -141,13 +180,7 @@ describe('FleetGraph routes', () => {
     vi.mocked(listFleetGraphFindingsForSource).mockResolvedValue([finding()]);
     vi.mocked(visibleOutputForFinding).mockResolvedValue({
       evidence: [],
-      output: {
-        title: 'FleetGraph output restricted',
-        summary: 'FleetGraph cannot show this finding because the source issue is not visible to the current actor.',
-        evidence: [],
-        humanGate: { required: false },
-        noSafeOutput: true,
-      },
+      output: restrictedVisibleOutput(),
     });
 
     const res = await request(app())
@@ -181,28 +214,22 @@ describe('FleetGraph routes', () => {
     expect(body.decision).toBe('explain');
   });
 
-  it('does not serialize finding identifiers for restricted explain output', async () => {
+  it('returns not found without identifiers for restricted explain output', async () => {
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'quiet_exit',
       finding: finding(),
-      visibleOutput: {
-        title: 'FleetGraph output restricted',
-        summary: 'FleetGraph cannot show this finding because the source issue is not visible to the current actor.',
-        evidence: [],
-        humanGate: { required: false },
-        noSafeOutput: true,
-      },
+      visibleOutput: restrictedVisibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'quiet_exit', nodePath: ['filterVisibleEvidence'] },
     } as never);
 
     const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/explain`)
-      .expect(200);
+      .expect(404);
 
-    const body = JSON.parse(res.text) as FleetGraphRunTestBody;
-    expect(body.finding).toBeUndefined();
-    expect(body.visibleOutput.noSafeOutput).toBe(true);
+    const body = JSON.parse(res.text) as { error: string };
+    expect(body.error).toBe('FleetGraph finding not found');
     expect(res.text).not.toContain(issueId);
+    expect(res.text).not.toContain(sprintId);
     expect(res.text).not.toContain('blocked-important-issue');
   });
 
@@ -255,5 +282,172 @@ describe('FleetGraph routes', () => {
       .post(`/api/fleetgraph/findings/${findingId}/refine`)
       .send({ instruction: 'Make it shorter.' })
       .expect(500);
+  });
+
+  it('runs dismiss through runFleetGraph', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'dismiss',
+      finding: finding({ status: 'dismissed' }),
+      visibleOutput: visibleOutput(),
+      traceMetadata: { mode: 'on_demand', decision: 'dismiss', nodePath: ['persistFleetGraphState'] },
+    } as never);
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
+      .expect(200);
+
+    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: {
+        type: 'dismiss_finding',
+        findingId,
+        dismissedBy: '55555555-5555-4555-8555-555555555555',
+      },
+    }));
+    const body = JSON.parse(res.text) as FleetGraphRunTestBody;
+    expect(body.decision).toBe('dismiss');
+  });
+
+  it('returns 404 when dismiss targets a missing finding', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'error',
+      finding: null,
+      visibleOutput: visibleOutput(),
+      traceMetadata: { mode: 'on_demand', decision: 'error', nodePath: ['error'] },
+      errorMetadata: { category: 'not_found' },
+    } as never);
+
+    await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
+      .expect(404);
+  });
+
+  it('returns not found without identifiers for restricted dismiss output', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'quiet_exit',
+      finding: finding(),
+      visibleOutput: restrictedVisibleOutput(),
+      traceMetadata: { mode: 'on_demand', decision: 'quiet_exit', nodePath: ['filterVisibleEvidence'] },
+    } as never);
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
+      .expect(404);
+
+    const body = JSON.parse(res.text) as { error: string };
+    expect(body.error).toBe('FleetGraph finding not found');
+    expect(res.text).not.toContain(issueId);
+    expect(res.text).not.toContain(sprintId);
+    expect(res.text).not.toContain('blocked-important-issue');
+  });
+
+  it('rejects dismiss for non-admin workspace members', async () => {
+    vi.mocked(authorizeRequest).mockResolvedValue({ allowed: false, reason: 'not_workspace_admin' } as never);
+
+    await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
+      .expect(403);
+
+    expect(runFleetGraph).not.toHaveBeenCalled();
+  });
+
+  it('runs gated manual ticks for workspace admins', async () => {
+    vi.mocked(runFleetGraphManualTick).mockResolvedValue({
+      mode: 'proactive',
+      detectorDecisions: 1,
+      results: [{
+        decision: 'create_finding',
+        finding: finding(),
+        visibleOutput: visibleOutput(),
+        traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: ['produceOutput'] },
+      }],
+    } as never);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send({ today: '2026-05-26', limit: 1 })
+      .expect(200);
+
+    expect(authorizeRequest).toHaveBeenCalledWith(expect.any(Object), { resource: 'workspace', action: 'admin' });
+    expect(runFleetGraphManualTick).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      limit: 1,
+    }));
+    const body = JSON.parse(res.text) as FleetGraphManualRunTestBody;
+    expect(body.detectorDecisions).toBe(1);
+    expect(body.results[0]?.decision).toBe('create_finding');
+    expect(body.results[0]?.findingId).toBe(findingId);
+  });
+
+  it('omits restricted manual-run finding output and identifiers', async () => {
+    vi.mocked(runFleetGraphManualTick).mockResolvedValue({
+      mode: 'proactive',
+      detectorDecisions: 1,
+      results: [{
+        decision: 'quiet_exit',
+        finding: finding(),
+        visibleOutput: restrictedVisibleOutput(),
+        traceMetadata: { mode: 'proactive', decision: 'quiet_exit', nodePath: ['filterVisibleEvidence'] },
+      }],
+    } as never);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send({ today: '2026-05-26', limit: 1 })
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphManualRunTestBody;
+    expect(body.detectorDecisions).toBe(0);
+    expect(body.results[0]?.findingId).toBeUndefined();
+    expect(body.results[0]?.visibleOutput).toBeUndefined();
+    expect(res.text).not.toContain(issueId);
+    expect(res.text).not.toContain(sprintId);
+    expect(res.text).not.toContain('blocked-important-issue');
+  });
+
+  it('rejects manual ticks when the API gate is disabled', async () => {
+    vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: false } as never);
+
+    await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send({})
+      .expect(403);
+
+    expect(runFleetGraphManualTick).not.toHaveBeenCalled();
+  });
+
+  it('rejects manual ticks for non-admin workspace members', async () => {
+    vi.mocked(authorizeRequest).mockResolvedValue({ allowed: false, reason: 'not_workspace_admin' } as never);
+
+    await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send({})
+      .expect(403);
+
+    expect(runFleetGraphManualTick).not.toHaveBeenCalled();
+  });
+
+  it('rejects impossible manual run dates', async () => {
+    await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send({ today: '2026-99-99' })
+      .expect(400);
+
+    expect(runFleetGraphManualTick).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['limit below minimum', { limit: 0 }],
+    ['limit above maximum', { limit: 26 }],
+    ['non-integer limit', { limit: 1.5 }],
+    ['malformed today', { today: '2026-5-6' }],
+  ])('rejects invalid manual run body: %s', async (_label, body) => {
+    await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send(body)
+      .expect(400);
+
+    expect(runFleetGraphManualTick).not.toHaveBeenCalled();
   });
 });
