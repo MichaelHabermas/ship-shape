@@ -332,13 +332,13 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** Persisted trace metadata remains allowlisted to mode, decision, node path, trace ID/URL, and failure category. Shared reviewer trace links must come from seeded/demo-safe inputs, and trace capture must not send raw prompts, completions, hidden evidence, DB clients, principals, cookies, tokens, or circular runtime state. Do not protect trace safety by mutating process-wide LangSmith env flags around async graph runs.
 
-## D042 - Existing Public Render Deploy Does Not Yet Satisfy FleetGraph MVP
+## D042 - Public Render Deploy Must Prove FleetGraph Route Presence
 
 **Date:** 2026-05-27
 
-**Decision:** Epic 10 verification found the public Render API and web are live, but the deployed API returns `Cannot GET /api/fleetgraph/findings`; do not claim public FleetGraph availability until a current API/web build with FleetGraph routes is deployed and verified.
+**Decision:** Epic 10 verification treats API health and web health as insufficient. Public closeout requires the deployed API to prove FleetGraph route presence by returning auth/CSRF behavior from FleetGraph endpoints instead of Express `Cannot GET`.
 
-**Consequence:** Local/demo FleetGraph is trace-verified, but the public deployment checklist item remains blocked. The next human-approved deployment pass should verify API health, FleetGraph route availability, worker/manual trigger configuration, and a reviewer-safe object URL after deploy.
+**Consequence:** Render deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` is live. `GET /api/fleetgraph/findings?...` returns `401 No session found`, and `POST /api/fleetgraph/manual-run` returns CSRF protection, proving the route family is mounted. Future public checks should verify behavior-level route presence, not just `/health`.
 
 ## D043 - Existing Databases Skip Bootstrap Schema During Migrations
 

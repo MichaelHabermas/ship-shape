@@ -191,19 +191,21 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 
 Public deployment verification on 2026-05-27:
 
+- Render API deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` reached `live`.
 - `https://ship-shape-api.onrender.com/health` returned HTTP 200.
 - `https://ship-shape-web.onrender.com` returned HTTP 200.
-- `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 404 `Cannot GET /api/fleetgraph/findings`.
+- `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`, proving the FleetGraph route is mounted and protected instead of missing.
+- `POST https://ship-shape-api.onrender.com/api/fleetgraph/manual-run` returned HTTP 403 `Missing Origin or Referer header`, proving the manual route is mounted and CSRF-protected.
 
-Conclusion: the existing public Render deployment is live, but it does not currently expose the FleetGraph route family. The MVP is locally verified with reviewer-safe LangSmith traces, but the public deployment requirement remains blocked until the current API/web build is deployed with FleetGraph routes and seeded/reviewer-safe data.
+Conclusion: the current public Render deployment exposes the FleetGraph route family. Reviewer-visible FleetGraph content still requires an authenticated reviewer session and seeded/demo-safe objects.
 
 ## Test Cases
 
 | # | Ship State | Expected Output | Trace Link |
 | --- | --- | --- | --- |
-| 1 | Active sprint/week contains important issue `FG Demo - SSO cert rotation blocked` with `state = blocked` and blocker evidence | Proactive graph creates a blocked-work finding with evidence, proposed recipient, next step, draft action, and human gate | [LangSmith trace](https://smith.langchain.com/public/b042b6c6-12c2-489a-821c-9289690efe14/r): `mode=proactive`, `decision=create_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> reasonProactiveCreate -> persistFleetGraphState -> produceOutput`. |
-| 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | [LangSmith trace](https://smith.langchain.com/public/df81e9ee-6b34-4b9b-a91f-3ee9e25f7c0d/r): `mode=on_demand`, `decision=explain`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> produceOutput`. |
-| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | [LangSmith trace](https://smith.langchain.com/public/d06a1db3-efb9-4fcf-81b5-b72e3d400cd5/r): `mode=on_demand`, `decision=refine_draft`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refineDraft -> persistFleetGraphState -> produceOutput`. |
+| 1 | Active sprint/week contains important issue `FG Demo - SSO cert rotation blocked` with `state = blocked` and blocker evidence | Proactive graph creates a blocked-work finding with evidence, proposed recipient, next step, draft action, and human gate | [LangSmith trace](https://smith.langchain.com/public/352e0204-8782-4233-8857-1d46281627bf/r): `mode=proactive`, `decision=create_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> reasonProactiveCreate -> persistFleetGraphState -> produceOutput`. |
+| 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | [LangSmith trace](https://smith.langchain.com/public/3f7209df-4b19-4769-bcc8-6fe78b57b093/r): `mode=on_demand`, `decision=explain`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> produceOutput`. |
+| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | [LangSmith trace](https://smith.langchain.com/public/cf7aa1bb-e0c9-4613-ae74-0154189bdec8/r): `mode=on_demand`, `decision=refine_draft`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refineDraft -> persistFleetGraphState -> produceOutput`. |
 | 4 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | Local demo detector output from `pnpm fleetgraph:demo -- --capture-traces`: `decision=update_finding` for `FG Demo - Duplicate open finding control`; focused golden/core tests cover `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refreshExistingFinding -> persistFleetGraphState -> produceOutput`. |
 | 5 | Blocked signal is removed before recheck | Proactive graph resolves or quietly exits | Nice-to-have |
 | 6 | Evidence is not visible to current user | Graph returns restricted-context output or quiet exit | Nice-to-have |
@@ -228,9 +230,9 @@ Actual local run accounting from `fleetgraph_runs` after `pnpm fleetgraph:demo -
 
 | Mode | Decision | Runs | Model calls | Input tokens | Output tokens | Estimated cost |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| on_demand | explain | 26 | 0 | 0 | 0 | $0 |
-| on_demand | refine_draft | 19 | 0 | 0 | 0 | $0 |
-| proactive | create_finding | 18 | 0 | 0 | 0 | $0 |
+| on_demand | explain | 27 | 0 | 0 | 0 | $0 |
+| on_demand | refine_draft | 20 | 0 | 0 | 0 | $0 |
+| proactive | create_finding | 19 | 0 | 0 | 0 | $0 |
 | proactive | resolve | 1 | 0 | 0 | 0 | $0 |
 | proactive | update_finding | 8 | 0 | 0 | 0 | $0 |
 
