@@ -307,3 +307,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** The MVP card is not a writing assistant, approval panel, or execution surface. It is a sparse review-queue item for urgent/high active-week blockers: issue title, cleaned blocker summary, source priority, evidence, likely recipient when available, `Open issue`, `Details`/`Collapse`, `Dismiss`, and dev-only trace. Per-card `FleetGraph` branding, universal `Needs confirmation` status, fake-precision confidence, repeated "why flagged" explanation, draft refinement, prepared comments, and human-gate approval panels are removed from the default product surface.
 
 **Consequence:** MVP value is the filtered queue: "these active-week blockers deserve PM review," not "FleetGraph can talk to people" or "FleetGraph approves actions." Post-MVP work may add a real composer, copy action, approval/send flow, or richer state labels only with a new product decision that defines destination, actor, mutation boundary, and resolution semantics. Until then, no code should depend on the removed card badges or writing controls being present.
+
+## D039 - FleetGraph Schema Must Stay In Fresh Bootstrap
+
+**Date:** 2026-05-27
+
+**Decision:** `api/src/db/schema.sql` must include the FleetGraph schema introduced by migrations `042_fleetgraph.sql` and `043_fleetgraph_worker_ticks.sql`: `fleetgraph_findings`, `fleetgraph_runs`, `fleetgraph_worker_ticks`, their indexes, and the FleetGraph reference/suppression triggers.
+
+**Consequence:** E2E isolated databases load `schema.sql` and then mark migrations as applied; they do not replay FleetGraph migrations. If `schema.sql` drifts behind numbered migrations, Playwright can pass user-visible assertions while API logs contain FleetGraph 500s such as missing relation errors. FleetGraph verification must inspect smoke logs for backend errors, not only Playwright pass counts.
