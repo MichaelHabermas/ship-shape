@@ -336,9 +336,9 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-27
 
-**Decision:** Epic 10 verification initially found public Render health/web green while FleetGraph routes were absent. After the migrator fix deployed, Render API deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` reached `live`; public API/web health returned HTTP 200; `GET /api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`; and `POST /api/fleetgraph/manual-run` returned CSRF protection.
+**Decision:** Epic 10 verification treats API health and web health as insufficient. Public closeout requires the deployed API to prove FleetGraph route presence by returning auth/CSRF behavior from FleetGraph endpoints instead of Express `Cannot GET`. After the migrator fix deployed, Render API deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` reached `live`; public API/web health returned HTTP 200; `GET /api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`; and `POST /api/fleetgraph/manual-run` returned CSRF protection.
 
-**Consequence:** The stale "Cannot GET" blocker is retired. Public MVP verification can now rely on the route family being deployed behind normal auth/CSRF gates, while reviewer-safe seeded object access and any worker/manual-trigger proof still need current authenticated review evidence.
+**Consequence:** The stale "Cannot GET" blocker is retired. Public MVP verification can now rely on the route family being deployed behind normal auth/CSRF gates. Future public checks should verify behavior-level route presence, not just `/health`. Reviewer-safe seeded object access and any worker/manual-trigger proof still need current authenticated review evidence.
 
 ## D043 - FleetGraph Agent Interface Is Contextual Finding Infrastructure
 

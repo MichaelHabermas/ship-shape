@@ -205,13 +205,14 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 
 Public deployment verification on 2026-05-27:
 
+- Render API deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` reached `live`.
 - `https://ship-shape-api.onrender.com/health` returned HTTP 200.
 - `https://ship-shape-web.onrender.com` returned HTTP 200.
-- After the migrator fix deployed, `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`.
-- `POST /api/fleetgraph/manual-run` returned CSRF protection.
+- After the migrator fix deployed, `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`, proving the FleetGraph route is mounted and protected instead of missing.
+- `POST https://ship-shape-api.onrender.com/api/fleetgraph/manual-run` returned HTTP 403 `Missing Origin or Referer header`, proving the manual route is mounted and CSRF-protected.
 - `render.yaml` enables `FLEETGRAPH_WORKER_ENABLED=true`, `FLEETGRAPH_MANUAL_RUN_API_ENABLED=true`, `LANGSMITH_TRACING=true`, and `LANGCHAIN_TRACING_V2=true` for the API service. The remaining required Render secret is `LANGSMITH_API_KEY` or `LANGCHAIN_API_KEY`; without it, FleetGraph still runs and records local trace metadata, but LangSmith share links cannot be created.
 
-Conclusion: the public API exposes the FleetGraph route family behind normal auth/CSRF gates and the deploy config enables the proactive worker. Reviewer-safe seeded object access and a current authenticated manual-run or worker-created finding screenshot still need human-side review credentials after deployment.
+Conclusion: the public API exposes the FleetGraph route family behind normal auth/CSRF gates and the deploy config enables the proactive worker. Future public checks should verify behavior-level route presence, not just `/health`. Reviewer-safe seeded object access and a current authenticated manual-run or worker-created finding screenshot still need human-side review credentials after deployment.
 
 ## Test Cases
 
@@ -244,9 +245,9 @@ Actual local run accounting from `fleetgraph_runs` after `pnpm fleetgraph:demo -
 
 | Mode | Decision | Runs | Model calls | Input tokens | Output tokens | Estimated cost |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| on_demand | explain | 26 | 0 | 0 | 0 | $0 |
-| on_demand | refine_draft | 19 | 0 | 0 | 0 | $0 |
-| proactive | create_finding | 18 | 0 | 0 | 0 | $0 |
+| on_demand | explain | 27 | 0 | 0 | 0 | $0 |
+| on_demand | refine_draft | 20 | 0 | 0 | 0 | $0 |
+| proactive | create_finding | 19 | 0 | 0 | 0 | $0 |
 | proactive | resolve | 1 | 0 | 0 | 0 | $0 |
 | proactive | update_finding | 8 | 0 | 0 | 0 | $0 |
 
