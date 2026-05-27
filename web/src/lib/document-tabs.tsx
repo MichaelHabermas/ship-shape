@@ -28,6 +28,7 @@ export interface DocumentResponse extends Record<string, unknown> {
   owner_id?: string | null;
   color?: string;
   emoji?: string | null;
+  fleetGraphFindingCount?: number;
 }
 
 export interface DocumentTabProps {
@@ -213,7 +214,7 @@ export function getTabsForDocument(document: DocumentResponse): DocumentTabConfi
     const properties = document.properties as { status?: string } | undefined;
     const status = properties?.status || 'planning';
 
-    if (status === 'planning') {
+    if (status === 'planning' && !document.fleetGraphFindingCount) {
       return documentTabConfigs['sprint:planning'] || documentTabConfigs.sprint || [];
     } else {
       // active, completed, or any other status uses active tabs

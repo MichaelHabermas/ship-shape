@@ -83,8 +83,16 @@ export function UnifiedDocumentPage() {
 
 
 
+  const isProject = document?.document_type === 'project';
+  const isProgram = document?.document_type === 'program';
+  const isSprint = document?.document_type === 'sprint';
+  const { data: fleetGraphFindings = [] } = useFleetGraphSprintFindings(isSprint ? id : undefined);
+
   // Set default active tab when document loads (status-aware for sprints)
-  const tabConfig = document ? getTabsForDocument(document) : [];
+  const tabConfig = document ? getTabsForDocument({
+    ...document,
+    fleetGraphFindingCount: isSprint ? fleetGraphFindings.length : undefined,
+  }) : [];
   const hasTabs = document ? documentTypeHasTabs(document.document_type) : false;
 
   // Derive activeTab from URL - if valid tab in URL, use it; otherwise default to first tab
@@ -134,11 +142,7 @@ export function UnifiedDocumentPage() {
   })), [projectsData]);
 
   // Fetch counts for tabs (project weeks, etc.)
-  const isProject = document?.document_type === 'project';
-  const isProgram = document?.document_type === 'program';
-  const isSprint = document?.document_type === 'sprint';
   const { data: projectWeeks = [] } = useProjectWeeksQuery(isProject ? id : undefined);
-  const { data: fleetGraphFindings = [] } = useFleetGraphSprintFindings(isSprint ? id : undefined);
 
   // Compute tab counts based on document type
   const tabCounts: TabCounts = useMemo(() => {
