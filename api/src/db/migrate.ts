@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 /**
  * Database migration script
- * 1. Runs schema.sql for initial table setup
+ * 1. Runs schema.sql only for empty database bootstrap
  * 2. Runs numbered migration files from migrations/ folder
  * 3. Tracks completed migrations in schema_migrations table
  */
@@ -38,23 +38,7 @@ async function migrate() {
   try {
     console.log('Running database migrations...');
 
-    // Step 1: Run schema.sql for initial setup
-    const schemaPath = join(__dirname, 'schema.sql');
-    const schema = readFileSync(schemaPath, 'utf-8');
-    try {
-      await pool.query(schema);
-      console.log('✅ Schema applied');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      // "already exists" errors are only benign during schema bootstrap.
-      if (errorMessage.includes('already exists')) {
-        console.log('Database schema already exists, continuing...');
-      } else {
-        throw error;
-      }
-    }
-
-    // Step 2: Create migrations tracking table
+    // Step 1: Create migrations tracking table before bootstrap detection.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         version TEXT PRIMARY KEY,
@@ -62,11 +46,29 @@ async function migrate() {
       )
     `);
 
-    // Step 3: Get list of already-applied migrations
-    const appliedResult = await pool.query('SELECT version FROM schema_migrations ORDER BY version');
+    const existingTables = await pool.query<{ count: string }>(`
+      SELECT COUNT(*)::text AS count
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+        AND table_name <> 'schema_migrations'
+    `);
+    const hasExistingSchema = Number(existingTables.rows[0]?.count ?? '0') > 0;
+
+    if (!hasExistingSchema) {
+      const schemaPath = join(__dirname, 'schema.sql');
+      const schema = readFileSync(schemaPath, 'utf-8');
+      await pool.query(schema);
+      console.log('✅ Schema applied');
+    } else {
+      console.log('Database schema exists, skipping bootstrap schema.sql');
+    }
+
+    // Step 2: Get list of already-applied migrations
+    const appliedResult = await pool.query<{ version: string }>('SELECT version FROM schema_migrations ORDER BY version');
     const appliedMigrations = new Set(appliedResult.rows.map(r => r.version));
 
-    // Step 4: Find and run pending migrations
+    // Step 3: Find and run pending migrations
     const migrationsDir = join(__dirname, 'migrations');
     let migrationFiles: string[] = [];
 

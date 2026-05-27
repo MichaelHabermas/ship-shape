@@ -339,3 +339,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Epic 10 verification found the public Render API and web are live, but the deployed API returns `Cannot GET /api/fleetgraph/findings`; do not claim public FleetGraph availability until a current API/web build with FleetGraph routes is deployed and verified.
 
 **Consequence:** Local/demo FleetGraph is trace-verified, but the public deployment checklist item remains blocked. The next human-approved deployment pass should verify API health, FleetGraph route availability, worker/manual trigger configuration, and a reviewer-safe object URL after deploy.
+
+## D043 - Existing Databases Skip Bootstrap Schema During Migrations
+
+**Date:** 2026-05-27
+
+**Decision:** `api/src/db/migrate.ts` now creates/checks `schema_migrations` first and applies `schema.sql` only when the public schema has no existing application tables. Existing databases run numbered migrations without replaying bootstrap DDL.
+
+**Consequence:** `schema.sql` remains the fresh-database bootstrap source, while numbered migrations remain the evolution path. Render deploys no longer fail before migrations because bootstrap indexes assume columns that older existing tables gain through migrations.
