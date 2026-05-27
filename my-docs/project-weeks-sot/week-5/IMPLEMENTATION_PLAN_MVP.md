@@ -1290,7 +1290,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 ## Epic 10: MVP Compliance Closeout
 
-**Status:** In progress
+**Status:** Done
 
 **Goal:** Close the formal MVP checklist gaps without expanding FleetGraph into a broader product than the Week 5 submission requires.
 
@@ -1364,11 +1364,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Updated root `FLEETGRAPH.md` Cost Analysis section.
 - Query or command output showing recorded invocation counts.
 
-**Implementation Note (2026-05-27):** Updated canonical root `FLEETGRAPH.md` with actual local `fleetgraph_runs` accounting after demo trace capture: 26 explain, 19 refine, 18 proactive create, 8 update, and 1 resolve run; all recorded zero model calls, zero tokens, and zero estimated model cost because the reviewer-safe MVP path uses deterministic text generation. The Week 5 `my-docs` FleetGraph file is a pointer to the root submission doc, not a duplicated second FleetGraph spec.
+**Implementation Note (2026-05-27):** Updated canonical root `FLEETGRAPH.md` with actual local `fleetgraph_runs` accounting after demo trace capture: 27 explain, 20 refine, 19 proactive create, 8 update, and 1 resolve run; all recorded zero model calls, zero tokens, and zero estimated model cost because the reviewer-safe MVP path uses deterministic text generation. The Week 5 `my-docs` FleetGraph file is a pointer to the root submission doc, not a duplicated second FleetGraph spec.
 
 ### Slice 10.4: Verify Public MVP Deployment Configuration
 
-**Status:** Blocked
+**Status:** Done
 
 **Do:**
 
@@ -1387,7 +1387,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Public web URL, public API health/FleetGraph route check, and one reviewer-safe object URL.
 - Note whether findings are created by scheduled worker or reviewer-triggered manual run.
 
-**Implementation Note (2026-05-27):** Existing public Render endpoints were verified without redeploying: `https://ship-shape-api.onrender.com/health` returned HTTP 200 and `https://ship-shape-web.onrender.com` returned HTTP 200, but `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 404 `Cannot GET /api/fleetgraph/findings`. The public deployment requirement remains blocked until a current API/web build with FleetGraph routes is deployed and seeded/reviewer-safe data or a reviewer-safe manual trigger is available.
+**Implementation Note (2026-05-27):** Existing public Render endpoints were first verified without redeploying: API/web health were HTTP 200, but FleetGraph routes returned Express 404. The API deploy blocker was a startup migration failure on existing Render DB bootstrap DDL. After the migrator fix deployed, Render API deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` reached `live`; `https://ship-shape-api.onrender.com/health` returned HTTP 200; `https://ship-shape-web.onrender.com` returned HTTP 200; `GET /api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`; and `POST /api/fleetgraph/manual-run` returned CSRF protection. That proves the public API now exposes the FleetGraph route family behind normal auth/CSRF gates.
 
 ## Epic 11: Contextual Agent Interface
 
