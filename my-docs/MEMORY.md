@@ -200,7 +200,7 @@ Stable human preferences that should shape future work.
 
 Limits imposed by tools, infrastructure, policy, vendors, or environments.
 
-_None yet._
+- Render API deploy trap (2026-05-27): `ship-shape-api` can show a recent deploy attempt while live traffic stays on the last successful deploy if the new deploy is `update_failed`. Check `render deploys list <service-id>` and logs, not only `/health` or web timestamps. A failed FleetGraph deploy on `5d04d99` built successfully but failed during startup migrations because bootstrap `schema.sql` ran against an existing DB with older table shape.
 
 ## Retired Beliefs
 

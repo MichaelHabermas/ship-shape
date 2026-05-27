@@ -363,3 +363,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** `What changed?` is implemented as a delta-only on-demand path, not a chat surface. It records `summarize_changes`, compares the current visible finding against the previous proactive FleetGraph run for the same finding, and returns only necessary rows: now, changed, cleared, next, unknown, and not done.
 
 **Consequence:** No anchor means no fake "since last looked" claim. No useful delta means `No meaningful change`. The normal UI must not show evidence prose, trace links, internal run metadata, or explanatory paragraphs for this path. The feature writes only `fleetgraph_runs` and must not mutate Ship or contact anyone.
+
+## D046 - Existing Databases Skip Bootstrap Schema During Migrations
+
+**Date:** 2026-05-27
+
+**Decision:** `api/src/db/migrate.ts` now creates/checks `schema_migrations` first and applies `schema.sql` only when the public schema has no existing application tables. Existing databases run numbered migrations without replaying bootstrap DDL.
+
+**Consequence:** `schema.sql` remains the fresh-database bootstrap source, while numbered migrations remain the evolution path. Render deploys no longer fail before migrations because bootstrap indexes assume columns that older existing tables gain through migrations.
