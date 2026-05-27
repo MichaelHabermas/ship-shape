@@ -272,9 +272,9 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-26
 
-**Decision:** Epic 7 surfaces FleetGraph only inside the current Ship context: issue documents and active/completed week issue tabs. The web client normalizes API responses into one `FleetGraphFindingView`, then renders active-week banners, finding cards, explain/refine controls, and a disabled human-gate consequence control from that view. The API visible-output contract is explicit-allowlist only: severity, confidence, recommended-action label/text/summary, server-owned recipient rationale copy, uncertainty notes, evidence, draft content, human-gate metadata, and relative trace links only.
+**Decision:** Epic 7 surfaces FleetGraph only inside the current Ship context: issue documents and active/completed week issue tabs. The web client normalizes API responses into one `FleetGraphFindingView`, then renders active-week banners and finding cards from that view. The API visible-output contract is explicit-allowlist only: severity, confidence, recommended-action label/text/summary, server-owned recipient rationale copy, uncertainty notes, evidence, draft content, human-gate metadata, and relative trace links only.
 
-**Consequence:** The UI must not grow a standalone FleetGraph dashboard, global inbox, or broad chatbot without a new spec decision. Explain/refine remain finding-bound on-demand actions. The human gate may prepare text and show the blocked consequence, but it must not imply anything was sent, posted, assigned, moved, updated, accepted, or escalated until a future confirmed execution API exists. Recipient identities, arbitrary persisted action JSON, unsafe trace URLs, and hidden graph internals stay out of visible output unless a future authorization decision explicitly makes them safe.
+**Consequence:** The UI must not grow a standalone FleetGraph dashboard, global inbox, or broad chatbot without a new spec decision. Explain/refine routes and draft/human-gate data remain backend/API affordances, but they are not part of the MVP product surface unless a future spec adds a real execution or copy workflow. The UI must not imply anything was sent, posted, assigned, moved, updated, accepted, or escalated until a future confirmed execution API exists. Recipient identities, arbitrary persisted action JSON, unsafe trace URLs, and hidden graph internals stay out of visible output unless a future authorization decision explicitly makes them safe.
 
 ## D035 - Blocked Is A First-Class Issue State
 
@@ -299,3 +299,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Bulk issue mutation responses must return refreshed associations for updated rows, and bulk week assignment must enforce the same positive-estimate requirement as single issue update on a per-item basis. Single and bulk delete are standardized on soft delete, while system-generated accountability issues remain undeletable in both paths.
 
 **Consequence:** Clients can trust bulk responses without refetching to recover project/week membership, failed unestimated sprint assignments do not silently create planning associations, and delete semantics stay consistent with restore/history expectations. Later cleanup candidates are documented rather than removed in this pass: legacy sprint iterations, headless document commands, issue API primitives without product UI, and one-off migration scripts.
+
+## D038 - FleetGraph MVP Card Is A Sparse Review Queue Item
+
+**Date:** 2026-05-27
+
+**Decision:** The MVP card is not a writing assistant, approval panel, or execution surface. It is a sparse review-queue item for urgent/high active-week blockers: issue title, cleaned blocker summary, source priority, evidence, likely recipient when available, `Open issue`, `Details`/`Collapse`, `Dismiss`, and dev-only trace. Per-card `FleetGraph` branding, universal `Needs confirmation` status, fake-precision confidence, repeated "why flagged" explanation, draft refinement, prepared comments, and human-gate approval panels are removed from the default product surface.
+
+**Consequence:** MVP value is the filtered queue: "these active-week blockers deserve PM review," not "FleetGraph can talk to people" or "FleetGraph approves actions." Post-MVP work may add a real composer, copy action, approval/send flow, or richer state labels only with a new product decision that defines destination, actor, mutation boundary, and resolution semantics. Until then, no code should depend on the removed card badges or writing controls being present.

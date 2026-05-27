@@ -10,7 +10,7 @@ This is an execution checklist for Codex. It is organized as epics with small, r
 
 Treat `my-docs/project-weeks-sot/week-5/w5-specs/` as authoritative. Keep this plan aligned with `PRESEARCH.md`, `FLEETGRAPH.md`, `ARCHITECTURE.md`, `ARCHITECTURAL_DEFENSE.md`, `PRD-w5-MVP.md`, and `my-docs/MEMORY.md`.
 
-FleetGraph MVP means one vertical slice: urgent/high active-week work with a real blocker signal becomes an action-ready FleetGraph finding, visible in Ship within 5 minutes, with on-demand explain/refine and a human gate.
+FleetGraph MVP means one vertical slice: urgent/high active-week work with a real blocker signal becomes a sparse FleetGraph review finding, visible in Ship within 5 minutes, with evidence, likely recipient context, and no Ship mutation or external communication.
 
 Do not weaken these constraints:
 
@@ -32,11 +32,13 @@ Do not weaken these constraints:
 ## Locked Decisions
 
 - MVP proactive surface: active-week banner.
+- MVP card surface: sparse review-queue item only. Show issue title, cleaned blocker summary, source priority, evidence, likely recipient when available, open issue, details/collapse, dismiss, and dev-only trace. Do not show per-card FleetGraph branding, universal needs-confirmation badges, fake-precision confidence, repeated why-flagged copy, draft refinement, prepared comments, or approval panels.
 - Worker model: API-process polling every 2 minutes behind `FLEETGRAPH_WORKER_ENABLED=true`.
 - Persistence: dedicated `fleetgraph_findings` and `fleetgraph_runs`.
 - Tracing: LangGraph + LangSmith unless blocked; equivalent reviewer-shareable trace links are acceptable per advisor clarification.
 - Trace target: four traces, exceeding the minimum.
 - MVP excludes snooze, global inbox, external delivery, approved Ship mutations, multiple detectors, DB lease, event bus, director rollups, and broad workspace chat.
+- MVP also excludes a composer/copy/send workflow until a future decision defines destination, actor, mutation boundary, and resolution semantics.
 - Empty worker ticks must spend zero LLM tokens.
 - No staging, unstaging, or commits without explicit instruction.
 
