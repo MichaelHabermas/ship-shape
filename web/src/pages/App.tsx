@@ -22,8 +22,11 @@ import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { useAppMode } from '@/hooks/useAppMode';
 import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
-import { FleetGraphChatProbe } from '@/components/FleetGraphChatProbe';
-import { FleetGraphNotificationsProbe } from '@/components/FleetGraphNotificationsProbe';
+import { FleetGraphChatProbe, type FleetGraphChatProbeRequest } from '@/components/FleetGraphChatProbe';
+import {
+  FleetGraphNotificationsProbe,
+  type FleetGraphNotificationProbeItem,
+} from '@/components/FleetGraphNotificationsProbe';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -41,6 +44,7 @@ export function AppLayout() {
   const [projectSetupWizardOpen, setProjectSetupWizardOpen] = useState(false);
   const [actionItemsModalOpen, setActionItemsModalOpen] = useState(false);
   const [actionItemsModalShownOnLoad, setActionItemsModalShownOnLoad] = useState(false);
+  const [chatDiscussRequest, setChatDiscussRequest] = useState<FleetGraphChatProbeRequest | null>(null);
 
   const handleSessionTimeout = useCallback(async () => {
     const returnTo = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -143,6 +147,13 @@ export function AppLayout() {
     }
   };
 
+  const handleDiscussNotification = (notification: FleetGraphNotificationProbeItem) => {
+    setChatDiscussRequest((request) => ({
+      id: (request?.id ?? 0) + 1,
+      notification,
+    }));
+  };
+
   return (
     <TooltipProvider delayDuration={300}>
       <SelectionPersistenceProvider>
@@ -216,8 +227,8 @@ export function AppLayout() {
             onClose={() => setActionItemsModalOpen(false)}
           />
 
-          <FleetGraphChatProbe />
-          <FleetGraphNotificationsProbe />
+          <FleetGraphChatProbe discussRequest={chatDiscussRequest} />
+          <FleetGraphNotificationsProbe onDiscuss={handleDiscussNotification} />
         </div>
       </SelectionPersistenceProvider>
     </TooltipProvider>

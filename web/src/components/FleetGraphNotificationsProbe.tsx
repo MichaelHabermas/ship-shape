@@ -1,14 +1,78 @@
 import { useEffect, useRef, useState } from 'react';
 
-const notificationCount = 3;
+export interface FleetGraphNotificationProbeItem {
+  id: string;
+  title: string;
+  age: string;
+  owner: string | null;
+  context: string;
+  blockerText: string;
+  sourcePath?: string;
+}
+
+export const fleetGraphNotificationProbeItems: FleetGraphNotificationProbeItem[] = [
+  {
+    id: 'api-access-blocker',
+    title: 'API access blocker',
+    age: '2d',
+    owner: 'Dev User',
+    context: 'Project Delta',
+    blockerText: 'Waiting on API access before backend queue work can continue.',
+  },
+  {
+    id: 'contract-review',
+    title: 'Contract review',
+    age: '18h',
+    owner: null,
+    context: 'Auth rollout',
+    blockerText: 'Next review step is named, but no connected owner is assigned.',
+  },
+  {
+    id: 'release-risk',
+    title: 'Release risk',
+    age: '5h',
+    owner: 'PM thread',
+    context: 'Sprint 12',
+    blockerText: 'Two linked issues depend on the same access request.',
+  },
+  {
+    id: 'backend-queue',
+    title: 'Backend queue',
+    age: '4h',
+    owner: 'Dev User',
+    context: 'Backend queue',
+    blockerText: 'Next item is ready, but the review handoff has not moved.',
+  },
+  {
+    id: 'standup-note',
+    title: 'Standup note',
+    age: '3h',
+    owner: null,
+    context: 'Standup note',
+    blockerText: "Same access blocker appears in today's update without an owner.",
+  },
+  {
+    id: 'dependent-release-risk',
+    title: 'Release risk',
+    age: '1h',
+    owner: 'Project Delta',
+    context: 'Release risk',
+    blockerText: 'A second dependent issue now points to the same unresolved handoff.',
+  },
+];
 
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
 }
 
-export function FleetGraphNotificationsProbe() {
+export function FleetGraphNotificationsProbe({
+  onDiscuss,
+}: {
+  onDiscuss: (notification: FleetGraphNotificationProbeItem) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const notificationCount = fleetGraphNotificationProbeItems.length;
 
   useEffect(() => {
     if (!open) return;
@@ -42,48 +106,13 @@ export function FleetGraphNotificationsProbe() {
           </header>
 
           <div className="scrollbar-hide max-h-[440px] overflow-y-auto">
-            <BlockedIssueNotification
-              title="API access blocker"
-              age="2d"
-              owner="Dev User"
-              context="Project Delta"
-              blockerText="Waiting on API access before backend queue work can continue."
-            />
-            <BlockedIssueNotification
-              title="Contract review"
-              age="18h"
-              owner="-"
-              context="Auth rollout"
-              blockerText="Next review step is named, but no connected owner is assigned."
-            />
-            <BlockedIssueNotification
-              title="Release risk"
-              age="5h"
-              owner="PM thread"
-              context="Sprint 12"
-              blockerText="Two linked issues depend on the same access request."
-            />
-            <BlockedIssueNotification
-              title="Backend queue"
-              age="4h"
-              owner="Dev User"
-              context="Backend queue"
-              blockerText="Next item is ready, but the review handoff has not moved."
-            />
-            <BlockedIssueNotification
-              title="Standup note"
-              age="3h"
-              owner="-"
-              context="Standup note"
-              blockerText="Same access blocker appears in today's update without an owner."
-            />
-            <BlockedIssueNotification
-              title="Release risk"
-              age="1h"
-              owner="Project Delta"
-              context="Release risk"
-              blockerText="A second dependent issue now points to the same unresolved handoff."
-            />
+            {fleetGraphNotificationProbeItems.map((notification) => (
+              <BlockedIssueNotification
+                key={notification.id}
+                notification={notification}
+                onDiscuss={() => onDiscuss(notification)}
+              />
+            ))}
           </div>
         </section>
       )}
@@ -111,45 +140,43 @@ function NotificationBadge({ count }: { count: number }) {
 }
 
 function BlockedIssueNotification({
-  title,
-  age,
-  owner,
-  context,
-  blockerText,
+  notification,
+  onDiscuss,
 }: {
-  title: string;
-  age: string;
-  owner: string;
-  context: string;
-  blockerText: string;
+  notification: FleetGraphNotificationProbeItem;
+  onDiscuss: () => void;
 }) {
+  const ownerLabel = notification.owner || '-';
+
   return (
     <article className="border-b border-border bg-background/70 px-3 py-2 last:border-b-0">
       <div className="mb-1 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="line-clamp-1 text-sm font-medium leading-5 text-foreground">Blocked - {title}</h3>
+          <h3 className="line-clamp-1 text-sm font-medium leading-5 text-foreground">Blocked - {notification.title}</h3>
           <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
-            <span>{age}</span>
+            <span>{notification.age}</span>
             <span aria-hidden="true">·</span>
-            <span>{owner}</span>
+            <span>{ownerLabel}</span>
             <span aria-hidden="true">·</span>
-            <span>{context}</span>
+            <span>{notification.context}</span>
           </div>
         </div>
         <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
       </div>
 
-      <p className="line-clamp-2 text-sm leading-5 text-muted">{blockerText}</p>
+      <p className="line-clamp-2 text-sm leading-5 text-muted">{notification.blockerText}</p>
 
       <div className="mt-1.5 flex flex-wrap gap-2">
         <button
           type="button"
+          disabled={!notification.sourcePath}
           className="rounded border border-border px-2.5 py-1 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
         >
           Open source
         </button>
         <button
           type="button"
+          onClick={onDiscuss}
           className="rounded bg-accent px-2.5 py-1 text-xs text-white transition hover:bg-accent-hover"
         >
           Discuss
