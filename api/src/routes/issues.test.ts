@@ -402,7 +402,7 @@ describe('Issues API', () => {
   })
 
   describe('DELETE /api/issues/:id', () => {
-    it('should delete an issue', async () => {
+    it('should soft-delete an issue', async () => {
       // Create issue to delete
       const issueResult = await pool.query(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
@@ -419,12 +419,56 @@ describe('Issues API', () => {
 
       expect(res.status).toBe(204)
 
-      // Verify it's gone
+      const rowResult = await pool.query(
+        `SELECT deleted_at FROM documents WHERE id = $1 AND workspace_id = $2`,
+        [issueId, testWorkspaceId]
+      )
+      expect(rowResult.rows[0].deleted_at).toBeTruthy()
+
       const getRes = await request(app)
         .get(`/api/issues/${issueId}`)
         .set('Cookie', sessionCookie)
 
       expect(getRes.status).toBe(404)
+    })
+
+    it('should return 404 when deleting an already-deleted issue', async () => {
+      const issueResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, deleted_at)
+         VALUES ($1, 'issue', 'Already Deleted Issue', 'workspace', $2, $3, NOW())
+         RETURNING id`,
+        [testWorkspaceId, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
+      )
+      const issueId = issueResult.rows[0].id
+
+      const res = await request(app)
+        .delete(`/api/issues/${issueId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+
+      expect(res.status).toBe(404)
+    })
+
+    it('should block deleting system-generated accountability issues', async () => {
+      const issueResult = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', 'System Generated Issue', 'workspace', $2, $3)
+         RETURNING id`,
+        [
+          testWorkspaceId,
+          testUserId,
+          JSON.stringify({ state: 'backlog', priority: 'medium', is_system_generated: true }),
+        ]
+      )
+      const issueId = issueResult.rows[0].id
+
+      const res = await request(app)
+        .delete(`/api/issues/${issueId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+
+      expect(res.status).toBe(403)
+      expect(res.body.error).toBe('Cannot delete system-generated accountability issues')
     })
   })
 
@@ -475,17 +519,26 @@ describe('Issues API', () => {
   describe('POST /api/issues/bulk', () => {
     let issueIds: string[] = []
 
+    async function createBulkIssue(title: string, properties: Record<string, unknown> = {}) {
+      const result = await pool.query(
+        `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
+         VALUES ($1, 'issue', $2, 'workspace', $3, $4)
+         RETURNING id`,
+        [
+          testWorkspaceId,
+          title,
+          testUserId,
+          JSON.stringify({ state: 'backlog', priority: 'medium', ...properties }),
+        ]
+      )
+      return result.rows[0].id as string
+    }
+
     beforeAll(async () => {
       issueIds = []
       // Create multiple issues for bulk operations
       for (let i = 0; i < 3; i++) {
-        const result = await pool.query(
-          `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
-           VALUES ($1, 'issue', $2, 'workspace', $3, $4)
-           RETURNING id`,
-          [testWorkspaceId, `Bulk Issue ${i}`, testUserId, JSON.stringify({ state: 'backlog', priority: 'medium' })]
-        )
-        issueIds.push(result.rows[0].id)
+        issueIds.push(await createBulkIssue(`Bulk Issue ${i}`))
       }
     })
 
@@ -528,6 +581,139 @@ describe('Issues API', () => {
 
       expect(res.status).toBe(200)
       expect(res.body.updated).toBeInstanceOf(Array)
+    })
+
+    it('should return refreshed belongs_to when bulk updating project and sprint associations', async () => {
+      const firstIssueId = await createBulkIssue('Bulk Association Issue A', { estimate: 2 })
+      const secondIssueId = await createBulkIssue('Bulk Association Issue B', { estimate: 3 })
+
+      const res = await request(app)
+        .post('/api/issues/bulk')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          ids: [firstIssueId, secondIssueId],
+          action: 'update',
+          updates: {
+            project_id: testProjectId,
+            sprint_id: testSprintId,
+          },
+        })
+
+      expect(res.status).toBe(200)
+      expect(res.body.failed).toEqual([])
+      expect(res.body.updated).toHaveLength(2)
+      for (const issue of res.body.updated) {
+        expect(issue.belongs_to).toEqual(expect.arrayContaining([
+          expect.objectContaining({ id: testProjectId, type: 'project' }),
+          expect.objectContaining({ id: testSprintId, type: 'sprint' }),
+        ]))
+      }
+    })
+
+    it('should apply bulk sprint assignment per issue and reject unestimated issues', async () => {
+      const estimatedIssueId = await createBulkIssue('Estimated Bulk Sprint Issue', { estimate: 1 })
+      const unestimatedIssueId = await createBulkIssue('Unestimated Bulk Sprint Issue')
+
+      const res = await request(app)
+        .post('/api/issues/bulk')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          ids: [estimatedIssueId, unestimatedIssueId],
+          action: 'update',
+          updates: {
+            sprint_id: testSprintId,
+          },
+        })
+
+      expect(res.status).toBe(200)
+      expect(res.body.updated.map((issue: { id: string }) => issue.id)).toEqual([estimatedIssueId])
+      expect(res.body.updated[0].belongs_to).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: testSprintId, type: 'sprint' }),
+      ]))
+      expect(res.body.failed).toEqual([
+        { id: unestimatedIssueId, error: 'estimate_required_for_sprint_assignment' },
+      ])
+
+      const failedAssociation = await pool.query(
+        `SELECT 1 FROM document_associations
+         WHERE document_id = $1 AND related_id = $2 AND relationship_type = 'sprint'`,
+        [unestimatedIssueId, testSprintId]
+      )
+      expect(failedAssociation.rows).toHaveLength(0)
+    })
+
+    it('should allow bulk sprint unassignment without an estimate', async () => {
+      const issueId = await createBulkIssue('Bulk Sprint Unassignment Issue')
+      await pool.query(
+        `INSERT INTO document_associations (document_id, related_id, relationship_type)
+         VALUES ($1, $2, 'sprint')`,
+        [issueId, testSprintId]
+      )
+
+      const res = await request(app)
+        .post('/api/issues/bulk')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          ids: [issueId],
+          action: 'update',
+          updates: {
+            sprint_id: null,
+          },
+        })
+
+      expect(res.status).toBe(200)
+      expect(res.body.failed).toEqual([])
+      expect(res.body.updated).toHaveLength(1)
+      expect(res.body.updated[0].belongs_to).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: testSprintId, type: 'sprint' }),
+      ]))
+    })
+
+    it('should allow non-sprint bulk updates without an estimate', async () => {
+      const issueId = await createBulkIssue('Bulk Non Sprint Issue')
+
+      const res = await request(app)
+        .post('/api/issues/bulk')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          ids: [issueId],
+          action: 'update',
+          updates: {
+            state: 'in_progress',
+            project_id: testProjectId,
+          },
+        })
+
+      expect(res.status).toBe(200)
+      expect(res.body.failed).toEqual([])
+      expect(res.body.updated[0].state).toBe('in_progress')
+      expect(res.body.updated[0].belongs_to).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: testProjectId, type: 'project' }),
+      ]))
+    })
+
+    it('should block system-generated issues in bulk delete without blocking valid peers', async () => {
+      const ordinaryIssueId = await createBulkIssue('Ordinary Bulk Delete Issue')
+      const systemIssueId = await createBulkIssue('System Bulk Delete Issue', { is_system_generated: true })
+
+      const res = await request(app)
+        .post('/api/issues/bulk')
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({
+          ids: [ordinaryIssueId, systemIssueId],
+          action: 'delete',
+        })
+
+      expect(res.status).toBe(200)
+      expect(res.body.updated.map((issue: { id: string }) => issue.id)).toEqual([ordinaryIssueId])
+      expect(res.body.failed).toEqual([
+        { id: systemIssueId, error: 'Cannot delete system-generated accountability issues' },
+      ])
     })
   })
 

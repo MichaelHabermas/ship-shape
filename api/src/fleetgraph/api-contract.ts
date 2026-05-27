@@ -23,12 +23,19 @@ export const FleetGraphRecommendedActionSchema = z.object({
   summary: z.string().optional(),
 }).openapi('FleetGraphRecommendedAction');
 
+export const FleetGraphProposedRecipientSchema = z.object({
+  role: z.string().optional(),
+  userId: UuidSchema.nullable().optional(),
+  rationale: z.string().optional(),
+}).openapi('FleetGraphProposedRecipient');
+
 export const FleetGraphVisibleOutputSchema = z.object({
   title: z.string(),
   summary: z.string(),
   severity: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   confidence: z.number().optional(),
   recommendedAction: FleetGraphRecommendedActionSchema.optional(),
+  proposedRecipient: FleetGraphProposedRecipientSchema.optional(),
   recipientRationale: z.string().optional(),
   uncertaintyNotes: z.array(z.string()).optional(),
   evidence: z.array(FleetGraphEvidenceSchema),
@@ -96,6 +103,18 @@ function recommendedActionForResponse(action: Record<string, unknown> | undefine
   return Object.keys(safe).length > 0 ? safe : undefined;
 }
 
+function proposedRecipientForResponse(recipient: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!recipient) return undefined;
+  const safe: Record<string, unknown> = {};
+  const role = recipient.role;
+  const userId = recipient.userId;
+  const rationale = recipient.rationale;
+  if (typeof role === 'string' && role.trim()) safe.role = role;
+  if (typeof userId === 'string' || userId === null) safe.userId = userId;
+  if (typeof rationale === 'string' && rationale.trim()) safe.rationale = rationale;
+  return Object.keys(safe).length > 0 ? safe : undefined;
+}
+
 export function serializeFleetGraphVisibleOutput(
   output: FleetGraphVisibleOutput
 ): z.infer<typeof FleetGraphVisibleOutputSchema> {
@@ -105,6 +124,7 @@ export function serializeFleetGraphVisibleOutput(
     severity: output.severity,
     confidence: output.confidence,
     recommendedAction: recommendedActionForResponse(output.recommendedAction),
+    proposedRecipient: proposedRecipientForResponse(output.proposedRecipient),
     recipientRationale: output.recipientRationale,
     uncertaintyNotes: output.uncertaintyNotes,
     evidence: output.evidence.map((item) => ({

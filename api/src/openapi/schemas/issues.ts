@@ -1,7 +1,4 @@
-/**
- * Issue schemas - Full issue CRUD with state, priority, and associations
- */
-
+// Issue OpenAPI schemas describe issue CRUD, bulk operations, history, and iteration contracts.
 import { z, registry } from '../registry.js';
 import {
   accountabilityTypeSchema,
@@ -126,6 +123,25 @@ export const BulkUpdateIssuesSchema = z.object({
 }).openapi('BulkUpdateIssues');
 
 registry.register('BulkUpdateIssues', BulkUpdateIssuesSchema);
+
+export const BulkUpdatedIssueSchema = IssueListResponseSchema.extend({
+  belongs_to: z.array(BelongsToResponseSchema).openapi({
+    description: 'Refreshed associated documents after the bulk operation.',
+  }),
+  archived_at: DateTimeSchema.nullable().optional(),
+  deleted_at: DateTimeSchema.nullable().optional(),
+}).openapi('BulkUpdatedIssue');
+
+export const BulkUpdateIssuesResponseSchema = z.object({
+  updated: z.array(BulkUpdatedIssueSchema),
+  failed: z.array(z.object({
+    id: UuidSchema,
+    error: z.string(),
+  })),
+}).openapi('BulkUpdateIssuesResponse');
+
+registry.register('BulkUpdatedIssue', BulkUpdatedIssueSchema);
+registry.register('BulkUpdateIssuesResponse', BulkUpdateIssuesResponseSchema);
 
 // ============== Issue History ==============
 
@@ -381,7 +397,7 @@ registry.registerPath({
   path: '/issues/{id}',
   tags: ['Issues'],
   summary: 'Delete issue',
-  description: 'Delete an issue. System-generated accountability issues cannot be deleted.',
+  description: 'Soft-delete an issue. System-generated accountability issues cannot be deleted.',
   request: {
     params: z.object({
       id: UuidSchema,
@@ -420,13 +436,7 @@ registry.registerPath({
       description: 'Bulk operation result',
       content: {
         'application/json': {
-          schema: z.object({
-            updated: z.array(IssueResponseSchema),
-            failed: z.array(z.object({
-              id: UuidSchema,
-              error: z.string(),
-            })),
-          }),
+          schema: BulkUpdateIssuesResponseSchema,
         },
       },
     },

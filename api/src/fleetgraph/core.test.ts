@@ -453,9 +453,9 @@ describe('FleetGraph shared core', () => {
     expect(output.severity).toBe('urgent');
     expect(output.confidence).toBe(0.86);
     expect(output.recommendedAction?.label).toBe('Confirm the unblock path');
+    expect(output.proposedRecipient).toEqual({ role: 'issue_assignee', userId });
     expect(output.recipientRationale).toBe('Recipient is the issue assignee, falling back to the sprint owner.');
     expect(output.uncertaintyNotes).toEqual(['A human must confirm the current unblock path.']);
-    expect(JSON.stringify(output)).not.toContain(userId);
     expect(JSON.stringify(output)).not.toContain('hidden-user');
   });
 });

@@ -174,6 +174,7 @@ export async function visibleOutputForFinding(input: {
       severity: input.finding.severity,
       confidence: input.finding.confidence,
       recommendedAction: recommendedActionForVisibleOutput(input.finding.recommended_action),
+      proposedRecipient: proposedRecipientForVisibleOutput(input.finding.proposed_recipient),
       recipientRationale: recipientRationaleForRole(input.finding.proposed_recipient.role),
       uncertaintyNotes: Array.isArray(input.finding.run_metadata.uncertaintyNotes)
         ? input.finding.run_metadata.uncertaintyNotes.filter((note): note is string => typeof note === 'string')
@@ -183,6 +184,18 @@ export async function visibleOutputForFinding(input: {
       draftContent: input.finding.draft_content,
     },
   };
+}
+
+export function proposedRecipientForVisibleOutput(recipient: JsonRecord | undefined): JsonRecord | undefined {
+  if (!recipient) return undefined;
+  const safe: JsonRecord = {};
+  const role = recipient.role;
+  const userId = recipient.userId;
+  const rationale = recipient.rationale;
+  if (typeof role === 'string' && role.trim()) safe.role = role;
+  if (typeof userId === 'string' || userId === null) safe.userId = userId;
+  if (typeof rationale === 'string' && rationale.trim()) safe.rationale = rationale;
+  return Object.keys(safe).length > 0 ? safe : undefined;
 }
 
 export function recipientRationaleForRole(role: unknown): string | undefined {

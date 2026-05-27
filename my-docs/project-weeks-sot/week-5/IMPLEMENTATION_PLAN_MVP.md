@@ -10,7 +10,7 @@ This is an execution checklist for Codex. It is organized as epics with small, r
 
 Treat `my-docs/project-weeks-sot/week-5/w5-specs/` as authoritative. Keep this plan aligned with `PRESEARCH.md`, `FLEETGRAPH.md`, `ARCHITECTURE.md`, `ARCHITECTURAL_DEFENSE.md`, `PRD-w5-MVP.md`, and `my-docs/MEMORY.md`.
 
-FleetGraph MVP means one vertical slice: urgent/high active-week work with a real blocker signal becomes an action-ready FleetGraph finding, visible in Ship within 5 minutes, with on-demand explain/refine and a human gate.
+FleetGraph MVP means one vertical slice: urgent/high active-week work with a real blocker signal becomes a sparse FleetGraph review finding, visible in Ship within 5 minutes, with evidence, likely recipient context, and no Ship mutation or external communication.
 
 Do not weaken these constraints:
 
@@ -32,11 +32,17 @@ Do not weaken these constraints:
 ## Locked Decisions
 
 - MVP proactive surface: active-week banner.
+- MVP card surface: sparse review-queue item only. Show issue title, cleaned blocker summary, source priority, evidence, likely recipient when available, open issue, details/collapse, dismiss, and dev-only trace. Do not show per-card FleetGraph branding, universal needs-confirmation badges, fake-precision confidence, repeated why-flagged copy, draft refinement, prepared comments, or approval panels.
+- Product surface decision: blocker detection is the MVP detector, not the UI architecture. FleetGraph surfaces should be generic contextual finding surfaces that can host blocker, carryover-risk, missing-owner, stale-work, repeated-drift, dependency-risk, and future project-intelligence findings.
+- Use `finding.kind` as the discriminator for what FleetGraph noticed. Reserve `source.type` for the Ship object being discussed and action `type` for proposed actions. This keeps "blocker" as one finding kind, not the component model.
+- The active-week banner is a notification cue only. It should point into a reusable FleetGraph review/conversation surface; it is not the whole FleetGraph product.
+- Do not build a global FleetGraph inbox or standalone chatbot for MVP. The target shape is contextual intelligence attached to the object the user is already viewing.
 - Worker model: API-process polling every 2 minutes behind `FLEETGRAPH_WORKER_ENABLED=true`.
 - Persistence: dedicated `fleetgraph_findings` and `fleetgraph_runs`.
 - Tracing: LangGraph + LangSmith unless blocked; equivalent reviewer-shareable trace links are acceptable per advisor clarification.
 - Trace target: four traces, exceeding the minimum.
 - MVP excludes snooze, global inbox, external delivery, approved Ship mutations, multiple detectors, DB lease, event bus, director rollups, and broad workspace chat.
+- MVP also excludes a composer/copy/send workflow until a future decision defines destination, actor, mutation boundary, and resolution semantics.
 - Empty worker ticks must spend zero LLM tokens.
 - No staging, unstaging, or commits without explicit instruction.
 
@@ -843,7 +849,7 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 ## Epic 7: Product Surface
 
-**Status:** Implemented; awaiting human review
+**Status:** Done
 
 **Goal:** Make FleetGraph proactive and contextual without building a standalone chatbot or global dashboard.
 
@@ -982,13 +988,13 @@ Spec traceability, backend architecture, UX/design, and verification lanes were 
 
 **Implementation Note (2026-05-26):** Added loading/error/no-visible-finding state handling through `FleetGraphStatePanel` for rendered FleetGraph surfaces while keeping no-finding issue/week contexts silent by default. Focused web coverage now exercises banner links, card/gate language, finding-bound explain/refine calls, dismiss/explain error copy, and normalized API visible output. Browser smoke logged in locally, loaded `/issues`, opened an issue document, and opened a week issues tab without FleetGraph UI runtime errors; current demo data has no visible findings until Epic 8 seeds blocked-work cases. Full E2E remains intentionally skipped for this pass.
 
-**Closeout Note (2026-05-26):** Epic 7 implementation is complete and awaiting human review. FleetGraph product UI now consumes a single normalized web finding view, surfaces active-week findings in week issue context, surfaces issue findings in the issue document editor context, supports finding-bound explain/refine/dismiss interactions, and renders a non-executing human gate that blocks Ship mutation/contact claims. Verification covered changed-file TS/lint, web type-check, root type-check, root build, OpenAPI parity, docs strict/path checks, focused FleetGraph web component tests, focused FleetGraph eval/golden tests against `ship_test_audit`, and browser smoke. Demo-positive visual proof remains Epic 8 because current local seed data has no non-empty `issue_iterations.blockers_encountered` rows.
+**Closeout Note (2026-05-26):** Epic 7 is closed. FleetGraph product UI consumes a single normalized web finding view, surfaces active-week findings in week issue context, surfaces issue findings in the issue document editor context, supports finding-bound explain/refine/dismiss interactions, and renders a non-executing human gate that blocks Ship mutation/contact claims. Verification covered web type-check, root type-check, root build, OpenAPI parity, docs strict/path checks, focused FleetGraph web component tests, focused FleetGraph eval/golden tests against `ship_test_audit`, authenticated browser smoke, demo-positive visual proof, and manual reduced-height review of the `Why flagged?` panel after the scroll fix.
 
 **Follow-up Note (2026-05-26):** Small code-health cleanup to preserve after human review: move Express request augmentation typing out of `scripts/check-affected-ts.mjs` coupling and into a normal `.d.ts`/type boundary so affected-TS checking does not need script-level awareness of API middleware typing.
 
 ## Epic 8: Demo Data And Reviewer Readiness
 
-**Status:** Implemented; awaiting final human review
+**Status:** Done
 
 **Goal:** Make the MVP reproducible for local validation, timed proof, trace capture, and reviewer navigation.
 
@@ -1134,15 +1140,17 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 **Implementation Note (2026-05-26):** `pnpm fleetgraph:demo` prints stable reviewer URLs for active week, project, dependency notes, two positive issues, missing-evidence issue, and duplicate-control issue. Full E2E remains skipped for this pass per Epic 9 scope; local browser smoke is still part of final handoff verification.
 
+**Closeout Note (2026-05-26):** Epic 8 is closed. `pnpm fleetgraph:demo -- --capture-traces` produced seeded/demo-safe proactive create/update plus on-demand explain/refine evidence, stable reviewer navigation, active-week demo data, and visible findings in the local product surface. A demo-readiness issue where the current demo week was seeded as planning was fixed so the active-week FleetGraph surface appears immediately after setup.
+
 ## Epic 9: Tests And Verification
 
-**Status:** Not started
+**Status:** Done
 
 **Goal:** Prove the FleetGraph MVP contract without relying on full E2E in this pass.
 
 ### Slice 9.1: Add Detector Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1158,9 +1166,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Targeted detector test output.
 
+**Implementation Note (2026-05-26):** Covered through focused FleetGraph detector/eval tests and the DB-backed demo smoke that returned positive create decisions, duplicate/update behavior, and quiet counts for inactive, done/cancelled, insufficient-evidence, medium/low, and no-blocker controls.
+
 ### Slice 9.2: Add Graph/Eval Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1175,9 +1185,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Golden case and rubric output.
 
+**Implementation Note (2026-05-26):** Focused FleetGraph graph/eval tests passed against `ship_test_audit`; demo trace capture exercised proactive create, proactive duplicate/update, on-demand explain, and on-demand draft refinement paths with safe trace metadata.
+
 ### Slice 9.3: Add API Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1192,9 +1204,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Targeted API tests and `pnpm openapi:check`.
 
+**Implementation Note (2026-05-26):** Targeted API suite passed against `ship_test_audit`: `src/fleetgraph`, `src/routes/fleetgraph.test.ts`, `src/routes/fleetgraph.integration.test.ts`, and `src/routes/issues.test.ts` ran 750 tests across 72 files. `pnpm openapi:check:strict` also passed with runtime/OpenAPI parity at 199 routes.
+
 ### Slice 9.4: Add Web Tests
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1209,9 +1223,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Targeted web test output or browser smoke.
 
+**Implementation Note (2026-05-26):** Focused web tests passed for `FleetGraphFindingCard` coverage: 186 tests across 25 files. Browser smoke verified active-week findings, issue-context finding cards, explain/refine interactions, and reduced-height scrolling for the `Why flagged?` panel.
+
 ### Slice 9.5: Run Smoke Gates
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1230,9 +1246,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Command outputs summarized in handoff.
 
+**Implementation Note (2026-05-26):** Smoke gates passed: `pnpm type-check`, `pnpm build`, `pnpm openapi:check:strict`, `pnpm docs:check:strict`, `pnpm docs:check:paths`, focused API tests, and focused web tests. Build emitted only existing Vite chunk-size warnings.
+
 ### Slice 9.6: Capture Timed Proof
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1247,9 +1265,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Timed proof notes or trace metadata.
 
+**Implementation Note (2026-05-26):** Timed proof captured from local demo data. For finding `6b8a0065-cda3-4750-acb4-bfc05e4d9d77`, the blocker iteration was written at `2026-05-26T22:54:33.766Z`, FleetGraph run/finding creation happened at `2026-05-26T22:54:33.793Z`, and the authenticated reviewer API returned the visible finding with status 200. A second finding `d83c4933-08fc-479d-af04-369998d3fdfa` was detected 60.03 seconds after its blocker iteration, still inside the 5-minute MVP bar.
+
 ### Slice 9.7: Final Handoff
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1265,6 +1285,329 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 **Evidence:**
 
 - Final implementation summary and changed-file diff.
+
+**Implementation Note (2026-05-26):** Root `PRESEARCH.md` and `FLEETGRAPH.md` are present, docs checks pass, verification is recorded above, and no staging, unstaging, or commit was performed.
+
+## Epic 10: MVP Compliance Closeout
+
+**Status:** Not started
+
+**Goal:** Close the formal MVP checklist gaps without expanding FleetGraph into a broader product than the Week 5 submission requires.
+
+**Why This Exists:** The existing implementation has a real detector/finding loop, but the MVP spec names two hard requirements that local metadata and blocker cards do not satisfy: a running graph with reviewer-shareable traces, and agent chat/notifications accessible in the UI. This epic is the submission correction pass.
+
+### Slice 10.1: Replace Dispatcher Semantics With A Real Shared Graph Runtime
+
+**Status:** Not started
+
+**Do:**
+
+- Implement the shared FleetGraph core as an actual LangGraph `StateGraph` or a clearly documented manual graph executor if LangGraph is blocked.
+- Route proactive detector decisions, quiet exits, explain, refine, dismiss, resolve, and error paths through the same graph runtime.
+- Keep deterministic SQL candidate selection before the graph.
+- Preserve current persistence contracts unless the graph runtime needs minimal state shape changes.
+
+**Done Means:**
+
+- Code, not only `FLEETGRAPH.md`, contains graph nodes, conditional edges, and one compiled/executed graph path for both proactive and on-demand triggers.
+- The graph can produce at least two visibly different execution paths from the same runtime.
+
+**Evidence:**
+
+- Focused graph tests proving proactive create and on-demand explain/refine use the same runtime.
+- Trace output names real graph nodes/edges, not a hand-written pretend path.
+
+### Slice 10.2: Produce Reviewer-Shareable Trace Links
+
+**Status:** Not started
+
+**Do:**
+
+- Configure LangSmith or equivalent tracing in a reviewer-safe environment.
+- Capture at least two shared trace links for MVP minimum: proactive create and on-demand contextual path.
+- Prefer four trace links if time allows: proactive create, on-demand why flagged, on-demand refine, proactive duplicate/quiet exit.
+- Store trace IDs/URLs in FleetGraph run metadata and add the final shared links to root `FLEETGRAPH.md`.
+
+**Done Means:**
+
+- A reviewer can open the links without local database access.
+- Traces use seeded/demo-safe data and show different paths.
+- The submission no longer relies on "local trace metadata" as a substitute for shared observability.
+
+**Evidence:**
+
+- Root `FLEETGRAPH.md` test cases include actual shared trace URLs.
+- `pnpm langsmith:smoke` or equivalent trace capture command succeeds in the configured environment.
+
+### Slice 10.3: Complete MVP Cost And Invocation Accounting
+
+**Status:** Not started
+
+**Do:**
+
+- Record actual FleetGraph development/test graph invocations.
+- Record actual token metadata where model calls occur.
+- If deterministic fallback is used, say so and report zero model-call cost honestly instead of projecting pretend LLM spend.
+- Fill the MVP cost table for development spend and 100 / 1,000 / 10,000 user projections.
+
+**Done Means:**
+
+- `FLEETGRAPH.md` no longer says final cost analysis will be completed later.
+- Cost claims are numerically specific and defensible.
+
+**Evidence:**
+
+- Updated root `FLEETGRAPH.md` Cost Analysis section.
+- Query or command output showing recorded invocation counts.
+
+### Slice 10.4: Verify Public MVP Deployment Configuration
+
+**Status:** Not started
+
+**Do:**
+
+- Confirm the deployed API has migrations applied and FleetGraph routes available.
+- Confirm the worker is enabled or provide a reviewer-safe manual trigger if worker enablement is impossible for the MVP environment.
+- Confirm the deployed web surface can show FleetGraph findings from seeded/demo-safe data.
+- Do not claim "deployed and publicly accessible" from local screenshots.
+
+**Done Means:**
+
+- A reviewer can access the MVP without running the repo locally.
+- Any environment toggles required for FleetGraph are documented.
+
+**Evidence:**
+
+- Public web URL, public API health/FleetGraph route check, and one reviewer-safe object URL.
+- Note whether findings are created by scheduled worker or reviewer-triggered manual run.
+
+## Epic 11: Contextual Agent Interface
+
+**Status:** Not started
+
+**Goal:** Add the smallest embedded on-demand agent UI that satisfies the MVP chat requirement and sets the product direction beyond blocker-specific cards.
+
+**Product Position:** The banner/card is a notification surface. It is not the agent interface. The agent interface should be a contextual project-intelligence panel that can explain, refine, and later host new detector types without becoming a standalone chatbot.
+
+**Surface Decision:** FleetGraph should render findings, not blockers. The first finding kind is `blocker`, but the component and API contracts should read as generic finding infrastructure. Any blocker-specific language belongs in the detector output and copy, not in the surface architecture.
+
+### Slice 11.1: Define The FleetGraph Context Panel Contract
+
+**Status:** Not started
+
+**Do:**
+
+- Define one reusable contextual panel contract for issue, week, project, and future program contexts.
+- Inputs: context object type/id, visible state summary, current user role/permissions, visible findings, and allowed on-demand actions.
+- Finding shape must include `kind`, source, severity, title, summary, evidence, recommended action, human-gate state, and trace metadata.
+- Outputs: explanation, draft/refinement, evidence list, human-gate state, and trace link.
+- Keep MVP actions limited to explain/refine/dismiss or ask "why/what next"; no Ship mutations or external sending.
+
+**Done Means:**
+
+- The UI is built as a FleetGraph intelligence surface, not a blocker-only widget.
+- Blocked-work findings are the first content type, not the permanent architecture.
+- Component names and prop types do not bake in "blocked issue" as the abstraction.
+
+**Evidence:**
+
+- Short contract section added to implementation notes or `FLEETGRAPH.md`.
+- Type/API review confirms the panel can support additional detector families later.
+
+### Slice 11.2: Add Embedded On-Demand Chat On Finding Contexts
+
+**Status:** Not started
+
+**Do:**
+
+- Add a compact embedded prompt surface to the FleetGraph card or contextual panel.
+- Support at least:
+  - "Why was this flagged?"
+  - "What should happen next?"
+  - "Rewrite the draft with this instruction..."
+- Wire the existing explain/refine API paths into visible UI.
+- Show the graph response in context with evidence and trace metadata.
+
+**Done Means:**
+
+- A reviewer can invoke FleetGraph from the issue/week page without leaving the context.
+- The UI satisfies the spec's chat requirement without adding a standalone chatbot page.
+
+**Evidence:**
+
+- Focused web tests for explain/refine prompt behavior.
+- Browser smoke screenshot or note showing the embedded interaction.
+
+### Slice 11.3: Add A General FleetGraph Entry Point Without A Global Inbox
+
+**Status:** Not started
+
+**Do:**
+
+- Add a modest contextual entry point that is not limited to "blocked issue banner" language.
+- Prefer a page-level FleetGraph panel/tab/rail slot that says what FleetGraph sees for the current object.
+- For MVP, it can show only blocked-work findings, empty state, and on-demand prompt affordance.
+- Label the current detector as a `blocker` finding inside the panel, not as a separate blocker-only feature.
+- Avoid a standalone broad workspace chat.
+
+**Done Means:**
+
+- The interaction model reads as "project intelligence layer" rather than "hard-to-find blocker banner."
+- Future detectors can land in the same surface without inventing a new UI.
+
+**Evidence:**
+
+- UI smoke on issue and active-week contexts.
+- Empty-state behavior for contexts with no findings.
+
+## Epic 12: Supplementary Reviewer Visibility
+
+**Status:** Not started
+
+**Goal:** Make FleetGraph demonstrable and reviewable without polluting the core app UX or requiring the reviewer to infer behavior from hidden state.
+
+**Product Boundary:** This is not the product surface. It is a reviewer evidence surface. It may live behind a reviewer-only route, static evidence bundle, or dev/reviewer flag. It must not become the main FleetGraph UX unless deliberately promoted later.
+
+### Slice 12.1: Choose Reviewer Visibility Shape
+
+**Status:** Not started
+
+**Do:**
+
+- Pick one visibility model:
+  - Static reviewer evidence page generated from seeded run data.
+  - Reviewer-only route gated by admin/dev/reviewer flag.
+  - Existing evidence bundle with FleetGraph section and deep links into the app.
+- Recommendation: use an evidence bundle or reviewer-only page, not a normal app nav item.
+
+**Done Means:**
+
+- Reviewer visibility is easy to find for grading but does not distort product navigation.
+- The boundary between product UI and reviewer proof is explicit.
+
+**Evidence:**
+
+- Updated plan note naming the chosen shape and route/file location.
+
+### Slice 12.2: Add FleetGraph Reviewer Evidence Board
+
+**Status:** Not started
+
+**Do:**
+
+- Show the MVP checklist with pass/fail evidence.
+- Show seeded demo workspace, issue, week, and finding links.
+- Show trace links and node paths.
+- Show the latest run decisions and timestamps.
+- Show latency proof against the 5-minute requirement.
+- Show cost/invocation summary.
+
+**Done Means:**
+
+- A reviewer can understand and verify FleetGraph in under 2 minutes.
+- The board points into the real app for product behavior, instead of replacing it.
+
+**Evidence:**
+
+- Reviewer URL or generated evidence artifact.
+- Screenshot or browser smoke proving the board renders.
+
+### Slice 12.3: Add Reviewer-Safe Reset And Reproduce Path
+
+**Status:** Not started
+
+**Do:**
+
+- Provide a safe path to create or refresh seeded FleetGraph demo state.
+- Make clear whether it is local-only, deployed-reviewer-only, or both.
+- Prevent accidental writes to production/private workspaces.
+- Print or display the exact reviewer sequence: create signal, run worker/manual tick, open finding, invoke chat, open trace.
+
+**Done Means:**
+
+- Reviewer proof is reproducible instead of a stale screenshot.
+- Safety checks prevent demo tooling from corrupting real data.
+
+**Evidence:**
+
+- Command output, route response, or evidence page section showing the reproduce sequence.
+
+## Epic 13: Product Surface Reframe
+
+**Status:** Not started
+
+**Goal:** Move FleetGraph from a blocker-specific banner implementation toward a reusable project-intelligence platform shape, while preserving the MVP vertical slice.
+
+**Why This Matters:** The current surface proves one detector, but it overfits the UX to blockers. The next product step is not "more banners." It is a reusable intelligence layer that can host findings, explanations, evidence, and human gates across detectors.
+
+**Decision:** We are not locked into the blocker-specific surface. Keep the blocker detector as the MVP vertical slice, but refactor the surface around a generic FleetGraph finding model. The platform shape is: FleetGraph notices something (`finding.kind`), ties it to a Ship object (`source.type` + `source.id`), shows evidence, recommends the next action, and lets the user ask contextual follow-up questions.
+
+### Slice 13.1: Define FleetGraph Finding Taxonomy
+
+**Status:** Not started
+
+**Do:**
+
+- Introduce product-language categories that can cover future detectors: blocker, carryover risk, missing owner, stale work, repeated drift, dependency risk.
+- Represent those categories as `finding.kind` values, starting with `blocker`.
+- Keep `source.type` separate from `finding.kind`; e.g. a `blocker` finding may point at an issue, while a `carryover_risk` finding may point at a week or project.
+- Keep the MVP data model compatible with the current blocked-work finding.
+- Do not implement new detectors in this MVP closeout unless needed for reviewer proof.
+
+**Done Means:**
+
+- The UI can label the current finding as one type in a broader intelligence model.
+- The next detector does not require a new visual system.
+- Developers can add a new detector by emitting another finding kind, not by inventing a new banner/card family.
+
+**Evidence:**
+
+- `FLEETGRAPH.md` or implementation notes define the taxonomy and current MVP mapping.
+
+### Slice 13.2: Separate Notification, Review, And Conversation Surfaces
+
+**Status:** Not started
+
+**Do:**
+
+- Define three product surfaces:
+  - Notification: lightweight cue that something needs attention.
+  - Review: evidence card with severity, recipient, next step, and human gate.
+  - Conversation: embedded contextual prompt for explain/refine/what-next.
+- Map current components to those surfaces and name missing pieces:
+  - Current active-week banner becomes notification cue.
+  - Current finding card becomes generic review card.
+  - Missing embedded prompt becomes conversation surface.
+- Ensure copy can say "FleetGraph sees 2 findings here" instead of "blocked work" unless the specific finding body is being rendered.
+
+**Done Means:**
+
+- The blocker banner is treated as a notification, not the whole product.
+- Review and conversation can scale across detector types.
+- Blocker-specific copy is isolated to `blocker` finding content, not nav, panel, route, or component identity.
+
+**Evidence:**
+
+- Updated implementation notes and UI/component plan.
+
+### Slice 13.3: Preserve MVP Scope While Naming Post-MVP Expansion
+
+**Status:** Not started
+
+**Do:**
+
+- Keep implementation focused on blocked active-week work.
+- Add a short "After MVP" section that names the next detector families and why the new surface supports them.
+- Do not let this become a new Week 5 scope explosion.
+
+**Done Means:**
+
+- The submission reads as intentionally scoped, not underbuilt.
+- Reviewer can see FleetGraph is a platform direction without needing extra detector implementation.
+
+**Evidence:**
+
+- Root `FLEETGRAPH.md` and this plan agree on MVP vs post-MVP boundaries.
 
 ## Approved 10x Ideas
 

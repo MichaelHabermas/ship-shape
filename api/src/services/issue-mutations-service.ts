@@ -1,10 +1,10 @@
+// Issue mutation services own document-backed issue writes, associations, history, and iteration evidence.
 import type { Pool, PoolClient } from 'pg';
 import type { BelongsTo, IssueProperties } from '@ship/shared';
 import { pool } from '../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../db/documents-repository.js';
 import {
   authorize,
-  authorizeDocumentMutation,
   capabilityDenialStatus,
   type DocumentMutationCapability,
 } from '../security/capabilities.js';
@@ -14,6 +14,7 @@ import {
   logDocumentChange,
   getTimestampUpdates,
   getBelongsToAssociations,
+  getBelongsToAssociationsBatch,
   syncBelongsToAssociations,
   syncAssociationOfTypeForDocuments,
 } from '../utils/document-crud.js';
@@ -585,6 +586,7 @@ export async function bulkUpdateIssuesMutation(
     return { ok: false, status: 404, body: { error: 'No valid issues found', failed } };
   }
 
+  let targetIds = [...validIds];
   let result: { rows: IssueDocumentRow[] };
 
   switch (action) {
@@ -598,11 +600,30 @@ export async function bulkUpdateIssuesMutation(
       break;
 
     case 'delete':
+      {
+        const systemGeneratedResult = await client.query<IdRow>(
+          `SELECT id FROM documents
+           WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'issue'
+             AND properties->>'is_system_generated' = 'true'`,
+          [targetIds, workspaceId]
+        );
+        const blockedIds = new Set(systemGeneratedResult.rows.map((row) => row.id));
+        for (const id of targetIds) {
+          if (blockedIds.has(id)) {
+            failed.push({ id, error: 'Cannot delete system-generated accountability issues' });
+          }
+        }
+        targetIds = targetIds.filter((id) => !blockedIds.has(id));
+        if (targetIds.length === 0) {
+          await client.query('COMMIT');
+          return { ok: true, status: 200, body: { updated: [], failed } };
+        }
+      }
       result = await client.query<IssueDocumentRow>(
         `UPDATE documents SET deleted_at = NOW(), updated_at = NOW()
          WHERE id = ANY($1) AND workspace_id = $2
          RETURNING *`,
-        [validIds, workspaceId]
+        [targetIds, workspaceId]
       );
       break;
 
@@ -621,8 +642,32 @@ export async function bulkUpdateIssuesMutation(
         return { ok: false, status: 400, body: { error: 'Updates required for update action' } };
       }
 
+      if (updates.sprint_id !== undefined && updates.sprint_id !== null) {
+        const missingEstimateResult = await client.query<IdRow>(
+          `SELECT id FROM documents
+           WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'issue'
+             AND NOT (
+               properties ? 'estimate'
+               AND jsonb_typeof(properties->'estimate') = 'number'
+               AND (properties->>'estimate')::numeric > 0
+             )`,
+          [targetIds, workspaceId]
+        );
+        const missingEstimateIds = new Set(missingEstimateResult.rows.map((row) => row.id));
+        for (const id of targetIds) {
+          if (missingEstimateIds.has(id)) {
+            failed.push({ id, error: 'estimate_required_for_sprint_assignment' });
+          }
+        }
+        targetIds = targetIds.filter((id) => !missingEstimateIds.has(id));
+        if (targetIds.length === 0) {
+          await client.query('COMMIT');
+          return { ok: true, status: 200, body: { updated: [], failed } };
+        }
+      }
+
       const setClauses: string[] = ['updated_at = NOW()'];
-      const values: unknown[] = [validIds, workspaceId];
+      const values: unknown[] = [targetIds, workspaceId];
       let paramIdx = 3;
 
       if (updates.state !== undefined) {
@@ -657,7 +702,7 @@ export async function bulkUpdateIssuesMutation(
             projectId = null;
           }
         }
-        await syncAssociationOfTypeForDocuments(validIds, 'project', projectId, client);
+        await syncAssociationOfTypeForDocuments(targetIds, 'project', projectId, client);
       }
 
       if (updates.sprint_id !== undefined) {
@@ -673,7 +718,7 @@ export async function bulkUpdateIssuesMutation(
             sprintId = null;
           }
         }
-        await syncAssociationOfTypeForDocuments(validIds, 'sprint', sprintId, client);
+        await syncAssociationOfTypeForDocuments(targetIds, 'sprint', sprintId, client);
       }
       break;
 
@@ -684,6 +729,7 @@ export async function bulkUpdateIssuesMutation(
 
   await client.query('COMMIT');
 
+  const associationsMap = await getBelongsToAssociationsBatch(result.rows.map((row) => row.id));
   const updated = result.rows.map((row) => {
     const issue = extractIssueFromRow(row);
     return {
@@ -691,6 +737,7 @@ export async function bulkUpdateIssuesMutation(
       display_id: `#${issue.ticket_number}`,
       archived_at: row.archived_at,
       deleted_at: row.deleted_at,
+      belongs_to: associationsMap.get(row.id) ?? [],
     };
   });
 

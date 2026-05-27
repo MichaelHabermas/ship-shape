@@ -1,6 +1,7 @@
 // FleetGraph deterministic detectors select candidate work before graph reasoning.
 import { pool } from '../db/client.js';
 import {
+  BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX,
   blockedImportantIssueDedupeKey,
   recordFleetGraphRun,
   sqlBlockedImportantIssueDedupeKey,
@@ -52,6 +53,14 @@ export type BlockedImportantIssueDedupeDecision = {
 
 export type BlockedImportantIssueDecisionBatch = {
   decisions: BlockedImportantIssueDedupeDecision[];
+};
+
+export type FleetGraphStaleFinding = {
+  findingId: string;
+  sourceIssueId: string;
+  sourceSprintId: string;
+  dedupeKey: string;
+  reason: FleetGraphDetectorQuietExitReason | 'condition_gone';
 };
 
 function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
@@ -374,6 +383,114 @@ export async function findBlockedImportantIssueQuietExits(input: {
     reason: reason as FleetGraphDetectorQuietExitReason,
     count: countsByReason.get(reason as FleetGraphDetectorQuietExitReason) ?? 0,
   }));
+}
+
+export async function findStaleBlockedImportantIssueFindings(input: {
+  workspaceId: string;
+  db?: QueryRunner;
+  today?: Date;
+  limit?: number;
+}): Promise<FleetGraphStaleFinding[]> {
+  const db = input.db ?? pool;
+  const candidates = await findBlockedImportantIssueCandidates({
+    ...input,
+    limit: input.limit ?? 1000,
+  });
+  const activeDedupeKeys = new Set(candidates.map((candidate) => candidate.dedupeKey));
+
+  const result = await db.query<{
+    id: string;
+    source_issue_id: string;
+    source_sprint_id: string;
+    dedupe_key: string;
+    reason: FleetGraphStaleFinding['reason'];
+  }>(
+    `WITH open_findings AS (
+       SELECT id, source_issue_id, source_sprint_id, dedupe_key
+         FROM fleetgraph_findings
+        WHERE workspace_id = $1
+          AND dedupe_key LIKE '${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:%'
+          AND status IN ('open', 'needs_confirmation', 'error')
+        ORDER BY updated_at ASC
+        LIMIT $2
+     ),
+     source_context AS (
+       SELECT
+         f.id,
+         f.source_issue_id,
+         f.source_sprint_id,
+         f.dedupe_key,
+         i.id AS issue_id,
+         s.id AS sprint_id,
+         COALESCE(i.properties->>'state', 'backlog') AS issue_state,
+         COALESCE(i.properties->>'priority', 'medium') AS issue_priority,
+         NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
+         CASE
+           WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
+           ELSE NULL
+         END AS sprint_number,
+         COALESCE(
+           NULLIF(s.properties->>'owner_id', ''),
+           NULLIF(s.properties->'assignee_ids'->>0, '')
+         ) AS sprint_owner_id,
+         latest_iteration.blockers_encountered AS blocker_text,
+         COALESCE(i.visibility, 'workspace') AS issue_visibility
+       FROM open_findings f
+       LEFT JOIN documents i
+         ON i.id = f.source_issue_id
+        AND i.workspace_id = $1
+        AND i.document_type = 'issue'
+        AND i.deleted_at IS NULL
+        AND i.archived_at IS NULL
+       LEFT JOIN documents s
+         ON s.id = f.source_sprint_id
+        AND s.workspace_id = $1
+        AND s.document_type = 'sprint'
+        AND s.deleted_at IS NULL
+        AND s.archived_at IS NULL
+       LEFT JOIN LATERAL (
+         SELECT iteration.blockers_encountered
+           FROM issue_iterations iteration
+          WHERE iteration.issue_id = i.id
+            AND iteration.workspace_id = i.workspace_id
+            AND btrim(COALESCE(iteration.blockers_encountered, '')) <> ''
+          ORDER BY iteration.created_at DESC, iteration.id DESC
+          LIMIT 1
+       ) latest_iteration ON TRUE
+     )
+     SELECT
+       id,
+       source_issue_id,
+       source_sprint_id,
+       dedupe_key,
+       CASE
+         WHEN issue_id IS NULL OR sprint_id IS NULL THEN 'condition_gone'
+         WHEN issue_visibility = 'private' THEN 'insufficient_visible_evidence'
+         WHEN sprint_number IS DISTINCT FROM $3 THEN 'inactive_week'
+         WHEN issue_priority NOT IN ('urgent', 'high') THEN 'medium_low_priority'
+         WHEN issue_state IN ('done', 'cancelled') THEN 'done_or_cancelled'
+         WHEN issue_state <> 'blocked' THEN 'condition_gone'
+         WHEN issue_assignee_id IS NULL AND sprint_owner_id IS NULL THEN 'missing_fallback_owner'
+         WHEN btrim(COALESCE(blocker_text, '')) = '' THEN 'no_blocker'
+         ELSE 'condition_gone'
+       END AS reason
+     FROM source_context`,
+    [
+      input.workspaceId,
+      input.limit ?? 100,
+      (await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today: input.today })).currentSprintNumber,
+    ]
+  );
+
+  return result.rows
+    .filter((row) => !activeDedupeKeys.has(row.dedupe_key))
+    .map((row) => ({
+      findingId: row.id,
+      sourceIssueId: row.source_issue_id,
+      sourceSprintId: row.source_sprint_id,
+      dedupeKey: row.dedupe_key,
+      reason: row.reason,
+    }));
 }
 
 export async function recordBlockedImportantIssueQuietExitRun(input: {

@@ -15,6 +15,7 @@ import type { ConversionDocumentType } from '@ship/shared';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
+import { useFleetGraphSprintFindings } from '@/hooks/useFleetGraphQuery';
 import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import {
@@ -135,7 +136,9 @@ export function UnifiedDocumentPage() {
   // Fetch counts for tabs (project weeks, etc.)
   const isProject = document?.document_type === 'project';
   const isProgram = document?.document_type === 'program';
+  const isSprint = document?.document_type === 'sprint';
   const { data: projectWeeks = [] } = useProjectWeeksQuery(isProject ? id : undefined);
+  const { data: fleetGraphFindings = [] } = useFleetGraphSprintFindings(isSprint ? id : undefined);
 
   // Compute tab counts based on document type
   const tabCounts: TabCounts = useMemo(() => {
@@ -150,8 +153,13 @@ export function UnifiedDocumentPage() {
       // For programs, counts will be loaded by the tab components themselves
       return {};
     }
+    if (isSprint) {
+      return {
+        fleetGraphFindings: fleetGraphFindings.length,
+      };
+    }
     return {};
-  }, [document, isProject, isProgram, projectWeeks.length]);
+  }, [document, isProject, isProgram, isSprint, projectWeeks.length, fleetGraphFindings.length]);
 
   // Handler for when associations change (invalidate document query to refetch)
   const handleAssociationChange = useCallback(() => {

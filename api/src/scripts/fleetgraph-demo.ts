@@ -272,14 +272,14 @@ async function seedDemo(): Promise<void> {
     workspaceId: workspace.id,
     type: 'sprint',
     title: `FleetGraph Demo Week ${currentSprintNumber}`,
-    properties: { sprint_number: currentSprintNumber, owner_id: pm.id },
+    properties: { sprint_number: currentSprintNumber, status: 'active', owner_id: pm.id },
     createdBy: admin.id,
   });
   const inactiveSprintId = await upsertDocument({
     workspaceId: workspace.id,
     type: 'sprint',
     title: `FleetGraph Demo Week ${currentSprintNumber - 1}`,
-    properties: { sprint_number: currentSprintNumber - 1, owner_id: pm.id },
+    properties: { sprint_number: currentSprintNumber - 1, status: 'completed', owner_id: pm.id },
     createdBy: admin.id,
   });
   const dependencyDocId = await upsertDocument({

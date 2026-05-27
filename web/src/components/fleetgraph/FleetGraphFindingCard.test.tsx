@@ -1,5 +1,5 @@
 // FleetGraph finding card tests protect the contextual MVP surface contract.
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiStatusError } from '@/lib/api-error';
@@ -11,7 +11,6 @@ import type { components } from '@/api/generated/ship-openapi';
 const hookState = vi.hoisted(() => ({
   dismissMutate: vi.fn(),
   explainMutate: vi.fn(),
-  refineMutate: vi.fn(),
   dismissError: null as Error | null,
   dismissIsError: false,
   explainError: null as Error | null,
@@ -36,14 +35,21 @@ vi.mock('@/hooks/useFleetGraphQuery', async () => {
       error: hookState.explainError,
       data: hookState.explainData,
     }),
-    useFleetGraphRefine: () => ({
-      mutateAsync: hookState.refineMutate,
-      isPending: false,
-      isError: false,
-      isSuccess: false,
-    }),
   };
 });
+
+vi.mock('@/hooks/useTeamMembersQuery', () => ({
+  useTeamMembersQuery: () => ({
+    data: [
+      {
+        id: 'person-1',
+        user_id: '550e8400-e29b-41d4-a716-446655440099',
+        name: 'Riley Builder',
+        email: 'riley@example.com',
+      },
+    ],
+  }),
+}));
 
 const finding: FleetGraphFindingView = {
   id: '550e8400-e29b-41d4-a716-446655440000',
@@ -70,6 +76,11 @@ const finding: FleetGraphFindingView = {
   },
   draftText: 'Can you confirm whether Legal can unblock this today?',
   recommendedAction: 'Ask the assignee for the smallest unblock step.',
+  proposedRecipient: {
+    role: 'issue_assignee',
+    userId: '550e8400-e29b-41d4-a716-446655440099',
+    rationale: 'Recipient is the issue assignee.',
+  },
   recipientRationale: 'The assignee is the smallest useful audience.',
   uncertainty: 'FleetGraph cannot see Legal ownership.',
   severity: 'high',
@@ -92,6 +103,11 @@ const apiFinding: components['schemas']['FleetGraphFindingResponse'] = {
     severity: 'high',
     confidence: 0.86,
     recommendedAction: { label: 'Confirm the unblock path' },
+    proposedRecipient: {
+      role: 'issue_assignee',
+      userId: finding.proposedRecipient.userId,
+      rationale: 'Recipient is the issue assignee.',
+    },
     recipientRationale: 'Recipient is the issue assignee, falling back to the sprint owner.',
     uncertaintyNotes: ['A human must confirm the current unblock path.'],
     evidence: finding.evidence,
@@ -111,8 +127,6 @@ describe('FleetGraph product surface', () => {
     hookState.dismissMutate.mockResolvedValue(null);
     hookState.explainMutate.mockReset();
     hookState.explainMutate.mockResolvedValue(null);
-    hookState.refineMutate.mockReset();
-    hookState.refineMutate.mockResolvedValue(null);
     hookState.dismissError = null;
     hookState.dismissIsError = false;
     hookState.explainError = null;
@@ -127,7 +141,7 @@ describe('FleetGraph product surface', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('1 active-week finding')).toBeTruthy();
+    expect(screen.getByText('1 active-week blocker needs PM review')).toBeTruthy();
     expect(screen.getByRole('link', { name: `Open issue: ${finding.title}` }).getAttribute('href')).toBe(`/documents/${finding.sourceIssueId}`);
   });
 
@@ -149,64 +163,73 @@ describe('FleetGraph product surface', () => {
     expect(screen.getByRole('link', { name: `Open issue: ${secondFinding.title}` }).getAttribute('href')).toBe(`/documents/${secondFinding.sourceIssueId}`);
   });
 
-  it('renders evidence, draft, and human gate without implying execution', () => {
-    render(<FleetGraphFindingCard finding={finding} />);
+  it('renders evidence and recipient without draft or approval noise', () => {
+    render(
+      <MemoryRouter>
+        <FleetGraphFindingCard finding={finding} />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText('Blocked urgent active-week issue')).toBeTruthy();
-    expect(screen.getByText('Latest issue iteration says Legal is blocking delivery.')).toBeTruthy();
-    expect(screen.getByText('Can you confirm whether Legal can unblock this today?')).toBeTruthy();
-    const disabledAction = screen.getByRole('button', { name: 'Prepared only - nothing sent' });
-    expect(disabledAction).toBeInstanceOf(HTMLButtonElement);
-    expect(disabledAction.getAttribute('disabled')).toBe('');
-    expect(screen.getByText('This changes only FleetGraph draft text. Nothing is sent, posted, or changed in Ship.')).toBeTruthy();
+    expect(screen.queryByText('FleetGraph')).toBeNull();
+    expect(screen.queryByText('Needs confirmation')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open issue' }).getAttribute('href')).toBe(`/documents/${finding.sourceIssueId}`);
+    expect(screen.queryByText('Latest issue iteration says Legal is blocking delivery.')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    expect(screen.getAllByText('Latest issue iteration says Legal is blocking delivery.').length).toBeGreaterThan(0);
+    expect(screen.getByText('Recipient')).toBeTruthy();
+    expect(screen.getByText('Riley Builder')).toBeTruthy();
+    expect(screen.getByText(/Issue assignee/)).toBeTruthy();
+    expect(screen.queryByText('Prepared issue comment')).toBeNull();
+    expect(screen.queryByText('Needs approval')).toBeNull();
+    expect(screen.queryByText('Rewrite draft')).toBeNull();
     expect(screen.queryByText('rawPrompt')).toBeNull();
   });
 
-  it('keeps explain and refine finding-bound', async () => {
-    render(<FleetGraphFindingCard finding={finding} />);
+  it('does not crash when a finding has no proposed recipient payload', () => {
+    const findingWithoutRecipient = {
+      ...finding,
+      proposedRecipient: undefined,
+    } as unknown as FleetGraphFindingView;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Explain' }));
-    await waitFor(() => expect(hookState.explainMutate).toHaveBeenCalledWith(finding.id));
+    render(
+      <MemoryRouter>
+        <FleetGraphFindingCard finding={findingWithoutRecipient} />
+      </MemoryRouter>
+    );
 
-    fireEvent.change(screen.getByLabelText('Refine draft'), {
-      target: { value: 'Make it softer.' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
-
-    await waitFor(() => expect(hookState.refineMutate).toHaveBeenCalledWith({
-      findingId: finding.id,
-      instruction: 'Make it softer.',
-    }));
+    expect(screen.getByRole('link', { name: 'Open issue' }).getAttribute('href')).toBe(`/documents/${finding.sourceIssueId}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.queryByText('Recipient')).toBeNull();
   });
 
   it('shows permission copy only for dismiss 403s', () => {
     hookState.dismissIsError = true;
     hookState.dismissError = new ApiStatusError('Forbidden', 403);
 
-    const { rerender } = render(<FleetGraphFindingCard finding={finding} />);
+    const { rerender } = render(
+      <MemoryRouter>
+        <FleetGraphFindingCard finding={finding} />
+      </MemoryRouter>
+    );
     expect(screen.getByText('Only workspace admins can dismiss shared FleetGraph findings.')).toBeTruthy();
 
     hookState.dismissError = new ApiStatusError('Server error', 500);
-    rerender(<FleetGraphFindingCard finding={finding} />);
+    rerender(
+      <MemoryRouter>
+        <FleetGraphFindingCard finding={finding} />
+      </MemoryRouter>
+    );
     expect(screen.getByText('FleetGraph could not dismiss this finding.')).toBeTruthy();
-  });
-
-  it('keeps hidden errors distinct from operational explain failures', () => {
-    hookState.explainIsError = true;
-    hookState.explainError = new ApiStatusError('Not found', 404);
-
-    const { rerender } = render(<FleetGraphFindingCard finding={finding} />);
-    expect(screen.getByText('No visible FleetGraph finding here.')).toBeTruthy();
-
-    hookState.explainError = new ApiStatusError('Server error', 500);
-    rerender(<FleetGraphFindingCard finding={finding} />);
-    expect(screen.getByText('FleetGraph could not explain this finding.')).toBeTruthy();
   });
 
   it('normalizes safe API visible output into a finding view', () => {
     const view = fleetGraphFindingView(apiFinding);
 
     expect(view.recommendedAction).toBe('Confirm the unblock path');
+    expect(view.proposedRecipient).toEqual(finding.proposedRecipient);
     expect(view.recipientRationale).toBe('Recipient is the issue assignee, falling back to the sprint owner.');
     expect(view.uncertainty).toBe('A human must confirm the current unblock path.');
     expect(view.severity).toBe('high');
