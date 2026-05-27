@@ -8301,6 +8301,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dev/database-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Probe local database reachability
+         * @description Dev-only endpoint for the database status banner. Returns connection state and setup hints without requiring authentication.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Database reachability status */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DevDatabaseStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/setup/status": {
         parameters: {
             query?: never;
@@ -12752,6 +12791,11 @@ export interface components {
             data: {
                 [key: string]: unknown;
             };
+        };
+        DevDatabaseStatusResponse: {
+            connected: boolean;
+            unreachable?: boolean;
+            hint?: string;
         };
         DocumentContentPayload: {
             /**

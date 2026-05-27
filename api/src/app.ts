@@ -20,6 +20,7 @@ import workspacesRoutes from './routes/workspaces.js';
 import adminRoutes from './routes/admin.js';
 import invitesRoutes from './routes/invites.js';
 import setupRoutes from './routes/setup.js';
+import devRoutes from './routes/dev.js';
 import backlinksRoutes from './routes/backlinks.js';
 import { searchRouter } from './routes/search.js';
 import { filesRouter } from './routes/files.js';
@@ -274,6 +275,10 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
+
+  if (isDevEnv()) {
+    app.use('/api/dev', devRoutes);
+  }
 
   setupSwagger(app, openApiShouldRequireAuth() ? authMiddleware : undefined);
 

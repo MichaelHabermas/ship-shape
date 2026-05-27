@@ -20,6 +20,7 @@ import { ReviewQueueProvider } from '@/contexts/ReviewQueueContext';
 
 import { ToastProvider } from '@/components/ui/Toast';
 import { MutationErrorToast } from '@/components/MutationErrorToast';
+import { DevDatabaseBanner } from '@/components/DevDatabaseBanner';
 import './index.css';
 
 const DocumentsPage = React.lazy(() => import('@/pages/Documents').then((module) => ({ default: module.DocumentsPage })));
@@ -47,7 +48,8 @@ function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={null}>{children}</Suspense>;
 }
 
-const ReactQueryDevtools = import.meta.env.DEV
+// const ReactQueryDevtools = import.meta.env.DEV
+const ReactQueryDevtools = false
   ? React.lazy(() => import('@tanstack/react-query-devtools').then((module) => ({ default: module.ReactQueryDevtools })))
   : null;
 
@@ -269,6 +271,7 @@ ReactDOM.createRoot(root).render(
       persistOptions={{ persister: queryPersister }}
     >
       <ToastProvider>
+        <DevDatabaseBanner />
         <MutationErrorToast />
         <BrowserRouter>
           <ReviewQueueProvider>

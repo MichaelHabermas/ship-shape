@@ -6310,6 +6310,17 @@ components:
       required:
         - success
         - data
+    DevDatabaseStatusResponse:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        unreachable:
+          type: boolean
+        hint:
+          type: string
+      required:
+        - connected
     DocumentContentPayload:
       type: object
       properties:
@@ -12032,6 +12043,19 @@ paths:
                 $ref: "#/components/schemas/CredentialsMutationResponse"
         403:
           description: Super admin required
+  /dev/database-status:
+    get:
+      tags:
+        - Dev
+      summary: Probe local database reachability
+      description: Dev-only endpoint for the database status banner. Returns connection state and setup hints without requiring authentication.
+      responses:
+        200:
+          description: Database reachability status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevDatabaseStatusResponse"
   /setup/status:
     get:
       tags:
