@@ -1,4 +1,5 @@
-// FleetGraph core orchestrates shared proactive and on-demand graph decisions.
+// FleetGraph core runs the shared proactive/on-demand LangGraph decision runtime.
+import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { pool } from '../db/client.js';
 import type { FleetGraphDetectorQuietExit } from './detector.js';
 import {
@@ -58,7 +59,31 @@ export type FleetGraphCoreOptions = {
   db?: QueryRunner;
   persistence?: FleetGraphPersistencePort;
   generateProactiveText?: typeof generateProactiveCreateText;
+  externalTrace?: Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
 };
+
+const FleetGraphState = Annotation.Root({
+  triggerType: Annotation<FleetGraphInput['trigger']['type']>(),
+  triggerReason: Annotation<string>(),
+  decision: Annotation<FleetGraphResult['decision'] | null>(),
+});
+
+type FleetGraphStateValue = typeof FleetGraphState.State;
+type FleetGraphRuntimeContext = {
+  input: FleetGraphInput;
+  options: FleetGraphCoreOptions;
+  persistence: FleetGraphPersistencePort;
+  triggerReason: string;
+  result: FleetGraphResult | null;
+};
+type FleetGraphNodeName =
+  | 'detectorDecision'
+  | 'quietExit'
+  | 'explainFinding'
+  | 'refineDraft'
+  | 'resolveFinding'
+  | 'dismissFinding'
+  | 'errorRun';
 
 function defaultPersistence(db: QueryRunner = pool): FleetGraphPersistencePort {
   return {
@@ -80,25 +105,131 @@ export async function runFleetGraph(
   const triggerReason = input.triggerReason ?? input.trigger.type;
 
   try {
-    switch (input.trigger.type) {
-      case 'detector_decision':
-        return runDetectorDecision(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'detector_decision' }> }, persistence, triggerReason, options);
-      case 'quiet_exit':
-        return runQuietExit(input, persistence, triggerReason, input.trigger.quietExits);
-      case 'explain_finding':
-        return runExplainFinding(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'explain_finding' }> }, persistence, triggerReason, options);
-      case 'refine_draft':
-        return runRefineDraft(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'refine_draft' }> }, persistence, triggerReason, options);
-      case 'resolve_finding':
-        return runResolveFinding(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'resolve_finding' }> }, persistence, triggerReason);
-      case 'dismiss_finding':
-        return runDismissFinding(input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'dismiss_finding' }> }, persistence, triggerReason, options);
-      case 'error':
-        return runError(input, persistence, triggerReason, input.trigger.message);
-    }
+    const context: FleetGraphRuntimeContext = {
+      input,
+      options,
+      persistence,
+      triggerReason,
+      result: null,
+    };
+    const graph = fleetGraphRuntime(context);
+    await graph.invoke({
+      triggerType: input.trigger.type,
+      triggerReason,
+      decision: null,
+    });
+    if (context.result) return context.result;
+    return runError(input, persistence, triggerReason, 'FleetGraph graph completed without a result');
   } catch (_error) {
     return runError(input, persistence, triggerReason, 'FleetGraph internal error');
   }
+}
+
+function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
+  return new StateGraph(FleetGraphState)
+    .addNode('normalizeTrigger', (state) => normalizeTriggerNode(state, context))
+    .addNode('detectorDecision', () => detectorDecisionNode(context))
+    .addNode('quietExit', () => quietExitNode(context))
+    .addNode('explainFinding', () => explainFindingNode(context))
+    .addNode('refineDraft', () => refineDraftNode(context))
+    .addNode('resolveFinding', () => resolveFindingNode(context))
+    .addNode('dismissFinding', () => dismissFindingNode(context))
+    .addNode('errorRun', () => errorRunNode(context))
+    .addEdge(START, 'normalizeTrigger')
+    .addConditionalEdges('normalizeTrigger', routeFleetGraphTrigger)
+    .addEdge('detectorDecision', END)
+    .addEdge('quietExit', END)
+    .addEdge('explainFinding', END)
+    .addEdge('refineDraft', END)
+    .addEdge('resolveFinding', END)
+    .addEdge('dismissFinding', END)
+    .addEdge('errorRun', END)
+    .compile({ name: 'fleetgraph.shared_runtime' });
+}
+
+function normalizeTriggerNode(state: FleetGraphStateValue, context: FleetGraphRuntimeContext): Partial<FleetGraphStateValue> {
+  return { triggerReason: state.triggerReason ?? context.triggerReason };
+}
+
+function routeFleetGraphTrigger(state: FleetGraphStateValue): FleetGraphNodeName {
+  switch (state.triggerType) {
+    case 'detector_decision':
+      return 'detectorDecision';
+    case 'quiet_exit':
+      return 'quietExit';
+    case 'explain_finding':
+      return 'explainFinding';
+    case 'refine_draft':
+      return 'refineDraft';
+    case 'resolve_finding':
+      return 'resolveFinding';
+    case 'dismiss_finding':
+      return 'dismissFinding';
+    case 'error':
+      return 'errorRun';
+  }
+}
+
+async function detectorDecisionNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runDetectorDecision(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'detector_decision' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function quietExitNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  const trigger = context.input.trigger as Extract<FleetGraphInput['trigger'], { type: 'quiet_exit' }>;
+  context.result = await runQuietExit(context.input, context.persistence, context.triggerReason, trigger.quietExits, context.options);
+  return { decision: context.result.decision };
+}
+
+async function explainFindingNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runExplainFinding(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'explain_finding' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function refineDraftNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runRefineDraft(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'refine_draft' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function resolveFindingNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runResolveFinding(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'resolve_finding' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function dismissFindingNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runDismissFinding(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'dismiss_finding' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function errorRunNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  const trigger = context.input.trigger as Extract<FleetGraphInput['trigger'], { type: 'error' }>;
+  context.result = await runError(context.input, context.persistence, context.triggerReason, trigger.message);
+  return { decision: context.result.decision };
 }
 
 async function runDetectorDecision(
@@ -123,7 +254,7 @@ async function runDetectorDecision(
     return runQuietExit(input, persistence, triggerReason, [{
       reason: 'insufficient_visible_evidence',
       count: 1,
-    }]);
+    }], options);
   }
 
   const model = options.generateProactiveText ?? generateProactiveCreateText;
@@ -147,6 +278,7 @@ async function runDetectorDecision(
       'persistFleetGraphState',
       'produceOutput',
     ],
+    ...options.externalTrace,
   });
   const packet = decisionPacketFromCandidate(candidate, modelResult.summary, modelResult.draftMessage);
   const findingInput: SaveBlockedImportantIssueFindingInput = {
@@ -202,12 +334,14 @@ async function runQuietExit(
   input: FleetGraphInput,
   persistence: FleetGraphPersistencePort,
   triggerReason: string,
-  quietExits: FleetGraphDetectorQuietExit[]
+  quietExits: FleetGraphDetectorQuietExit[],
+  options: FleetGraphCoreOptions = {}
 ): Promise<FleetGraphResult> {
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision: 'quiet_exit',
     nodePath: ['normalizeTrigger', 'detector', 'quietExit', 'persistFleetGraphState'],
+    ...options.externalTrace,
   });
   const output = {
     quietExits,
@@ -262,6 +396,7 @@ async function runExplainFinding(
     mode: input.mode,
     decision,
     nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'produceOutput'],
+    ...options.externalTrace,
   });
   const runInput = runInputFor({
     input,
@@ -308,13 +443,14 @@ async function runRefineDraft(
     db: options.db,
   });
   if (output.noSafeOutput) {
-    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output);
+    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output, options);
   }
 
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision: 'refine_draft',
     nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'refineDraft', 'persistFleetGraphState', 'produceOutput'],
+    ...options.externalTrace,
   });
   const draftContent = {
     ...(isJsonRecord(finding.draft_content) ? finding.draft_content : {}),
@@ -367,12 +503,14 @@ async function runRestrictedFindingQuietExit(
   triggerReason: string,
   finding: FleetGraphFinding,
   evidence: FleetGraphEvidenceItem[],
-  output: FleetGraphVisibleOutput
+  output: FleetGraphVisibleOutput,
+  options: FleetGraphCoreOptions = {}
 ): Promise<FleetGraphResult> {
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision: 'quiet_exit',
     nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'quietExit', 'persistFleetGraphState'],
+    ...options.externalTrace,
   });
   const runInput = runInputFor({
     input,
@@ -406,10 +544,16 @@ async function runRestrictedFindingQuietExit(
 async function runResolveFinding(
   input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'resolve_finding' }> },
   persistence: FleetGraphPersistencePort,
-  triggerReason: string
+  triggerReason: string,
+  options: FleetGraphCoreOptions
 ): Promise<FleetGraphResult> {
-  return runStatusOnly(input, persistence, triggerReason, 'resolve', () =>
-    persistence.resolveFinding({ workspaceId: input.workspaceId, findingId: input.trigger.findingId })
+  return runStatusOnly(
+    input,
+    persistence,
+    triggerReason,
+    'resolve',
+    () => persistence.resolveFinding({ workspaceId: input.workspaceId, findingId: input.trigger.findingId }),
+    options
   );
 }
 
@@ -429,7 +573,7 @@ async function runDismissFinding(
     db: options.db,
   });
   if (output.noSafeOutput) {
-    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output);
+    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output, options);
   }
 
   return runStatusOnly(input, persistence, triggerReason, 'dismiss', () =>
@@ -437,7 +581,8 @@ async function runDismissFinding(
       workspaceId: input.workspaceId,
       findingId: input.trigger.findingId,
       dismissedBy: input.trigger.dismissedBy,
-    })
+    }),
+    options
   );
 }
 
@@ -446,7 +591,8 @@ async function runStatusOnly(
   persistence: FleetGraphPersistencePort,
   triggerReason: string,
   decision: 'dismiss' | 'resolve',
-  mutate: () => Promise<FleetGraphFinding | null>
+  mutate: () => Promise<FleetGraphFinding | null>,
+  options: FleetGraphCoreOptions = {}
 ): Promise<FleetGraphResult> {
   const finding = await mutate();
   if (!finding) return runError(input, persistence, triggerReason, 'FleetGraph finding not found');
@@ -455,6 +601,7 @@ async function runStatusOnly(
     mode: input.mode,
     decision,
     nodePath: ['normalizeTrigger', 'resolveScope', 'persistFleetGraphState', 'produceOutput'],
+    ...options.externalTrace,
   });
   const runInput = runInputFor({
     input,

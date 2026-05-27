@@ -1,96 +1,96 @@
-// Creates a tiny LangSmith trace to verify local wiring.
-//
-// This does not call any model. It just posts a RunTree with a child "tool" span so
-// you can confirm traces appear in the configured project.
+// Creates a tiny LangSmith trace to verify FleetGraph reviewer trace wiring.
 import { randomUUID } from 'crypto';
-import { RunTree } from 'langsmith';
 import { config as loadEnv } from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { withFleetGraphLangSmithTrace } from '../fleetgraph/langsmith-trace.js';
+import type { FleetGraphResult } from '../fleetgraph/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load local env like the API server does.
 loadEnv({ path: join(__dirname, '../../.env.local') });
 loadEnv({ path: join(__dirname, '../../.env') });
 
-function requireEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
-  }
-  return value;
-}
-
-function tracingEnabled(): boolean {
-  const flag = (value: string | undefined) => value === '1' || value === 'true';
-  return flag(process.env.LANGSMITH_TRACING) || flag(process.env.LANGCHAIN_TRACING_V2);
-}
-
 async function main() {
-  if (!tracingEnabled()) {
-    throw new Error(
-      'LangSmith tracing is disabled. Set LANGSMITH_TRACING=true (or LANGCHAIN_TRACING_V2=true).'
-    );
-  }
-
-  // LangSmith SDK expects LANGSMITH_API_KEY; many UIs hand out LANGCHAIN_API_KEY.
-  if (!process.env.LANGSMITH_API_KEY?.trim()) {
-    process.env.LANGSMITH_API_KEY = requireEnv('LANGCHAIN_API_KEY');
-  }
-
-  const projectName = process.env.LANGSMITH_PROJECT?.trim() || process.env.LANGCHAIN_PROJECT?.trim() || 'default';
   const runLabel = process.env.FLEETGRAPH_TRACE_LABEL?.trim() || `fleetgraph-smoke-${randomUUID().slice(0, 8)}`;
-
-  const parentRun = new RunTree({
+  const capture = await withFleetGraphLangSmithTrace({
     name: 'fleetgraph.trace_smoke',
-    run_type: 'chain',
-    project_name: projectName,
     inputs: {
       label: runLabel,
       note: 'Smoke trace to verify LangSmith wiring. No model call.',
     },
-    serialized: {},
-  });
+  }, async (trace) => smokeResult(trace.traceId, trace.traceUrl));
 
-  await parentRun.postRun();
+  console.log(JSON.stringify({
+    ok: true,
+    traceId: capture.traceId,
+    traceUrl: capture.traceUrl,
+    sharedTraceUrl: capture.sharedTraceUrl,
+    label: runLabel,
+  }, null, 2));
+}
 
-  const childRun = await parentRun.createChild({
-    name: 'fleetgraph.detector_dry_run',
-    run_type: 'tool',
-    inputs: {
+function smokeResult(traceId: string | undefined, traceUrl: string | undefined): FleetGraphResult {
+  const traceMetadata = {
+    traceId,
+    traceUrl,
+    mode: 'proactive' as const,
+    decision: 'quiet_exit' as const,
+    nodePath: ['normalizeTrigger', 'detector_dry_run', 'persistFleetGraphState'],
+  };
+  return {
+    decision: 'quiet_exit',
+    finding: null,
+    run: {
+      id: '00000000-0000-4000-8000-000000000001',
+      workspace_id: '00000000-0000-4000-8000-000000000002',
+      finding_id: null,
+      source_issue_id: null,
+      source_sprint_id: null,
       mode: 'proactive',
-      modelCalls: 0,
+      trigger_reason: 'langsmith_smoke',
+      decision: 'quiet_exit',
+      dedupe_key: null,
+      input_snapshot: {},
+      evidence_snapshot: [],
+      output_snapshot: {},
+      trace_metadata: traceMetadata,
+      token_metadata: { modelCalls: 0 },
+      cost_metadata: {},
+      error_metadata: {},
+      started_at: new Date(),
+      completed_at: new Date(),
+      created_at: new Date(),
     },
-  });
-
-  await childRun.postRun();
-  await childRun.end({
-    outputs: {
-      ok: true,
-      detail: 'No-op tool span; posted successfully.',
+    runInput: {
+      workspaceId: '00000000-0000-4000-8000-000000000002',
+      mode: 'proactive',
+      triggerReason: 'langsmith_smoke',
+      decision: 'quiet_exit',
+      inputSnapshot: {},
+      evidenceSnapshot: [],
+      outputSnapshot: {},
+      traceMetadata,
+      tokenMetadata: { modelCalls: 0 },
+      costMetadata: {},
+      errorMetadata: {},
     },
-  });
-  await childRun.patchRun();
-
-  await parentRun.end({
-    outputs: {
-      ok: true,
-      project: projectName,
-      label: runLabel,
-      runId: parentRun.id,
+    visibleOutput: {
+      title: 'FleetGraph trace smoke',
+      summary: 'No-op trace smoke completed.',
+      evidence: [],
+      humanGate: { required: false },
     },
-  });
-  await parentRun.patchRun();
-
-  console.log(JSON.stringify({ ok: true, project: projectName, runId: parentRun.id, label: runLabel }, null, 2));
-  console.log('Open LangSmith → Tracing → project → latest run should be this id.');
+    evidence: [],
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+    errorMetadata: {},
+  };
 }
 
 main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
+  console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 });
-

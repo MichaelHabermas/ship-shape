@@ -274,6 +274,92 @@ describe('FleetGraph shared core', () => {
     }));
   });
 
+  it('records caller-provided external trace identity in run metadata', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: { type: 'explain_finding', findingId },
+    }, {
+      persistence: port,
+      db: readableSourceDb(),
+      externalTrace: {
+        traceId: '88888888-8888-4888-8888-888888888888',
+        traceUrl: 'https://smith.langchain.com/public/trace-id/r',
+      },
+    });
+
+    expect(result.traceMetadata).toMatchObject({
+      traceId: '88888888-8888-4888-8888-888888888888',
+      traceUrl: 'https://smith.langchain.com/public/trace-id/r',
+    });
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.traceMetadata).toMatchObject({
+      traceId: '88888888-8888-4888-8888-888888888888',
+      traceUrl: 'https://smith.langchain.com/public/trace-id/r',
+    });
+  });
+
+  it('preserves process-level LangSmith env flags during graph runs', async () => {
+    const port = persistence();
+    const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+    const previousLangChainTracing = process.env.LANGCHAIN_TRACING_V2;
+    process.env.LANGSMITH_TRACING = 'true';
+    process.env.LANGCHAIN_TRACING_V2 = 'true';
+
+    try {
+      await runFleetGraph({
+        workspaceId,
+        principal,
+        mode: 'on_demand',
+        trigger: { type: 'explain_finding', findingId },
+      }, { persistence: port, db: readableSourceDb() });
+
+      expect(process.env.LANGSMITH_TRACING).toBe('true');
+      expect(process.env.LANGCHAIN_TRACING_V2).toBe('true');
+    } finally {
+      if (previousLangSmithTracing === undefined) {
+        delete process.env.LANGSMITH_TRACING;
+      } else {
+        process.env.LANGSMITH_TRACING = previousLangSmithTracing;
+      }
+      if (previousLangChainTracing === undefined) {
+        delete process.env.LANGCHAIN_TRACING_V2;
+      } else {
+        process.env.LANGCHAIN_TRACING_V2 = previousLangChainTracing;
+      }
+    }
+  });
+
+  it('records caller-provided external trace identity for resolve runs', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: { type: 'resolve_finding', findingId },
+    }, {
+      persistence: port,
+      externalTrace: {
+        traceId: '99999999-9999-4999-8999-999999999999',
+        traceUrl: 'https://smith.langchain.com/public/resolve-trace/r',
+      },
+    });
+
+    expect(result.decision).toBe('resolve');
+    expect(result.traceMetadata).toMatchObject({
+      traceId: '99999999-9999-4999-8999-999999999999',
+      traceUrl: 'https://smith.langchain.com/public/resolve-trace/r',
+    });
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.traceMetadata).toMatchObject({
+      traceId: '99999999-9999-4999-8999-999999999999',
+      traceUrl: 'https://smith.langchain.com/public/resolve-trace/r',
+    });
+  });
+
   it('refines only FleetGraph-owned draft state', async () => {
     const port = persistence();
 

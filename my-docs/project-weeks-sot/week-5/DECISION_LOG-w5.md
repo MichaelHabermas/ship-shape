@@ -315,3 +315,27 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** `api/src/db/schema.sql` must include the FleetGraph schema introduced by migrations `042_fleetgraph.sql` and `043_fleetgraph_worker_ticks.sql`: `fleetgraph_findings`, `fleetgraph_runs`, `fleetgraph_worker_ticks`, their indexes, and the FleetGraph reference/suppression triggers.
 
 **Consequence:** E2E isolated databases load `schema.sql` and then mark migrations as applied; they do not replay FleetGraph migrations. If `schema.sql` drifts behind numbered migrations, Playwright can pass user-visible assertions while API logs contain FleetGraph 500s such as missing relation errors. FleetGraph verification must inspect smoke logs for backend errors, not only Playwright pass counts.
+
+## D040 - FleetGraph Core Uses A Real LangGraph Runtime With Sanitized External Traces
+
+**Date:** 2026-05-27
+
+**Decision:** `runFleetGraph` now executes a compiled `@langchain/langgraph` `StateGraph` for proactive and on-demand triggers instead of a switch-only dispatcher. Deterministic SQL still chooses candidates before the graph, and FleetGraph persistence remains limited to findings, runs, drafts, statuses, evidence snapshots, and trace metadata.
+
+**Consequence:** Proactive create/update/quiet and on-demand explain/refine/dismiss/resolve/error paths share one runtime with explicit conditional routing. Future graph branches should be added as graph nodes/edges and golden cases, not parallel route/worker logic.
+
+## D041 - FleetGraph Reviewer Traces Are Explicit And Sanitized
+
+**Date:** 2026-05-27
+
+**Decision:** FleetGraph reviewer evidence uses explicit LangSmith trace capture with safe root runs and node-path child spans. The shared LangGraph runtime keeps graph state minimal and sanitized; raw inputs, DB clients, persistence ports, principals, prompts, completions, and evidence payloads stay outside LangGraph state and explicit trace inputs.
+
+**Consequence:** Persisted trace metadata remains allowlisted to mode, decision, node path, trace ID/URL, and failure category. Shared reviewer trace links must come from seeded/demo-safe inputs, and trace capture must not send raw prompts, completions, hidden evidence, DB clients, principals, cookies, tokens, or circular runtime state. Do not protect trace safety by mutating process-wide LangSmith env flags around async graph runs.
+
+## D042 - Existing Public Render Deploy Does Not Yet Satisfy FleetGraph MVP
+
+**Date:** 2026-05-27
+
+**Decision:** Epic 10 verification found the public Render API and web are live, but the deployed API returns `Cannot GET /api/fleetgraph/findings`; do not claim public FleetGraph availability until a current API/web build with FleetGraph routes is deployed and verified.
+
+**Consequence:** Local/demo FleetGraph is trace-verified, but the public deployment checklist item remains blocked. The next human-approved deployment pass should verify API health, FleetGraph route availability, worker/manual trigger configuration, and a reviewer-safe object URL after deploy.

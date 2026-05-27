@@ -45,4 +45,22 @@ describe('FleetGraph trace metadata sanitizer', () => {
       nodePath: ['produceOutput'],
     });
   });
+
+  it('allows LangSmith trace URLs without allowing lookalike hosts', () => {
+    expect(sanitizeFleetGraphTraceMetadata({
+      mode: 'proactive',
+      decision: 'create_finding',
+      nodePath: ['normalizeTrigger', 'produceOutput'],
+      traceUrl: 'https://smith.langchain.com/public/trace-id/r',
+    })).toMatchObject({
+      traceUrl: 'https://smith.langchain.com/public/trace-id/r',
+    });
+
+    expect(sanitizeFleetGraphTraceMetadata({
+      mode: 'proactive',
+      decision: 'create_finding',
+      nodePath: ['normalizeTrigger', 'produceOutput'],
+      traceUrl: 'https://evilsmith.langchain.com/public/trace-id/r',
+    })).not.toHaveProperty('traceUrl');
+  });
 });

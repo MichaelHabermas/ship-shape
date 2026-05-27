@@ -189,14 +189,22 @@ FleetGraph authenticates server-side using an explicit system attribution path. 
 
 If Ship reads fail, FleetGraph does not create new claims from stale or partial data. It records the failed run, retries on the next tick, and leaves existing findings visible with stale-run metadata. On-demand mode reports the missing context instead of answering from old state.
 
+Public deployment verification on 2026-05-27:
+
+- `https://ship-shape-api.onrender.com/health` returned HTTP 200.
+- `https://ship-shape-web.onrender.com` returned HTTP 200.
+- `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 404 `Cannot GET /api/fleetgraph/findings`.
+
+Conclusion: the existing public Render deployment is live, but it does not currently expose the FleetGraph route family. The MVP is locally verified with reviewer-safe LangSmith traces, but the public deployment requirement remains blocked until the current API/web build is deployed with FleetGraph routes and seeded/reviewer-safe data.
+
 ## Test Cases
 
 | # | Ship State | Expected Output | Trace Link |
 | --- | --- | --- | --- |
-| 1 | Active sprint/week contains important active issue with blocked signal and no existing finding | Proactive graph creates blocked-work finding within 5 minutes, with evidence, proposed recipient, next step, and draft action | Local trace metadata from `pnpm fleetgraph:demo -- --capture-traces`: `mode=proactive`, `decision=create_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> reasonProactiveCreate -> persistFleetGraphState -> produceOutput`. The local command prints the finding id; external trace URL is not configured locally. |
-| 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | Local trace metadata: `mode=on_demand`, `decision=explain`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> produceOutput`. |
-| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | Local trace metadata: `mode=on_demand`, `decision=refine_draft`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refineDraft -> persistFleetGraphState -> produceOutput`. |
-| 4 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | Local trace metadata: `mode=proactive`, `decision=update_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refreshExistingFinding -> persistFleetGraphState -> produceOutput`. |
+| 1 | Active sprint/week contains important issue `FG Demo - SSO cert rotation blocked` with `state = blocked` and blocker evidence | Proactive graph creates a blocked-work finding with evidence, proposed recipient, next step, draft action, and human gate | [LangSmith trace](https://smith.langchain.com/public/b042b6c6-12c2-489a-821c-9289690efe14/r): `mode=proactive`, `decision=create_finding`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> reasonProactiveCreate -> persistFleetGraphState -> produceOutput`. |
+| 2 | User asks why the flagged issue was flagged from the issue/sprint context | On-demand graph explains the existing finding and drafts next action without mutating Ship | [LangSmith trace](https://smith.langchain.com/public/df81e9ee-6b34-4b9b-a91f-3ee9e25f7c0d/r): `mode=on_demand`, `decision=explain`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> produceOutput`. |
+| 3 | User asks FleetGraph to reword the draft with extra context | On-demand graph refines the confirmation-card draft in place without sending/posting | [LangSmith trace](https://smith.langchain.com/public/d06a1db3-efb9-4fcf-81b5-b72e3d400cd5/r): `mode=on_demand`, `decision=refine_draft`, `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refineDraft -> persistFleetGraphState -> produceOutput`. |
+| 4 | Candidate issue already has an open finding with the same dedupe key | Proactive graph updates or suppresses duplicate finding | Local demo detector output from `pnpm fleetgraph:demo -- --capture-traces`: `decision=update_finding` for `FG Demo - Duplicate open finding control`; focused golden/core tests cover `nodePath=normalizeTrigger -> resolveScope -> fetchCurrentObject -> filterVisibleEvidence -> refreshExistingFinding -> persistFleetGraphState -> produceOutput`. |
 | 5 | Blocked signal is removed before recheck | Proactive graph resolves or quietly exits | Nice-to-have |
 | 6 | Evidence is not visible to current user | Graph returns restricted-context output or quiet exit | Nice-to-have |
 
@@ -214,13 +222,25 @@ If Ship reads fail, FleetGraph does not create new claims from stale or partial 
 
 ## Cost Analysis
 
-Final cost analysis will be completed after implementation records real invocation counts and token usage.
+FleetGraph MVP is currently running in deterministic text mode for reviewer/demo paths. The graph records token/cost metadata on every run, but the captured local demo and test runs made zero model calls.
 
-Initial assumptions:
+Actual local run accounting from `fleetgraph_runs` after `pnpm fleetgraph:demo -- --capture-traces` on 2026-05-27:
+
+| Mode | Decision | Runs | Model calls | Input tokens | Output tokens | Estimated cost |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| on_demand | explain | 26 | 0 | 0 | 0 | $0 |
+| on_demand | refine_draft | 19 | 0 | 0 | 0 | $0 |
+| proactive | create_finding | 18 | 0 | 0 | 0 | $0 |
+| proactive | resolve | 1 | 0 | 0 | 0 | $0 |
+| proactive | update_finding | 8 | 0 | 0 | 0 | $0 |
+
+Development/test model spend for the captured FleetGraph MVP path: **$0**. This is not a claim that production reasoning will be free; it is an honest report that the current reviewer-safe graph path uses deterministic generation and records zero model calls.
+
+Production assumptions if real proactive-create model calls are enabled later:
 
 - Polling ticks: every 2 minutes, 720 ticks/day.
 - LLM cost on empty ticks: zero.
-- Normal proactive finding target: 2,000-4,000 input tokens and 500-1,000 output tokens.
+- Normal proactive finding target: 2,000-4,000 input tokens and 500-1,000 output tokens per model-backed create.
 - Heavier rollups are not part of MVP.
 - Main cost cliffs: broad workspace reasoning, noisy candidate generation, repeated duplicate processing, oversized context, and broad on-demand prompts.
 
@@ -228,13 +248,13 @@ Working formula:
 
 `monthly cost = (proactive graph runs + rechecks + on-demand runs) * average model cost per run`
 
-Provisional scale assumptions until real usage data exists:
+Scale projection, using $0 for deterministic MVP paths and a planning placeholder of $0.01 per future model-backed graph run:
 
-| Scale | Assumption | Directional risk |
-| --- | --- | --- |
-| 100 users | 10 projects, 20 active issues/project, 1-3 eligible proactive findings/day, 20-40 on-demand runs/day | Affordable if duplicate rechecks are cooled down |
-| 1,000 users | 100 projects, 20 active issues/project, 10-30 eligible proactive findings/day, 200-400 on-demand runs/day | Needs budgets, cooldowns, and severity ranking |
-| 10,000 users | 1,000 projects, 20 active issues/project, 100-300 eligible proactive findings/day, 2,000-4,000 on-demand runs/day | On-demand dominates; needs scope narrowing and summarized context before reasoning |
+| Scale | Monthly deterministic MVP cost | If future model-backed runs average $0.01 | Assumption |
+| --- | ---: | ---: | --- |
+| 100 users | $0 | $6.30-$12.90/month | 1-3 proactive creates/day plus 20-40 on-demand runs/day |
+| 1,000 users | $0 | $63-$129/month | 10-30 proactive creates/day plus 200-400 on-demand runs/day |
+| 10,000 users | $0 | $630-$1,290/month | 100-300 proactive creates/day plus 2,000-4,000 on-demand runs/day |
 
 The most dangerous cost assumption is not polling. It is broad on-demand prompts that expand from one page into whole-workspace reasoning.
 

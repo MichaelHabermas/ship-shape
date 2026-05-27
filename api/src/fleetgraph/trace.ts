@@ -73,5 +73,15 @@ function isTraceMode(value: unknown): value is FleetGraphRunMode {
 }
 
 function isSafeTraceUrl(value: string): boolean {
-  return value.startsWith('/') && !value.startsWith('//');
+  if (value.startsWith('/') && !value.startsWith('//')) return true;
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && (
+      parsed.hostname === 'smith.langchain.com' ||
+      parsed.hostname.endsWith('.smith.langchain.com')
+    );
+  } catch {
+    return false;
+  }
 }
