@@ -1,33 +1,53 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
+import { apiGetJson, apiPostJson } from '@/lib/api';
 
 interface ChatContextItem {
   id: string;
   label: string;
+  sourcePath?: string;
   notification?: FleetGraphNotificationProbeItem;
 }
+
+interface FleetGraphEvidenceItem {
+  kind: string;
+  claim: string;
+  excerpt?: string;
+  visibility: 'internal' | 'actor_visible' | 'restricted';
+}
+
+interface FleetGraphVisibleOutput {
+  title: string;
+  summary: string;
+  recommendedAction?: {
+    label?: string;
+    text?: string;
+    summary?: string;
+  };
+  humanGate: Record<string, unknown>;
+  evidence: FleetGraphEvidenceItem[];
+  noSafeOutput?: boolean;
+}
+
+interface FleetGraphExplainResponse {
+  visibleOutput?: FleetGraphVisibleOutput;
+}
+
+interface DocumentTitleResponse {
+  title?: string;
+}
+
+type ExplanationState =
+  | { status: 'idle' }
+  | { status: 'loading'; findingId: string }
+  | { status: 'ready'; findingId: string; output: FleetGraphVisibleOutput }
+  | { status: 'error'; findingId?: string };
 
 export interface FleetGraphChatProbeRequest {
   id: number;
   notification: FleetGraphNotificationProbeItem;
 }
-
-const seededContextItems: ChatContextItem[] = [
-  { id: 'project-delta', label: 'Project Delta' },
-  { id: 'sprint-12', label: 'Sprint 12' },
-  { id: 'dev-user', label: 'Dev User' },
-  { id: 'auth-rollout', label: 'Auth rollout' },
-  { id: 'backend-queue', label: 'Backend queue' },
-  { id: 'contract-review', label: 'Contract review' },
-  { id: 'standup-note', label: 'Standup note' },
-  { id: 'release-risk', label: 'Release risk' },
-  { id: 'pm-thread', label: 'PM thread' },
-  { id: 'security-review', label: 'Security review' },
-  { id: 'api-logs', label: 'API logs' },
-  { id: 'access-request', label: 'Access request' },
-  { id: 'customer-note', label: 'Customer note' },
-];
 
 function getSurfaceLabel(pathname: string): string {
   if (pathname.startsWith('/documents/')) return 'Current document';
@@ -40,18 +60,67 @@ function getSurfaceLabel(pathname: string): string {
   return 'Current view';
 }
 
+function getCurrentDocumentId(pathname: string): string | null {
+  if (!pathname.startsWith('/documents/')) return null;
+  return pathname.split('/documents/')[1]?.split(/[/?#]/)[0] || null;
+}
+
+function sourcePathForDocumentId(documentId: string | null): string | undefined {
+  return documentId ? `/documents/${documentId}` : undefined;
+}
+
+function contextMatchesSource(item: ChatContextItem, sourcePath: string | undefined): boolean {
+  return Boolean(sourcePath && item.sourcePath === sourcePath);
+}
+
 export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetGraphChatProbeRequest | null }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [draft, setDraft] = useState('');
-  const [contextItems, setContextItems] = useState<ChatContextItem[]>(seededContextItems);
+  const [contextItems, setContextItems] = useState<ChatContextItem[]>([]);
   const [activeNotification, setActiveNotification] = useState<FleetGraphNotificationProbeItem | null>(null);
+  const [explanation, setExplanation] = useState<ExplanationState>({ status: 'idle' });
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
+  const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
+  const currentSourcePath = useMemo(() => sourcePathForDocumentId(currentDocumentId), [currentDocumentId]);
+  const [currentTitle, setCurrentTitle] = useState(surfaceLabel);
+  const currentContextLabel = `Current - ${currentTitle}`;
   const visibleContextItems = contextItems.slice(0, 3);
   const overflowContextItems = contextItems.slice(3);
   const hasClearableContext = contextItems.length > 0;
+
+  useEffect(() => {
+    if (!currentDocumentId) {
+      setCurrentTitle(surfaceLabel);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCurrentTitle() {
+      try {
+        const document = await apiGetJson<DocumentTitleResponse>(
+          `/api/documents/${currentDocumentId}`,
+          'Failed to fetch current document'
+        );
+        if (!cancelled) setCurrentTitle(document.title?.trim() || surfaceLabel);
+      } catch {
+        if (!cancelled) setCurrentTitle(surfaceLabel);
+      }
+    }
+
+    void loadCurrentTitle();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentDocumentId, surfaceLabel]);
+
+  useEffect(() => {
+    setContextItems((items) => items.filter((item) => !contextMatchesSource(item, currentSourcePath)));
+  }, [currentSourcePath]);
 
   useEffect(() => {
     if (!discussRequest) return;
@@ -59,26 +128,87 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     const notification = discussRequest.notification;
     setOpen(true);
     setActiveNotification(notification);
+    setExplanation(notification.findingId ? { status: 'loading', findingId: notification.findingId } : { status: 'idle' });
     setContextItems((items) => {
       const contextItem: ChatContextItem = {
         id: `notification:${notification.id}`,
         label: notification.title,
+        sourcePath: notification.sourcePath,
         notification,
       };
-      return [contextItem, ...items.filter((item) => item.id !== contextItem.id)];
+      return [
+        contextItem,
+        ...items.filter((item) => item.id !== contextItem.id && !contextMatchesSource(item, notification.sourcePath)),
+      ];
     });
   }, [discussRequest]);
+
+  useEffect(() => {
+    if (!activeNotification?.findingId) return;
+
+    let cancelled = false;
+    const findingId = activeNotification.findingId;
+
+    async function explainFinding() {
+      try {
+        const response = await apiPostJson<FleetGraphExplainResponse>(
+          `/api/fleetgraph/findings/${findingId}/explain`,
+          {},
+          'Failed to explain notification'
+        );
+        if (cancelled) return;
+        if (response.visibleOutput && !response.visibleOutput.noSafeOutput) {
+          setExplanation({ status: 'ready', findingId, output: response.visibleOutput });
+        } else {
+          setExplanation({ status: 'error', findingId });
+        }
+      } catch {
+        if (!cancelled) setExplanation({ status: 'error', findingId });
+      }
+    }
+
+    void explainFinding();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeNotification]);
 
   const removeContextItem = (id: string) => {
     setContextItems((items) => items.filter((item) => item.id !== id));
     if (activeNotification && id === `notification:${activeNotification.id}`) {
       setActiveNotification(null);
+      setExplanation({ status: 'idle' });
     }
+  };
+
+  const activateContextItem = (id: string) => {
+    const item = contextItems.find((contextItem) => contextItem.id === id);
+    if (!item?.sourcePath) return;
+
+    const previousCurrentContext: ChatContextItem | null = currentSourcePath
+      ? {
+          id: `current:${currentSourcePath}`,
+          label: currentTitle,
+          sourcePath: currentSourcePath,
+        }
+      : null;
+
+    setContextItems((items) => {
+      const withoutClickedOrPrevious = items.filter((contextItem) => {
+        if (contextItem.id === id) return false;
+        if (previousCurrentContext && contextMatchesSource(contextItem, previousCurrentContext.sourcePath)) return false;
+        return true;
+      });
+      return previousCurrentContext ? [previousCurrentContext, ...withoutClickedOrPrevious] : withoutClickedOrPrevious;
+    });
+    setContextOpen(false);
+    navigate(item.sourcePath);
   };
 
   const clearContextItems = () => {
     setContextItems([]);
     setActiveNotification(null);
+    setExplanation({ status: 'idle' });
     setContextOpen(false);
   };
 
@@ -112,17 +242,26 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
             <div className="min-w-0 pr-2">
               <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
                 <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted">
-                  {surfaceLabel} - Untitled
+                  {currentContextLabel}
                 </span>
                 {visibleContextItems.map((item) => (
                   <button
                     type="button"
                     key={item.id}
-                    onClick={() => removeContextItem(item.id)}
+                    onClick={() => activateContextItem(item.id)}
                     className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
                   >
                     {item.label}
-                    <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
+                    <span
+                      aria-hidden="true"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        removeContextItem(item.id);
+                      }}
+                      className="text-xs leading-none text-muted"
+                    >
+                      x
+                    </span>
                   </button>
                 ))}
                 {overflowContextItems.length > 0 && (
@@ -160,6 +299,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                 popoverRef={contextMenuRef}
                 surfaceLabel={surfaceLabel}
                 contextItems={overflowContextItems}
+                onActivateContext={activateContextItem}
                 onRemoveContext={removeContextItem}
               />
             )}
@@ -167,7 +307,9 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
 
           <div className="scrollbar-hide flex flex-1 overflow-y-auto px-4 py-5">
             {activeNotification ? (
-              <NotificationConversation notification={activeNotification} />
+              <div className="flex min-h-full w-full items-end">
+                <NotificationConversation notification={activeNotification} explanation={explanation} />
+              </div>
             ) : (
               <EmptyConversation surfaceLabel={surfaceLabel} />
             )}
@@ -214,11 +356,13 @@ function ContextPopover({
   popoverRef,
   surfaceLabel,
   contextItems,
+  onActivateContext,
   onRemoveContext,
 }: {
   popoverRef: RefObject<HTMLDivElement>;
   surfaceLabel: string;
   contextItems: ChatContextItem[];
+  onActivateContext: (id: string) => void;
   onRemoveContext: (id: string) => void;
 }) {
   return (
@@ -231,11 +375,20 @@ function ContextPopover({
           <button
             type="button"
             key={item.id}
-            onClick={() => onRemoveContext(item.id)}
+            onClick={() => onActivateContext(item.id)}
             className="flex w-full items-center justify-between rounded border border-transparent px-2 py-1.5 text-left text-xs text-muted transition hover:border-border hover:text-foreground"
           >
             <span>{item.label}</span>
-            <span aria-hidden="true" className="text-xs text-muted">x</span>
+            <span
+              aria-hidden="true"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemoveContext(item.id);
+              }}
+              className="text-xs text-muted"
+            >
+              x
+            </span>
           </button>
         ))}
       </div>
@@ -256,102 +409,156 @@ function EmptyConversation({ surfaceLabel }: { surfaceLabel: string }) {
   );
 }
 
-function NotificationConversation({ notification }: { notification: FleetGraphNotificationProbeItem }) {
+function NotificationConversation({
+  notification,
+  explanation,
+}: {
+  notification: FleetGraphNotificationProbeItem;
+  explanation: ExplanationState;
+}) {
   const ownerLabel = notification.owner || '-';
-  const sourceLabels = ['Latest blocker update', notification.context, ownerLabel].filter(
-    (label, index, labels) => label !== '-' && labels.indexOf(label) === index
-  );
+  const output = explanation.status === 'ready' ? explanation.output : null;
+  const sourceLabels = sourceLabelsForConversation(notification, output);
+  const recommendedAction = recommendedActionText(output);
+  const humanGateRequired = output ? output.humanGate.required === true : true;
+  const primaryText = output?.summary || notification.blockerText;
+  const isLoading = explanation.status === 'loading';
+  const isFallback = !output && explanation.status === 'error';
+
+  const nextStep = recommendedAction || 'Ask the connected owner to confirm the unblocker and the next handoff.';
+  const gateText = humanGateRequired
+    ? 'Human approval is required before Ship state changes or any message is sent.'
+    : 'No approval gate is required for this explanation.';
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
-        Why is this blocked?
-      </div>
+      <UserMessage>Why is this blocked?</UserMessage>
 
-      <div className="w-full text-foreground">
-        <p className="mb-1 text-[11px] leading-4 text-muted">Blocked - {notification.title}</p>
-        <p className="text-base leading-6">
-          {notification.blockerText}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-4 text-muted">
-          <span>{ownerLabel}</span>
-          <span aria-hidden="true">·</span>
-          <span>{notification.context}</span>
-          <span aria-hidden="true">·</span>
-          <span>{notification.age}</span>
-          <span aria-hidden="true" className="text-muted/60">/</span>
-          {sourceLabels.map((label, index) => (
+      <AssistantAnswer
+        eyebrow={`Blocked - ${notification.title}`}
+        body={isLoading ? 'Checking the graph explanation for this finding...' : primaryText}
+        metadata={[ownerLabel, notification.context, notification.age, ...(isFallback ? ['fallback'] : [])]}
+        sources={sourceLabels}
+      />
+
+      <NextStepCard text={nextStep} gateText={gateText} />
+
+      <PromptChips />
+    </div>
+  );
+}
+
+function UserMessage({ children }: { children: string }) {
+  return (
+    <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
+      {children}
+    </div>
+  );
+}
+
+function AssistantAnswer({
+  eyebrow,
+  body,
+  metadata,
+  sources,
+}: {
+  eyebrow: string;
+  body: string;
+  metadata: string[];
+  sources: string[];
+}) {
+  const metadataItems = metadata.filter((item) => item && item !== '-');
+
+  return (
+    <div className="w-full text-foreground">
+      <p className="mb-1 text-[11px] leading-4 text-muted">{eyebrow}</p>
+      <p className="text-base leading-6">{body}</p>
+      <InlineProvenance metadata={metadataItems} sources={sources} />
+    </div>
+  );
+}
+
+function InlineProvenance({ metadata, sources }: { metadata: string[]; sources: string[] }) {
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-4 text-muted">
+      {metadata.map((item, index) => (
+        <span key={`${item}-${index}`} className="inline-flex items-center gap-1.5">
+          {index > 0 && <span aria-hidden="true">·</span>}
+          <span>{item}</span>
+        </span>
+      ))}
+      {sources.length > 0 && (
+        <>
+          {metadata.length > 0 && <span aria-hidden="true" className="text-muted/60">/</span>}
+          {sources.map((label, index) => (
             <span key={label} className="inline-flex items-center gap-1">
               {index > 0 && <span aria-hidden="true">·</span>}
               <button type="button" className="hover:text-foreground">{label}</button>
             </span>
           ))}
-        </div>
-      </div>
-
-      <div className="w-full rounded-lg border border-border bg-background/60 p-3">
-        <p className="text-xs font-medium text-foreground">Possible next step</p>
-        <p className="mt-1 text-sm leading-5 text-muted">
-          Ask the connected owner to confirm the unblocker and the next handoff.
-        </p>
-        <button
-          type="button"
-          className="mt-3 rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
-        >
-          Draft message
-        </button>
-      </div>
-
-      <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
-        What changed since yesterday?
-      </div>
-
-      <div className="w-full text-foreground">
-        <p className="text-base leading-6">
-          The latest non-empty blocker update is now the active explanation for the notification.
-        </p>
-        <p className="mt-1 text-[13px] leading-[18px] text-muted">
-          The notification should stay visible while the issue remains blocked, then disappear when the source issue is unblocked.
-        </p>
-      </div>
-
-      <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
-        Who should I ask?
-      </div>
-
-      <div className="w-full text-foreground">
-        <p className="text-base leading-6">
-          Start with {ownerLabel}. If that is not enough, route through {notification.context}.
-        </p>
-        <p className="mt-1 text-[13px] leading-[18px] text-muted">
-          I would avoid broadcasting this to the whole workspace until the owner path is exhausted.
-        </p>
-      </div>
-
-      <div className="w-full rounded-lg border border-border bg-background/60 p-3">
-        <p className="text-xs font-medium text-foreground">Draft nudge</p>
-        <p className="mt-1 text-sm leading-5 text-muted">
-          Can you confirm who owns the unblocker for {notification.title}?
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
-          >
-            Use draft
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-border px-3 py-1.5 text-xs text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-          >
-            Edit first
-          </button>
-        </div>
-      </div>
-
-      <PromptChips />
+        </>
+      )}
     </div>
   );
+}
+
+function NextStepCard({ text, gateText }: { text: string; gateText: string }) {
+  return (
+    <div className="w-full rounded-lg border border-border bg-background/60 p-3">
+      <p className="text-xs font-medium text-foreground">Possible next step</p>
+      <p className="mt-1 text-sm leading-5 text-muted">{text}</p>
+      <p className="mt-1 text-[13px] leading-[18px] text-muted">{gateText}</p>
+      <button
+        type="button"
+        className="mt-3 rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
+      >
+        Draft message
+      </button>
+    </div>
+  );
+}
+
+export function FleetGraphExampleConversationPieces() {
+  return (
+    <>
+      <UserMessage>What changed since yesterday?</UserMessage>
+      <AssistantAnswer
+        eyebrow="Example"
+        body="The latest visible graph output is now the active explanation for the notification."
+        metadata={['Example owner', 'Example week', 'fallback']}
+        sources={['Latest blocker update', 'Source issue']}
+      />
+    </>
+  );
+}
+
+function sourceLabelsForConversation(
+  notification: FleetGraphNotificationProbeItem,
+  output: FleetGraphVisibleOutput | null
+): string[] {
+  const labels = output?.evidence
+    .filter((item) => item.visibility === 'actor_visible')
+    .map((item) => sourceLabelForEvidence(item))
+    .filter((label): label is string => Boolean(label))
+    ?? ['Latest blocker update', notification.context, notification.owner || '-'];
+
+  return labels.filter((label, index) => label !== '-' && labels.indexOf(label) === index);
+}
+
+function sourceLabelForEvidence(item: FleetGraphEvidenceItem): string | null {
+  if (item.kind === 'blocker') return 'Latest blocker update';
+  if (item.kind === 'source_issue') return 'Source issue';
+  if (item.kind === 'source_sprint') return 'Current week';
+  if (item.kind === 'finding') return 'Finding';
+  return item.claim || null;
+}
+
+function recommendedActionText(output: FleetGraphVisibleOutput | null): string | null {
+  if (!output?.recommendedAction) return null;
+  return output.recommendedAction.text
+    || output.recommendedAction.summary
+    || output.recommendedAction.label
+    || null;
 }
 
 function PromptChips() {

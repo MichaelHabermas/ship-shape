@@ -10,11 +10,14 @@ import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 import {
   FleetGraphFindingsListResponseSchema,
+  FleetGraphNotificationsListResponseSchema,
   type FleetGraphFindingResponse,
+  type FleetGraphNotificationResponse,
   FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
   FleetGraphRunResponseSchema,
   fleetGraphFindingResponse,
+  fleetGraphNotificationResponse,
   fleetGraphManualRunResultResponse,
   sendFleetGraphChangeSummaryResponse,
   sendFleetGraphRunResponse,
@@ -23,7 +26,7 @@ import { runFleetGraph } from '../fleetgraph/core.js';
 import { isUtcCalendarDate, parseUtcCalendarDate } from '../fleetgraph/date.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
-import { listFleetGraphFindingsForSource } from '../fleetgraph/persistence.js';
+import { listFleetGraphFindingsForSource, listFleetGraphNotificationFindings } from '../fleetgraph/persistence.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
 const router: ExpressRouter = Router();
@@ -33,6 +36,10 @@ const findingsQuerySchema = z.object({
   sourceSprintId: UuidSchema.optional(),
 }).refine((query) => query.sourceIssueId || query.sourceSprintId, {
   message: 'sourceIssueId or sourceSprintId is required',
+});
+
+const notificationsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(99).optional(),
 });
 
 const findingParamsSchema = z.object({
@@ -89,6 +96,39 @@ router.get('/findings', authMiddleware, defineRoute({
       res.json({ findings: visibleFindings });
     } catch (err) {
       sendInternalError(res, err, 'List FleetGraph findings error');
+    }
+  },
+}));
+
+router.get('/notifications', authMiddleware, defineRoute({
+  method: 'get',
+  path: '/fleetgraph/notifications',
+  tags: ['FleetGraph'],
+  summary: 'List active FleetGraph notifications derived from visible open findings',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { query: notificationsQuerySchema },
+  responses: {
+    200: { schema: FleetGraphNotificationsListResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const findings = await listFleetGraphNotificationFindings({
+        workspaceId,
+        limit: parsed.query.limit,
+      });
+      const notifications = (await Promise.all(findings.map(async (finding) => {
+        const { output } = await visibleOutputForFinding({ principal, workspaceId, finding });
+        if (output.noSafeOutput) return null;
+        return fleetGraphNotificationResponse({ finding, visibleOutput: output });
+      }))).filter((notification): notification is FleetGraphNotificationResponse => notification !== null);
+
+      res.json({ notifications });
+    } catch (err) {
+      sendInternalError(res, err, 'List FleetGraph notifications error');
     }
   },
 }));

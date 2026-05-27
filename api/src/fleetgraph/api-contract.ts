@@ -4,7 +4,7 @@ import { z } from '../openapi/registry.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import { traceMetadataForResponse } from './trace.js';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
-import type { FleetGraphFinding } from './persistence.js';
+import type { FleetGraphFinding, FleetGraphNotificationFinding } from './persistence.js';
 
 export const FleetGraphEvidenceSchema = z.object({
   kind: z.string(),
@@ -67,6 +67,26 @@ export const FleetGraphFindingsListResponseSchema = z.object({
   findings: z.array(FleetGraphFindingResponseSchema),
 }).openapi('FleetGraphFindingsListResponse');
 
+export const FleetGraphNotificationResponseSchema = z.object({
+  id: UuidSchema,
+  findingId: UuidSchema,
+  title: z.string(),
+  issueTitle: z.string(),
+  context: z.string(),
+  owner: z.string().nullable(),
+  blockerText: z.string(),
+  sourceIssueId: UuidSchema,
+  sourceSprintId: UuidSchema,
+  sourcePath: z.string(),
+  detectedAt: z.string(),
+  visibleOutput: FleetGraphVisibleOutputSchema,
+  traceMetadata: FleetGraphTraceSchema,
+}).openapi('FleetGraphNotificationResponse');
+
+export const FleetGraphNotificationsListResponseSchema = z.object({
+  notifications: z.array(FleetGraphNotificationResponseSchema),
+}).openapi('FleetGraphNotificationsListResponse');
+
 export const FleetGraphRunResponseSchema = z.object({
   decision: z.string(),
   finding: FleetGraphFindingResponseSchema.optional(),
@@ -99,6 +119,7 @@ export const FleetGraphManualRunResponseSchema = z.object({
 }).openapi('FleetGraphManualRunResponse');
 
 export type FleetGraphFindingResponse = z.infer<typeof FleetGraphFindingResponseSchema>;
+export type FleetGraphNotificationResponse = z.infer<typeof FleetGraphNotificationResponseSchema>;
 
 export const fleetGraphErrorSchemas = {
   badRequest: ApiErrorResponseSchema,
@@ -169,6 +190,34 @@ export function fleetGraphFindingResponse(input: {
       decision: 'create_finding',
     }),
   };
+}
+
+export function fleetGraphNotificationResponse(input: {
+  finding: FleetGraphNotificationFinding;
+  visibleOutput: FleetGraphVisibleOutput;
+}): FleetGraphNotificationResponse {
+  return {
+    id: input.finding.id,
+    findingId: input.finding.id,
+    title: input.finding.issue_title,
+    issueTitle: input.finding.issue_title,
+    context: input.finding.context_title || 'Current week',
+    owner: input.finding.owner_name,
+    blockerText: blockerTextForNotification(input.visibleOutput) || input.finding.summary,
+    sourceIssueId: input.finding.source_issue_id,
+    sourceSprintId: input.finding.source_sprint_id,
+    sourcePath: `/documents/${input.finding.source_issue_id}`,
+    detectedAt: input.finding.first_detected_at.toISOString(),
+    visibleOutput: serializeFleetGraphVisibleOutput(input.visibleOutput),
+    traceMetadata: traceMetadataForResponse(input.finding.trace_metadata, {
+      mode: 'proactive',
+      decision: 'create_finding',
+    }),
+  };
+}
+
+function blockerTextForNotification(output: FleetGraphVisibleOutput): string | undefined {
+  return output.evidence.find((item) => item.kind === 'blocker' && item.excerpt?.trim())?.excerpt;
 }
 
 export function fleetGraphResultIsNotFound(result: FleetGraphResult): boolean {

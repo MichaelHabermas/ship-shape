@@ -1,13 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { apiGetJson } from '@/lib/api';
 
 export interface FleetGraphNotificationProbeItem {
   id: string;
+  findingId?: string;
   title: string;
   age: string;
   owner: string | null;
   context: string;
   blockerText: string;
   sourcePath?: string;
+  detectedAt?: string;
+}
+
+interface FleetGraphNotificationsResponse {
+  notifications: Array<{
+    id: string;
+    findingId: string;
+    title: string;
+    context: string;
+    owner: string | null;
+    blockerText: string;
+    sourcePath: string;
+    detectedAt: string;
+  }>;
 }
 
 export const fleetGraphNotificationProbeItems: FleetGraphNotificationProbeItem[] = [
@@ -70,9 +87,38 @@ export function FleetGraphNotificationsProbe({
 }: {
   onDiscuss: (notification: FleetGraphNotificationProbeItem) => void;
 }) {
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const notificationCount = fleetGraphNotificationProbeItems.length;
+  const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>(fleetGraphNotificationProbeItems);
+  const notificationCount = notifications.length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadNotifications() {
+      try {
+        const data = await apiGetJson<FleetGraphNotificationsResponse>(
+          '/api/fleetgraph/notifications?limit=25',
+          'Failed to fetch notifications'
+        );
+        if (cancelled) return;
+        setNotifications(data.notifications.map((notification) => ({
+          ...notification,
+          age: formatNotificationAge(notification.detectedAt),
+        })));
+      } catch {
+        if (!cancelled) setNotifications(fleetGraphNotificationProbeItems);
+      }
+    }
+
+    void loadNotifications();
+    const interval = window.setInterval(() => void loadNotifications(), 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -93,12 +139,12 @@ export function FleetGraphNotificationsProbe({
           aria-label="Notifications"
           className="absolute bottom-0 left-[42px] w-[min(380px,calc(100vw-4rem))] overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
         >
-          <header className="flex items-center justify-between border-b border-border px-3 py-2.5">
+          <header className="flex items-center justify-between border-b border-border px-3 py-1.5">
             <div className="text-sm font-medium text-foreground">Notifications</div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
               aria-label="Close notifications"
             >
               <CloseIcon />
@@ -106,11 +152,14 @@ export function FleetGraphNotificationsProbe({
           </header>
 
           <div className="scrollbar-hide max-h-[440px] overflow-y-auto">
-            {fleetGraphNotificationProbeItems.map((notification) => (
+            {notifications.map((notification) => (
               <BlockedIssueNotification
                 key={notification.id}
                 notification={notification}
                 onDiscuss={() => onDiscuss(notification)}
+                onOpenSource={() => {
+                  if (notification.sourcePath) navigate(notification.sourcePath);
+                }}
               />
             ))}
           </div>
@@ -142,9 +191,11 @@ function NotificationBadge({ count }: { count: number }) {
 function BlockedIssueNotification({
   notification,
   onDiscuss,
+  onOpenSource,
 }: {
   notification: FleetGraphNotificationProbeItem;
   onDiscuss: () => void;
+  onOpenSource: () => void;
 }) {
   const ownerLabel = notification.owner || '-';
 
@@ -170,6 +221,7 @@ function BlockedIssueNotification({
         <button
           type="button"
           disabled={!notification.sourcePath}
+          onClick={onOpenSource}
           className="rounded border border-border px-2.5 py-1 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
         >
           Open source
@@ -184,6 +236,21 @@ function BlockedIssueNotification({
       </div>
     </article>
   );
+}
+
+function formatNotificationAge(value: string): string {
+  const detectedAt = new Date(value).getTime();
+  if (!Number.isFinite(detectedAt)) return '-';
+
+  const elapsedMs = Math.max(0, Date.now() - detectedAt);
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+
+  return `${Math.floor(hours / 24)}d`;
 }
 
 function BellIcon() {

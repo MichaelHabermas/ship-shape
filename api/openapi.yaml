@@ -6553,6 +6553,71 @@ components:
             $ref: "#/components/schemas/FleetGraphFindingResponse"
       required:
         - findings
+    FleetGraphNotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        findingId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+        issueTitle:
+          type: string
+        context:
+          type: string
+        owner:
+          type: string
+          nullable: true
+        blockerText:
+          type: string
+        sourceIssueId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        sourceSprintId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        sourcePath:
+          type: string
+        detectedAt:
+          type: string
+        visibleOutput:
+          $ref: "#/components/schemas/FleetGraphVisibleOutput"
+        traceMetadata:
+          $ref: "#/components/schemas/FleetGraphTrace"
+      required:
+        - id
+        - findingId
+        - title
+        - issueTitle
+        - context
+        - owner
+        - blockerText
+        - sourceIssueId
+        - sourceSprintId
+        - sourcePath
+        - detectedAt
+        - visibleOutput
+        - traceMetadata
+    FleetGraphNotificationsListResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/FleetGraphNotificationResponse"
+      required:
+        - notifications
     FleetGraphChangeSummaryRow:
       type: object
       properties:
@@ -12412,6 +12477,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FleetGraphFindingsListResponse"
+        400:
+          description: Response 400
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        500:
+          description: Response 500
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /fleetgraph/notifications:
+    get:
+      tags:
+        - FleetGraph
+      summary: List active FleetGraph notifications derived from visible open findings
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 99
+          required: false
+          name: limit
+          in: query
+      responses:
+        200:
+          description: Response 200
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetGraphNotificationsListResponse"
         400:
           description: Response 400
           content:

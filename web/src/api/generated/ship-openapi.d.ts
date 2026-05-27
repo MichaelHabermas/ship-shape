@@ -8938,6 +8938,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fleetgraph/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active FleetGraph notifications derived from visible open findings */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Response 200 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FleetGraphNotificationsListResponse"];
+                    };
+                };
+                /** @description Response 400 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Response 500 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fleetgraph/findings/{findingId}/changes": {
         parameters: {
             query?: never;
@@ -12917,6 +12973,44 @@ export interface components {
         };
         FleetGraphFindingsListResponse: {
             findings: components["schemas"]["FleetGraphFindingResponse"][];
+        };
+        FleetGraphNotificationResponse: {
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            findingId: string;
+            title: string;
+            issueTitle: string;
+            context: string;
+            owner: string | null;
+            blockerText: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sourceIssueId: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            sourceSprintId: string;
+            sourcePath: string;
+            detectedAt: string;
+            visibleOutput: components["schemas"]["FleetGraphVisibleOutput"];
+            traceMetadata: components["schemas"]["FleetGraphTrace"];
+        };
+        FleetGraphNotificationsListResponse: {
+            notifications: components["schemas"]["FleetGraphNotificationResponse"][];
         };
         FleetGraphChangeSummaryRow: {
             /** @enum {string} */
