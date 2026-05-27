@@ -1061,7 +1061,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Demo setup output and stable URLs.
 
-**Implementation Note (2026-05-26):** Added `pnpm fleetgraph:demo`, an idempotent local/demo setup command. It creates or updates `FleetGraph Demo Workspace`, active/inactive demo weeks, reviewer-safe people/program/project/dependency context, stable issue/week URLs, and prints detector summary output plus reviewer login (`fleetgraph.reviewer@ship.local`) and a per-run demo password. The command refuses non-local `DATABASE_URL` targets unless explicitly overridden. Rerunning the command preserved the same workspace/document IDs and detector counts.
+**Implementation Note (2026-05-26):** Added `pnpm fleetgraph:demo`, an idempotent local/demo setup command. It creates or updates `FleetGraph Demo Workspace`, active/inactive demo weeks, reviewer-safe people/program/project/dependency context, stable issue/week URLs, and prints detector summary output plus reviewer login (`fleetgraph.reviewer@ship.local`). The per-run demo password is redacted by default and requires explicit local opt-in with `FLEETGRAPH_DEMO_PRINT_PASSWORD=1`. The command refuses non-local `DATABASE_URL` targets unless explicitly overridden. Rerunning the command preserved the same workspace/document IDs and detector counts.
 
 ### Slice 8.2: Add Demo Universe
 

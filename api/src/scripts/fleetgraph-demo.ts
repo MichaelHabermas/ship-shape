@@ -14,6 +14,7 @@ import { requireFirstRow } from '../utils/query-rows.js';
 const WORKSPACE_NAME = 'FleetGraph Demo Workspace';
 const BASE_URL = process.env.FLEETGRAPH_DEMO_WEB_URL ?? 'http://localhost:5173';
 const DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PASSWORD ?? randomBytes(9).toString('base64url');
+const PRINT_DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PRINT_PASSWORD === '1';
 
 type IdRow = { id: string };
 type UserRow = { id: string; email: string; name: string };
@@ -430,7 +431,8 @@ async function seedDemo(): Promise<void> {
     workspaceId: workspace.id,
     currentSprintNumber,
     reviewerLogin: admin.email,
-    reviewerPassword: DEMO_PASSWORD,
+    reviewerPassword: PRINT_DEMO_PASSWORD ? DEMO_PASSWORD : '[redacted: set FLEETGRAPH_DEMO_PRINT_PASSWORD=1 for local login]',
+    reviewerPasswordPrinted: PRINT_DEMO_PASSWORD,
     decisionCount: decisions.length,
     decisions: decisions.map((decision) => ({
       decision: decision.decision,
@@ -450,8 +452,8 @@ async function seedDemo(): Promise<void> {
     },
     traceCapturePrompts: [
       'Run gated manual FleetGraph execute for proactive create/update proof.',
-      'Open a positive issue and use Why flagged for on-demand explain proof.',
-      'Refine the blocker draft on a positive finding for on-demand draft proof.',
+      'Use the FleetGraph explain API for legacy on-demand trace continuity proof.',
+      'Use the FleetGraph refine API for legacy draft trace continuity proof.',
       'Rerun detector after duplicate finding exists for update/quiet proof.',
     ],
     traceEvidence,
