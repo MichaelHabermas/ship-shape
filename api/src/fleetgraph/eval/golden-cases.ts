@@ -45,6 +45,11 @@ const detectorOnlyTraceBoundary = {
   forbiddenTraceData: sharedGraphTraceBoundary.forbiddenTraceData,
 } as const satisfies FleetGraphEvalTraceBoundary;
 
+const changeSummaryTraceBoundary = {
+  requiredNodes: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'compareAnchor', 'produceOutput'],
+  forbiddenTraceData: sharedGraphTraceBoundary.forbiddenTraceData,
+} as const satisfies FleetGraphEvalTraceBoundary;
+
 export const fleetGraphGoldenCases = [
   {
     id: 'fg-create-blocked-urgent-active-week',
@@ -424,6 +429,218 @@ export const fleetGraphGoldenCases = [
       'difficulty:happy_path'
     ],
     rubric: expectedRubricScore(),
+  },
+  {
+    id: 'fg-change-summary-now-blocked',
+    title: 'Change summary reports issue moved into blocked',
+    mode: 'on_demand',
+    inputState: {
+      fixture: 'prior-run-unblocked-current-run-blocked',
+      trigger: 'user asks what changed',
+      userContext: 'issue page with visible current finding and prior FleetGraph run anchor',
+      shipState: [
+        'prior FleetGraph run for source issue had no open blocker',
+        'current FleetGraph finding is blocked',
+        'source issue and sprint are visible to current user',
+      ],
+    },
+    expectedDecision: 'summarize_changes',
+    requiredEvidence: [
+      'previous FleetGraph run anchor',
+      'current visible finding state',
+      'now blocked row',
+      'not done safety row',
+    ],
+    forbiddenClaims: [
+      'message was sent',
+      'issue status was changed by FleetGraph',
+      'trace metadata as product copy',
+    ],
+    mutationBoundary: {
+      allowedFleetGraphWrites: runOnlyWrites,
+      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
+      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
+    },
+    modelBoundary: sqlOnlyBoundary,
+    traceBoundary: changeSummaryTraceBoundary,
+    labels: [
+      'mode:on_demand',
+      'branch:summarize_changes',
+      'action:no_ship_write',
+      'evidence:full',
+      'permission:recipient_visible',
+      'difficulty:happy_path'
+    ],
+    rubric: expectedRubricScore({ draftUsefulness: 0 }),
+  },
+  {
+    id: 'fg-change-summary-blocker-changed',
+    title: 'Change summary reports blocker text changed',
+    mode: 'on_demand',
+    inputState: {
+      fixture: 'prior-run-old-blocker-current-run-new-blocker',
+      trigger: 'user asks what changed',
+      userContext: 'issue page with visible current finding and prior FleetGraph run anchor',
+      shipState: [
+        'prior FleetGraph run blocker was waiting on security approval',
+        'current blocker is waiting on Casey approval',
+        'source issue and sprint are visible to current user',
+      ],
+    },
+    expectedDecision: 'summarize_changes',
+    requiredEvidence: [
+      'previous FleetGraph run anchor',
+      'current blocker text',
+      'now row',
+      'not done safety row',
+    ],
+    forbiddenClaims: [
+      'hidden evidence',
+      'message was sent',
+      'generic evidence refreshed language',
+    ],
+    mutationBoundary: {
+      allowedFleetGraphWrites: runOnlyWrites,
+      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
+      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
+    },
+    modelBoundary: sqlOnlyBoundary,
+    traceBoundary: changeSummaryTraceBoundary,
+    labels: [
+      'mode:on_demand',
+      'branch:summarize_changes',
+      'action:no_ship_write',
+      'evidence:full',
+      'permission:recipient_visible',
+      'difficulty:happy_path'
+    ],
+    rubric: expectedRubricScore({ draftUsefulness: 0 }),
+  },
+  {
+    id: 'fg-change-summary-no-meaningful-change',
+    title: 'Change summary stays quiet when nothing useful changed',
+    mode: 'on_demand',
+    inputState: {
+      fixture: 'prior-run-current-run-same-user-action-state',
+      trigger: 'user asks what changed',
+      userContext: 'issue page with visible current finding and prior FleetGraph run anchor',
+      shipState: [
+        'prior FleetGraph run has same blocker',
+        'current finding has same priority',
+        'current finding has same next action',
+      ],
+    },
+    expectedDecision: 'summarize_changes',
+    requiredEvidence: [
+      'previous FleetGraph run anchor',
+      'current visible finding state',
+      'no meaningful change headline',
+    ],
+    forbiddenClaims: [
+      'evidence refreshed',
+      'trace updated',
+      'FleetGraph re-ran',
+    ],
+    mutationBoundary: {
+      allowedFleetGraphWrites: runOnlyWrites,
+      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
+      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
+    },
+    modelBoundary: sqlOnlyBoundary,
+    traceBoundary: changeSummaryTraceBoundary,
+    labels: [
+      'mode:on_demand',
+      'branch:summarize_changes',
+      'action:no_ship_write',
+      'evidence:full',
+      'permission:recipient_visible',
+      'difficulty:edge'
+    ],
+    rubric: expectedRubricScore({ draftUsefulness: 0 }),
+  },
+  {
+    id: 'fg-change-summary-restricted-hidden',
+    title: 'Change summary does not leak restricted changed evidence',
+    mode: 'on_demand',
+    inputState: {
+      fixture: 'prior-run-visible-current-source-hidden',
+      trigger: 'user asks what changed',
+      userContext: 'current user can see page context but cannot read changed source issue',
+      shipState: [
+        'FleetGraph finding exists',
+        'current source issue is not visible to current user',
+        'prior run anchor exists',
+      ],
+    },
+    expectedDecision: 'quiet_exit',
+    requiredEvidence: [
+      'source issue visibility denial',
+      'no-safe-output marker',
+    ],
+    forbiddenClaims: [
+      'hidden document title',
+      'hidden issue id',
+      'hidden blocker excerpt',
+    ],
+    mutationBoundary: {
+      allowedFleetGraphWrites: runOnlyWrites,
+      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
+      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
+    },
+    modelBoundary: sqlOnlyBoundary,
+    traceBoundary: changeSummaryTraceBoundary,
+    labels: [
+      'mode:on_demand',
+      'branch:quiet',
+      'action:no_ship_write',
+      'evidence:restricted',
+      'permission:restricted',
+      'difficulty:failure'
+    ],
+    rubric: expectedRubricScore({ recipientFit: 0, draftUsefulness: 0 }),
+  },
+  {
+    id: 'fg-change-summary-priority-raised',
+    title: 'Change summary reports priority raised',
+    mode: 'on_demand',
+    inputState: {
+      fixture: 'prior-run-high-current-urgent',
+      trigger: 'user asks what changed',
+      userContext: 'issue page with visible current finding and prior FleetGraph run anchor',
+      shipState: [
+        'prior FleetGraph run priority was high',
+        'current FleetGraph finding priority is urgent',
+        'blocker text is unchanged',
+      ],
+    },
+    expectedDecision: 'summarize_changes',
+    requiredEvidence: [
+      'previous FleetGraph run anchor',
+      'current visible finding state',
+      'changed priority row',
+      'not done safety row',
+    ],
+    forbiddenClaims: [
+      'priority was changed by FleetGraph',
+      'message was sent',
+      'issue was updated',
+    ],
+    mutationBoundary: {
+      allowedFleetGraphWrites: runOnlyWrites,
+      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
+      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
+    },
+    modelBoundary: sqlOnlyBoundary,
+    traceBoundary: changeSummaryTraceBoundary,
+    labels: [
+      'mode:on_demand',
+      'branch:summarize_changes',
+      'action:no_ship_write',
+      'evidence:full',
+      'permission:recipient_visible',
+      'difficulty:happy_path'
+    ],
+    rubric: expectedRubricScore({ draftUsefulness: 0 }),
   },
   {
     id: 'fg-restricted-neighbor-evidence',

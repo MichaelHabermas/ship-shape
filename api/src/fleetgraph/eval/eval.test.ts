@@ -38,6 +38,10 @@ function expectNonEmptyUniqueStrings(values: readonly string[]) {
   }
 }
 
+function hasLabel(labels: readonly string[], label: string): boolean {
+  return labels.some((candidate) => candidate === label);
+}
+
 describe('FleetGraph eval pack', () => {
   it('defines complete golden cases with unique ids and clean semantic arrays', () => {
     const ids = new Set<string>();
@@ -69,7 +73,7 @@ describe('FleetGraph eval pack', () => {
       )).toHaveLength(1);
     }
 
-    expect(fleetGraphGoldenCases).toHaveLength(15);
+    expect(fleetGraphGoldenCases).toHaveLength(20);
   });
 
   it('keeps FleetGraph-only writes explicit and blocks Ship mutation or contact', () => {
@@ -85,7 +89,7 @@ describe('FleetGraph eval pack', () => {
         expect(testCase.mutationBoundary.forbiddenExternalActions).not.toContain(writeTarget);
       }
 
-      if (testCase.labels.includes('action:no_ship_write')) {
+      if (hasLabel(testCase.labels, 'action:no_ship_write')) {
         expect(testCase.mutationBoundary.allowedFleetGraphWrites).toEqual(['fleetgraph_runs']);
       }
     }
@@ -103,6 +107,7 @@ describe('FleetGraph eval pack', () => {
       quiet_exit: 'branch:quiet',
       explain: 'branch:explain',
       refine_draft: 'branch:refine',
+      summarize_changes: 'branch:summarize_changes',
       needs_confirmation: 'branch:needs_confirmation',
       dismiss: 'branch:dismiss',
       resolve: 'branch:resolve',
@@ -207,7 +212,7 @@ describe('FleetGraph eval pack', () => {
       if (
         testCase.expectedDecision === 'quiet_exit' &&
         testCase.mode === 'proactive' &&
-        !testCase.labels.includes('evidence:restricted')
+        !hasLabel(testCase.labels, 'evidence:restricted')
       ) {
         expect(testCase.modelBoundary).toEqual({
           expectedModelCalls: 0,
@@ -217,7 +222,7 @@ describe('FleetGraph eval pack', () => {
 
       if (testCase.modelBoundary.expectedModelCalls === 'bounded') {
         expect(testCase.traceBoundary.requiredNodes).toEqual(
-          expect.arrayContaining(fleetGraphSharedGraphRequiredNodes)
+          expect.arrayContaining([...fleetGraphSharedGraphRequiredNodes])
         );
       }
 

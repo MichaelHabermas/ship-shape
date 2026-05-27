@@ -1391,25 +1391,27 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 ## Epic 11: Contextual Agent Interface
 
-**Status:** Not started
+**Status:** Done
 
-**Goal:** Add the smallest embedded on-demand agent UI that satisfies the MVP chat requirement and sets the product direction beyond blocker-specific cards.
+**Goal:** Make the contextual FleetGraph surface useful by rendering a sparse unblock prompt first, and plan the first genuinely useful on-demand path separately.
 
-**Product Position:** The banner/card is a notification surface. It is not the agent interface. The agent interface should be a contextual project-intelligence panel that can explain, refine, and later host new detector types without becoming a standalone chatbot.
+**Product Position:** The banner/card is a notification cue. The contextual panel should make the right next action obvious without forcing the user to fish through chat-shaped controls. On-demand chat remains a power feature only when it answers something the decision packet cannot.
 
 **Surface Decision:** FleetGraph should render findings, not blockers. The first finding kind is `blocker`, but the component and API contracts should read as generic finding infrastructure. Any blocker-specific language belongs in the detector output and copy, not in the surface architecture.
 
+**Closeout Note (2026-05-27):** Epic 11 was reset after product review. FleetGraph now keeps the reusable contextual panel contract and top-level `finding.kind` response discriminator, but the product surface is a sparse unblock prompt instead of fake chat/rewrite controls or audit prose. The next useful on-demand feature is planned as "What changed since I last looked?" and is not implemented in this pass.
+
 ### Slice 11.1: Define The FleetGraph Context Panel Contract
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
 - Define one reusable contextual panel contract for issue, week, project, and future program contexts.
 - Inputs: context object type/id, visible state summary, current user role/permissions, visible findings, and allowed on-demand actions.
 - Finding shape must include `kind`, source, severity, title, summary, evidence, recommended action, human-gate state, and trace metadata.
-- Outputs: explanation, draft/refinement, evidence list, human-gate state, and trace link.
-- Keep MVP actions limited to explain/refine/dismiss or ask "why/what next"; no Ship mutations or external sending.
+- Outputs: sparse unblock prompt, recipient, concise ask, "no issue changed / no message sent" safety copy, uncertainty when useful, and one dev-only trace footer.
+- Keep MVP product actions limited to open issue and dismiss; no Ship mutations or external sending.
 
 **Done Means:**
 
@@ -1422,39 +1424,40 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Short contract section added to implementation notes or `FLEETGRAPH.md`.
 - Type/API review confirms the panel can support additional detector families later.
 
-### Slice 11.2: Add Embedded On-Demand Chat On Finding Contexts
+**Implementation Note (2026-05-27):** Added a reusable contextual panel contract in `FleetGraphContextPanel` for issue, sprint/week, project, and future program contexts, and documented the contract in root `FLEETGRAPH.md`. FleetGraph API responses now expose `finding.kind` with MVP value `blocker`, without adding a new persistence column or detector family. The web finding view stays generic enough for future detector kinds while preserving current source issue/sprint ids, visible evidence, human-gate, draft, and trace fields.
 
-**Status:** Not started
+### Slice 11.2: Replace Fake Chat With A Sparse Unblock Prompt
+
+**Status:** Done
 
 **Do:**
 
-- Add a compact embedded prompt surface to the FleetGraph card or contextual panel.
-- Support at least:
-  - "Why was this flagged?"
-  - "What should happen next?"
-  - "Rewrite the draft with this instruction..."
-- Wire the existing explain/refine API paths into visible UI.
-- Show the graph response in context with evidence and trace metadata.
+- Remove the compact prompt surface from the FleetGraph card.
+- Render only the useful unblock prompt: blocker, ask, why now, recipient, concise message, "not done" safety copy, and uncertainty when useful.
+- Hide evidence prose, internal gate enums, duplicate trace output, and external trace links from normal UI; keep only one dev-only trace footer.
+- Keep existing explain/refine backend routes for trace/eval continuity, but do not expose them as low-utility UI controls.
 
 **Done Means:**
 
-- A reviewer can invoke FleetGraph from the issue/week page without leaving the context.
-- The UI satisfies the spec's chat requirement without adding a standalone chatbot page.
+- A reviewer can understand the unblock move without reading audit prose or clicking chat buttons.
+- The UI satisfies the spec's utility requirement without adding a standalone chatbot page or fake interaction.
 
 **Evidence:**
 
-- Focused web tests for explain/refine prompt behavior.
-- Browser smoke screenshot or note showing the embedded interaction.
+- Focused web tests for decision-packet behavior.
+- Browser smoke screenshot or note showing fake chat/rewrite controls are gone.
+
+**Implementation Note (2026-05-27):** Removed the low-utility "Why was this flagged?", "What should happen next?", and freeform draft rewrite controls from the card. After review, cut the expanded finding further to a sparse unblock prompt: unblock, ask, why now, send to, message, not done, and unknown. The default product surface no longer shows evidence prose, human-gate enums/copy, prepared-comment bloat, or external trace links.
 
 ### Slice 11.3: Add A General FleetGraph Entry Point Without A Global Inbox
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
 - Add a modest contextual entry point that is not limited to "blocked issue banner" language.
 - Prefer a page-level FleetGraph panel/tab/rail slot that says what FleetGraph sees for the current object.
-- For MVP, it can show only blocked-work findings, empty state, and on-demand prompt affordance.
+- For MVP, it can show only blocked-work findings, empty state, and the decision packet affordance.
 - Label the current detector as a `blocker` finding inside the panel, not as a separate blocker-only feature.
 - Avoid a standalone broad workspace chat.
 
@@ -1467,6 +1470,30 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - UI smoke on issue and active-week contexts.
 - Empty-state behavior for contexts with no findings.
+
+**Implementation Note (2026-05-27):** Issue documents and week issue tabs render through the reusable contextual FleetGraph panel instead of directly mounting blocker cards. Issue contexts remain silent when there are no visible findings; week contexts show a small empty state so the active-week tab reads as a project-intelligence surface even before findings exist. No standalone FleetGraph inbox, broad workspace chat, external-send flow, Ship mutation workflow, or fake generic chat prompt was added.
+
+### Slice 11.4: Plan The First Useful On-Demand Path
+
+**Status:** Done
+
+**Do:**
+
+- Implement `What changed?` as the first contextual on-demand feature.
+- Require a real comparison anchor: the previous proactive FleetGraph run for the same finding.
+- Return only delta rows: now, changed, cleared, next, unknown, and not done. Omit empty rows.
+- Cover blocked transition, blocker changed, no meaningful change, restricted evidence, priority raised, and a distinct on-demand trace path.
+
+**Done Means:**
+
+- The on-demand feature cannot become generic chatbot slop: no anchor means no fake delta; no useful delta means quiet output.
+
+**Evidence:**
+
+- Focused core/API/web/eval tests cover the `summarize_changes` path.
+- Root `FLEETGRAPH.md`, `DECISION_LOG-w5.md`, and `MEMORY.md` record the boundary.
+
+**Implementation Note (2026-05-27):** Implemented `What changed?` as a delta-only on-demand action. It calls the shared FleetGraph graph with `summarize_changes`, compares current visible finding output against the previous proactive run anchor for the same finding, records only a FleetGraph run, and returns terse rows. No generic chat box, evidence prose, external trace link, Ship mutation, or external communication is added.
 
 ## Epic 12: Supplementary Reviewer Visibility
 

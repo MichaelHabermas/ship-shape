@@ -8899,6 +8899,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fleetgraph/findings/{findingId}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Summarize meaningful changes since the previous FleetGraph run */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    findingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Response 200 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FleetGraphChangeSummaryResponse"];
+                    };
+                };
+                /** @description Response 400 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Response 403 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Response 404 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Response 500 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fleetgraph/findings/{findingId}/explain": {
         parameters: {
             query?: never;
@@ -12779,6 +12853,8 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             id: string;
+            /** @enum {string} */
+            kind: "blocker";
             status: string;
             /**
              * Format: uuid
@@ -12797,6 +12873,16 @@ export interface components {
         };
         FleetGraphFindingsListResponse: {
             findings: components["schemas"]["FleetGraphFindingResponse"][];
+        };
+        FleetGraphChangeSummaryRow: {
+            /** @enum {string} */
+            label: "Now" | "Changed" | "Cleared" | "Next" | "Unknown" | "Not done";
+            text: string;
+        };
+        FleetGraphChangeSummaryResponse: {
+            headline: string;
+            rows: components["schemas"]["FleetGraphChangeSummaryRow"][];
+            traceMetadata: components["schemas"]["FleetGraphTrace"];
         };
         FleetGraphRunResponse: {
             decision: string;

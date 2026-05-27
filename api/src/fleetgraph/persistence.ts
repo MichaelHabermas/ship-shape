@@ -23,6 +23,7 @@ export type FleetGraphRunDecision =
   | 'update_finding'
   | 'explain'
   | 'refine_draft'
+  | 'summarize_changes'
   | 'needs_confirmation'
   | 'dismiss'
   | 'resolve'
@@ -430,6 +431,24 @@ export async function recordFleetGraphRun(
   );
 
   return requireFirstRow(result.rows);
+}
+
+export async function listFleetGraphAnchorRuns(
+  input: { workspaceId: string; findingId: string; limit?: number },
+  db: QueryRunner = pool
+): Promise<FleetGraphRun[]> {
+  const result = await db.query<FleetGraphRunRow>(
+    `SELECT *
+       FROM fleetgraph_runs
+      WHERE workspace_id = $1
+        AND finding_id = $2
+        AND decision IN ('create_finding', 'update_finding')
+      ORDER BY created_at DESC
+      LIMIT $3`,
+    [input.workspaceId, input.findingId, input.limit ?? 2]
+  );
+
+  return result.rows;
 }
 
 export async function startFleetGraphWorkerTick(

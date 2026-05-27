@@ -81,7 +81,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
   };
 }
 
-function run(decision: FleetGraphRun['decision']): FleetGraphRun {
+function run(decision: FleetGraphRun['decision'], outputSnapshot: FleetGraphRun['output_snapshot'] = {}): FleetGraphRun {
   return {
     id: '77777777-7777-4777-8777-777777777777',
     workspace_id: workspaceId,
@@ -94,7 +94,7 @@ function run(decision: FleetGraphRun['decision']): FleetGraphRun {
     dedupe_key: dedupeKey,
     input_snapshot: {},
     evidence_snapshot: [],
-    output_snapshot: {},
+    output_snapshot: outputSnapshot,
     trace_metadata: {},
     token_metadata: {},
     cost_metadata: {},
@@ -110,6 +110,7 @@ function persistence(existingFinding = finding()): FleetGraphPersistencePort {
     saveFinding: vi.fn(async () => existingFinding),
     recordRun: vi.fn(async (input: RecordFleetGraphRunInput) => run(input.decision)),
     getFinding: vi.fn(async () => existingFinding),
+    listAnchorRuns: vi.fn(async () => []),
     refineDraft: vi.fn(async (input: Parameters<FleetGraphPersistencePort['refineDraft']>[0]) =>
       finding({ draft_content: input.draftContent })
     ),
@@ -358,6 +359,55 @@ describe('FleetGraph shared core', () => {
       traceId: '99999999-9999-4999-8999-999999999999',
       traceUrl: 'https://smith.langchain.com/public/resolve-trace/r',
     });
+  });
+
+  it('summarizes only anchored meaningful changes', async () => {
+    const currentFinding = finding({
+      summary: 'Blocked issue is urgent/high active-week work with a recorded blocker: Waiting on API credentials.',
+      severity: 'urgent',
+      recommended_action: { label: 'Confirm the unblock path' },
+    });
+    const port = persistence(currentFinding);
+    vi.mocked(port.listAnchorRuns).mockResolvedValue([
+      run('update_finding', {
+        title: currentFinding.title,
+        summary: currentFinding.summary,
+        severity: 'urgent',
+        recommendedAction: { label: 'Confirm the unblock path' },
+        evidence: [],
+        humanGate: { required: true },
+      }),
+      run('create_finding', {
+        title: currentFinding.title,
+        summary: 'Blocked issue is high active-week work with a recorded blocker: Waiting on security approval.',
+        severity: 'high',
+        recommendedAction: { label: 'Confirm the unblock path' },
+        evidence: [],
+        humanGate: { required: true },
+      }),
+    ]);
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: { type: 'summarize_changes', findingId },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('summarize_changes');
+    expect(result.changeSummary).toEqual({
+      headline: 'Waiting on API credentials',
+      rows: [
+        { label: 'Now', text: 'Waiting on API credentials' },
+        { label: 'Changed', text: 'Priority High -> Urgent.' },
+        { label: 'Not done', text: 'No issue changed. No message sent.' },
+      ],
+    });
+    expect(result.traceMetadata.nodePath).toContain('compareAnchor');
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'summarize_changes',
+      outputSnapshot: result.changeSummary,
+    }));
   });
 
   it('refines only FleetGraph-owned draft state', async () => {

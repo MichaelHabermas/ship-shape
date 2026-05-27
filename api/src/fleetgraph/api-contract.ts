@@ -55,6 +55,7 @@ export const FleetGraphTraceSchema = z.object({
 
 export const FleetGraphFindingResponseSchema = z.object({
   id: UuidSchema,
+  kind: z.literal('blocker'),
   status: z.string(),
   sourceIssueId: UuidSchema,
   sourceSprintId: UuidSchema,
@@ -72,6 +73,17 @@ export const FleetGraphRunResponseSchema = z.object({
   visibleOutput: FleetGraphVisibleOutputSchema.optional(),
   traceMetadata: FleetGraphTraceSchema,
 }).openapi('FleetGraphRunResponse');
+
+export const FleetGraphChangeSummaryRowSchema = z.object({
+  label: z.enum(['Now', 'Changed', 'Cleared', 'Next', 'Unknown', 'Not done']),
+  text: z.string(),
+}).openapi('FleetGraphChangeSummaryRow');
+
+export const FleetGraphChangeSummaryResponseSchema = z.object({
+  headline: z.string(),
+  rows: z.array(FleetGraphChangeSummaryRowSchema),
+  traceMetadata: FleetGraphTraceSchema,
+}).openapi('FleetGraphChangeSummaryResponse');
 
 export const FleetGraphManualRunResultSchema = z.object({
   decision: z.string(),
@@ -147,6 +159,7 @@ export function fleetGraphFindingResponse(input: {
 }): z.infer<typeof FleetGraphFindingResponseSchema> {
   return {
     id: input.id,
+    kind: 'blocker',
     status: input.status,
     sourceIssueId: input.source_issue_id,
     sourceSprintId: input.source_sprint_id,
@@ -193,6 +206,29 @@ export function sendFleetGraphRunResponse(res: Response, result: FleetGraphResul
   }
 
   res.json(fleetGraphRunResponse(result));
+}
+
+export function sendFleetGraphChangeSummaryResponse(res: Response, result: FleetGraphResult): void {
+  if (fleetGraphResultIsNotFound(result) || result.visibleOutput?.noSafeOutput) {
+    res.status(404).json({ error: 'FleetGraph finding not found' });
+    return;
+  }
+  if (result.decision === 'error') {
+    res.status(500).json({ error: 'FleetGraph run failed' });
+    return;
+  }
+  if (!result.changeSummary) {
+    res.status(500).json({ error: 'FleetGraph change summary missing' });
+    return;
+  }
+
+  res.json({
+    ...result.changeSummary,
+    traceMetadata: traceMetadataForResponse(result.traceMetadata, {
+      mode: 'on_demand',
+      decision: 'summarize_changes',
+    }),
+  });
 }
 
 export function fleetGraphManualRunResultResponse(

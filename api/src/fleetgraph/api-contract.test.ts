@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   fleetGraphManualRunResultResponse,
   fleetGraphRunResponse,
+  sendFleetGraphChangeSummaryResponse,
   fleetGraphFindingIsSafeToSerialize,
   serializeFleetGraphVisibleOutput,
 } from './api-contract.js';
@@ -80,11 +81,27 @@ function result(output = visibleOutput()): FleetGraphResult {
   };
 }
 
+function changeResult(): FleetGraphResult {
+  return {
+    ...result(),
+    decision: 'summarize_changes',
+    changeSummary: {
+      headline: 'Priority raised',
+      rows: [
+        { label: 'Changed', text: 'Priority High -> Urgent.' },
+        { label: 'Not done', text: 'No issue changed. No message sent.' },
+      ],
+    },
+    traceMetadata: { mode: 'on_demand', decision: 'summarize_changes', nodePath: ['compareAnchor'] },
+  };
+}
+
 describe('FleetGraph API contract', () => {
   it('serializes safe finding output without exposing dedupe keys', () => {
     const response = fleetGraphRunResponse(result());
 
     expect(response.finding?.id).toBe(findingId);
+    expect(response.finding?.kind).toBe('blocker');
     expect(response.finding?.visibleOutput.recommendedAction?.label).toBe('Confirm the unblock path');
     expect(response.finding?.visibleOutput.recipientRationale).toContain('issue assignee');
     expect(JSON.stringify(response)).not.toContain('blocked-important-issue');
@@ -108,4 +125,38 @@ describe('FleetGraph API contract', () => {
 
     expect(output.evidence[0]?.visibleFields).toEqual(['title']);
   });
+
+  it('serializes change summaries without finding internals', () => {
+    const json = viResponseJson();
+    sendFleetGraphChangeSummaryResponse(json.res as never, changeResult());
+
+    expect(json.statusCode).toBe(200);
+    expect(json.body).toMatchObject({
+      headline: 'Priority raised',
+      rows: [
+        { label: 'Changed', text: 'Priority High -> Urgent.' },
+        { label: 'Not done', text: 'No issue changed. No message sent.' },
+      ],
+      traceMetadata: { decision: 'summarize_changes' },
+    });
+    expect(JSON.stringify(json.body)).not.toContain('blocked-important-issue');
+  });
 });
+
+function viResponseJson() {
+  const result = {
+    statusCode: 200,
+    body: undefined as unknown,
+    res: {
+      status(code: number) {
+        result.statusCode = code;
+        return this;
+      },
+      json(body: unknown) {
+        result.body = body;
+        return this;
+      },
+    },
+  };
+  return result;
+}

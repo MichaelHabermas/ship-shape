@@ -214,6 +214,41 @@ describe('FleetGraph routes', () => {
     expect(body.decision).toBe('explain');
   });
 
+  it('runs anchored change summary through runFleetGraph', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'summarize_changes',
+      finding: finding(),
+      visibleOutput: visibleOutput(),
+      changeSummary: {
+        headline: 'Priority raised',
+        rows: [
+          { label: 'Changed', text: 'Priority High -> Urgent.' },
+          { label: 'Not done', text: 'No issue changed. No message sent.' },
+        ],
+      },
+      traceMetadata: { mode: 'on_demand', decision: 'summarize_changes', nodePath: ['compareAnchor'] },
+    } as never);
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/changes`)
+      .expect(200);
+
+    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: { type: 'summarize_changes', findingId },
+    }));
+    const body = JSON.parse(res.text) as { headline: string; rows: Array<{ label: string; text: string }> };
+    expect(body).toMatchObject({
+      headline: 'Priority raised',
+      rows: [
+        { label: 'Changed', text: 'Priority High -> Urgent.' },
+        { label: 'Not done', text: 'No issue changed. No message sent.' },
+      ],
+    });
+    expect(res.text).not.toContain('blocked-important-issue');
+  });
+
   it('returns not found without identifiers for restricted explain output', async () => {
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'quiet_exit',
