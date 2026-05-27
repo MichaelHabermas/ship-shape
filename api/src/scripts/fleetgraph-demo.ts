@@ -1,6 +1,6 @@
 // Idempotent FleetGraph demo setup seeds reviewer-safe blocked-work scenarios.
+// Stable reviewer login: fleetgraph.reviewer@ship.local / admin123.
 import { pathToFileURL } from 'url';
-import { randomBytes } from 'crypto';
 import { computeCurrentSprintNumber } from '@ship/shared';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
@@ -11,10 +11,10 @@ import { saveBlockedImportantIssueFinding } from '../fleetgraph/persistence.js';
 import type { Principal } from '../security/principal.js';
 import { requireFirstRow } from '../utils/query-rows.js';
 
-const WORKSPACE_NAME = 'FleetGraph Demo Workspace';
+const FALLBACK_WORKSPACE_NAME = 'FleetGraph Demo Workspace';
+const SEEDED_APP_WORKSPACE_NAME = 'Ship Workspace';
 const BASE_URL = process.env.FLEETGRAPH_DEMO_WEB_URL ?? 'http://localhost:5173';
-const DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PASSWORD ?? randomBytes(9).toString('base64url');
-const PRINT_DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PRINT_PASSWORD === '1';
+const DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PASSWORD ?? 'admin123';
 
 type IdRow = { id: string };
 type UserRow = { id: string; email: string; name: string };
@@ -42,13 +42,36 @@ function assertLocalDemoDatabase(): void {
   const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
   if (localHosts.has(parsed.hostname)) return;
 
-  throw new Error('Refusing to run fleetgraph:demo against a non-local DATABASE_URL. Set FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB=1 only for an intentional demo database.');
+  throw new Error('Refusing to seed the FleetGraph demo world against a non-local DATABASE_URL. Set FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB=1 only for an intentional demo database.');
 }
 
 async function upsertWorkspace(): Promise<WorkspaceRow> {
+  const seededAppWorkspace = await pool.query<WorkspaceRow>(
+    `SELECT w.id, w.sprint_start_date
+       FROM workspaces w
+      WHERE w.name = $1
+        AND w.archived_at IS NULL
+      ORDER BY (
+        SELECT COUNT(*)
+          FROM documents d
+         WHERE d.workspace_id = w.id
+           AND d.deleted_at IS NULL
+           AND d.archived_at IS NULL
+      ) DESC
+      LIMIT 1`,
+    [SEEDED_APP_WORKSPACE_NAME]
+  );
+  if (seededAppWorkspace.rows[0]) {
+    await pool.query(
+      'UPDATE workspaces SET sprint_start_date = $2 WHERE id = $1',
+      [seededAppWorkspace.rows[0].id, mondayWeeksAgo(6)]
+    );
+    return { ...seededAppWorkspace.rows[0], sprint_start_date: mondayWeeksAgo(6) };
+  }
+
   const existing = await pool.query<WorkspaceRow>(
     'SELECT id, sprint_start_date FROM workspaces WHERE name = $1 ORDER BY created_at ASC LIMIT 1',
-    [WORKSPACE_NAME]
+    [FALLBACK_WORKSPACE_NAME]
   );
   if (existing.rows[0]) {
     await pool.query(
@@ -62,7 +85,7 @@ async function upsertWorkspace(): Promise<WorkspaceRow> {
     `INSERT INTO workspaces (name, sprint_start_date)
      VALUES ($1, $2)
      RETURNING id, sprint_start_date`,
-    [WORKSPACE_NAME, mondayWeeksAgo(6)]
+    [FALLBACK_WORKSPACE_NAME, mondayWeeksAgo(6)]
   );
   return requireFirstRow(created.rows);
 }
@@ -431,8 +454,7 @@ async function seedDemo(): Promise<void> {
     workspaceId: workspace.id,
     currentSprintNumber,
     reviewerLogin: admin.email,
-    reviewerPassword: PRINT_DEMO_PASSWORD ? DEMO_PASSWORD : '[redacted: set FLEETGRAPH_DEMO_PRINT_PASSWORD=1 for local login]',
-    reviewerPasswordPrinted: PRINT_DEMO_PASSWORD,
+    reviewerPassword: DEMO_PASSWORD,
     decisionCount: decisions.length,
     decisions: decisions.map((decision) => ({
       decision: decision.decision,

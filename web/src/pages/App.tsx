@@ -22,7 +22,6 @@ import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { useAppMode } from '@/hooks/useAppMode';
 import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
-import { FleetGraphActiveWeekCue } from '@/components/fleetgraph/FleetGraphActiveWeekCue';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -163,7 +162,6 @@ export function AppLayout() {
             isCelebrating={isCelebrating}
             urgency={actionItemsData?.has_overdue ? 'overdue' : 'due_today'}
           />
-          <FleetGraphActiveWeekCue />
 
           <div className="flex flex-1 overflow-hidden">
             <AppHeader

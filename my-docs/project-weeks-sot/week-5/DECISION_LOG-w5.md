@@ -288,7 +288,7 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-26
 
-**Decision:** Epic 8 reviewer readiness uses `pnpm fleetgraph:demo` as the repeatable local/demo setup path. The command upserts a named demo workspace and reviewer-safe rows, refuses non-local databases by default, prints stable reviewer URLs plus detector summaries, and can run `--capture-traces` to execute seeded graph paths and print local trace metadata. The per-run reviewer password is redacted by default and requires explicit local opt-in with `FLEETGRAPH_DEMO_PRINT_PASSWORD=1`.
+**Decision:** Epic 8 reviewer readiness uses `pnpm demo:seed` / `pnpm fleetgraph:demo` as the repeatable local/demo setup path. The command attaches the canonical reviewer to the loaded app workspace when it exists, falls back to a named demo workspace when it does not, refuses non-local databases by default, prints stable reviewer URLs plus detector summaries, and can run `--capture-traces` to execute seeded graph paths and print local trace metadata. The canonical reviewer login is stable across seeded databases: `fleetgraph.reviewer@ship.local` / `admin123`.
 
 **Consequence:** Demo validation no longer depends on manual SQL or private workspace data. External trace URLs are recorded only when a real tracing backend provides them; local runs document safe persisted trace metadata instead of fabricated links.
 
