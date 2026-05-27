@@ -157,6 +157,11 @@ export const documentTabConfigs: Record<string, DocumentTabConfig[]> = {
       label: 'Plan',
       component: WeekPlanningTab,
     },
+    {
+      id: 'issues',
+      label: (_, counts) => counts?.fleetGraphFindings ? `Issues (${counts.fleetGraphFindings})` : 'Issues',
+      component: WeekIssuesTab,
+    },
   ],
   // Active/completed sprint tabs (status = 'active' or 'completed')
   'sprint:active': [
@@ -214,7 +219,7 @@ export function getTabsForDocument(document: DocumentResponse): DocumentTabConfi
     const properties = document.properties as { status?: string } | undefined;
     const status = properties?.status || 'planning';
 
-    if (status === 'planning' && !document.fleetGraphFindingCount) {
+    if (status === 'planning') {
       return documentTabConfigs['sprint:planning'] || documentTabConfigs.sprint || [];
     } else {
       // active, completed, or any other status uses active tabs
