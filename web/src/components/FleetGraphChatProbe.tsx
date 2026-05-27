@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 
 function getSurfaceLabel(pathname: string): string {
@@ -18,44 +18,70 @@ export function FleetGraphChatProbe() {
   const [draft, setDraft] = useState('');
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
 
+  const handleDraftChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setDraft(event.target.value);
+    event.target.style.height = '0px';
+    event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`;
+    event.target.style.overflowY = event.target.scrollHeight > 120 ? 'auto' : 'hidden';
+  };
+
   return (
     <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
       {open && (
         <section
-          aria-label="FleetGraph chat"
+          aria-label="Context chat"
           className="flex h-[min(620px,calc(100vh-7rem))] w-[min(420px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
         >
           <header className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="min-w-0">
-              <div className="text-sm font-medium text-foreground">FleetGraph</div>
-              <div className="truncate text-xs text-muted">{surfaceLabel}</div>
+              <div className="flex min-w-0 items-center gap-2 text-xs text-muted">
+                <span className="truncate">{surfaceLabel}</span>
+                <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/60" />
+                <span className="truncate">Untitled</span>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="ml-3 flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Close FleetGraph"
+              aria-label="Close chat"
             >
               <CloseIcon />
             </button>
           </header>
 
           <div className="flex flex-1 items-center justify-center px-8 text-center">
-            <p className="max-w-[260px] text-sm leading-6 text-muted">
-              No conversation yet.
-            </p>
+            <div className="flex max-w-[280px] flex-col items-center gap-4">
+              <p className="text-sm leading-6 text-muted">
+                Ask about this document.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-border px-3 py-1.5 text-xs text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
+                >
+                  What changed?
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-border px-3 py-1.5 text-xs text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
+                >
+                  What needs attention?
+                </button>
+              </div>
+            </div>
           </div>
 
           <form className="border-t border-border p-3" onSubmit={(event) => event.preventDefault()}>
-            <label className="sr-only" htmlFor="fleetgraph-chat-draft">Message FleetGraph</label>
-            <div className="flex items-end gap-2 rounded-lg border border-border bg-background p-2 focus-within:border-accent">
+            <label className="sr-only" htmlFor="context-chat-draft">Message</label>
+            <div className="flex items-end gap-3 rounded-lg border border-border bg-background px-3 py-3 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
               <textarea
-                id="fleetgraph-chat-draft"
+                id="context-chat-draft"
                 value={draft}
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={handleDraftChange}
                 rows={1}
                 placeholder="Ask about this..."
-                className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 text-sm text-foreground outline-none placeholder:text-muted"
+                className="scrollbar-hide max-h-[120px] min-h-6 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 text-sm leading-5 text-foreground outline-none ring-0 placeholder:text-muted focus:outline-none focus:ring-0"
               />
               <button
                 type="submit"
@@ -74,7 +100,7 @@ export function FleetGraphChatProbe() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex h-14 w-14 items-center justify-center rounded-full border border-[#1f6fae] bg-accent text-white shadow-lg shadow-black/35 transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-        aria-label={open ? 'Hide FleetGraph' : 'Open FleetGraph'}
+        aria-label={open ? 'Hide chat' : 'Open chat'}
         aria-expanded={open}
       >
         <ChatIcon />
