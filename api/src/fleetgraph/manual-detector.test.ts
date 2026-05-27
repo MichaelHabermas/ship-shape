@@ -2,12 +2,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   detectBlockedImportantIssueDecisions,
+  findStaleBlockedImportantIssueFindings,
   findBlockedImportantIssueQuietExits,
 } from './detector.js';
 import { runManualFleetGraphDetector } from './manual-detector.js';
 
 vi.mock('./detector.js', () => ({
   detectBlockedImportantIssueDecisions: vi.fn(),
+  findStaleBlockedImportantIssueFindings: vi.fn(),
   findBlockedImportantIssueQuietExits: vi.fn(),
 }));
 
@@ -45,6 +47,7 @@ describe('manual FleetGraph detector runner', () => {
       { reason: 'no_blocker', count: 2 },
       { reason: 'insufficient_visible_evidence', count: 0 },
     ]);
+    vi.mocked(findStaleBlockedImportantIssueFindings).mockResolvedValue([]);
   });
 
   it('returns a read-only manual detector summary', async () => {
@@ -84,6 +87,7 @@ describe('manual FleetGraph detector runner', () => {
         { reason: 'no_blocker', count: 2 },
         { reason: 'insufficient_visible_evidence', count: 0 },
       ],
+      staleFindings: [],
       modelCalls: 0,
       mutatesShip: false,
       mutatesFleetGraph: false,

@@ -2,7 +2,7 @@
 import { utcToday } from '@ship/shared';
 import { pool } from '../db/client.js';
 import type { Principal } from '../security/principal.js';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit } from './detector.js';
+import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from './detector.js';
 import { runFleetGraph, type FleetGraphCoreOptions } from './core.js';
 import type { FleetGraphResult } from './types.js';
 
@@ -24,6 +24,7 @@ export type FleetGraphDryRunTickSummary = {
     existingFindingId: string | null;
   }>;
   quietExits: FleetGraphDetectorQuietExit[];
+  staleFindings: FleetGraphStaleFinding[];
   modelCalls: 0;
   mutatesShip: false;
   mutatesFleetGraph: false;
@@ -120,17 +121,29 @@ export async function runFleetGraphTick(input: FleetGraphTickInput): Promise<Fle
       today,
       db,
     });
+    const staleFindings = await findStaleBlockedImportantIssueFindings({
+      workspaceId: input.workspaceId,
+      today,
+      db,
+    });
     return {
       workspaceId: input.workspaceId,
       today: today.toISOString(),
       decisionCount: decisions.length,
       dedupeDecisions: decisions.map(mapDedupeDecision),
       quietExits,
+      staleFindings,
       modelCalls: 0,
       mutatesShip: false,
       mutatesFleetGraph: false,
     };
   }
+
+  const staleFindings = await findStaleBlockedImportantIssueFindings({
+    workspaceId: input.workspaceId,
+    today,
+    db,
+  });
 
   if (decisions.length === 0) {
     const quietExits = await findBlockedImportantIssueQuietExits({
@@ -138,16 +151,24 @@ export async function runFleetGraphTick(input: FleetGraphTickInput): Promise<Fle
       today,
       db,
     });
+    const results: FleetGraphResult[] = [];
+    for (const staleFinding of staleFindings) {
+      results.push(await runGraphExecute(input, db, { type: 'resolve_finding', findingId: staleFinding.findingId }));
+    }
     const quietResult = await runGraphExecute(input, db, { type: 'quiet_exit', quietExits });
+    results.push(quietResult);
 
     return {
       mode: 'proactive',
       detectorDecisions: 0,
-      results: [quietResult],
+      results,
     };
   }
 
   const results: FleetGraphResult[] = [];
+  for (const staleFinding of staleFindings) {
+    results.push(await runGraphExecute(input, db, { type: 'resolve_finding', findingId: staleFinding.findingId }));
+  }
   for (const detectorDecision of decisions) {
     results.push(await runGraphExecute(input, db, { type: 'detector_decision', detectorDecision }));
   }

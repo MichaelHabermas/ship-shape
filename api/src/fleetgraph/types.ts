@@ -31,6 +31,7 @@ export type FleetGraphVisibleOutput = {
   severity?: FleetGraphSeverity;
   confidence?: number;
   recommendedAction?: JsonRecord;
+  proposedRecipient?: JsonRecord;
   recipientRationale?: string;
   uncertaintyNotes?: string[];
   evidence: FleetGraphEvidenceItem[];

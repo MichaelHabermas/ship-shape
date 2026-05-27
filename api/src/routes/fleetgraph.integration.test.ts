@@ -244,13 +244,32 @@ describe('FleetGraph route security', () => {
   });
 
   it('allows workspace admins to dismiss without mutating Ship source documents', async () => {
+    const dismissFinding = await saveBlockedImportantIssueFinding({
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      severity: 'urgent',
+      confidence: 0.86,
+      title: 'Private source finding for dismiss',
+      summary: 'This finding is only for the dismiss mutation assertion.',
+      evidenceSnapshot: [{
+        kind: 'source_issue',
+        sourceDocumentId: issueId,
+        sourceType: 'issue',
+        claim: 'Hidden private issue is blocked.',
+        excerpt: 'secret blocker',
+        visibility: 'internal',
+        visibleFields: ['title'],
+      }],
+      humanGate: { required: true },
+    });
     const before = await pool.query<{ title: string; properties: Record<string, unknown> }>(
       'SELECT title, properties FROM documents WHERE id = $1',
       [issueId]
     );
 
     const res = await request(app)
-      .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
+      .post(`/api/fleetgraph/findings/${dismissFinding.id}/dismiss`)
       .set('Cookie', adminCookie)
       .set('x-csrf-token', adminCsrf)
       .expect(200);
@@ -259,7 +278,7 @@ describe('FleetGraph route security', () => {
     expect(body.decision).toBe('dismiss');
     const status = await pool.query<{ status: string; dismissed_by: string }>(
       'SELECT status, dismissed_by FROM fleetgraph_findings WHERE id = $1',
-      [findingId]
+      [dismissFinding.id]
     );
     expect(requireFirstRow(status.rows)).toMatchObject({
       status: 'dismissed',

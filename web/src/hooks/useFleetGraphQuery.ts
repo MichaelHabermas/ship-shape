@@ -24,6 +24,11 @@ export type FleetGraphFindingView = {
   };
   draftText: string | null;
   recommendedAction: string | null;
+  proposedRecipient: {
+    role: string | null;
+    userId: string | null;
+    rationale: string | null;
+  };
   recipientRationale: string | null;
   uncertainty: string | null;
   severity: string | null;
@@ -84,6 +89,11 @@ export function fleetGraphFindingView(finding: FleetGraphFindingResponse): Fleet
     },
     draftText: stringFromRecord(draftContent, ['text', 'message', 'draft', 'body']),
     recommendedAction: stringFromRecord(output.recommendedAction, ['label', 'text', 'summary']),
+    proposedRecipient: {
+      role: output.proposedRecipient?.role ?? null,
+      userId: output.proposedRecipient?.userId ?? null,
+      rationale: output.proposedRecipient?.rationale ?? null,
+    },
     recipientRationale: output.recipientRationale ?? null,
     uncertainty: stringFromArray(output.uncertaintyNotes),
     severity: output.severity ?? null,
@@ -131,23 +141,6 @@ export function useFleetGraphExplain() {
         params: { path: { findingId } },
       });
       return fleetGraphRunView(assertApiData(result, 'Failed to explain FleetGraph finding'));
-    },
-  });
-}
-
-export function useFleetGraphRefine() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ findingId, instruction }: { findingId: string; instruction: string }) => {
-      const result = await apiClient.POST('/fleetgraph/findings/{findingId}/refine', {
-        params: { path: { findingId } },
-        body: { instruction },
-      });
-      return fleetGraphRunView(assertApiData(result, 'Failed to refine FleetGraph draft'));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: fleetGraphKeys.findings() });
     },
   });
 }

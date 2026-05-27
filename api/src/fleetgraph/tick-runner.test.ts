@@ -1,6 +1,6 @@
 // Verifies the shared FleetGraph tick runner keeps dry-run and execute modes explicit.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits } from './detector.js';
+import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings } from './detector.js';
 import { runFleetGraph } from './core.js';
 import { runFleetGraphTick } from './tick-runner.js';
 import type { Principal } from '../security/principal.js';
@@ -21,6 +21,7 @@ const principal: Principal = {
 vi.mock('./detector.js', () => ({
   detectBlockedImportantIssueDecisions: vi.fn(),
   findBlockedImportantIssueQuietExits: vi.fn(),
+  findStaleBlockedImportantIssueFindings: vi.fn(),
 }));
 
 vi.mock('./core.js', () => ({
@@ -53,7 +54,9 @@ describe('FleetGraph tick runner', () => {
   beforeEach(() => {
     vi.mocked(detectBlockedImportantIssueDecisions).mockReset();
     vi.mocked(findBlockedImportantIssueQuietExits).mockReset();
+    vi.mocked(findStaleBlockedImportantIssueFindings).mockReset();
     vi.mocked(runFleetGraph).mockReset();
+    vi.mocked(findStaleBlockedImportantIssueFindings).mockResolvedValue([]);
   });
 
   it('summarizes dry-run detector output without graph execution', async () => {
@@ -67,9 +70,43 @@ describe('FleetGraph tick runner', () => {
     });
 
     expect(summary.decisionCount).toBe(1);
+    expect(summary.staleFindings).toEqual([]);
     expect(summary.mutatesShip).toBe(false);
     expect(summary.mutatesFleetGraph).toBe(false);
     expect(runFleetGraph).not.toHaveBeenCalled();
+  });
+
+  it('resolves stale open findings before processing detector decisions', async () => {
+    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([detectorDecision]);
+    vi.mocked(findStaleBlockedImportantIssueFindings).mockResolvedValue([{
+      findingId: '88888888-8888-4888-8888-888888888888',
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      dedupeKey: detectorDecision.candidate.dedupeKey,
+      reason: 'condition_gone',
+    }]);
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'resolve',
+      finding: null,
+      traceMetadata: { mode: 'proactive', decision: 'resolve', nodePath: ['produceOutput'] },
+    } as never);
+
+    await runFleetGraphTick({
+      mode: 'execute',
+      workspaceId,
+      principal,
+      triggerReason: 'scheduled-worker',
+      db: { query: vi.fn() },
+    });
+
+    expect(runFleetGraph).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      trigger: { type: 'resolve_finding', findingId: '88888888-8888-4888-8888-888888888888' },
+      triggerReason: 'scheduled-worker',
+    }), expect.any(Object));
+    expect(runFleetGraph).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      trigger: { type: 'detector_decision', detectorDecision },
+      triggerReason: 'scheduled-worker',
+    }), expect.any(Object));
   });
 
   it('runs detector decisions through the shared proactive graph path', async () => {

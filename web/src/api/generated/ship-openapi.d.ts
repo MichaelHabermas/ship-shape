@@ -12717,6 +12717,16 @@ export interface components {
             text?: string;
             summary?: string;
         };
+        FleetGraphProposedRecipient: {
+            role?: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            userId?: string | null;
+            rationale?: string;
+        };
         FleetGraphEvidence: {
             kind: string;
             /**
@@ -12741,6 +12751,7 @@ export interface components {
             severity?: "low" | "medium" | "high" | "urgent";
             confidence?: number;
             recommendedAction?: components["schemas"]["FleetGraphRecommendedAction"];
+            proposedRecipient?: components["schemas"]["FleetGraphProposedRecipient"];
             recipientRationale?: string;
             uncertaintyNotes?: string[];
             evidence: components["schemas"]["FleetGraphEvidence"][];

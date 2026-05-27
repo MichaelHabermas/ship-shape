@@ -47,6 +47,7 @@ export interface TabCounts {
   issues?: number;
   weeks?: number;
   projects?: number;
+  fleetGraphFindings?: number;
 }
 
 // Lazy load tab components to avoid circular dependencies
@@ -165,7 +166,7 @@ export const documentTabConfigs: Record<string, DocumentTabConfig[]> = {
     },
     {
       id: 'issues',
-      label: 'Issues',
+      label: (_, counts) => counts?.fleetGraphFindings ? `Issues (${counts.fleetGraphFindings})` : 'Issues',
       component: WeekIssuesTab,
     },
     {

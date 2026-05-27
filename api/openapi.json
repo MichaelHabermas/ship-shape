@@ -8451,6 +8451,24 @@
           }
         }
       },
+      "FleetGraphProposedRecipient": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      },
       "FleetGraphEvidence": {
         "type": "object",
         "properties": {
@@ -8524,6 +8542,9 @@
           },
           "recommendedAction": {
             "$ref": "#/components/schemas/FleetGraphRecommendedAction"
+          },
+          "proposedRecipient": {
+            "$ref": "#/components/schemas/FleetGraphProposedRecipient"
           },
           "recipientRationale": {
             "type": "string"
