@@ -5,12 +5,14 @@ import type { components } from '@/api/generated/ship-openapi';
 
 type FleetGraphFindingResponse = components['schemas']['FleetGraphFindingResponse'];
 type FleetGraphRunResponse = components['schemas']['FleetGraphRunResponse'];
+type FleetGraphChangeSummaryResponse = components['schemas']['FleetGraphChangeSummaryResponse'];
 type FleetGraphVisibleOutput = components['schemas']['FleetGraphVisibleOutput'];
 type FleetGraphEvidence = components['schemas']['FleetGraphEvidence'];
 type FleetGraphTrace = components['schemas']['FleetGraphTrace'];
 
 export type FleetGraphFindingView = {
   id: string;
+  kind: string;
   status: string;
   sourceIssueId: string;
   sourceSprintId: string;
@@ -41,6 +43,11 @@ export type FleetGraphRunView = {
   finding: FleetGraphFindingView | null;
   visibleOutput: FleetGraphVisibleOutput | null;
   trace: FleetGraphTrace;
+};
+
+export type FleetGraphChangeSummaryView = {
+  headline: string;
+  rows: FleetGraphChangeSummaryResponse['rows'];
 };
 
 export const fleetGraphKeys = {
@@ -76,6 +83,7 @@ export function fleetGraphFindingView(finding: FleetGraphFindingResponse): Fleet
 
   return {
     id: finding.id,
+    kind: finding.kind,
     status: finding.status,
     sourceIssueId: finding.sourceIssueId,
     sourceSprintId: finding.sourceSprintId,
@@ -141,6 +149,38 @@ export function useFleetGraphExplain() {
         params: { path: { findingId } },
       });
       return fleetGraphRunView(assertApiData(result, 'Failed to explain FleetGraph finding'));
+    },
+  });
+}
+
+export function useFleetGraphRefine() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ findingId, instruction }: { findingId: string; instruction: string }) => {
+      const result = await apiClient.POST('/fleetgraph/findings/{findingId}/refine', {
+        params: { path: { findingId } },
+        body: { instruction },
+      });
+      return fleetGraphRunView(assertApiData(result, 'Failed to refine FleetGraph finding'));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: fleetGraphKeys.findings() });
+    },
+  });
+}
+
+export function useFleetGraphChanges() {
+  return useMutation({
+    mutationFn: async (findingId: string): Promise<FleetGraphChangeSummaryView> => {
+      const result = await apiClient.POST('/fleetgraph/findings/{findingId}/changes', {
+        params: { path: { findingId } },
+      });
+      const data = assertApiData(result, 'Failed to summarize FleetGraph changes');
+      return {
+        headline: data.headline,
+        rows: data.rows,
+      };
     },
   });
 }

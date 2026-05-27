@@ -559,7 +559,7 @@ CREATE TABLE IF NOT EXISTS fleetgraph_runs (
   mode TEXT NOT NULL CHECK (mode IN ('proactive', 'on_demand')),
   trigger_reason TEXT NOT NULL,
   decision TEXT NOT NULL
-    CHECK (decision IN ('quiet_exit', 'create_finding', 'update_finding', 'explain', 'refine_draft', 'needs_confirmation', 'dismiss', 'resolve', 'error')),
+    CHECK (decision IN ('quiet_exit', 'create_finding', 'update_finding', 'explain', 'refine_draft', 'summarize_changes', 'needs_confirmation', 'dismiss', 'resolve', 'error')),
   dedupe_key TEXT,
 
   input_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,

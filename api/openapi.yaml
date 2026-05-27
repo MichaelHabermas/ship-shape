@@ -6505,6 +6505,10 @@ components:
           format: uuid
           description: UUID identifier
           example: 550e8400-e29b-41d4-a716-446655440000
+        kind:
+          type: string
+          enum:
+            - blocker
         status:
           type: string
         sourceIssueId:
@@ -6523,6 +6527,7 @@ components:
           $ref: "#/components/schemas/FleetGraphTrace"
       required:
         - id
+        - kind
         - status
         - sourceIssueId
         - sourceSprintId
@@ -6537,6 +6542,38 @@ components:
             $ref: "#/components/schemas/FleetGraphFindingResponse"
       required:
         - findings
+    FleetGraphChangeSummaryRow:
+      type: object
+      properties:
+        label:
+          type: string
+          enum:
+            - Now
+            - Changed
+            - Cleared
+            - Next
+            - Unknown
+            - Not done
+        text:
+          type: string
+      required:
+        - label
+        - text
+    FleetGraphChangeSummaryResponse:
+      type: object
+      properties:
+        headline:
+          type: string
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/FleetGraphChangeSummaryRow"
+        traceMetadata:
+          $ref: "#/components/schemas/FleetGraphTrace"
+      required:
+        - headline
+        - rows
+        - traceMetadata
     FleetGraphRunResponse:
       type: object
       properties:
@@ -12357,6 +12394,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+        500:
+          description: Response 500
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /fleetgraph/findings/{findingId}/changes:
+    post:
+      tags:
+        - FleetGraph
+      summary: Summarize meaningful changes since the previous FleetGraph run
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: findingId
+          in: path
+      responses:
+        200:
+          description: Response 200
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetGraphChangeSummaryResponse"
+        400:
+          description: Response 400
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        403:
+          description: Response 403
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        404:
+          description: Response 404
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         500:
           description: Response 500
           content:

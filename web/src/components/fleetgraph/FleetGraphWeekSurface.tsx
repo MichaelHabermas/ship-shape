@@ -1,30 +1,24 @@
-// FleetGraph week surface renders sprint findings above active-week work.
-import { FleetGraphFindingCard } from './FleetGraphFindingCard';
-import { FleetGraphStatePanel } from './FleetGraphStatePanel';
+// FleetGraph week surface renders the contextual agent panel above active-week work.
+import { FleetGraphContextPanel } from './FleetGraphContextPanel';
 import { useFleetGraphSprintFindings } from '@/hooks/useFleetGraphQuery';
 
 export function FleetGraphWeekSurface({ sprintId }: { sprintId: string }) {
   const findings = useFleetGraphSprintFindings(sprintId);
 
   if (findings.isLoading) {
-    return <FleetGraphStatePanel state="loading" />;
+    return <FleetGraphContextPanel contextType="sprint" contextLabel="week" findings={[]} state="loading" />;
   }
 
   if (findings.isError) {
-    return <FleetGraphStatePanel state="error" />;
-  }
-
-  if (!findings.data || findings.data.length === 0) {
-    return null;
+    return <FleetGraphContextPanel contextType="sprint" contextLabel="week" findings={[]} state="error" />;
   }
 
   return (
-    <div>
-      <div className="space-y-3 border-b border-border bg-background p-4">
-        {findings.data.map((finding) => (
-          <FleetGraphFindingCard key={finding.id} finding={finding} />
-        ))}
-      </div>
-    </div>
+    <FleetGraphContextPanel
+      contextType="sprint"
+      contextLabel="week"
+      findings={findings.data ?? []}
+      showEmpty
+    />
   );
 }

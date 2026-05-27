@@ -40,6 +40,16 @@ export type FleetGraphVisibleOutput = {
   noSafeOutput?: boolean;
 };
 
+export type FleetGraphChangeSummaryRow = {
+  label: 'Now' | 'Changed' | 'Cleared' | 'Next' | 'Unknown' | 'Not done';
+  text: string;
+};
+
+export type FleetGraphChangeSummary = {
+  headline: string;
+  rows: FleetGraphChangeSummaryRow[];
+};
+
 export type FleetGraphTraceMetadata = {
   traceId?: string;
   traceUrl?: string;
@@ -90,6 +100,10 @@ export type FleetGraphTrigger =
       instruction: string;
     }
   | {
+      type: 'summarize_changes';
+      findingId: string;
+    }
+  | {
       type: 'resolve_finding';
       findingId: string;
     }
@@ -118,6 +132,7 @@ export type FleetGraphResult = {
   findingInput?: SaveBlockedImportantIssueFindingInput;
   runInput: RecordFleetGraphRunInput;
   visibleOutput?: FleetGraphVisibleOutput;
+  changeSummary?: FleetGraphChangeSummary;
   evidence: FleetGraphEvidenceItem[];
   traceMetadata: FleetGraphTraceMetadata;
   tokenMetadata: FleetGraphTokenMetadata;

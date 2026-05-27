@@ -332,15 +332,39 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** Persisted trace metadata remains allowlisted to mode, decision, node path, trace ID/URL, and failure category. Shared reviewer trace links must come from seeded/demo-safe inputs, and trace capture must not send raw prompts, completions, hidden evidence, DB clients, principals, cookies, tokens, or circular runtime state. Do not protect trace safety by mutating process-wide LangSmith env flags around async graph runs.
 
-## D042 - Existing Public Render Deploy Does Not Yet Satisfy FleetGraph MVP
+## D042 - Public Render FleetGraph Routes Are Verified Behind Auth
 
 **Date:** 2026-05-27
 
-**Decision:** Epic 10 verification found the public Render API and web are live, but the deployed API returns `Cannot GET /api/fleetgraph/findings`; do not claim public FleetGraph availability until a current API/web build with FleetGraph routes is deployed and verified.
+**Decision:** Epic 10 verification initially found public Render health/web green while FleetGraph routes were absent. After the migrator fix deployed, Render API deploy `dep-d8b5o519rddc73a36gag` for commit `67586bf9da42fe6027a38c8decd4325fe7f80980` reached `live`; public API/web health returned HTTP 200; `GET /api/fleetgraph/findings?sourceIssueId=...` returned HTTP 401 `No session found`; and `POST /api/fleetgraph/manual-run` returned CSRF protection.
 
-**Consequence:** Local/demo FleetGraph is trace-verified, but the public deployment checklist item remains blocked. The next human-approved deployment pass should verify API health, FleetGraph route availability, worker/manual trigger configuration, and a reviewer-safe object URL after deploy.
+**Consequence:** The stale "Cannot GET" blocker is retired. Public MVP verification can now rely on the route family being deployed behind normal auth/CSRF gates, while reviewer-safe seeded object access and any worker/manual-trigger proof still need current authenticated review evidence.
 
-## D043 - Existing Databases Skip Bootstrap Schema During Migrations
+## D043 - FleetGraph Agent Interface Is Contextual Finding Infrastructure
+
+**Date:** 2026-05-27
+
+**Decision:** Epic 11 promotes the FleetGraph UI from blocker-card placement to a reusable contextual panel contract for issue, sprint/week, project, and future program contexts. The API response now exposes `finding.kind` as a detector discriminator; MVP findings use `kind = blocker` without adding a new persistence column. After product review, the visible card surface is a sparse unblock prompt, not fake chat or an audit packet: it shows the blocker, ask, why now, recipient, short message, "not done" safety state, and uncertainty only when useful.
+
+**Consequence:** Future detector families should land as new finding kinds in the same contextual panel instead of creating a standalone FleetGraph inbox, global chatbot, or blocker-only UI fork. The product UI must not expose low-utility "why/what next/rewrite" controls, evidence prose, gate enums, prepared-comment bloat, or external trace links unless a specific reviewer surface needs them. It must not imply Ship mutation, external sending, escalation, or risk acceptance.
+
+## D044 - First Useful FleetGraph Chat Path Is Change Summary
+
+**Date:** 2026-05-27
+
+**Decision:** The next on-demand feature should be "What changed since I last looked?", not generic chat or draft rewriting. It must compare current visible state against a real anchor: first the last FleetGraph finding/run for the source object, later a per-user last-viewed timestamp or activity cursor. D045 records the implemented narrowed version.
+
+**Consequence:** Do not fake "since last looked" without an anchor. New graph behavior needs golden cases for blocked transition, blocker evidence changed, no meaningful change, restricted evidence, and a distinct on-demand trace path.
+
+## D045 - FleetGraph What Changed Is Delta-Only
+
+**Date:** 2026-05-27
+
+**Decision:** `What changed?` is implemented as a delta-only on-demand path, not a chat surface. It records `summarize_changes`, compares the current visible finding against the previous proactive FleetGraph run for the same finding, and returns only necessary rows: now, changed, cleared, next, unknown, and not done.
+
+**Consequence:** No anchor means no fake "since last looked" claim. No useful delta means `No meaningful change`. The normal UI must not show evidence prose, trace links, internal run metadata, or explanatory paragraphs for this path. The feature writes only `fleetgraph_runs` and must not mutate Ship or contact anyone.
+
+## D046 - Existing Databases Skip Bootstrap Schema During Migrations
 
 **Date:** 2026-05-27
 

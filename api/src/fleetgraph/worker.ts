@@ -268,23 +268,27 @@ export function startFleetGraphWorker(options: FleetGraphWorkerOptions = {}): ()
     return async () => {};
   }
 
+  const runOnce = () => {
+    runningTick = runFleetGraphWorkerTick({ ...options, config, logger, instanceId })
+      .catch((error) => {
+        logger.error('[FleetGraph] Worker loop failed', safeErrorMetadata(error));
+      })
+      .finally(() => {
+        runningTick = null;
+        scheduleNext();
+      });
+  };
+
   const scheduleNext = () => {
     if (stopped) return;
     timer = setTimeoutFn(() => {
       timer = null;
-      runningTick = runFleetGraphWorkerTick({ ...options, config, logger, instanceId })
-        .catch((error) => {
-          logger.error('[FleetGraph] Worker loop failed', safeErrorMetadata(error));
-        })
-        .finally(() => {
-          runningTick = null;
-          scheduleNext();
-        });
+      runOnce();
     }, config.workerIntervalMs);
   };
 
   logger.log(`[FleetGraph] Worker enabled; interval=${config.workerIntervalMs}ms instance=${instanceId}`);
-  scheduleNext();
+  runOnce();
 
   return async () => {
     if (stopped) return;

@@ -1,5 +1,5 @@
 // FleetGraph routes expose visible findings, bounded on-demand graph actions, and gated manual runs.
-import { Router, type Request, type Response } from 'express';
+import { Router, type Request, type Response, type Router as ExpressRouter } from 'express';
 import { z } from '../openapi/registry.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { defineRoute } from '../openapi/define-route.js';
@@ -11,10 +11,12 @@ import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 import {
   FleetGraphFindingsListResponseSchema,
   type FleetGraphFindingResponse,
+  FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
   FleetGraphRunResponseSchema,
   fleetGraphFindingResponse,
   fleetGraphManualRunResultResponse,
+  sendFleetGraphChangeSummaryResponse,
   sendFleetGraphRunResponse,
 } from '../fleetgraph/api-contract.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
@@ -24,7 +26,7 @@ import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
 import { listFleetGraphFindingsForSource } from '../fleetgraph/persistence.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 const findingsQuerySchema = z.object({
   sourceIssueId: UuidSchema.optional(),
@@ -87,6 +89,37 @@ router.get('/findings', authMiddleware, defineRoute({
       res.json({ findings: visibleFindings });
     } catch (err) {
       sendInternalError(res, err, 'List FleetGraph findings error');
+    }
+  },
+}));
+
+router.post('/findings/:findingId/changes', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/findings/{findingId}/changes',
+  tags: ['FleetGraph'],
+  summary: 'Summarize meaningful changes since the previous FleetGraph run',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { params: findingParamsSchema },
+  responses: {
+    200: { schema: FleetGraphChangeSummaryResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    403: { schema: ErrorResponseSchema },
+    404: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const result = await runFleetGraph({
+        workspaceId,
+        principal,
+        mode: 'on_demand',
+        trigger: { type: 'summarize_changes', findingId: parsed.params.findingId },
+      });
+      sendFleetGraphChangeSummaryResponse(res, result);
+    } catch (err) {
+      sendInternalError(res, err, 'Summarize FleetGraph changes error');
     }
   },
 }));

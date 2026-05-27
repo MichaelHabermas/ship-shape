@@ -41,6 +41,12 @@ export const fleetGraphCoverageRequirements = [
     minimumCases: 1,
   },
   {
+    id: 'change-summary',
+    description: 'Change summary compares against a real FleetGraph run anchor and returns only useful deltas.',
+    requiredLabels: ['mode:on_demand', 'branch:summarize_changes'],
+    minimumCases: 4,
+  },
+  {
     id: 'human-gate',
     description: 'Action preparation stops at a human confirmation boundary.',
     requiredLabels: ['action:human_gate'],
