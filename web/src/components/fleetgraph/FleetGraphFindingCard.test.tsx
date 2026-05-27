@@ -12,6 +12,16 @@ const hookState = vi.hoisted(() => ({
   dismissMutate: vi.fn(),
   dismissError: null as Error | null,
   dismissIsError: false,
+  explainMutate: vi.fn(),
+  explainData: null as null | {
+    visibleOutput: {
+      title: string;
+      summary: string;
+    } | null;
+  },
+  explainIsError: false,
+  refineMutate: vi.fn(),
+  refineIsError: false,
   changesMutate: vi.fn(),
   changesData: null as null | {
     headline: string;
@@ -29,6 +39,17 @@ vi.mock('@/hooks/useFleetGraphQuery', async () => {
       isPending: false,
       isError: hookState.dismissIsError,
       error: hookState.dismissError,
+    }),
+    useFleetGraphExplain: () => ({
+      mutateAsync: hookState.explainMutate,
+      isPending: false,
+      isError: hookState.explainIsError,
+      data: hookState.explainData,
+    }),
+    useFleetGraphRefine: () => ({
+      mutateAsync: hookState.refineMutate,
+      isPending: false,
+      isError: hookState.refineIsError,
     }),
     useFleetGraphChanges: () => ({
       mutateAsync: hookState.changesMutate,
@@ -130,6 +151,13 @@ describe('FleetGraph product surface', () => {
     hookState.dismissMutate.mockResolvedValue(null);
     hookState.dismissError = null;
     hookState.dismissIsError = false;
+    hookState.explainMutate.mockReset();
+    hookState.explainMutate.mockResolvedValue(null);
+    hookState.explainData = null;
+    hookState.explainIsError = false;
+    hookState.refineMutate.mockReset();
+    hookState.refineMutate.mockResolvedValue(null);
+    hookState.refineIsError = false;
     hookState.changesMutate.mockReset();
     hookState.changesMutate.mockResolvedValue(null);
     hookState.changesData = null;
@@ -165,7 +193,7 @@ describe('FleetGraph product surface', () => {
     expect(screen.getByRole('link', { name: `Open issue: ${secondFinding.title}` }).getAttribute('href')).toBe(`/documents/${secondFinding.sourceIssueId}`);
   });
 
-  it('renders a sparse unblock prompt without fake chat controls', () => {
+  it('renders a contextual agent surface without mutating Ship', () => {
     render(
       <MemoryRouter>
         <FleetGraphFindingCard finding={finding} />
@@ -178,9 +206,13 @@ describe('FleetGraph product surface', () => {
     expect(screen.getByRole('link', { name: 'Open issue' }).getAttribute('href')).toBe(`/documents/${finding.sourceIssueId}`);
     fireEvent.click(screen.getByRole('button', { name: 'What changed?' }));
     expect(hookState.changesMutate).toHaveBeenCalledWith(finding.id);
+    fireEvent.click(screen.getByRole('button', { name: 'Why flagged?' }));
+    expect(hookState.explainMutate).toHaveBeenCalledWith(finding.id);
     expect(screen.queryByText('Latest issue iteration says Legal is blocking delivery.')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    if (!screen.queryByText('Unblock')) {
+      fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    }
 
     expect(screen.getByText('Unblock')).toBeTruthy();
     expect(screen.getByText('Ask')).toBeTruthy();
@@ -204,14 +236,54 @@ describe('FleetGraph product surface', () => {
     expect(screen.queryByText('Needs approval')).toBeNull();
     expect(screen.queryByText('rawPrompt')).toBeNull();
     expect(screen.queryByText('blocker finding')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Why was this flagged?' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Why flagged?' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'What should happen next?' })).toBeNull();
-    expect(screen.queryByPlaceholderText('Rewrite the draft with this instruction...')).toBeNull();
+    expect(screen.getByPlaceholderText('Ask FleetGraph to rewrite this draft...')).toBeTruthy();
     expect(screen.queryByText('Sent')).toBeNull();
     expect(screen.queryByText('Posted')).toBeNull();
     expect(screen.queryByText('Updated issue')).toBeNull();
     expect(screen.queryByText('Accepted risk')).toBeNull();
     expect(screen.queryByText('Open trace')).toBeNull();
+  });
+
+  it('refines the prepared draft from the contextual card', () => {
+    render(
+      <MemoryRouter>
+        <FleetGraphFindingCard finding={finding} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    fireEvent.change(screen.getByLabelText('Ask FleetGraph to rewrite this draft'), {
+      target: { value: 'Make it shorter and more direct.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rewrite' }));
+
+    expect(hookState.refineMutate).toHaveBeenCalledWith({
+      findingId: finding.id,
+      instruction: 'Make it shorter and more direct.',
+    });
+  });
+
+  it('shows the contextual explanation returned by FleetGraph', () => {
+    hookState.explainData = {
+      visibleOutput: {
+        title: 'Why FleetGraph flagged this',
+        summary: 'This active-week issue is blocked and needs a PM decision.',
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <FleetGraphFindingCard finding={finding} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+
+    expect(screen.getByText('Why FleetGraph flagged this')).toBeTruthy();
+    expect(screen.getByText('This active-week issue is blocked and needs a PM decision.')).toBeTruthy();
+    expect(screen.getAllByText('No issue changed. No message sent.').length).toBeGreaterThan(0);
   });
 
   it('renders only anchored change rows after asking what changed', () => {

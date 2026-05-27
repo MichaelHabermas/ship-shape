@@ -91,21 +91,29 @@ describe('FleetGraph worker', () => {
     expect(setTimeoutFn).not.toHaveBeenCalled();
   });
 
-  it('schedules with recursive timeout and clears pending work on stop', async () => {
+  it('runs immediately, then schedules with recursive timeout and clears pending work on stop', async () => {
+    const { db } = createDb();
     const clearTimeoutFn = vi.fn() as unknown as typeof clearTimeout;
     const setTimeoutFn = vi.fn(() => 123 as unknown as ReturnType<typeof setTimeout>) as unknown as typeof setTimeout;
     const logger = { log: vi.fn(), error: vi.fn() };
+    const runTick = vi.fn<RunTickFn>(async () => result(0));
 
     const stop = startFleetGraphWorker({
       config: baseConfig,
+      db: db as never,
+      runTick,
       setTimeoutFn,
       clearTimeoutFn,
       logger,
       instanceId: 'worker-1',
     });
+    await vi.waitFor(() => {
+      expect(setTimeoutFn).toHaveBeenCalledTimes(1);
+    });
     await stop();
     await stop();
 
+    expect(runTick).toHaveBeenCalled();
     expect(setTimeoutFn).toHaveBeenCalledTimes(1);
     expect(clearTimeoutFn).toHaveBeenCalledWith(123);
   });

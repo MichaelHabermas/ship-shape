@@ -26,6 +26,7 @@ import {
   type RecordFleetGraphRunInput,
   type SaveBlockedImportantIssueFindingInput,
 } from './persistence.js';
+import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import type {
   FleetGraphChangeSummary,
@@ -106,6 +107,18 @@ export async function runFleetGraph(
   input: FleetGraphInput,
   options: FleetGraphCoreOptions = {}
 ): Promise<FleetGraphResult> {
+  if (shouldAutoCaptureTrace(options)) {
+    try {
+      const capture = await withFleetGraphLangSmithTrace({
+        name: `FleetGraph ${input.mode} ${input.trigger.type}`,
+        inputs: traceSafeRunInputs(input),
+      }, (externalTrace) => runFleetGraph(input, { ...options, externalTrace }));
+      return capture.result;
+    } catch {
+      // FleetGraph must still surface findings if external trace capture is temporarily unavailable.
+    }
+  }
+
   const persistence = options.persistence ?? defaultPersistence(options.db);
   const triggerReason = input.triggerReason ?? input.trigger.type;
 
@@ -128,6 +141,21 @@ export async function runFleetGraph(
   } catch (_error) {
     return runError(input, persistence, triggerReason, 'FleetGraph internal error');
   }
+}
+
+function traceSafeRunInputs(input: FleetGraphInput): Record<string, unknown> {
+  return {
+    workspaceId: input.workspaceId,
+    mode: input.mode,
+    triggerType: input.trigger.type,
+    triggerReason: input.triggerReason ?? input.trigger.type,
+  };
+}
+
+function shouldAutoCaptureTrace(options: FleetGraphCoreOptions): boolean {
+  return !options.externalTrace
+    && process.env.NODE_ENV !== 'test'
+    && fleetGraphLangSmithEnabled();
 }
 
 function fleetGraphRuntime(context: FleetGraphRuntimeContext) {

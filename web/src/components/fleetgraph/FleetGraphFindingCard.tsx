@@ -1,7 +1,13 @@
 // FleetGraph finding card presents sparse unblock prompts for PM review.
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { useFleetGraphChanges, useFleetGraphDismiss, type FleetGraphFindingView } from '@/hooks/useFleetGraphQuery';
+import {
+  useFleetGraphChanges,
+  useFleetGraphDismiss,
+  useFleetGraphExplain,
+  useFleetGraphRefine,
+  type FleetGraphFindingView,
+} from '@/hooks/useFleetGraphQuery';
 import { useTeamMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { getApiErrorStatus } from '@/lib/api-error';
 
@@ -56,8 +62,11 @@ function preparedAsk(name: string | null, blocker: string, fallback: string | nu
 
 export function FleetGraphFindingCard({ finding }: FleetGraphFindingCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [refineInstruction, setRefineInstruction] = useState('');
   const dismiss = useFleetGraphDismiss();
   const changes = useFleetGraphChanges();
+  const explain = useFleetGraphExplain();
+  const refine = useFleetGraphRefine();
   const dismissErrorStatus = getApiErrorStatus(dismiss.error);
   const teamMembers = useTeamMembersQuery();
   const proposedRecipient = finding.proposedRecipient ?? { role: null, userId: null, rationale: null };
@@ -80,6 +89,20 @@ export function FleetGraphFindingCard({ finding }: FleetGraphFindingCardProps) {
 
   async function handleChanges() {
     await changes.mutateAsync(finding.id).catch(() => undefined);
+  }
+
+  async function handleExplain() {
+    setExpanded(true);
+    await explain.mutateAsync(finding.id).catch(() => undefined);
+  }
+
+  async function handleRefine(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const instruction = refineInstruction.trim();
+    if (!instruction) return;
+    await refine.mutateAsync({ findingId: finding.id, instruction }).then(() => {
+      setRefineInstruction('');
+    }).catch(() => undefined);
   }
 
   function toggleExpanded() {
@@ -133,6 +156,15 @@ export function FleetGraphFindingCard({ finding }: FleetGraphFindingCardProps) {
           </button>
           <button
             type="button"
+            onClick={handleExplain}
+            disabled={explain.isPending}
+            aria-busy={explain.isPending}
+            className="rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-border disabled:opacity-50"
+          >
+            {explain.isPending ? 'Explaining...' : 'Why flagged?'}
+          </button>
+          <button
+            type="button"
             onClick={handleDismiss}
             disabled={dismiss.isPending}
             aria-busy={dismiss.isPending}
@@ -154,6 +186,14 @@ export function FleetGraphFindingCard({ finding }: FleetGraphFindingCardProps) {
 
       {changes.isError && (
         <p className="mt-3 text-sm text-red-300">No change summary available.</p>
+      )}
+
+      {explain.isError && (
+        <p className="mt-3 text-sm text-red-300">FleetGraph could not explain this finding.</p>
+      )}
+
+      {refine.isError && (
+        <p className="mt-3 text-sm text-red-300">FleetGraph could not refine the draft.</p>
       )}
 
       {changes.data && (
@@ -188,6 +228,14 @@ export function FleetGraphFindingCard({ finding }: FleetGraphFindingCardProps) {
 
       {expanded && (
         <>
+          {explain.data?.visibleOutput && (
+            <section className="mt-3 rounded border border-border bg-background/40 p-3" aria-label="FleetGraph contextual answer">
+              <h4 className="text-sm font-medium text-foreground">{explain.data.visibleOutput.title}</h4>
+              <p className="mt-1 text-sm leading-5 text-foreground">{explain.data.visibleOutput.summary}</p>
+              <p className="mt-2 text-xs text-muted">No issue changed. No message sent.</p>
+            </section>
+          )}
+
           <section className="mt-3 rounded border border-border bg-background/40 p-3" aria-label="FleetGraph unblock prompt">
             <dl className="grid gap-3 md:grid-cols-2">
               <div>
@@ -224,6 +272,24 @@ export function FleetGraphFindingCard({ finding }: FleetGraphFindingCardProps) {
             <section className="mt-3 rounded border border-border bg-background/40 px-3 py-2">
               <h4 className="text-xs font-medium uppercase tracking-wide text-muted">Message</h4>
               <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-foreground">{ask}</p>
+              <form onSubmit={handleRefine} className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  value={refineInstruction}
+                  onChange={(event) => setRefineInstruction(event.target.value)}
+                  maxLength={2000}
+                  placeholder="Ask FleetGraph to rewrite this draft..."
+                  aria-label="Ask FleetGraph to rewrite this draft"
+                  className="min-h-9 flex-1 rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <button
+                  type="submit"
+                  disabled={refine.isPending || refineInstruction.trim().length === 0}
+                  aria-busy={refine.isPending}
+                  className="rounded bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-50"
+                >
+                  {refine.isPending ? 'Rewriting...' : 'Rewrite'}
+                </button>
+              </form>
             </section>
           )}
 
