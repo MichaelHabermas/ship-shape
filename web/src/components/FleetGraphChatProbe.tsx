@@ -1,7 +1,33 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
+import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 
-const showSampleConversation = true;
+interface ChatContextItem {
+  id: string;
+  label: string;
+  notification?: FleetGraphNotificationProbeItem;
+}
+
+export interface FleetGraphChatProbeRequest {
+  id: number;
+  notification: FleetGraphNotificationProbeItem;
+}
+
+const seededContextItems: ChatContextItem[] = [
+  { id: 'project-delta', label: 'Project Delta' },
+  { id: 'sprint-12', label: 'Sprint 12' },
+  { id: 'dev-user', label: 'Dev User' },
+  { id: 'auth-rollout', label: 'Auth rollout' },
+  { id: 'backend-queue', label: 'Backend queue' },
+  { id: 'contract-review', label: 'Contract review' },
+  { id: 'standup-note', label: 'Standup note' },
+  { id: 'release-risk', label: 'Release risk' },
+  { id: 'pm-thread', label: 'PM thread' },
+  { id: 'security-review', label: 'Security review' },
+  { id: 'api-logs', label: 'API logs' },
+  { id: 'access-request', label: 'Access request' },
+  { id: 'customer-note', label: 'Customer note' },
+];
 
 function getSurfaceLabel(pathname: string): string {
   if (pathname.startsWith('/documents/')) return 'Current document';
@@ -14,13 +40,47 @@ function getSurfaceLabel(pathname: string): string {
   return 'Current view';
 }
 
-export function FleetGraphChatProbe() {
+export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetGraphChatProbeRequest | null }) {
   const location = useLocation();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [draft, setDraft] = useState('');
+  const [contextItems, setContextItems] = useState<ChatContextItem[]>(seededContextItems);
+  const [activeNotification, setActiveNotification] = useState<FleetGraphNotificationProbeItem | null>(null);
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
+  const visibleContextItems = contextItems.slice(0, 3);
+  const overflowContextItems = contextItems.slice(3);
+  const hasClearableContext = contextItems.length > 0;
+
+  useEffect(() => {
+    if (!discussRequest) return;
+
+    const notification = discussRequest.notification;
+    setOpen(true);
+    setActiveNotification(notification);
+    setContextItems((items) => {
+      const contextItem: ChatContextItem = {
+        id: `notification:${notification.id}`,
+        label: notification.title,
+        notification,
+      };
+      return [contextItem, ...items.filter((item) => item.id !== contextItem.id)];
+    });
+  }, [discussRequest]);
+
+  const removeContextItem = (id: string) => {
+    setContextItems((items) => items.filter((item) => item.id !== id));
+    if (activeNotification && id === `notification:${activeNotification.id}`) {
+      setActiveNotification(null);
+    }
+  };
+
+  const clearContextItems = () => {
+    setContextItems([]);
+    setActiveNotification(null);
+    setContextOpen(false);
+  };
 
   const handleDraftChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setDraft(event.target.value);
@@ -54,48 +114,35 @@ export function FleetGraphChatProbe() {
                 <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted">
                   {surfaceLabel} - Untitled
                 </span>
+                {visibleContextItems.map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => removeContextItem(item.id)}
+                    className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
+                  >
+                    {item.label}
+                    <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
+                  </button>
+                ))}
+                {overflowContextItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setContextOpen((value) => !value)}
+                    className="shrink-0 rounded border border-border bg-[#171717] px-1.5 py-0.5 text-[11px] leading-4 text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
+                    aria-expanded={contextOpen}
+                  >
+                    +{overflowContextItems.length}
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
+                  onClick={clearContextItems}
+                  disabled={!hasClearableContext}
+                  className="shrink-0 rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[11px] leading-4 text-red-300 transition hover:border-red-400 hover:bg-red-500/20 disabled:cursor-default disabled:border-border disabled:bg-background disabled:text-muted/50"
+                  aria-label="Clear added context"
                 >
-                  API access blocker
-                  <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
-                </button>
-                <button
-                  type="button"
-                  className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-                >
-                  Project Delta
-                  <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
-                </button>
-                <button
-                  type="button"
-                  className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-                >
-                  Sprint 12
-                  <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
-                </button>
-                <button
-                  type="button"
-                  className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-                >
-                  Dev User
-                  <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
-                </button>
-                <button
-                  type="button"
-                  className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-                >
-                  Auth rollout
-                  <span aria-hidden="true" className="text-xs leading-none text-muted">x</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setContextOpen((value) => !value)}
-                  className="shrink-0 rounded border border-border bg-[#171717] px-1.5 py-0.5 text-[11px] leading-4 text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
-                  aria-expanded={contextOpen}
-                >
-                  +8
+                  C
                 </button>
               </div>
             </div>
@@ -108,11 +155,22 @@ export function FleetGraphChatProbe() {
               <CloseIcon />
             </button>
 
-            {contextOpen && <ContextPopover popoverRef={contextMenuRef} />}
+            {contextOpen && (
+              <ContextPopover
+                popoverRef={contextMenuRef}
+                surfaceLabel={surfaceLabel}
+                contextItems={overflowContextItems}
+                onRemoveContext={removeContextItem}
+              />
+            )}
           </header>
 
           <div className="scrollbar-hide flex flex-1 overflow-y-auto px-4 py-5">
-            {showSampleConversation ? <SampleConversation /> : <EmptyConversation />}
+            {activeNotification ? (
+              <NotificationConversation notification={activeNotification} />
+            ) : (
+              <EmptyConversation surfaceLabel={surfaceLabel} />
+            )}
           </div>
 
           <form className="border-t border-border p-3" onSubmit={(event) => event.preventDefault()}>
@@ -152,35 +210,31 @@ export function FleetGraphChatProbe() {
   );
 }
 
-function ContextPopover({ popoverRef }: { popoverRef: RefObject<HTMLDivElement> }) {
+function ContextPopover({
+  popoverRef,
+  surfaceLabel,
+  contextItems,
+  onRemoveContext,
+}: {
+  popoverRef: RefObject<HTMLDivElement>;
+  surfaceLabel: string;
+  contextItems: ChatContextItem[];
+  onRemoveContext: (id: string) => void;
+}) {
   return (
     <div ref={popoverRef} className="absolute right-10 top-[calc(100%-4px)] z-10 w-[280px] rounded-lg border border-border bg-[#111111] p-2 shadow-xl shadow-black/40">
       <div className="scrollbar-hide max-h-56 space-y-1 overflow-y-auto">
         <div className="rounded px-2 py-1.5 text-xs text-muted">
-          Current - Untitled
+          {surfaceLabel} - Untitled
         </div>
-        {[
-          'API access blocker',
-          'Project Delta',
-          'Sprint 12',
-          'Dev User',
-          'Auth rollout',
-          'Backend queue',
-          'Contract review',
-          'Standup note',
-          'Release risk',
-          'PM thread',
-          'Security review',
-          'API logs',
-          'Access request',
-          'Customer note',
-        ].map((label) => (
+        {contextItems.map((item) => (
           <button
             type="button"
-            key={label}
+            key={item.id}
+            onClick={() => onRemoveContext(item.id)}
             className="flex w-full items-center justify-between rounded border border-transparent px-2 py-1.5 text-left text-xs text-muted transition hover:border-border hover:text-foreground"
           >
-            <span>{label}</span>
+            <span>{item.label}</span>
             <span aria-hidden="true" className="text-xs text-muted">x</span>
           </button>
         ))}
@@ -189,12 +243,12 @@ function ContextPopover({ popoverRef }: { popoverRef: RefObject<HTMLDivElement> 
   );
 }
 
-function EmptyConversation() {
+function EmptyConversation({ surfaceLabel }: { surfaceLabel: string }) {
   return (
     <div className="flex flex-1 items-center justify-center px-4 text-center">
       <div className="flex max-w-[280px] flex-col items-center gap-4">
         <p className="text-sm leading-6 text-muted">
-          Ask about this document.
+          Ask about this {surfaceLabel.toLowerCase()}.
         </p>
         <PromptChips />
       </div>
@@ -202,35 +256,43 @@ function EmptyConversation() {
   );
 }
 
-function SampleConversation() {
+function NotificationConversation({ notification }: { notification: FleetGraphNotificationProbeItem }) {
+  const ownerLabel = notification.owner || '-';
+  const sourceLabels = ['Latest blocker update', notification.context, ownerLabel].filter(
+    (label, index, labels) => label !== '-' && labels.indexOf(label) === index
+  );
+
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
         Why is this blocked?
       </div>
 
-      <div className="max-w-[330px] text-sm leading-6 text-foreground">
-        <p className="mb-2 text-xs text-muted">Looking at Untitled</p>
-        <p>
-          The document points to a stalled handoff, but there is not enough here to say who owns the unblock yet.
+      <div className="w-full text-foreground">
+        <p className="mb-1 text-[11px] leading-4 text-muted">Blocked - {notification.title}</p>
+        <p className="text-base leading-6">
+          {notification.blockerText}
         </p>
-        <p className="mt-2 text-muted">
-          I would check the latest issue update and the linked project owner before nudging anyone.
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
-          <span>Sources:</span>
-          <button type="button" className="hover:text-foreground">Latest issue update</button>
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-4 text-muted">
+          <span>{ownerLabel}</span>
           <span aria-hidden="true">·</span>
-          <button type="button" className="hover:text-foreground">Project owner</button>
+          <span>{notification.context}</span>
           <span aria-hidden="true">·</span>
-          <button type="button" className="hover:text-foreground">Standup note</button>
+          <span>{notification.age}</span>
+          <span aria-hidden="true" className="text-muted/60">/</span>
+          {sourceLabels.map((label, index) => (
+            <span key={label} className="inline-flex items-center gap-1">
+              {index > 0 && <span aria-hidden="true">·</span>}
+              <button type="button" className="hover:text-foreground">{label}</button>
+            </span>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-[330px] rounded-lg border border-border bg-background/60 p-3">
+      <div className="w-full rounded-lg border border-border bg-background/60 p-3">
         <p className="text-xs font-medium text-foreground">Possible next step</p>
         <p className="mt-1 text-sm leading-5 text-muted">
-          Ask the project owner for the latest unblocker.
+          Ask the connected owner to confirm the unblocker and the next handoff.
         </p>
         <button
           type="button"
@@ -244,12 +306,12 @@ function SampleConversation() {
         What changed since yesterday?
       </div>
 
-      <div className="max-w-[330px] text-sm leading-6 text-foreground">
-        <p>
-          The status moved from active work to blocked after the latest update. The blocker text mentions waiting on API access, but the document itself has not been updated with a named owner.
+      <div className="w-full text-foreground">
+        <p className="text-base leading-6">
+          The latest non-empty blocker update is now the active explanation for the notification.
         </p>
-        <p className="mt-2 text-muted">
-          That makes this feel less like engineering discovery and more like a coordination gap.
+        <p className="mt-1 text-[13px] leading-[18px] text-muted">
+          The notification should stay visible while the issue remains blocked, then disappear when the source issue is unblocked.
         </p>
       </div>
 
@@ -257,19 +319,19 @@ function SampleConversation() {
         Who should I ask?
       </div>
 
-      <div className="max-w-[330px] text-sm leading-6 text-foreground">
-        <p>
-          Start with the project owner. If they do not know who controls the access request, then route to the program owner.
+      <div className="w-full text-foreground">
+        <p className="text-base leading-6">
+          Start with {ownerLabel}. If that is not enough, route through {notification.context}.
         </p>
-        <p className="mt-2 text-muted">
+        <p className="mt-1 text-[13px] leading-[18px] text-muted">
           I would avoid broadcasting this to the whole workspace until the owner path is exhausted.
         </p>
       </div>
 
-      <div className="max-w-[330px] rounded-lg border border-border bg-background/60 p-3">
+      <div className="w-full rounded-lg border border-border bg-background/60 p-3">
         <p className="text-xs font-medium text-foreground">Draft nudge</p>
         <p className="mt-1 text-sm leading-5 text-muted">
-          Can you confirm who owns the API access unblocker for this work?
+          Can you confirm who owns the unblocker for {notification.title}?
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
