@@ -22,6 +22,7 @@ import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { useAppMode } from '@/hooks/useAppMode';
 import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
+import { FleetGraphChatProbe } from '@/components/FleetGraphChatProbe';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -213,6 +214,8 @@ export function AppLayout() {
             open={actionItemsModalOpen}
             onClose={() => setActionItemsModalOpen(false)}
           />
+
+          <FleetGraphChatProbe />
         </div>
       </SelectionPersistenceProvider>
     </TooltipProvider>
