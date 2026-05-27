@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
 import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detector.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
-import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
+import { withFleetGraphLangSmithTrace } from '../fleetgraph/langsmith-trace.js';
 import { saveBlockedImportantIssueFinding } from '../fleetgraph/persistence.js';
 import type { Principal } from '../security/principal.js';
 import { requireFirstRow } from '../utils/query-rows.js';
@@ -225,7 +225,7 @@ async function seedDemo(): Promise<void> {
   const lead = await upsertUser('fleetgraph.lead@ship.local', 'Dana Program Lead', workspace.id, 'member');
   const dependency = await upsertUser('fleetgraph.dependency@ship.local', 'Casey Dependency Owner', workspace.id, 'member');
 
-  const engineerPersonId = await upsertDocument({
+  await upsertDocument({
     workspaceId: workspace.id,
     type: 'person',
     title: engineer.name,
@@ -476,11 +476,24 @@ async function captureTraceEvidence(input: {
     isSuperAdmin: false,
   };
 
-  const proactive = await runFleetGraphManualTick({
+  const decisions = await detectBlockedImportantIssueDecisions({ workspaceId: input.workspaceId, db: pool });
+  const positiveDecision = decisions.find((decision) => decision.candidate.issue_id === input.positiveIssueId);
+  if (!positiveDecision) throw new Error('Missing positive FleetGraph demo decision for trace capture');
+
+  const proactive = await withFleetGraphLangSmithTrace({
+    name: 'fleetgraph.proactive_create',
+    inputs: {
+      mode: 'proactive',
+      trigger: 'detector_decision',
+      decision: positiveDecision.decision,
+    },
+  }, (externalTrace) => runFleetGraph({
     workspaceId: input.workspaceId,
     principal: proactivePrincipal,
-    limit: 10,
-  });
+    mode: 'proactive',
+    trigger: { type: 'detector_decision', detectorDecision: positiveDecision },
+    triggerReason: 'demo-proactive-create',
+  }, { db: pool, externalTrace }));
 
   const findingResult = await pool.query<{ id: string }>(
     `SELECT id
@@ -494,15 +507,27 @@ async function captureTraceEvidence(input: {
   );
   const findingId = requireFirstRow(findingResult.rows).id;
 
-  const explain = await runFleetGraph({
+  const explain = await withFleetGraphLangSmithTrace({
+    name: 'fleetgraph.on_demand_explain',
+    inputs: {
+      mode: 'on_demand',
+      trigger: 'explain_finding',
+    },
+  }, (externalTrace) => runFleetGraph({
     workspaceId: input.workspaceId,
     principal: onDemandPrincipal,
     mode: 'on_demand',
     trigger: { type: 'explain_finding', findingId },
     triggerReason: 'demo-why-flagged',
-  }, { db: pool });
+  }, { db: pool, externalTrace }));
 
-  const refine = await runFleetGraph({
+  const refine = await withFleetGraphLangSmithTrace({
+    name: 'fleetgraph.on_demand_refine',
+    inputs: {
+      mode: 'on_demand',
+      trigger: 'refine_draft',
+    },
+  }, (externalTrace) => runFleetGraph({
     workspaceId: input.workspaceId,
     principal: onDemandPrincipal,
     mode: 'on_demand',
@@ -512,24 +537,23 @@ async function captureTraceEvidence(input: {
       instruction: 'Make the unblock ask concise and mention the approval dependency.',
     },
     triggerReason: 'demo-refine-draft',
-  }, { db: pool });
+  }, { db: pool, externalTrace }));
 
   return {
-    proactive: proactive.results.map((result) => ({
-      decision: result.decision,
-      findingId: result.finding?.id ?? null,
-      traceMetadata: result.traceMetadata,
-    })),
-    explain: {
-      decision: explain.decision,
-      findingId,
-      traceMetadata: explain.traceMetadata,
-    },
-    refine: {
-      decision: refine.decision,
-      findingId,
-      traceMetadata: refine.traceMetadata,
-    },
+    proactive: traceEvidenceFor(proactive),
+    explain: traceEvidenceFor(explain),
+    refine: traceEvidenceFor(refine),
+  };
+}
+
+function traceEvidenceFor(capture: Awaited<ReturnType<typeof withFleetGraphLangSmithTrace>>) {
+  return {
+    decision: capture.result.decision,
+    findingId: capture.result.finding?.id ?? null,
+    traceId: capture.traceId,
+    traceUrl: capture.traceUrl,
+    sharedTraceUrl: capture.sharedTraceUrl,
+    traceMetadata: capture.result.traceMetadata,
   };
 }
 

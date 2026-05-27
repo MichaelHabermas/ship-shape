@@ -1290,7 +1290,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 ## Epic 10: MVP Compliance Closeout
 
-**Status:** Not started
+**Status:** In progress
 
 **Goal:** Close the formal MVP checklist gaps without expanding FleetGraph into a broader product than the Week 5 submission requires.
 
@@ -1298,7 +1298,7 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 ### Slice 10.1: Replace Dispatcher Semantics With A Real Shared Graph Runtime
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1317,9 +1317,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Focused graph tests proving proactive create and on-demand explain/refine use the same runtime.
 - Trace output names real graph nodes/edges, not a hand-written pretend path.
 
+**Implementation Note (2026-05-27):** `runFleetGraph` now invokes a real `@langchain/langgraph` `StateGraph` named `fleetgraph.shared_runtime`. The graph routes detector decisions, quiet exits, explain, refine, dismiss, resolve, and error triggers through one compiled runtime while preserving deterministic SQL candidate selection before the graph and existing FleetGraph-only persistence contracts. Focused core/eval tests passed against `ship_test_audit`.
+
 ### Slice 10.2: Produce Reviewer-Shareable Trace Links
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1339,9 +1341,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Root `FLEETGRAPH.md` test cases include actual shared trace URLs.
 - `pnpm langsmith:smoke` or equivalent trace capture command succeeds in the configured environment.
 
+**Implementation Note (2026-05-27):** Added explicit FleetGraph LangSmith trace capture with reviewer-safe root runs and node-path child spans. `pnpm langsmith:smoke` produced a shared smoke trace, and `pnpm fleetgraph:demo -- --capture-traces` produced shared traces for proactive create, on-demand explain, and on-demand refine. The shared LangGraph runtime keeps graph state minimal and sanitized so raw inputs, DB handles, prompts, or circular runtime objects are not sent; persisted FleetGraph run metadata stores only sanitized trace IDs/URLs and node paths.
+
 ### Slice 10.3: Complete MVP Cost And Invocation Accounting
 
-**Status:** Not started
+**Status:** Done
 
 **Do:**
 
@@ -1360,9 +1364,11 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 - Updated root `FLEETGRAPH.md` Cost Analysis section.
 - Query or command output showing recorded invocation counts.
 
+**Implementation Note (2026-05-27):** Updated canonical root `FLEETGRAPH.md` with actual local `fleetgraph_runs` accounting after demo trace capture: 26 explain, 19 refine, 18 proactive create, 8 update, and 1 resolve run; all recorded zero model calls, zero tokens, and zero estimated model cost because the reviewer-safe MVP path uses deterministic text generation. The Week 5 `my-docs` FleetGraph file is a pointer to the root submission doc, not a duplicated second FleetGraph spec.
+
 ### Slice 10.4: Verify Public MVP Deployment Configuration
 
-**Status:** Not started
+**Status:** Blocked
 
 **Do:**
 
@@ -1380,6 +1386,8 @@ FleetGraph currently detects blocked work from `issue_iterations.blockers_encoun
 
 - Public web URL, public API health/FleetGraph route check, and one reviewer-safe object URL.
 - Note whether findings are created by scheduled worker or reviewer-triggered manual run.
+
+**Implementation Note (2026-05-27):** Existing public Render endpoints were verified without redeploying: `https://ship-shape-api.onrender.com/health` returned HTTP 200 and `https://ship-shape-web.onrender.com` returned HTTP 200, but `https://ship-shape-api.onrender.com/api/fleetgraph/findings?sourceIssueId=...` returned HTTP 404 `Cannot GET /api/fleetgraph/findings`. The public deployment requirement remains blocked until a current API/web build with FleetGraph routes is deployed and seeded/reviewer-safe data or a reviewer-safe manual trigger is available.
 
 ## Epic 11: Contextual Agent Interface
 
