@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const showSampleConversation = true;
@@ -16,6 +16,7 @@ function getSurfaceLabel(pathname: string): string {
 
 export function FleetGraphChatProbe() {
   const location = useLocation();
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -28,6 +29,18 @@ export function FleetGraphChatProbe() {
     event.target.style.overflowY = event.target.scrollHeight > 120 ? 'auto' : 'hidden';
   };
 
+  useEffect(() => {
+    if (!contextOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (contextMenuRef.current?.contains(event.target as Node)) return;
+      setContextOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [contextOpen]);
+
   return (
     <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
       {open && (
@@ -35,9 +48,9 @@ export function FleetGraphChatProbe() {
           aria-label="Context chat"
           className="flex h-[min(620px,calc(100vh-7rem))] w-[min(420px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
         >
-          <header className="relative flex items-center justify-between border-b border-border px-3.5 py-2.5">
+          <header className="relative flex items-center justify-between border-b border-border px-3.5 pb-2.5 pt-2">
             <div className="min-w-0 pr-2">
-              <div className="flex max-h-12 min-w-0 flex-wrap gap-x-1.5 gap-y-1 overflow-hidden">
+              <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
                 <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted">
                   {surfaceLabel} - Untitled
                 </span>
@@ -95,7 +108,7 @@ export function FleetGraphChatProbe() {
               <CloseIcon />
             </button>
 
-            {contextOpen && <ContextPopover />}
+            {contextOpen && <ContextPopover popoverRef={contextMenuRef} />}
           </header>
 
           <div className="scrollbar-hide flex flex-1 overflow-y-auto px-4 py-5">
@@ -139,9 +152,9 @@ export function FleetGraphChatProbe() {
   );
 }
 
-function ContextPopover() {
+function ContextPopover({ popoverRef }: { popoverRef: RefObject<HTMLDivElement> }) {
   return (
-    <div className="absolute right-10 top-[calc(100%-4px)] z-10 w-[280px] rounded-lg border border-border bg-[#111111] p-2 shadow-xl shadow-black/40">
+    <div ref={popoverRef} className="absolute right-10 top-[calc(100%-4px)] z-10 w-[280px] rounded-lg border border-border bg-[#111111] p-2 shadow-xl shadow-black/40">
       <div className="scrollbar-hide max-h-56 space-y-1 overflow-y-auto">
         <div className="rounded px-2 py-1.5 text-xs text-muted">
           Current - Untitled
@@ -191,7 +204,7 @@ function EmptyConversation() {
 
 function SampleConversation() {
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div className="flex w-full flex-col gap-3">
       <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
         Why is this blocked?
       </div>
@@ -201,9 +214,17 @@ function SampleConversation() {
         <p>
           The document points to a stalled handoff, but there is not enough here to say who owns the unblock yet.
         </p>
-        <p className="mt-3 text-muted">
+        <p className="mt-2 text-muted">
           I would check the latest issue update and the linked project owner before nudging anyone.
         </p>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
+          <span>Sources:</span>
+          <button type="button" className="hover:text-foreground">Latest issue update</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" className="hover:text-foreground">Project owner</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" className="hover:text-foreground">Standup note</button>
+        </div>
       </div>
 
       <div className="max-w-[330px] rounded-lg border border-border bg-background/60 p-3">
@@ -227,7 +248,7 @@ function SampleConversation() {
         <p>
           The status moved from active work to blocked after the latest update. The blocker text mentions waiting on API access, but the document itself has not been updated with a named owner.
         </p>
-        <p className="mt-3 text-muted">
+        <p className="mt-2 text-muted">
           That makes this feel less like engineering discovery and more like a coordination gap.
         </p>
       </div>
@@ -240,7 +261,7 @@ function SampleConversation() {
         <p>
           Start with the project owner. If they do not know who controls the access request, then route to the program owner.
         </p>
-        <p className="mt-3 text-muted">
+        <p className="mt-2 text-muted">
           I would avoid broadcasting this to the whole workspace until the owner path is exhausted.
         </p>
       </div>

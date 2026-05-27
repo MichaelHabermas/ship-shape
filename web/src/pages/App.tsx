@@ -23,6 +23,7 @@ import { useAppMode } from '@/hooks/useAppMode';
 import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
 import { FleetGraphChatProbe } from '@/components/FleetGraphChatProbe';
+import { FleetGraphNotificationsProbe } from '@/components/FleetGraphNotificationsProbe';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -216,6 +217,7 @@ export function AppLayout() {
           />
 
           <FleetGraphChatProbe />
+          <FleetGraphNotificationsProbe />
         </div>
       </SelectionPersistenceProvider>
     </TooltipProvider>
