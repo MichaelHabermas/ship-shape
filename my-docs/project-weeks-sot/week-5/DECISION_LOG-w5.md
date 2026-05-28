@@ -491,3 +491,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Explicit FleetGraph worker workspace scope applies to both durable attention-event claiming and scheduled repair scans. Notification read rows also validate that their workspace matches the referenced finding workspace.
 
 **Consequence:** Deterministic E2E worker triggers cannot process another workspace's pending attention events, and read-state persistence cannot silently drift from the finding workspace if future code bypasses the current helper.
+
+## D062 - FleetGraph Tracing Is Provider-Neutral And Best-Effort
+
+**Date:** 2026-05-28
+
+**Decision:** FleetGraph external tracing now uses one provider-neutral facade that can emit the same sanitized run/node/model-call evidence to LangSmith and Langfuse. The graph receives one primary trace identity, preferring a provider with a shareable URL available before graph execution, while demo/smoke evidence can report all configured provider URLs.
+
+**Consequence:** Observability providers are evidence sinks, not execution control flow. Provider node setup/update/finalization failures are recorded as provider failures and must not skip, rerun, or fail the FleetGraph business node. Short-lived trace smoke/demo paths explicitly shut down tracing so Langfuse/OpenTelemetry exports are flushed before process exit. Future providers should plug into the facade contract or split into provider modules when the file grows, rather than leaking vendor SDKs into `core.ts`, routes, web, or shared packages.

@@ -1,9 +1,9 @@
-// Creates a tiny LangSmith trace to verify FleetGraph reviewer trace wiring.
+// Creates tiny external traces to verify FleetGraph reviewer trace wiring.
 import { randomUUID } from 'crypto';
 import { config as loadEnv } from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { withFleetGraphLangSmithTrace } from '../fleetgraph/langsmith-trace.js';
+import { shutdownFleetGraphTracing, withFleetGraphTrace } from '../fleetgraph/observability-trace.js';
 import type { FleetGraphResult } from '../fleetgraph/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,21 +14,38 @@ loadEnv({ path: join(__dirname, '../../.env') });
 
 async function main() {
   const runLabel = process.env.FLEETGRAPH_TRACE_LABEL?.trim() || `fleetgraph-smoke-${randomUUID().slice(0, 8)}`;
-  const capture = await withFleetGraphLangSmithTrace({
+  const capture = await withSmokeTimeout(withFleetGraphTrace({
     name: 'fleetgraph.trace_smoke',
     inputs: {
       label: runLabel,
-      note: 'Smoke trace to verify LangSmith wiring. No model call.',
+      note: 'Smoke trace to verify FleetGraph external tracing. No model call.',
     },
-  }, async (trace) => smokeResult(trace.traceId, trace.traceUrl));
+  }, async (trace) => smokeResult(trace.traceId, trace.traceUrl)));
+  await shutdownFleetGraphTracing();
 
   console.log(JSON.stringify({
     ok: true,
     traceId: capture.traceId,
     traceUrl: capture.traceUrl,
     sharedTraceUrl: capture.sharedTraceUrl,
+    providers: capture.providers,
     label: runLabel,
   }, null, 2));
+}
+
+async function withSmokeTimeout<T>(promise: Promise<T>): Promise<T> {
+  const timeoutMs = Number(process.env.FLEETGRAPH_TRACE_SMOKE_TIMEOUT_MS ?? 30000);
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timeout = setTimeout(() => reject(new Error(`FleetGraph trace smoke timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 function smokeResult(traceId: string | undefined, traceUrl: string | undefined): FleetGraphResult {
@@ -49,7 +66,7 @@ function smokeResult(traceId: string | undefined, traceUrl: string | undefined):
       source_issue_id: null,
       source_sprint_id: null,
       mode: 'proactive',
-      trigger_reason: 'langsmith_smoke',
+      trigger_reason: 'trace_smoke',
       decision: 'quiet_exit',
       dedupe_key: null,
       input_snapshot: {},
@@ -66,7 +83,7 @@ function smokeResult(traceId: string | undefined, traceUrl: string | undefined):
     runInput: {
       workspaceId: '00000000-0000-4000-8000-000000000002',
       mode: 'proactive',
-      triggerReason: 'langsmith_smoke',
+      triggerReason: 'trace_smoke',
       decision: 'quiet_exit',
       inputSnapshot: {},
       evidenceSnapshot: [],
@@ -90,7 +107,11 @@ function smokeResult(traceId: string | undefined, traceUrl: string | undefined):
   };
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+main()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await shutdownFleetGraphTracing().catch(() => undefined);
+  });

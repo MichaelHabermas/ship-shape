@@ -46,7 +46,7 @@ describe('FleetGraph trace metadata sanitizer', () => {
     });
   });
 
-  it('allows LangSmith trace URLs without allowing lookalike hosts', () => {
+  it('allows known provider trace URLs without allowing lookalike hosts', () => {
     expect(sanitizeFleetGraphTraceMetadata({
       mode: 'proactive',
       decision: 'create_finding',
@@ -60,7 +60,23 @@ describe('FleetGraph trace metadata sanitizer', () => {
       mode: 'proactive',
       decision: 'create_finding',
       nodePath: ['normalizeTrigger', 'produceOutput'],
+      traceUrl: 'https://us.cloud.langfuse.com/project/project-id/traces/trace-id',
+    })).toMatchObject({
+      traceUrl: 'https://us.cloud.langfuse.com/project/project-id/traces/trace-id',
+    });
+
+    expect(sanitizeFleetGraphTraceMetadata({
+      mode: 'proactive',
+      decision: 'create_finding',
+      nodePath: ['normalizeTrigger', 'produceOutput'],
       traceUrl: 'https://evilsmith.langchain.com/public/trace-id/r',
+    })).not.toHaveProperty('traceUrl');
+
+    expect(sanitizeFleetGraphTraceMetadata({
+      mode: 'proactive',
+      decision: 'create_finding',
+      nodePath: ['normalizeTrigger', 'produceOutput'],
+      traceUrl: 'https://cloud.langfuse.com.evil.example/project/project-id/traces/trace-id',
     })).not.toHaveProperty('traceUrl');
   });
 });

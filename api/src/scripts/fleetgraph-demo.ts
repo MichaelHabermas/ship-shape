@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
 import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
-import { withFleetGraphLangSmithTrace } from '../fleetgraph/langsmith-trace.js';
+import { shutdownFleetGraphTracing, withFleetGraphTrace } from '../fleetgraph/observability-trace.js';
 import { saveBlockedImportantIssueFinding } from '../fleetgraph/persistence.js';
 import type { Principal } from '../security/principal.js';
 import { requireFirstRow } from '../utils/query-rows.js';
@@ -534,7 +534,7 @@ async function captureTraceEvidence(input: {
   const positiveDecision = decisions.find((decision) => decision.candidate.issue_id === input.positiveIssueId);
   if (!positiveDecision) throw new Error('Missing positive FleetGraph demo decision for trace capture');
 
-  const proactive = await withFleetGraphLangSmithTrace({
+  const proactive = await withFleetGraphTrace({
     name: 'fleetgraph.proactive_create',
     inputs: {
       mode: 'proactive',
@@ -561,7 +561,7 @@ async function captureTraceEvidence(input: {
   );
   const findingId = requireFirstRow(findingResult.rows).id;
 
-  const explain = await withFleetGraphLangSmithTrace({
+  const explain = await withFleetGraphTrace({
     name: 'fleetgraph.on_demand_explain',
     inputs: {
       mode: 'on_demand',
@@ -575,7 +575,7 @@ async function captureTraceEvidence(input: {
     triggerReason: 'demo-why-flagged',
   }, { db: pool, externalTrace, traceRecorder }));
 
-  const refine = await withFleetGraphLangSmithTrace({
+  const refine = await withFleetGraphTrace({
     name: 'fleetgraph.on_demand_refine',
     inputs: {
       mode: 'on_demand',
@@ -600,13 +600,14 @@ async function captureTraceEvidence(input: {
   };
 }
 
-function traceEvidenceFor(capture: Awaited<ReturnType<typeof withFleetGraphLangSmithTrace>>) {
+function traceEvidenceFor(capture: Awaited<ReturnType<typeof withFleetGraphTrace>>) {
   return {
     decision: capture.result.decision,
     findingId: capture.result.finding?.id ?? null,
     traceId: capture.traceId,
     traceUrl: capture.traceUrl,
     sharedTraceUrl: capture.sharedTraceUrl,
+    providers: capture.providers,
     traceMetadata: capture.result.traceMetadata,
   };
 }
@@ -622,6 +623,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
       process.exitCode = 1;
     })
     .finally(async () => {
+      await shutdownFleetGraphTracing().catch(() => undefined);
       await pool.end();
     });
 }

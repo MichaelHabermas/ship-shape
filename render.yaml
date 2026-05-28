@@ -37,6 +37,16 @@ services:
         value: "true"
       - key: LANGSMITH_PROJECT
         value: ship-shape-fleetgraph
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGFUSE_BASE_URL
+        value: https://us.cloud.langfuse.com
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      - key: LANGFUSE_TRACING_ENVIRONMENT
+        value: production
 
   - type: web
     name: ship-shape-web

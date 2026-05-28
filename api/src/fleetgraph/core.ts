@@ -36,10 +36,10 @@ import {
   type SaveBlockedImportantIssueFindingInput,
 } from './persistence.js';
 import {
-  fleetGraphLangSmithEnabled,
-  withFleetGraphLangSmithTrace,
-  type FleetGraphLangSmithNodeRecorder,
-} from './langsmith-trace.js';
+  fleetGraphTracingEnabled,
+  withFleetGraphTrace,
+  type FleetGraphNodeRecorder,
+} from './observability-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
 import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
@@ -76,7 +76,7 @@ export type FleetGraphCoreOptions = {
   persistence?: FleetGraphPersistencePort;
   generateProactiveText?: typeof generateProactiveCreateText;
   externalTrace?: Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
-  traceRecorder?: FleetGraphLangSmithNodeRecorder;
+  traceRecorder?: FleetGraphNodeRecorder;
   observabilityError?: string;
 };
 
@@ -126,7 +126,7 @@ export async function runFleetGraph(
 ): Promise<FleetGraphResult> {
   if (shouldAutoCaptureTrace(options)) {
     try {
-      const capture = await withFleetGraphLangSmithTrace({
+      const capture = await withFleetGraphTrace({
         name: `FleetGraph ${input.mode} ${input.trigger.type}`,
         inputs: traceSafeRunInputs(input),
       }, (externalTrace, traceRecorder) => runFleetGraph(input, { ...options, externalTrace, traceRecorder }));
@@ -176,14 +176,14 @@ function traceSafeRunInputs(input: FleetGraphInput): Record<string, unknown> {
 function shouldAutoCaptureTrace(options: FleetGraphCoreOptions): boolean {
   return !options.externalTrace
     && process.env.NODE_ENV !== 'test'
-    && fleetGraphLangSmithEnabled();
+    && fleetGraphTracingEnabled();
 }
 
 function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord {
   return options.observabilityError
     ? {
         observability: {
-          langsmithCapture: 'failed',
+          traceCapture: 'failed',
           message: options.observabilityError.slice(0, 500),
         },
       }
