@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
 import { apiPost, readJson } from '@/lib/api';
-import type { ApiResponse } from '@/api/schemas';
+import type { ApiResponse } from '@ship/shared';
 
 // Warning appears 60 seconds before timeout
 const WARNING_THRESHOLD_MS = 60 * 1000;

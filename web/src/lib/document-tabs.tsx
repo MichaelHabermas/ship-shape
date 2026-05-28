@@ -9,11 +9,10 @@ import React from 'react';
  */
 
 /**
- * DocumentResponse represents the shape of a document from the API.
- * This is a flexible type since documents can have various properties
- * depending on their type.
+ * GET /documents/:id payload for tabs and {@link mapApiDocumentToUnifiedDocumentView}.
+ * Aligns with OpenAPI `Document` but allows flattened type-specific fields from routes.
  */
-export interface DocumentResponse extends Record<string, unknown> {
+export interface DocumentResponse {
   id: string;
   title: string;
   document_type: string;
@@ -23,11 +22,11 @@ export interface DocumentResponse extends Record<string, unknown> {
   updated_at?: string;
   created_by?: string | null;
   belongs_to?: unknown[];
-  // Common optional fields
   program_id?: string | null;
   owner_id?: string | null;
   color?: string;
   emoji?: string | null;
+  [key: string]: unknown;
 }
 
 export interface DocumentTabProps {

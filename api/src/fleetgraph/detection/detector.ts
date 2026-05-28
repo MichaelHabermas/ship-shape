@@ -1,4 +1,5 @@
 // FleetGraph deterministic detectors select candidate work before graph reasoning.
+import type { FleetGraphSignalType } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import {
   BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX,
@@ -9,7 +10,6 @@ import {
   recordFleetGraphRun,
   signalLabelForType,
   sqlBlockedImportantIssueDedupeKey,
-  type FleetGraphSignalType,
 } from '../persistence.js';
 import { listFleetGraphIssueAttentionContexts, type FleetGraphIssueAttentionContext } from './attention-context.js';
 import {

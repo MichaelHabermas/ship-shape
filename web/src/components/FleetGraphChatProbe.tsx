@@ -7,7 +7,7 @@ import type {
   FleetGraphEvidence,
   FleetGraphRunResponse,
   FleetGraphVisibleOutput,
-} from '@/api/schemas';
+} from '@ship/shared';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson, apiPostJson } from '@/lib/api';

@@ -38,9 +38,9 @@ import {
 import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
+import type { FleetGraphEvidenceItem } from '@ship/shared';
 import type {
   FleetGraphDecisionPacket,
-  FleetGraphEvidenceItem,
   FleetGraphInput,
   FleetGraphResult,
   FleetGraphTraceMetadata,

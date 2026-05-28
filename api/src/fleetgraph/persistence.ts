@@ -4,9 +4,6 @@ import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import { requireFirstRow } from '../utils/query-rows.js';
 
-export type { FleetGraphRunMode, FleetGraphSeverity } from '@ship/shared';
-export type { FleetGraphSignalType } from '@ship/shared';
-
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
 export type FleetGraphFindingStatus =

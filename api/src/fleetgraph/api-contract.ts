@@ -3,30 +3,14 @@ import type { Response } from 'express';
 import { z } from '../openapi/registry.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import { traceMetadataForResponse } from './trace.js';
+import { FLEETGRAPH_EVIDENCE_KIND_VALUES, type FleetGraphSignalType } from '@ship/shared';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
 import type { FleetGraphFinding, FleetGraphNotificationFinding } from './persistence.js';
-import { signalLabelForType, signalTypeFromDedupeKey, type FleetGraphSignalType } from './persistence.js';
+import { signalLabelForType, signalTypeFromDedupeKey } from './persistence.js';
 import { chatAnswerFromChangeSummary, chatAnswerFromVisibleOutput, unsupportedChatAnswer } from './runtime/chat.js';
 
-export type {
-  FleetGraphChangeSummaryResponse,
-  FleetGraphChatAnswer,
-  FleetGraphChatContext,
-  FleetGraphChatRequest,
-  FleetGraphChatResponse,
-  FleetGraphFindingResponse,
-  FleetGraphFindingsListResponse,
-  FleetGraphManualRunResponse,
-  FleetGraphManualRunResult,
-  FleetGraphNotificationResponse,
-  FleetGraphNotificationsListResponse,
-  FleetGraphRunResponse,
-  FleetGraphTrace,
-  FleetGraphVisibleOutput as FleetGraphWireVisibleOutput,
-} from '@ship/shared';
-
 export const FleetGraphEvidenceSchema = z.object({
-  kind: z.string(),
+  kind: z.enum(FLEETGRAPH_EVIDENCE_KIND_VALUES),
   sourceDocumentId: UuidSchema.optional(),
   sourceType: z.enum(['issue', 'sprint']).optional(),
   claim: z.string(),

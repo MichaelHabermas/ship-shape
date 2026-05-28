@@ -4,8 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { Icon } from '@/components/icons/uswds';
 import { publicFetchJson } from '@/lib/public-fetch';
+import type { ApiResponse } from '@ship/shared';
 import type {
-  ApiResponse,
   AuthProviderLoginData,
   AuthProviderStatusData,
   SetupStatusData,

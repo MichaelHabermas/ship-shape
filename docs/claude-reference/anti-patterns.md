@@ -456,6 +456,85 @@ Follow the transaction pattern used in:
 
 ---
 
+## 11. Type Re-Export Barrels (Import Only to Re-Export)
+
+### What it looks like
+
+A module imports a type solely to publish it again under the same name:
+
+```typescript
+import type { FleetGraphTrace } from '@ship/shared';
+
+export type { FleetGraphTrace } from '@ship/shared';
+```
+
+Or the same idea through an intermediate file:
+
+```typescript
+// api/src/fleetgraph/types.ts
+export type { FleetGraphEvidenceItem } from '@ship/shared';
+
+// elsewhere
+import type { FleetGraphEvidenceItem } from '../fleetgraph/types.js';
+```
+
+Hook and schema “barrels” do the same thing with OpenAPI aliases:
+
+```typescript
+export type { ApiResponse } from '@ship/shared';
+export type { Project } from '@/api/schemas';
+```
+
+### Why it's problematic
+
+- **Hides the source of truth** — readers cannot tell whether a type is wire contract (`@ship/shared`), OpenAPI (`web/src/api/schemas.ts`), or runtime-only (`api/src/fleetgraph/types.ts`) without opening intermediate files.
+- **Duplicates hubs** — one package ends up with several competing barrels (`types.ts`, `persistence.ts`, `api-contract.ts`, `schemas.ts`) that drift as soon as one file imports from the canonical module directly.
+- **No added behavior** — unlike a facade that wraps or narrows types, pure re-exports are indirection with zero semantics.
+- **Encourages more indirection** — the next contributor re-exports from the barrel instead of the defining module, and the graph gets worse.
+
+### When it is acceptable (rare)
+
+Only when the re-export is **part of a module that owns real API**, not a type-only passthrough:
+
+- **`export *` from a module that defines** functions, constants, and types together (e.g. a feature’s public `index.ts` that is the intentional package boundary).
+- **A facade that does work** — e.g. `web/src/lib/document-view-guards.ts` re-exports shared guards alongside web-specific helpers that call them.
+- **Narrowing or renaming for a boundary** — e.g. `export type FleetGraphTraceMetadata = Omit<FleetGraphTrace, 'decision'> & { decision: FleetGraphRunDecision }` in a file that also defines runtime-only types (import shared types for composition; do not re-export the wire shape unless this file is the agreed public entry).
+
+If the only change is `export type { X } from '…'`, import `X` at the call site instead.
+
+### What to do instead
+
+| Type kind | Import from |
+| --- | --- |
+| Cross-package wire / domain contract | `@ship/shared` |
+| HTTP/OpenAPI component shape (web) | `@/api/schemas` (OpenAPI-derived aliases) or generated `ship-openapi.d.ts` |
+| API runtime-only (internal graph, DB helpers) | The module that **defines** the type (e.g. `api/src/fleetgraph/types.ts`, `api/src/fleetgraph/persistence.ts`) |
+
+```typescript
+// Good — consumer imports at source
+import type { FleetGraphTrace } from '@ship/shared';
+import type { FleetGraphTraceMetadata } from '../fleetgraph/types.js';
+import type { ApiResponse } from '@ship/shared';
+import type { IssueListItem } from '@/api/schemas';
+```
+
+```typescript
+// Good — local file uses shared types to define its own export
+import type { FleetGraphTrace } from '@ship/shared';
+
+export type FleetGraphTraceMetadata = Omit<FleetGraphTrace, 'decision'> & {
+  decision: FleetGraphRunDecision;
+};
+```
+
+Do **not** add `export type { FleetGraphTrace } from '@ship/shared'` in that file unless this path is the deliberate public API for the whole subtree (and the team enforces that everywhere).
+
+### Cleanup reference (2026)
+
+FleetGraph and related barrels were removed in favor of direct imports; see git history on `api/src/fleetgraph/types.ts`, `web/src/api/schemas.ts`, and sibling files.
+
+---
+
 ## Quick Reference
 
 | Anti-Pattern | Detection | Fix |
@@ -470,3 +549,4 @@ Follow the transaction pattern used in:
 | Types in routes | `grep "interface" api/src/routes` | Move to `shared/` |
 | Magic numbers | `grep -E "\d{4,}"` | Use named constants |
 | Missing transactions | Multiple `pool.query` calls | Use `BEGIN`/`COMMIT` |
+| Type re-export barrels | `export type { X } from '…'` with no local definition | Import `X` from defining module (`@ship/shared`, `@/api/schemas`, etc.) |

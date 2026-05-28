@@ -1,10 +1,9 @@
 // Shapes FleetGraph decision packets, persisted runs, and deltas into visible output.
 import { proposedRecipientForVisibleOutput, recipientRationaleForRole } from '../evidence.js';
+import type { FleetGraphChangeSummary, FleetGraphEvidenceItem } from '@ship/shared';
 import type { FleetGraphRun } from '../persistence.js';
 import type {
-  FleetGraphChangeSummary,
   FleetGraphDecisionPacket,
-  FleetGraphEvidenceItem,
   FleetGraphVisibleOutput,
 } from '../types.js';
 import { isJsonRecord, stringFromJsonRecord } from './json.js';

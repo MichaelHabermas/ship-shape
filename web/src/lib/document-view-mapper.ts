@@ -6,6 +6,7 @@ import type {
   SprintDocumentView,
   UnifiedDocumentView,
 } from '@ship/shared';
+import { asIssuePriority, asIssueState } from '@ship/shared';
 import type { DocumentResponse } from '@/lib/document-tabs';
 import {
   getBelongsTo,
@@ -50,13 +51,13 @@ function getSprintStatus(value: unknown): SprintDocumentView['status'] {
 }
 
 export function getDocumentAssociationId(
-  document: Pick<DocumentResponse, 'belongs_to'>,
+  document: DocumentResponse,
   type: 'program' | 'project' | 'sprint' | 'parent'
 ): string | null {
   return getBelongsToId(document.belongs_to, type);
 }
 
-export function getDocumentProgramId(document: Pick<DocumentResponse, 'belongs_to'>): string | null {
+export function getDocumentProgramId(document: DocumentResponse): string | null {
   return getDocumentAssociationId(document, 'program');
 }
 
@@ -153,8 +154,8 @@ export function mapApiDocumentToUnifiedDocumentView(document: DocumentResponse):
     return {
       ...base,
       document_type: 'issue',
-      state: getString(document.state) || 'backlog',
-      priority: getString(document.priority) || 'medium',
+      state: asIssueState(document.state),
+      priority: asIssuePriority(document.priority),
       estimate: getNumber(document.estimate),
       assignee_id: getNullableString(document.assignee_id),
       assignee_name: getNullableString(document.assignee_name),

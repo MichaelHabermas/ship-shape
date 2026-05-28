@@ -1,35 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import type { IssueState } from '@ship/shared';
+import { asIssueState } from '@ship/shared';
+import type { WeekDetail, WeekSprintIssue } from '@/api/schemas';
+import { apiGetJson } from '@/lib/api';
 import { StandupFeed } from '@/components/StandupFeed';
 import { IssuesList } from '@/components/IssuesList';
 import { WeekProgressGraph } from './WeekProgressGraph';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+export type { WeekDetail, WeekSprintIssue };
 
-export interface WeekDetail {
-  id: string;
-  name: string;
-  sprint_number: number;
-  workspace_sprint_start_date: string;
-  owner: { id: string; name: string; email: string } | null;
-  issue_count: number;
-  completed_count: number;
-  plan: string | null;
-}
-
-export interface WeekIssue {
-  id: string;
-  title: string;
-  state: string;
-  priority: string;
-  ticket_number: number;
-  assignee_id: string | null;
-  assignee_name: string | null;
-  assignee_archived?: boolean;
-  display_id: string;
-  sprint_ref_id: string | null;
-  estimate: number | null;
-}
+type WeekIssue = WeekSprintIssue & { state: IssueState };
 
 export interface WeekDetailViewProps {
   sprintId: string;
@@ -58,19 +39,20 @@ export function WeekDetailView({
 
     async function fetchSprintData() {
       try {
-        const [sprintRes, issuesRes] = await Promise.all([
-          fetch(`${API_URL}/api/weeks/${sprintId}`, { credentials: 'include' }),
-          fetch(`${API_URL}/api/weeks/${sprintId}/issues`, { credentials: 'include' }),
+        const [sprintData, issueRows] = await Promise.all([
+          apiGetJson<WeekDetail>(`/api/weeks/${sprintId}`, 'Failed to fetch sprint'),
+          apiGetJson<WeekSprintIssue[]>(`/api/weeks/${sprintId}/issues`, 'Failed to fetch sprint issues'),
         ]);
 
         if (cancelled) return;
 
-        if (sprintRes.ok) {
-          setSprint(await sprintRes.json());
-        }
-        if (issuesRes.ok) {
-          setIssues(await issuesRes.json());
-        }
+        setSprint(sprintData);
+        setIssues(
+          issueRows.map((issue) => ({
+            ...issue,
+            state: asIssueState(issue.state),
+          })),
+        );
       } catch (err) {
         console.error('Failed to fetch sprint data:', err);
       } finally {

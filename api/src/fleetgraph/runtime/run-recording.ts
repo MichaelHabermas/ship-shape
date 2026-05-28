@@ -6,10 +6,9 @@ import type {
   RecordFleetGraphRunInput,
   SaveBlockedImportantIssueFindingInput,
 } from '../persistence.js';
+import type { FleetGraphChangeSummary, FleetGraphEvidenceItem } from '@ship/shared';
 import type {
-  FleetGraphChangeSummary,
   FleetGraphCostMetadata,
-  FleetGraphEvidenceItem,
   FleetGraphInput,
   FleetGraphResult,
   FleetGraphTokenMetadata,

@@ -8,11 +8,10 @@ import { principalFromRequest } from '../security/principal.js';
 import { authorizeRequest } from '../security/route-capability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
+import type { FleetGraphFindingResponse, FleetGraphNotificationResponse } from '@ship/shared';
 import {
   FleetGraphFindingsListResponseSchema,
   FleetGraphNotificationsListResponseSchema,
-  type FleetGraphFindingResponse,
-  type FleetGraphNotificationResponse,
   FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
   FleetGraphRunResponseSchema,

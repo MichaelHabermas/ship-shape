@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type {
   FleetGraphNotificationResponse,
   FleetGraphNotificationsListResponse,
-} from '@/api/schemas';
+} from '@ship/shared';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson, apiPostJson } from '@/lib/api';
 

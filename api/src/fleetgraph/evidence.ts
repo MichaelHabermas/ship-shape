@@ -5,7 +5,8 @@ import { authorize } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
 import type { BlockedImportantIssueCandidate } from './detection/detector.js';
 import { getFleetGraphFindingById, type FleetGraphFinding, type JsonRecord } from './persistence.js';
-import type { FleetGraphEvidenceItem, FleetGraphVisibleOutput } from './types.js';
+import type { FleetGraphEvidenceItem } from '@ship/shared';
+import type { FleetGraphVisibleOutput } from './types.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 

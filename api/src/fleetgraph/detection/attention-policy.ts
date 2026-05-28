@@ -1,5 +1,5 @@
 // FleetGraph attention policy maps issue context into one product signal decision.
-import type { FleetGraphSignalType } from '../persistence.js';
+import type { FleetGraphSignalType } from '@ship/shared';
 import type { FleetGraphIssueAttentionContext } from './attention-context.js';
 
 export const STALE_ISSUE_DAYS = 180;

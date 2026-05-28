@@ -16,86 +16,45 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import type { WeeklyReviewActionsState } from '@/hooks/useWeeklyReviewActions';
 import type { Person } from '@/components/PersonCombobox';
-import type { ApprovalTracking, WikiDocumentView, IssueDocumentView } from '@ship/shared';
+import type {
+  ApprovalTracking,
+  IssueDocumentView,
+  PanelDocumentType,
+  ProgramDocumentView,
+  ProjectDocumentView,
+  SprintDocumentView,
+  WikiDocumentView,
+} from '@ship/shared';
 
-// Document types that have properties panels
-export type PanelDocumentType = 'wiki' | 'issue' | 'project' | 'sprint' | 'program' | 'weekly_plan' | 'weekly_retro';
-
-// Base document interface
-interface BaseDocument {
-  id: string;
-  title: string;
-  document_type: string;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string | null;
-  properties?: Record<string, unknown>;
-}
+export type { PanelDocumentType };
 
 type WikiDocument = WikiDocumentView;
 type IssueDocument = IssueDocumentView;
 
-// Project document properties
-interface ProjectDocument extends BaseDocument {
-  document_type: 'project';
-  impact: number | null;
-  confidence: number | null;
-  ease: number | null;
-  ice_score?: number | null;
-  color: string;
-  emoji: string | null;
-  program_id: string | null;
-  owner?: { id: string; name: string; email: string } | null;
-  owner_id?: string | null;
-  // RACI fields
-  accountable_id?: string | null;
-  consulted_ids?: string[];
-  informed_ids?: string[];
-  sprint_count?: number;
-  issue_count?: number;
-  converted_from_id?: string | null;
-  // Approval tracking
-  plan?: string | null;
+type ProjectDocument = ProjectDocumentView & {
   plan_approval?: ApprovalTracking | null;
   retro_approval?: ApprovalTracking | null;
   has_retro?: boolean;
-}
+};
 
-// Sprint document properties
-interface SprintDocument extends BaseDocument {
-  document_type: 'sprint';
-  status: 'planning' | 'active' | 'completed';
-  program_id: string | null;
-  program_name?: string;
+type SprintDocument = SprintDocumentView & {
   program_accountable_id?: string | null;
   owner_reports_to?: string | null;
-  issue_count?: number;
-  completed_count?: number;
-  plan?: string;
-  owner?: { id: string; name: string; email: string } | null;
-  owner_id?: string | null;
-  // Approval tracking
   plan_approval?: ApprovalTracking | null;
   review_approval?: ApprovalTracking | null;
   accountable_id?: string | null;
   has_review?: boolean;
-}
+};
 
-// Program document properties
-interface ProgramDocument extends BaseDocument {
-  document_type: 'program';
-  color?: string;
-  emoji?: string | null;
-  owner_id?: string | null;
-  // RACI fields
-  accountable_id?: string | null;
-  consulted_ids?: string[];
-  informed_ids?: string[];
-}
+type ProgramDocument = ProgramDocumentView;
 
-// Weekly plan document properties
-interface WeeklyPlanDocument extends BaseDocument {
+interface WeeklyPlanDocument {
+  id: string;
+  title: string;
   document_type: 'weekly_plan';
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string | null;
   properties?: {
     person_id?: string;
     project_id?: string;
@@ -104,9 +63,13 @@ interface WeeklyPlanDocument extends BaseDocument {
   };
 }
 
-// Weekly retro document properties
-interface WeeklyRetroDocument extends BaseDocument {
+interface WeeklyRetroDocument {
+  id: string;
+  title: string;
   document_type: 'weekly_retro';
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string | null;
   properties?: {
     person_id?: string;
     project_id?: string;
@@ -529,16 +492,16 @@ export function PropertiesPanel({
         );
       }
 
-      default:
-        // TypeScript narrows to never here since all cases are handled
-        // Cast to BaseDocument to access document_type for the fallback display
+      default: {
+        const fallback = document as PanelDocument;
         return (
           <div className="p-4">
             <p className="text-xs text-muted">
-              Document type: {(document as BaseDocument).document_type}
+              Document type: {fallback.document_type}
             </p>
           </div>
         );
+      }
     }
   }, [document, panelProps, onUpdate, highlightedFields, canApprove, userNames, handleApprovalUpdate, weeklyReviewState]);
 

@@ -1,5 +1,6 @@
 // FleetGraph eval types define golden-case contracts before graph behavior exists.
-import type { FleetGraphRunDecision, FleetGraphRunMode } from '../persistence.js';
+import type { FleetGraphRunMode } from '@ship/shared';
+import type { FleetGraphRunDecision } from '../persistence.js';
 
 export type FleetGraphEvalMode = FleetGraphRunMode;
 

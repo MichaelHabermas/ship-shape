@@ -284,7 +284,7 @@ export function UnifiedDocumentPage() {
   // Handle update
   const handleUpdate = useCallback(async (updates: Partial<UnifiedDocument>) => {
     if (!id) return;
-    await updateMutation.mutateAsync({ documentId: id, updates: updates });
+    await updateMutation.mutateAsync({ documentId: id, updates });
   }, [updateMutation, id]);
 
   // Handle delete

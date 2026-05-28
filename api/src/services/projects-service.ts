@@ -1,4 +1,5 @@
 // Project service owns project CRUD, rollups, and approval side effects.
+import type { ProjectRouteProperties } from '@ship/shared';
 import { pool } from '../db/client.js';
 import {
   extractProjectFromRow,
@@ -6,7 +7,6 @@ import {
   projectAccessible,
   type DocumentTypeRow,
   type ProjectPropertiesRow,
-  type ProjectRouteProperties,
   type ProjectRow,
   type UserRow,
 } from '../db/projects-repository.js';

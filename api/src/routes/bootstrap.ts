@@ -2,7 +2,12 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
-import { computeICEScore, DEFAULT_PROJECT_PROPERTIES, type InferredProjectStatus, type ProjectProperties } from '@ship/shared';
+import {
+  computeICEScore,
+  DEFAULT_PROJECT_PROPERTIES,
+  type InferredProjectStatus,
+  type ProjectRouteProperties,
+} from '@ship/shared';
 import { getBelongsToAssociationsBatch } from '../utils/document-crud.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
@@ -53,13 +58,7 @@ type ProgramRow = {
 type ProjectRow = {
   id: string;
   title: string;
-  properties: (Partial<ProjectProperties> & {
-    is_complete?: boolean | null;
-    missing_fields?: string[];
-    plan?: string | null;
-    has_retro?: boolean;
-    target_date?: string | null;
-  }) | null;
+  properties: ProjectRouteProperties | null;
   program_id?: string | null;
   archived_at: Date | null;
   created_at: Date;

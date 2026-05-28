@@ -2,7 +2,8 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { publicFetchJson } from '@/lib/public-fetch';
-import type { ApiResponse, CsrfTokenResponse, SetupStatusData } from '@/api/schemas';
+import type { ApiResponse } from '@ship/shared';
+import type { CsrfTokenResponse, SetupStatusData } from '@/api/schemas';
 
 export function SetupPage() {
   const [name, setName] = useState('');

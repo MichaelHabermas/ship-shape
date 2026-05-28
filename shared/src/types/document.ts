@@ -45,6 +45,9 @@ export interface BelongsTo {
   color?: string;
 }
 
+/** HTTP/OpenAPI alias for {@link BelongsTo} (same wire shape). */
+export type BelongsToResponse = BelongsTo;
+
 // Cascade warning for incomplete children when closing parent issue
 export interface IncompleteChild {
   id: string;
