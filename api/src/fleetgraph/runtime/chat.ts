@@ -1,6 +1,14 @@
 // FleetGraph chat helpers keep typed on-demand prompts scoped to the active context.
-import type { FleetGraphChatAnswer } from '@ship/shared';
-import type { FleetGraphChangeSummary, FleetGraphVisibleOutput } from '../types.js';
+import type { FleetGraphChangeSummary } from '@ship/shared';
+import type { FleetGraphVisibleOutput } from '../types.js';
+
+type FleetGraphChatAnswerPayload = {
+  title: string;
+  body: string;
+  nextStep?: string;
+  sources: Array<{ label: string; kind: string }>;
+  humanGate: Record<string, unknown>;
+};
 
 export type FleetGraphChatIntent =
   | 'why_flagged'
@@ -25,7 +33,7 @@ export function classifyFleetGraphChatPrompt(prompt: string): FleetGraphChatInte
   return 'unsupported';
 }
 
-export function chatAnswerFromVisibleOutput(output: FleetGraphVisibleOutput): FleetGraphChatAnswer {
+export function chatAnswerFromVisibleOutput(output: FleetGraphVisibleOutput): FleetGraphChatAnswerPayload {
   const nextStep = recommendedActionText(output);
   return {
     title: output.title,
@@ -36,7 +44,7 @@ export function chatAnswerFromVisibleOutput(output: FleetGraphVisibleOutput): Fl
   };
 }
 
-export function chatAnswerFromChangeSummary(summary: FleetGraphChangeSummary): FleetGraphChatAnswer {
+export function chatAnswerFromChangeSummary(summary: FleetGraphChangeSummary): FleetGraphChatAnswerPayload {
   const nextRow = summary.rows.find((row) => row.label === 'Next');
   return {
     title: summary.headline,
@@ -47,7 +55,7 @@ export function chatAnswerFromChangeSummary(summary: FleetGraphChangeSummary): F
   };
 }
 
-export function unsupportedChatAnswer(reason: string): FleetGraphChatAnswer {
+export function unsupportedChatAnswer(reason: string): FleetGraphChatAnswerPayload {
   return {
     title: 'FleetGraph needs context',
     body: reason,

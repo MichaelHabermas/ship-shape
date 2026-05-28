@@ -1,7 +1,10 @@
 // FleetGraph persistence helpers own finding/run writes without mutating Ship source records.
+import type { FleetGraphRunMode, FleetGraphSeverity } from '@ship/shared';
 import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import { requireFirstRow } from '../utils/query-rows.js';
+
+export type { FleetGraphRunMode, FleetGraphSeverity } from '@ship/shared';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -12,10 +15,6 @@ export type FleetGraphFindingStatus =
   | 'resolved'
   | 'suppressed'
   | 'error';
-
-export type FleetGraphSeverity = 'low' | 'medium' | 'high' | 'urgent';
-
-export type FleetGraphRunMode = 'proactive' | 'on_demand';
 
 export type FleetGraphRunDecision =
   | 'quiet_exit'

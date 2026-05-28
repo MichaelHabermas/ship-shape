@@ -1,9 +1,15 @@
 // Renders contextual FleetGraph chat for source-aware page and notification discussion.
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type {
+  FleetGraphChatContext,
+  FleetGraphChatResponse,
+  FleetGraphEvidence,
+  FleetGraphRunResponse,
+  FleetGraphVisibleOutput,
+} from '@/api/schemas';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
-import type { FleetGraphChatAnswer } from '@ship/shared';
 import { apiGetJson, apiPostJson } from '@/lib/api';
 
 interface ChatContextItem {
@@ -11,42 +17,6 @@ interface ChatContextItem {
   label: string;
   sourcePath?: string;
   notification?: FleetGraphNotificationProbeItem;
-}
-
-interface FleetGraphEvidenceItem {
-  kind: string;
-  claim: string;
-  excerpt?: string;
-  visibility: 'internal' | 'actor_visible' | 'restricted';
-}
-
-interface FleetGraphVisibleOutput {
-  title: string;
-  summary: string;
-  recommendedAction?: {
-    label?: string;
-    text?: string;
-    summary?: string;
-  };
-  humanGate: Record<string, unknown>;
-  evidence: FleetGraphEvidenceItem[];
-  noSafeOutput?: boolean;
-}
-
-interface FleetGraphExplainResponse {
-  visibleOutput?: FleetGraphVisibleOutput;
-}
-
-interface FleetGraphChatContext {
-  kind: 'document' | 'notification' | 'finding';
-  documentId?: string;
-  findingId?: string;
-  sourcePath?: string;
-}
-
-interface FleetGraphChatResponse extends FleetGraphExplainResponse {
-  decision: string;
-  answer: FleetGraphChatAnswer;
 }
 
 interface DocumentTitleResponse {
@@ -63,7 +33,7 @@ interface ChatTurn {
   id: number;
   prompt: string;
   status: 'loading' | 'ready' | 'error';
-  response?: FleetGraphChatResponse;
+  response?: Pick<FleetGraphChatResponse, 'decision' | 'answer'>;
 }
 
 export interface FleetGraphChatProbeRequest {
@@ -206,7 +176,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
 
     async function explainFinding() {
       try {
-        const response = await apiPostJson<FleetGraphExplainResponse>(
+        const response = await apiPostJson<FleetGraphRunResponse>(
           `/api/fleetgraph/findings/${findingId}/explain`,
           {},
           'Failed to explain notification'
@@ -713,7 +683,7 @@ function sourceLabelsForConversation(
   return labels.filter((label, index) => label !== '-' && labels.indexOf(label) === index);
 }
 
-function sourceLabelForEvidence(item: FleetGraphEvidenceItem): string | null {
+function sourceLabelForEvidence(item: FleetGraphEvidence): string | null {
   if (item.kind === 'blocker') return null;
   if (item.kind === 'source_issue') return 'Source issue';
   if (item.kind === 'source_sprint') return 'Week';

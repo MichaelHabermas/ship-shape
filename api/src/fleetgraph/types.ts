@@ -1,4 +1,11 @@
 // FleetGraph core types define the shared graph boundary for proactive and on-demand runs.
+import type {
+  FleetGraphChangeSummary,
+  FleetGraphChatContext,
+  FleetGraphEvidenceVisibility,
+  FleetGraphSeverity,
+  FleetGraphTrace as FleetGraphWireTrace,
+} from '@ship/shared';
 import type { Principal } from '../security/principal.js';
 import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detector.js';
 import type {
@@ -6,13 +13,18 @@ import type {
   FleetGraphRun,
   FleetGraphRunDecision,
   FleetGraphRunMode,
-  FleetGraphSeverity,
   JsonRecord,
   RecordFleetGraphRunInput,
   SaveBlockedImportantIssueFindingInput,
 } from './persistence.js';
 
-export type FleetGraphEvidenceVisibility = 'internal' | 'actor_visible' | 'restricted';
+export type {
+  FleetGraphChangeSummary,
+  FleetGraphChangeSummaryRow,
+  FleetGraphChatContext,
+  FleetGraphChatContextKind,
+  FleetGraphEvidenceVisibility,
+} from '@ship/shared';
 
 export type FleetGraphEvidenceItem = {
   kind: 'source_issue' | 'source_sprint' | 'blocker' | 'dedupe' | 'finding' | 'restricted';
@@ -40,40 +52,8 @@ export type FleetGraphVisibleOutput = {
   noSafeOutput?: boolean;
 };
 
-export type FleetGraphChangeSummaryRow = {
-  label: 'Now' | 'Changed' | 'Cleared' | 'Next' | 'Unknown' | 'Not done';
-  text: string;
-};
-
-export type FleetGraphChangeSummary = {
-  headline: string;
-  rows: FleetGraphChangeSummaryRow[];
-};
-
-export type FleetGraphChatContextKind =
-  | 'issue'
-  | 'sprint'
-  | 'project'
-  | 'program'
-  | 'document'
-  | 'workspace'
-  | 'notification'
-  | 'finding';
-
-export type FleetGraphChatContext = {
-  kind: FleetGraphChatContextKind;
-  documentId?: string;
-  findingId?: string;
-  sourcePath?: string;
-};
-
-export type FleetGraphTraceMetadata = {
-  traceId?: string;
-  traceUrl?: string;
-  mode: FleetGraphRunMode;
+export type FleetGraphTraceMetadata = Omit<FleetGraphWireTrace, 'decision'> & {
   decision: FleetGraphRunDecision;
-  nodePath: string[];
-  failureCategory?: string;
 };
 
 export type FleetGraphTokenMetadata = {
