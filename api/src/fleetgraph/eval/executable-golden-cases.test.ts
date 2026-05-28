@@ -61,13 +61,13 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
     status: 'needs_confirmation',
     severity: 'urgent',
     confidence: 0.86,
-    title: 'Blocked active-week work: Blocked issue',
-    summary: 'Blocked issue is urgent/high active-week work with a recorded blocker.',
+    title: 'Blocked issue: Blocked issue',
+    summary: 'Blocked issue is blocked with a recorded blocker.',
     evidence_snapshot: [{
       kind: 'source_issue',
       sourceDocumentId: issueId,
       sourceType: 'issue',
-      claim: 'Source issue is urgent/high active-week work.',
+      claim: 'Source issue is blocked.',
       visibility: 'internal',
       visibleFields: ['title'],
     }, {
@@ -125,6 +125,7 @@ function persistence(existingFinding = finding()): FleetGraphPersistencePort {
     saveFinding: vi.fn(async () => existingFinding),
     recordRun: vi.fn(async (input: RecordFleetGraphRunInput) => run(input.decision)),
     getFinding: vi.fn(async () => existingFinding),
+    listAnchorRuns: vi.fn(async () => []),
     refineDraft: vi.fn(async (input: Parameters<FleetGraphPersistencePort['refineDraft']>[0]) =>
       finding({ draft_content: input.draftContent })
     ),
@@ -150,7 +151,7 @@ function requireMockInput<TArgs extends unknown[]>(
 
 describe('FleetGraph executable golden cases', () => {
   it('executes proactive create with mocked model and human gate', async () => {
-    const testCase = requireGoldenCase('fg-create-blocked-urgent-active-week');
+    const testCase = requireGoldenCase('fg-create-blocked-visible-issue');
     const port = persistence();
 
     const result = await runFleetGraph({
@@ -195,14 +196,14 @@ describe('FleetGraph executable golden cases', () => {
     }));
   });
 
-  it('executes quiet no-blocker without model calls or finding writes', async () => {
-    const testCase = requireGoldenCase('fg-quiet-no-blocker');
+  it('executes restricted-context quiet exit without model calls or finding writes', async () => {
+    const testCase = requireGoldenCase('fg-restricted-source-hidden');
     const port = persistence();
 
     const result = await runFleetGraph({
       workspaceId,
       mode: testCase.mode,
-      trigger: { type: 'quiet_exit', quietExits: [{ reason: 'no_blocker', count: 1 }] },
+      trigger: { type: 'quiet_exit', quietExits: [{ reason: 'insufficient_visible_evidence', count: 1 }] },
     }, { persistence: port });
 
     expect(result.decision).toBe(testCase.expectedDecision);

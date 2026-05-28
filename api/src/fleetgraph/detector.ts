@@ -31,11 +31,7 @@ export type BlockedImportantIssueCandidate = BlockedImportantIssueCandidateRow &
 };
 
 export type FleetGraphDetectorQuietExitReason =
-  | 'inactive_week'
-  | 'no_blocker'
-  | 'medium_low_priority'
   | 'done_or_cancelled'
-  | 'missing_fallback_owner'
   | 'duplicate_open_finding'
   | 'insufficient_visible_evidence';
 
@@ -311,11 +307,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
   return [
     'done_or_cancelled',
     'duplicate_open_finding',
-    'inactive_week',
     'insufficient_visible_evidence',
-    'medium_low_priority',
-    'missing_fallback_owner',
-    'no_blocker',
   ].map((reason) => ({
     reason: reason as FleetGraphDetectorQuietExitReason,
     count: countsByReason.get(reason as FleetGraphDetectorQuietExitReason) ?? 0,

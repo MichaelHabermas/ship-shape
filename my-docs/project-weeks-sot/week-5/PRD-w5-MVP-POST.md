@@ -168,7 +168,7 @@ Scenario packs should include role-rich people data, associations, recent activi
 
 **Phased Rollout:**
 
-- MVP: blocked urgent/high active-week findings.
+- MVP: visible blocked issue findings.
 - v1.1: harden ledger lifecycle, audit, retention, trace redaction, budgets, and worker lease.
 - v1.2: execute human-approved consequences with final authorization checks.
 - v2.0: add more detectors into the same ledger.

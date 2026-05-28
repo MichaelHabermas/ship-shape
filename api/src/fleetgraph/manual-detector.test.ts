@@ -44,8 +44,8 @@ describe('manual FleetGraph detector runner', () => {
       },
     ]);
     vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue([
-      { reason: 'no_blocker', count: 2 },
-      { reason: 'insufficient_visible_evidence', count: 0 },
+      { reason: 'duplicate_open_finding', count: 2 },
+      { reason: 'insufficient_visible_evidence', count: 1 },
     ]);
     vi.mocked(findStaleBlockedImportantIssueFindings).mockResolvedValue([]);
   });
@@ -84,8 +84,8 @@ describe('manual FleetGraph detector runner', () => {
         existingFindingId: null,
       }],
       quietExits: [
-        { reason: 'no_blocker', count: 2 },
-        { reason: 'insufficient_visible_evidence', count: 0 },
+        { reason: 'duplicate_open_finding', count: 2 },
+        { reason: 'insufficient_visible_evidence', count: 1 },
       ],
       staleFindings: [],
       modelCalls: 0,

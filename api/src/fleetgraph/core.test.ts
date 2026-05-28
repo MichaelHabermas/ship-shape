@@ -54,13 +54,13 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
     status: 'needs_confirmation',
     severity: 'urgent',
     confidence: 0.86,
-    title: 'Blocked active-week work: Blocked issue',
-    summary: 'Blocked issue is urgent/high active-week work with a recorded blocker.',
+    title: 'Blocked issue: Blocked issue',
+    summary: 'Blocked issue is blocked with a recorded blocker.',
     evidence_snapshot: [{
       kind: 'source_issue',
       sourceDocumentId: issueId,
       sourceType: 'issue',
-      claim: 'Source issue is urgent/high active-week work.',
+      claim: 'Source issue is blocked.',
       visibility: 'internal',
       visibleFields: ['title'],
     }],
@@ -363,7 +363,7 @@ describe('FleetGraph shared core', () => {
 
   it('summarizes only anchored meaningful changes', async () => {
     const currentFinding = finding({
-      summary: 'Blocked issue is urgent/high active-week work with a recorded blocker: Waiting on API credentials.',
+      summary: 'Blocked issue is blocked with a recorded blocker: Waiting on API credentials.',
       severity: 'urgent',
       recommended_action: { label: 'Confirm the unblock path' },
     });
