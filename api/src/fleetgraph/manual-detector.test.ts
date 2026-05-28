@@ -4,10 +4,10 @@ import {
   detectBlockedImportantIssueDecisions,
   findStaleBlockedImportantIssueFindings,
   findBlockedImportantIssueQuietExits,
-} from './detector.js';
-import { runManualFleetGraphDetector } from './manual-detector.js';
+} from './detection/detector.js';
+import { runManualFleetGraphDetector } from './detection/manual-detector.js';
 
-vi.mock('./detector.js', () => ({
+vi.mock('./detection/detector.js', () => ({
   detectBlockedImportantIssueDecisions: vi.fn(),
   findStaleBlockedImportantIssueFindings: vi.fn(),
   findBlockedImportantIssueQuietExits: vi.fn(),
@@ -27,10 +27,20 @@ describe('manual FleetGraph detector runner', () => {
       issue_state: 'in_progress',
       issue_priority: 'urgent',
       issue_assignee_id: '55555555-5555-4555-8555-555555555555',
+      issue_assignee_name: 'Blocked Owner',
       sprint_id: sprintId,
       sprint_title: 'Week 2',
       sprint_number: 2,
       sprint_owner_id: null,
+      sprint_owner_name: null,
+      project_id: null,
+      project_title: null,
+      project_owner_id: null,
+      project_owner_name: null,
+      program_id: null,
+      program_title: null,
+      program_owner_id: null,
+      program_owner_name: null,
       blocker_text: 'Waiting on API credentials.',
       blocker_iteration_id: '44444444-4444-4444-8444-444444444444',
       blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),

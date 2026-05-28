@@ -7,9 +7,9 @@ import {
   detectBlockedImportantIssueDecisions,
   findBlockedImportantIssueQuietExits,
   recordBlockedImportantIssueQuietExitRun,
-} from './detector.js';
+} from './detection/detector.js';
 import { saveBlockedImportantIssueFinding } from './persistence.js';
-import { runManualFleetGraphDetector } from './manual-detector.js';
+import { runManualFleetGraphDetector } from './detection/manual-detector.js';
 
 async function createWorkspace(): Promise<string> {
   const result = await pool.query<{ id: string }>(

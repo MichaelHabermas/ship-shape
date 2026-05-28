@@ -2,7 +2,7 @@
 import { pathToFileURL } from 'url';
 import { pool } from '../db/client.js';
 import { parseUtcCalendarDate } from '../fleetgraph/date.js';
-import { runManualFleetGraphDetector } from '../fleetgraph/manual-detector.js';
+import { runManualFleetGraphDetector } from '../fleetgraph/detection/manual-detector.js';
 
 type FleetGraphDetectorCliOptions =
   | { ok: true; workspaceId: string; today?: Date; limit?: number }

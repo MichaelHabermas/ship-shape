@@ -7,7 +7,7 @@ import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { authorizeRequest } from '../security/route-capability.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
-import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
+import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
 import {
   listFleetGraphFindingsForSource,
   listFleetGraphNotificationFindings,
@@ -54,7 +54,7 @@ vi.mock('../fleetgraph/evidence.js', () => ({
   visibleOutputForFinding: vi.fn(),
 }));
 
-vi.mock('../fleetgraph/manual-run.js', () => ({
+vi.mock('../fleetgraph/execution/manual-run.js', () => ({
   runFleetGraphManualTick: vi.fn(),
 }));
 

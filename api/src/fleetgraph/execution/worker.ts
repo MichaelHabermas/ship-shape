@@ -4,16 +4,16 @@ import {
   fleetGraphConfig,
   type FleetGraphConfig,
   type ResolvedFleetGraphConfig,
-} from '../config/fleetgraph.js';
-import { pool } from '../db/client.js';
-import type { Principal } from '../security/principal.js';
-import { deterministicProactiveCreateText } from './model.js';
+} from '../../config/fleetgraph.js';
+import { pool } from '../../db/client.js';
+import type { Principal } from '../../security/principal.js';
+import { deterministicProactiveCreateText } from '../model.js';
 import {
   completeFleetGraphWorkerTick,
   heartbeatFleetGraphWorkerTick,
   startFleetGraphWorkerTick,
   type JsonRecord,
-} from './persistence.js';
+} from '../persistence.js';
 import {
   runFleetGraphTick,
   type FleetGraphExecuteTickSummary,

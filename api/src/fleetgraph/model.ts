@@ -1,6 +1,6 @@
 // FleetGraph model adapter keeps real proactive-create LLM calls opt-in and testable.
 import { fleetGraphConfig } from '../config/fleetgraph.js';
-import type { BlockedImportantIssueCandidate } from './detector.js';
+import type { BlockedImportantIssueCandidate } from './detection/detector.js';
 import type { FleetGraphTokenMetadata } from './types.js';
 
 export type FleetGraphProactiveCreateModelResult = {

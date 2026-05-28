@@ -23,7 +23,7 @@ async function main() {
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');
   const { closeDatabasePool } = await import('./db/client.js');
-  const { startFleetGraphWorker } = await import('./fleetgraph/worker.js');
+  const { startFleetGraphWorker } = await import('./fleetgraph/execution/worker.js');
 
   const PORT = process.env.PORT || 3000;
   const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';

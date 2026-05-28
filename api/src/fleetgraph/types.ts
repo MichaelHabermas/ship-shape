@@ -7,7 +7,7 @@ import type {
   FleetGraphTrace as FleetGraphWireTrace,
 } from '@ship/shared';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detector.js';
+import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
 import type {
   FleetGraphFinding,
   FleetGraphRun,

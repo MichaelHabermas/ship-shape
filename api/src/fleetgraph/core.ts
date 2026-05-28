@@ -1,7 +1,7 @@
 // FleetGraph core runs the shared proactive/on-demand LangGraph decision runtime.
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { pool } from '../db/client.js';
-import type { FleetGraphDetectorQuietExit } from './detector.js';
+import type { FleetGraphDetectorQuietExit } from './detection/detector.js';
 import {
   evidenceFromDetectorCandidate,
   filterEvidenceForActor,

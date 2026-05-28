@@ -1,11 +1,11 @@
 // FleetGraph deterministic detectors select candidate work before graph reasoning.
-import { pool } from '../db/client.js';
+import { pool } from '../../db/client.js';
 import {
   BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX,
   blockedImportantIssueDedupeKey,
   recordFleetGraphRun,
   sqlBlockedImportantIssueDedupeKey,
-} from './persistence.js';
+} from '../persistence.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 

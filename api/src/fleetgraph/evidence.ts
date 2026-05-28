@@ -3,7 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import { authorize } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueCandidate } from './detector.js';
+import type { BlockedImportantIssueCandidate } from './detection/detector.js';
 import { getFleetGraphFindingById, type FleetGraphFinding, type JsonRecord } from './persistence.js';
 import type { FleetGraphEvidenceItem, FleetGraphVisibleOutput } from './types.js';
 

@@ -28,7 +28,7 @@ import {
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { isUtcCalendarDate, parseUtcCalendarDate } from '../fleetgraph/date.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
-import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
+import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
 import { listFleetGraphFindingsForSource, listFleetGraphNotificationFindings } from '../fleetgraph/persistence.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 

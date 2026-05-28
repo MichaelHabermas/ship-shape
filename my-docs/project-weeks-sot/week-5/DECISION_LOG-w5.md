@@ -435,3 +435,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** The approved 10x on-demand path is a Context Capsule, not generic chat. Typed prompts enter the same FleetGraph runtime as `context_chat`, resolve the active notification/finding/page context, and support only bounded intents: `why_flagged`, `next_step`, and `summarize_changes`.
 
 **Consequence:** `/api/fleetgraph/chat` records `fleetgraph_runs` with distinct graph paths and zero model calls for the current deterministic slice. It must not create findings, mutate Ship state, send messages, or answer broad workspace questions without an attached source context. Unsupported prompts quietly explain the supported commands.
+
+## D055 - FleetGraph Folders Follow Reasons To Change
+
+**Date:** 2026-05-28
+
+**Decision:** FleetGraph uses subfolders only where the boundary is worth the indirection: `runtime/` for helper logic behind `runFleetGraph`, `detection/` for read-only candidate/current-week/manual detector preview logic, and `execution/` for worker ticks, scheduled execution, and manual admin execution.
+
+**Consequence:** Do not folderize every top-level FleetGraph file by default. `core.ts`, `persistence.ts`, `evidence.ts`, `api-contract.ts`, `types.ts`, trace/model files, tests, and evals can stay top-level until they become real clusters with a separate reason to change.

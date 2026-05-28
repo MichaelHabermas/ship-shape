@@ -14,7 +14,7 @@ import {
 } from '../fleetgraph/eval/product-surface.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from '../fleetgraph/core.js';
 import { blockedImportantIssueDedupeKey, type FleetGraphFinding, type FleetGraphRun, type RecordFleetGraphRunInput } from '../fleetgraph/persistence.js';
-import type { BlockedImportantIssueCandidate } from '../fleetgraph/detector.js';
+import type { BlockedImportantIssueCandidate } from '../fleetgraph/detection/detector.js';
 import type { FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 
 export type SurfaceEvalReport = {
