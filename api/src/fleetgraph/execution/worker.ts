@@ -42,6 +42,7 @@ export type FleetGraphWorkerOptions = {
   db?: WorkerDb;
   logger?: WorkerLogger;
   instanceId?: string;
+  workspaceIds?: string[];
   setTimeoutFn?: typeof setTimeout;
   clearTimeoutFn?: typeof clearTimeout;
   runTick?: WorkerRunTick;
@@ -199,7 +200,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
       };
     }
 
-    const workspaceIds = await listWorkerWorkspaces(client, config.workerWorkspaceLimit);
+    const workspaceIds = options.workspaceIds ?? await listWorkerWorkspaces(client, config.workerWorkspaceLimit);
     stats.selectedWorkspaceCount = workspaceIds.length;
     stats.auditMetadata.workerStartedAt = tick.started_at.toISOString();
     stats.auditMetadata.workspaceIds = workspaceIds;
@@ -208,6 +209,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
       lockedBy: instanceId,
       limit: config.workerCandidateLimit * Math.max(1, workspaceIds.length),
       now: now(),
+      workspaceIds,
     }, client);
     stats.eventCount = attentionEvents.length;
     stats.auditMetadata.attentionEventIds = attentionEvents.map((event) => event.id);

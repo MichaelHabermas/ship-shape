@@ -291,7 +291,7 @@ describe('FleetGraph persistence', () => {
     expect(db.query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining("status = 'processing'"),
-      [2, 'worker-1', null, 10]
+      [2, 'worker-1', null, 10, null]
     );
     expect(db.query.mock.calls[1]?.[0]).toContain("status = 'pending'");
     expect(db.query.mock.calls[1]?.[0]).toContain("status = 'processing'");
@@ -300,6 +300,21 @@ describe('FleetGraph persistence', () => {
       3,
       expect.stringContaining("status = 'processing'"),
       [eventId, 'completed', null]
+    );
+  });
+
+  it('can restrict durable attention event claims to explicit workspaces', async () => {
+    const db = dbReturning([]);
+
+    await claimFleetGraphAttentionEvents({
+      lockedBy: 'worker-1',
+      limit: 2,
+      workspaceIds: [workspaceId],
+    }, db);
+
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining('workspace_id = ANY($5::uuid[])'),
+      [2, 'worker-1', null, 10, [workspaceId]]
     );
   });
 

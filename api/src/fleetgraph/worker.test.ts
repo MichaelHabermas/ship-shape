@@ -170,6 +170,40 @@ describe('FleetGraph worker', () => {
     expect(client.release).toHaveBeenCalledTimes(1);
   });
 
+  it('can restrict a worker tick to explicit workspace ids for deterministic tests', async () => {
+    const { db, client } = createDb();
+    const runTick = vi.fn<RunTickFn>(async () => result(0));
+
+    const stats = await runFleetGraphWorkerTick({
+      config: baseConfig,
+      db: db as never,
+      runTick,
+      instanceId: 'worker-1',
+      workspaceIds: ['workspace-2'],
+      now: () => new Date('2026-05-26T12:00:00Z'),
+    });
+
+    expect(stats.workspaceCount).toBe(1);
+    expect(stats.selectedWorkspaceCount).toBe(1);
+    expect(runTick).toHaveBeenCalledTimes(1);
+    expect(runTick).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId: 'workspace-2',
+      principal: {
+        kind: 'fleetgraph_system',
+        workspaceId: 'workspace-2',
+        isSuperAdmin: false,
+      },
+    }));
+    expect(client.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('FROM workspaces'),
+      expect.any(Array)
+    );
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('workspace_id = ANY($5::uuid[])'),
+      [3, 'worker-1', new Date('2026-05-26T12:00:00Z'), 10, ['workspace-2']]
+    );
+  });
+
   it('processes claimed attention events before scheduled workspace ticks', async () => {
     const { db, client } = createDb();
     const eventRow = {

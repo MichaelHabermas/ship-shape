@@ -214,6 +214,7 @@ export type ClaimFleetGraphAttentionEventsInput = {
   limit?: number;
   now?: Date;
   leaseTimeoutMinutes?: number;
+  workspaceIds?: string[];
 };
 
 export type CompleteFleetGraphAttentionEventInput = {
@@ -542,6 +543,7 @@ export async function claimFleetGraphAttentionEvents(
   input: ClaimFleetGraphAttentionEventsInput,
   db: QueryRunner = pool
 ): Promise<FleetGraphAttentionEvent[]> {
+  const workspaceIds = input.workspaceIds && input.workspaceIds.length > 0 ? input.workspaceIds : null;
   const result = await db.query<FleetGraphAttentionEventRow>(
     `WITH claimed AS (
        SELECT id
@@ -554,6 +556,7 @@ export async function claimFleetGraphAttentionEvents(
             )
           )
           AND available_at <= COALESCE($3, NOW())
+          AND ($5::uuid[] IS NULL OR workspace_id = ANY($5::uuid[]))
         ORDER BY available_at ASC, created_at ASC
         LIMIT $1
         FOR UPDATE SKIP LOCKED
@@ -572,6 +575,7 @@ export async function claimFleetGraphAttentionEvents(
       input.lockedBy,
       input.now ?? null,
       input.leaseTimeoutMinutes ?? ATTENTION_EVENT_LEASE_TIMEOUT_MINUTES,
+      workspaceIds,
     ]
   );
 

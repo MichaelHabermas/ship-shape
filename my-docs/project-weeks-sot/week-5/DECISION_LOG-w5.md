@@ -475,3 +475,19 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Proactive FleetGraph workspace scans should use the issue-attention context reader's normal breadth before signal policy is applied. Do not add a smaller default pre-policy limit that can hide valid `Stale` work behind unrelated urgent/high rows.
 
 **Consequence:** Diagnostic/manual runs may still pass an explicit limit, and targeted event checks stay source-scoped. The repair scan remains broad enough to find lower-priority but legitimately stale work.
+
+## D060 - FleetGraph E2E Uses A Test-Only Worker Trigger
+
+**Date:** 2026-05-28
+
+**Decision:** Playwright proof for the final FleetGraph loop uses an admin-gated `NODE_ENV=test` endpoint that runs one worker pass for the current workspace. This avoids waiting for production worker intervals or the notification poller while still exercising the durable event -> worker -> finding path.
+
+**Consequence:** The endpoint must stay hidden outside test mode, must not bypass auth/admin checks, and must not become product or reviewer UI. Production freshness remains the normal worker plus repair scan.
+
+## D061 - FleetGraph Test Worker Scope Must Include Event Claims
+
+**Date:** 2026-05-28
+
+**Decision:** Explicit FleetGraph worker workspace scope applies to both durable attention-event claiming and scheduled repair scans. Notification read rows also validate that their workspace matches the referenced finding workspace.
+
+**Consequence:** Deterministic E2E worker triggers cannot process another workspace's pending attention events, and read-state persistence cannot silently drift from the finding workspace if future code bypasses the current helper.

@@ -1,5 +1,5 @@
 // FleetGraph routes expose visible findings, bounded on-demand graph actions, and gated manual runs.
-import { Router, type Request, type Response, type Router as ExpressRouter } from 'express';
+import { Router, type NextFunction, type Request, type Response, type Router as ExpressRouter } from 'express';
 import { z } from '../openapi/registry.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { defineRoute } from '../openapi/define-route.js';
@@ -28,6 +28,7 @@ import { runFleetGraph } from '../fleetgraph/core.js';
 import { isUtcCalendarDate, parseUtcCalendarDate } from '../fleetgraph/date.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
+import { runFleetGraphWorkerTick } from '../fleetgraph/execution/worker.js';
 import {
   listFleetGraphFindingsForSource,
   listFleetGraphFindingsByIds,
@@ -70,6 +71,10 @@ const manualRunBodySchema = z.object({
     .optional(),
   limit: z.number().int().min(1).max(25).optional(),
 });
+
+function testFleetGraphTriggerEnabled(): boolean {
+  return process.env.NODE_ENV === 'test';
+}
 
 async function requireWorkspaceAdminForFleetGraph(req: Request, res: Response): Promise<boolean> {
   const adminDecision = await authorizeRequest(req, { resource: 'workspace', action: 'admin' });
@@ -460,5 +465,35 @@ router.post('/manual-run', authMiddleware, defineRoute({
     }
   },
 }));
+
+router.post('/test/worker-tick', (req: Request, res: Response, next: NextFunction) => {
+  if (!testFleetGraphTriggerEnabled()) {
+    sendLegacyError(res, 404, 'Not found');
+    return;
+  }
+  next();
+}, authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!(await requireWorkspaceAdminForFleetGraph(req, res))) return;
+
+    const { workspaceId } = getAuthenticatedRouteContext(req);
+    const summary = await runFleetGraphWorkerTick({
+      workspaceIds: [workspaceId],
+      instanceId: `fleetgraph-test-${workspaceId}`,
+    });
+
+    res.json({
+      success: true,
+      eventCount: summary.eventCount,
+      detectorDecisionCount: summary.detectorDecisionCount,
+      resultCount: summary.resultCount,
+      attentionEventIds: Array.isArray(summary.auditMetadata.attentionEventIds)
+        ? summary.auditMetadata.attentionEventIds
+        : [],
+    });
+  } catch (err) {
+    sendInternalError(res, err, 'FleetGraph test worker tick error');
+  }
+});
 
 export default router;
