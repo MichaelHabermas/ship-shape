@@ -1040,7 +1040,7 @@ function stringFromJsonRecord(value: unknown, keys: string[]): string | null {
 }
 
 function candidateTitle(title: string): string {
-  return title.trim() || 'Blocked active-week work';
+  return title.trim() || 'Blocked issue';
 }
 
 function deterministicUpdateSummary(title: string): string {

@@ -117,7 +117,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
     status: 'needs_confirmation',
     severity: 'urgent',
     confidence: 0.86,
-    title: 'Blocked active-week work',
+    title: 'Blocked issue',
     summary: 'Visible summary',
     evidence_snapshot: [],
     recommended_action: {},
@@ -149,7 +149,7 @@ function notificationFinding(overrides: Partial<FleetGraphNotificationFinding> =
 
 function visibleOutput(overrides: Partial<FleetGraphVisibleOutput> = {}): FleetGraphVisibleOutput {
   return {
-    title: 'Blocked active-week work',
+    title: 'Blocked issue',
     summary: 'Visible summary',
     evidence: [{
       kind: 'source_issue',

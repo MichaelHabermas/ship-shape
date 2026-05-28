@@ -1,0 +1,217 @@
+{
+  "generatedAt": "2026-05-28T04:09:21.091Z",
+  "summary": {
+    "average": {
+      "actionability": 4,
+      "groundedness": 2.33,
+      "specificity": 2.67,
+      "brevity": 3.67,
+      "repetitionBudget": 2.67,
+      "informationDensity": 3.33,
+      "cavemanCopy": 3.5,
+      "duplicateFactControl": 3.83,
+      "uncertaintyHonesty": 3.67,
+      "missingDataUsefulness": 3.67,
+      "uiProofSeparation": 4
+    },
+    "passCount": 3,
+    "failCount": 3
+  },
+  "results": [
+    {
+      "caseId": "fg-surface-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 4,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Blocked issue copy names the concrete blocker and next move once",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Missing API credentials",
+        "Audit Load User 029",
+        "Week 11",
+        "Confirm credential owner."
+      ],
+      "notes": [
+        "User can see the blocker and next move without reading architecture proof.",
+        "Blocked appears as useful state, not repeated filler."
+      ]
+    },
+    {
+      "caseId": "fg-surface-missing-blocker-text",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Missing blocker text is explained as a useful data gap",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Blocker missing",
+        "Audit Load User 029",
+        "Week 11",
+        "Add reason."
+      ],
+      "notes": [
+        "Missing evidence should become a concrete next step.",
+        "The copy should not pretend the blocker is known."
+      ]
+    },
+    {
+      "caseId": "fg-surface-ui-proof-boundary",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "User copy stays free of reviewer-proof scaffolding",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Owner missing",
+        "Waiting on review",
+        "-",
+        "Audit Project",
+        "Find approver."
+      ],
+      "notes": [
+        "Reviewer evidence belongs in traces, logs, tests, and docs.",
+        "User copy can show missing owner compactly without exposing graph/debug fields."
+      ]
+    },
+    {
+      "caseId": "fg-surface-runtime-proactive-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 3,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget"
+      ],
+      "title": "Runtime proactive clear-blocker output from runFleetGraph",
+      "visibleCopy": [
+        "Blocked issue: Runtime issue clear blocker",
+        "Runtime issue clear blocker is blocked. Latest blocker: Waiting on API credentials.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ]
+    },
+    {
+      "caseId": "fg-surface-runtime-proactive-missing-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Runtime proactive missing-blocker output from runFleetGraph",
+      "visibleCopy": [
+        "Blocked issue: Runtime issue missing blocker",
+        "Runtime issue missing blocker is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ]
+    },
+    {
+      "caseId": "fg-surface-runtime-explain-existing-finding",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 1,
+        "brevity": 4,
+        "repetitionBudget": 2,
+        "informationDensity": 3,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 2,
+        "missingDataUsefulness": 2,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "uncertaintyHonesty",
+        "missingDataUsefulness"
+      ],
+      "title": "Runtime explain output from runFleetGraph",
+      "visibleCopy": [
+        "Runtime existing finding",
+        "Runtime existing finding is blocked with a recorded blocker: Waiting on review.",
+        "Confirm the unblock path"
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ]
+    }
+  ]
+}

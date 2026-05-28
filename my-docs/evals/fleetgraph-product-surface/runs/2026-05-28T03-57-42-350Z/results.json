@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-05-28T03:57:42.350Z",
+  "summary": {
+    "average": {
+      "actionability": 4,
+      "groundedness": 3.33,
+      "specificity": 3.67,
+      "brevity": 4,
+      "repetitionBudget": 4,
+      "informationDensity": 4,
+      "cavemanCopy": 4,
+      "duplicateFactControl": 4,
+      "uncertaintyHonesty": 4,
+      "missingDataUsefulness": 4,
+      "uiProofSeparation": 4
+    },
+    "passCount": 3,
+    "failCount": 0
+  },
+  "results": [
+    {
+      "caseId": "fg-surface-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 4,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Blocked issue copy names the concrete blocker and next move once",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Missing API credentials",
+        "Audit Load User 029",
+        "Week 11",
+        "Confirm credential owner."
+      ],
+      "notes": [
+        "User can see the blocker and next move without reading architecture proof.",
+        "Blocked appears as useful state, not repeated filler."
+      ]
+    },
+    {
+      "caseId": "fg-surface-missing-blocker-text",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Missing blocker text is explained as a useful data gap",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Blocker missing",
+        "Audit Load User 029",
+        "Week 11",
+        "Add reason."
+      ],
+      "notes": [
+        "Missing evidence should become a concrete next step.",
+        "The copy should not pretend the blocker is known."
+      ]
+    },
+    {
+      "caseId": "fg-surface-ui-proof-boundary",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "User copy stays free of reviewer-proof scaffolding",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Owner missing",
+        "Waiting on review",
+        "-",
+        "Audit Project",
+        "Find approver."
+      ],
+      "notes": [
+        "Reviewer evidence belongs in traces, logs, tests, and docs.",
+        "User copy can show missing owner compactly without exposing graph/debug fields."
+      ]
+    }
+  ]
+}

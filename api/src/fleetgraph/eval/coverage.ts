@@ -36,13 +36,13 @@ export const fleetGraphCoverageRequirements = [
   },
   {
     id: 'draft-refine',
-    description: 'Draft refinement updates FleetGraph draft state only.',
+    description: 'Internal draft refinement updates FleetGraph draft state only when the spare-part path is invoked.',
     requiredLabels: ['mode:on_demand', 'branch:refine'],
     minimumCases: 1,
   },
   {
     id: 'change-summary',
-    description: 'Change summary compares against a real FleetGraph run anchor and returns only useful deltas.',
+    description: 'Internal change summary compares against a real FleetGraph run anchor and returns only useful deltas.',
     requiredLabels: ['mode:on_demand', 'branch:summarize_changes'],
     minimumCases: 4,
   },
@@ -66,7 +66,7 @@ export const fleetGraphCoverageRequirements = [
   },
   {
     id: 'dismiss-finding',
-    description: 'Human dismiss changes only FleetGraph finding status and does not accept risk.',
+    description: 'Internal/admin dismiss changes only FleetGraph finding status and does not accept risk.',
     requiredLabels: ['mode:on_demand', 'branch:dismiss'],
     minimumCases: 1,
   },

@@ -97,6 +97,7 @@
     "demo:seed": "pnpm fleetgraph:demo",
     "fleetgraph:detector": "pnpm --filter @ship/api fleetgraph:detector",
     "fleetgraph:demo": "pnpm --filter @ship/api fleetgraph:demo",
+    "fleetgraph:eval:surface": "pnpm --filter @ship/api fleetgraph:eval:surface",
     "langsmith:smoke": "pnpm --filter @ship/api langsmith:smoke",
     "prepare": "husky",
     "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"

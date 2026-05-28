@@ -6,11 +6,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-25
 
-**Decision:** Treat `my-docs/project-weeks-sot/week-5/w5-specs/` as authoritative, with `PRESEARCH.md`, `FLEETGRAPH.md`, `ARCHITECTURE.md`, `ARCHITECTURAL_DEFENSE.md`, and `IMPLEMENTATION_PLAN_MVP.md` as aligned execution docs. The MVP vertical slice is blocked urgent/high active-week work with real blocker text becoming an action-ready FleetGraph finding through deterministic SQL before graph reasoning.
+**Decision:** Treat `my-docs/project-weeks-sot/week-5/w5-specs/` as authoritative, with later explicit user decisions superseding stale execution-doc assumptions. The current MVP vertical slice is visible blocked issues becoming action-ready FleetGraph findings through deterministic SQL before graph reasoning.
 
 **Boundary:** FleetGraph owns diagnosis state only: findings, runs, evidence snapshots, trace metadata, and draft content. Ship remains canonical for documents, issues, weeks, associations, ownership, priority, status, and content. Any Ship mutation or contact with another person requires a human gate.
 
-**Consequence:** Future slices must not add a new document type, invent statuses or priorities outside later explicit decisions, let the LLM choose scan scope, build separate proactive/on-demand graph cores, or surface user-visible claims without visible evidence. D035 supersedes the original "do not invent `blocked` state" wording by making `issue.state = blocked` an explicit Week 5 decision.
+**Consequence:** Future slices must not add a new document type, invent statuses or priorities outside later explicit decisions, let the LLM choose scan scope, build separate proactive/on-demand graph cores, or surface user-visible claims without visible evidence. D035 supersedes the original "do not invent `blocked` state" wording by making `issue.state = blocked` an explicit Week 5 decision. D047/D049 supersede the original urgent/high active-week blocker eligibility wording.
 
 ## D002 - Week 5 Repo Safety Boundary
 
@@ -304,9 +304,9 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-27
 
-**Decision:** The MVP card is not a writing assistant, approval panel, or execution surface. It is a sparse review-queue item for urgent/high active-week blockers: issue title, cleaned blocker summary, source priority, evidence, likely recipient when available, `Open issue`, `Details`/`Collapse`, `Dismiss`, and dev-only trace. Per-card `FleetGraph` branding, universal `Needs confirmation` status, fake-precision confidence, repeated "why flagged" explanation, draft refinement, prepared comments, and human-gate approval panels are removed from the default product surface.
+**Decision:** The MVP card is not a writing assistant, approval panel, or execution surface. It is a sparse review-queue item for visible blocked issues: issue title, cleaned blocker summary, source priority when useful, evidence, likely recipient when available, and source navigation. Per-card `FleetGraph` branding, universal `Needs confirmation` status, fake-precision confidence, repeated "why flagged" explanation, draft refinement, prepared comments, and human-gate approval panels are removed from the default product surface.
 
-**Consequence:** MVP value is the filtered queue: "these active-week blockers deserve PM review," not "FleetGraph can talk to people" or "FleetGraph approves actions." Post-MVP work may add a real composer, copy action, approval/send flow, or richer state labels only with a new product decision that defines destination, actor, mutation boundary, and resolution semantics. Until then, no code should depend on the removed card badges or writing controls being present.
+**Consequence:** MVP value is the filtered queue: "these blocked issues deserve review," not "FleetGraph can talk to people" or "FleetGraph approves actions." Post-MVP work may add a real composer, copy action, approval/send flow, dismiss, or richer state labels only with a new product decision that defines destination, actor, mutation boundary, and resolution semantics. Until then, no code should depend on the removed card badges or writing controls being present. D047/D049 supersede any remaining urgent/high active-week wording.
 
 ## D039 - FleetGraph Schema Must Stay In Fresh Bootstrap
 
@@ -354,7 +354,7 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Decision:** The next on-demand feature should be "What changed since I last looked?", not generic chat or draft rewriting. It must compare current visible state against a real anchor: first the last FleetGraph finding/run for the source object, later a per-user last-viewed timestamp or activity cursor. D045 records the implemented narrowed version.
 
-**Consequence:** Do not fake "since last looked" without an anchor. New graph behavior needs golden cases for blocked transition, blocker evidence changed, no meaningful change, restricted evidence, and a distinct on-demand trace path.
+**Consequence:** Do not fake "since last looked" without an anchor. New graph behavior needs golden cases for blocked transition, blocker evidence changed, no meaningful change, restricted evidence, and a distinct on-demand trace path. D049 retires this as a PM-facing UI affordance until a new product decision approves it.
 
 ## D045 - FleetGraph What Changed Is Delta-Only
 
@@ -362,7 +362,7 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Decision:** `What changed?` is implemented as a delta-only on-demand path, not a chat surface. It records `summarize_changes`, compares the current visible finding against the previous proactive FleetGraph run for the same finding, and returns only necessary rows: now, changed, cleared, next, unknown, and not done.
 
-**Consequence:** No anchor means no fake "since last looked" claim. No useful delta means `No meaningful change`. The normal UI must not show evidence prose, trace links, internal run metadata, or explanatory paragraphs for this path. The feature writes only `fleetgraph_runs` and must not mutate Ship or contact anyone.
+**Consequence:** No anchor means no fake "since last looked" claim. No useful delta means `No meaningful change`. The normal UI must not show evidence prose, trace links, internal run metadata, or explanatory paragraphs for this path. The feature writes only `fleetgraph_runs` and must not mutate Ship or contact anyone. D049 retires this as a PM-facing UI affordance until a new product decision approves it.
 
 ## D046 - Existing Databases Skip Bootstrap Schema During Migrations
 
@@ -387,3 +387,35 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** The notification UI should separate the attention label from the source title. For blocked issue notifications, render a `Blocked` chip and keep the issue title raw instead of baking `Blocked -` into the title string. Future useful labels to evaluate are `Stale`, `At risk`, and `Needs owner`, but those are product directions, not implemented notification taxonomy yet.
 
 **Consequence:** Do not add persisted notification categories or new document properties just to support labels. Derive labels from existing source state first. `At risk` needs a clear later definition before implementation, likely using existing signals such as not-done state, priority, week timing, and dependencies.
+
+## D049 - Burn Down Unapproved FleetGraph Product Surface
+
+**Date:** 2026-05-28
+
+**Decision:** The current approved FleetGraph product surface is the left-rail notification list plus contextual chat explanation for a selected finding. Unapproved prompt/action affordances such as `What changed?`, `What needs attention?`, and `Draft message` should not appear in the UI until they earn a real product decision. Old detector quiet reasons for active-week, no-blocker, priority, or missing-owner suppression are retired.
+
+**Consequence:** `summarize_changes` and `refine_draft` may remain internal implementation spare parts, but they are not user-facing requirements. Docs, evals, and tests should describe blocked issue state as the MVP eligibility signal and should not reintroduce old hard gates by treating current week, urgent/high priority, owner, or blocker text as suppression reasons.
+
+## D050 - Separate Product UI From Reviewer Proof
+
+**Date:** 2026-05-28
+
+**Decision:** FleetGraph user-facing UI must optimize for what helps the user understand and act. Reviewer proof is a separate evidence surface: logs, persisted runs, traces, test cases, screenshots, and docs can prove current context, selected source context, graph branching, human gates, real data, and latency without exposing that scaffolding in the product UI.
+
+**Consequence:** Do not add labels, chips, metadata rows, debug fields, trace links, or architecture proof copy to the UI unless they improve the user's decision in the moment. If a requirement exists mainly to satisfy the Week 5 reviewer, prove it through instrumentation and evidence artifacts instead of crowding the notification/chat experience.
+
+## D051 - Current Chat Context Uses A Ring Marker
+
+**Date:** 2026-05-28
+
+**Decision:** In the contextual chat header, the current page/source chip uses a small empty green ring marker instead of the text `Current`, a filled dot, or a target icon. This keeps the current context visible while preserving horizontal space for source/context labels.
+
+**Consequence:** Do not reintroduce verbose `Current -` labels in the chip header. Extra context chips remain removable and source-switchable; the current context chip is the fixed anchor for the page the user is on.
+
+## D052 - FleetGraph Evals Split Reviewer Gates From Product Quality Metrics
+
+**Date:** 2026-05-28
+
+**Decision:** Keep reviewer-oriented golden cases as finish-line proof for Week 5 requirements: graph branch coverage, proactive/on-demand paths, human gates, no Ship mutation/contact, restricted evidence safety, persistence, and trace hygiene. Add product-surface evals beside them to score user-facing copy quality over time.
+
+**Consequence:** Do not remove reviewer evals just because their evidence is not product UI. Product-surface evals are trend metrics for actionability, groundedness, specificity, brevity, uncertainty honesty, and UI/proof separation; they complement reviewer gates instead of replacing them.

@@ -61,7 +61,7 @@ describe('FleetGraph tick runner', () => {
 
   it('summarizes dry-run detector output without graph execution', async () => {
     vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([detectorDecision]);
-    vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue([{ reason: 'no_blocker', count: 2 }]);
+    vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue([{ reason: 'duplicate_open_finding', count: 2 }]);
 
     const summary = await runFleetGraphTick({
       mode: 'dryRun',
@@ -136,7 +136,7 @@ describe('FleetGraph tick runner', () => {
   });
 
   it('records a quiet graph run when execute mode has no candidates', async () => {
-    const quietExits = [{ reason: 'no_blocker' as const, count: 2 }];
+    const quietExits = [{ reason: 'duplicate_open_finding' as const, count: 2 }];
     vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([]);
     vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue(quietExits);
     vi.mocked(runFleetGraph).mockResolvedValue({

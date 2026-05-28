@@ -454,11 +454,7 @@ describe('FleetGraph detector database query', () => {
     expect(quietExits).toEqual([
       { reason: 'done_or_cancelled', count: 1 },
       { reason: 'duplicate_open_finding', count: 1 },
-      { reason: 'inactive_week', count: 1 },
       { reason: 'insufficient_visible_evidence', count: 0 },
-      { reason: 'medium_low_priority', count: 1 },
-      { reason: 'missing_fallback_owner', count: 1 },
-      { reason: 'no_blocker', count: 1 },
     ]);
   });
 

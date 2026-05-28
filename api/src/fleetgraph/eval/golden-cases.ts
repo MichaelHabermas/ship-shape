@@ -52,27 +52,26 @@ const changeSummaryTraceBoundary = {
 
 export const fleetGraphGoldenCases = [
   {
-    id: 'fg-create-blocked-urgent-active-week',
-    title: 'Proactive create for urgent active-week blocker',
+    id: 'fg-create-blocked-visible-issue',
+    title: 'Proactive create for visible blocked issue',
     mode: 'proactive',
     inputState: {
-      fixture: 'urgent-active-week-blocker-no-existing-finding',
+      fixture: 'visible-blocked-issue-no-existing-finding',
       trigger: 'detector decision create_finding',
       shipState: [
         'issue is document_type issue',
-        'issue priority is urgent',
-        'issue state is not done or cancelled',
-        'issue belongs to current sprint through document_associations.relationship_type sprint',
-        'latest issue_iterations.blockers_encountered has non-empty blocker text',
+        'issue state is blocked',
+        'issue belongs to a source sprint/week through document_associations.relationship_type sprint',
+        'latest issue_iterations.blockers_encountered may have blocker text',
         'no open FleetGraph finding shares the dedupe key',
       ],
     },
     expectedDecision: 'create_finding',
     requiredEvidence: [
       'source issue title and ticket number',
-      'active sprint title and sprint number',
-      'latest blocker text',
-      'assignee or sprint owner fallback',
+      'source sprint/week title when associated',
+      'latest blocker text when present',
+      'assignee, sprint owner, or admin fallback',
       'dedupe key',
       'severity',
       'confidence',
@@ -82,7 +81,7 @@ export const fleetGraphGoldenCases = [
       'shared trace link or demo-safe trace id',
     ],
     forbiddenClaims: [
-      'the work is committed when only urgent/high active-week evidence exists',
+      'the issue is committed because it is blocked',
       'FleetGraph contacted the assignee',
       'FleetGraph changed Ship issue state',
       'FleetGraph posted a comment',
@@ -111,10 +110,10 @@ export const fleetGraphGoldenCases = [
     title: 'Proactive duplicate updates existing open finding',
     mode: 'proactive',
     inputState: {
-      fixture: 'urgent-active-week-blocker-existing-open-finding',
+      fixture: 'visible-blocked-issue-existing-open-finding',
       trigger: 'detector decision update_finding',
       shipState: [
-        'candidate still qualifies for blocked important issue detector',
+        'candidate still qualifies for blocked issue detector',
         'open FleetGraph finding exists for the same dedupe key',
       ],
     },
@@ -146,94 +145,14 @@ export const fleetGraphGoldenCases = [
     rubric: expectedRubricScore({ draftUsefulness: 2 }),
   },
   {
-    id: 'fg-quiet-inactive-week',
-    title: 'Inactive week exits before model reasoning',
-    mode: 'proactive',
-    inputState: {
-      fixture: 'blocked-urgent-issue-in-non-current-sprint',
-      trigger: 'detector quiet exit inactive_week',
-      shipState: [
-        'issue has blocker text',
-        'issue belongs to a sprint whose sprint_number is not current',
-      ],
-    },
-    expectedDecision: 'quiet_exit',
-    requiredEvidence: [
-      'current sprint number',
-      'candidate sprint number',
-      'quiet reason inactive_week',
-    ],
-    forbiddenClaims: [
-      'the active week is blocked',
-      'the graph reasoned about next action',
-    ],
-    mutationBoundary: {
-      allowedFleetGraphWrites: runOnlyWrites,
-      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
-      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
-    },
-    modelBoundary: sqlOnlyBoundary,
-    traceBoundary: detectorOnlyTraceBoundary,
-    labels: [
-      'mode:proactive',
-      'branch:quiet',
-      'action:no_ship_write',
-      'evidence:full',
-      'permission:recipient_visible',
-      'difficulty:edge'
-    ],
-    rubric: expectedRubricScore({ recipientFit: 0, draftUsefulness: 0 }),
-  },
-  {
-    id: 'fg-quiet-medium-low-priority',
-    title: 'Medium or low priority blocker exits quietly',
-    mode: 'proactive',
-    inputState: {
-      fixture: 'active-week-medium-priority-blocker',
-      trigger: 'detector quiet exit medium_low_priority',
-      shipState: [
-        'issue belongs to current sprint',
-        'latest blocker text is present',
-        'issue priority is medium or low',
-      ],
-    },
-    expectedDecision: 'quiet_exit',
-    requiredEvidence: [
-      'priority',
-      'active sprint membership',
-      'quiet reason medium_low_priority',
-    ],
-    forbiddenClaims: [
-      'the issue is urgent or high priority',
-      'a human gate was prepared',
-    ],
-    mutationBoundary: {
-      allowedFleetGraphWrites: runOnlyWrites,
-      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
-      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
-    },
-    modelBoundary: sqlOnlyBoundary,
-    traceBoundary: detectorOnlyTraceBoundary,
-    labels: [
-      'mode:proactive',
-      'branch:quiet',
-      'action:no_ship_write',
-      'evidence:full',
-      'permission:recipient_visible',
-      'difficulty:edge'
-    ],
-    rubric: expectedRubricScore({ recipientFit: 0, draftUsefulness: 0 }),
-  },
-  {
     id: 'fg-quiet-done-cancelled',
     title: 'Done or cancelled work exits quietly',
     mode: 'proactive',
     inputState: {
-      fixture: 'active-week-urgent-blocker-done-or-cancelled',
+      fixture: 'blocked-finding-source-done-or-cancelled',
       trigger: 'detector quiet exit done_or_cancelled',
       shipState: [
-        'issue belongs to current sprint',
-        'issue priority is urgent or high',
+        'issue previously had a blocked finding',
         'issue state is done or cancelled',
       ],
     },
@@ -264,45 +183,6 @@ export const fleetGraphGoldenCases = [
     rubric: expectedRubricScore({ recipientFit: 0, draftUsefulness: 0 }),
   },
   {
-    id: 'fg-quiet-no-blocker',
-    title: 'No blocker signal exits quietly',
-    mode: 'proactive',
-    inputState: {
-      fixture: 'active-week-urgent-issue-empty-blocker',
-      trigger: 'detector quiet exit no_blocker',
-      shipState: [
-        'issue belongs to current sprint',
-        'issue priority is urgent or high',
-        'latest blockers_encountered is empty or whitespace',
-      ],
-    },
-    expectedDecision: 'quiet_exit',
-    requiredEvidence: [
-      'latest iteration id or absence marker',
-      'quiet reason no_blocker',
-    ],
-    forbiddenClaims: [
-      'a blocker exists',
-      'FleetGraph drafted an unblock message',
-    ],
-    mutationBoundary: {
-      allowedFleetGraphWrites: runOnlyWrites,
-      forbiddenShipMutations: fleetGraphForbiddenShipMutations,
-      forbiddenExternalActions: fleetGraphForbiddenExternalActions,
-    },
-    modelBoundary: sqlOnlyBoundary,
-    traceBoundary: detectorOnlyTraceBoundary,
-    labels: [
-      'mode:proactive',
-      'branch:quiet',
-      'action:no_ship_write',
-      'evidence:missing',
-      'permission:recipient_visible',
-      'difficulty:edge'
-    ],
-    rubric: expectedRubricScore({ groundedness: 4, recipientFit: 0, draftUsefulness: 0 }),
-  },
-  {
     id: 'fg-resolve-condition-gone',
     title: 'Existing finding resolves when source condition disappears',
     mode: 'proactive',
@@ -312,7 +192,7 @@ export const fleetGraphGoldenCases = [
       shipState: [
         'open FleetGraph finding exists',
         'source issue and sprint are still same-workspace Ship records',
-        'latest issue iteration has no blocker text or source is no longer active urgent/high work',
+        'source issue is no longer blocked or source association is gone',
       ],
     },
     expectedDecision: 'resolve',
@@ -354,7 +234,7 @@ export const fleetGraphGoldenCases = [
       shipState: [
         'open FleetGraph finding exists',
         'source issue and sprint are visible to current user',
-        'finding evidence snapshot contains blocker text and active-week context',
+        'finding evidence snapshot contains blocker text and source week context',
       ],
     },
     expectedDecision: 'explain',

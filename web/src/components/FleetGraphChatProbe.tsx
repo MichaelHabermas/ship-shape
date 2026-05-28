@@ -75,6 +75,16 @@ function contextMatchesSource(item: ChatContextItem, sourcePath: string | undefi
   return Boolean(sourcePath && item.sourcePath === sourcePath);
 }
 
+function dedupeContextItems(items: ChatContextItem[]): ChatContextItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.sourcePath || item.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function displayText(value: string): string {
   return value.replace(/\bFleetGraph\b/g, 'Ship');
 }
@@ -102,9 +112,12 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
   const currentSourcePath = useMemo(() => sourcePathForDocumentId(currentDocumentId), [currentDocumentId]);
   const [currentTitle, setCurrentTitle] = useState(surfaceLabel);
-  const currentContextLabel = `Current - ${displayText(currentTitle)}`;
-  const visibleContextItems = contextItems.slice(0, 3);
-  const overflowContextItems = contextItems.slice(3);
+  const extraContextItems = useMemo(
+    () => dedupeContextItems(contextItems.filter((item) => !contextMatchesSource(item, currentSourcePath))),
+    [contextItems, currentSourcePath]
+  );
+  const visibleContextItems = extraContextItems.slice(0, 3);
+  const overflowContextItems = extraContextItems.slice(3);
   const hasClearableContext = contextItems.length > 0;
 
   useEffect(() => {
@@ -151,10 +164,10 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         sourcePath: notification.sourcePath,
         notification,
       };
-      return [
+      return dedupeContextItems([
         contextItem,
         ...items.filter((item) => item.id !== contextItem.id && !contextMatchesSource(item, notification.sourcePath)),
-      ];
+      ]);
     });
   }, [discussRequest]);
 
@@ -214,7 +227,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         if (previousCurrentContext && contextMatchesSource(contextItem, previousCurrentContext.sourcePath)) return false;
         return true;
       });
-      return previousCurrentContext ? [previousCurrentContext, ...withoutClickedOrPrevious] : withoutClickedOrPrevious;
+      return dedupeContextItems(previousCurrentContext ? [previousCurrentContext, ...withoutClickedOrPrevious] : withoutClickedOrPrevious);
     });
     setContextOpen(false);
     navigate(item.sourcePath);
@@ -254,17 +267,15 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
           className="flex h-[min(620px,calc(100vh-7rem))] w-[min(420px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
         >
           <header className="relative flex items-center justify-between border-b border-border px-3.5 pb-2.5 pt-2">
-            <div className="min-w-0 pr-2">
+            <div className="min-w-0 flex-1 pr-2">
               <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
-                <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted">
-                  <span className="block max-w-[150px] truncate">{currentContextLabel}</span>
-                </span>
+                <CurrentContextChip title={currentTitle} />
                 {visibleContextItems.map((item) => (
                   <button
                     type="button"
                     key={item.id}
                     onClick={() => activateContextItem(item.id)}
-                    className="flex max-w-[200px] shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
+                    className="flex max-w-[calc((100%-2.75rem)/2)] shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
                   >
                     <span className="truncate">{displayText(item.label)}</span>
                     <span
@@ -411,6 +422,15 @@ function ContextPopover({
   );
 }
 
+function CurrentContextChip({ title }: { title: string }) {
+  return (
+    <span className="flex max-w-[calc((100%-2.75rem)/2)] shrink-0 items-center gap-1.5 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted">
+      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full border border-emerald-400" />
+      <span className="truncate">{displayText(title)}</span>
+    </span>
+  );
+}
+
 function EmptyConversation({ surfaceLabel }: { surfaceLabel: string }) {
   return (
     <div className="flex flex-1 items-center justify-center px-4 text-center">
@@ -418,7 +438,6 @@ function EmptyConversation({ surfaceLabel }: { surfaceLabel: string }) {
         <p className="text-sm leading-6 text-muted">
           Ask about this {surfaceLabel.toLowerCase()}.
         </p>
-        <PromptChips />
       </div>
     </div>
   );
@@ -457,8 +476,6 @@ function NotificationConversation({
       />
 
       <NextStepCard text={nextStep} gateText={gateText} />
-
-      <PromptChips />
     </div>
   );
 }
@@ -528,27 +545,7 @@ function NextStepCard({ text, gateText }: { text: string; gateText: string }) {
       <p className="text-xs font-medium text-foreground">Possible next step</p>
       <p className="mt-1 text-sm leading-5 text-muted">{displayText(text)}</p>
       <p className="mt-1 text-[13px] leading-[18px] text-muted">{gateText}</p>
-      <button
-        type="button"
-        className="mt-3 rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
-      >
-        Draft message
-      </button>
     </div>
-  );
-}
-
-export function FleetGraphExampleConversationPieces() {
-  return (
-    <>
-      <UserMessage>What changed since yesterday?</UserMessage>
-      <AssistantAnswer
-        eyebrow="Example"
-        body="The latest visible graph output is now the active explanation for the notification."
-        metadata={['Example owner', 'Example week', 'fallback']}
-        sources={['Source issue']}
-      />
-    </>
   );
 }
 
@@ -596,25 +593,6 @@ function recommendedActionText(output: FleetGraphVisibleOutput | null): string |
     || output.recommendedAction.summary
     || output.recommendedAction.label
     || null;
-}
-
-function PromptChips() {
-  return (
-    <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        className="rounded-md border border-border px-3 py-1.5 text-xs text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-      >
-        What changed?
-      </button>
-      <button
-        type="button"
-        className="rounded-md border border-border px-3 py-1.5 text-xs text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-      >
-        What needs attention?
-      </button>
-    </div>
-  );
 }
 
 function ChatIcon() {

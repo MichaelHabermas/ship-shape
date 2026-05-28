@@ -109,11 +109,7 @@ describe('FleetGraph detector', () => {
     expect(quietExits).toEqual([
       { reason: 'done_or_cancelled', count: 0 },
       { reason: 'duplicate_open_finding', count: 6 },
-      { reason: 'inactive_week', count: 0 },
       { reason: 'insufficient_visible_evidence', count: 0 },
-      { reason: 'medium_low_priority', count: 0 },
-      { reason: 'missing_fallback_owner', count: 0 },
-      { reason: 'no_blocker', count: 0 },
     ]);
   });
 
@@ -209,8 +205,8 @@ describe('FleetGraph detector', () => {
     {
       label: 'nonzero quiet exits',
       quietExits: [
-        { reason: 'no_blocker' as const, count: 2 },
-        { reason: 'insufficient_visible_evidence' as const, count: 0 },
+        { reason: 'duplicate_open_finding' as const, count: 2 },
+        { reason: 'insufficient_visible_evidence' as const, count: 1 },
       ],
     },
     {

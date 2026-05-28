@@ -29,6 +29,14 @@ Chat is the contextual discussion surface. It helps users ask questions, underst
 
 These are not separate products. A notification should be able to open chat with the relevant context attached. Chat should be able to explain a notification without forcing the notification card to display every detail.
 
+## UI Versus Reviewer Proof
+
+The product UI is for the user, not the grader. It should stay laser-focused on what helps the user understand the issue and take the next useful step.
+
+Reviewer proof is a different surface. Use logs, persisted runs, traces, test cases, screenshots, and documentation to prove that current page context, selected source context, graph branches, human gates, real data, and latency targets work. Do not push proof scaffolding into the user UI just because the specs require evidence.
+
+If a detail mainly proves architecture or satisfies a reviewer checklist, keep it in traces/logs/docs unless it also helps the user make a better decision in the moment.
+
 ## Notifications
 
 Notifications are generic infrastructure. FleetGraph is one producer.
