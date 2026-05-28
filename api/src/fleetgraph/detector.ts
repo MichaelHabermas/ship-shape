@@ -6,7 +6,6 @@ import {
   recordFleetGraphRun,
   sqlBlockedImportantIssueDedupeKey,
 } from './persistence.js';
-import { resolveFleetGraphCurrentWeek } from './current-week.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 
@@ -16,15 +15,15 @@ type BlockedImportantIssueCandidateRow = {
   issue_title: string;
   issue_ticket_number: number | null;
   issue_state: string | null;
-  issue_priority: 'urgent' | 'high';
+  issue_priority: 'low' | 'medium' | 'high' | 'urgent';
   issue_assignee_id: string | null;
   sprint_id: string;
   sprint_title: string;
-  sprint_number: number;
+  sprint_number: number | null;
   sprint_owner_id: string | null;
   blocker_text: string;
-  blocker_iteration_id: string;
-  blocker_iteration_created_at: Date;
+  blocker_iteration_id: string | null;
+  blocker_iteration_created_at: Date | null;
 };
 
 export type BlockedImportantIssueCandidate = BlockedImportantIssueCandidateRow & {
@@ -81,11 +80,6 @@ async function findBlockedImportantIssueCandidates(input: {
   limit?: number;
 }): Promise<BlockedImportantIssueCandidate[]> {
   const db = input.db ?? pool;
-  const { currentSprintNumber } = await resolveFleetGraphCurrentWeek(input.workspaceId, {
-    db,
-    today: input.today,
-  });
-
   const result = await db.query<BlockedImportantIssueCandidateRow>(
     `SELECT
        i.workspace_id,
@@ -93,7 +87,13 @@ async function findBlockedImportantIssueCandidates(input: {
        i.title AS issue_title,
        i.ticket_number AS issue_ticket_number,
        i.properties->>'state' AS issue_state,
-       i.properties->>'priority' AS issue_priority,
+       CASE i.properties->>'priority'
+         WHEN 'urgent' THEN 'urgent'
+         WHEN 'high' THEN 'high'
+         WHEN 'medium' THEN 'medium'
+         WHEN 'low' THEN 'low'
+         ELSE 'medium'
+       END AS issue_priority,
        NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
        s.id AS sprint_id,
        s.title AS sprint_title,
@@ -105,7 +105,7 @@ async function findBlockedImportantIssueCandidates(input: {
          NULLIF(s.properties->>'owner_id', ''),
          NULLIF(s.properties->'assignee_ids'->>0, '')
        ) AS sprint_owner_id,
-       latest_iteration.blockers_encountered AS blocker_text,
+       COALESCE(latest_iteration.blockers_encountered, '') AS blocker_text,
        latest_iteration.id AS blocker_iteration_id,
        latest_iteration.created_at AS blocker_iteration_created_at
      FROM documents i
@@ -118,7 +118,7 @@ async function findBlockedImportantIssueCandidates(input: {
       AND s.document_type = 'sprint'
       AND s.deleted_at IS NULL
       AND s.archived_at IS NULL
-      JOIN LATERAL (
+      LEFT JOIN LATERAL (
        SELECT iteration.id, iteration.blockers_encountered, iteration.created_at
          FROM issue_iterations iteration
         WHERE iteration.issue_id = i.id
@@ -133,26 +133,18 @@ async function findBlockedImportantIssueCandidates(input: {
        AND i.archived_at IS NULL
        AND COALESCE(i.visibility, 'workspace') <> 'private'
        AND COALESCE(i.properties->>'state', 'backlog') = 'blocked'
-       AND i.properties->>'priority' IN ('urgent', 'high')
-       AND CASE
-             WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
-             ELSE NULL
-           END = $2
-       AND (
-         NULLIF(i.properties->>'assignee_id', '') IS NOT NULL
-         OR NULLIF(s.properties->>'owner_id', '') IS NOT NULL
-         OR NULLIF(s.properties->'assignee_ids'->>0, '') IS NOT NULL
-       )
      ORDER BY
        CASE i.properties->>'priority'
          WHEN 'urgent' THEN 1
          WHEN 'high' THEN 2
-         ELSE 3
+         WHEN 'medium' THEN 3
+         WHEN 'low' THEN 4
+         ELSE 5
        END,
-       latest_iteration.created_at DESC,
+       latest_iteration.created_at DESC NULLS LAST,
        i.updated_at DESC
-     LIMIT $3`,
-    [input.workspaceId, currentSprintNumber, input.limit ?? 25]
+     LIMIT $2`,
+    [input.workspaceId, input.limit ?? 25]
   );
 
   return result.rows.map(mapCandidate);
@@ -221,10 +213,6 @@ export async function findBlockedImportantIssueQuietExits(input: {
   today?: Date;
 }): Promise<FleetGraphDetectorQuietExit[]> {
   const db = input.db ?? pool;
-  const { currentSprintNumber } = await resolveFleetGraphCurrentWeek(input.workspaceId, {
-    db,
-    today: input.today,
-  });
 
   const result = await db.query<{ reason: FleetGraphDetectorQuietExitReason; count: string }>(
     `WITH issue_week_context AS (
@@ -243,7 +231,7 @@ export async function findBlockedImportantIssueQuietExits(input: {
            NULLIF(s.properties->>'owner_id', ''),
            NULLIF(s.properties->'assignee_ids'->>0, '')
          ) AS sprint_owner_id,
-         latest_iteration.blockers_encountered AS blocker_text,
+         COALESCE(latest_iteration.blockers_encountered, '') AS blocker_text,
          blocked_finding.id AS duplicate_finding_id
        FROM documents i
        JOIN document_associations sprint_assoc
@@ -302,62 +290,11 @@ export async function findBlockedImportantIssueQuietExits(input: {
          AND i.archived_at IS NULL
          AND COALESCE(i.visibility, 'workspace') = 'private'
          AND COALESCE(i.properties->>'state', 'backlog') = 'blocked'
-         AND COALESCE(i.properties->>'priority', 'medium') IN ('urgent', 'high')
-         AND CASE
-               WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
-               ELSE NULL
-             END = $2
-         AND btrim(COALESCE(latest_iteration.blockers_encountered, '')) <> ''
      ),
      classified AS (
-       SELECT 'inactive_week'::text AS reason
-         FROM issue_week_context
-        WHERE sprint_number IS DISTINCT FROM $2
-          AND issue_priority IN ('urgent', 'high')
-          AND issue_state = 'blocked'
-          AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
-          AND btrim(COALESCE(blocker_text, '')) <> ''
-       UNION ALL
-       SELECT 'no_blocker'::text AS reason
-         FROM issue_week_context
-        WHERE sprint_number = $2
-          AND issue_priority IN ('urgent', 'high')
-          AND issue_state = 'blocked'
-          AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
-          AND btrim(COALESCE(blocker_text, '')) = ''
-       UNION ALL
-       SELECT 'medium_low_priority'::text AS reason
-         FROM issue_week_context
-        WHERE sprint_number = $2
-          AND issue_priority IN ('medium', 'low')
-          AND issue_state = 'blocked'
-          AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
-          AND btrim(COALESCE(blocker_text, '')) <> ''
-       UNION ALL
-       SELECT 'done_or_cancelled'::text AS reason
-         FROM issue_week_context
-        WHERE sprint_number = $2
-          AND issue_priority IN ('urgent', 'high')
-          AND issue_state IN ('done', 'cancelled')
-          AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
-          AND btrim(COALESCE(blocker_text, '')) <> ''
-       UNION ALL
-       SELECT 'missing_fallback_owner'::text AS reason
-         FROM issue_week_context
-        WHERE sprint_number = $2
-          AND issue_priority IN ('urgent', 'high')
-          AND issue_state = 'blocked'
-          AND issue_assignee_id IS NULL
-          AND sprint_owner_id IS NULL
-          AND btrim(COALESCE(blocker_text, '')) <> ''
-       UNION ALL
        SELECT 'duplicate_open_finding'::text AS reason
          FROM issue_week_context
-       WHERE sprint_number = $2
-         AND issue_priority IN ('urgent', 'high')
-         AND issue_state = 'blocked'
-         AND (issue_assignee_id IS NOT NULL OR sprint_owner_id IS NOT NULL)
-         AND btrim(COALESCE(blocker_text, '')) <> ''
+       WHERE issue_state = 'blocked'
          AND duplicate_finding_id IS NOT NULL
        UNION ALL
        SELECT 'insufficient_visible_evidence'::text AS reason
@@ -365,9 +302,9 @@ export async function findBlockedImportantIssueQuietExits(input: {
      )
      SELECT reason, COUNT(*)::text AS count
        FROM classified
-      GROUP BY reason
+     GROUP BY reason
      ORDER BY reason`,
-    [input.workspaceId, currentSprintNumber]
+    [input.workspaceId]
   );
 
   const countsByReason = new Map(result.rows.map((row) => [row.reason, Number(row.count)]));
@@ -433,7 +370,7 @@ export async function findStaleBlockedImportantIssueFindings(input: {
            NULLIF(s.properties->>'owner_id', ''),
            NULLIF(s.properties->'assignee_ids'->>0, '')
          ) AS sprint_owner_id,
-         latest_iteration.blockers_encountered AS blocker_text,
+         COALESCE(latest_iteration.blockers_encountered, '') AS blocker_text,
          COALESCE(i.visibility, 'workspace') AS issue_visibility
        FROM open_findings f
        LEFT JOIN documents i
@@ -466,20 +403,12 @@ export async function findStaleBlockedImportantIssueFindings(input: {
        CASE
          WHEN issue_id IS NULL OR sprint_id IS NULL THEN 'condition_gone'
          WHEN issue_visibility = 'private' THEN 'insufficient_visible_evidence'
-         WHEN sprint_number IS DISTINCT FROM $3 THEN 'inactive_week'
-         WHEN issue_priority NOT IN ('urgent', 'high') THEN 'medium_low_priority'
          WHEN issue_state IN ('done', 'cancelled') THEN 'done_or_cancelled'
          WHEN issue_state <> 'blocked' THEN 'condition_gone'
-         WHEN issue_assignee_id IS NULL AND sprint_owner_id IS NULL THEN 'missing_fallback_owner'
-         WHEN btrim(COALESCE(blocker_text, '')) = '' THEN 'no_blocker'
          ELSE 'condition_gone'
        END AS reason
      FROM source_context`,
-    [
-      input.workspaceId,
-      input.limit ?? 100,
-      (await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today: input.today })).currentSprintNumber,
-    ]
+    [input.workspaceId, input.limit ?? 100]
   );
 
   return result.rows

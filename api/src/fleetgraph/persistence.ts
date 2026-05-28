@@ -58,6 +58,12 @@ type FleetGraphFindingRow = {
   updated_at: Date;
 };
 
+type FleetGraphNotificationRow = FleetGraphFindingRow & {
+  issue_title: string;
+  context_title: string | null;
+  owner_name: string | null;
+};
+
 type FleetGraphRunRow = {
   id: string;
   workspace_id: string;
@@ -99,6 +105,12 @@ type FleetGraphWorkerTickRow = {
 
 export type FleetGraphFinding = Omit<FleetGraphFindingRow, 'confidence'> & {
   confidence: number;
+};
+
+export type FleetGraphNotificationFinding = FleetGraphFinding & {
+  issue_title: string;
+  context_title: string | null;
+  owner_name: string | null;
 };
 
 export type FleetGraphRun = FleetGraphRunRow;
@@ -161,6 +173,15 @@ function mapFinding(row: FleetGraphFindingRow): FleetGraphFinding {
   return {
     ...row,
     confidence: Number(row.confidence),
+  };
+}
+
+function mapNotificationFinding(row: FleetGraphNotificationRow): FleetGraphNotificationFinding {
+  return {
+    ...mapFinding(row),
+    issue_title: row.issue_title,
+    context_title: row.context_title,
+    owner_name: row.owner_name,
   };
 }
 
@@ -234,6 +255,48 @@ export async function listFleetGraphFindingsForSource(
   );
 
   return result.rows.map(mapFinding);
+}
+
+export async function listFleetGraphNotificationFindings(
+  input: { workspaceId: string; limit?: number },
+  db: QueryRunner = pool
+): Promise<FleetGraphNotificationFinding[]> {
+  const result = await db.query<FleetGraphNotificationRow>(
+    `SELECT f.*,
+            issue.title AS issue_title,
+            sprint.title AS context_title,
+            COALESCE(owner.name, assignee.name) AS owner_name
+       FROM fleetgraph_findings f
+       JOIN documents issue
+         ON issue.id = f.source_issue_id
+        AND issue.workspace_id = f.workspace_id
+        AND issue.document_type = 'issue'
+        AND issue.deleted_at IS NULL
+       LEFT JOIN documents sprint
+         ON sprint.id = f.source_sprint_id
+        AND sprint.workspace_id = f.workspace_id
+        AND sprint.document_type = 'sprint'
+        AND sprint.deleted_at IS NULL
+       LEFT JOIN users owner
+         ON owner.id = CASE
+              WHEN f.proposed_recipient->>'userId' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              THEN (f.proposed_recipient->>'userId')::uuid
+              ELSE NULL
+            END
+       LEFT JOIN users assignee
+         ON assignee.id = CASE
+              WHEN issue.properties->>'assignee_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              THEN (issue.properties->>'assignee_id')::uuid
+              ELSE NULL
+            END
+      WHERE f.workspace_id = $1
+        AND f.status IN ('open', 'needs_confirmation', 'error')
+      ORDER BY f.last_detected_at DESC, f.updated_at DESC
+      LIMIT $2`,
+    [input.workspaceId, input.limit ?? 25]
+  );
+
+  return result.rows.map(mapNotificationFinding);
 }
 
 export async function saveBlockedImportantIssueFinding(

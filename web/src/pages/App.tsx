@@ -22,7 +22,11 @@ import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { useAppMode } from '@/hooks/useAppMode';
 import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
-import { FleetGraphActiveWeekCue } from '@/components/fleetgraph/FleetGraphActiveWeekCue';
+import { FleetGraphChatProbe, type FleetGraphChatProbeRequest } from '@/components/FleetGraphChatProbe';
+import {
+  FleetGraphNotificationsProbe,
+  type FleetGraphNotificationProbeItem,
+} from '@/components/FleetGraphNotificationsProbe';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -40,6 +44,7 @@ export function AppLayout() {
   const [projectSetupWizardOpen, setProjectSetupWizardOpen] = useState(false);
   const [actionItemsModalOpen, setActionItemsModalOpen] = useState(false);
   const [actionItemsModalShownOnLoad, setActionItemsModalShownOnLoad] = useState(false);
+  const [chatDiscussRequest, setChatDiscussRequest] = useState<FleetGraphChatProbeRequest | null>(null);
 
   const handleSessionTimeout = useCallback(async () => {
     const returnTo = encodeURIComponent(location.pathname + location.search + location.hash);
@@ -142,6 +147,13 @@ export function AppLayout() {
     }
   };
 
+  const handleDiscussNotification = (notification: FleetGraphNotificationProbeItem) => {
+    setChatDiscussRequest((request) => ({
+      id: (request?.id ?? 0) + 1,
+      notification,
+    }));
+  };
+
   return (
     <TooltipProvider delayDuration={300}>
       <SelectionPersistenceProvider>
@@ -163,7 +175,6 @@ export function AppLayout() {
             isCelebrating={isCelebrating}
             urgency={actionItemsData?.has_overdue ? 'overdue' : 'due_today'}
           />
-          <FleetGraphActiveWeekCue />
 
           <div className="flex flex-1 overflow-hidden">
             <AppHeader
@@ -215,6 +226,9 @@ export function AppLayout() {
             open={actionItemsModalOpen}
             onClose={() => setActionItemsModalOpen(false)}
           />
+
+          <FleetGraphChatProbe discussRequest={chatDiscussRequest} />
+          <FleetGraphNotificationsProbe onDiscuss={handleDiscussNotification} />
         </div>
       </SelectionPersistenceProvider>
     </TooltipProvider>

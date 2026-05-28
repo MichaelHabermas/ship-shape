@@ -28,7 +28,6 @@ export interface DocumentResponse extends Record<string, unknown> {
   owner_id?: string | null;
   color?: string;
   emoji?: string | null;
-  fleetGraphFindingCount?: number;
 }
 
 export interface DocumentTabProps {
@@ -48,7 +47,6 @@ export interface TabCounts {
   issues?: number;
   weeks?: number;
   projects?: number;
-  fleetGraphFindings?: number;
 }
 
 // Lazy load tab components to avoid circular dependencies
@@ -159,7 +157,7 @@ export const documentTabConfigs: Record<string, DocumentTabConfig[]> = {
     },
     {
       id: 'issues',
-      label: (_, counts) => counts?.fleetGraphFindings ? `Issues (${counts.fleetGraphFindings})` : 'Issues',
+      label: 'Issues',
       component: WeekIssuesTab,
     },
   ],
@@ -172,7 +170,7 @@ export const documentTabConfigs: Record<string, DocumentTabConfig[]> = {
     },
     {
       id: 'issues',
-      label: (_, counts) => counts?.fleetGraphFindings ? `Issues (${counts.fleetGraphFindings})` : 'Issues',
+      label: 'Issues',
       component: WeekIssuesTab,
     },
     {

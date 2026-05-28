@@ -51,6 +51,14 @@ input::placeholder {
   color: #8a8a8a; /* WCAG 2.1 AA compliant (5.1:1 contrast against #0d0d0d) */
 }
 
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* TipTap editor styles - parent needs position for drag handle */
 .tiptap-wrapper {
   position: relative;

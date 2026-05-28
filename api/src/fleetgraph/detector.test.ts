@@ -18,7 +18,6 @@ const dedupeKey = blockedImportantIssueDedupeKey({ workspaceId, issueId, sprintI
 function dbReturningCandidate() {
   return {
     query: vi.fn()
-      .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-18' }]))
       .mockResolvedValueOnce(pgResult([{
         workspace_id: workspaceId,
         issue_id: issueId,
@@ -39,7 +38,7 @@ function dbReturningCandidate() {
 }
 
 describe('FleetGraph detector', () => {
-  it('uses the shared current-week boundary before selecting candidates', async () => {
+  it('selects blocked issues without requiring current week, urgent/high priority, owner, or blocker text', async () => {
     const db = dbReturningCandidate();
     db.query.mockResolvedValueOnce(pgResult([]));
 
@@ -51,17 +50,12 @@ describe('FleetGraph detector', () => {
 
     expect(db.query).toHaveBeenNthCalledWith(
       1,
-      'SELECT sprint_start_date FROM workspaces WHERE id = $1',
-      [workspaceId]
-    );
-    expect(db.query).toHaveBeenNthCalledWith(
-      2,
       expect.any(String),
-      [workspaceId, 2, 25]
+      [workspaceId, 25]
     );
   });
 
-  it('selects active-week urgent/high blocked issues with blocker evidence', async () => {
+  it('keeps only blocked source state as the hard candidate gate', async () => {
     const db = dbReturningCandidate();
     db.query.mockResolvedValueOnce(pgResult([]));
 
@@ -70,17 +64,17 @@ describe('FleetGraph detector', () => {
       db,
       today: new Date('2026-05-26T12:00:00Z'),
     });
-    const sql = db.query.mock.calls[1]?.[0] as string;
+    const sql = db.query.mock.calls[0]?.[0] as string;
 
     expect(sql).toContain("i.document_type = 'issue'");
-    expect(sql).toContain("i.properties->>'priority' IN ('urgent', 'high')");
     expect(sql).toContain("COALESCE(i.properties->>'state', 'backlog') = 'blocked'");
     expect(sql).toContain("sprint_assoc.relationship_type = 'sprint'");
-    expect(sql).toContain("s.properties->>'sprint_number' ~ '^\\d+$'");
-    expect(sql).toContain('JOIN LATERAL');
+    expect(sql).toContain('LEFT JOIN LATERAL');
     expect(sql).toContain('ORDER BY iteration.created_at DESC, iteration.id DESC');
     expect(sql).toContain("btrim(COALESCE(iteration.blockers_encountered, '')) <> ''");
-    expect(sql).toContain("NULLIF(i.properties->>'assignee_id', '') IS NOT NULL");
+    expect(sql).not.toContain("i.properties->>'priority' IN ('urgent', 'high')");
+    expect(sql).not.toContain("NULLIF(i.properties->>'assignee_id', '') IS NOT NULL");
+    expect(sql).not.toContain("sprint_number' ~ '^\\\\d+$' THEN (s.properties->>'sprint_number')::int\n             ELSE NULL\n           END = $2");
 
     expect(decisions[0]?.candidate).toEqual(expect.objectContaining({
       issue_id: issueId,
@@ -92,13 +86,7 @@ describe('FleetGraph detector', () => {
   it('classifies quiet exits deterministically', async () => {
     const db = {
       query: vi.fn()
-        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-18' }]))
         .mockResolvedValueOnce(pgResult([
-          { reason: 'inactive_week', count: '1' },
-          { reason: 'no_blocker', count: '2' },
-          { reason: 'medium_low_priority', count: '3' },
-          { reason: 'done_or_cancelled', count: '4' },
-          { reason: 'missing_fallback_owner', count: '5' },
           { reason: 'duplicate_open_finding', count: '6' },
           { reason: 'insufficient_visible_evidence', count: '0' },
         ])),
@@ -109,28 +97,23 @@ describe('FleetGraph detector', () => {
       db,
       today: new Date('2026-05-26T12:00:00Z'),
     });
-    const sql = db.query.mock.calls[1]?.[0] as string;
+    const sql = db.query.mock.calls[0]?.[0] as string;
 
-    expect(db.query).toHaveBeenCalledTimes(2);
+    expect(db.query).toHaveBeenCalledTimes(1);
     expect(sql).toContain('issue_week_context AS');
     expect(sql).toContain('classified AS');
-    expect(sql).toContain('inactive_week');
-    expect(sql).toContain('no_blocker');
-    expect(sql).toContain('medium_low_priority');
-    expect(sql).toContain('done_or_cancelled');
-    expect(sql).toContain('missing_fallback_owner');
     expect(sql).toContain('duplicate_open_finding');
     expect(sql).toContain('insufficient_visible_evidence');
     expect(sql).toContain('LEFT JOIN fleetgraph_findings');
     expect(sql).toContain(`'blocked-important-issue', ':', i.workspace_id, ':', i.id, ':', s.id`);
     expect(quietExits).toEqual([
-      { reason: 'done_or_cancelled', count: 4 },
+      { reason: 'done_or_cancelled', count: 0 },
       { reason: 'duplicate_open_finding', count: 6 },
-      { reason: 'inactive_week', count: 1 },
+      { reason: 'inactive_week', count: 0 },
       { reason: 'insufficient_visible_evidence', count: 0 },
-      { reason: 'medium_low_priority', count: 3 },
-      { reason: 'missing_fallback_owner', count: 5 },
-      { reason: 'no_blocker', count: 2 },
+      { reason: 'medium_low_priority', count: 0 },
+      { reason: 'missing_fallback_owner', count: 0 },
+      { reason: 'no_blocker', count: 0 },
     ]);
   });
 
@@ -148,7 +131,7 @@ describe('FleetGraph detector', () => {
       limit: 10,
     });
 
-    expect(db.query).toHaveBeenCalledWith(expect.any(String), [workspaceId, 2, 10]);
+    expect(db.query).toHaveBeenCalledWith(expect.any(String), [workspaceId, 10]);
     expect(db.query).toHaveBeenLastCalledWith(
       expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
       [workspaceId, [dedupeKey]]
@@ -191,7 +174,6 @@ describe('FleetGraph detector', () => {
     };
     const db = {
       query: vi.fn()
-        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-18' }]))
         .mockResolvedValueOnce(pgResult([candidateRow, candidateRow]))
         .mockResolvedValueOnce(pgResult([])),
     };
@@ -211,7 +193,6 @@ describe('FleetGraph detector', () => {
   it('does not query open findings when there are no candidates to dedupe', async () => {
     const db = {
       query: vi.fn()
-        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-18' }]))
         .mockResolvedValueOnce(pgResult([])),
     };
 
@@ -221,7 +202,7 @@ describe('FleetGraph detector', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     })).resolves.toEqual([]);
 
-    expect(db.query).toHaveBeenCalledTimes(2);
+    expect(db.query).toHaveBeenCalledTimes(1);
   });
 
   it.each([

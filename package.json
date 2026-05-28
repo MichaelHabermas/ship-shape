@@ -94,6 +94,7 @@
     "db:seed": "pnpm --filter @ship/api db:seed",
     "db:migrate": "pnpm --filter @ship/api db:migrate",
     "db:orphan-check": "pnpm --filter @ship/api db:orphan-check",
+    "demo:seed": "pnpm fleetgraph:demo",
     "fleetgraph:detector": "pnpm --filter @ship/api fleetgraph:detector",
     "fleetgraph:demo": "pnpm --filter @ship/api fleetgraph:demo",
     "langsmith:smoke": "pnpm --filter @ship/api langsmith:smoke",

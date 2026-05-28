@@ -288,7 +288,7 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-26
 
-**Decision:** Epic 8 reviewer readiness uses `pnpm fleetgraph:demo` as the repeatable local/demo setup path. The command upserts a named demo workspace and reviewer-safe rows, refuses non-local databases by default, prints stable reviewer URLs plus detector summaries, and can run `--capture-traces` to execute seeded graph paths and print local trace metadata. The per-run reviewer password is redacted by default and requires explicit local opt-in with `FLEETGRAPH_DEMO_PRINT_PASSWORD=1`.
+**Decision:** Epic 8 reviewer readiness uses `pnpm demo:seed` / `pnpm fleetgraph:demo` as the repeatable local/demo setup path. The command attaches the canonical reviewer to the loaded app workspace when it exists, falls back to a named demo workspace when it does not, refuses non-local databases by default, prints stable reviewer URLs plus detector summaries, and can run `--capture-traces` to execute seeded graph paths and print local trace metadata. The canonical reviewer login is stable across seeded databases: `fleetgraph.reviewer@ship.local` / `admin123`.
 
 **Consequence:** Demo validation no longer depends on manual SQL or private workspace data. External trace URLs are recorded only when a real tracing backend provides them; local runs document safe persisted trace metadata instead of fabricated links.
 
@@ -371,3 +371,19 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** `api/src/db/migrate.ts` now creates/checks `schema_migrations` first and applies `schema.sql` only when the public schema has no existing application tables. Existing databases run numbered migrations without replaying bootstrap DDL.
 
 **Consequence:** `schema.sql` remains the fresh-database bootstrap source, while numbered migrations remain the evolution path. Render deploys no longer fail before migrations because bootstrap indexes assume columns that older existing tables gain through migrations.
+
+## D047 - Blocked State Is Notification Eligibility
+
+**Date:** 2026-05-28
+
+**Decision:** For the current FleetGraph notification slice, source issue `state = blocked` is the eligibility signal. Current week, urgent/high priority, existing blocker text, assignee/week owner, and ranking are not hard gates. Use existing Ship fields and associations first; do not add FleetGraph-specific document properties, finding categories, or notification types unless a later product decision proves they are necessary.
+
+**Consequence:** Blocked issues should surface even when low/medium priority, outside the current week, unowned, or missing a latest `issue_iterations.blockers_encountered` entry. Missing blocker text is shown as missing source data, not as a reason to suppress the notification. The current persistence model still requires a week/sprint source association for findings; surfacing blocked issues with no week association is a separate product/schema decision.
+
+## D048 - Notification Labels Stay Presentational Until Proven
+
+**Date:** 2026-05-28
+
+**Decision:** The notification UI should separate the attention label from the source title. For blocked issue notifications, render a `Blocked` chip and keep the issue title raw instead of baking `Blocked -` into the title string. Future useful labels to evaluate are `Stale`, `At risk`, and `Needs owner`, but those are product directions, not implemented notification taxonomy yet.
+
+**Consequence:** Do not add persisted notification categories or new document properties just to support labels. Derive labels from existing source state first. `At risk` needs a clear later definition before implementation, likely using existing signals such as not-done state, priority, week timing, and dependencies.

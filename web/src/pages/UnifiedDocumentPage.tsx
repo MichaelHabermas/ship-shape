@@ -15,7 +15,6 @@ import type { ConversionDocumentType } from '@ship/shared';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
 import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
-import { useFleetGraphSprintFindings } from '@/hooks/useFleetGraphQuery';
 import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import {
@@ -85,14 +84,9 @@ export function UnifiedDocumentPage() {
 
   const isProject = document?.document_type === 'project';
   const isProgram = document?.document_type === 'program';
-  const isSprint = document?.document_type === 'sprint';
-  const { data: fleetGraphFindings = [] } = useFleetGraphSprintFindings(isSprint ? id : undefined);
 
   // Set default active tab when document loads (status-aware for sprints)
-  const tabConfig = document ? getTabsForDocument({
-    ...document,
-    fleetGraphFindingCount: isSprint ? fleetGraphFindings.length : undefined,
-  }) : [];
+  const tabConfig = document ? getTabsForDocument(document) : [];
   const hasTabs = document ? documentTypeHasTabs(document.document_type) : false;
 
   // Derive activeTab from URL - if valid tab in URL, use it; otherwise default to first tab
@@ -157,13 +151,8 @@ export function UnifiedDocumentPage() {
       // For programs, counts will be loaded by the tab components themselves
       return {};
     }
-    if (isSprint) {
-      return {
-        fleetGraphFindings: fleetGraphFindings.length,
-      };
-    }
     return {};
-  }, [document, isProject, isProgram, isSprint, projectWeeks.length, fleetGraphFindings.length]);
+  }, [document, isProject, isProgram, projectWeeks.length]);
 
   // Handler for when associations change (invalidate document query to refetch)
   const handleAssociationChange = useCallback(() => {

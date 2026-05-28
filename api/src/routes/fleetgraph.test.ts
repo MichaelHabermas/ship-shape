@@ -8,7 +8,12 @@ import { authorizeRequest } from '../security/route-capability.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/manual-run.js';
-import { listFleetGraphFindingsForSource, type FleetGraphFinding } from '../fleetgraph/persistence.js';
+import {
+  listFleetGraphFindingsForSource,
+  listFleetGraphNotificationFindings,
+  type FleetGraphFinding,
+  type FleetGraphNotificationFinding,
+} from '../fleetgraph/persistence.js';
 import type { FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
@@ -55,12 +60,25 @@ vi.mock('../fleetgraph/manual-run.js', () => ({
 
 vi.mock('../fleetgraph/persistence.js', () => ({
   listFleetGraphFindingsForSource: vi.fn(),
+  listFleetGraphNotificationFindings: vi.fn(),
 }));
 
 type FleetGraphFindingsTestBody = {
   findings: Array<{
     dedupeKey?: string;
     visibleOutput: { summary: string };
+  }>;
+};
+
+type FleetGraphNotificationsTestBody = {
+  notifications: Array<{
+    id: string;
+    findingId: string;
+    title: string;
+    context: string;
+    owner: string | null;
+    blockerText: string;
+    sourcePath: string;
   }>;
 };
 
@@ -119,7 +137,17 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
   };
 }
 
-function visibleOutput(): FleetGraphVisibleOutput {
+function notificationFinding(overrides: Partial<FleetGraphNotificationFinding> = {}): FleetGraphNotificationFinding {
+  return {
+    ...finding(),
+    issue_title: 'API access blocker',
+    context_title: 'Sprint 12',
+    owner_name: 'PM thread',
+    ...overrides,
+  };
+}
+
+function visibleOutput(overrides: Partial<FleetGraphVisibleOutput> = {}): FleetGraphVisibleOutput {
   return {
     title: 'Blocked active-week work',
     summary: 'Visible summary',
@@ -132,6 +160,7 @@ function visibleOutput(): FleetGraphVisibleOutput {
       visibleFields: ['title'],
     }],
     humanGate: { required: true },
+    ...overrides,
   };
 }
 
@@ -148,11 +177,73 @@ function restrictedVisibleOutput(): FleetGraphVisibleOutput {
 describe('FleetGraph routes', () => {
   beforeEach(() => {
     vi.mocked(listFleetGraphFindingsForSource).mockReset();
+    vi.mocked(listFleetGraphNotificationFindings).mockReset();
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(runFleetGraph).mockReset();
     vi.mocked(runFleetGraphManualTick).mockReset();
     vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: true } as never);
     vi.mocked(authorizeRequest).mockResolvedValue({ allowed: true, reason: 'allowed' } as never);
+  });
+
+  it('lists active notifications from actor-visible open findings', async () => {
+    vi.mocked(listFleetGraphNotificationFindings).mockResolvedValue([notificationFinding()]);
+    vi.mocked(visibleOutputForFinding).mockResolvedValue({
+      evidence: [{
+        kind: 'blocker',
+        sourceDocumentId: issueId,
+        sourceType: 'issue',
+        claim: 'Latest blocker text exists.',
+        excerpt: 'Waiting on API access before backend queue work can continue.',
+        visibility: 'actor_visible',
+        visibleFields: ['blockers_encountered'],
+      }],
+      output: visibleOutput({
+        evidence: [{
+          kind: 'blocker',
+          sourceDocumentId: issueId,
+          sourceType: 'issue',
+          claim: 'Latest blocker text exists.',
+          excerpt: 'Waiting on API access before backend queue work can continue.',
+          visibility: 'actor_visible',
+          visibleFields: ['blockers_encountered'],
+        }],
+      }),
+    });
+
+    const res = await request(app())
+      .get('/api/fleetgraph/notifications?limit=10')
+      .expect(200);
+
+    expect(listFleetGraphNotificationFindings).toHaveBeenCalledWith({
+      workspaceId,
+      limit: 10,
+    });
+    const body = JSON.parse(res.text) as FleetGraphNotificationsTestBody;
+    expect(body.notifications[0]).toMatchObject({
+      id: findingId,
+      findingId,
+      title: 'API access blocker',
+      context: 'Sprint 12',
+      owner: 'PM thread',
+      blockerText: 'Waiting on API access before backend queue work can continue.',
+      sourcePath: `/documents/${issueId}`,
+    });
+  });
+
+  it('omits notifications without safe actor-visible output', async () => {
+    vi.mocked(listFleetGraphNotificationFindings).mockResolvedValue([notificationFinding()]);
+    vi.mocked(visibleOutputForFinding).mockResolvedValue({
+      evidence: [],
+      output: restrictedVisibleOutput(),
+    });
+
+    const res = await request(app())
+      .get('/api/fleetgraph/notifications')
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphNotificationsTestBody;
+    expect(body.notifications).toEqual([]);
+    expect(res.text).not.toContain(issueId);
   });
 
   it('lists findings with actor-filtered visible output', async () => {
