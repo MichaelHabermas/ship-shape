@@ -363,7 +363,7 @@ export function startFleetGraphWorker(options: FleetGraphWorkerOptions = {}): ()
   };
 
   logger.log(`[FleetGraph] Worker enabled; interval=${config.workerIntervalMs}ms instance=${instanceId}`);
-  runOnce();
+  scheduleNext();
 
   return async () => {
     if (stopped) return;

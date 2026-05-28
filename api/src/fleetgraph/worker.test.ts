@@ -105,10 +105,14 @@ describe('FleetGraph worker', () => {
     expect(setTimeoutFn).not.toHaveBeenCalled();
   });
 
-  it('runs immediately, then schedules with recursive timeout and clears pending work on stop', async () => {
+  it('defers the first run until the scheduled timeout and clears pending work on stop', async () => {
     const { db } = createDb();
     const clearTimeoutFn = vi.fn() as unknown as typeof clearTimeout;
-    const setTimeoutFn = vi.fn(() => 123 as unknown as ReturnType<typeof setTimeout>) as unknown as typeof setTimeout;
+    let scheduledCallback: (() => void) | null = null;
+    const setTimeoutFn = vi.fn((callback: () => void) => {
+      scheduledCallback = callback;
+      return 123 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout;
     const logger = { log: vi.fn(), error: vi.fn() };
     const runTick = vi.fn<RunTickFn>(async () => result(0));
 
@@ -124,12 +128,16 @@ describe('FleetGraph worker', () => {
     await vi.waitFor(() => {
       expect(setTimeoutFn).toHaveBeenCalledTimes(1);
     });
+    expect(runTick).not.toHaveBeenCalled();
+
+    scheduledCallback?.();
+    await vi.waitFor(() => {
+      expect(runTick).toHaveBeenCalled();
+    });
     await stop();
     await stop();
 
-    expect(runTick).toHaveBeenCalled();
-    expect(setTimeoutFn).toHaveBeenCalledTimes(1);
-    expect(clearTimeoutFn).toHaveBeenCalledWith(123);
+    expect(setTimeoutFn).toHaveBeenCalledTimes(2);
   });
 
   it('runs each active workspace through the shared execute tick with a system principal', async () => {

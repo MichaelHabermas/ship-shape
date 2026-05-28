@@ -8,6 +8,7 @@ import { clearQuietCsrfToken } from '@/lib/quiet-fetch';
 import { createApiStatusError } from '@/lib/api-error';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
+const API_TIMEOUT_MS = 15_000;
 
 export { readJson } from '@/api/read-json';
 
@@ -18,6 +19,16 @@ let csrfToken: string | null = null;
 function isJsonResponse(response: Response): boolean {
   const contentType = response.headers.get('content-type');
   return contentType?.includes('application/json') ?? false;
+}
+
+async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 /**
@@ -53,7 +64,7 @@ function handleSessionExpired(): never {
 
 async function ensureCsrfToken(): Promise<string> {
   if (!csrfToken) {
-    const response = await fetch(`${API_URL}/api/csrf-token`, {
+    const response = await apiFetch(`${API_URL}/api/csrf-token`, {
       credentials: 'include',
     });
     if (!response.ok || !isJsonResponse(response)) {
@@ -86,7 +97,7 @@ async function fetchWithCsrf(
   body?: object
 ): Promise<Response> {
   const token = await ensureCsrfToken();
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  const res = await apiFetch(`${API_URL}${endpoint}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -107,7 +118,7 @@ async function fetchWithCsrf(
   if (res.status === 403 && isJson) {
     clearCsrfToken();
     const newToken = await ensureCsrfToken();
-    return fetch(`${API_URL}${endpoint}`, {
+    return apiFetch(`${API_URL}${endpoint}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -121,7 +132,7 @@ async function fetchWithCsrf(
 }
 
 export async function apiGet(endpoint: string): Promise<Response> {
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  const res = await apiFetch(`${API_URL}${endpoint}`, {
     credentials: 'include',
   });
 
@@ -208,7 +219,7 @@ async function request<T>(
     headers['X-CSRF-Token'] = token;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await apiFetch(`${API_URL}${endpoint}`, {
     ...options,
     credentials: 'include',
     headers,
@@ -246,7 +257,7 @@ async function request<T>(
     clearCsrfToken();
     const newToken = await ensureCsrfToken();
     headers['X-CSRF-Token'] = newToken;
-    const retryResponse = await fetch(`${API_URL}${endpoint}`, {
+    const retryResponse = await apiFetch(`${API_URL}${endpoint}`, {
       ...options,
       credentials: 'include',
       headers,
