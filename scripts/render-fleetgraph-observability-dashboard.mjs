@@ -1,19 +1,28 @@
 // Renders the FleetGraph observability control-plane dashboard from local trial reports.
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const reportRoot = path.join(repoRoot, 'my-docs/evals/fleetgraph-observability');
 const datasetPath = path.join(reportRoot, 'datasets/edge-cases.json');
+const providerHistoryPath = path.join(reportRoot, 'provider-history.json');
 const outputPath = path.join(reportRoot, 'dashboard.html');
+const deployedOutputDir = path.join(repoRoot, 'web/public/fleetgraph-observability');
+const deployedOutputPath = path.join(deployedOutputDir, 'index.html');
+const deployedHistoryPath = path.join(deployedOutputDir, 'provider-history.json');
 
 async function main() {
   const reports = await loadReports();
   const dataset = await loadDataset();
-  const model = buildDashboardModel(reports, dataset);
-  await writeFile(outputPath, html(model));
-  console.log(outputPath);
+  const providerHistory = await loadProviderHistory();
+  const model = buildDashboardModel(reports, dataset, providerHistory);
+  const rendered = html(model);
+  await writeFile(outputPath, rendered);
+  await mkdir(deployedOutputDir, { recursive: true });
+  await writeFile(deployedOutputPath, rendered);
+  await writeFile(deployedHistoryPath, JSON.stringify(providerHistory, null, 2));
+  console.log(`${outputPath}\n${deployedOutputPath}`);
 }
 
 async function loadReports() {
@@ -37,7 +46,24 @@ async function loadDataset() {
   }
 }
 
-function buildDashboardModel(reports, dataset) {
+async function loadProviderHistory() {
+  try {
+    return JSON.parse(await readFile(providerHistoryPath, 'utf8'));
+  } catch {
+    return {
+      generatedAt: null,
+      windowDays: 0,
+      limit: 0,
+      providers: {
+        langfuse: { ok: false, error: 'No provider-history.json yet.', traces: [], totals: { traces: 0, tokens: null, costUsd: null, errors: 0 } },
+        langsmith: { ok: false, error: 'No provider-history.json yet.', traces: [], totals: { traces: 0, tokens: null, costUsd: null, errors: 0 } },
+      },
+      cumulative: { traces: 0, tokens: null, costUsd: null, errors: 0 },
+    };
+  }
+}
+
+function buildDashboardModel(reports, dataset, providerHistory) {
   const latest = reports.at(-1);
   const traces = reports.flatMap((report) =>
     (report.traces ?? []).map((trace) => ({
@@ -84,6 +110,7 @@ function buildDashboardModel(reports, dataset) {
     reports,
     traces,
     dataset,
+    providerHistory,
     providerStats,
     scoreSummary,
     trends: reports.map((report) => ({
@@ -139,6 +166,11 @@ function html(model) {
       font-family: ui-sans-serif, Avenir Next, Avenir, Segoe UI, sans-serif;
     }
     * { box-sizing: border-box; }
+    * {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    *::-webkit-scrollbar { display: none; }
     body {
       margin: 0;
       min-height: 100vh;
@@ -301,6 +333,7 @@ function html(model) {
       <button type="button" class="tab" data-view="engineer" aria-pressed="false">Engineer</button>
       <button type="button" class="tab" data-view="bakeoff" aria-pressed="false">Provider Bake-Off</button>
       <button type="button" class="tab" data-view="learning" aria-pressed="false">Learning Loop</button>
+      <button type="button" id="allRunsButton" aria-pressed="false">All runs</button>
       <select id="runSelect" title="Select run"></select>
     </div>
   </header>
@@ -309,15 +342,17 @@ function html(model) {
     <section id="engineer" class="view"></section>
     <section id="bakeoff" class="view"></section>
     <section id="learning" class="view"></section>
-    <div class="footer-note">Generated ${escapeHtml(model.generatedAt)} from ${model.reports.length} reports and ${model.dataset.length} dataset items.</div>
+    <div class="footer-note">Generated ${escapeHtml(model.generatedAt)} from ${model.reports.length} reports, ${model.dataset.length} dataset items, and provider history snapshot ${escapeHtml(model.providerHistory.generatedAt ?? 'not synced yet')}.</div>
   </main>
   <script id="dashboard-data" type="application/json">${data}</script>
   <script>
     const model = JSON.parse(document.getElementById('dashboard-data').textContent);
     let selectedReport = model.reports.at(-1);
+    let allRunsMode = false;
 
     const fmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 });
     const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 6 });
+    const allRunsButton = document.getElementById('allRunsButton');
     const runSelect = document.getElementById('runSelect');
     model.reports.slice().reverse().forEach((report) => {
       const option = document.createElement('option');
@@ -327,6 +362,13 @@ function html(model) {
     });
     runSelect.addEventListener('change', () => {
       selectedReport = model.reports.find((report) => report.generatedAt === runSelect.value) || model.reports.at(-1);
+      allRunsMode = false;
+      allRunsButton.setAttribute('aria-pressed', 'false');
+      renderAll();
+    });
+    allRunsButton.addEventListener('click', () => {
+      allRunsMode = !allRunsMode;
+      allRunsButton.setAttribute('aria-pressed', String(allRunsMode));
       renderAll();
     });
     document.querySelectorAll('.tab').forEach((button) => {
@@ -344,7 +386,27 @@ function html(model) {
     }
 
     function tracesForSelected() {
+      if (allRunsMode) return model.traces;
       return model.traces.filter((trace) => trace.generatedAt === selectedReport.generatedAt);
+    }
+
+    function selectedSummary() {
+      if (!allRunsMode) return selectedReport.summary;
+      const traces = tracesForSelected();
+      const scores = traces.flatMap((trace) => trace.scores || []);
+      const passed = scores.filter((score) => score.passed).length;
+      const failed = scores.length - passed;
+      return {
+        traceCount: traces.length,
+        modelCalls: traces.reduce((total, trace) => total + (trace.tokenMetadata.modelCalls || 0), 0),
+        totalTokens: traces.reduce((total, trace) => total + (trace.tokenMetadata.totalTokens || 0), 0),
+        estimatedCostUsd: traces.reduce((total, trace) => total + (trace.costMetadata.estimatedCostUsd || 0), 0),
+        scoreSummary: {
+          passed,
+          failed,
+          average: scores.length ? scores.reduce((total, score) => total + score.value, 0) / scores.length : 0,
+        },
+      };
     }
 
     function providerLink(trace, providerName) {
@@ -356,16 +418,25 @@ function html(model) {
 
     function renderReviewer() {
       const traces = tracesForSelected();
+      const summary = selectedSummary();
       const failedScores = traces.flatMap((trace) => trace.scores.filter((score) => !score.passed));
       const providerFailures = traces.flatMap((trace) => [...(trace.providerFailures || []), ...(trace.scorePostFailures || [])]);
       document.getElementById('reviewer').innerHTML = [
         kpis([
-          ['Traces', selectedReport.summary.traceCount, 'latest run'],
-          ['Score Pass', selectedReport.summary.scoreSummary.passed + '/' + (selectedReport.summary.scoreSummary.passed + selectedReport.summary.scoreSummary.failed), failedScores.length ? 'attention needed' : 'all green', failedScores.length ? 'warn' : 'good'],
-          ['Model Calls', selectedReport.summary.modelCalls, 'explicit spend only', selectedReport.summary.modelCalls ? 'info' : 'good'],
-          ['Tokens', fmt.format(selectedReport.summary.totalTokens), 'latest run'],
-          ['Cost', money.format(selectedReport.summary.estimatedCostUsd), 'estimated USD', selectedReport.summary.estimatedCostUsd ? 'info' : 'good'],
-          ['Dataset Adds', selectedReport.datasetItems?.length || 0, 'learning loop'],
+          ['Scope', allRunsMode ? 'All' : 'Run', allRunsMode ? 'inter-run comparison' : 'intra-run check', allRunsMode ? 'info' : 'good'],
+          ['Traces', summary.traceCount, allRunsMode ? 'all local reports' : 'selected run'],
+          ['Score Pass', summary.scoreSummary.passed + '/' + (summary.scoreSummary.passed + summary.scoreSummary.failed), failedScores.length ? 'attention needed' : 'all green', failedScores.length ? 'warn' : 'good'],
+          ['Model Calls', summary.modelCalls, 'explicit spend only', summary.modelCalls ? 'info' : 'good'],
+          ['Tokens', fmt.format(summary.totalTokens), allRunsMode ? 'all reports' : 'selected run'],
+          ['Cost', money.format(summary.estimatedCostUsd), 'estimated USD', summary.estimatedCostUsd ? 'info' : 'good'],
+        ]),
+        kpis([
+          ['History Traces', model.providerHistory.cumulative.traces, 'Langfuse + LangSmith window', model.providerHistory.cumulative.traces ? 'info' : 'warn'],
+          ['History Tokens', fmt.format(model.providerHistory.cumulative.tokens || 0), 'provider snapshot'],
+          ['History Cost', money.format(model.providerHistory.cumulative.costUsd || 0), 'provider snapshot', model.providerHistory.cumulative.costUsd ? 'info' : 'good'],
+          ['Provider Errors', model.providerHistory.cumulative.errors, 'history window', model.providerHistory.cumulative.errors ? 'warn' : 'good'],
+          ['Window', model.providerHistory.windowDays || 'none', 'days synced'],
+          ['Snapshot', model.providerHistory.generatedAt ? new Date(model.providerHistory.generatedAt).toLocaleTimeString() : 'missing', 'provider sync'],
         ]),
         panel('Reviewer Flight Deck', '<div class="table-wrap">' + traceTable(traces) + '</div>'),
         '<div class="grid cols-2">' +
@@ -390,15 +461,17 @@ function html(model) {
     function renderBakeoff() {
       document.getElementById('bakeoff').innerHTML = [
         '<div class="grid cols-3">' +
-          providerCard('Langfuse', model.providerStats.langfuse, 'Native trace scores, generation observations, dataset/experiment APIs.') +
-          providerCard('LangSmith', model.providerStats.langsmith, 'Run feedback, shared runs, annotation queues, evaluation workflows.') +
+          providerCard('Langfuse', model.providerStats.langfuse, providerHistory('langfuse'), 'Native trace scores, generation observations, dataset/experiment APIs.') +
+          providerCard('LangSmith', model.providerStats.langsmith, providerHistory('langsmith'), 'Run feedback, shared runs, annotation queues, evaluation workflows.') +
           panel('Neutral Referee', '<p class="muted">Local reports are the source of truth when provider UIs disagree. Compare links per row, then use dataset items as regression seeds.</p>') +
         '</div>',
+        panel('Live Provider History', '<div class="table-wrap">' + providerHistoryTable() + '</div>'),
         panel('Side-by-Side Runs', '<div class="table-wrap">' + bakeoffTable(model.traces.slice().reverse()) + '</div>'),
       ].join('');
     }
 
     function renderLearning() {
+      const summary = selectedSummary();
       document.getElementById('learning').innerHTML = [
         kpis([
           ['Dataset Items', model.dataset.length, 'durable review/replay cases'],
@@ -406,7 +479,7 @@ function html(model) {
           ['Model Cost Cases', model.dataset.filter((item) => item.reason === 'model_cost').length, 'spend examples', 'info'],
           ['Failed Score Cases', model.dataset.filter((item) => item.reason === 'failed_score').length, 'regression seeds', model.dataset.some((item) => item.reason === 'failed_score') ? 'bad' : 'good'],
           ['Reports', model.reports.length, 'history loaded'],
-          ['Avg Score', fmt.format(model.latest.summary.scoreSummary.average), 'latest run', 'good'],
+          ['Avg Score', fmt.format(summary.scoreSummary.average), allRunsMode ? 'all reports' : 'selected run', 'good'],
         ]),
         '<div class="grid cols-2">' +
           panel('Edge-Case Dataset', datasetList()) +
@@ -478,11 +551,32 @@ function html(model) {
         '</tbody></table>';
     }
 
-    function providerCard(name, stats, note) {
+    function providerCard(name, stats, history, note) {
       return panel(name, '<div class="grid">' +
         '<div class="bar-row"><span>Coverage</span><span class="bar-track"><span class="bar-fill" style="width:' + Math.round(stats.coverage * 100) + '%"></span></span><span>' + Math.round(stats.coverage * 100) + '%</span></div>' +
-        '<p><span class="pill green">' + stats.traces + ' traces</span> <span class="pill ' + (stats.failures ? 'amber' : 'green') + '">' + stats.failures + ' failures</span> <span class="pill blue">' + stats.sharedLinks + ' shared links</span></p>' +
+        '<p><span class="pill green">' + stats.traces + ' report traces</span> <span class="pill ' + (stats.failures ? 'amber' : 'green') + '">' + stats.failures + ' report failures</span> <span class="pill blue">' + stats.sharedLinks + ' shared links</span></p>' +
+        '<p><span class="pill ' + (history.ok ? 'green' : 'amber') + '">' + history.totals.traces + ' synced traces</span> <span class="pill blue">' + fmt.format(history.totals.tokens || 0) + ' tokens</span> <span class="pill info">' + money.format(history.totals.costUsd || 0) + '</span></p>' +
+        (history.error ? '<p class="muted">' + esc(history.error) + '</p>' : '') +
         '<p class="muted">' + esc(note) + '</p></div>');
+    }
+
+    function providerHistory(providerName) {
+      return model.providerHistory.providers[providerName] || { ok: false, error: 'missing', traces: [], totals: { traces: 0, tokens: null, costUsd: null, errors: 0 } };
+    }
+
+    function providerHistoryTable() {
+      const rows = ['langfuse', 'langsmith'].flatMap((providerName) => providerHistory(providerName).traces.map((trace) => ({ providerName, trace })));
+      if (!rows.length) return '<p class="muted">No synced provider history yet. Run pnpm fleetgraph:observe:sync, then regenerate the dashboard.</p>';
+      return '<table><thead><tr><th>Provider</th><th>Trace</th><th>Started</th><th>Status</th><th>Tokens</th><th>Cost</th><th>Scores</th></tr></thead><tbody>' +
+        rows.sort((a, b) => String(b.trace.startedAt || '').localeCompare(String(a.trace.startedAt || ''))).map(({ providerName, trace }) =>
+          '<tr><td><span class="pill blue">' + esc(providerName) + '</span></td>' +
+          '<td><strong>' + (trace.url ? '<a href="' + escAttr(trace.url) + '">' + esc(trace.name) + '</a>' : esc(trace.name)) + '</strong><br><span class="muted">' + esc(trace.id) + '</span></td>' +
+          '<td>' + esc(trace.startedAt ? new Date(trace.startedAt).toLocaleString() : 'unknown') + '</td>' +
+          '<td><span class="pill ' + (trace.status === 'error' ? 'red' : trace.status === 'success' ? 'green' : 'amber') + '">' + esc(trace.status) + '</span></td>' +
+          '<td>' + esc(String(trace.tokens ?? 'none')) + '</td>' +
+          '<td>' + esc(trace.costUsd == null ? 'none' : String(trace.costUsd)) + '</td>' +
+          '<td>' + (Object.keys(trace.scores || {}).length ? Object.entries(trace.scores).map(([name, value]) => '<span class="pill green">' + esc(name) + ': ' + esc(value) + '</span>').join(' ') : '<span class="pill">none</span>') + '</td></tr>'
+        ).join('') + '</tbody></table>';
     }
 
     function sparkPanel() {
