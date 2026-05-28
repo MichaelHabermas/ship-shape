@@ -23,7 +23,6 @@ async function main() {
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');
   const { closeDatabasePool } = await import('./db/client.js');
-  const { startFleetGraphWorker } = await import('./fleetgraph/execution/worker.js');
 
   const PORT = process.env.PORT || 3000;
   const HOST = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : 'localhost');
@@ -39,7 +38,7 @@ async function main() {
 
   // Setup WebSocket collaboration server
   const closeCollaboration = setupCollaboration(server, { allowedOrigin: CORS_ORIGIN });
-  const stopFleetGraphWorker = startFleetGraphWorker();
+  let stopFleetGraphWorker: () => void | Promise<void> = () => undefined;
 
   const shutdownController = createShutdownController({
     server,
@@ -55,6 +54,13 @@ async function main() {
   server.listen(Number(PORT), HOST, () => {
     console.log(`API server running on http://${HOST}:${PORT}`);
     console.log(`CORS origin: ${CORS_ORIGIN}`);
+    import('./fleetgraph/execution/worker.js')
+      .then(({ startFleetGraphWorker }) => {
+        stopFleetGraphWorker = startFleetGraphWorker();
+      })
+      .catch((err) => {
+        console.error('Failed to start FleetGraph worker:', err);
+      });
   });
 }
 
