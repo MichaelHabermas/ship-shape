@@ -12,6 +12,11 @@ import {
   startFleetGraphWorkerTick,
   heartbeatFleetGraphWorkerTick,
   completeFleetGraphWorkerTick,
+  claimFleetGraphAttentionEvents,
+  completeFleetGraphAttentionEvent,
+  enqueueFleetGraphAttentionEvent,
+  markFleetGraphNotificationRead,
+  markVisibleFleetGraphNotificationsRead,
   type FleetGraphFindingStatus,
 } from './persistence.js';
 
@@ -243,6 +248,72 @@ describe('FleetGraph persistence', () => {
         null,
         JSON.stringify({ deadlineAt: deadlineAt.toISOString() }),
       ])
+    );
+  });
+
+  it('dedupes and claims durable attention events', async () => {
+    const eventId = '99999999-9999-4999-8999-999999999999';
+    const eventRow = {
+      id: eventId,
+      workspace_id: workspaceId,
+      source_issue_id: issueId,
+      source_sprint_id: sprintId,
+      event_type: 'issue_changed',
+      reason: 'issue_updated',
+      status: 'pending',
+      attempt_count: 0,
+      last_error: null,
+      available_at: new Date(),
+      locked_at: null,
+      locked_by: null,
+      processed_at: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    const db = dbReturning([eventRow]);
+
+    await enqueueFleetGraphAttentionEvent({
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      eventType: 'issue_changed',
+      reason: 'issue_updated',
+    }, db);
+    await claimFleetGraphAttentionEvents({ lockedBy: 'worker-1', limit: 2 }, db);
+    await completeFleetGraphAttentionEvent({ eventId, status: 'completed' }, db);
+
+    expect(db.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('ON CONFLICT'),
+      expect.arrayContaining([workspaceId, issueId, sprintId, 'issue_changed', 'issue_updated'])
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('FOR UPDATE SKIP LOCKED'),
+      [2, 'worker-1', null, 10]
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("status = 'processing'"),
+      [eventId, 'completed', null]
+    );
+  });
+
+  it('marks notification read state without mutating findings', async () => {
+    const db = dbReturning([{ finding_id: findingId }]);
+
+    await markFleetGraphNotificationRead({ workspaceId, findingId, userId }, db);
+    await markVisibleFleetGraphNotificationsRead({ workspaceId, userId, findingIds: [findingId] }, db);
+
+    expect(db.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('fleetgraph_notification_reads'),
+      [workspaceId, findingId, userId]
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('fleetgraph_findings'),
+      [workspaceId, userId, [findingId]]
     );
   });
 });

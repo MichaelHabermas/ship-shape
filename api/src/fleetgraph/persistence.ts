@@ -63,6 +63,39 @@ type FleetGraphNotificationRow = FleetGraphFindingRow & {
   issue_title: string;
   context_title: string | null;
   owner_name: string | null;
+  read_at: Date | null;
+};
+
+export type FleetGraphAttentionEventType =
+  | 'issue_changed'
+  | 'issue_iteration_added'
+  | 'issue_week_changed'
+  | 'issue_visibility_changed'
+  | 'repair_scan';
+
+export type FleetGraphAttentionEventStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'skipped';
+
+type FleetGraphAttentionEventRow = {
+  id: string;
+  workspace_id: string;
+  source_issue_id: string;
+  source_sprint_id: string | null;
+  event_type: FleetGraphAttentionEventType;
+  reason: string;
+  status: FleetGraphAttentionEventStatus;
+  attempt_count: number;
+  last_error: string | null;
+  available_at: Date;
+  locked_at: Date | null;
+  locked_by: string | null;
+  processed_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 };
 
 type FleetGraphRunRow = {
@@ -112,9 +145,11 @@ export type FleetGraphNotificationFinding = FleetGraphFinding & {
   issue_title: string;
   context_title: string | null;
   owner_name: string | null;
+  read_at: Date | null;
 };
 
 export type FleetGraphRun = FleetGraphRunRow;
+export type FleetGraphAttentionEvent = FleetGraphAttentionEventRow;
 
 export type FleetGraphWorkerTickStatus = 'running' | 'completed' | 'failed' | 'skipped_lock';
 
@@ -168,9 +203,32 @@ export type CompleteFleetGraphWorkerTickInput = {
   auditMetadata?: JsonRecord;
 };
 
+export type EnqueueFleetGraphAttentionEventInput = {
+  workspaceId: string;
+  sourceIssueId: string;
+  sourceSprintId?: string | null;
+  eventType: FleetGraphAttentionEventType;
+  reason: string;
+  availableAt?: Date;
+};
+
+export type ClaimFleetGraphAttentionEventsInput = {
+  lockedBy: string;
+  limit?: number;
+  now?: Date;
+  leaseTimeoutMinutes?: number;
+};
+
+export type CompleteFleetGraphAttentionEventInput = {
+  eventId: string;
+  status: Extract<FleetGraphAttentionEventStatus, 'completed' | 'failed' | 'skipped'>;
+  lastError?: string | null;
+};
+
 export const BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX = 'blocked-important-issue';
 export const STALE_ISSUE_DEDUPE_PREFIX = 'stale-issue';
 export const AT_RISK_ISSUE_DEDUPE_PREFIX = 'at-risk-issue';
+const ATTENTION_EVENT_LEASE_TIMEOUT_MINUTES = 10;
 
 function mapFinding(row: FleetGraphFindingRow): FleetGraphFinding {
   return {
@@ -185,6 +243,7 @@ function mapNotificationFinding(row: FleetGraphNotificationRow): FleetGraphNotif
     issue_title: row.issue_title,
     context_title: row.context_title,
     owner_name: row.owner_name,
+    read_at: row.read_at,
   };
 }
 
@@ -302,7 +361,7 @@ export async function listFleetGraphFindingsForSource(
 }
 
 export async function listFleetGraphNotificationFindings(
-  input: { workspaceId: string; limit?: number },
+  input: { workspaceId: string; userId?: string; limit?: number },
   db: QueryRunner = pool
 ): Promise<FleetGraphNotificationFinding[]> {
   const limit = input.limit ?? 25;
@@ -310,7 +369,8 @@ export async function listFleetGraphNotificationFindings(
     `SELECT f.*,
             issue.title AS issue_title,
             sprint.title AS context_title,
-            COALESCE(owner.name, owner_person_user.name, owner_person.title, assignee.name) AS owner_name
+            COALESCE(owner.name, owner_person_user.name, owner_person.title, assignee.name) AS owner_name,
+            read_state.read_at AS read_at
        FROM fleetgraph_findings f
        JOIN documents issue
          ON issue.id = f.source_issue_id
@@ -350,14 +410,151 @@ export async function listFleetGraphNotificationFindings(
               THEN (issue.properties->>'assignee_id')::uuid
               ELSE NULL
             END
+       LEFT JOIN fleetgraph_notification_reads read_state
+         ON read_state.finding_id = f.id
+        AND read_state.workspace_id = f.workspace_id
+        AND read_state.user_id = $2::uuid
       WHERE f.workspace_id = $1
         AND f.status IN ('open', 'needs_confirmation', 'error')
       ORDER BY f.last_detected_at DESC, f.updated_at DESC
-      LIMIT $2`,
-    [input.workspaceId, limit * 3]
+      LIMIT $3`,
+    [input.workspaceId, input.userId ?? null, limit * 3]
   );
 
   return result.rows.map(mapNotificationFinding);
+}
+
+export async function markFleetGraphNotificationRead(
+  input: { workspaceId: string; findingId: string; userId: string },
+  db: QueryRunner = pool
+): Promise<number> {
+  const result = await db.query<{ finding_id: string }>(
+    `INSERT INTO fleetgraph_notification_reads (workspace_id, finding_id, user_id, read_at)
+     SELECT workspace_id, id, $3, NOW()
+       FROM fleetgraph_findings
+      WHERE workspace_id = $1
+        AND id = $2
+        AND status IN ('open', 'needs_confirmation', 'error')
+     ON CONFLICT (finding_id, user_id)
+     DO UPDATE SET read_at = EXCLUDED.read_at
+     RETURNING finding_id`,
+    [input.workspaceId, input.findingId, input.userId]
+  );
+  return result.rows.length;
+}
+
+export async function markVisibleFleetGraphNotificationsRead(
+  input: { workspaceId: string; userId: string; findingIds: string[] },
+  db: QueryRunner = pool
+): Promise<number> {
+  if (input.findingIds.length === 0) return 0;
+  const result = await db.query<{ finding_id: string }>(
+    `INSERT INTO fleetgraph_notification_reads (workspace_id, finding_id, user_id, read_at)
+     SELECT workspace_id, id, $2, NOW()
+       FROM fleetgraph_findings
+      WHERE workspace_id = $1
+        AND id = ANY($3::uuid[])
+        AND status IN ('open', 'needs_confirmation', 'error')
+     ON CONFLICT (finding_id, user_id)
+     DO UPDATE SET read_at = EXCLUDED.read_at
+     RETURNING finding_id`,
+    [input.workspaceId, input.userId, input.findingIds]
+  );
+  return result.rows.length;
+}
+
+export async function enqueueFleetGraphAttentionEvent(
+  input: EnqueueFleetGraphAttentionEventInput,
+  db: QueryRunner = pool
+): Promise<FleetGraphAttentionEvent | null> {
+  const result = await db.query<FleetGraphAttentionEventRow>(
+    `INSERT INTO fleetgraph_attention_events (
+       workspace_id, source_issue_id, source_sprint_id, event_type, reason, available_at
+     )
+     VALUES ($1, $2, $3, $4, $5, COALESCE($6, NOW()))
+     ON CONFLICT (
+       workspace_id,
+       source_issue_id,
+       source_sprint_key,
+       event_type
+     ) WHERE status IN ('pending', 'processing')
+     DO UPDATE SET
+       reason = EXCLUDED.reason,
+       available_at = LEAST(fleetgraph_attention_events.available_at, EXCLUDED.available_at),
+       updated_at = NOW()
+     RETURNING *`,
+    [
+      input.workspaceId,
+      input.sourceIssueId,
+      input.sourceSprintId ?? null,
+      input.eventType,
+      input.reason,
+      input.availableAt ?? null,
+    ]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function claimFleetGraphAttentionEvents(
+  input: ClaimFleetGraphAttentionEventsInput,
+  db: QueryRunner = pool
+): Promise<FleetGraphAttentionEvent[]> {
+  const result = await db.query<FleetGraphAttentionEventRow>(
+    `WITH claimed AS (
+       SELECT id
+         FROM fleetgraph_attention_events
+        WHERE (
+            status = 'pending'
+            OR (
+              status = 'processing'
+              AND locked_at <= COALESCE($3, NOW()) - ($4::int || ' minutes')::interval
+            )
+          )
+          AND available_at <= COALESCE($3, NOW())
+        ORDER BY available_at ASC, created_at ASC
+        LIMIT $1
+        FOR UPDATE SKIP LOCKED
+     )
+     UPDATE fleetgraph_attention_events event
+        SET status = 'processing',
+            locked_at = NOW(),
+            locked_by = $2,
+            attempt_count = attempt_count + 1,
+            updated_at = NOW()
+       FROM claimed
+      WHERE event.id = claimed.id
+      RETURNING event.*`,
+    [
+      input.limit ?? 10,
+      input.lockedBy,
+      input.now ?? null,
+      input.leaseTimeoutMinutes ?? ATTENTION_EVENT_LEASE_TIMEOUT_MINUTES,
+    ]
+  );
+
+  return result.rows;
+}
+
+export async function completeFleetGraphAttentionEvent(
+  input: CompleteFleetGraphAttentionEventInput,
+  db: QueryRunner = pool
+): Promise<FleetGraphAttentionEvent | null> {
+  const result = await db.query<FleetGraphAttentionEventRow>(
+    `UPDATE fleetgraph_attention_events
+        SET status = $2,
+            last_error = $3,
+            processed_at = NOW(),
+            locked_at = NULL,
+            locked_by = NULL,
+            updated_at = NOW()
+      WHERE id = $1
+        AND status = 'processing'
+      RETURNING *`,
+    [input.eventId, input.status, input.lastError ?? null]
+  );
+
+  return result.rows[0] ?? null;
 }
 
 export async function saveBlockedImportantIssueFinding(

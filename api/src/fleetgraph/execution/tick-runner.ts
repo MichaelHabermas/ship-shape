@@ -2,8 +2,9 @@
 import { utcToday } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import type { Principal } from '../../security/principal.js';
-import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
+import { detectFleetGraphAttentionDecisions, detectFleetGraphAttentionDecisionsForSource, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
 import { runFleetGraph, type FleetGraphCoreOptions } from '../core.js';
+import type { FleetGraphAttentionEvent } from '../persistence.js';
 import type { FleetGraphResult } from '../types.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
@@ -38,6 +39,11 @@ export type FleetGraphExecuteTickSummary = {
   mode: 'proactive';
   detectorDecisions: number;
   results: FleetGraphResult[];
+};
+
+export type FleetGraphEventTickSummary = FleetGraphExecuteTickSummary & {
+  eventId: string;
+  skipped: boolean;
 };
 
 export type FleetGraphTickInput =
@@ -116,6 +122,72 @@ async function runGraphExecute(
   }, { ...input.graphOptions, db: graphDb });
 
   return input.db ? execute(db) : runWithOwnedTransaction(execute);
+}
+
+async function runEventGraphExecute(
+  input: {
+    workspaceId: string;
+    principal: Principal;
+    triggerReason?: string;
+    db?: QueryRunner;
+    graphOptions?: Omit<FleetGraphCoreOptions, 'db'>;
+  },
+  db: QueryRunner,
+  trigger: Parameters<typeof runFleetGraph>[0]['trigger']
+): Promise<FleetGraphResult> {
+  const execute = (graphDb: QueryRunner) => runFleetGraph({
+    workspaceId: input.workspaceId,
+    principal: input.principal,
+    mode: 'proactive',
+    trigger,
+    triggerReason: input.triggerReason ?? 'attention-event',
+  }, { ...input.graphOptions, db: graphDb });
+
+  return input.db ? execute(db) : runWithOwnedTransaction(execute);
+}
+
+export async function runFleetGraphAttentionEvent(input: {
+  event: FleetGraphAttentionEvent;
+  principal: Principal;
+  today?: Date;
+  db?: QueryRunner;
+  graphOptions?: Omit<FleetGraphCoreOptions, 'db'>;
+}): Promise<FleetGraphEventTickSummary> {
+  const db = input.db ?? pool;
+  const today = input.today ?? utcToday();
+  const workspaceId = input.event.workspace_id;
+  const staleFindings = (await findStaleBlockedImportantIssueFindings({
+    workspaceId,
+    today,
+    db,
+    limit: 250,
+  })).filter((finding) => (
+    finding.sourceIssueId === input.event.source_issue_id
+    && (!input.event.source_sprint_id || finding.sourceSprintId === input.event.source_sprint_id)
+  ));
+  const decisions = await detectFleetGraphAttentionDecisionsForSource({
+    workspaceId,
+    sourceIssueId: input.event.source_issue_id,
+    sourceSprintId: input.event.source_sprint_id,
+    today,
+    db,
+  });
+
+  const results: FleetGraphResult[] = [];
+  for (const staleFinding of staleFindings) {
+    results.push(await runEventGraphExecute({ ...input, workspaceId }, db, inactiveFindingTrigger(staleFinding)));
+  }
+  for (const detectorDecision of decisions) {
+    results.push(await runEventGraphExecute({ ...input, workspaceId }, db, { type: 'detector_decision', detectorDecision }));
+  }
+
+  return {
+    mode: 'proactive',
+    eventId: input.event.id,
+    detectorDecisions: decisions.length,
+    results,
+    skipped: results.length === 0,
+  };
 }
 
 export async function runFleetGraphTick(input: Extract<FleetGraphTickInput, { mode: 'dryRun' }>): Promise<FleetGraphDryRunTickSummary>;

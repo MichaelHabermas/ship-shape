@@ -11,6 +11,8 @@ import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
 import {
   listFleetGraphFindingsForSource,
   listFleetGraphNotificationFindings,
+  markFleetGraphNotificationRead,
+  markVisibleFleetGraphNotificationsRead,
   type FleetGraphFinding,
   type FleetGraphNotificationFinding,
 } from '../fleetgraph/persistence.js';
@@ -61,6 +63,8 @@ vi.mock('../fleetgraph/execution/manual-run.js', () => ({
 vi.mock('../fleetgraph/persistence.js', () => ({
   listFleetGraphFindingsForSource: vi.fn(),
   listFleetGraphNotificationFindings: vi.fn(),
+  markFleetGraphNotificationRead: vi.fn(),
+  markVisibleFleetGraphNotificationsRead: vi.fn(),
   signalTypeFromDedupeKey: (dedupeKey: string) => {
     if (dedupeKey.startsWith('stale-issue:')) return 'stale';
     if (dedupeKey.startsWith('at-risk-issue:')) return 'at_risk';
@@ -89,6 +93,8 @@ type FleetGraphNotificationsTestBody = {
     reason: string;
     notificationText: string;
     sourcePath: string;
+    isRead: boolean;
+    readAt: string | null;
   }>;
 };
 
@@ -153,6 +159,7 @@ function notificationFinding(overrides: Partial<FleetGraphNotificationFinding> =
     issue_title: 'API access blocker',
     context_title: 'Sprint 12',
     owner_name: 'PM thread',
+    read_at: null,
     ...overrides,
   };
 }
@@ -226,6 +233,7 @@ describe('FleetGraph routes', () => {
 
     expect(listFleetGraphNotificationFindings).toHaveBeenCalledWith({
       workspaceId,
+      userId: '55555555-5555-4555-8555-555555555555',
       limit: 10,
     });
     const body = JSON.parse(res.text) as FleetGraphNotificationsTestBody;
@@ -241,7 +249,52 @@ describe('FleetGraph routes', () => {
       notificationText: 'Waiting on API access before backend queue work can continue.',
       blockerText: 'Waiting on API access before backend queue work can continue.',
       sourcePath: `/documents/${issueId}`,
+      isRead: false,
+      readAt: null,
     });
+  });
+
+  it('marks one notification read for the current user', async () => {
+    vi.mocked(markFleetGraphNotificationRead).mockResolvedValue(1);
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/read`)
+      .send({})
+      .expect(200);
+
+    expect(markFleetGraphNotificationRead).toHaveBeenCalledWith({
+      workspaceId,
+      userId: '55555555-5555-4555-8555-555555555555',
+      findingId,
+    });
+    expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 1 });
+  });
+
+  it('reports when a notification read mark affects no visible active finding', async () => {
+    vi.mocked(markFleetGraphNotificationRead).mockResolvedValue(0);
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/read`)
+      .send({})
+      .expect(200);
+
+    expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 0 });
+  });
+
+  it('marks provided visible notifications read for the current user', async () => {
+    vi.mocked(markVisibleFleetGraphNotificationsRead).mockResolvedValue(2);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/notifications/read')
+      .send({ findingIds: [findingId, '66666666-6666-4666-8666-666666666666'] })
+      .expect(200);
+
+    expect(markVisibleFleetGraphNotificationsRead).toHaveBeenCalledWith({
+      workspaceId,
+      userId: '55555555-5555-4555-8555-555555555555',
+      findingIds: [findingId, '66666666-6666-4666-8666-666666666666'],
+    });
+    expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 2 });
   });
 
   it('serializes multiple notification signal types safely', async () => {

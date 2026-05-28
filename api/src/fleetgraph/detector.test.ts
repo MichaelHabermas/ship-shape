@@ -214,6 +214,9 @@ describe('FleetGraph detector', () => {
       issue_priority: 'high',
       issue_assignee_id: '55555555-5555-4555-8555-555555555555',
       issue_assignee_name: 'Casey Engineer',
+      issue_visibility: 'workspace',
+      issue_created_at: new Date('2025-05-18T12:00:00Z'),
+      issue_updated_at: new Date('2026-05-18T12:00:00Z'),
       sprint_id: sprintId,
       sprint_title: 'Week 2',
       sprint_number: 2,
@@ -230,24 +233,22 @@ describe('FleetGraph detector', () => {
       blocker_text: '',
       blocker_iteration_id: null,
       blocker_iteration_created_at: null,
+      latest_iteration_id: null,
+      latest_iteration_created_at: null,
       meaningful_updated_at: new Date('2026-05-18T12:00:00Z'),
     };
     const db = {
       query: vi.fn()
         .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
-        .mockResolvedValueOnce(pgResult([]))
         .mockResolvedValueOnce(pgResult([{
           ...baseRow,
           issue_id: staleIssueId,
           issue_priority: 'medium',
-          attention_reason: 'No meaningful update for 180+ days.',
-          signal_type: 'stale',
-        }]))
-        .mockResolvedValueOnce(pgResult([{
+          meaningful_updated_at: new Date('2025-05-18T12:00:00Z'),
+        }, {
           ...baseRow,
           issue_id: riskIssueId,
-          attention_reason: 'High-priority current-week work has no owner.',
-          signal_type: 'at_risk',
+          issue_assignee_id: null,
         }]))
         .mockResolvedValueOnce(pgResult([])),
     };
@@ -258,15 +259,13 @@ describe('FleetGraph detector', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(decisions.map((decision) => decision.candidate.signalType)).toEqual(['at_risk', 'stale']);
-    expect(decisions[0]?.candidate.dedupeKey).toBe(`at-risk-issue:${workspaceId}:${riskIssueId}:${sprintId}`);
-    expect(decisions[1]?.candidate.dedupeKey).toBe(`stale-issue:${workspaceId}:${staleIssueId}:${sprintId}`);
-    expect(db.query.mock.calls[2]?.[0]).toContain("COALESCE(i.properties->>'state', 'backlog') NOT IN ('done', 'cancelled', 'blocked')");
-    expect(db.query.mock.calls[2]?.[0]).toContain("COALESCE(i.properties->>'state', 'backlog') IN ('in_progress', 'in_review')");
-    expect(db.query.mock.calls[2]?.[0]).toContain('COALESCE(latest_iteration.created_at, i.created_at)');
-    expect(db.query.mock.calls[3]?.[0]).toContain("COALESCE(i.properties->>'priority', 'medium') IN ('high', 'urgent')");
-    expect(db.query.mock.calls[3]?.[0]).not.toContain('OR $6::boolean');
-    expect(db.query.mock.calls[3]?.[0]).toContain("NULLIF(i.properties->>'assignee_id', '') IS NULL");
+    expect(decisions.map((decision) => decision.candidate.signalType).sort()).toEqual(['at_risk', 'stale']);
+    expect(decisions.map((decision) => decision.candidate.dedupeKey).sort()).toEqual([
+      `at-risk-issue:${workspaceId}:${riskIssueId}:${sprintId}`,
+      `stale-issue:${workspaceId}:${staleIssueId}:${sprintId}`,
+    ].sort());
+    expect(db.query.mock.calls[1]?.[0]).toContain('latest_iteration.created_at AS latest_iteration_created_at');
+    expect(db.query.mock.calls[1]?.[0]).toContain('COALESCE(latest_iteration.created_at, i.created_at) AS meaningful_updated_at');
   });
 
   it('keeps the strongest attention signal per source before dedupe planning', async () => {
@@ -279,6 +278,9 @@ describe('FleetGraph detector', () => {
       issue_priority: 'high',
       issue_assignee_id: null,
       issue_assignee_name: null,
+      issue_visibility: 'workspace',
+      issue_created_at: new Date('2025-05-18T12:00:00Z'),
+      issue_updated_at: new Date('2026-05-18T12:00:00Z'),
       sprint_id: sprintId,
       sprint_title: 'Week 2',
       sprint_number: 2,
@@ -295,22 +297,14 @@ describe('FleetGraph detector', () => {
       blocker_text: '',
       blocker_iteration_id: null,
       blocker_iteration_created_at: null,
-      meaningful_updated_at: new Date('2026-05-18T12:00:00Z'),
+      latest_iteration_id: null,
+      latest_iteration_created_at: null,
+      meaningful_updated_at: new Date('2025-05-18T12:00:00Z'),
     };
     const db = {
       query: vi.fn()
         .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
-        .mockResolvedValueOnce(pgResult([]))
-        .mockResolvedValueOnce(pgResult([{
-          ...baseRow,
-          attention_reason: 'No meaningful update for 180+ days.',
-          signal_type: 'stale',
-        }]))
-        .mockResolvedValueOnce(pgResult([{
-          ...baseRow,
-          attention_reason: 'High-priority current-week work has no owner.',
-          signal_type: 'at_risk',
-        }]))
+        .mockResolvedValueOnce(pgResult([baseRow]))
         .mockResolvedValueOnce(pgResult([])),
     };
 
@@ -327,6 +321,108 @@ describe('FleetGraph detector', () => {
       expect.any(String),
       [workspaceId, [`at-risk-issue:${workspaceId}:${issueId}:${sprintId}`]]
     );
+  });
+
+  it('marks high-priority current-week work at risk within three days of sprint end', async () => {
+    const contextRow = {
+      workspace_id: workspaceId,
+      issue_id: issueId,
+      issue_title: 'End of sprint issue',
+      issue_ticket_number: 103,
+      issue_state: 'in_progress',
+      issue_priority: 'urgent',
+      issue_assignee_id: '55555555-5555-4555-8555-555555555555',
+      issue_assignee_name: 'Casey Engineer',
+      issue_visibility: 'workspace',
+      issue_created_at: new Date('2026-05-28T12:00:00Z'),
+      issue_updated_at: new Date('2026-05-30T12:00:00Z'),
+      sprint_id: sprintId,
+      sprint_title: 'Week 2',
+      sprint_number: 2,
+      sprint_owner_id: null,
+      sprint_owner_name: null,
+      project_id: null,
+      project_title: null,
+      project_owner_id: null,
+      project_owner_name: null,
+      program_id: null,
+      program_title: null,
+      program_owner_id: null,
+      program_owner_name: null,
+      blocker_text: '',
+      blocker_iteration_id: null,
+      blocker_iteration_created_at: null,
+      latest_iteration_id: iterationId,
+      latest_iteration_created_at: new Date('2026-05-30T12:00:00Z'),
+      meaningful_updated_at: new Date('2026-05-30T12:00:00Z'),
+    };
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
+        .mockResolvedValueOnce(pgResult([contextRow]))
+        .mockResolvedValueOnce(pgResult([])),
+    };
+
+    const decisions = await detectFleetGraphAttentionDecisions({
+      workspaceId,
+      db,
+      today: new Date('2026-05-30T12:00:00Z'),
+    });
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.candidate.signalType).toBe('at_risk');
+    expect(decisions[0]?.candidate.attentionReason).toBe(
+      'High-priority current-week work is within 3 days of sprint end.'
+    );
+  });
+
+  it('does not mark assigned current-week work at risk just because it has three days of inactivity', async () => {
+    const contextRow = {
+      workspace_id: workspaceId,
+      issue_id: issueId,
+      issue_title: 'Mid sprint issue',
+      issue_ticket_number: 104,
+      issue_state: 'in_progress',
+      issue_priority: 'high',
+      issue_assignee_id: '55555555-5555-4555-8555-555555555555',
+      issue_assignee_name: 'Casey Engineer',
+      issue_visibility: 'workspace',
+      issue_created_at: new Date('2026-05-21T12:00:00Z'),
+      issue_updated_at: new Date('2026-05-21T12:00:00Z'),
+      sprint_id: sprintId,
+      sprint_title: 'Week 2',
+      sprint_number: 2,
+      sprint_owner_id: null,
+      sprint_owner_name: null,
+      project_id: null,
+      project_title: null,
+      project_owner_id: null,
+      project_owner_name: null,
+      program_id: null,
+      program_title: null,
+      program_owner_id: null,
+      program_owner_name: null,
+      blocker_text: '',
+      blocker_iteration_id: null,
+      blocker_iteration_created_at: null,
+      latest_iteration_id: iterationId,
+      latest_iteration_created_at: new Date('2026-05-21T12:00:00Z'),
+      meaningful_updated_at: new Date('2026-05-21T12:00:00Z'),
+    };
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
+        .mockResolvedValueOnce(pgResult([contextRow])),
+    };
+
+    const decisions = await detectFleetGraphAttentionDecisions({
+      workspaceId,
+      db,
+      today: new Date('2026-05-27T12:00:00Z'),
+    });
+
+    expect(decisions).toEqual([]);
+    expect(db.query).toHaveBeenCalledTimes(2);
   });
 
   it('stales weaker open findings when a stronger source signal is active', async () => {

@@ -29,7 +29,12 @@ import { runFleetGraph } from '../fleetgraph/core.js';
 import { isUtcCalendarDate, parseUtcCalendarDate } from '../fleetgraph/date.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
-import { listFleetGraphFindingsForSource, listFleetGraphNotificationFindings } from '../fleetgraph/persistence.js';
+import {
+  listFleetGraphFindingsForSource,
+  listFleetGraphNotificationFindings,
+  markFleetGraphNotificationRead,
+  markVisibleFleetGraphNotificationsRead,
+} from '../fleetgraph/persistence.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
 const router: ExpressRouter = Router();
@@ -48,6 +53,15 @@ const notificationsQuerySchema = z.object({
 const findingParamsSchema = z.object({
   findingId: UuidSchema,
 });
+
+const markNotificationsReadBodySchema = z.object({
+  findingIds: z.array(UuidSchema).max(99).optional(),
+});
+
+const markNotificationsReadResponseSchema = z.object({
+  success: z.literal(true),
+  markedRead: z.number().int().nonnegative(),
+}).openapi('FleetGraphMarkNotificationsReadResponse');
 
 const refineBodySchema = z.object({
   instruction: z.string().min(1).max(2_000),
@@ -117,10 +131,11 @@ router.get('/notifications', authMiddleware, defineRoute({
   },
   async handler(req: Request, res: Response, parsed) {
     try {
-      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
       const findings = await listFleetGraphNotificationFindings({
         workspaceId,
+        userId,
         limit: parsed.query.limit,
       });
       const notifications = (await Promise.all(findings.map(async (finding) => {
@@ -134,6 +149,61 @@ router.get('/notifications', authMiddleware, defineRoute({
       res.json({ notifications });
     } catch (err) {
       sendInternalError(res, err, 'List FleetGraph notifications error');
+    }
+  },
+}));
+
+router.post('/notifications/read', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/notifications/read',
+  tags: ['FleetGraph'],
+  summary: 'Mark visible FleetGraph notifications as read for the current user',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { body: markNotificationsReadBodySchema },
+  responses: {
+    200: { schema: markNotificationsReadResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
+      const findingIds = parsed.body.findingIds ?? [];
+      const markedRead = await markVisibleFleetGraphNotificationsRead({
+        workspaceId,
+        userId,
+        findingIds,
+      });
+      res.json({ success: true, markedRead });
+    } catch (err) {
+      sendInternalError(res, err, 'Mark FleetGraph notifications read error');
+    }
+  },
+}));
+
+router.post('/findings/:findingId/read', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/findings/{findingId}/read',
+  tags: ['FleetGraph'],
+  summary: 'Mark one FleetGraph notification as read for the current user',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { params: findingParamsSchema },
+  responses: {
+    200: { schema: markNotificationsReadResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
+      const markedRead = await markFleetGraphNotificationRead({
+        workspaceId,
+        userId,
+        findingId: parsed.params.findingId,
+      });
+      res.json({ success: true, markedRead });
+    } catch (err) {
+      sendInternalError(res, err, 'Mark FleetGraph notification read error');
     }
   },
 }));

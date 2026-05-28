@@ -6,13 +6,15 @@ import type {
   FleetGraphNotificationsListResponse,
 } from '@/api/schemas';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
-import { apiGetJson } from '@/lib/api';
+import { apiGetJson, apiPostJson } from '@/lib/api';
 
 export type FleetGraphNotificationProbeItem = Pick<
   FleetGraphNotificationResponse,
   'id' | 'findingId' | 'signalType' | 'signalLabel' | 'reason' | 'title' | 'owner' | 'context' | 'notificationText' | 'blockerText' | 'sourcePath' | 'detectedAt'
 > & {
   age: string;
+  isRead: boolean;
+  readAt: string | null;
 };
 
 const SIGNAL_ORDER = ['blocked', 'stale', 'at_risk'] as const;
@@ -37,6 +39,7 @@ export function FleetGraphNotificationsProbe({
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const notificationCount = notifications.length;
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
   const groupedNotifications = SIGNAL_ORDER.map((signalType) => ({
     signalType,
     label: signalType === 'blocked' ? 'Blocked' : signalType === 'stale' ? 'Stale' : 'At risk',
@@ -66,6 +69,8 @@ export function FleetGraphNotificationsProbe({
           blockerText: notification.blockerText,
           sourcePath: notification.sourcePath,
           detectedAt: notification.detectedAt,
+          isRead: notification.isRead,
+          readAt: notification.readAt,
           age: formatNotificationAge(notification.detectedAt),
         })));
         setLoadStatus('ready');
@@ -96,6 +101,28 @@ export function FleetGraphNotificationsProbe({
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [open]);
+
+  async function markRead(notification: FleetGraphNotificationProbeItem) {
+    if (notification.isRead) return;
+    setNotifications((items) => items.map((item) => (
+      item.findingId === notification.findingId
+        ? { ...item, isRead: true, readAt: new Date().toISOString() }
+        : item
+    )));
+    try {
+      await apiPostJson(
+        `/api/fleetgraph/findings/${notification.findingId}/read`,
+        {},
+        'Failed to mark notification read'
+      );
+    } catch {
+      setNotifications((items) => items.map((item) => (
+        item.findingId === notification.findingId
+          ? { ...item, isRead: notification.isRead, readAt: notification.readAt }
+          : item
+      )));
+    }
+  }
 
   return (
     <div ref={containerRef} className="fixed bottom-[84px] left-[6px] z-30 flex flex-col gap-2">
@@ -135,8 +162,12 @@ export function FleetGraphNotificationsProbe({
                   <AttentionNotification
                     key={notification.id}
                     notification={notification}
-                    onDiscuss={() => onDiscuss(notification)}
+                    onDiscuss={() => {
+                      void markRead(notification);
+                      onDiscuss(notification);
+                    }}
                     onOpenSource={() => {
+                      void markRead(notification);
                       if (notification.sourcePath) navigate(notification.sourcePath);
                     }}
                   />
@@ -155,7 +186,7 @@ export function FleetGraphNotificationsProbe({
         className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-border/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
       >
         <BellIcon />
-        <NotificationBadge count={notificationCount} />
+        <NotificationBadge count={unreadCount || notificationCount} />
       </button>
     </div>
   );
@@ -227,7 +258,7 @@ function AttentionNotification({
   const ownerLabel = notification.owner || '-';
 
   return (
-    <article className="border-t border-border/70 bg-background/70 px-3 py-1.5 first:border-t-0">
+    <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${notification.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-5 text-foreground">
@@ -242,7 +273,7 @@ function AttentionNotification({
             <span>{notification.age}</span>
           </div>
         </div>
-        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+        {!notification.isRead && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />}
       </div>
 
       <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{displayText(notification.reason || notification.notificationText || notification.blockerText)}</p>

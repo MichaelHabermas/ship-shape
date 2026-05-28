@@ -11,14 +11,18 @@ import {
   sqlBlockedImportantIssueDedupeKey,
   type FleetGraphSignalType,
 } from '../persistence.js';
+import { listFleetGraphIssueAttentionContexts, type FleetGraphIssueAttentionContext } from './attention-context.js';
+import {
+  AT_RISK_SPRINT_END_DAYS,
+  attentionPolicyForContext,
+  isWithinCurrentSprintEndWindow,
+} from './attention-policy.js';
 import { resolveFleetGraphCurrentWeek } from './current-week.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 type SourceKey = `${string}:${string}:${string}`;
 
 const STALE_ISSUE_DAYS = 180;
-const AT_RISK_INACTIVITY_DAYS = 3;
-
 type BlockedImportantIssueCandidateRow = {
   workspace_id: string;
   issue_id: string;
@@ -106,6 +110,73 @@ function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantI
       sprintId: row.sprint_id,
     }),
   };
+}
+
+function candidateFromContext(
+  context: FleetGraphIssueAttentionContext,
+  policy: NonNullable<ReturnType<typeof attentionPolicyForContext>>
+): BlockedImportantIssueCandidate {
+  return mapCandidate({
+    workspace_id: context.workspace_id,
+    issue_id: context.issue_id,
+    issue_title: context.issue_title,
+    issue_ticket_number: context.issue_ticket_number,
+    issue_state: context.issue_state,
+    issue_priority: context.issue_priority,
+    issue_assignee_id: context.issue_assignee_id,
+    issue_assignee_name: context.issue_assignee_name,
+    sprint_id: context.sprint_id,
+    sprint_title: context.sprint_title,
+    sprint_number: context.sprint_number,
+    sprint_owner_id: context.sprint_owner_id,
+    sprint_owner_name: context.sprint_owner_name,
+    project_id: context.project_id,
+    project_title: context.project_title,
+    project_owner_id: context.project_owner_id,
+    project_owner_name: context.project_owner_name,
+    program_id: context.program_id,
+    program_title: context.program_title,
+    program_owner_id: context.program_owner_id,
+    program_owner_name: context.program_owner_name,
+    blocker_text: context.blocker_text,
+    blocker_iteration_id: context.blocker_iteration_id,
+    blocker_iteration_created_at: context.blocker_iteration_created_at,
+    meaningful_updated_at: context.meaningful_updated_at,
+    attention_reason: policy.reason,
+    signal_type: policy.signalType,
+  });
+}
+
+async function findAttentionCandidatesFromContexts(input: {
+  workspaceId: string;
+  db?: QueryRunner;
+  today?: Date;
+  limit?: number;
+  sourceIssueId?: string;
+  sourceSprintId?: string | null;
+  includePrivate?: boolean;
+}): Promise<BlockedImportantIssueCandidate[]> {
+  const db = input.db ?? pool;
+  const today = input.today ?? new Date();
+  const currentWeek = await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today });
+  const contexts = await listFleetGraphIssueAttentionContexts({
+    workspaceId: input.workspaceId,
+    sourceIssueId: input.sourceIssueId,
+    sourceSprintId: input.sourceSprintId,
+    includePrivate: input.includePrivate,
+    limit: input.limit,
+    db,
+  });
+
+  return strongestCandidatePerSource(contexts.flatMap((context) => {
+    const policy = attentionPolicyForContext({
+      context,
+      today,
+      currentSprintNumber: currentWeek.currentSprintNumber,
+      workspaceStartDate: currentWeek.workspaceStartDate,
+    });
+    return policy ? [candidateFromContext(context, policy)] : [];
+  }));
 }
 
 async function findBlockedImportantIssueCandidates(input: {
@@ -377,9 +448,10 @@ async function findIssueAttentionCandidates(input: {
   limit?: number;
   signalType: Exclude<FleetGraphSignalType, 'blocked'>;
   currentSprintNumber?: number;
+  finalSprintWindow?: boolean;
 }): Promise<BlockedImportantIssueCandidate[]> {
   const db = input.db ?? pool;
-  const staleDays = input.signalType === 'stale' ? STALE_ISSUE_DAYS : AT_RISK_INACTIVITY_DAYS;
+  const staleDays = input.signalType === 'stale' ? STALE_ISSUE_DAYS : AT_RISK_SPRINT_END_DAYS;
   const result = await db.query<BlockedImportantIssueCandidateRow>(
     `SELECT
        i.workspace_id,
@@ -419,8 +491,7 @@ async function findIssueAttentionCandidates(input: {
        CASE
          WHEN $3::text = 'stale' THEN CONCAT('No meaningful update for ', $4::int, '+ days.')
          WHEN NULLIF(i.properties->>'assignee_id', '') IS NULL THEN 'High-priority current-week work has no owner.'
-         WHEN COALESCE(latest_iteration.created_at, i.created_at) <= ($2::timestamptz - ($4::int || ' days')::interval) THEN CONCAT('High-priority current-week work has no update for ', $4::int, '+ days.')
-         ELSE 'High-priority current-week work is near week end.'
+         ELSE CONCAT('High-priority current-week work is within ', $4::int, ' days of sprint end.')
        END AS attention_reason,
        $3::text AS signal_type
      FROM documents i
@@ -548,7 +619,7 @@ async function findIssueAttentionCandidates(input: {
           AND COALESCE(i.properties->>'priority', 'medium') IN ('high', 'urgent')
           AND (
             NULLIF(i.properties->>'assignee_id', '') IS NULL
-            OR COALESCE(latest_iteration.created_at, i.created_at) <= ($2::timestamptz - ($4::int || ' days')::interval)
+            OR $7::boolean
           ))
        )
      ORDER BY
@@ -569,6 +640,7 @@ async function findIssueAttentionCandidates(input: {
       staleDays,
       input.currentSprintNumber ?? null,
       input.limit ?? 25,
+      input.finalSprintWindow === true,
     ]
   );
 
@@ -582,23 +654,39 @@ export async function detectFleetGraphAttentionDecisions(input: {
   limit?: number;
 }): Promise<FleetGraphAttentionDedupeDecision[]> {
   const db = input.db ?? pool;
-  const today = input.today ?? new Date();
-  const currentWeek = await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today });
-  const [blocked, stale, atRisk] = await Promise.all([
-    findBlockedImportantIssueCandidates({ ...input, db, today }),
-    findIssueAttentionCandidates({ ...input, db, today, signalType: 'stale' }),
-    findIssueAttentionCandidates({
-      ...input,
-      db,
-      today,
-      signalType: 'at_risk',
-      currentSprintNumber: currentWeek.currentSprintNumber,
-    }),
-  ]);
+  const candidates = await findAttentionCandidatesFromContexts({
+    ...input,
+    db,
+    limit: input.limit ?? 75,
+  });
+  return planBlockedImportantIssueDedupeDecisions({
+    workspaceId: input.workspaceId,
+    candidates,
+    db,
+  });
+}
+
+export async function detectFleetGraphAttentionDecisionsForSource(input: {
+  workspaceId: string;
+  sourceIssueId: string;
+  sourceSprintId?: string | null;
+  db?: QueryRunner;
+  today?: Date;
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
+  const db = input.db ?? pool;
+  const candidates = await findAttentionCandidatesFromContexts({
+    workspaceId: input.workspaceId,
+    sourceIssueId: input.sourceIssueId,
+    sourceSprintId: input.sourceSprintId,
+    includePrivate: false,
+    limit: 25,
+    today: input.today,
+    db,
+  });
 
   return planBlockedImportantIssueDedupeDecisions({
     workspaceId: input.workspaceId,
-    candidates: strongestCandidatePerSource([...blocked, ...atRisk, ...stale]),
+    candidates,
     db,
   });
 }
@@ -744,6 +832,10 @@ export async function findStaleBlockedImportantIssueFindings(input: {
       limit: input.limit ?? 1000,
       signalType: 'at_risk',
       currentSprintNumber: currentWeek.currentSprintNumber,
+      finalSprintWindow: isWithinCurrentSprintEndWindow({
+        workspaceStartDate: currentWeek.workspaceStartDate,
+        today,
+      }),
     })),
   ]);
   const activeDedupeKeys = new Set(candidates.map((candidate) => candidate.dedupeKey));

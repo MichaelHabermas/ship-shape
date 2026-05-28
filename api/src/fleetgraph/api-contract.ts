@@ -111,6 +111,8 @@ const FleetGraphNotificationDisplayFieldsSchema = z.object({
   blockerText: z.string(),
   sourcePath: z.string(),
   detectedAt: z.string(),
+  isRead: z.boolean(),
+  readAt: z.string().nullable(),
 });
 
 export const FleetGraphNotificationResponseSchema = FleetGraphAttentionSignalFieldsSchema
@@ -338,6 +340,8 @@ export function fleetGraphNotificationResponse(input: {
     sourceSprintId: input.finding.source_sprint_id,
     sourcePath: `/documents/${input.finding.source_issue_id}`,
     detectedAt: input.finding.first_detected_at.toISOString(),
+    isRead: input.finding.read_at !== null,
+    readAt: input.finding.read_at?.toISOString() ?? null,
     visibleOutput: serializeFleetGraphVisibleOutput(input.visibleOutput),
     traceMetadata: traceMetadataForResponse(input.finding.trace_metadata, {
       mode: 'proactive',

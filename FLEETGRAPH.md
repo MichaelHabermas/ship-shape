@@ -21,8 +21,8 @@ Existing code and old docs are evidence, not authority. Do not preserve an old s
 
 The current proof loop is:
 
-1. A real Ship issue has `state = blocked`.
-2. FleetGraph detects it without requiring current week, urgent/high priority, owner, or non-empty blocker text.
+1. A real Ship issue has an attention signal: blocked, long-stale active work, or current-week high-priority risk.
+2. FleetGraph detects it from existing Ship issue/week/iteration data.
 3. The finding routes to the smallest useful connected audience.
 4. The left rail shows a compact notification.
 5. The notification can open the source issue.
@@ -49,13 +49,13 @@ The first slice is not "make an AI card." It is "make project attention become u
 
 Notifications live in the left rail. FleetGraph is one producer of generic notifications.
 
-A blocked issue notification should stay compact:
+An attention notification should stay compact:
 
-- presentational `Blocked` chip plus raw issue title
+- presentational signal chip plus raw issue title
 - age
 - owner or assignee, or `-` only when no owner/team exists
 - project or context
-- latest non-empty blocker text when present
+- concise reason or latest non-empty blocker text when present
 - source and chat actions
 
 Chat is contextual by construction. Current page context is always present and cannot be removed. Extra contexts can be added or removed. Clicking an extra context navigates to that source. If an extra context becomes current, the previous current becomes an extra chip. Never render duplicate chips for the same source. The current context chip uses a small empty green ring marker, not `Current -`.
@@ -80,7 +80,7 @@ If a choice mostly adds surface area, labels, or proof scaffolding, leave it out
 Key implementation boundaries:
 
 - `api/src/fleetgraph/core.ts`
-- `api/src/fleetgraph/detector.ts`
+- `api/src/fleetgraph/detection/`
 - `api/src/fleetgraph/persistence.ts`
 - `api/src/routes/fleetgraph.ts`
 - `api/src/fleetgraph/runtime/`
@@ -99,10 +99,10 @@ As of the latest product-surface report, current authored and runtime outputs pa
 
 ## Current Bottleneck
 
-The weakest remaining product question is not whether FleetGraph can detect a blocked issue. It can.
+The weakest remaining product question is not whether FleetGraph can detect an attention signal. It can.
 
 The bottleneck is whether the full loop feels like project intelligence:
 
-blocked issue -> routed notification -> source -> contextual chat -> useful next action
+Ship signal -> routed notification -> source -> contextual chat -> useful next action
 
-Next slices should move that whole loop. Prefer work that proves routing, context transfer, graph path differences, human gates, real-data provenance, and under-5-minute detection latency together. Avoid slices that only make the card prettier.
+Next slices should move that whole loop. Prefer work that proves lifecycle correctness, routing, context transfer, graph path differences, human gates, real-data provenance, and low detection latency together. Avoid slices that only make the card prettier.

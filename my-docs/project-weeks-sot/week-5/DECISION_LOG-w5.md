@@ -450,4 +450,12 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Decision:** Expand notifications from blocked-only to `Blocked`, `Stale`, and `At risk` without a schema migration. Keep `fleetgraph_findings.kind` and the legacy wire `kind` as `'blocker'` for compatibility, and put the real product signal in dedupe prefixes, run/finding metadata, and API `signalType`.
 
-**Consequence:** One source issue/week should have at most one active attention signal in the product loop, with precedence `blocked > at_risk > stale`. `Stale` means active non-blocked work (`in_progress`/`in_review`) with no issue iteration for 180+ days; one-week inactivity is sprint follow-up, not stale. `At risk` means current-week high/urgent non-blocked work with a concrete risk reason: missing assignee or no issue iteration for 3+ days. Week-end pressure alone is not enough to create at-risk noise. If a source becomes private or otherwise invisible, suppress the FleetGraph finding rather than marking the Ship work resolved.
+**Consequence:** One source issue/week should have at most one active attention signal in the product loop, with precedence `blocked > at_risk > stale`. `Stale` means active non-blocked work (`in_progress`/`in_review`) with no issue iteration for 180+ days; one-week inactivity is sprint follow-up, not stale. `At risk` means current-week high/urgent non-blocked work with a concrete risk reason: missing assignee or being within 3 days of sprint end. If a source becomes private or otherwise invisible, suppress the FleetGraph finding rather than marking the Ship work resolved.
+
+## D057 - FleetGraph Live Events Stay FleetGraph-Owned
+
+**Date:** 2026-05-28
+
+**Decision:** Use a FleetGraph-only durable attention event queue, not a generic Ship domain-event rail, for the first live attention loop. Issue mutations enqueue `fleetgraph_attention_events` after successful Ship writes, and the FleetGraph worker claims those events before its scheduled repair scan. Add only per-user read state for notifications; keep dismissal as existing finding state.
+
+**Consequence:** FleetGraph can recheck changed sources quickly and measure event latency without blocking source mutations or creating a broad platform bus. Enqueue failures must be logged/observable but must not fail canonical Ship writes. The scheduled worker scan remains the repair loop for missed or failed events.

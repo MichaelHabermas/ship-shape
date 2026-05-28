@@ -161,6 +161,8 @@ export type FleetGraphNotificationDisplayFields = {
   blockerText: string;
   sourcePath: string;
   detectedAt: string;
+  isRead: boolean;
+  readAt: string | null;
 };
 
 export type FleetGraphNotificationResponse = FleetGraphAttentionSignalFields

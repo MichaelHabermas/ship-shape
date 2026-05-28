@@ -34,6 +34,7 @@ import {
   type IssueStoredIterationRow,
 } from '../utils/issue-response.js';
 import { requireFirstRow } from '../utils/query-rows.js';
+import { enqueueFleetGraphIssueAttentionEvents } from '../fleetgraph/events.js';
 import {
   issueStateSchema,
   type createIssueRequestSchema,
@@ -225,9 +226,16 @@ export async function createIssueMutation(
     client
   );
 
+  const sprintAssociations = belongs_to.filter((bt) => bt.type === 'sprint');
   await client.query('COMMIT');
 
-  const sprintAssociations = belongs_to.filter((bt) => bt.type === 'sprint');
+  await enqueueFleetGraphIssueAttentionEvents({
+    workspaceId,
+    issueIds: [newIssueId],
+    eventType: sprintAssociations.length > 0 ? 'issue_week_changed' : 'issue_changed',
+    reason: 'issue_created',
+  });
+
   for (const sprintAssoc of sprintAssociations) {
     const issueCountResult = await pool.query<CountRow>(
       `SELECT COUNT(*) as count FROM document_associations
@@ -521,6 +529,13 @@ export async function updateIssueMutation(
 
   await client.query('COMMIT');
 
+  await enqueueFleetGraphIssueAttentionEvents({
+    workspaceId,
+    issueIds: [id],
+    eventType: belongsToChanged ? 'issue_week_changed' : 'issue_changed',
+    reason: belongsToChanged ? 'issue_belongs_to_changed' : 'issue_updated',
+  });
+
   if (belongsToChanged) {
     const oldSprintIds = oldBelongsTo.filter((bt) => bt.type === 'sprint').map((bt) => bt.id);
     const newSprintIds = newBelongsTo.filter((bt) => bt.type === 'sprint').map((bt) => bt.id);
@@ -729,6 +744,13 @@ export async function bulkUpdateIssuesMutation(
 
   await client.query('COMMIT');
 
+  await enqueueFleetGraphIssueAttentionEvents({
+    workspaceId,
+    issueIds: result.rows.map((row) => row.id),
+    eventType: updates?.sprint_id !== undefined ? 'issue_week_changed' : 'issue_changed',
+    reason: `bulk_issue_${action}`,
+  });
+
   const associationsMap = await getBelongsToAssociationsBatch(result.rows.map((row) => row.id));
   const updated = result.rows.map((row) => {
     const issue = extractIssueFromRow(row);
@@ -784,6 +806,12 @@ export async function acceptIssueMutation(input: {
   );
 
   await logDocumentChange(id, 'state', 'triage', 'backlog', userId);
+  await enqueueFleetGraphIssueAttentionEvents({
+    workspaceId,
+    issueIds: [id],
+    eventType: 'issue_changed',
+    reason: 'issue_accepted',
+  });
   const issue = extractIssueFromRow(requireFirstRow(result.rows));
   return { ok: true, status: 200, body: { ...issue, display_id: `#${issue.ticket_number}` } };
 }
@@ -829,6 +857,12 @@ export async function rejectIssueMutation(input: {
   );
 
   await logDocumentChange(id, 'state', 'triage', 'cancelled', userId);
+  await enqueueFleetGraphIssueAttentionEvents({
+    workspaceId,
+    issueIds: [id],
+    eventType: 'issue_changed',
+    reason: 'issue_rejected',
+  });
   const issue = extractIssueFromRow(requireFirstRow(result.rows));
   return { ok: true, status: 200, body: { ...issue, display_id: `#${issue.ticket_number}` } };
 }
@@ -866,6 +900,12 @@ export async function createIssueIterationMutation(input: {
 
   const iteration = requireFirstRow(result.rows);
   const author = requireFirstRow(authorResult.rows);
+  await enqueueFleetGraphIssueAttentionEvents({
+    workspaceId,
+    issueIds: [issueId],
+    eventType: 'issue_iteration_added',
+    reason: 'issue_iteration_added',
+  });
   return { ok: true, status: 201, body: mapStoredIssueIterationRow(iteration, author) };
 }
 

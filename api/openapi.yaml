@@ -6513,15 +6513,6 @@ components:
     FleetGraphFindingResponse:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        kind:
-          type: string
-          enum:
-            - blocker
         signalType:
           type: string
           enum:
@@ -6531,8 +6522,6 @@ components:
         signalLabel:
           type: string
         reason:
-          type: string
-        status:
           type: string
         sourceIssueId:
           type: string
@@ -6548,17 +6537,28 @@ components:
           $ref: "#/components/schemas/FleetGraphVisibleOutput"
         traceMetadata:
           $ref: "#/components/schemas/FleetGraphTrace"
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        kind:
+          type: string
+          enum:
+            - blocker
+        status:
+          type: string
       required:
-        - id
-        - kind
         - signalType
         - signalLabel
         - reason
-        - status
         - sourceIssueId
         - sourceSprintId
         - visibleOutput
         - traceMetadata
+        - id
+        - kind
+        - status
     FleetGraphFindingsListResponse:
       type: object
       properties:
@@ -6571,16 +6571,6 @@ components:
     FleetGraphNotificationResponse:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        findingId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
         signalType:
           type: string
           enum:
@@ -6591,6 +6581,20 @@ components:
           type: string
         reason:
           type: string
+        sourceIssueId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        sourceSprintId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        visibleOutput:
+          $ref: "#/components/schemas/FleetGraphVisibleOutput"
+        traceMetadata:
+          $ref: "#/components/schemas/FleetGraphTrace"
         title:
           type: string
         issueTitle:
@@ -6604,42 +6608,45 @@ components:
           type: string
         blockerText:
           type: string
-        sourceIssueId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
-        sourceSprintId:
-          type: string
-          format: uuid
-          description: UUID identifier
-          example: 550e8400-e29b-41d4-a716-446655440000
         sourcePath:
           type: string
         detectedAt:
           type: string
-        visibleOutput:
-          $ref: "#/components/schemas/FleetGraphVisibleOutput"
-        traceMetadata:
-          $ref: "#/components/schemas/FleetGraphTrace"
+        isRead:
+          type: boolean
+        readAt:
+          type: string
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        findingId:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
       required:
-        - id
-        - findingId
         - signalType
         - signalLabel
         - reason
+        - sourceIssueId
+        - sourceSprintId
+        - visibleOutput
+        - traceMetadata
         - title
         - issueTitle
         - context
         - owner
         - notificationText
         - blockerText
-        - sourceIssueId
-        - sourceSprintId
         - sourcePath
         - detectedAt
-        - visibleOutput
-        - traceMetadata
+        - isRead
+        - readAt
+        - id
+        - findingId
     FleetGraphNotificationsListResponse:
       type: object
       properties:
@@ -6649,6 +6656,19 @@ components:
             $ref: "#/components/schemas/FleetGraphNotificationResponse"
       required:
         - notifications
+    FleetGraphMarkNotificationsReadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        markedRead:
+          type: integer
+          minimum: 0
+      required:
+        - success
+        - markedRead
     FleetGraphChangeSummaryRow:
       type: object
       properties:
@@ -12647,6 +12667,84 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FleetGraphNotificationsListResponse"
+        400:
+          description: Response 400
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        500:
+          description: Response 500
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /fleetgraph/notifications/read:
+    post:
+      tags:
+        - FleetGraph
+      summary: Mark visible FleetGraph notifications as read for the current user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                findingIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                    description: UUID identifier
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  maxItems: 99
+      responses:
+        200:
+          description: Response 200
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetGraphMarkNotificationsReadResponse"
+        400:
+          description: Response 400
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        500:
+          description: Response 500
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /fleetgraph/findings/{findingId}/read:
+    post:
+      tags:
+        - FleetGraph
+      summary: Mark one FleetGraph notification as read for the current user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          required: true
+          name: findingId
+          in: path
+      responses:
+        200:
+          description: Response 200
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FleetGraphMarkNotificationsReadResponse"
         400:
           description: Response 400
           content:
