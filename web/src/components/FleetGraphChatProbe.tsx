@@ -1,5 +1,5 @@
 // Renders contextual FleetGraph chat for source-aware page and notification discussion.
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   FleetGraphChatContext,
@@ -246,6 +246,13 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     event.target.style.overflowY = event.target.scrollHeight > 120 ? 'auto' : 'hidden';
   };
 
+  const handleDraftKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    if (!draft.trim()) return;
+    event.currentTarget.form?.requestSubmit();
+  };
+
   const chatContext = (): FleetGraphChatContext | null => {
     if (activeNotification?.findingId) {
       return {
@@ -425,6 +432,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                 id="context-chat-draft"
                 value={draft}
                 onChange={handleDraftChange}
+                onKeyDown={handleDraftKeyDown}
                 rows={1}
                 placeholder={activeNotification ? 'Ask about this signal...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
                 className="scrollbar-hide max-h-[120px] min-h-6 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 text-sm leading-5 text-foreground outline-none ring-0 placeholder:text-muted focus:outline-none focus:ring-0"
