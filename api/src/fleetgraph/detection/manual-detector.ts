@@ -1,5 +1,5 @@
 // FleetGraph manual detector runner summarizes read-only detector decisions for local validation.
-import { runFleetGraphTick, type FleetGraphDryRunTickSummary } from './tick-runner.js';
+import { runFleetGraphTick, type FleetGraphDryRunTickSummary } from '../execution/tick-runner.js';
 
 export type ManualFleetGraphDetectorSummary = FleetGraphDryRunTickSummary;
 

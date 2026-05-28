@@ -1,10 +1,10 @@
 // FleetGraph tick runner unifies read-only detector previews and bounded graph execution.
 import { utcToday } from '@ship/shared';
-import { pool } from '../db/client.js';
-import type { Principal } from '../security/principal.js';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from './detector.js';
-import { runFleetGraph, type FleetGraphCoreOptions } from './core.js';
-import type { FleetGraphResult } from './types.js';
+import { pool } from '../../db/client.js';
+import type { Principal } from '../../security/principal.js';
+import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
+import { runFleetGraph, type FleetGraphCoreOptions } from '../core.js';
+import type { FleetGraphResult } from '../types.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 

@@ -4,7 +4,7 @@ import { pathToFileURL } from 'url';
 import { computeCurrentSprintNumber } from '@ship/shared';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detector.js';
+import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { withFleetGraphLangSmithTrace } from '../fleetgraph/langsmith-trace.js';
 import { saveBlockedImportantIssueFinding } from '../fleetgraph/persistence.js';

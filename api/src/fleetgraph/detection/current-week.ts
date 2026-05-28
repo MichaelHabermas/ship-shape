@@ -1,7 +1,7 @@
 // FleetGraph current-week resolution reuses Ship's workspace sprint cadence.
 import { computeCurrentSprintNumber, normalizeWorkspaceStartDate, utcToday } from '@ship/shared';
-import { pool } from '../db/client.js';
-import { requireFirstRow } from '../utils/query-rows.js';
+import { pool } from '../../db/client.js';
+import { requireFirstRow } from '../../utils/query-rows.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 

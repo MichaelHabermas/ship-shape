@@ -1,9 +1,9 @@
 // Verifies FleetGraph worker scheduling, locking, and one-tick execution stay bounded.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { pgResult } from '../test/pg-result.js';
-import { runFleetGraphWorkerTick, startFleetGraphWorker } from './worker.js';
+import { runFleetGraphWorkerTick, startFleetGraphWorker } from './execution/worker.js';
 import type { ResolvedFleetGraphConfig } from '../config/fleetgraph.js';
-import type { FleetGraphExecuteTickSummary, FleetGraphTickInput } from './tick-runner.js';
+import type { FleetGraphExecuteTickSummary, FleetGraphTickInput } from './execution/tick-runner.js';
 
 type RunTickFn = (
   input: Extract<FleetGraphTickInput, { mode: 'execute' }>

@@ -1,18 +1,30 @@
 // FleetGraph core types define the shared graph boundary for proactive and on-demand runs.
+import type {
+  FleetGraphChangeSummary,
+  FleetGraphChatContext,
+  FleetGraphEvidenceVisibility,
+  FleetGraphSeverity,
+  FleetGraphTrace as FleetGraphWireTrace,
+} from '@ship/shared';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detector.js';
+import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
 import type {
   FleetGraphFinding,
   FleetGraphRun,
   FleetGraphRunDecision,
   FleetGraphRunMode,
-  FleetGraphSeverity,
   JsonRecord,
   RecordFleetGraphRunInput,
   SaveBlockedImportantIssueFindingInput,
 } from './persistence.js';
 
-export type FleetGraphEvidenceVisibility = 'internal' | 'actor_visible' | 'restricted';
+export type {
+  FleetGraphChangeSummary,
+  FleetGraphChangeSummaryRow,
+  FleetGraphChatContext,
+  FleetGraphChatContextKind,
+  FleetGraphEvidenceVisibility,
+} from '@ship/shared';
 
 export type FleetGraphEvidenceItem = {
   kind: 'source_issue' | 'source_sprint' | 'blocker' | 'dedupe' | 'finding' | 'restricted';
@@ -40,23 +52,8 @@ export type FleetGraphVisibleOutput = {
   noSafeOutput?: boolean;
 };
 
-export type FleetGraphChangeSummaryRow = {
-  label: 'Now' | 'Changed' | 'Cleared' | 'Next' | 'Unknown' | 'Not done';
-  text: string;
-};
-
-export type FleetGraphChangeSummary = {
-  headline: string;
-  rows: FleetGraphChangeSummaryRow[];
-};
-
-export type FleetGraphTraceMetadata = {
-  traceId?: string;
-  traceUrl?: string;
-  mode: FleetGraphRunMode;
+export type FleetGraphTraceMetadata = Omit<FleetGraphWireTrace, 'decision'> & {
   decision: FleetGraphRunDecision;
-  nodePath: string[];
-  failureCategory?: string;
 };
 
 export type FleetGraphTokenMetadata = {
@@ -102,6 +99,11 @@ export type FleetGraphTrigger =
   | {
       type: 'summarize_changes';
       findingId: string;
+    }
+  | {
+      type: 'context_chat';
+      prompt: string;
+      context: FleetGraphChatContext;
     }
   | {
       type: 'resolve_finding';

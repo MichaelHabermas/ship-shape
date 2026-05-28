@@ -419,3 +419,27 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Keep reviewer-oriented golden cases as finish-line proof for Week 5 requirements: graph branch coverage, proactive/on-demand paths, human gates, no Ship mutation/contact, restricted evidence safety, persistence, and trace hygiene. Add product-surface evals beside them to score user-facing copy quality over time.
 
 **Consequence:** Do not remove reviewer evals just because their evidence is not product UI. Product-surface evals are trend metrics for actionability, groundedness, specificity, brevity, uncertainty honesty, and UI/proof separation; they complement reviewer gates instead of replacing them.
+
+## D053 - FleetGraph Core Stays An Orchestrator
+
+**Date:** 2026-05-28
+
+**Decision:** `api/src/fleetgraph/core.ts` remains the shared LangGraph runtime and decision orchestration boundary, but deterministic helper logic now lives under `api/src/fleetgraph/runtime/`: `audience.ts` for recipient selection, `drafts.ts` for deterministic draft rewrites, `outputs.ts` for visible output and change summaries, `run-recording.ts` for persisted run/result serialization, and `json.ts` for shared JSON guards.
+
+**Consequence:** Future FleetGraph behavior should add graph nodes/decision handlers in `core.ts` only when orchestration changes. Product copy transforms, audience choice, output mapping, and persistence serialization should stay in `runtime/` unless moving them back clearly reduces complexity.
+
+## D054 - Context Chat Is A Bounded Graph Capsule
+
+**Date:** 2026-05-28
+
+**Decision:** The approved 10x on-demand path is a Context Capsule, not generic chat. Typed prompts enter the same FleetGraph runtime as `context_chat`, resolve the active notification/finding/page context, and support only bounded intents: `why_flagged`, `next_step`, and `summarize_changes`.
+
+**Consequence:** `/api/fleetgraph/chat` records `fleetgraph_runs` with distinct graph paths and zero model calls for the current deterministic slice. It must not create findings, mutate Ship state, send messages, or answer broad workspace questions without an attached source context. Unsupported prompts quietly explain the supported commands.
+
+## D055 - FleetGraph Folders Follow Reasons To Change
+
+**Date:** 2026-05-28
+
+**Decision:** FleetGraph uses subfolders only where the boundary is worth the indirection: `runtime/` for helper logic behind `runFleetGraph`, `detection/` for read-only candidate/current-week/manual detector preview logic, and `execution/` for worker ticks, scheduled execution, and manual admin execution.
+
+**Consequence:** Do not folderize every top-level FleetGraph file by default. `core.ts`, `persistence.ts`, `evidence.ts`, `api-contract.ts`, `types.ts`, trace/model files, tests, and evals can stay top-level until they become real clusters with a separate reason to change.

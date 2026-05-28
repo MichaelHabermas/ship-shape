@@ -9296,6 +9296,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fleetgraph/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer a bounded FleetGraph chat prompt from the current context */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FleetGraphChatRequest"];
+                };
+            };
+            responses: {
+                /** @description Response 200 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FleetGraphChatResponse"];
+                    };
+                };
+                /** @description Response 400 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Response 403 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Response 404 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Response 500 */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fleetgraph/manual-run": {
         parameters: {
             query?: never;
@@ -12899,6 +12975,7 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             userId?: string | null;
+            displayName?: string;
             rationale?: string;
         };
         FleetGraphEvidence: {
@@ -13027,6 +13104,51 @@ export interface components {
             finding?: components["schemas"]["FleetGraphFindingResponse"];
             visibleOutput?: components["schemas"]["FleetGraphVisibleOutput"];
             traceMetadata: components["schemas"]["FleetGraphTrace"];
+        };
+        FleetGraphChatAnswer: {
+            title: string;
+            body: string;
+            nextStep?: string;
+            sources: {
+                label: string;
+                kind: string;
+            }[];
+            humanGate: {
+                [key: string]: unknown;
+            };
+        };
+        FleetGraphChatContext: {
+            /** @enum {string} */
+            kind: "issue" | "sprint" | "project" | "program" | "document" | "workspace" | "notification" | "finding";
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            documentId?: string;
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            findingId?: string;
+            sourcePath?: string;
+        };
+        FleetGraphChatResponse: {
+            decision: string;
+            answer: components["schemas"]["FleetGraphChatAnswer"];
+            context: components["schemas"]["FleetGraphChatContext"];
+            visibleOutput?: components["schemas"]["FleetGraphVisibleOutput"];
+            changeSummary?: {
+                headline: string;
+                rows: components["schemas"]["FleetGraphChangeSummaryRow"][];
+            };
+            traceMetadata: components["schemas"]["FleetGraphTrace"];
+        };
+        FleetGraphChatRequest: {
+            prompt: string;
+            context: components["schemas"]["FleetGraphChatContext"];
+            clientMessageId?: string;
         };
         FleetGraphManualRunResult: {
             decision: string;

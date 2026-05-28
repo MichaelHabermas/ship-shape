@@ -1,7 +1,7 @@
 // Verifies the gated manual FleetGraph API wrapper calls the shared execute tick.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runFleetGraphManualTick } from './manual-run.js';
-import { runFleetGraphTick } from './tick-runner.js';
+import { runFleetGraphManualTick } from './execution/manual-run.js';
+import { runFleetGraphTick } from './execution/tick-runner.js';
 import type { Principal } from '../security/principal.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
@@ -15,7 +15,7 @@ const principal: Principal = {
   isSuperAdmin: false,
 };
 
-vi.mock('./tick-runner.js', () => ({
+vi.mock('./execution/tick-runner.js', () => ({
   runFleetGraphTick: vi.fn(),
 }));
 

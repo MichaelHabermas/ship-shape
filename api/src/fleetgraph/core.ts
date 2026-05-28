@@ -1,20 +1,29 @@
 // FleetGraph core runs the shared proactive/on-demand LangGraph decision runtime.
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { pool } from '../db/client.js';
-import type { FleetGraphDetectorQuietExit } from './detector.js';
+import type { FleetGraphDetectorQuietExit } from './detection/detector.js';
 import {
   evidenceFromDetectorCandidate,
   filterEvidenceForActor,
   getFindingForGraph,
   recommendedActionForVisibleOutput,
-  proposedRecipientForVisibleOutput,
-  recipientRationaleForRole,
   visibleOutputForFinding,
 } from './evidence.js';
 import { generateProactiveCreateText } from './model.js';
+import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
+import {
+  chatAnswerFromChangeSummary,
+  chatAnswerFromVisibleOutput,
+  classifyFleetGraphChatPrompt,
+  unsupportedChatAnswer,
+} from './runtime/chat.js';
+import { deterministicRefinedDraft } from './runtime/drafts.js';
+import { isJsonRecord } from './runtime/json.js';
+import { changeSummaryFromOutputs, visibleOutputFromPacket, visibleOutputFromRun } from './runtime/outputs.js';
 import {
   dismissFleetGraphFinding,
   listFleetGraphAnchorRuns,
+  listFleetGraphFindingsForSource,
   recordFleetGraphRun,
   refineFleetGraphDraft,
   resolveFleetGraphFinding,
@@ -28,14 +37,12 @@ import {
 } from './persistence.js';
 import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
+import { resultFor, runInputFor } from './runtime/run-recording.js';
 import type {
-  FleetGraphChangeSummary,
-  FleetGraphCostMetadata,
   FleetGraphDecisionPacket,
   FleetGraphEvidenceItem,
   FleetGraphInput,
   FleetGraphResult,
-  FleetGraphTokenMetadata,
   FleetGraphTraceMetadata,
   FleetGraphVisibleOutput,
 } from './types.js';
@@ -46,6 +53,7 @@ export type FleetGraphPersistencePort = {
   saveFinding(input: SaveBlockedImportantIssueFindingInput): Promise<FleetGraphFinding>;
   recordRun(input: RecordFleetGraphRunInput): Promise<FleetGraphRun>;
   getFinding(workspaceId: string, findingId: string): Promise<FleetGraphFinding | null>;
+  listFindingsForSource(input: { workspaceId: string; sourceIssueId?: string; sourceSprintId?: string }): Promise<FleetGraphFinding[]>;
   listAnchorRuns(input: { workspaceId: string; findingId: string; limit?: number }): Promise<FleetGraphRun[]>;
   refineDraft(input: {
     workspaceId: string;
@@ -86,6 +94,7 @@ type FleetGraphNodeName =
   | 'explainFinding'
   | 'refineDraft'
   | 'summarizeChanges'
+  | 'contextChat'
   | 'resolveFinding'
   | 'dismissFinding'
   | 'errorRun';
@@ -95,6 +104,7 @@ function defaultPersistence(db: QueryRunner = pool): FleetGraphPersistencePort {
     saveFinding: (input) => saveBlockedImportantIssueFinding(input, db),
     recordRun: (input) => recordFleetGraphRun(input, db),
     getFinding: (workspaceId, findingId) => getFindingForGraph({ workspaceId, findingId, db }),
+    listFindingsForSource: (input) => listFleetGraphFindingsForSource(input, db),
     listAnchorRuns: (input) => listFleetGraphAnchorRuns(input, db),
     refineDraft: (input) => refineFleetGraphDraft(input, db),
     dismissFinding: (input) => dismissFleetGraphFinding(input, db),
@@ -166,6 +176,7 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addNode('explainFinding', () => explainFindingNode(context))
     .addNode('refineDraft', () => refineDraftNode(context))
     .addNode('summarizeChanges', () => summarizeChangesNode(context))
+    .addNode('contextChat', () => contextChatNode(context))
     .addNode('resolveFinding', () => resolveFindingNode(context))
     .addNode('dismissFinding', () => dismissFindingNode(context))
     .addNode('errorRun', () => errorRunNode(context))
@@ -176,6 +187,7 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addEdge('explainFinding', END)
     .addEdge('refineDraft', END)
     .addEdge('summarizeChanges', END)
+    .addEdge('contextChat', END)
     .addEdge('resolveFinding', END)
     .addEdge('dismissFinding', END)
     .addEdge('errorRun', END)
@@ -198,6 +210,8 @@ function routeFleetGraphTrigger(state: FleetGraphStateValue): FleetGraphNodeName
       return 'refineDraft';
     case 'summarize_changes':
       return 'summarizeChanges';
+    case 'context_chat':
+      return 'contextChat';
     case 'resolve_finding':
       return 'resolveFinding';
     case 'dismiss_finding':
@@ -246,6 +260,16 @@ async function refineDraftNode(context: FleetGraphRuntimeContext): Promise<Parti
 async function summarizeChangesNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
   context.result = await runSummarizeChanges(
     context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'summarize_changes' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function contextChatNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runContextChat(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
     context.persistence,
     context.triggerReason,
     context.options
@@ -532,6 +556,197 @@ async function runSummarizeChanges(
   });
 }
 
+async function runContextChat(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  options: FleetGraphCoreOptions
+): Promise<FleetGraphResult> {
+  const finding = await resolveContextChatFinding(input, persistence);
+  if (!finding) {
+    return runContextChatQuietExit(
+      input,
+      persistence,
+      triggerReason,
+      'Open a FleetGraph notification or a blocked issue with an active finding before asking.',
+      options
+    );
+  }
+
+  const { evidence, output } = await visibleOutputForFinding({
+    principal: input.principal,
+    workspaceId: input.workspaceId,
+    finding,
+    db: options.db,
+  });
+  if (output.noSafeOutput) {
+    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output, options);
+  }
+
+  const intent = classifyFleetGraphChatPrompt(input.trigger.prompt);
+  if (intent === 'summarize_changes') {
+    return runContextChatChangeSummary(input, persistence, triggerReason, finding, evidence, output, options);
+  }
+  if (intent === 'unsupported') {
+    return runContextChatQuietExit(
+      input,
+      persistence,
+      triggerReason,
+      'I can explain this finding, summarize changes, identify the unblocker, or suggest the next step.',
+      options
+    );
+  }
+
+  const decision = intent === 'next_step' ? 'needs_confirmation' : 'explain';
+  const answer = chatAnswerFromVisibleOutput(output);
+  const traceMetadata = fleetGraphTraceMetadata({
+    mode: input.mode,
+    decision,
+    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'contextChat', 'produceOutput'],
+    ...options.externalTrace,
+  });
+  const runInput = runInputFor({
+    input,
+    triggerReason,
+    decision,
+    findingId: finding.id,
+    sourceIssueId: finding.source_issue_id,
+    sourceSprintId: finding.source_sprint_id,
+    dedupeKey: finding.dedupe_key,
+    evidence,
+    output: { answer, visibleOutput: output },
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+  const run = await persistence.recordRun(runInput);
+
+  return resultFor({
+    decision,
+    finding,
+    run,
+    runInput,
+    visibleOutput: output,
+    evidence,
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+}
+
+async function resolveContextChatFinding(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
+  persistence: FleetGraphPersistencePort
+): Promise<FleetGraphFinding | null> {
+  const { context } = input.trigger;
+  if (context.findingId) return persistence.getFinding(input.workspaceId, context.findingId);
+
+  if (!context.documentId) return null;
+  if (context.kind === 'sprint') {
+    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceSprintId: context.documentId });
+    return findings[0] ?? null;
+  }
+  if (context.kind === 'issue' || context.kind === 'document') {
+    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceIssueId: context.documentId });
+    return findings[0] ?? null;
+  }
+
+  return null;
+}
+
+async function runContextChatChangeSummary(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  finding: FleetGraphFinding,
+  evidence: FleetGraphEvidenceItem[],
+  output: FleetGraphVisibleOutput,
+  options: FleetGraphCoreOptions
+): Promise<FleetGraphResult> {
+  const anchors = await persistence.listAnchorRuns({ workspaceId: input.workspaceId, findingId: finding.id, limit: 2 });
+  const previousOutput = visibleOutputFromRun(anchors[1]);
+  const changeSummary = changeSummaryFromOutputs(output, previousOutput);
+  const answer = chatAnswerFromChangeSummary(changeSummary);
+  const traceMetadata = fleetGraphTraceMetadata({
+    mode: input.mode,
+    decision: 'summarize_changes',
+    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'contextChatChanges', 'produceOutput'],
+    ...options.externalTrace,
+  });
+  const runInput = runInputFor({
+    input,
+    triggerReason,
+    decision: 'summarize_changes',
+    findingId: finding.id,
+    sourceIssueId: finding.source_issue_id,
+    sourceSprintId: finding.source_sprint_id,
+    dedupeKey: finding.dedupe_key,
+    evidence,
+    output: { answer, changeSummary },
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+  const run = await persistence.recordRun(runInput);
+
+  return resultFor({
+    decision: 'summarize_changes',
+    finding,
+    run,
+    runInput,
+    visibleOutput: output,
+    changeSummary,
+    evidence,
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+}
+
+async function runContextChatQuietExit(
+  input: FleetGraphInput,
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  reason: string,
+  options: FleetGraphCoreOptions = {}
+): Promise<FleetGraphResult> {
+  const answer = unsupportedChatAnswer(reason);
+  const visibleOutput: FleetGraphVisibleOutput = {
+    title: answer.title,
+    summary: answer.body,
+    evidence: [],
+    humanGate: answer.humanGate,
+  };
+  const traceMetadata = fleetGraphTraceMetadata({
+    mode: input.mode,
+    decision: 'quiet_exit',
+    nodePath: ['normalizeTrigger', 'resolveScope', 'contextChatUnsupported', 'persistFleetGraphState'],
+    ...options.externalTrace,
+  });
+  const runInput = runInputFor({
+    input,
+    triggerReason,
+    decision: 'quiet_exit',
+    output: { answer },
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+  const run = await persistence.recordRun(runInput);
+
+  return resultFor({
+    decision: 'quiet_exit',
+    finding: null,
+    run,
+    runInput,
+    visibleOutput,
+    evidence: [],
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+}
+
 async function runRefineDraft(
   input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'refine_draft' }> },
   persistence: FleetGraphPersistencePort,
@@ -792,14 +1007,18 @@ function decisionPacketFromCandidate(
   summary: string,
   draftMessage: string
 ): FleetGraphDecisionPacket {
+  const issueTitle = candidateTitle(candidate.issue_title);
+  const audience = audienceForCandidate(candidate);
+  const nextAction = nextActionForCandidate(candidate, audience);
   return {
     severity: candidate.issue_priority,
     confidence: 0.86,
-    title: `Blocked issue: ${candidate.issue_title}`,
+    title: issueTitle,
     summary,
     recommendedAction: {
       type: 'confirm_unblock_path',
-      label: 'Confirm the unblock path',
+      label: nextAction,
+      text: nextAction,
       requiresHumanApproval: true,
     },
     draftContent: {
@@ -808,235 +1027,17 @@ function decisionPacketFromCandidate(
       source: 'fleetgraph',
     },
     proposedRecipient: {
-      role: candidate.issue_assignee_id ? 'issue_assignee' : 'sprint_owner',
-      userId: candidate.issue_assignee_id ?? candidate.sprint_owner_id ?? null,
-      rationale: 'Recipient is the issue assignee, falling back to the sprint owner.',
+      role: audience.role,
+      userId: audience.userId,
+      displayName: audience.displayName,
+      rationale: audience.rationale,
     },
     humanGate: {
       required: true,
       reason: 'FleetGraph cannot contact anyone or mutate Ship without human approval.',
     },
-    uncertaintyNotes: [
-      'FleetGraph sees a blocker signal, but a human must confirm the current unblock path.',
-    ],
+    uncertaintyNotes: [],
   };
-}
-
-function visibleOutputFromPacket(
-  packet: FleetGraphDecisionPacket,
-  evidence: FleetGraphEvidenceItem[]
-): FleetGraphVisibleOutput {
-  return {
-    title: packet.title,
-    summary: packet.summary,
-    severity: packet.severity,
-    confidence: packet.confidence,
-    recommendedAction: packet.recommendedAction,
-    proposedRecipient: proposedRecipientForVisibleOutput(packet.proposedRecipient),
-    recipientRationale: recipientRationaleForRole(packet.proposedRecipient.role),
-    uncertaintyNotes: packet.uncertaintyNotes,
-    evidence,
-    humanGate: packet.humanGate,
-    draftContent: packet.draftContent,
-  };
-}
-
-function visibleOutputFromRun(run: FleetGraphRun | undefined): FleetGraphVisibleOutput | null {
-  if (!run || !isJsonRecord(run.output_snapshot)) return null;
-  const output = run.output_snapshot;
-  if (typeof output.title !== 'string' || typeof output.summary !== 'string') return null;
-  return {
-    title: output.title,
-    summary: output.summary,
-    severity: fleetGraphSeverity(output.severity),
-    recommendedAction: isJsonRecord(output.recommendedAction) ? output.recommendedAction : undefined,
-    proposedRecipient: isJsonRecord(output.proposedRecipient) ? output.proposedRecipient : undefined,
-    uncertaintyNotes: Array.isArray(output.uncertaintyNotes)
-      ? output.uncertaintyNotes.filter((note): note is string => typeof note === 'string' && note.trim().length > 0)
-      : undefined,
-    evidence: [],
-    humanGate: isJsonRecord(output.humanGate) ? output.humanGate : {},
-    draftContent: isJsonRecord(output.draftContent) ? output.draftContent : undefined,
-  };
-}
-
-function changeSummaryFromOutputs(current: FleetGraphVisibleOutput, previous: FleetGraphVisibleOutput | null): FleetGraphChangeSummary {
-  if (!previous) {
-    return {
-      headline: 'No prior run',
-      rows: [
-        { label: 'Now', text: blockerLine(current.summary) },
-        { label: 'Not done', text: 'No issue changed. No message sent.' },
-      ],
-    };
-  }
-
-  const rows: FleetGraphChangeSummary['rows'] = [];
-  const previousBlocker = blockerLine(previous.summary);
-  const currentBlocker = blockerLine(current.summary);
-  if (previousBlocker !== currentBlocker) rows.push({ label: 'Now', text: currentBlocker });
-  if (previous.severity !== current.severity && current.severity) {
-    rows.push({ label: 'Changed', text: `Priority ${sentenceLabel(previous.severity)} -> ${sentenceLabel(current.severity)}.` });
-  }
-
-  const previousAction = actionLabel(previous);
-  const currentAction = actionLabel(current);
-  if (currentAction && currentAction !== previousAction) rows.push({ label: 'Next', text: currentAction });
-
-  if (rows.length === 0) {
-    return {
-      headline: 'No meaningful change',
-      rows: [{ label: 'Not done', text: 'No issue changed. No message sent.' }],
-    };
-  }
-
-  rows.push({ label: 'Not done', text: 'No issue changed. No message sent.' });
-  return {
-    headline: rows[0]?.text ?? 'Changed',
-    rows,
-  };
-}
-
-function blockerLine(summary: string): string {
-  const recordedBlocker = summary.match(/recorded blocker:\s*(.+)$/i)?.[1];
-  return (recordedBlocker ?? summary).replace(/\.$/, '').trim();
-}
-
-function actionLabel(output: FleetGraphVisibleOutput): string | null {
-  return stringFromJsonRecord(output.recommendedAction, ['label', 'text', 'summary']);
-}
-
-function sentenceLabel(value: unknown): string {
-  if (typeof value !== 'string' || !value.trim()) return 'Unknown';
-  const text = value.replace(/_/g, ' ');
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
-}
-
-function fleetGraphSeverity(value: unknown): FleetGraphVisibleOutput['severity'] {
-  return value === 'low' || value === 'medium' || value === 'high' || value === 'urgent' ? value : undefined;
-}
-
-function runInputFor(input: {
-  input: FleetGraphInput;
-  triggerReason: string;
-  decision: RecordFleetGraphRunInput['decision'];
-  findingId?: string | null;
-  sourceIssueId?: string | null;
-  sourceSprintId?: string | null;
-  dedupeKey?: string | null;
-  evidence?: unknown[];
-  output: unknown;
-  traceMetadata: FleetGraphTraceMetadata;
-  tokenMetadata: FleetGraphTokenMetadata;
-  costMetadata: FleetGraphCostMetadata;
-  errorMetadata?: JsonRecord;
-}): RecordFleetGraphRunInput {
-  return {
-    workspaceId: input.input.workspaceId,
-    findingId: input.findingId ?? null,
-    sourceIssueId: input.sourceIssueId ?? null,
-    sourceSprintId: input.sourceSprintId ?? null,
-    mode: input.input.mode,
-    triggerReason: input.triggerReason,
-    decision: input.decision,
-    dedupeKey: input.dedupeKey ?? null,
-    inputSnapshot: { triggerType: input.input.trigger.type },
-    evidenceSnapshot: input.evidence ?? [],
-    outputSnapshot: isJsonRecord(input.output) ? input.output : { value: input.output },
-    traceMetadata: traceMetadataJson(input.traceMetadata),
-    tokenMetadata: input.tokenMetadata,
-    costMetadata: input.costMetadata,
-    errorMetadata: input.errorMetadata ?? {},
-  };
-}
-
-function resultFor(input: {
-  decision: FleetGraphResult['decision'];
-  finding?: FleetGraphFinding | null;
-  run: FleetGraphRun;
-  findingInput?: SaveBlockedImportantIssueFindingInput;
-  runInput: RecordFleetGraphRunInput;
-  visibleOutput?: FleetGraphVisibleOutput;
-  changeSummary?: FleetGraphChangeSummary;
-  evidence: FleetGraphEvidenceItem[];
-  traceMetadata: FleetGraphTraceMetadata;
-  tokenMetadata: FleetGraphTokenMetadata;
-  costMetadata: FleetGraphCostMetadata;
-  errorMetadata?: JsonRecord;
-}): FleetGraphResult {
-  return {
-    decision: input.decision,
-    finding: input.finding,
-    run: input.run,
-    ...(input.findingInput ? { findingInput: input.findingInput } : {}),
-    runInput: input.runInput,
-    ...(input.visibleOutput ? { visibleOutput: input.visibleOutput } : {}),
-    ...(input.changeSummary ? { changeSummary: input.changeSummary } : {}),
-    evidence: input.evidence,
-    traceMetadata: input.traceMetadata,
-    tokenMetadata: input.tokenMetadata,
-    costMetadata: input.costMetadata,
-    errorMetadata: input.errorMetadata ?? {},
-  };
-}
-
-function isJsonRecord(value: unknown): value is JsonRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function deterministicRefinedDraft(finding: FleetGraphFinding, instruction: string): string {
-  const normalizedInstruction = instruction.toLowerCase();
-  const existingDraft = stringFromJsonRecord(finding.draft_content, ['message', 'text', 'draft', 'body']) ?? finding.summary;
-  const evidenceClaims = Array.isArray(finding.evidence_snapshot)
-    ? finding.evidence_snapshot
-        .map((item) => stringFromJsonRecord(item, ['claim']))
-        .filter((claim): claim is string => Boolean(claim))
-        .slice(0, 3)
-    : [];
-  const blockerExcerpt = evidenceClaims[0] ?? finding.summary;
-  const wantsMoreDetail = /\b(detail|detailed|context|explain|longer|specific|far more|a lot more)\b/.test(normalizedInstruction);
-  const wantsFirmer = /\b(firm|firmer|direct|harsher|harder|urgent|pressure|forceful)\b/.test(normalizedInstruction);
-  const wantsSofter = /\b(soft|softer|gentle|polite|warmer)\b/.test(normalizedInstruction);
-  const wantsShorter = /\b(short|shorter|concise|brief|tight)\b/.test(normalizedInstruction);
-
-  if (wantsShorter && !wantsMoreDetail) {
-    return `${finding.title}: please confirm the unblock path today. ${finding.summary}`;
-  }
-
-  if (wantsMoreDetail) {
-    const opener = wantsFirmer
-      ? `This needs a clear unblock decision now: ${finding.title}.`
-      : wantsSofter
-        ? `Can you help clarify the unblock path for ${finding.title}?`
-        : `Can you confirm the unblock path for ${finding.title}?`;
-    const consequence = wantsFirmer
-      ? 'Without a concrete owner, decision, or dependency update, this active-week work remains blocked and FleetGraph will continue treating it as PM-review work.'
-      : 'FleetGraph is keeping this in PM review until the current unblock path is confirmed.';
-    const evidenceText = evidenceClaims.length > 0
-      ? evidenceClaims.map((claim) => `- ${claim}`).join('\n')
-      : `- ${blockerExcerpt}`;
-
-    return `${opener}\n\nCurrent signal:\n${evidenceText}\n\nRequested next step: confirm who owns the unblock, what decision or approval is needed, and whether this can move today. ${consequence}`;
-  }
-
-  if (wantsFirmer) {
-    return `${finding.title} is still blocked and needs a direct unblock decision. ${finding.summary}\n\nPlease confirm the owner, dependency, and next step today so this does not stay stuck in active-week work.`;
-  }
-
-  if (wantsSofter) {
-    return `Can you help confirm the current unblock path for ${finding.title}? ${finding.summary}\n\nA quick owner or dependency update would help FleetGraph keep the active-week plan accurate.`;
-  }
-
-  return `${existingDraft}\n\nRevision request applied: ${instruction}`;
-}
-
-function stringFromJsonRecord(value: unknown, keys: string[]): string | null {
-  if (!isJsonRecord(value)) return null;
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
-  }
-  return null;
 }
 
 function candidateTitle(title: string): string {
@@ -1044,5 +1045,5 @@ function candidateTitle(title: string): string {
 }
 
 function deterministicUpdateSummary(title: string): string {
-  return `${title} still has an active blocker signal; FleetGraph refreshed the existing finding instead of creating a duplicate.`;
+  return `${title} still needs an unblock decision.`;
 }

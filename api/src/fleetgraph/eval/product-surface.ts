@@ -40,6 +40,12 @@ export type FleetGraphProductSurfaceResult = {
   failedDimensions: FleetGraphProductSurfaceDimension[];
 };
 
+export type FleetGraphProductSurfaceSummary = {
+  average: FleetGraphProductSurfaceScores;
+  passCount: number;
+  failCount: number;
+};
+
 const maxScore = 4;
 
 export const fleetGraphProductSurfaceCases = [
@@ -168,7 +174,7 @@ export function scoreFleetGraphProductSurfaceCase(
 
 export function summarizeFleetGraphProductSurfaceResults(
   results: readonly FleetGraphProductSurfaceResult[]
-): { average: FleetGraphProductSurfaceScores; passCount: number; failCount: number } {
+): FleetGraphProductSurfaceSummary {
   const totals = Object.fromEntries(
     FLEETGRAPH_PRODUCT_SURFACE_DIMENSIONS.map((dimension) => [dimension, 0])
   ) as FleetGraphProductSurfaceScores;

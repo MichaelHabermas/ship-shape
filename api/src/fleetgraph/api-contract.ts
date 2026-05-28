@@ -5,6 +5,24 @@ import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../open
 import { traceMetadataForResponse } from './trace.js';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
 import type { FleetGraphFinding, FleetGraphNotificationFinding } from './persistence.js';
+import { chatAnswerFromChangeSummary, chatAnswerFromVisibleOutput, unsupportedChatAnswer } from './runtime/chat.js';
+
+export type {
+  FleetGraphChangeSummaryResponse,
+  FleetGraphChatAnswer,
+  FleetGraphChatContext,
+  FleetGraphChatRequest,
+  FleetGraphChatResponse,
+  FleetGraphFindingResponse,
+  FleetGraphFindingsListResponse,
+  FleetGraphManualRunResponse,
+  FleetGraphManualRunResult,
+  FleetGraphNotificationResponse,
+  FleetGraphNotificationsListResponse,
+  FleetGraphRunResponse,
+  FleetGraphTrace,
+  FleetGraphVisibleOutput as FleetGraphWireVisibleOutput,
+} from '@ship/shared';
 
 export const FleetGraphEvidenceSchema = z.object({
   kind: z.string(),
@@ -26,6 +44,7 @@ export const FleetGraphRecommendedActionSchema = z.object({
 export const FleetGraphProposedRecipientSchema = z.object({
   role: z.string().optional(),
   userId: UuidSchema.nullable().optional(),
+  displayName: z.string().optional(),
   rationale: z.string().optional(),
 }).openapi('FleetGraphProposedRecipient');
 
@@ -118,43 +137,119 @@ export const FleetGraphManualRunResponseSchema = z.object({
   results: z.array(FleetGraphManualRunResultSchema),
 }).openapi('FleetGraphManualRunResponse');
 
-export type FleetGraphFindingResponse = z.infer<typeof FleetGraphFindingResponseSchema>;
-export type FleetGraphNotificationResponse = z.infer<typeof FleetGraphNotificationResponseSchema>;
+export const FleetGraphChatContextSchema = z.object({
+  kind: z.enum(['issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding']),
+  documentId: UuidSchema.optional(),
+  findingId: UuidSchema.optional(),
+  sourcePath: z.string().max(512).optional(),
+}).refine((context) => context.findingId || context.documentId || context.kind === 'workspace', {
+  message: 'context requires findingId, documentId, or workspace kind',
+}).openapi('FleetGraphChatContext');
+
+export const FleetGraphChatRequestSchema = z.object({
+  prompt: z.string().trim().min(1).max(2_000),
+  context: FleetGraphChatContextSchema,
+  clientMessageId: z.string().max(128).optional(),
+}).openapi('FleetGraphChatRequest');
+
+export const FleetGraphChatAnswerSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+  nextStep: z.string().optional(),
+  sources: z.array(z.object({
+    label: z.string(),
+    kind: z.string(),
+  })),
+  humanGate: z.record(z.unknown()),
+}).openapi('FleetGraphChatAnswer');
+
+export const FleetGraphChatResponseSchema = z.object({
+  decision: z.string(),
+  answer: FleetGraphChatAnswerSchema,
+  context: FleetGraphChatContextSchema,
+  visibleOutput: FleetGraphVisibleOutputSchema.optional(),
+  changeSummary: FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true }).optional(),
+  traceMetadata: FleetGraphTraceSchema,
+}).openapi('FleetGraphChatResponse');
+
+type FleetGraphRecommendedActionWire = z.infer<typeof FleetGraphRecommendedActionSchema>;
+type FleetGraphProposedRecipientWire = z.infer<typeof FleetGraphProposedRecipientSchema>;
+type FleetGraphVisibleOutputWire = z.infer<typeof FleetGraphVisibleOutputSchema>;
+type FleetGraphFindingResponseWire = z.infer<typeof FleetGraphFindingResponseSchema>;
+type FleetGraphNotificationResponseWire = z.infer<typeof FleetGraphNotificationResponseSchema>;
+type FleetGraphRunResponseWire = z.infer<typeof FleetGraphRunResponseSchema>;
+type FleetGraphChatAnswerWire = z.infer<typeof FleetGraphChatAnswerSchema>;
+type FleetGraphChatContextWire = z.infer<typeof FleetGraphChatContextSchema>;
+type FleetGraphChatResponseWire = z.infer<typeof FleetGraphChatResponseSchema>;
+type FleetGraphManualRunResultWire = z.infer<typeof FleetGraphManualRunResultSchema>;
+
+const fleetGraphSeveritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
+const fleetGraphChangeSummaryBodySchema = FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true });
+type FleetGraphChangeSummaryRowWire = z.infer<typeof FleetGraphChangeSummaryRowSchema>;
+type FleetGraphChangeSummaryBodyWire = {
+  headline: string;
+  rows: FleetGraphChangeSummaryRowWire[];
+};
 
 export const fleetGraphErrorSchemas = {
   badRequest: ApiErrorResponseSchema,
   error: ErrorResponseSchema,
 };
 
-function recommendedActionForResponse(action: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function recommendedActionForResponse(action: Record<string, unknown> | undefined): FleetGraphRecommendedActionWire | undefined {
   if (!action) return undefined;
-  const safe: Record<string, unknown> = {};
-  for (const key of ['label', 'text', 'summary']) {
+  const safe: FleetGraphRecommendedActionWire = {};
+  for (const key of ['label', 'text', 'summary'] as const) {
     const value = action[key];
     if (typeof value === 'string' && value.trim()) safe[key] = value;
   }
   return Object.keys(safe).length > 0 ? safe : undefined;
 }
 
-function proposedRecipientForResponse(recipient: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function proposedRecipientForResponse(recipient: Record<string, unknown> | undefined): FleetGraphProposedRecipientWire | undefined {
   if (!recipient) return undefined;
-  const safe: Record<string, unknown> = {};
+  const safe: FleetGraphProposedRecipientWire = {};
   const role = recipient.role;
   const userId = recipient.userId;
+  const displayName = recipient.displayName;
   const rationale = recipient.rationale;
   if (typeof role === 'string' && role.trim()) safe.role = role;
   if (typeof userId === 'string' || userId === null) safe.userId = userId;
+  if (typeof displayName === 'string' && displayName.trim()) safe.displayName = displayName;
   if (typeof rationale === 'string' && rationale.trim()) safe.rationale = rationale;
   return Object.keys(safe).length > 0 ? safe : undefined;
 }
 
+function severityForResponse(value: unknown): FleetGraphVisibleOutputWire['severity'] {
+  const parsed = fleetGraphSeveritySchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function changeSummaryForResponse(value: unknown): FleetGraphChangeSummaryBodyWire | undefined {
+  const parsed = fleetGraphChangeSummaryBodySchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function chatAnswerForResponse(result: FleetGraphResult): FleetGraphChatAnswerWire {
+  const changeSummary = changeSummaryForResponse(result.changeSummary);
+  if (changeSummary) {
+    return FleetGraphChatAnswerSchema.parse(chatAnswerFromChangeSummary(changeSummary));
+  }
+  if (result.visibleOutput) {
+    return FleetGraphChatAnswerSchema.parse(chatAnswerFromVisibleOutput(result.visibleOutput));
+  }
+  return FleetGraphChatAnswerSchema.parse(
+    unsupportedChatAnswer('FleetGraph could not answer from this context.')
+  );
+}
+
 export function serializeFleetGraphVisibleOutput(
   output: FleetGraphVisibleOutput
-): z.infer<typeof FleetGraphVisibleOutputSchema> {
+): FleetGraphVisibleOutputWire {
   return {
     title: output.title,
     summary: output.summary,
-    severity: output.severity,
+    severity: severityForResponse(output.severity),
     confidence: output.confidence,
     recommendedAction: recommendedActionForResponse(output.recommendedAction),
     proposedRecipient: proposedRecipientForResponse(output.proposedRecipient),
@@ -177,7 +272,7 @@ export function fleetGraphFindingResponse(input: {
   source_sprint_id: string;
   trace_metadata: unknown;
   visibleOutput: FleetGraphVisibleOutput;
-}): z.infer<typeof FleetGraphFindingResponseSchema> {
+}): FleetGraphFindingResponseWire {
   return {
     id: input.id,
     kind: 'blocker',
@@ -195,7 +290,7 @@ export function fleetGraphFindingResponse(input: {
 export function fleetGraphNotificationResponse(input: {
   finding: FleetGraphNotificationFinding;
   visibleOutput: FleetGraphVisibleOutput;
-}): FleetGraphNotificationResponse {
+}): FleetGraphNotificationResponseWire {
   return {
     id: input.finding.id,
     findingId: input.finding.id,
@@ -230,7 +325,7 @@ export function fleetGraphFindingIsSafeToSerialize(
   return Boolean(result.finding && result.visibleOutput && !result.visibleOutput.noSafeOutput);
 }
 
-export function fleetGraphRunResponse(result: FleetGraphResult): z.infer<typeof FleetGraphRunResponseSchema> {
+export function fleetGraphRunResponse(result: FleetGraphResult): FleetGraphRunResponseWire {
   return {
     decision: result.decision,
     ...(fleetGraphFindingIsSafeToSerialize(result)
@@ -240,6 +335,25 @@ export function fleetGraphRunResponse(result: FleetGraphResult): z.infer<typeof 
     traceMetadata: traceMetadataForResponse(result.traceMetadata, {
       mode: 'on_demand',
       decision: result.decision,
+    }),
+  };
+}
+
+export function fleetGraphChatResponse(input: {
+  result: FleetGraphResult;
+  context: FleetGraphChatContextWire;
+}): FleetGraphChatResponseWire {
+  return {
+    decision: input.result.decision,
+    answer: chatAnswerForResponse(input.result),
+    context: input.context,
+    visibleOutput: input.result.visibleOutput && !input.result.visibleOutput.noSafeOutput
+      ? serializeFleetGraphVisibleOutput(input.result.visibleOutput)
+      : undefined,
+    changeSummary: changeSummaryForResponse(input.result.changeSummary),
+    traceMetadata: traceMetadataForResponse(input.result.traceMetadata, {
+      mode: 'on_demand',
+      decision: input.result.decision,
     }),
   };
 }
@@ -282,7 +396,7 @@ export function sendFleetGraphChangeSummaryResponse(res: Response, result: Fleet
 
 export function fleetGraphManualRunResultResponse(
   result: FleetGraphResult
-): z.infer<typeof FleetGraphManualRunResultSchema> {
+): FleetGraphManualRunResultWire {
   return {
     decision: result.decision,
     ...(fleetGraphFindingIsSafeToSerialize(result) ? { findingId: result.finding.id } : {}),

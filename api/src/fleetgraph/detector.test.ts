@@ -5,7 +5,7 @@ import {
   detectBlockedImportantIssueDecisions,
   findBlockedImportantIssueQuietExits,
   recordBlockedImportantIssueQuietExitRun,
-} from './detector.js';
+} from './detection/detector.js';
 import { blockedImportantIssueDedupeKey } from './persistence.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';

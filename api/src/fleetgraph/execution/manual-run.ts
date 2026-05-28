@@ -1,9 +1,9 @@
 // FleetGraph manual runs execute detector decisions through the shared tick runner.
-import type { Principal } from '../security/principal.js';
-import type { FleetGraphCoreOptions } from './core.js';
+import type { Principal } from '../../security/principal.js';
+import type { FleetGraphCoreOptions } from '../core.js';
 import { runFleetGraphTick } from './tick-runner.js';
-import type { FleetGraphResult } from './types.js';
-import { pool } from '../db/client.js';
+import type { FleetGraphResult } from '../types.js';
+import { pool } from '../../db/client.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 

@@ -34,10 +34,20 @@ const candidate = {
   issue_state: 'in_progress',
   issue_priority: 'urgent' as const,
   issue_assignee_id: userId,
+  issue_assignee_name: 'Casey Engineer',
   sprint_id: sprintId,
   sprint_title: 'Week 2',
   sprint_number: 2,
   sprint_owner_id: null,
+  sprint_owner_name: null,
+  project_id: null,
+  project_title: null,
+  project_owner_id: null,
+  project_owner_name: null,
+  program_id: null,
+  program_title: null,
+  program_owner_id: null,
+  program_owner_name: null,
   blocker_text: 'Waiting on API credentials.',
   blocker_iteration_id: '66666666-6666-4666-8666-666666666666',
   blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
@@ -110,6 +120,7 @@ function persistence(existingFinding = finding()): FleetGraphPersistencePort {
     saveFinding: vi.fn(async () => existingFinding),
     recordRun: vi.fn(async (input: RecordFleetGraphRunInput) => run(input.decision)),
     getFinding: vi.fn(async () => existingFinding),
+    listFindingsForSource: vi.fn(async () => [existingFinding]),
     listAnchorRuns: vi.fn(async () => []),
     refineDraft: vi.fn(async (input: Parameters<FleetGraphPersistencePort['refineDraft']>[0]) =>
       finding({ draft_content: input.draftContent })
@@ -234,6 +245,62 @@ describe('FleetGraph shared core', () => {
     expect(runInput.traceMetadata?.nodePath).toContain('reasonProactiveCreate');
   });
 
+  it('routes blocked issue findings to the smallest connected Ship audience', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'proactive',
+      trigger: {
+        type: 'detector_decision',
+        detectorDecision: {
+          decision: 'create_finding',
+          candidate,
+          existingFindingId: null,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.visibleOutput?.proposedRecipient).toMatchObject({
+      role: 'issue_assignee',
+      userId,
+      displayName: 'Casey Engineer',
+    });
+    expect(result.visibleOutput?.recommendedAction?.text).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
+  });
+
+  it('routes missing blocker text to project owner before assignee', async () => {
+    const port = persistence();
+    const projectOwnerCandidate = {
+      ...candidate,
+      blocker_text: '',
+      issue_assignee_id: userId,
+      issue_assignee_name: 'Casey Engineer',
+      project_owner_id: '88888888-8888-4888-8888-888888888888',
+      project_owner_name: 'Morgan PM',
+    };
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'proactive',
+      trigger: {
+        type: 'detector_decision',
+        detectorDecision: {
+          decision: 'create_finding',
+          candidate: projectOwnerCandidate,
+          existingFindingId: null,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.visibleOutput?.proposedRecipient).toMatchObject({
+      role: 'project_owner',
+      userId: '88888888-8888-4888-8888-888888888888',
+      displayName: 'Morgan PM',
+    });
+    expect(result.visibleOutput?.recommendedAction?.text).toBe('Ask Morgan PM to add the blocker reason.');
+  });
+
   it('updates duplicate detector decisions without a second open finding contract', async () => {
     const port = persistence();
 
@@ -301,6 +368,66 @@ describe('FleetGraph shared core', () => {
       traceId: '88888888-8888-4888-8888-888888888888',
       traceUrl: 'https://smith.langchain.com/public/trace-id/r',
     });
+  });
+
+  it('answers typed notification chat through the shared graph without model calls', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Who can unblock this?',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('needs_confirmation');
+    expect(result.visibleOutput?.summary).toContain('Blocked issue');
+    expect(result.traceMetadata.nodePath).toContain('contextChat');
+    expect(port.getFinding).toHaveBeenCalledWith(workspaceId, findingId);
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'needs_confirmation',
+      triggerReason: 'context_chat',
+      inputSnapshot: { triggerType: 'context_chat' },
+      tokenMetadata: { modelCalls: 0 },
+    }));
+  });
+
+  it('quietly declines context chat when no active finding is attached', async () => {
+    const port = persistence();
+    vi.mocked(port.listFindingsForSource).mockResolvedValue([]);
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What should I do next?',
+        context: {
+          kind: 'document',
+          documentId: issueId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('quiet_exit');
+    expect(result.visibleOutput?.title).toBe('FleetGraph needs context');
+    expect(result.traceMetadata.nodePath).toContain('contextChatUnsupported');
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'quiet_exit',
+      triggerReason: 'context_chat',
+      inputSnapshot: { triggerType: 'context_chat' },
+      tokenMetadata: { modelCalls: 0 },
+    }));
   });
 
   it('preserves process-level LangSmith env flags during graph runs', async () => {
@@ -581,7 +708,7 @@ describe('FleetGraph shared core', () => {
       workspaceId,
       finding: finding({
         recommended_action: { label: 'Confirm the unblock path', internalTargetUserId: 'hidden-user' },
-        proposed_recipient: { role: 'issue_assignee', userId },
+        proposed_recipient: { role: 'issue_assignee', userId, displayName: 'Casey Engineer' },
         run_metadata: { uncertaintyNotes: ['A human must confirm the current unblock path.'] },
       }),
     });
@@ -589,8 +716,8 @@ describe('FleetGraph shared core', () => {
     expect(output.severity).toBe('urgent');
     expect(output.confidence).toBe(0.86);
     expect(output.recommendedAction?.label).toBe('Confirm the unblock path');
-    expect(output.proposedRecipient).toEqual({ role: 'issue_assignee', userId });
-    expect(output.recipientRationale).toBe('Recipient is the issue assignee, falling back to the sprint owner.');
+    expect(output.proposedRecipient).toEqual({ role: 'issue_assignee', userId, displayName: 'Casey Engineer' });
+    expect(output.recipientRationale).toBe('Recipient is the issue assignee.');
     expect(output.uncertaintyNotes).toEqual(['A human must confirm the current unblock path.']);
     expect(JSON.stringify(output)).not.toContain('hidden-user');
   });

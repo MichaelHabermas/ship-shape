@@ -1,33 +1,19 @@
 // Renders the left-rail notification surface backed by real FleetGraph findings.
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type {
+  FleetGraphNotificationResponse,
+  FleetGraphNotificationsListResponse,
+} from '@/api/schemas';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson } from '@/lib/api';
 
-export interface FleetGraphNotificationProbeItem {
-  id: string;
-  findingId?: string;
-  title: string;
+export type FleetGraphNotificationProbeItem = Pick<
+  FleetGraphNotificationResponse,
+  'id' | 'findingId' | 'title' | 'owner' | 'context' | 'blockerText' | 'sourcePath' | 'detectedAt'
+> & {
   age: string;
-  owner: string | null;
-  context: string;
-  blockerText: string;
-  sourcePath?: string;
-  detectedAt?: string;
-}
-
-interface FleetGraphNotificationsResponse {
-  notifications: Array<{
-    id: string;
-    findingId: string;
-    title: string;
-    context: string;
-    owner: string | null;
-    blockerText: string;
-    sourcePath: string;
-    detectedAt: string;
-  }>;
-}
+};
 
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
@@ -54,13 +40,20 @@ export function FleetGraphNotificationsProbe({
 
     async function loadNotifications() {
       try {
-        const data = await apiGetJson<FleetGraphNotificationsResponse>(
+        const data = await apiGetJson<FleetGraphNotificationsListResponse>(
           '/api/fleetgraph/notifications?limit=25',
           'Failed to fetch notifications'
         );
         if (cancelled) return;
         setNotifications(data.notifications.map((notification) => ({
-          ...notification,
+          id: notification.id,
+          findingId: notification.findingId,
+          title: notification.title,
+          owner: notification.owner,
+          context: notification.context,
+          blockerText: notification.blockerText,
+          sourcePath: notification.sourcePath,
+          detectedAt: notification.detectedAt,
           age: formatNotificationAge(notification.detectedAt),
         })));
         setLoadStatus('ready');

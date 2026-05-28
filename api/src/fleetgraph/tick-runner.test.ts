@@ -1,8 +1,8 @@
 // Verifies the shared FleetGraph tick runner keeps dry-run and execute modes explicit.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings } from './detector.js';
+import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings } from './detection/detector.js';
 import { runFleetGraph } from './core.js';
-import { runFleetGraphTick } from './tick-runner.js';
+import { runFleetGraphTick } from './execution/tick-runner.js';
 import type { Principal } from '../security/principal.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
@@ -18,7 +18,7 @@ const principal: Principal = {
   isSuperAdmin: false,
 };
 
-vi.mock('./detector.js', () => ({
+vi.mock('./detection/detector.js', () => ({
   detectBlockedImportantIssueDecisions: vi.fn(),
   findBlockedImportantIssueQuietExits: vi.fn(),
   findStaleBlockedImportantIssueFindings: vi.fn(),
@@ -39,10 +39,20 @@ const detectorDecision = {
     issue_state: 'in_progress',
     issue_priority: 'urgent' as const,
     issue_assignee_id: userId,
+    issue_assignee_name: 'Blocked Owner',
     sprint_id: sprintId,
     sprint_title: 'Week 2',
     sprint_number: 2,
     sprint_owner_id: null,
+    sprint_owner_name: null,
+    project_id: null,
+    project_title: null,
+    project_owner_id: null,
+    project_owner_name: null,
+    program_id: null,
+    program_title: null,
+    program_owner_id: null,
+    program_owner_name: null,
     blocker_text: 'Waiting on API credentials.',
     blocker_iteration_id: '66666666-6666-4666-8666-666666666666',
     blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),

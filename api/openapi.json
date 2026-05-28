@@ -8481,6 +8481,9 @@
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
+          "displayName": {
+            "type": "string"
+          },
           "rationale": {
             "type": "string"
           }
@@ -8847,6 +8850,152 @@
         "required": [
           "decision",
           "traceMetadata"
+        ]
+      },
+      "FleetGraphChatAnswer": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "nextStep": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label",
+                "kind"
+              ]
+            }
+          },
+          "humanGate": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "title",
+          "body",
+          "sources",
+          "humanGate"
+        ]
+      },
+      "FleetGraphChatContext": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "issue",
+              "sprint",
+              "project",
+              "program",
+              "document",
+              "workspace",
+              "notification",
+              "finding"
+            ]
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "findingId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sourcePath": {
+            "type": "string",
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "FleetGraphChatResponse": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "answer": {
+            "$ref": "#/components/schemas/FleetGraphChatAnswer"
+          },
+          "context": {
+            "$ref": "#/components/schemas/FleetGraphChatContext"
+          },
+          "visibleOutput": {
+            "$ref": "#/components/schemas/FleetGraphVisibleOutput"
+          },
+          "changeSummary": {
+            "type": "object",
+            "properties": {
+              "headline": {
+                "type": "string"
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FleetGraphChangeSummaryRow"
+                }
+              }
+            },
+            "required": [
+              "headline",
+              "rows"
+            ]
+          },
+          "traceMetadata": {
+            "$ref": "#/components/schemas/FleetGraphTrace"
+          }
+        },
+        "required": [
+          "decision",
+          "answer",
+          "context",
+          "traceMetadata"
+        ]
+      },
+      "FleetGraphChatRequest": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "context": {
+            "$ref": "#/components/schemas/FleetGraphChatContext"
+          },
+          "clientMessageId": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "prompt",
+          "context"
         ]
       },
       "FleetGraphManualRunResult": {
@@ -18150,6 +18299,84 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FleetGraphRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/chat": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Answer a bounded FleetGraph chat prompt from the current context",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetGraphChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphChatResponse"
                 }
               }
             }

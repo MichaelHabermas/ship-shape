@@ -10,20 +10,35 @@ import {
   summarizeFleetGraphProductSurfaceResults,
   type FleetGraphProductSurfaceCase,
   type FleetGraphProductSurfaceResult,
+  type FleetGraphProductSurfaceSummary,
 } from '../fleetgraph/eval/product-surface.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from '../fleetgraph/core.js';
 import { blockedImportantIssueDedupeKey, type FleetGraphFinding, type FleetGraphRun, type RecordFleetGraphRunInput } from '../fleetgraph/persistence.js';
-import type { BlockedImportantIssueCandidate } from '../fleetgraph/detector.js';
+import type { BlockedImportantIssueCandidate } from '../fleetgraph/detection/detector.js';
 import type { FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 
-type SurfaceEvalReport = {
+export type SurfaceEvalReport = {
   generatedAt: string;
-  summary: ReturnType<typeof summarizeFleetGraphProductSurfaceResults>;
-  results: Array<FleetGraphProductSurfaceResult & {
-    title: string;
-    visibleCopy: string[];
-    notes: readonly string[];
-  }>;
+  summary: FleetGraphProductSurfaceSummary;
+  sections: SurfaceEvalSection[];
+  results: SurfaceEvalResult[];
+};
+
+export type SurfaceEvalSectionId = 'current' | 'historical';
+
+export type SurfaceEvalResult = FleetGraphProductSurfaceResult & {
+  title: string;
+  visibleCopy: string[];
+  notes: readonly string[];
+  section: SurfaceEvalSectionId;
+};
+
+export type SurfaceEvalSection = {
+  id: SurfaceEvalSectionId;
+  title: string;
+  description: string;
+  summary: FleetGraphProductSurfaceSummary;
+  results: SurfaceEvalResult[];
 };
 
 const repoRoot = path.resolve(process.cwd(), '..');
@@ -42,23 +57,65 @@ function timestampForPath(date: Date): string {
 }
 
 async function reportForNow(now = new Date()): Promise<SurfaceEvalReport> {
-  const cases = [
+  return buildSurfaceEvalReport({
+    generatedAt: now.toISOString(),
+    currentCases: await currentSurfaceCases(),
+    historicalCases: await persistedSurfaceCases(),
+  });
+}
+
+export function buildSurfaceEvalReport(input: {
+  generatedAt: string;
+  currentCases: readonly FleetGraphProductSurfaceCase[];
+  historicalCases: readonly FleetGraphProductSurfaceCase[];
+}): SurfaceEvalReport {
+  const currentResults = scoreCases(input.currentCases, 'current');
+  const historicalResults = scoreCases(input.historicalCases, 'historical');
+  const sections: SurfaceEvalSection[] = [
+    {
+      id: 'current',
+      title: 'Current Surface',
+      description: 'Fresh authored and runFleetGraph cases. This is the present-tense pass/fail signal.',
+      summary: summarizeFleetGraphProductSurfaceResults(currentResults),
+      results: currentResults,
+    },
+    {
+      id: 'historical',
+      title: 'Historical Persisted Samples',
+      description: 'Older fleetgraph_runs.output_snapshot rows for trend review only. These do not affect the current headline.',
+      summary: summarizeFleetGraphProductSurfaceResults(historicalResults),
+      results: historicalResults,
+    },
+  ];
+  const currentSection = sections.find((section) => section.id === 'current');
+  if (!currentSection) throw new Error('Current product-surface eval section is missing');
+
+  return {
+    generatedAt: input.generatedAt,
+    summary: currentSection.summary,
+    sections,
+    results: [...currentResults, ...historicalResults],
+  };
+}
+
+async function currentSurfaceCases(): Promise<FleetGraphProductSurfaceCase[]> {
+  return [
     ...fleetGraphProductSurfaceCases,
     ...await runtimeSurfaceCases(),
-    ...await persistedSurfaceCases(),
   ];
-  const scoredResults = cases.map((testCase) => ({
+}
+
+function scoreCases(
+  cases: readonly FleetGraphProductSurfaceCase[],
+  section: SurfaceEvalSectionId
+): SurfaceEvalResult[] {
+  return cases.map((testCase) => ({
     ...scoreFleetGraphProductSurfaceCase(testCase),
     title: testCase.title,
     visibleCopy: [...testCase.input.visibleCopy],
     notes: testCase.notes,
+    section,
   }));
-
-  return {
-    generatedAt: now.toISOString(),
-    summary: summarizeFleetGraphProductSurfaceResults(scoredResults),
-    results: scoredResults,
-  };
 }
 
 function markdownReport(report: SurfaceEvalReport): string {
@@ -67,10 +124,11 @@ function markdownReport(report: SurfaceEvalReport): string {
     '',
     `Generated: ${report.generatedAt}`,
     '',
-    '## Summary',
+    '## Current Surface Summary',
     '',
     `- Pass: ${report.summary.passCount}`,
     `- Fail: ${report.summary.failCount}`,
+    `- Historical persisted failures: ${sectionById(report, 'historical')?.summary.failCount ?? 0} (trend only)`,
     '',
     '| Dimension | Average |',
     '| --- | ---: |',
@@ -78,38 +136,53 @@ function markdownReport(report: SurfaceEvalReport): string {
       `| ${dimension} | ${report.summary.average[dimension].toFixed(2)} |`
     ),
     '',
-    '## Cases',
     '',
   ];
 
-  for (const result of report.results) {
+  for (const section of report.sections) {
     lines.push(
-      `### ${result.caseId}`,
+      `## ${section.title}`,
       '',
-      result.title,
+      section.description,
       '',
-      'Visible copy:',
-      '',
-      '> ' + result.visibleCopy.join(' · '),
-      '',
-      `Status: ${result.pass ? 'pass' : `fail (${result.failedDimensions.join(', ')})`}`,
-      '',
-      '| Dimension | Score |',
-      '| --- | ---: |',
-      ...FLEETGRAPH_PRODUCT_SURFACE_DIMENSIONS.map((dimension) =>
-        `| ${dimension} | ${result.scores[dimension]} |`
-      ),
-      '',
-      'Notes:',
-      ...result.notes.map((note) => `- ${note}`),
-      '',
-      'Human review:',
-      '- TBD',
+      `- Pass: ${section.summary.passCount}`,
+      `- Fail: ${section.summary.failCount}`,
       '',
     );
+
+    for (const result of section.results) {
+      lines.push(
+        `### ${result.caseId}`,
+        '',
+        result.title,
+        '',
+        'Visible copy:',
+        '',
+        '> ' + result.visibleCopy.join(' · '),
+        '',
+        `Status: ${result.pass ? 'pass' : `fail (${result.failedDimensions.join(', ')})`}`,
+        '',
+        '| Dimension | Score |',
+        '| --- | ---: |',
+        ...FLEETGRAPH_PRODUCT_SURFACE_DIMENSIONS.map((dimension) =>
+          `| ${dimension} | ${result.scores[dimension]} |`
+        ),
+        '',
+        'Notes:',
+        ...result.notes.map((note) => `- ${note}`),
+        '',
+        'Human review:',
+        '- TBD',
+        '',
+      );
+    }
   }
 
   return lines.join('\n');
+}
+
+function sectionById(report: SurfaceEvalReport, id: SurfaceEvalSectionId): SurfaceEvalSection | undefined {
+  return report.sections.find((section) => section.id === id);
 }
 
 function htmlReport(report: SurfaceEvalReport): string {
@@ -151,14 +224,16 @@ function htmlReport(report: SurfaceEvalReport): string {
 <body>
 <main>
   <h1>FleetGraph Product Surface Eval</h1>
-  <div class="muted">Generated ${escapeHtml(report.generatedAt)} · ${report.summary.passCount} pass · ${report.summary.failCount} fail</div>
+  <div class="muted">Generated ${escapeHtml(report.generatedAt)} · current ${report.summary.passCount} pass · ${report.summary.failCount} fail</div>
   <nav class="tabs" aria-label="Review views">
-    <button class="tab" data-tab="cards" aria-selected="true">Cards</button>
+    <button class="tab" data-tab="current" aria-selected="true">Current</button>
+    <button class="tab" data-tab="historical" aria-selected="false">Historical</button>
     <button class="tab" data-tab="matrix" aria-selected="false">Score Matrix</button>
     <button class="tab" data-tab="failures" aria-selected="false">Failures</button>
     <button class="tab" data-tab="notes" aria-selected="false">Review Notes</button>
   </nav>
-  <section id="cards" class="panel active"></section>
+  <section id="current" class="panel active"></section>
+  <section id="historical" class="panel"></section>
   <section id="matrix" class="panel"></section>
   <section id="failures" class="panel"></section>
   <section id="notes" class="panel"></section>
@@ -174,19 +249,26 @@ function scoreRow(result, dimension) {
   const failing = result.failedDimensions.includes(dimension);
   return '<div class="score ' + (failing ? 'fail' : '') + '"><span>' + esc(dimension) + '</span><span class="bar"><span class="fill" style="width:' + (score * 25) + '%"></span></span><strong>' + score + '</strong></div>';
 }
-document.querySelector('#cards').innerHTML = '<div class="grid">' + report.results.map((result) => (
+function sectionById(id) {
+  return report.sections.find((section) => section.id === id) || { title: id, description: '', summary: { passCount: 0, failCount: 0 }, results: [] };
+}
+function cardsForSection(section) {
+  return '<div class="card"><h2>' + esc(section.title) + '</h2><p class="muted">' + esc(section.description) + '</p><p class="muted">Pass ' + section.summary.passCount + ' · Fail ' + section.summary.failCount + '</p></div><div class="grid">' + section.results.map((result) => (
   '<article class="card"><div><span class="pill ' + (result.pass ? 'pass' : 'failText') + '">' + (result.pass ? 'pass' : 'fail') + '</span></div>' +
   '<h2>' + esc(result.caseId) + '</h2><p class="muted">' + esc(result.title) + '</p>' +
   '<p class="copy">' + esc(result.visibleCopy.join(' · ')) + '</p>' +
   dimensions.map((dimension) => scoreRow(result, dimension)).join('') +
   '<p class="note">' + result.notes.map(esc).join('<br>') + '</p></article>'
 )).join('') + '</div>';
+}
+document.querySelector('#current').innerHTML = cardsForSection(sectionById('current'));
+document.querySelector('#historical').innerHTML = cardsForSection(sectionById('historical'));
 document.querySelector('#matrix').innerHTML = '<table><thead><tr><th>Case</th>' + dimensions.map((dimension) => '<th>' + esc(dimension) + '</th>').join('') + '</tr></thead><tbody>' +
   report.results.map((result) => '<tr><td>' + esc(result.caseId) + '</td>' + dimensions.map((dimension) => '<td>' + result.scores[dimension] + '</td>').join('') + '</tr>').join('') +
   '<tr><td><strong>Average</strong></td>' + dimensions.map((dimension) => '<td><strong>' + report.summary.average[dimension].toFixed(2) + '</strong></td>').join('') + '</tr></tbody></table>';
-const failures = report.results.filter((result) => !result.pass);
+const failures = sectionById('current').results.filter((result) => !result.pass);
 document.querySelector('#failures').innerHTML = failures.length === 0
-  ? '<div class="card"><h2>No failing cases</h2><p class="muted">All current product-surface cases met their thresholds.</p></div>'
+  ? '<div class="card"><h2>No current failing cases</h2><p class="muted">All current product-surface cases met their thresholds. Historical rows are trend-only.</p></div>'
   : '<div class="grid">' + failures.map((result) => '<article class="card"><h2>' + esc(result.caseId) + '</h2><p class="copy">' + esc(result.visibleCopy.join(' · ')) + '</p><p class="muted">Failed: ' + esc(result.failedDimensions.join(', ')) + '</p></article>').join('') + '</div>';
 document.querySelector('#notes').innerHTML = '<div class="card"><h2>Human review</h2><p class="note">Use <code>review-notes.md</code> beside this report to record judgment calls: accepted exceptions, copy that should be tighter, or places where the score is wrong and the rubric needs to evolve.</p></div>';
 document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => {
@@ -226,14 +308,40 @@ async function runtimeSurfaceCases(): Promise<FleetGraphProductSurfaceCase[]> {
     assigneeId: userId,
   });
   const missingBlocker = candidate({
-    issueTitle: 'Runtime issue missing blocker',
+    issueTitle: 'Runtime issue needs reason',
     blockerText: '',
     assigneeId: userId,
   });
   const existingFinding = finding({
     title: 'Runtime existing finding',
-    summary: 'Runtime existing finding is blocked with a recorded blocker: Waiting on review.',
-    recommended_action: { label: 'Confirm the unblock path' },
+    summary: 'Waiting on review · Week 11',
+    recommended_action: {
+      label: 'Ask Audit Load User 029 to confirm owner and next step for Week 11.',
+      text: 'Ask Audit Load User 029 to confirm owner and next step for Week 11.',
+    },
+    evidence_snapshot: [{
+      kind: 'source_issue',
+      sourceDocumentId: issueId,
+      sourceType: 'issue',
+      claim: 'Issue #110',
+      visibility: 'internal',
+      visibleFields: ['title', 'state'],
+    }, {
+      kind: 'source_sprint',
+      sourceDocumentId: sprintId,
+      sourceType: 'sprint',
+      claim: 'Week 11',
+      visibility: 'internal',
+      visibleFields: ['title', 'sprint_number'],
+    }, {
+      kind: 'blocker',
+      sourceDocumentId: issueId,
+      sourceType: 'issue',
+      claim: 'Latest blocker text',
+      excerpt: 'Waiting on review.',
+      visibility: 'internal',
+      visibleFields: ['blockers_encountered'],
+    }],
   });
 
   const clearResult = await runFleetGraph({
@@ -389,7 +497,9 @@ function visibleAction(output: FleetGraphVisibleOutput): string | undefined {
 
 function visibleOwner(output: FleetGraphVisibleOutput): string | null {
   const recipient = output.proposedRecipient;
+  const displayName = recipient?.displayName;
   const role = recipient?.role;
+  if (typeof displayName === 'string' && displayName.trim()) return displayName;
   return typeof role === 'string' && role.trim() ? role : null;
 }
 
@@ -402,10 +512,20 @@ function candidate(input: { issueTitle: string; blockerText: string; assigneeId:
     issue_state: 'blocked',
     issue_priority: 'medium',
     issue_assignee_id: input.assigneeId,
+    issue_assignee_name: input.assigneeId ? 'Audit Load User 029' : null,
     sprint_id: sprintId,
     sprint_title: 'Week 11',
     sprint_number: 11,
     sprint_owner_id: null,
+    sprint_owner_name: null,
+    project_id: null,
+    project_title: null,
+    project_owner_id: null,
+    project_owner_name: null,
+    program_id: null,
+    program_title: null,
+    program_owner_id: null,
+    program_owner_name: null,
     blocker_text: input.blockerText,
     blocker_iteration_id: input.blockerText ? '66666666-6666-4666-8666-666666666666' : null,
     blocker_iteration_created_at: input.blockerText ? new Date('2026-05-28T00:00:00Z') : null,
@@ -415,27 +535,37 @@ function candidate(input: { issueTitle: string; blockerText: string; assigneeId:
 
 function findingFromCandidate(input: BlockedImportantIssueCandidate): FleetGraphFinding {
   return finding({
-    title: `Blocked issue: ${input.issue_title}`,
-    summary: `${input.issue_title} is blocked. ${input.blocker_text ? `Latest blocker: ${input.blocker_text}` : 'No blocker reason was recorded.'}`,
+    title: input.issue_title,
+    summary: input.blocker_text
+      ? `${input.blocker_text.replace(/\.$/, '')} · Week ${input.sprint_number ?? input.sprint_title}`
+      : `Reason missing · Week ${input.sprint_number ?? input.sprint_title}`,
+    recommended_action: {
+      label: input.blocker_text
+        ? `Ask Audit Load User 029 to confirm owner and next step for Week ${input.sprint_number ?? input.sprint_title}.`
+        : 'Ask Audit Load User 029 to add the blocker reason.',
+      text: input.blocker_text
+        ? `Ask Audit Load User 029 to confirm owner and next step for Week ${input.sprint_number ?? input.sprint_title}.`
+        : 'Ask Audit Load User 029 to add the blocker reason.',
+    },
     evidence_snapshot: [{
       kind: 'source_issue',
       sourceDocumentId: issueId,
       sourceType: 'issue',
-      claim: 'Source issue is blocked.',
+      claim: 'Issue #110',
       visibility: 'internal',
       visibleFields: ['title', 'state'],
     }, {
       kind: 'source_sprint',
       sourceDocumentId: sprintId,
       sourceType: 'sprint',
-      claim: 'The issue belongs to sprint 11.',
+      claim: 'Week 11',
       visibility: 'internal',
       visibleFields: ['title', 'sprint_number'],
     }, {
       kind: 'blocker',
       sourceDocumentId: issueId,
       sourceType: 'issue',
-      claim: input.blocker_text ? 'Latest blocker text is present.' : 'No blocker text is recorded.',
+      claim: input.blocker_text ? 'Latest blocker text' : 'Blocker missing',
       excerpt: input.blocker_text || undefined,
       visibility: 'internal',
       visibleFields: ['blockers_encountered'],
@@ -458,7 +588,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
     evidence_snapshot: [],
     recommended_action: { label: 'Confirm the unblock path' },
     draft_content: {},
-    proposed_recipient: { role: 'issue_assignee', userId },
+    proposed_recipient: { role: 'issue_assignee', userId, displayName: 'Audit Load User 029' },
     human_gate: { required: true },
     trace_metadata: {},
     run_metadata: {},
@@ -502,6 +632,7 @@ function persistencePort(existingFinding: FleetGraphFinding): FleetGraphPersiste
     saveFinding: async () => existingFinding,
     recordRun: async (input: RecordFleetGraphRunInput) => run(input.decision),
     getFinding: async () => existingFinding,
+    listFindingsForSource: async () => [existingFinding],
     listAnchorRuns: async () => [],
     refineDraft: async () => existingFinding,
     dismissFinding: async () => ({ ...existingFinding, status: 'dismissed' }),
@@ -543,7 +674,11 @@ export async function main(): Promise<void> {
   await copyFile(runMarkdownPath, path.join(outputRoot, 'latest.md'));
   await copyFile(runHtmlPath, path.join(outputRoot, 'latest.html'));
 
-  console.log(`FleetGraph product-surface eval: ${report.summary.passCount} pass, ${report.summary.failCount} fail`);
+  const historical = sectionById(report, 'historical');
+  console.log(`FleetGraph product-surface eval current: ${report.summary.passCount} pass, ${report.summary.failCount} fail`);
+  if (historical) {
+    console.log(`FleetGraph product-surface eval historical: ${historical.summary.passCount} pass, ${historical.summary.failCount} fail (trend only)`);
+  }
   console.log(`Markdown: ${path.relative(repoRoot, path.join(outputRoot, 'latest.md'))}`);
   console.log(`JSON: ${path.relative(repoRoot, path.join(outputRoot, 'latest.json'))}`);
   console.log(`Review board: ${path.relative(repoRoot, path.join(outputRoot, 'latest.html'))}`);

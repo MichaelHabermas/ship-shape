@@ -26,6 +26,21 @@ export type ProgramSprintsResponse = components['schemas']['ProgramSprintsRespon
 export type ActiveWeekItem = components['schemas']['ActiveWeekItem'];
 export type ActiveWeeksResponse = components['schemas']['ActiveWeeksResponse'];
 
+export type FleetGraphEvidence = components['schemas']['FleetGraphEvidence'];
+export type FleetGraphRecommendedAction = components['schemas']['FleetGraphRecommendedAction'];
+export type FleetGraphVisibleOutput = components['schemas']['FleetGraphVisibleOutput'];
+export type FleetGraphTrace = components['schemas']['FleetGraphTrace'];
+export type FleetGraphChangeSummaryRow = components['schemas']['FleetGraphChangeSummaryRow'];
+export type FleetGraphChangeSummaryResponse = components['schemas']['FleetGraphChangeSummaryResponse'];
+export type FleetGraphChatContext = components['schemas']['FleetGraphChatContext'];
+export type FleetGraphChatAnswer = components['schemas']['FleetGraphChatAnswer'];
+export type FleetGraphChatRequest = components['schemas']['FleetGraphChatRequest'];
+export type FleetGraphChatResponse = components['schemas']['FleetGraphChatResponse'];
+export type FleetGraphFindingResponse = components['schemas']['FleetGraphFindingResponse'];
+export type FleetGraphNotificationResponse = components['schemas']['FleetGraphNotificationResponse'];
+export type FleetGraphNotificationsListResponse = components['schemas']['FleetGraphNotificationsListResponse'];
+export type FleetGraphRunResponse = components['schemas']['FleetGraphRunResponse'];
+
 export interface SetupStatusData {
   needsSetup: boolean;
 }
