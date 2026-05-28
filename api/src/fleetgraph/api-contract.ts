@@ -5,6 +5,7 @@ import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../open
 import { traceMetadataForResponse } from './trace.js';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
 import type { FleetGraphFinding, FleetGraphNotificationFinding } from './persistence.js';
+import { chatAnswerFromChangeSummary, chatAnswerFromVisibleOutput, unsupportedChatAnswer } from './runtime/chat.js';
 
 export const FleetGraphEvidenceSchema = z.object({
   kind: z.string(),
@@ -118,6 +119,41 @@ export const FleetGraphManualRunResponseSchema = z.object({
   detectorDecisions: z.number().int().nonnegative(),
   results: z.array(FleetGraphManualRunResultSchema),
 }).openapi('FleetGraphManualRunResponse');
+
+export const FleetGraphChatContextSchema = z.object({
+  kind: z.enum(['issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding']),
+  documentId: UuidSchema.optional(),
+  findingId: UuidSchema.optional(),
+  sourcePath: z.string().max(512).optional(),
+}).refine((context) => context.findingId || context.documentId || context.kind === 'workspace', {
+  message: 'context requires findingId, documentId, or workspace kind',
+}).openapi('FleetGraphChatContext');
+
+export const FleetGraphChatRequestSchema = z.object({
+  prompt: z.string().trim().min(1).max(2_000),
+  context: FleetGraphChatContextSchema,
+  clientMessageId: z.string().max(128).optional(),
+}).openapi('FleetGraphChatRequest');
+
+export const FleetGraphChatAnswerSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+  nextStep: z.string().optional(),
+  sources: z.array(z.object({
+    label: z.string(),
+    kind: z.string(),
+  })),
+  humanGate: z.record(z.unknown()),
+}).openapi('FleetGraphChatAnswer');
+
+export const FleetGraphChatResponseSchema = z.object({
+  decision: z.string(),
+  answer: FleetGraphChatAnswerSchema,
+  context: FleetGraphChatContextSchema,
+  visibleOutput: FleetGraphVisibleOutputSchema.optional(),
+  changeSummary: FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true }).optional(),
+  traceMetadata: FleetGraphTraceSchema,
+}).openapi('FleetGraphChatResponse');
 
 export type FleetGraphFindingResponse = z.infer<typeof FleetGraphFindingResponseSchema>;
 export type FleetGraphNotificationResponse = z.infer<typeof FleetGraphNotificationResponseSchema>;
@@ -243,6 +279,31 @@ export function fleetGraphRunResponse(result: FleetGraphResult): z.infer<typeof 
     traceMetadata: traceMetadataForResponse(result.traceMetadata, {
       mode: 'on_demand',
       decision: result.decision,
+    }),
+  };
+}
+
+export function fleetGraphChatResponse(input: {
+  result: FleetGraphResult;
+  context: z.infer<typeof FleetGraphChatContextSchema>;
+}): z.infer<typeof FleetGraphChatResponseSchema> {
+  const answer = input.result.changeSummary
+    ? chatAnswerFromChangeSummary(input.result.changeSummary)
+    : input.result.visibleOutput
+      ? chatAnswerFromVisibleOutput(input.result.visibleOutput)
+      : unsupportedChatAnswer('FleetGraph could not answer from this context.');
+
+  return {
+    decision: input.result.decision,
+    answer,
+    context: input.context,
+    visibleOutput: input.result.visibleOutput && !input.result.visibleOutput.noSafeOutput
+      ? serializeFleetGraphVisibleOutput(input.result.visibleOutput)
+      : undefined,
+    changeSummary: input.result.changeSummary,
+    traceMetadata: traceMetadataForResponse(input.result.traceMetadata, {
+      mode: 'on_demand',
+      decision: input.result.decision,
     }),
   };
 }

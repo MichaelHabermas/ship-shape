@@ -120,6 +120,7 @@ function persistence(existingFinding = finding()): FleetGraphPersistencePort {
     saveFinding: vi.fn(async () => existingFinding),
     recordRun: vi.fn(async (input: RecordFleetGraphRunInput) => run(input.decision)),
     getFinding: vi.fn(async () => existingFinding),
+    listFindingsForSource: vi.fn(async () => [existingFinding]),
     listAnchorRuns: vi.fn(async () => []),
     refineDraft: vi.fn(async (input: Parameters<FleetGraphPersistencePort['refineDraft']>[0]) =>
       finding({ draft_content: input.draftContent })
@@ -367,6 +368,66 @@ describe('FleetGraph shared core', () => {
       traceId: '88888888-8888-4888-8888-888888888888',
       traceUrl: 'https://smith.langchain.com/public/trace-id/r',
     });
+  });
+
+  it('answers typed notification chat through the shared graph without model calls', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Who can unblock this?',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('needs_confirmation');
+    expect(result.visibleOutput?.summary).toContain('Blocked issue');
+    expect(result.traceMetadata.nodePath).toContain('contextChat');
+    expect(port.getFinding).toHaveBeenCalledWith(workspaceId, findingId);
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'needs_confirmation',
+      triggerReason: 'context_chat',
+      inputSnapshot: { triggerType: 'context_chat' },
+      tokenMetadata: { modelCalls: 0 },
+    }));
+  });
+
+  it('quietly declines context chat when no active finding is attached', async () => {
+    const port = persistence();
+    vi.mocked(port.listFindingsForSource).mockResolvedValue([]);
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What should I do next?',
+        context: {
+          kind: 'document',
+          documentId: issueId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('quiet_exit');
+    expect(result.visibleOutput?.title).toBe('FleetGraph needs context');
+    expect(result.traceMetadata.nodePath).toContain('contextChatUnsupported');
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'quiet_exit',
+      triggerReason: 'context_chat',
+      inputSnapshot: { triggerType: 'context_chat' },
+      tokenMetadata: { modelCalls: 0 },
+    }));
   });
 
   it('preserves process-level LangSmith env flags during graph runs', async () => {

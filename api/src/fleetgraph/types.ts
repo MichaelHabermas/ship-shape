@@ -50,6 +50,23 @@ export type FleetGraphChangeSummary = {
   rows: FleetGraphChangeSummaryRow[];
 };
 
+export type FleetGraphChatContextKind =
+  | 'issue'
+  | 'sprint'
+  | 'project'
+  | 'program'
+  | 'document'
+  | 'workspace'
+  | 'notification'
+  | 'finding';
+
+export type FleetGraphChatContext = {
+  kind: FleetGraphChatContextKind;
+  documentId?: string;
+  findingId?: string;
+  sourcePath?: string;
+};
+
 export type FleetGraphTraceMetadata = {
   traceId?: string;
   traceUrl?: string;
@@ -102,6 +119,11 @@ export type FleetGraphTrigger =
   | {
       type: 'summarize_changes';
       findingId: string;
+    }
+  | {
+      type: 'context_chat';
+      prompt: string;
+      context: FleetGraphChatContext;
     }
   | {
       type: 'resolve_finding';

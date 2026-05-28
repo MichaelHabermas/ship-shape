@@ -427,3 +427,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** `api/src/fleetgraph/core.ts` remains the shared LangGraph runtime and decision orchestration boundary, but deterministic helper logic now lives under `api/src/fleetgraph/runtime/`: `audience.ts` for recipient selection, `drafts.ts` for deterministic draft rewrites, `outputs.ts` for visible output and change summaries, `run-recording.ts` for persisted run/result serialization, and `json.ts` for shared JSON guards.
 
 **Consequence:** Future FleetGraph behavior should add graph nodes/decision handlers in `core.ts` only when orchestration changes. Product copy transforms, audience choice, output mapping, and persistence serialization should stay in `runtime/` unless moving them back clearly reduces complexity.
+
+## D054 - Context Chat Is A Bounded Graph Capsule
+
+**Date:** 2026-05-28
+
+**Decision:** The approved 10x on-demand path is a Context Capsule, not generic chat. Typed prompts enter the same FleetGraph runtime as `context_chat`, resolve the active notification/finding/page context, and support only bounded intents: `why_flagged`, `next_step`, and `summarize_changes`.
+
+**Consequence:** `/api/fleetgraph/chat` records `fleetgraph_runs` with distinct graph paths and zero model calls for the current deterministic slice. It must not create findings, mutate Ship state, send messages, or answer broad workspace questions without an attached source context. Unsupported prompts quietly explain the supported commands.

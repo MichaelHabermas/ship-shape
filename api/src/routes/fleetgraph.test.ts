@@ -340,6 +340,41 @@ describe('FleetGraph routes', () => {
     expect(res.text).not.toContain('blocked-important-issue');
   });
 
+  it('runs typed context chat through runFleetGraph', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'needs_confirmation',
+      finding: finding(),
+      visibleOutput: visibleOutput({
+        recommendedAction: {
+          text: 'Ask Casey Engineer to confirm owner and next step for Week 2.',
+        },
+      }),
+      traceMetadata: { mode: 'on_demand', decision: 'needs_confirmation', nodePath: ['contextChat'] },
+    } as never);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Who can unblock this?',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+      })
+      .expect(200);
+
+    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      mode: 'on_demand',
+      triggerReason: 'context-chat',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Who can unblock this?',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+      },
+    }));
+    const body = JSON.parse(res.text) as { decision: string; answer: { nextStep?: string } };
+    expect(body.decision).toBe('needs_confirmation');
+    expect(body.answer.nextStep).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
+  });
+
   it('returns not found without identifiers for restricted explain output', async () => {
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'quiet_exit',

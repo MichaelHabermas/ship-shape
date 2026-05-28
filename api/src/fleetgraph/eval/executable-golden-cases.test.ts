@@ -135,6 +135,7 @@ function persistence(existingFinding = finding()): FleetGraphPersistencePort {
     saveFinding: vi.fn(async () => existingFinding),
     recordRun: vi.fn(async (input: RecordFleetGraphRunInput) => run(input.decision)),
     getFinding: vi.fn(async () => existingFinding),
+    listFindingsForSource: vi.fn(async () => [existingFinding]),
     listAnchorRuns: vi.fn(async () => []),
     refineDraft: vi.fn(async (input: Parameters<FleetGraphPersistencePort['refineDraft']>[0]) =>
       finding({ draft_content: input.draftContent })

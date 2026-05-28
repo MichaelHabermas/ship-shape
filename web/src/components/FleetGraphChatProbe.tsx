@@ -1,8 +1,9 @@
-// Renders contextual chat for source-aware issue/document discussion.
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
+// Renders contextual FleetGraph chat for source-aware page and notification discussion.
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
+import type { FleetGraphChatAnswer } from '@ship/shared';
 import { apiGetJson, apiPostJson } from '@/lib/api';
 
 interface ChatContextItem {
@@ -36,6 +37,18 @@ interface FleetGraphExplainResponse {
   visibleOutput?: FleetGraphVisibleOutput;
 }
 
+interface FleetGraphChatContext {
+  kind: 'document' | 'notification' | 'finding';
+  documentId?: string;
+  findingId?: string;
+  sourcePath?: string;
+}
+
+interface FleetGraphChatResponse extends FleetGraphExplainResponse {
+  decision: string;
+  answer: FleetGraphChatAnswer;
+}
+
 interface DocumentTitleResponse {
   title?: string;
 }
@@ -45,6 +58,13 @@ type ExplanationState =
   | { status: 'loading'; findingId: string }
   | { status: 'ready'; findingId: string; output: FleetGraphVisibleOutput }
   | { status: 'error'; findingId?: string };
+
+interface ChatTurn {
+  id: number;
+  prompt: string;
+  status: 'loading' | 'ready' | 'error';
+  response?: FleetGraphChatResponse;
+}
 
 export interface FleetGraphChatProbeRequest {
   id: number;
@@ -101,13 +121,19 @@ function compactBlockerText(value: string): string {
 export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetGraphChatProbeRequest | null }) {
   const location = useLocation();
   const navigate = useNavigate();
+
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
   const [open, setOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [contextItems, setContextItems] = useState<ChatContextItem[]>([]);
   const [activeNotification, setActiveNotification] = useState<FleetGraphNotificationProbeItem | null>(null);
   const [explanation, setExplanation] = useState<ExplanationState>({ status: 'idle' });
+  const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
+  const [nextTurnId, setNextTurnId] = useState(1);
+
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
   const currentSourcePath = useMemo(() => sourcePathForDocumentId(currentDocumentId), [currentDocumentId]);
@@ -116,6 +142,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     () => dedupeContextItems(contextItems.filter((item) => !contextMatchesSource(item, currentSourcePath))),
     [contextItems, currentSourcePath]
   );
+  
   const visibleContextItems = extraContextItems.slice(0, 3);
   const overflowContextItems = extraContextItems.slice(3);
   const hasClearableContext = contextItems.length > 0;
@@ -247,6 +274,70 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     event.target.style.overflowY = event.target.scrollHeight > 120 ? 'auto' : 'hidden';
   };
 
+  const chatContext = (): FleetGraphChatContext | null => {
+    if (activeNotification?.findingId) {
+      return {
+        kind: 'notification',
+        findingId: activeNotification.findingId,
+        sourcePath: activeNotification.sourcePath,
+      };
+    }
+    if (currentDocumentId) {
+      return {
+        kind: 'document',
+        documentId: currentDocumentId,
+        sourcePath: currentSourcePath,
+      };
+    }
+    return null;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const prompt = draft.trim();
+    if (!prompt) return;
+
+    const context = chatContext();
+    const turnId = nextTurnId;
+    setNextTurnId((value) => value + 1);
+    setDraft('');
+    setChatTurns((turns) => [...turns, { id: turnId, prompt, status: 'loading' }]);
+
+    if (!context) {
+      setChatTurns((turns) => turns.map((turn) => turn.id === turnId
+        ? {
+            ...turn,
+            status: 'ready',
+            response: {
+              decision: 'quiet_exit',
+              answer: {
+                title: 'Open a source first',
+                body: 'Open an issue, week, project, program, document, or notification before asking FleetGraph.',
+                sources: [],
+                humanGate: { required: false },
+              },
+            },
+          }
+        : turn));
+      return;
+    }
+
+    try {
+      const response = await apiPostJson<FleetGraphChatResponse>(
+        '/api/fleetgraph/chat',
+        { prompt, context },
+        'Failed to ask FleetGraph'
+      );
+      setChatTurns((turns) => turns.map((turn) => turn.id === turnId
+        ? { ...turn, status: 'ready', response }
+        : turn));
+    } catch {
+      setChatTurns((turns) => turns.map((turn) => turn.id === turnId
+        ? { ...turn, status: 'error' }
+        : turn));
+    }
+  };
+
   useEffect(() => {
     if (!contextOpen) return;
 
@@ -258,6 +349,11 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [contextOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    conversationEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [open, activeNotification, explanation, chatTurns]);
 
   return (
     <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
@@ -331,17 +427,26 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
             )}
           </header>
 
-          <div className="scrollbar-hide flex flex-1 overflow-y-auto px-4 py-5">
+          <div className="scrollbar-hide flex min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5">
             {activeNotification ? (
-              <div className="flex min-h-full w-full items-end">
+              <div className="flex min-h-full w-full flex-col gap-4">
+                <div className="flex-1" aria-hidden="true" />
                 <NotificationConversation notification={activeNotification} explanation={explanation} />
+                <ChatTurnList turns={chatTurns} />
+                <div ref={conversationEndRef} aria-hidden="true" />
+              </div>
+            ) : chatTurns.length > 0 ? (
+              <div className="flex min-h-full w-full flex-col gap-4">
+                <div className="flex-1" aria-hidden="true" />
+                <ChatTurnList turns={chatTurns} />
+                <div ref={conversationEndRef} aria-hidden="true" />
               </div>
             ) : (
               <EmptyConversation surfaceLabel={surfaceLabel} />
             )}
           </div>
 
-          <form className="border-t border-border p-3" onSubmit={(event) => event.preventDefault()}>
+          <form className="border-t border-border p-3" onSubmit={handleSubmit}>
             <label className="sr-only" htmlFor="context-chat-draft">Message</label>
             <div className="flex items-end gap-3 rounded-lg border border-border bg-background px-3 py-3 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
               <textarea
@@ -349,7 +454,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                 value={draft}
                 onChange={handleDraftChange}
                 rows={1}
-                placeholder="Ask about this..."
+                placeholder={activeNotification ? 'Ask about this blocked issue...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
                 className="scrollbar-hide max-h-[120px] min-h-6 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 text-sm leading-5 text-foreground outline-none ring-0 placeholder:text-muted focus:outline-none focus:ring-0"
               />
               <button
@@ -477,6 +582,52 @@ function NotificationConversation({
 
       <NextStepCard text={nextStep} gateText={gateText} />
     </div>
+  );
+}
+
+function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
+  return (
+    <>
+      {turns.map((turn) => (
+        <div key={turn.id} className="flex w-full flex-col gap-3">
+          <UserMessage>{turn.prompt}</UserMessage>
+          {turn.status === 'loading' && (
+            <AssistantAnswer
+              eyebrow="FleetGraph"
+              body="Checking current Ship context..."
+              metadata={[]}
+              sources={[]}
+            />
+          )}
+          {turn.status === 'error' && (
+            <AssistantAnswer
+              eyebrow="FleetGraph"
+              body="I could not answer from the current context."
+              metadata={['error']}
+              sources={[]}
+            />
+          )}
+          {turn.status === 'ready' && turn.response && (
+            <>
+              <AssistantAnswer
+                eyebrow={turn.response.answer.title}
+                body={turn.response.answer.body}
+                metadata={[turn.response.decision]}
+                sources={turn.response.answer.sources.map((source) => source.label)}
+              />
+              {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
+                <NextStepCard
+                  text={turn.response.answer.nextStep || 'A human must approve the next action before Ship changes anything.'}
+                  gateText={turn.response.answer.humanGate.required === true
+                    ? 'Approval required before Ship changes anything or sends a message.'
+                    : 'No approval gate is required for this answer.'}
+                />
+              )}
+            </>
+          )}
+        </div>
+      ))}
+    </>
   );
 }
 

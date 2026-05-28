@@ -632,6 +632,7 @@ function persistencePort(existingFinding: FleetGraphFinding): FleetGraphPersiste
     saveFinding: async () => existingFinding,
     recordRun: async (input: RecordFleetGraphRunInput) => run(input.decision),
     getFinding: async () => existingFinding,
+    listFindingsForSource: async () => [existingFinding],
     listAnchorRuns: async () => [],
     refineDraft: async () => existingFinding,
     dismissFinding: async () => ({ ...existingFinding, status: 'dismissed' }),

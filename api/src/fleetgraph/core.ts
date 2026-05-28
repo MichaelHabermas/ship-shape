@@ -11,12 +11,19 @@ import {
 } from './evidence.js';
 import { generateProactiveCreateText } from './model.js';
 import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
+import {
+  chatAnswerFromChangeSummary,
+  chatAnswerFromVisibleOutput,
+  classifyFleetGraphChatPrompt,
+  unsupportedChatAnswer,
+} from './runtime/chat.js';
 import { deterministicRefinedDraft } from './runtime/drafts.js';
 import { isJsonRecord } from './runtime/json.js';
 import { changeSummaryFromOutputs, visibleOutputFromPacket, visibleOutputFromRun } from './runtime/outputs.js';
 import {
   dismissFleetGraphFinding,
   listFleetGraphAnchorRuns,
+  listFleetGraphFindingsForSource,
   recordFleetGraphRun,
   refineFleetGraphDraft,
   resolveFleetGraphFinding,
@@ -46,6 +53,7 @@ export type FleetGraphPersistencePort = {
   saveFinding(input: SaveBlockedImportantIssueFindingInput): Promise<FleetGraphFinding>;
   recordRun(input: RecordFleetGraphRunInput): Promise<FleetGraphRun>;
   getFinding(workspaceId: string, findingId: string): Promise<FleetGraphFinding | null>;
+  listFindingsForSource(input: { workspaceId: string; sourceIssueId?: string; sourceSprintId?: string }): Promise<FleetGraphFinding[]>;
   listAnchorRuns(input: { workspaceId: string; findingId: string; limit?: number }): Promise<FleetGraphRun[]>;
   refineDraft(input: {
     workspaceId: string;
@@ -86,6 +94,7 @@ type FleetGraphNodeName =
   | 'explainFinding'
   | 'refineDraft'
   | 'summarizeChanges'
+  | 'contextChat'
   | 'resolveFinding'
   | 'dismissFinding'
   | 'errorRun';
@@ -95,6 +104,7 @@ function defaultPersistence(db: QueryRunner = pool): FleetGraphPersistencePort {
     saveFinding: (input) => saveBlockedImportantIssueFinding(input, db),
     recordRun: (input) => recordFleetGraphRun(input, db),
     getFinding: (workspaceId, findingId) => getFindingForGraph({ workspaceId, findingId, db }),
+    listFindingsForSource: (input) => listFleetGraphFindingsForSource(input, db),
     listAnchorRuns: (input) => listFleetGraphAnchorRuns(input, db),
     refineDraft: (input) => refineFleetGraphDraft(input, db),
     dismissFinding: (input) => dismissFleetGraphFinding(input, db),
@@ -166,6 +176,7 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addNode('explainFinding', () => explainFindingNode(context))
     .addNode('refineDraft', () => refineDraftNode(context))
     .addNode('summarizeChanges', () => summarizeChangesNode(context))
+    .addNode('contextChat', () => contextChatNode(context))
     .addNode('resolveFinding', () => resolveFindingNode(context))
     .addNode('dismissFinding', () => dismissFindingNode(context))
     .addNode('errorRun', () => errorRunNode(context))
@@ -176,6 +187,7 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addEdge('explainFinding', END)
     .addEdge('refineDraft', END)
     .addEdge('summarizeChanges', END)
+    .addEdge('contextChat', END)
     .addEdge('resolveFinding', END)
     .addEdge('dismissFinding', END)
     .addEdge('errorRun', END)
@@ -198,6 +210,8 @@ function routeFleetGraphTrigger(state: FleetGraphStateValue): FleetGraphNodeName
       return 'refineDraft';
     case 'summarize_changes':
       return 'summarizeChanges';
+    case 'context_chat':
+      return 'contextChat';
     case 'resolve_finding':
       return 'resolveFinding';
     case 'dismiss_finding':
@@ -246,6 +260,16 @@ async function refineDraftNode(context: FleetGraphRuntimeContext): Promise<Parti
 async function summarizeChangesNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
   context.result = await runSummarizeChanges(
     context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'summarize_changes' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
+async function contextChatNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runContextChat(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
     context.persistence,
     context.triggerReason,
     context.options
@@ -526,6 +550,197 @@ async function runSummarizeChanges(
     visibleOutput: output,
     changeSummary,
     evidence,
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+}
+
+async function runContextChat(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  options: FleetGraphCoreOptions
+): Promise<FleetGraphResult> {
+  const finding = await resolveContextChatFinding(input, persistence);
+  if (!finding) {
+    return runContextChatQuietExit(
+      input,
+      persistence,
+      triggerReason,
+      'Open a FleetGraph notification or a blocked issue with an active finding before asking.',
+      options
+    );
+  }
+
+  const { evidence, output } = await visibleOutputForFinding({
+    principal: input.principal,
+    workspaceId: input.workspaceId,
+    finding,
+    db: options.db,
+  });
+  if (output.noSafeOutput) {
+    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output, options);
+  }
+
+  const intent = classifyFleetGraphChatPrompt(input.trigger.prompt);
+  if (intent === 'summarize_changes') {
+    return runContextChatChangeSummary(input, persistence, triggerReason, finding, evidence, output, options);
+  }
+  if (intent === 'unsupported') {
+    return runContextChatQuietExit(
+      input,
+      persistence,
+      triggerReason,
+      'I can explain this finding, summarize changes, identify the unblocker, or suggest the next step.',
+      options
+    );
+  }
+
+  const decision = intent === 'next_step' ? 'needs_confirmation' : 'explain';
+  const answer = chatAnswerFromVisibleOutput(output);
+  const traceMetadata = fleetGraphTraceMetadata({
+    mode: input.mode,
+    decision,
+    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'contextChat', 'produceOutput'],
+    ...options.externalTrace,
+  });
+  const runInput = runInputFor({
+    input,
+    triggerReason,
+    decision,
+    findingId: finding.id,
+    sourceIssueId: finding.source_issue_id,
+    sourceSprintId: finding.source_sprint_id,
+    dedupeKey: finding.dedupe_key,
+    evidence,
+    output: { answer, visibleOutput: output },
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+  const run = await persistence.recordRun(runInput);
+
+  return resultFor({
+    decision,
+    finding,
+    run,
+    runInput,
+    visibleOutput: output,
+    evidence,
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+}
+
+async function resolveContextChatFinding(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
+  persistence: FleetGraphPersistencePort
+): Promise<FleetGraphFinding | null> {
+  const { context } = input.trigger;
+  if (context.findingId) return persistence.getFinding(input.workspaceId, context.findingId);
+
+  if (!context.documentId) return null;
+  if (context.kind === 'sprint') {
+    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceSprintId: context.documentId });
+    return findings[0] ?? null;
+  }
+  if (context.kind === 'issue' || context.kind === 'document') {
+    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceIssueId: context.documentId });
+    return findings[0] ?? null;
+  }
+
+  return null;
+}
+
+async function runContextChatChangeSummary(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  finding: FleetGraphFinding,
+  evidence: FleetGraphEvidenceItem[],
+  output: FleetGraphVisibleOutput,
+  options: FleetGraphCoreOptions
+): Promise<FleetGraphResult> {
+  const anchors = await persistence.listAnchorRuns({ workspaceId: input.workspaceId, findingId: finding.id, limit: 2 });
+  const previousOutput = visibleOutputFromRun(anchors[1]);
+  const changeSummary = changeSummaryFromOutputs(output, previousOutput);
+  const answer = chatAnswerFromChangeSummary(changeSummary);
+  const traceMetadata = fleetGraphTraceMetadata({
+    mode: input.mode,
+    decision: 'summarize_changes',
+    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'contextChatChanges', 'produceOutput'],
+    ...options.externalTrace,
+  });
+  const runInput = runInputFor({
+    input,
+    triggerReason,
+    decision: 'summarize_changes',
+    findingId: finding.id,
+    sourceIssueId: finding.source_issue_id,
+    sourceSprintId: finding.source_sprint_id,
+    dedupeKey: finding.dedupe_key,
+    evidence,
+    output: { answer, changeSummary },
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+  const run = await persistence.recordRun(runInput);
+
+  return resultFor({
+    decision: 'summarize_changes',
+    finding,
+    run,
+    runInput,
+    visibleOutput: output,
+    changeSummary,
+    evidence,
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+}
+
+async function runContextChatQuietExit(
+  input: FleetGraphInput,
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  reason: string,
+  options: FleetGraphCoreOptions = {}
+): Promise<FleetGraphResult> {
+  const answer = unsupportedChatAnswer(reason);
+  const visibleOutput: FleetGraphVisibleOutput = {
+    title: answer.title,
+    summary: answer.body,
+    evidence: [],
+    humanGate: answer.humanGate,
+  };
+  const traceMetadata = fleetGraphTraceMetadata({
+    mode: input.mode,
+    decision: 'quiet_exit',
+    nodePath: ['normalizeTrigger', 'resolveScope', 'contextChatUnsupported', 'persistFleetGraphState'],
+    ...options.externalTrace,
+  });
+  const runInput = runInputFor({
+    input,
+    triggerReason,
+    decision: 'quiet_exit',
+    output: { answer },
+    traceMetadata,
+    tokenMetadata: { modelCalls: 0 },
+    costMetadata: {},
+  });
+  const run = await persistence.recordRun(runInput);
+
+  return resultFor({
+    decision: 'quiet_exit',
+    finding: null,
+    run,
+    runInput,
+    visibleOutput,
+    evidence: [],
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},

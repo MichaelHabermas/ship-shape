@@ -16,7 +16,10 @@ import {
   FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
   FleetGraphRunResponseSchema,
+  FleetGraphChatRequestSchema,
+  FleetGraphChatResponseSchema,
   fleetGraphFindingResponse,
+  fleetGraphChatResponse,
   fleetGraphNotificationResponse,
   fleetGraphManualRunResultResponse,
   sendFleetGraphChangeSummaryResponse,
@@ -263,6 +266,52 @@ router.post('/findings/:findingId/dismiss', authMiddleware, defineRoute({
       sendFleetGraphRunResponse(res, result);
     } catch (err) {
       sendInternalError(res, err, 'Dismiss FleetGraph finding error');
+    }
+  },
+}));
+
+router.post('/chat', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/chat',
+  tags: ['FleetGraph'],
+  summary: 'Answer a bounded FleetGraph chat prompt from the current context',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { body: FleetGraphChatRequestSchema },
+  responses: {
+    200: { schema: FleetGraphChatResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    403: { schema: ErrorResponseSchema },
+    404: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const result = await runFleetGraph({
+        workspaceId,
+        principal,
+        mode: 'on_demand',
+        trigger: {
+          type: 'context_chat',
+          prompt: parsed.body.prompt,
+          context: parsed.body.context,
+        },
+        triggerReason: 'context-chat',
+      });
+
+      if (result.visibleOutput?.noSafeOutput) {
+        sendLegacyError(res, 404, 'FleetGraph context not found');
+        return;
+      }
+      if (result.decision === 'error') {
+        sendLegacyError(res, 500, 'FleetGraph chat failed');
+        return;
+      }
+
+      res.json(fleetGraphChatResponse({ result, context: parsed.body.context }));
+    } catch (err) {
+      sendInternalError(res, err, 'FleetGraph chat error');
     }
   },
 }));
