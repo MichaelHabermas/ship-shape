@@ -499,3 +499,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph external tracing now uses one provider-neutral facade that can emit the same sanitized run/node/model-call evidence to LangSmith and Langfuse. The graph receives one primary trace identity, preferring a provider with a shareable URL available before graph execution, while demo/smoke evidence can report all configured provider URLs.
 
 **Consequence:** Observability providers are evidence sinks, not execution control flow. Provider node setup/update/finalization failures are recorded as provider failures and must not skip, rerun, or fail the FleetGraph business node. Short-lived trace smoke/demo paths explicitly shut down tracing so Langfuse/OpenTelemetry exports are flushed before process exit. Future providers should plug into the facade contract or split into provider modules when the file grows, rather than leaking vendor SDKs into `core.ts`, routes, web, or shared packages.
+
+## D063 - FleetGraph Final Proof Is A Static Evidence Packet
+
+**Date:** 2026-05-28
+
+**Decision:** Build the reviewer dashboard as generated evidence from `pnpm fleetgraph:proof`, not as product UI. The proof packet lives under `my-docs/evidence/fleetgraph-proof/`, runs existing FleetGraph tests/evals, and renders `latest.html`, `latest.json`, `latest.md`, plus timestamped copies.
+
+**Consequence:** The dashboard can be dense and reviewer-specific without polluting the left rail or chat. FleetGraph behavior remains owned by `api/src/fleetgraph/*`; proof scripts observe, gate, and package the behavior rather than reimplementing detection, actor filtering, dedupe, or chat semantics. The proof model distinguishes golden-case-defined paths from executable proof coverage, and the strict check fails blocked packets unless explicitly run in inspection mode.
