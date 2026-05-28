@@ -5,7 +5,9 @@ import {
   fleetGraphProductSurfaceCases,
   scoreFleetGraphProductSurfaceCase,
   summarizeFleetGraphProductSurfaceResults,
+  type FleetGraphProductSurfaceCase,
 } from './product-surface.js';
+import { buildSurfaceEvalReport } from '../../scripts/fleetgraph-product-surface-eval.js';
 
 describe('FleetGraph product surface evals', () => {
   it('defines unique product-surface cases with trendable thresholds', () => {
@@ -47,5 +49,34 @@ describe('FleetGraph product surface evals', () => {
     expect(summary.failCount).toBe(0);
     expect(Object.keys(summary.average).sort()).toEqual([...FLEETGRAPH_PRODUCT_SURFACE_DIMENSIONS].sort());
     expect(summary.average.uiProofSeparation).toBe(4);
+  });
+
+  it('keeps historical persisted failures out of the current headline', () => {
+    const [currentCase] = fleetGraphProductSurfaceCases;
+    if (!currentCase) throw new Error('Missing starter product-surface case');
+    const historicalFailure: FleetGraphProductSurfaceCase = {
+      ...currentCase,
+      id: 'fg-surface-persisted-old-failure',
+      title: 'Old persisted row should not affect current headline',
+      input: {
+        ...currentCase.input,
+        visibleCopy: [
+          'Blocked issue: Old row',
+          'Old row is blocked. Latest blocker: blocked blocked blocked blocked blocked.',
+          'Confirm the unblock path',
+          'FleetGraph sees a blocker signal, but a human must confirm the current unblock path.',
+        ],
+      },
+    };
+
+    const report = buildSurfaceEvalReport({
+      generatedAt: '2026-05-28T00:00:00.000Z',
+      currentCases: [currentCase],
+      historicalCases: [historicalFailure],
+    });
+
+    expect(report.summary.passCount).toBe(1);
+    expect(report.summary.failCount).toBe(0);
+    expect(report.sections.find((section) => section.id === 'historical')?.summary.failCount).toBe(1);
   });
 });
