@@ -1,3 +1,5 @@
+import type { SprintRouteProperties } from '@ship/shared';
+
 export type EmptyRow = Record<string, never>;
 
 export type IdRow = {
@@ -8,16 +10,11 @@ export type WorkspaceSprintStartRow = {
   sprint_start_date: Date | string | null;
 };
 
-export type SprintDocumentProperties = {
-  sprint_number?: number;
-  assignee_ids?: string[];
+export type SprintDocumentProperties = SprintRouteProperties & {
   project_id?: string;
-  plan_approval?: unknown;
-  review_approval?: unknown;
-  review_rating?: unknown;
   start_date?: string;
   end_date?: string;
-} & Record<string, unknown>;
+};
 
 export type SprintDocumentRow = {
   id: string;

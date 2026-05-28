@@ -13,7 +13,7 @@ import { generateProactiveCreateText } from './model.js';
 import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
 import {
   chatAnswerFromChangeSummary,
-  chatAnswerFromVisibleOutput,
+  chatAnswerForIntent,
   classifyFleetGraphChatPrompt,
   unsupportedChatAnswer,
 } from './runtime/chat.js';
@@ -38,9 +38,9 @@ import {
 import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
+import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
 import type {
   FleetGraphDecisionPacket,
-  FleetGraphEvidenceItem,
   FleetGraphInput,
   FleetGraphResult,
   FleetGraphTraceMetadata,
@@ -72,6 +72,7 @@ export type FleetGraphCoreOptions = {
   persistence?: FleetGraphPersistencePort;
   generateProactiveText?: typeof generateProactiveCreateText;
   externalTrace?: Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
+  observabilityError?: string;
 };
 
 const FleetGraphState = Annotation.Root({
@@ -96,6 +97,7 @@ type FleetGraphNodeName =
   | 'summarizeChanges'
   | 'contextChat'
   | 'resolveFinding'
+  | 'suppressFinding'
   | 'dismissFinding'
   | 'errorRun';
 
@@ -124,8 +126,12 @@ export async function runFleetGraph(
         inputs: traceSafeRunInputs(input),
       }, (externalTrace) => runFleetGraph(input, { ...options, externalTrace }));
       return capture.result;
-    } catch {
+    } catch (error) {
       // FleetGraph must still surface findings if external trace capture is temporarily unavailable.
+      return runFleetGraph(input, {
+        ...options,
+        observabilityError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -168,6 +174,17 @@ function shouldAutoCaptureTrace(options: FleetGraphCoreOptions): boolean {
     && fleetGraphLangSmithEnabled();
 }
 
+function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord {
+  return options.observabilityError
+    ? {
+        observability: {
+          langsmithCapture: 'failed',
+          message: options.observabilityError.slice(0, 500),
+        },
+      }
+    : {};
+}
+
 function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
   return new StateGraph(FleetGraphState)
     .addNode('normalizeTrigger', (state) => normalizeTriggerNode(state, context))
@@ -178,6 +195,7 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addNode('summarizeChanges', () => summarizeChangesNode(context))
     .addNode('contextChat', () => contextChatNode(context))
     .addNode('resolveFinding', () => resolveFindingNode(context))
+    .addNode('suppressFinding', () => suppressFindingNode(context))
     .addNode('dismissFinding', () => dismissFindingNode(context))
     .addNode('errorRun', () => errorRunNode(context))
     .addEdge(START, 'normalizeTrigger')
@@ -189,6 +207,7 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addEdge('summarizeChanges', END)
     .addEdge('contextChat', END)
     .addEdge('resolveFinding', END)
+    .addEdge('suppressFinding', END)
     .addEdge('dismissFinding', END)
     .addEdge('errorRun', END)
     .compile({ name: 'fleetgraph.shared_runtime' });
@@ -214,6 +233,8 @@ function routeFleetGraphTrigger(state: FleetGraphStateValue): FleetGraphNodeName
       return 'contextChat';
     case 'resolve_finding':
       return 'resolveFinding';
+    case 'suppress_finding':
+      return 'suppressFinding';
     case 'dismiss_finding':
       return 'dismissFinding';
     case 'error':
@@ -287,6 +308,16 @@ async function resolveFindingNode(context: FleetGraphRuntimeContext): Promise<Pa
   return { decision: context.result.decision };
 }
 
+async function suppressFindingNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
+  context.result = await runSuppressFinding(
+    context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'suppress_finding' }> },
+    context.persistence,
+    context.triggerReason,
+    context.options
+  );
+  return { decision: context.result.decision };
+}
+
 async function dismissFindingNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
   context.result = await runDismissFinding(
     context.input as FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'dismiss_finding' }> },
@@ -311,6 +342,8 @@ async function runDetectorDecision(
 ): Promise<FleetGraphResult> {
   const detectorDecision = input.trigger.detectorDecision;
   const candidate = detectorDecision.candidate;
+  const signalType = candidate.signalType ?? 'blocked';
+  const signalLabel = candidate.signalLabel ?? 'Blocked';
   const baseEvidence = evidenceFromDetectorCandidate(candidate);
   const evidenceBundle = await filterEvidenceForActor({
     principal: input.principal,
@@ -329,12 +362,13 @@ async function runDetectorDecision(
   }
 
   const model = options.generateProactiveText ?? generateProactiveCreateText;
-  const modelResult = detectorDecision.decision === 'create_finding'
+  const modelResult = detectorDecision.decision === 'create_finding' && signalType === 'blocked'
     ? await model({ candidate })
     : {
-        summary: deterministicUpdateSummary(candidateTitle(candidate.issue_title)),
-        draftMessage: `Refresh the unblock plan for ${candidate.issue_title}.`,
+        summary: deterministicAttentionSummary(candidate),
+        draftMessage: `Review ${candidate.issue_title}: ${candidate.attentionReason ?? 'Issue needs attention.'}`,
         tokenMetadata: { modelCalls: 0 },
+        costMetadata: {},
       };
   const decision = detectorDecision.decision;
   const traceMetadata = fleetGraphTraceMetadata({
@@ -345,7 +379,7 @@ async function runDetectorDecision(
       'resolveScope',
       'fetchCurrentObject',
       'filterVisibleEvidence',
-      detectorDecision.decision === 'create_finding' ? 'reasonProactiveCreate' : 'refreshExistingFinding',
+      attentionReasonTraceNode(signalType, detectorDecision.decision),
       'persistFleetGraphState',
       'produceOutput',
     ],
@@ -367,7 +401,13 @@ async function runDetectorDecision(
     proposedRecipient: packet.proposedRecipient,
     humanGate: packet.humanGate,
     traceMetadata: traceMetadataJson(traceMetadata),
-    runMetadata: { detectorDecision: detectorDecision.decision, uncertaintyNotes: packet.uncertaintyNotes },
+    runMetadata: {
+      detectorDecision: detectorDecision.decision,
+      signalType,
+      signalLabel,
+      reason: candidate.attentionReason,
+      uncertaintyNotes: packet.uncertaintyNotes,
+    },
   };
   const finding = await persistence.saveFinding(findingInput);
   const visibleOutput = visibleOutputFromPacket(packet, evidenceBundle.evidence);
@@ -383,7 +423,8 @@ async function runDetectorDecision(
     output: visibleOutput,
     traceMetadata,
     tokenMetadata: modelResult.tokenMetadata,
-    costMetadata: {},
+    costMetadata: modelResult.costMetadata,
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -397,7 +438,8 @@ async function runDetectorDecision(
     evidence: evidenceBundle.evidence,
     traceMetadata,
     tokenMetadata: modelResult.tokenMetadata,
-    costMetadata: {},
+    costMetadata: modelResult.costMetadata,
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -426,6 +468,7 @@ async function runQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -444,6 +487,7 @@ async function runQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -482,6 +526,7 @@ async function runExplainFinding(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -495,6 +540,7 @@ async function runExplainFinding(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -539,6 +585,7 @@ async function runSummarizeChanges(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -553,6 +600,7 @@ async function runSummarizeChanges(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -592,13 +640,13 @@ async function runContextChat(
       input,
       persistence,
       triggerReason,
-      'I can explain this finding, summarize changes, identify the unblocker, or suggest the next step.',
+      'I can answer from the attached issue, notification, or week context. Workspace-wide questions need a narrower source first.',
       options
     );
   }
 
-  const decision = intent === 'next_step' ? 'needs_confirmation' : 'explain';
-  const answer = chatAnswerFromVisibleOutput(output);
+  const decision = intent === 'next_step' || intent === 'unblocker' ? 'needs_confirmation' : 'explain';
+  const answer = chatAnswerForIntent(intent, output);
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision,
@@ -618,6 +666,7 @@ async function runContextChat(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -631,6 +680,7 @@ async function runContextChat(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -686,6 +736,7 @@ async function runContextChatChangeSummary(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -700,6 +751,7 @@ async function runContextChatChangeSummary(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -731,6 +783,7 @@ async function runContextChatQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -744,6 +797,7 @@ async function runContextChatQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -801,6 +855,7 @@ async function runRefineDraft(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -814,6 +869,7 @@ async function runRefineDraft(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -845,6 +901,7 @@ async function runRestrictedFindingQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -858,6 +915,7 @@ async function runRestrictedFindingQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -873,6 +931,22 @@ async function runResolveFinding(
     triggerReason,
     'resolve',
     () => persistence.resolveFinding({ workspaceId: input.workspaceId, findingId: input.trigger.findingId }),
+    options
+  );
+}
+
+async function runSuppressFinding(
+  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'suppress_finding' }> },
+  persistence: FleetGraphPersistencePort,
+  triggerReason: string,
+  options: FleetGraphCoreOptions
+): Promise<FleetGraphResult> {
+  return runStatusOnly(
+    input,
+    persistence,
+    triggerReason,
+    'suppress',
+    () => persistence.suppressFinding({ workspaceId: input.workspaceId, findingId: input.trigger.findingId }),
     options
   );
 }
@@ -910,7 +984,7 @@ async function runStatusOnly(
   input: FleetGraphInput,
   persistence: FleetGraphPersistencePort,
   triggerReason: string,
-  decision: 'dismiss' | 'resolve',
+  decision: 'dismiss' | 'resolve' | 'suppress',
   mutate: () => Promise<FleetGraphFinding | null>,
   options: FleetGraphCoreOptions = {}
 ): Promise<FleetGraphResult> {
@@ -935,6 +1009,7 @@ async function runStatusOnly(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -1008,12 +1083,14 @@ function decisionPacketFromCandidate(
   draftMessage: string
 ): FleetGraphDecisionPacket {
   const issueTitle = candidateTitle(candidate.issue_title);
+  const signalType = candidate.signalType ?? 'blocked';
+  const signalLabel = candidate.signalLabel ?? 'Blocked';
   const audience = audienceForCandidate(candidate);
   const nextAction = nextActionForCandidate(candidate, audience);
   return {
     severity: candidate.issue_priority,
     confidence: 0.86,
-    title: issueTitle,
+    title: `${signalLabel}: ${issueTitle}`,
     summary,
     recommendedAction: {
       type: 'confirm_unblock_path',
@@ -1025,6 +1102,7 @@ function decisionPacketFromCandidate(
       kind: 'unblock_message',
       message: draftMessage,
       source: 'fleetgraph',
+      signalType,
     },
     proposedRecipient: {
       role: audience.role,
@@ -1041,9 +1119,34 @@ function decisionPacketFromCandidate(
 }
 
 function candidateTitle(title: string): string {
-  return title.trim() || 'Blocked issue';
+  return title.trim() || 'Issue';
 }
 
 function deterministicUpdateSummary(title: string): string {
   return `${title} still needs an unblock decision.`;
+}
+
+function deterministicAttentionSummary(
+  candidate: Extract<FleetGraphInput['trigger'], { type: 'detector_decision' }>['detectorDecision']['candidate']
+): string {
+  const signalType = candidate.signalType ?? 'blocked';
+  const reason = candidate.attentionReason ?? 'Issue needs attention.';
+  if (signalType === 'stale') {
+    return `${candidate.issue_title} looks stale. ${reason}`;
+  }
+  if (signalType === 'at_risk') {
+    return `${candidate.issue_title} is at risk. ${reason}`;
+  }
+  return deterministicUpdateSummary(candidateTitle(candidate.issue_title));
+}
+
+function attentionReasonTraceNode(
+  signalType: FleetGraphSignalType,
+  detectorDecision: 'create_finding' | 'update_finding'
+): string {
+  if (signalType === 'blocked') {
+    return detectorDecision === 'create_finding' ? 'reasonProactiveCreate' : 'refreshExistingFinding';
+  }
+  if (signalType === 'stale') return 'reasonStale';
+  return 'reasonAtRisk';
 }

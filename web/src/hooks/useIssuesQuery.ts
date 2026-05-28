@@ -43,9 +43,6 @@ export function isCascadeWarningError(error: unknown): error is CascadeWarningEr
   return error instanceof CascadeWarningError;
 }
 
-// Re-export for convenience
-export type { CascadeWarning, IncompleteChild, BelongsTo, BelongsToType };
-
 type IssueWithAssociations = {
   belongs_to?: BelongsTo[];
 };

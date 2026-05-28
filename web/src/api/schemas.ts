@@ -1,8 +1,6 @@
 // API schema aliases expose generated OpenAPI component types to the web client.
 import type { components } from './generated/ship-openapi';
 
-export type { ApiError, ApiResponse } from '@ship/shared';
-
 export type Document = components['schemas']['Document'];
 export type Standup = components['schemas']['Standup'];
 export type UpdatedStandup = components['schemas']['UpdatedStandup'];
@@ -19,27 +17,43 @@ export type ProjectIssueListItem = components['schemas']['ProjectIssueListItem']
 export type ProjectWeekListItem = components['schemas']['ProjectWeekListItem'];
 export type Program = components['schemas']['Program'];
 export type UserReference = components['schemas']['UserReference'];
-export type BelongsToResponse = components['schemas']['BelongsToResponse'];
 export type Week = components['schemas']['Week'];
 export type ProgramSprintListItem = components['schemas']['ProgramSprintListItem'];
 export type ProgramSprintsResponse = components['schemas']['ProgramSprintsResponse'];
 export type ActiveWeekItem = components['schemas']['ActiveWeekItem'];
 export type ActiveWeeksResponse = components['schemas']['ActiveWeeksResponse'];
 
-export type FleetGraphEvidence = components['schemas']['FleetGraphEvidence'];
-export type FleetGraphRecommendedAction = components['schemas']['FleetGraphRecommendedAction'];
-export type FleetGraphVisibleOutput = components['schemas']['FleetGraphVisibleOutput'];
-export type FleetGraphTrace = components['schemas']['FleetGraphTrace'];
-export type FleetGraphChangeSummaryRow = components['schemas']['FleetGraphChangeSummaryRow'];
-export type FleetGraphChangeSummaryResponse = components['schemas']['FleetGraphChangeSummaryResponse'];
-export type FleetGraphChatContext = components['schemas']['FleetGraphChatContext'];
-export type FleetGraphChatAnswer = components['schemas']['FleetGraphChatAnswer'];
-export type FleetGraphChatRequest = components['schemas']['FleetGraphChatRequest'];
-export type FleetGraphChatResponse = components['schemas']['FleetGraphChatResponse'];
-export type FleetGraphFindingResponse = components['schemas']['FleetGraphFindingResponse'];
-export type FleetGraphNotificationResponse = components['schemas']['FleetGraphNotificationResponse'];
-export type FleetGraphNotificationsListResponse = components['schemas']['FleetGraphNotificationsListResponse'];
-export type FleetGraphRunResponse = components['schemas']['FleetGraphRunResponse'];
+export type MyWeekResponse = components['schemas']['MyWeekResponse'];
+export type StandupSlot = components['schemas']['StandupSlot'];
+export type WeekProject = components['schemas']['WeekProject'];
+
+/** Issue row from GET /weeks/:id/issues (sprint issue list). */
+export interface WeekSprintIssue {
+  id: string;
+  title: string;
+  state: string;
+  priority: string;
+  ticket_number: number;
+  display_id: string;
+  assignee_id: string | null;
+  assignee_name: string | null;
+  assignee_archived?: boolean;
+  estimate: number | null;
+  carryover_from_sprint_id?: string | null;
+  carryover_from_sprint_name?: string | null;
+}
+
+export type WeekDetail = Pick<
+  Week,
+  | 'id'
+  | 'name'
+  | 'sprint_number'
+  | 'workspace_sprint_start_date'
+  | 'owner'
+  | 'issue_count'
+  | 'completed_count'
+  | 'plan'
+>;
 
 export interface SetupStatusData {
   needsSetup: boolean;

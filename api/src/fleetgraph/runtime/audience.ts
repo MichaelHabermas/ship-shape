@@ -1,4 +1,4 @@
-// Selects the smallest useful Ship audience for FleetGraph unblock recommendations.
+// Selects the smallest useful Ship audience for FleetGraph attention recommendations.
 import type { FleetGraphInput } from '../types.js';
 
 export type FleetGraphAudience = {
@@ -15,12 +15,23 @@ export function nextActionForCandidate(
   audience: FleetGraphAudience
 ): string {
   const recipient = audience.displayName ?? audienceLabel(audience.role);
+  if (candidate.signalType === 'stale') return `Ask ${recipient} to post a fresh status or close the work if it is no longer active.`;
+  if (candidate.signalType === 'at_risk') return `Ask ${recipient} to confirm scope, owner, and whether this can still land this week.`;
   if (!candidate.blocker_text.trim()) return `Ask ${recipient} to add the blocker reason.`;
   const context = candidate.sprint_number ? `Week ${candidate.sprint_number}` : candidate.sprint_title;
   return `Ask ${recipient} to confirm owner and next step for ${context}.`;
 }
 
 export function audienceForCandidate(candidate: DetectorCandidate): FleetGraphAudience {
+  if (candidate.signalType === 'stale' || candidate.signalType === 'at_risk') {
+    return firstAudience([
+      audience('issue_assignee', candidate.issue_assignee_id, candidate.issue_assignee_name, 'The issue assignee is closest to the current work.'),
+      audience('project_owner', candidate.project_owner_id, candidate.project_owner_name, 'The project owner is the next useful attention audience.'),
+      audience('sprint_owner', candidate.sprint_owner_id, candidate.sprint_owner_name, 'The week owner is the fallback attention audience.'),
+      audience('program_owner', candidate.program_owner_id, candidate.program_owner_name, 'The program owner is the final connected fallback.'),
+    ]);
+  }
+
   if (!candidate.blocker_text.trim()) {
     return firstAudience([
       audience('project_owner', candidate.project_owner_id, candidate.project_owner_name, 'Missing blocker reason belongs with the project owner first.'),

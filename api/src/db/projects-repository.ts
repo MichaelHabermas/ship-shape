@@ -1,8 +1,13 @@
 /**
  * Project/sprint row projections and response mappers for project routes.
  */
-import type { InferredProjectStatus, ProjectProperties, WeekProperties } from '@ship/shared';
-import { DEFAULT_PROJECT_PROPERTIES, computeICEScore } from '@ship/shared';
+import {
+  DEFAULT_PROJECT_PROPERTIES,
+  computeICEScore,
+  type InferredProjectStatus,
+  type ProjectRouteProperties,
+  type ProjectSprintProperties,
+} from '@ship/shared';
 import { pool } from './client.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 
@@ -56,14 +61,6 @@ export async function projectAccessible(
   return result.rows.length > 0;
 }
 
-export type ProjectRouteProperties = Partial<ProjectProperties> & {
-  is_complete?: boolean | null;
-  missing_fields?: string[];
-  plan?: string | null;
-  has_retro?: boolean;
-  target_date?: string | null;
-};
-
 export type ProjectRow = {
   id: string;
   title: string;
@@ -81,17 +78,6 @@ export type ProjectRow = {
   inferred_status?: InferredProjectStatus | null;
   converted_to_id?: string | null;
   converted_from_id?: string | null;
-};
-
-type CanonicalWeekProperties = Partial<Pick<WeekProperties, 'sprint_number' | 'owner_id'>> & {
-  owner_id?: string | null;
-};
-
-export type ProjectSprintProperties = CanonicalWeekProperties & {
-  status?: string;
-  plan?: string | null;
-  success_criteria?: string[] | null;
-  confidence?: number | null;
 };
 
 export type ProjectSprintRow = {

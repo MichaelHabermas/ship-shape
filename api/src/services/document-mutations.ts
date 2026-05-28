@@ -1,3 +1,4 @@
+// Document mutation service centralizes canonical document writes and post-commit side effects.
 import type { Pool, PoolClient } from 'pg';
 import type { BelongsTo, DocumentType, DocumentVisibility } from '@ship/shared';
 import { pool } from '../db/client.js';
@@ -37,6 +38,7 @@ import {
   type DocumentMutationCapability,
 } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
+import { enqueueFleetGraphIssueAttentionEvents } from '../fleetgraph/events.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -223,13 +225,13 @@ async function nextIssueTicketNumber(client: PoolClient, workspaceId: string): P
   const workspaceIdHex = workspaceId.replace(/-/g, '').substring(0, 15);
   const lockKey = parseInt(workspaceIdHex, 16);
   await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
-  const ticketResult = await client.query(
+  const ticketResult = await client.query<{ next_number: number }>(
     `SELECT COALESCE(MAX(ticket_number), 0) + 1 as next_number
      FROM documents
      WHERE workspace_id = $1 AND document_type = 'issue'`,
     [workspaceId]
   );
-  return ticketResult.rows[0].next_number;
+  return ticketResult.rows[0]?.next_number ?? 1;
 }
 
 async function removeAssociationsByRelatedId(
@@ -415,7 +417,7 @@ async function resetWeeklyApprovalAfterResubmission(
     return null;
   }
 
-  const sprintResult = await client.query(
+  const sprintResult = await client.query<{ id: string; properties: unknown }>(
     `SELECT id, properties
        FROM documents
       WHERE workspace_id = $1
@@ -533,7 +535,7 @@ export async function createDocumentMutation({
       ...(sprint_id ? [{ id: sprint_id, type: 'sprint' as const, label: 'Sprint' }] : []),
       ...((belongs_to || []).map((association) => ({
         id: association.id,
-        type: association.type as 'program' | 'project' | 'sprint' | 'parent',
+        type: association.type,
         label: `${association.type} document`,
       }))),
     ];
@@ -690,7 +692,7 @@ export async function updateDocumentMutation({
       ...(patch.sprint_id ? [{ id: patch.sprint_id, type: 'sprint' as const, label: 'Sprint' }] : []),
       ...((patch.belongs_to || []).map((association) => ({
         id: association.id,
-        type: association.type as 'program' | 'project' | 'sprint' | 'parent',
+        type: association.type,
         label: `${association.type} document`,
       }))),
     ];
@@ -772,7 +774,7 @@ export async function updateDocumentMutation({
       if (existing.document_type === 'project' || existing.document_type === 'sprint') {
         let linkedIssuesCount = 0;
         if (existing.document_type === 'sprint') {
-          const issueCountResult = await client.query(
+          const issueCountResult = await client.query<{ count: string }>(
             `SELECT COUNT(*) as count FROM documents d
              JOIN document_associations da ON da.document_id = d.id
              WHERE da.related_id = $1 AND da.relationship_type = 'sprint' AND d.document_type = $2`,
@@ -879,6 +881,17 @@ export async function updateDocumentMutation({
         [documentId, patch.visibility]
       );
       visibilityChanged = { next: patch.visibility, previousCreatedBy: existing.created_by };
+    }
+
+    if (visibilityChanged && existing.document_type === 'issue') {
+      await enqueueFleetGraphIssueAttentionEvents({
+        workspaceId: actor.workspaceId,
+        issueIds: [documentId],
+        eventType: 'issue_visibility_changed',
+        reason: 'issue_visibility_changed',
+        db: client,
+        logger: console,
+      });
     }
 
     await client.query('COMMIT');

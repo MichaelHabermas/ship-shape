@@ -67,8 +67,15 @@ describe('document view mapper', () => {
   });
 
   it('returns null for missing association ids', () => {
-    expect(getDocumentProgramId({ belongs_to: undefined })).toBeNull();
-    expect(getDocumentProgramId({ belongs_to: [{ id: 'project-1', type: 'project' }] })).toBeNull();
+    expect(getDocumentProgramId({ id: 'x', title: 'x', document_type: 'issue', belongs_to: undefined })).toBeNull();
+    expect(
+      getDocumentProgramId({
+        id: 'x',
+        title: 'x',
+        document_type: 'issue',
+        belongs_to: [{ id: 'project-1', type: 'project' }],
+      }),
+    ).toBeNull();
   });
 
   it('preserves standup document type instead of remapping it to wiki', () => {

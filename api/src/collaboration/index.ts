@@ -22,6 +22,7 @@ import {
   parseCollaborationRoomName,
   roomPrefixMatchesDocumentType,
   type ConversionDocumentType,
+  type AccountabilityUpdatedPayload,
 } from '@ship/shared';
 import { getDocumentTypeById } from '../db/documents-repository.js';
 import { validateAuthenticatedSession } from '../services/session-auth.js';
@@ -717,7 +718,17 @@ export async function handleVisibilityChange(
  * @param eventType - The event type (e.g., 'accountability:updated')
  * @param data - Optional event data payload
  */
-export function broadcastToUser(userId: string, eventType: string, data?: Record<string, unknown>): void {
+export function broadcastToUser(
+  userId: string,
+  eventType: 'accountability:updated',
+  data?: AccountabilityUpdatedPayload,
+): void;
+export function broadcastToUser(userId: string, eventType: string, data?: Record<string, unknown>): void;
+export function broadcastToUser(
+  userId: string,
+  eventType: string,
+  data?: AccountabilityUpdatedPayload | Record<string, unknown>,
+): void {
   const payload = JSON.stringify({ type: eventType, data: data || {} });
 
   // For events connections, send as plain JSON (they're dedicated for events)

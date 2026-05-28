@@ -2,22 +2,17 @@
  * Shared approval workflow helpers for project and sprint documents.
  */
 
+import type { ApprovalState, ApprovalTracking } from '@ship/shared';
 import { logDocumentChange, getLatestDocumentFieldHistory } from './document-crud.js';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export type ApprovalState = 'approved' | 'changed_since_approved' | 'changes_requested';
+/** Non-null approval state values used when validating stored records. */
+export type NonNullApprovalState = Exclude<ApprovalState, null>;
 
-export type ApprovalRecord = {
-  state: ApprovalState | null;
-  approved_by: string | null;
-  approved_at: string | null;
-  approved_version_id: number | null;
-  feedback?: string | null;
-  comment?: string | null;
-};
+export type ApprovalRecord = ApprovalTracking;
 
 export type ApprovalHistoryField = 'plan_approval' | 'review_approval' | 'retro_approval';
 
@@ -41,7 +36,7 @@ type ReviewRatingValidationResult =
   | { ok: true; value: number }
   | { ok: false; error: string };
 
-const APPROVAL_STATES = new Set<ApprovalState>([
+const APPROVAL_STATES = new Set<NonNullApprovalState>([
   'approved',
   'changed_since_approved',
   'changes_requested',
@@ -324,10 +319,10 @@ export function asApprovalRecord(value: unknown): ApprovalRecord | null {
   }
 
   const rawState = value.state ?? null;
-  if (rawState !== null && (typeof rawState !== 'string' || !APPROVAL_STATES.has(rawState as ApprovalState))) {
+  if (rawState !== null && (typeof rawState !== 'string' || !APPROVAL_STATES.has(rawState as NonNullApprovalState))) {
     return null;
   }
-  const state = rawState as ApprovalState | null;
+  const state = rawState as ApprovalState;
 
   const approvedBy = hasOwn(value, 'approved_by')
     ? parseNullableString(value.approved_by)

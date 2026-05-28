@@ -1,25 +1,6 @@
-import type { WeekProperties } from '@ship/shared';
+import type { CanonicalWeekProperties, SprintRouteProperties } from '@ship/shared';
 
-export type CanonicalWeekProperties = Partial<Pick<WeekProperties, 'sprint_number' | 'owner_id'>> & {
-  owner_id?: string | null;
-};
-
-export type SprintRouteProperties = CanonicalWeekProperties & {
-  assignee_ids?: string[] | null;
-  status?: string;
-  plan?: string | null;
-  success_criteria?: string[] | null;
-  confidence?: number | null;
-  plan_history?: unknown;
-  is_complete?: boolean | null;
-  missing_fields?: string[];
-  planned_issue_ids?: string[] | null;
-  snapshot_taken_at?: string | null;
-  plan_approval?: unknown;
-  review_approval?: unknown;
-  review_rating?: string | null;
-  accountable_id?: string | null;
-};
+export type { CanonicalWeekProperties, SprintRouteProperties };
 
 export type SprintRow = {
   id: string;

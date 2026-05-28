@@ -1,0 +1,1874 @@
+{
+  "generatedAt": "2026-05-28T17:18:45.146Z",
+  "summary": {
+    "average": {
+      "actionability": 4,
+      "groundedness": 3.17,
+      "specificity": 3.5,
+      "brevity": 4,
+      "repetitionBudget": 4,
+      "informationDensity": 4,
+      "cavemanCopy": 4,
+      "duplicateFactControl": 3.67,
+      "uncertaintyHonesty": 4,
+      "missingDataUsefulness": 4,
+      "uiProofSeparation": 4
+    },
+    "passCount": 6,
+    "failCount": 0
+  },
+  "sections": [
+    {
+      "id": "current",
+      "title": "Current Surface",
+      "description": "Fresh authored and runFleetGraph cases. This is the present-tense pass/fail signal.",
+      "summary": {
+        "average": {
+          "actionability": 4,
+          "groundedness": 3.17,
+          "specificity": 3.5,
+          "brevity": 4,
+          "repetitionBudget": 4,
+          "informationDensity": 4,
+          "cavemanCopy": 4,
+          "duplicateFactControl": 3.67,
+          "uncertaintyHonesty": 4,
+          "missingDataUsefulness": 4,
+          "uiProofSeparation": 4
+        },
+        "passCount": 6,
+        "failCount": 0
+      },
+      "results": [
+        {
+          "caseId": "fg-surface-clear-blocker",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 4,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Blocked issue copy names the concrete blocker and next move once",
+          "visibleCopy": [
+            "Blocked",
+            "Audit issue 110",
+            "Missing API credentials",
+            "Audit Load User 029",
+            "Week 11",
+            "Confirm credential owner."
+          ],
+          "notes": [
+            "User can see the blocker and next move without reading architecture proof.",
+            "Blocked appears as useful state, not repeated filler."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-missing-blocker-text",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Missing blocker text is explained as a useful data gap",
+          "visibleCopy": [
+            "Blocked",
+            "Audit issue 110",
+            "Blocker missing",
+            "Audit Load User 029",
+            "Week 11",
+            "Add reason."
+          ],
+          "notes": [
+            "Missing evidence should become a concrete next step.",
+            "The copy should not pretend the blocker is known."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-ui-proof-boundary",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "User copy stays free of reviewer-proof scaffolding",
+          "visibleCopy": [
+            "Blocked",
+            "Audit issue 110",
+            "Owner missing",
+            "Waiting on review",
+            "-",
+            "Audit Project",
+            "Find approver."
+          ],
+          "notes": [
+            "Reviewer evidence belongs in traces, logs, tests, and docs.",
+            "User copy can show missing owner compactly without exposing graph/debug fields."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-runtime-proactive-clear-blocker",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 3,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Runtime proactive clear-blocker output from runFleetGraph",
+          "visibleCopy": [
+            "Blocked: Runtime issue clear blocker",
+            "Waiting on API credentials · Week 11",
+            "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+          ],
+          "notes": [
+            "Generated through runFleetGraph, not a hand-authored product-surface example.",
+            "Failures here identify current runtime copy that needs product wording work."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-runtime-proactive-missing-blocker",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Runtime proactive missing-blocker output from runFleetGraph",
+          "visibleCopy": [
+            "Blocked: Runtime issue needs reason",
+            "Reason missing · Week 11",
+            "Ask Audit Load User 029 to add the blocker reason."
+          ],
+          "notes": [
+            "Generated through runFleetGraph, not a hand-authored product-surface example.",
+            "Failures here identify current runtime copy that needs product wording work."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-runtime-explain-existing-finding",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 3,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Runtime explain output from runFleetGraph",
+          "visibleCopy": [
+            "Runtime existing finding",
+            "Waiting on review · Week 11",
+            "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+          ],
+          "notes": [
+            "Generated through runFleetGraph, not a hand-authored product-surface example.",
+            "Failures here identify current runtime copy that needs product wording work."
+          ],
+          "section": "current"
+        }
+      ]
+    },
+    {
+      "id": "historical",
+      "title": "Historical Persisted Samples",
+      "description": "Older fleetgraph_runs.output_snapshot rows for trend review only. These do not affect the current headline.",
+      "summary": {
+        "average": {
+          "actionability": 4,
+          "groundedness": 1.5,
+          "specificity": 2,
+          "brevity": 2.45,
+          "repetitionBudget": 1,
+          "informationDensity": 1.4,
+          "cavemanCopy": 2.45,
+          "duplicateFactControl": 4,
+          "uncertaintyHonesty": 4,
+          "missingDataUsefulness": 4,
+          "uiProofSeparation": 4
+        },
+        "passCount": 0,
+        "failCount": 20
+      },
+      "results": [
+        {
+          "caseId": "fg-surface-persisted-explain-7746e40f",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:41:40.058Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-6cc16019",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:40:40.339Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-63d7f970",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:39:50.596Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-4aae8010",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:39:46.361Z",
+          "visibleCopy": [
+            "Blocked issue: FG Demo - Medium priority blocked control",
+            "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-584c1521",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:36:19.489Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-8b329cb6",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:34:26.869Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-d9f41ffd",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:32:36.057Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-d0c6a81a",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T15:32:05.273Z",
+          "visibleCopy": [
+            "Blocked issue: FG Demo - Medium priority blocked control",
+            "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-455cf263",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 3,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:42:31.067Z",
+          "visibleCopy": [
+            "Blocked issue: Add team workload view",
+            "Add team workload view is blocked. Latest blocker: Therefore?",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-f84095c5",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:33:26.569Z",
+          "visibleCopy": [
+            "Blocked issue: FG Demo - Medium priority blocked control",
+            "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-51e368ad",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:31:25.557Z",
+          "visibleCopy": [
+            "Blocked issue: FG Demo - Medium priority blocked control",
+            "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-c61d73ff",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:29:31.638Z",
+          "visibleCopy": [
+            "Blocked issue: FG Demo - Medium priority blocked control",
+            "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-f59f9965",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:20:57.532Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-4941622c",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:20:30.590Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-e0cf35ec",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:14:38.596Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-b944dadd",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 1,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T02:01:53.288Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 110: Repair stale read",
+            "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-568ad38d",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 1,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 1,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T01:57:22.529Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 086: Repair stale read",
+            "Audit Issue 086: Repair stale read is blocked. Latest blocker: \"War and Peace,\" blah, blah, blah. Anything goes.\n\nWhat are we doing? It's Wednesday. I see a table. I see Jimmy John and Tyler.\n\nHey, Tyler. Here's Chris and a bunch of other things. OpenAI, detector, detector issues, documentation issues.\n\nLet me see what else we can say. Something about the issues, projects, my name, my resume.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-53c08f8b",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 1,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 1,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T01:57:14.637Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 086: Repair stale read",
+            "Audit Issue 086: Repair stale read is blocked. Latest blocker: \"War and Peace,\" blah, blah, blah. Anything goes.\n\nWhat are we doing? It's Wednesday. I see a table. I see Jimmy John and Tyler.\n\nHey, Tyler. Here's Chris and a bunch of other things. OpenAI, detector, detector issues, documentation issues.\n\nLet me see what else we can say. Something about the issues, projects, my name, my resume.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-10438228",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 1,
+            "repetitionBudget": 1,
+            "informationDensity": 1,
+            "cavemanCopy": 1,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T01:43:19.237Z",
+          "visibleCopy": [
+            "Blocked issue: Audit Issue 086: Repair stale read",
+            "Audit Issue 086: Repair stale read is blocked. Latest blocker: \"War and Peace,\" blah, blah, blah. Anything goes.\n\nWhat are we doing? It's Wednesday. I see a table. I see Jimmy John and Tyler.\n\nHey, Tyler. Here's Chris and a bunch of other things. OpenAI, detector, detector issues, documentation issues.\n\nLet me see what else we can say. Something about the issues, projects, my name, my resume.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-74e43209",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T01:17:38.136Z",
+          "visibleCopy": [
+            "Blocked issue: FG Demo - Medium priority blocked control",
+            "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+            "Confirm the unblock path",
+            "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "caseId": "fg-surface-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 4,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Blocked issue copy names the concrete blocker and next move once",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Missing API credentials",
+        "Audit Load User 029",
+        "Week 11",
+        "Confirm credential owner."
+      ],
+      "notes": [
+        "User can see the blocker and next move without reading architecture proof.",
+        "Blocked appears as useful state, not repeated filler."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-missing-blocker-text",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Missing blocker text is explained as a useful data gap",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Blocker missing",
+        "Audit Load User 029",
+        "Week 11",
+        "Add reason."
+      ],
+      "notes": [
+        "Missing evidence should become a concrete next step.",
+        "The copy should not pretend the blocker is known."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-ui-proof-boundary",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "User copy stays free of reviewer-proof scaffolding",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Owner missing",
+        "Waiting on review",
+        "-",
+        "Audit Project",
+        "Find approver."
+      ],
+      "notes": [
+        "Reviewer evidence belongs in traces, logs, tests, and docs.",
+        "User copy can show missing owner compactly without exposing graph/debug fields."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-runtime-proactive-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Runtime proactive clear-blocker output from runFleetGraph",
+      "visibleCopy": [
+        "Blocked: Runtime issue clear blocker",
+        "Waiting on API credentials · Week 11",
+        "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-runtime-proactive-missing-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Runtime proactive missing-blocker output from runFleetGraph",
+      "visibleCopy": [
+        "Blocked: Runtime issue needs reason",
+        "Reason missing · Week 11",
+        "Ask Audit Load User 029 to add the blocker reason."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-runtime-explain-existing-finding",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Runtime explain output from runFleetGraph",
+      "visibleCopy": [
+        "Runtime existing finding",
+        "Waiting on review · Week 11",
+        "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-7746e40f",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:41:40.058Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-6cc16019",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:40:40.339Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-63d7f970",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:39:50.596Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-4aae8010",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:39:46.361Z",
+      "visibleCopy": [
+        "Blocked issue: FG Demo - Medium priority blocked control",
+        "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-584c1521",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:36:19.489Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-8b329cb6",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:34:26.869Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-d9f41ffd",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:32:36.057Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-d0c6a81a",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T15:32:05.273Z",
+      "visibleCopy": [
+        "Blocked issue: FG Demo - Medium priority blocked control",
+        "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-455cf263",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 3,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:42:31.067Z",
+      "visibleCopy": [
+        "Blocked issue: Add team workload view",
+        "Add team workload view is blocked. Latest blocker: Therefore?",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-f84095c5",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:33:26.569Z",
+      "visibleCopy": [
+        "Blocked issue: FG Demo - Medium priority blocked control",
+        "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-51e368ad",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:31:25.557Z",
+      "visibleCopy": [
+        "Blocked issue: FG Demo - Medium priority blocked control",
+        "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-c61d73ff",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:29:31.638Z",
+      "visibleCopy": [
+        "Blocked issue: FG Demo - Medium priority blocked control",
+        "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-f59f9965",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:20:57.532Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-4941622c",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:20:30.590Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-e0cf35ec",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:14:38.596Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-b944dadd",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 1,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T02:01:53.288Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 110: Repair stale read",
+        "Audit Issue 110: Repair stale read is blocked. No blocker reason was recorded.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-568ad38d",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 1,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 1,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T01:57:22.529Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 086: Repair stale read",
+        "Audit Issue 086: Repair stale read is blocked. Latest blocker: \"War and Peace,\" blah, blah, blah. Anything goes.\n\nWhat are we doing? It's Wednesday. I see a table. I see Jimmy John and Tyler.\n\nHey, Tyler. Here's Chris and a bunch of other things. OpenAI, detector, detector issues, documentation issues.\n\nLet me see what else we can say. Something about the issues, projects, my name, my resume.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-53c08f8b",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 1,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 1,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T01:57:14.637Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 086: Repair stale read",
+        "Audit Issue 086: Repair stale read is blocked. Latest blocker: \"War and Peace,\" blah, blah, blah. Anything goes.\n\nWhat are we doing? It's Wednesday. I see a table. I see Jimmy John and Tyler.\n\nHey, Tyler. Here's Chris and a bunch of other things. OpenAI, detector, detector issues, documentation issues.\n\nLet me see what else we can say. Something about the issues, projects, my name, my resume.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-10438228",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 1,
+        "repetitionBudget": 1,
+        "informationDensity": 1,
+        "cavemanCopy": 1,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T01:43:19.237Z",
+      "visibleCopy": [
+        "Blocked issue: Audit Issue 086: Repair stale read",
+        "Audit Issue 086: Repair stale read is blocked. Latest blocker: \"War and Peace,\" blah, blah, blah. Anything goes.\n\nWhat are we doing? It's Wednesday. I see a table. I see Jimmy John and Tyler.\n\nHey, Tyler. Here's Chris and a bunch of other things. OpenAI, detector, detector issues, documentation issues.\n\nLet me see what else we can say. Something about the issues, projects, my name, my resume.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-74e43209",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T01:17:38.136Z",
+      "visibleCopy": [
+        "Blocked issue: FG Demo - Medium priority blocked control",
+        "FG Demo - Medium priority blocked control is blocked. Latest blocker: Blocked but medium priority, so FleetGraph should stay quiet for MVP.",
+        "Confirm the unblock path",
+        "FleetGraph sees a blocker signal, but a human must confirm the current unblock path."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    }
+  ]
+}

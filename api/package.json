@@ -10,7 +10,7 @@
     "build": "rm -rf dist && tsc && cp src/db/schema.sql dist/db/schema.sql && cp -r src/db/migrations dist/db/migrations",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit",
+    "type-check": "pnpm --filter @ship/shared build && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

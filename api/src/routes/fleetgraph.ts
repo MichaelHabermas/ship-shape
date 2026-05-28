@@ -8,11 +8,10 @@ import { principalFromRequest } from '../security/principal.js';
 import { authorizeRequest } from '../security/route-capability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
+import type { FleetGraphFindingResponse, FleetGraphNotificationResponse } from '@ship/shared';
 import {
   FleetGraphFindingsListResponseSchema,
   FleetGraphNotificationsListResponseSchema,
-  type FleetGraphFindingResponse,
-  type FleetGraphNotificationResponse,
   FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
   FleetGraphRunResponseSchema,
@@ -29,7 +28,13 @@ import { runFleetGraph } from '../fleetgraph/core.js';
 import { isUtcCalendarDate, parseUtcCalendarDate } from '../fleetgraph/date.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
-import { listFleetGraphFindingsForSource, listFleetGraphNotificationFindings } from '../fleetgraph/persistence.js';
+import {
+  listFleetGraphFindingsForSource,
+  listFleetGraphFindingsByIds,
+  listFleetGraphNotificationFindings,
+  markFleetGraphNotificationRead,
+  markVisibleFleetGraphNotificationsRead,
+} from '../fleetgraph/persistence.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
 const router: ExpressRouter = Router();
@@ -41,13 +46,18 @@ const findingsQuerySchema = z.object({
   message: 'sourceIssueId or sourceSprintId is required',
 });
 
-const notificationsQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(99).optional(),
+const notificationsQuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(99).optional() });
+
+const findingParamsSchema = z.object({ findingId: UuidSchema });
+
+const markNotificationsReadBodySchema = z.object({
+  findingIds: z.array(UuidSchema).min(1).max(99),
 });
 
-const findingParamsSchema = z.object({
-  findingId: UuidSchema,
-});
+const markNotificationsReadResponseSchema = z.object({
+  success: z.literal(true),
+  markedRead: z.number().int().nonnegative(),
+}).openapi('FleetGraphMarkNotificationsReadResponse');
 
 const refineBodySchema = z.object({
   instruction: z.string().min(1).max(2_000),
@@ -67,6 +77,26 @@ async function requireWorkspaceAdminForFleetGraph(req: Request, res: Response): 
 
   sendLegacyError(res, 403, 'Workspace admin access required');
   return false;
+}
+
+async function actorVisibleFindingIds(input: {
+  workspaceId: string;
+  principal: ReturnType<typeof principalFromRequest>;
+  findingIds: string[];
+}): Promise<string[]> {
+  const findings = await listFleetGraphFindingsByIds({
+    workspaceId: input.workspaceId,
+    findingIds: input.findingIds,
+  });
+  const visible = await Promise.all(findings.map(async (finding) => {
+    const { output } = await visibleOutputForFinding({
+      principal: input.principal,
+      workspaceId: input.workspaceId,
+      finding,
+    });
+    return output.noSafeOutput ? null : finding.id;
+  }));
+  return visible.filter((findingId): findingId is string => findingId !== null);
 }
 
 router.get('/findings', authMiddleware, defineRoute({
@@ -117,21 +147,90 @@ router.get('/notifications', authMiddleware, defineRoute({
   },
   async handler(req: Request, res: Response, parsed) {
     try {
-      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
       const findings = await listFleetGraphNotificationFindings({
         workspaceId,
+        userId,
         limit: parsed.query.limit,
       });
       const notifications = (await Promise.all(findings.map(async (finding) => {
         const { output } = await visibleOutputForFinding({ principal, workspaceId, finding });
         if (output.noSafeOutput) return null;
         return fleetGraphNotificationResponse({ finding, visibleOutput: output });
-      }))).filter((notification): notification is FleetGraphNotificationResponse => notification !== null);
+      })))
+        .filter((notification): notification is FleetGraphNotificationResponse => notification !== null)
+        .slice(0, parsed.query.limit ?? 25);
 
       res.json({ notifications });
     } catch (err) {
       sendInternalError(res, err, 'List FleetGraph notifications error');
+    }
+  },
+}));
+
+router.post('/notifications/read', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/notifications/read',
+  tags: ['FleetGraph'],
+  summary: 'Mark visible FleetGraph notifications as read for the current user',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { body: markNotificationsReadBodySchema },
+  responses: {
+    200: { schema: markNotificationsReadResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const findingIds = await actorVisibleFindingIds({
+        workspaceId,
+        principal,
+        findingIds: parsed.body.findingIds,
+      });
+      const markedRead = await markVisibleFleetGraphNotificationsRead({
+        workspaceId,
+        userId,
+        findingIds,
+      });
+      res.json({ success: true, markedRead });
+    } catch (err) {
+      sendInternalError(res, err, 'Mark FleetGraph notifications read error');
+    }
+  },
+}));
+
+router.post('/findings/:findingId/read', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/findings/{findingId}/read',
+  tags: ['FleetGraph'],
+  summary: 'Mark one FleetGraph notification as read for the current user',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { params: findingParamsSchema },
+  responses: {
+    200: { schema: markNotificationsReadResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const [visibleFindingId] = await actorVisibleFindingIds({
+        workspaceId,
+        principal,
+        findingIds: [parsed.params.findingId],
+      });
+      const markedRead = visibleFindingId ? await markFleetGraphNotificationRead({
+        workspaceId,
+        userId,
+        findingId: visibleFindingId,
+      }) : 0;
+      res.json({ success: true, markedRead });
+    } catch (err) {
+      sendInternalError(res, err, 'Mark FleetGraph notification read error');
     }
   },
 }));

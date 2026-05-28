@@ -1,10 +1,10 @@
-// Idempotent FleetGraph demo setup seeds reviewer-safe blocked-work scenarios.
+// Idempotent FleetGraph demo setup seeds reviewer-safe attention scenarios.
 // Stable reviewer login: fleetgraph.reviewer@ship.local / admin123.
 import { pathToFileURL } from 'url';
 import { computeCurrentSprintNumber } from '@ship/shared';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
+import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { withFleetGraphLangSmithTrace } from '../fleetgraph/langsmith-trace.js';
 import { saveBlockedImportantIssueFinding } from '../fleetgraph/persistence.js';
@@ -238,6 +238,13 @@ async function upsertIssueIteration(input: {
   );
 }
 
+async function setDocumentUpdatedAt(documentId: string, updatedAt: Date): Promise<void> {
+  await pool.query(
+    'UPDATE documents SET updated_at = $2 WHERE id = $1',
+    [documentId, updatedAt]
+  );
+}
+
 async function seedDemo(): Promise<void> {
   assertLocalDemoDatabase();
   const workspace = await upsertWorkspace();
@@ -337,12 +344,31 @@ async function seedDemo(): Promise<void> {
       whatAttempted: 'FleetGraph demo blocker: data export contract',
     },
     {
-      key: 'unblocked',
-      title: 'FG Demo - Urgent active work not blocked',
+      key: 'at-risk',
+      title: 'FG Demo - At-risk rollout checklist',
       properties: { state: 'in_progress', priority: 'urgent', assignee_id: engineer.id, source: 'internal' },
       sprintId: activeSprintId,
       blockerText: null,
-      whatAttempted: 'FleetGraph demo negative: urgent active unblocked',
+      whatAttempted: 'FleetGraph demo at risk: urgent current-week work',
+      ageDays: 4,
+    },
+    {
+      key: 'missing-owner',
+      title: 'FG Demo - At-risk unowned launch task',
+      properties: { state: 'todo', priority: 'high', source: 'internal' },
+      sprintId: activeSprintId,
+      blockerText: null,
+      whatAttempted: 'FleetGraph demo at risk: missing owner',
+      ageDays: 1,
+    },
+    {
+      key: 'stale',
+      title: 'FG Demo - Stale integration cleanup',
+      properties: { state: 'in_progress', priority: 'medium', assignee_id: engineer.id, source: 'internal' },
+      sprintId: activeSprintId,
+      blockerText: null,
+      whatAttempted: 'FleetGraph demo stale: integration cleanup',
+      ageDays: 210,
     },
     {
       key: 'missing',
@@ -357,8 +383,8 @@ async function seedDemo(): Promise<void> {
       title: 'FG Demo - Medium priority blocked control',
       properties: { state: 'blocked', priority: 'medium', assignee_id: engineer.id, source: 'internal' },
       sprintId: activeSprintId,
-      blockerText: 'Blocked but medium priority, so FleetGraph should stay quiet for MVP.',
-      whatAttempted: 'FleetGraph demo negative: medium priority blocker',
+      blockerText: 'Blocked even though medium priority; blocked state alone should surface it.',
+      whatAttempted: 'FleetGraph demo blocker: medium priority blocker',
     },
     {
       key: 'done',
@@ -409,14 +435,17 @@ async function seedDemo(): Promise<void> {
     await associate(issueId, programId, 'program');
     await associate(issueId, projectId, 'project');
     await associate(issueId, issue.sprintId, 'sprint');
-    await upsertIssueIteration({
+      await upsertIssueIteration({
       issueId,
       workspaceId: workspace.id,
       authorId: issue.key === 'private' ? dependency.id : engineer.id,
       whatAttempted: issue.whatAttempted,
       blockerText: issue.blockerText,
-      createdAt: new Date(now.getTime() - issueIds.size * 60_000),
+      createdAt: new Date(now.getTime() - ((issue.ageDays ?? 0) * 86_400_000) - issueIds.size * 60_000),
     });
+    if (issue.ageDays) {
+      await setDocumentUpdatedAt(issueId, new Date(now.getTime() - issue.ageDays * 86_400_000));
+    }
     issueIds.set(issue.key, issueId);
   }
 
@@ -438,9 +467,10 @@ async function seedDemo(): Promise<void> {
     confidence: 0.85,
     title: 'FG Demo - Duplicate open finding control',
     summary: 'Seeded duplicate control finding for FleetGraph reviewer readiness.',
+    runMetadata: { signalType: 'blocked', reason: 'Seeded duplicate open finding.' },
   });
 
-  const decisions = await detectBlockedImportantIssueDecisions({ workspaceId: workspace.id });
+  const decisions = await detectFleetGraphAttentionDecisions({ workspaceId: workspace.id });
   const quietExits = await findBlockedImportantIssueQuietExits({ workspaceId: workspace.id });
   const traceEvidence = process.argv.includes('--capture-traces')
     ? await captureTraceEvidence({
@@ -500,7 +530,7 @@ async function captureTraceEvidence(input: {
     isSuperAdmin: false,
   };
 
-  const decisions = await detectBlockedImportantIssueDecisions({ workspaceId: input.workspaceId, db: pool });
+  const decisions = await detectFleetGraphAttentionDecisions({ workspaceId: input.workspaceId, db: pool });
   const positiveDecision = decisions.find((decision) => decision.candidate.issue_id === input.positiveIssueId);
   if (!positiveDecision) throw new Error('Missing positive FleetGraph demo decision for trace capture');
 

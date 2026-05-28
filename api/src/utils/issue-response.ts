@@ -1,17 +1,51 @@
-import type { BelongsTo, IssueProperties } from '@ship/shared';
+import type { z } from 'zod';
+import {
+  ISSUE_PRIORITY_VALUES,
+  ISSUE_STATE_VALUES,
+  type BelongsTo,
+  type IssuePriority,
+  type IssueProperties,
+  type IssueSource,
+  type IssueState,
+} from '@ship/shared';
 import type { IssueMetadataRow } from '../db/documents-repository.js';
+import { IssueListResponseSchema } from '../openapi/schemas/issues.js';
 
 export type IssueListRow = IssueMetadataRow;
+export type IssueListItemResponse = z.infer<typeof IssueListResponseSchema>;
 
-export function mapIssueListItem(row: IssueMetadataRow, belongsTo: BelongsTo[] = []) {
+function asIssueState(value: string | undefined): IssueState {
+  if (value && (ISSUE_STATE_VALUES as readonly string[]).includes(value)) {
+    return value as IssueState;
+  }
+  return 'backlog';
+}
+
+function asIssuePriority(value: string | undefined): IssuePriority {
+  if (value && (ISSUE_PRIORITY_VALUES as readonly string[]).includes(value)) {
+    return value as IssuePriority;
+  }
+  return 'medium';
+}
+
+function asIssueSource(value: string | undefined): IssueSource {
+  return value === 'external' ? 'external' : 'internal';
+}
+
+function toIsoDateTime(value: Date | string | null | undefined): string | undefined {
+  if (value == null) return undefined;
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
+export function mapIssueListItem(row: IssueMetadataRow, belongsTo: BelongsTo[] = []): IssueListItemResponse {
   const props: Partial<IssueProperties> = (row.properties ?? {});
   return {
     id: row.id,
     title: row.title,
-    state: props.state || 'backlog',
-    priority: props.priority || 'medium',
-    source: props.source || 'internal',
-    updated_at: row.updated_at,
+    state: asIssueState(props.state),
+    priority: asIssuePriority(props.priority),
+    source: asIssueSource(props.source),
+    updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
     ...(props.estimate !== undefined && props.estimate !== null ? { estimate: props.estimate } : {}),
     ...(row.assignee_name ? { assignee_name: row.assignee_name } : {}),
     ...(props.assignee_id ? { assignee_id: props.assignee_id } : {}),
@@ -22,10 +56,10 @@ export function mapIssueListItem(row: IssueMetadataRow, belongsTo: BelongsTo[] =
     ...(props.is_system_generated ? { is_system_generated: true } : {}),
     ...(props.accountability_target_id ? { accountability_target_id: props.accountability_target_id } : {}),
     ...(props.accountability_type ? { accountability_type: props.accountability_type } : {}),
-    ...(row.started_at ? { started_at: row.started_at } : {}),
-    ...(row.completed_at ? { completed_at: row.completed_at } : {}),
-    ...(row.cancelled_at ? { cancelled_at: row.cancelled_at } : {}),
-    ...(row.reopened_at ? { reopened_at: row.reopened_at } : {}),
+    ...(row.started_at ? { started_at: toIsoDateTime(row.started_at) } : {}),
+    ...(row.completed_at ? { completed_at: toIsoDateTime(row.completed_at) } : {}),
+    ...(row.cancelled_at ? { cancelled_at: toIsoDateTime(row.cancelled_at) } : {}),
+    ...(row.reopened_at ? { reopened_at: toIsoDateTime(row.reopened_at) } : {}),
     ...(row.converted_from_id ? { converted_from_id: row.converted_from_id } : {}),
     ...(belongsTo.length > 0 ? { belongs_to: belongsTo } : {}),
   };

@@ -1,48 +1,21 @@
-import type { BelongsTo, BelongsToType, EditorDocumentType } from '@ship/shared';
+import type { BelongsTo, BelongsToType } from '@ship/shared';
+import {
+  type CurrentDocumentType,
+  type EditorDocumentType,
+  isCurrentDocumentType as isSharedCurrentDocumentType,
+  isEditorDocumentType as isSharedEditorDocumentType,
+} from '@ship/shared';
 
-export type CurrentDocumentType =
-  | 'wiki'
-  | 'issue'
-  | 'project'
-  | 'sprint'
-  | 'program'
-  | 'person'
-  | 'weekly_plan'
-  | 'weekly_retro'
-  | 'standup'
-  | null;
+export type { CurrentDocumentType, EditorDocumentType };
 
 const belongsToTypes = new Set<BelongsToType>(['program', 'project', 'sprint', 'parent']);
-const editorDocumentTypes = new Set<EditorDocumentType>([
-  'wiki',
-  'issue',
-  'project',
-  'sprint',
-  'program',
-  'person',
-  'weekly_plan',
-  'weekly_retro',
-  'standup',
-  'weekly_review',
-]);
-const currentDocumentTypes = new Set<NonNullable<CurrentDocumentType>>([
-  'wiki',
-  'issue',
-  'project',
-  'sprint',
-  'program',
-  'person',
-  'weekly_plan',
-  'weekly_retro',
-  'standup',
-]);
 
 export function isEditorDocumentType(value: unknown): value is EditorDocumentType {
-  return typeof value === 'string' && editorDocumentTypes.has(value as EditorDocumentType);
+  return isSharedEditorDocumentType(value);
 }
 
 export function isCurrentDocumentType(value: unknown): value is NonNullable<CurrentDocumentType> {
-  return typeof value === 'string' && currentDocumentTypes.has(value as NonNullable<CurrentDocumentType>);
+  return isSharedCurrentDocumentType(value);
 }
 
 export function isBelongsToType(value: unknown): value is BelongsToType {

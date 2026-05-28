@@ -20,6 +20,7 @@ Use multiple profiles only when the task clearly crosses boundaries. If no profi
 - For `gh` (PRs, issues): default repo is **origin** (`MichaelHabermas/ship-shape`). Run `./scripts/setup-gh-default.sh` after clone; never use `US-Department-of-the-Treasury/ship` as the gh target. Treasury is remote `treasury` (fetch-only).
 - UI `localStorage` prefs are best-effort; submission/security inline scripts use `scripts/submission/browser-storage-client.mjs` (`docs/conventions/browser-storage.md`).
 - Document authorization is capability-based (`api/src/security/capabilities.ts`); `document-policy.ts` is seed data only. For auth work use the `security` profile, `my-docs/evidence/auth-matrix.md`, and the remediation checklist pointer in `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (do not duplicate that plan here).
+- Do not add `export type { … } from '…'` passthrough barrels; import types from where they are defined (`@ship/shared`, `@/api/schemas`, etc.). See `docs/claude-reference/anti-patterns.md` §11.
 
 ## Feature branches
 

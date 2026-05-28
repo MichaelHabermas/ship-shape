@@ -1,11 +1,11 @@
 import { pool } from '../db/client.js';
+import type { ProjectRouteProperties } from '@ship/shared';
 import type {
   ProjectRetroIssueRow,
   ProjectRetroProjectRow,
   ProjectRetroSprintRow,
   ProjectPropertiesRow,
   ProjectRow,
-  ProjectRouteProperties,
   TipTapJsonDoc,
 } from '../db/projects-repository.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';

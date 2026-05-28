@@ -1,5 +1,6 @@
 // FleetGraph trace helpers persist reviewer-safe node metadata without raw prompts or hidden evidence.
-import type { FleetGraphRunDecision, FleetGraphRunMode, JsonRecord } from './persistence.js';
+import type { FleetGraphRunMode } from '@ship/shared';
+import type { FleetGraphRunDecision, JsonRecord } from './persistence.js';
 import type { FleetGraphTraceMetadata } from './types.js';
 
 export function fleetGraphTraceMetadata(input: {

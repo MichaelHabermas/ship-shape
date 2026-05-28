@@ -2,40 +2,21 @@
 import type {
   FleetGraphChangeSummary,
   FleetGraphChatContext,
-  FleetGraphEvidenceVisibility,
+  FleetGraphEvidenceItem,
+  FleetGraphRunMode,
   FleetGraphSeverity,
-  FleetGraphTrace as FleetGraphWireTrace,
+  FleetGraphTrace,
 } from '@ship/shared';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
+import type { FleetGraphAttentionDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
 import type {
   FleetGraphFinding,
   FleetGraphRun,
   FleetGraphRunDecision,
-  FleetGraphRunMode,
   JsonRecord,
   RecordFleetGraphRunInput,
   SaveBlockedImportantIssueFindingInput,
 } from './persistence.js';
-
-export type {
-  FleetGraphChangeSummary,
-  FleetGraphChangeSummaryRow,
-  FleetGraphChatContext,
-  FleetGraphChatContextKind,
-  FleetGraphEvidenceVisibility,
-} from '@ship/shared';
-
-export type FleetGraphEvidenceItem = {
-  kind: 'source_issue' | 'source_sprint' | 'blocker' | 'dedupe' | 'finding' | 'restricted';
-  sourceDocumentId?: string;
-  sourceType?: 'issue' | 'sprint';
-  claim: string;
-  excerpt?: string;
-  visibility: FleetGraphEvidenceVisibility;
-  visibleFields: readonly string[];
-  redactionReason?: string;
-};
 
 export type FleetGraphVisibleOutput = {
   title: string;
@@ -52,14 +33,17 @@ export type FleetGraphVisibleOutput = {
   noSafeOutput?: boolean;
 };
 
-export type FleetGraphTraceMetadata = Omit<FleetGraphWireTrace, 'decision'> & {
+export type FleetGraphTraceMetadata = Omit<FleetGraphTrace, 'decision'> & {
   decision: FleetGraphRunDecision;
 };
 
 export type FleetGraphTokenMetadata = {
   modelCalls: number;
+  provider?: string;
+  model?: string;
   inputTokens?: number;
   outputTokens?: number;
+  totalTokens?: number;
 };
 
 export type FleetGraphCostMetadata = {
@@ -81,7 +65,7 @@ export type FleetGraphDecisionPacket = {
 export type FleetGraphTrigger =
   | {
       type: 'detector_decision';
-      detectorDecision: BlockedImportantIssueDedupeDecision;
+      detectorDecision: FleetGraphAttentionDedupeDecision;
     }
   | {
       type: 'quiet_exit';
@@ -107,6 +91,10 @@ export type FleetGraphTrigger =
     }
   | {
       type: 'resolve_finding';
+      findingId: string;
+    }
+  | {
+      type: 'suppress_finding';
       findingId: string;
     }
   | {

@@ -1,4 +1,5 @@
 // Week routes expose sprint document workflows and visibility-filtered rollups.
+import type { PlanHistoryEntry } from '@ship/shared';
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
 import { z } from 'zod';
@@ -984,8 +985,8 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     // If plan is being updated, append old one to history
     if (data.plan !== undefined && data.plan !== currentProps.plan) {
       // Initialize history if doesn't exist
-      const currentHistory = Array.isArray(currentProps.plan_history)
-        ? [...(currentProps.plan_history as unknown[])]
+      const currentHistory: PlanHistoryEntry[] = Array.isArray(currentProps.plan_history)
+        ? [...currentProps.plan_history]
         : [];
 
       // If there was a previous plan, add it to history
@@ -1016,10 +1017,10 @@ router.patch('/:id/plan', authMiddleware, async (req: Request, res: Response) =>
     const criteriaChanged = data.success_criteria !== undefined &&
       JSON.stringify(data.success_criteria) !== JSON.stringify(currentProps.success_criteria);
 
-    if ((planChanged || criteriaChanged) &&
-        asApprovalRecord(currentProps.plan_approval)?.state === 'approved') {
+    const currentPlanApproval = asApprovalRecord(currentProps.plan_approval);
+    if ((planChanged || criteriaChanged) && currentPlanApproval?.state === 'approved') {
       newProps.plan_approval = {
-        ...(currentProps.plan_approval as Record<string, unknown>),
+        ...currentPlanApproval,
         state: 'changed_since_approved',
       };
     }

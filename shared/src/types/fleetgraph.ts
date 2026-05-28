@@ -4,17 +4,39 @@ export type FleetGraphSeverity = 'low' | 'medium' | 'high' | 'urgent';
 
 export type FleetGraphRunMode = 'proactive' | 'on_demand';
 
+export type FleetGraphSignalType = 'blocked' | 'stale' | 'at_risk';
+
 export type FleetGraphEvidenceVisibility = 'internal' | 'actor_visible' | 'restricted';
 
-export type FleetGraphEvidence = {
-  kind: string;
+export const FLEETGRAPH_EVIDENCE_KIND_VALUES = [
+  'source_issue',
+  'source_sprint',
+  'blocker',
+  'stale',
+  'at_risk',
+  'dedupe',
+  'finding',
+  'restricted',
+] as const;
+
+export type FleetGraphEvidenceKind = (typeof FLEETGRAPH_EVIDENCE_KIND_VALUES)[number];
+
+export type FleetGraphEvidenceFields = {
+  kind: FleetGraphEvidenceKind;
   sourceDocumentId?: string;
   sourceType?: 'issue' | 'sprint';
   claim: string;
   excerpt?: string;
   visibility: FleetGraphEvidenceVisibility;
-  visibleFields: string[];
   redactionReason?: string;
+};
+
+export type FleetGraphEvidenceItem = FleetGraphEvidenceFields & {
+  visibleFields: readonly string[];
+};
+
+export type FleetGraphEvidence = FleetGraphEvidenceFields & {
+  visibleFields: string[];
 };
 
 export type FleetGraphRecommendedAction = {
@@ -121,35 +143,56 @@ export type FleetGraphChatResponse = {
   traceMetadata: FleetGraphTrace;
 };
 
-export type FleetGraphFindingResponse = {
-  id: string;
-  kind: 'blocker';
-  status: string;
+export type FleetGraphAttentionSignalFields = {
+  signalType: FleetGraphSignalType;
+  signalLabel: string;
+  reason: string;
+};
+
+export type FleetGraphSourceReferenceFields = {
   sourceIssueId: string;
   sourceSprintId: string;
+};
+
+export type FleetGraphVisibleResponseFields = {
   visibleOutput: FleetGraphVisibleOutput;
   traceMetadata: FleetGraphTrace;
 };
+
+export type FleetGraphFindingResponse = FleetGraphAttentionSignalFields
+  & FleetGraphSourceReferenceFields
+  & FleetGraphVisibleResponseFields
+  & {
+    id: string;
+    kind: 'blocker';
+    status: string;
+  };
 
 export type FleetGraphFindingsListResponse = {
   findings: FleetGraphFindingResponse[];
 };
 
-export type FleetGraphNotificationResponse = {
-  id: string;
-  findingId: string;
+export type FleetGraphNotificationDisplayFields = {
   title: string;
   issueTitle: string;
   context: string;
   owner: string | null;
+  notificationText: string;
   blockerText: string;
-  sourceIssueId: string;
-  sourceSprintId: string;
   sourcePath: string;
   detectedAt: string;
-  visibleOutput: FleetGraphVisibleOutput;
-  traceMetadata: FleetGraphTrace;
+  isRead: boolean;
+  readAt: string | null;
 };
+
+export type FleetGraphNotificationResponse = FleetGraphAttentionSignalFields
+  & FleetGraphSourceReferenceFields
+  & FleetGraphVisibleResponseFields
+  & FleetGraphNotificationDisplayFields
+  & {
+    id: string;
+    findingId: string;
+  };
 
 export type FleetGraphNotificationsListResponse = {
   notifications: FleetGraphNotificationResponse[];

@@ -4,16 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import type {
   FleetGraphNotificationResponse,
   FleetGraphNotificationsListResponse,
-} from '@/api/schemas';
+} from '@ship/shared';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
-import { apiGetJson } from '@/lib/api';
+import { apiGetJson, apiPostJson } from '@/lib/api';
 
 export type FleetGraphNotificationProbeItem = Pick<
   FleetGraphNotificationResponse,
-  'id' | 'findingId' | 'title' | 'owner' | 'context' | 'blockerText' | 'sourcePath' | 'detectedAt'
+  'id' | 'findingId' | 'signalType' | 'signalLabel' | 'reason' | 'title' | 'owner' | 'context' | 'notificationText' | 'blockerText' | 'sourcePath' | 'detectedAt'
 > & {
   age: string;
+  isRead: boolean;
+  readAt: string | null;
 };
+
+const SIGNAL_ORDER = ['blocked', 'stale', 'at_risk'] as const;
+type NotificationSignalType = typeof SIGNAL_ORDER[number];
 
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
@@ -32,8 +37,15 @@ export function FleetGraphNotificationsProbe({
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>([]);
+  const [expandedNotifications, setExpandedNotifications] = useState<Record<string, boolean>>({});
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const notificationCount = notifications.length;
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  const signalCounts = SIGNAL_ORDER.map((signalType) => ({
+    signalType,
+    label: notifications.find((notification) => notification.signalType === signalType)?.signalLabel ?? signalType,
+    count: notifications.filter((notification) => notification.signalType === signalType).length,
+  })).filter((item) => item.count > 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,12 +60,18 @@ export function FleetGraphNotificationsProbe({
         setNotifications(data.notifications.map((notification) => ({
           id: notification.id,
           findingId: notification.findingId,
+          signalType: notification.signalType,
+          signalLabel: notification.signalLabel,
+          reason: notification.reason,
           title: notification.title,
           owner: notification.owner,
           context: notification.context,
+          notificationText: notification.notificationText,
           blockerText: notification.blockerText,
           sourcePath: notification.sourcePath,
           detectedAt: notification.detectedAt,
+          isRead: notification.isRead,
+          readAt: notification.readAt,
           age: formatNotificationAge(notification.detectedAt),
         })));
         setLoadStatus('ready');
@@ -85,6 +103,28 @@ export function FleetGraphNotificationsProbe({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [open]);
 
+  async function markRead(notification: FleetGraphNotificationProbeItem) {
+    if (notification.isRead) return;
+    setNotifications((items) => items.map((item) => (
+      item.findingId === notification.findingId
+        ? { ...item, isRead: true, readAt: new Date().toISOString() }
+        : item
+    )));
+    try {
+      await apiPostJson(
+        `/api/fleetgraph/findings/${notification.findingId}/read`,
+        {},
+        'Failed to mark notification read'
+      );
+    } catch {
+      setNotifications((items) => items.map((item) => (
+        item.findingId === notification.findingId
+          ? { ...item, isRead: notification.isRead, readAt: notification.readAt }
+          : item
+      )));
+    }
+  }
+
   return (
     <div ref={containerRef} className="fixed bottom-[84px] left-[6px] z-30 flex flex-col gap-2">
       {open && (
@@ -92,8 +132,22 @@ export function FleetGraphNotificationsProbe({
           aria-label="Notifications"
           className="absolute bottom-0 left-[42px] w-[min(380px,calc(100vw-4rem))] overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
         >
-          <header className="flex items-center justify-between border-b border-border px-3 py-1.5">
-            <div className="text-sm font-medium text-foreground">Notifications</div>
+          <header className="flex items-center justify-between gap-3 border-b border-border px-3 py-1.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="shrink-0 text-sm font-medium text-foreground">Notifications</div>
+              {signalCounts.length > 0 && (
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  {signalCounts.map((item) => (
+                    <SignalCountPill
+                      key={item.signalType}
+                      signalType={item.signalType}
+                      label={item.label}
+                      count={item.count}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -109,11 +163,23 @@ export function FleetGraphNotificationsProbe({
               <NotificationEmptyState status={loadStatus} />
             )}
             {notifications.map((notification) => (
-              <BlockedIssueNotification
+              <AttentionNotification
                 key={notification.id}
                 notification={notification}
-                onDiscuss={() => onDiscuss(notification)}
+                expanded={expandedNotifications[notification.id] === true}
+                onToggle={() => {
+                  void markRead(notification);
+                  setExpandedNotifications((items) => ({
+                    ...items,
+                    [notification.id]: items[notification.id] !== true,
+                  }));
+                }}
+                onDiscuss={() => {
+                  void markRead(notification);
+                  onDiscuss(notification);
+                }}
                 onOpenSource={() => {
+                  void markRead(notification);
                   if (notification.sourcePath) navigate(notification.sourcePath);
                 }}
               />
@@ -130,7 +196,7 @@ export function FleetGraphNotificationsProbe({
         className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-border/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
       >
         <BellIcon />
-        <NotificationBadge count={notificationCount} />
+        <NotificationBadge count={unreadCount || notificationCount} />
       </button>
     </div>
   );
@@ -158,57 +224,97 @@ function NotificationBadge({ count }: { count: number }) {
   );
 }
 
-function BlockedIssueNotification({
+function SignalCountPill({
+  signalType,
+  label,
+  count,
+}: {
+  signalType: NotificationSignalType;
+  label: string;
+  count: number;
+}) {
+  return (
+    <NotificationLabelChip label={`${label} ${count}`} signalType={signalType} />
+  );
+}
+
+function AttentionNotification({
   notification,
+  expanded,
+  onToggle,
   onDiscuss,
   onOpenSource,
 }: {
   notification: FleetGraphNotificationProbeItem;
+  expanded: boolean;
+  onToggle: () => void;
   onDiscuss: () => void;
   onOpenSource: () => void;
 }) {
   const ownerLabel = notification.owner || '-';
 
   return (
-    <article className="border-b border-border bg-background/70 px-3 py-2 last:border-b-0">
-      <div className="mb-1 flex items-start justify-between gap-2">
+    <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${notification.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>
+      <div className="grid grid-cols-[minmax(0,1fr)_10px] items-start gap-2">
         <div className="min-w-0">
-          <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-medium leading-5 text-foreground">
-            <NotificationLabelChip label="Blocked" />
-            <span className="truncate">{displayText(notification.title)}</span>
-          </h3>
-          <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
-            <span>{notification.age}</span>
-            <span aria-hidden="true">·</span>
-            <span>{displayText(ownerLabel)}</span>
-            <span aria-hidden="true">·</span>
-            <span>{displayText(notification.context)}</span>
-          </div>
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex w-full min-w-0 items-center gap-1.5 text-left text-[13px] font-medium leading-5 text-foreground transition hover:text-white focus:outline-none focus:ring-2 focus:ring-accent"
+            aria-expanded={expanded}
+          >
+            <NotificationLabelChip label={notification.signalLabel} signalType={notification.signalType} />
+            <span className="min-w-0 truncate">{displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}</span>
+          </button>
+          {expanded && (
+            <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
+              <span>{displayText(ownerLabel)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{displayText(notification.context)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{notification.age}</span>
+            </div>
+          )}
         </div>
-        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+        <span
+          aria-label={notification.isRead ? undefined : 'Unread'}
+          className={`mt-2 h-1.5 w-1.5 rounded-full ${notification.isRead ? 'bg-transparent' : 'bg-accent/70'}`}
+          title={notification.isRead ? undefined : 'Unread'}
+        />
       </div>
 
-      <p className="line-clamp-2 text-sm leading-5 text-muted">{displayText(notification.blockerText)}</p>
+      {expanded && (
+        <>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{displayText(notification.reason || notification.notificationText || notification.blockerText)}</p>
 
-      <div className="mt-1.5 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={!notification.sourcePath}
-          onClick={onOpenSource}
-          className="rounded border border-border px-2.5 py-1 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
-        >
-          Open source
-        </button>
-        <button
-          type="button"
-          onClick={onDiscuss}
-          className="rounded bg-accent px-2.5 py-1 text-xs text-white transition hover:bg-accent-hover"
-        >
-          Discuss
-        </button>
-      </div>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              disabled={!notification.sourcePath}
+              onClick={onOpenSource}
+              className="flex h-8 items-center rounded border border-border px-2.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
+            >
+              Open source
+            </button>
+            <button
+              type="button"
+              onClick={onDiscuss}
+              className="flex h-8 items-center rounded bg-accent px-2.5 text-xs text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              Discuss
+            </button>
+          </div>
+        </>
+      )}
     </article>
   );
+}
+
+function titleWithoutSignalPrefix(title: string, signalLabel: string): string {
+  const prefix = `${signalLabel}:`;
+  return title.toLowerCase().startsWith(prefix.toLowerCase())
+    ? title.slice(prefix.length).trim()
+    : title;
 }
 
 function formatNotificationAge(value: string): string {

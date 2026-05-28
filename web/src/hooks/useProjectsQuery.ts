@@ -8,7 +8,6 @@ import type {
   ProjectWeekListItem,
 } from '@/api/schemas';
 
-export type { InferredProjectStatus } from '@ship/shared';
 export type { Project, ProjectIssueListItem, ProjectWeekListItem };
 export type ProjectIssue = ProjectIssueListItem;
 export type ProjectWeek = ProjectWeekListItem;

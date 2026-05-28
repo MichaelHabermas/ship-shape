@@ -9,7 +9,6 @@ import { createApiStatusError } from '@/lib/api-error';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
-export type { ApiResponse } from '@ship/shared';
 export { readJson } from '@/api/read-json';
 
 // CSRF token cache for state-changing requests
@@ -261,50 +260,20 @@ async function request<T>(
   return data;
 }
 
-// Types for workspace management
-export interface Workspace {
-  id: string;
-  name: string;
-  archivedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+// Types for workspace management (wire shapes from HTTP JSON)
+import type {
+  AuditLogResponse,
+  WorkspaceInviteResponse,
+  WorkspaceMembershipResponse,
+  WorkspaceMemberResponse,
+  WorkspaceResponse,
+} from '@ship/shared';
 
-export interface WorkspaceMembership {
-  id: string;
-  workspaceId: string;
-  userId: string;
-  role: 'admin' | 'member';
-  personDocumentId: string | null;
-  createdAt: string;
-}
-
-export interface WorkspaceInvite {
-  id: string;
-  workspaceId: string;
-  email: string;
-  x509SubjectDn: string | null;
-  token: string;
-  role: 'admin' | 'member';
-  expiresAt: string;
-  createdAt: string;
-}
-
-export interface AuditLog {
-  id: string;
-  workspaceId: string | null;
-  actorUserId: string;
-  actorName: string;
-  actorEmail: string;
-  impersonatingUserId: string | null;
-  action: string;
-  resourceType: string | null;
-  resourceId: string | null;
-  details: Record<string, unknown> | null;
-  ipAddress: string | null;
-  userAgent: string | null;
-  createdAt: string;
-}
+export type Workspace = WorkspaceResponse;
+export type WorkspaceMembership = WorkspaceMembershipResponse;
+export type WorkspaceInvite = WorkspaceInviteResponse;
+export type AuditLog = AuditLogResponse;
+export type WorkspaceMember = WorkspaceMemberResponse;
 
 export interface ApiToken {
   id: string;
@@ -320,17 +289,6 @@ export interface ApiToken {
 export interface ApiTokenCreateResponse extends ApiToken {
   token: string; // Full token - only returned on creation
   warning: string;
-}
-
-export interface WorkspaceMember {
-  id: string;
-  userId: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'member' | null;
-  personDocumentId: string | null;
-  joinedAt: string | null;
-  isArchived?: boolean;
 }
 
 export interface UserInfo {

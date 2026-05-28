@@ -400,6 +400,34 @@ describe('FleetGraph shared core', () => {
     }));
   });
 
+  it('answers broad-but-context-bound chat without becoming workspace-wide', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What else is weird in this project?',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('explain');
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.outputSnapshot).toMatchObject({
+      answer: {
+        title: 'What stands out',
+      },
+    });
+    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('workspace-wide');
+  });
+
   it('quietly declines context chat when no active finding is attached', async () => {
     const port = persistence();
     vi.mocked(port.listFindingsForSource).mockResolvedValue([]);
@@ -459,6 +487,30 @@ describe('FleetGraph shared core', () => {
         process.env.LANGCHAIN_TRACING_V2 = previousLangChainTracing;
       }
     }
+  });
+
+  it('records LangSmith capture failures in run error metadata', async () => {
+    const port = persistence();
+
+    await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: { type: 'explain_finding', findingId },
+    }, {
+      persistence: port,
+      db: readableSourceDb(),
+      observabilityError: 'LangSmith shareRun timed out',
+    });
+
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      errorMetadata: {
+        observability: {
+          langsmithCapture: 'failed',
+          message: 'LangSmith shareRun timed out',
+        },
+      },
+    }));
   });
 
   it('records caller-provided external trace identity for resolve runs', async () => {

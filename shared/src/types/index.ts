@@ -5,3 +5,5 @@ export * from './auth.js';
 export * from './workspace.js';
 export * from './document.js';
 export * from './fleetgraph.js';
+export * from './realtime-events.js';
+export * from './route-properties.js';

@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-
-type DocumentType = 'wiki' | 'issue' | 'project' | 'program' | 'sprint' | 'person' | 'weekly_plan' | 'weekly_retro' | 'standup' | null;
+import type { CurrentDocumentType } from '@ship/shared';
 
 interface CurrentDocumentContextValue {
-  currentDocumentType: DocumentType;
+  currentDocumentType: CurrentDocumentType;
   currentDocumentId: string | null;
   currentDocumentProjectId: string | null;
-  setCurrentDocument: (id: string | null, type: DocumentType, projectId?: string | null) => void;
+  setCurrentDocument: (id: string | null, type: CurrentDocumentType, projectId?: string | null) => void;
   clearCurrentDocument: () => void;
 }
 
@@ -14,10 +13,10 @@ const CurrentDocumentContext = createContext<CurrentDocumentContextValue | undef
 
 export function CurrentDocumentProvider({ children }: { children: ReactNode }) {
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
-  const [currentDocumentType, setCurrentDocumentType] = useState<DocumentType>(null);
+  const [currentDocumentType, setCurrentDocumentType] = useState<CurrentDocumentType>(null);
   const [currentDocumentProjectId, setCurrentDocumentProjectId] = useState<string | null>(null);
 
-  const setCurrentDocument = useCallback((id: string | null, type: DocumentType, projectId?: string | null) => {
+  const setCurrentDocument = useCallback((id: string | null, type: CurrentDocumentType, projectId?: string | null) => {
     setCurrentDocumentId(id);
     setCurrentDocumentType(type);
     setCurrentDocumentProjectId(projectId ?? null);
@@ -57,7 +56,7 @@ export function useCurrentDocument() {
  * Returns null if not in a CurrentDocumentProvider context.
  * Useful for optional context usage.
  */
-export function useCurrentDocumentType(): DocumentType {
+export function useCurrentDocumentType(): CurrentDocumentType {
   const context = useContext(CurrentDocumentContext);
   return context?.currentDocumentType ?? null;
 }

@@ -8493,7 +8493,17 @@
         "type": "object",
         "properties": {
           "kind": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "source_issue",
+              "source_sprint",
+              "blocker",
+              "stale",
+              "at_risk",
+              "dedupe",
+              "finding",
+              "restricted"
+            ]
           },
           "sourceDocumentId": {
             "type": "string",
@@ -8642,19 +8652,18 @@
       "FleetGraphFindingResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "UUID identifier",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
-          },
-          "kind": {
+          "signalType": {
             "type": "string",
             "enum": [
-              "blocker"
+              "blocked",
+              "stale",
+              "at_risk"
             ]
           },
-          "status": {
+          "signalLabel": {
+            "type": "string"
+          },
+          "reason": {
             "type": "string"
           },
           "sourceIssueId": {
@@ -8674,16 +8683,34 @@
           },
           "traceMetadata": {
             "$ref": "#/components/schemas/FleetGraphTrace"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "blocker"
+            ]
+          },
+          "status": {
+            "type": "string"
           }
         },
         "required": [
-          "id",
-          "kind",
-          "status",
+          "signalType",
+          "signalLabel",
+          "reason",
           "sourceIssueId",
           "sourceSprintId",
           "visibleOutput",
-          "traceMetadata"
+          "traceMetadata",
+          "id",
+          "kind",
+          "status"
         ]
       },
       "FleetGraphFindingsListResponse": {
@@ -8703,32 +8730,18 @@
       "FleetGraphNotificationResponse": {
         "type": "object",
         "properties": {
-          "id": {
+          "signalType": {
             "type": "string",
-            "format": "uuid",
-            "description": "UUID identifier",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
+            "enum": [
+              "blocked",
+              "stale",
+              "at_risk"
+            ]
           },
-          "findingId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "UUID identifier",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
-          },
-          "title": {
+          "signalLabel": {
             "type": "string"
           },
-          "issueTitle": {
-            "type": "string"
-          },
-          "context": {
-            "type": "string"
-          },
-          "owner": {
-            "type": "string",
-            "nullable": true
-          },
-          "blockerText": {
+          "reason": {
             "type": "string"
           },
           "sourceIssueId": {
@@ -8743,33 +8756,77 @@
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
+          "visibleOutput": {
+            "$ref": "#/components/schemas/FleetGraphVisibleOutput"
+          },
+          "traceMetadata": {
+            "$ref": "#/components/schemas/FleetGraphTrace"
+          },
+          "title": {
+            "type": "string"
+          },
+          "issueTitle": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "nullable": true
+          },
+          "notificationText": {
+            "type": "string"
+          },
+          "blockerText": {
+            "type": "string"
+          },
           "sourcePath": {
             "type": "string"
           },
           "detectedAt": {
             "type": "string"
           },
-          "visibleOutput": {
-            "$ref": "#/components/schemas/FleetGraphVisibleOutput"
+          "isRead": {
+            "type": "boolean"
           },
-          "traceMetadata": {
-            "$ref": "#/components/schemas/FleetGraphTrace"
+          "readAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "findingId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           }
         },
         "required": [
-          "id",
-          "findingId",
+          "signalType",
+          "signalLabel",
+          "reason",
+          "sourceIssueId",
+          "sourceSprintId",
+          "visibleOutput",
+          "traceMetadata",
           "title",
           "issueTitle",
           "context",
           "owner",
+          "notificationText",
           "blockerText",
-          "sourceIssueId",
-          "sourceSprintId",
           "sourcePath",
           "detectedAt",
-          "visibleOutput",
-          "traceMetadata"
+          "isRead",
+          "readAt",
+          "id",
+          "findingId"
         ]
       },
       "FleetGraphNotificationsListResponse": {
@@ -8784,6 +8841,25 @@
         },
         "required": [
           "notifications"
+        ]
+      },
+      "FleetGraphMarkNotificationsReadResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "markedRead": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "success",
+          "markedRead"
         ]
       },
       "FleetGraphChangeSummaryRow": {
@@ -17975,6 +18051,141 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FleetGraphNotificationsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/notifications/read": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Mark visible FleetGraph notifications as read for the current user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "findingIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "UUID identifier",
+                      "example": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "minItems": 1,
+                    "maxItems": 99
+                  }
+                },
+                "required": [
+                  "findingIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphMarkNotificationsReadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/findings/{findingId}/read": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Mark one FleetGraph notification as read for the current user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "findingId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphMarkNotificationsReadResponse"
                 }
               }
             }

@@ -9,14 +9,19 @@ import { pool } from '../../db/client.js';
 import type { Principal } from '../../security/principal.js';
 import { deterministicProactiveCreateText } from '../model.js';
 import {
+  claimFleetGraphAttentionEvents,
+  completeFleetGraphAttentionEvent,
   completeFleetGraphWorkerTick,
+  failFleetGraphAttentionEvent,
   heartbeatFleetGraphWorkerTick,
   startFleetGraphWorkerTick,
   type JsonRecord,
 } from '../persistence.js';
 import {
+  runFleetGraphAttentionEvent,
   runFleetGraphTick,
   type FleetGraphExecuteTickSummary,
+  type FleetGraphEventTickSummary,
   type FleetGraphTickInput,
 } from './tick-runner.js';
 
@@ -28,6 +33,7 @@ type WorkerLogger = Pick<typeof console, 'log' | 'error'>;
 type WorkerRunTick = (
   input: Extract<FleetGraphTickInput, { mode: 'execute' }>
 ) => Promise<FleetGraphExecuteTickSummary>;
+type WorkerRunAttentionEvent = typeof runFleetGraphAttentionEvent;
 
 type TimerHandle = ReturnType<typeof setTimeout>;
 
@@ -39,6 +45,7 @@ export type FleetGraphWorkerOptions = {
   setTimeoutFn?: typeof setTimeout;
   clearTimeoutFn?: typeof clearTimeout;
   runTick?: WorkerRunTick;
+  runAttentionEvent?: WorkerRunAttentionEvent;
   now?: () => Date;
 };
 
@@ -47,6 +54,7 @@ type WorkerTickStats = {
   selectedWorkspaceCount: number;
   detectorDecisionCount: number;
   resultCount: number;
+  eventCount: number;
   modelCallCount: number;
   auditMetadata: JsonRecord;
 };
@@ -71,6 +79,14 @@ function safeErrorMetadata(error: unknown): JsonRecord {
 function workspaceFailures(metadata: JsonRecord): JsonRecord[] {
   return Array.isArray(metadata.workspaceFailures)
     ? metadata.workspaceFailures.filter((failure): failure is JsonRecord => (
+      failure !== null && typeof failure === 'object' && !Array.isArray(failure)
+    ))
+    : [];
+}
+
+function eventFailures(metadata: JsonRecord): JsonRecord[] {
+  return Array.isArray(metadata.eventFailures)
+    ? metadata.eventFailures.filter((failure): failure is JsonRecord => (
       failure !== null && typeof failure === 'object' && !Array.isArray(failure)
     ))
     : [];
@@ -142,6 +158,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
   const logger = options.logger ?? console;
   const now = options.now ?? (() => new Date());
   const runTick = options.runTick ?? runFleetGraphTick;
+  const runAttentionEvent = options.runAttentionEvent ?? runFleetGraphAttentionEvent;
   const instanceId = options.instanceId ?? `fleetgraph-${randomUUID()}`;
   const deadlineAt = new Date(now().getTime() + config.workerTickDeadlineMs);
   const client = await db.connect();
@@ -152,6 +169,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
     selectedWorkspaceCount: 0,
     detectorDecisionCount: 0,
     resultCount: 0,
+    eventCount: 0,
     modelCallCount: 0,
     auditMetadata: {
       deadlineAt: deadlineAt.toISOString(),
@@ -175,6 +193,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
         selectedWorkspaceCount: 0,
         detectorDecisionCount: 0,
         resultCount: 0,
+        eventCount: 0,
         modelCallCount: 0,
         auditMetadata: { ...stats.auditMetadata, skippedReason: 'advisory_lock_held' },
       };
@@ -184,6 +203,60 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
     stats.selectedWorkspaceCount = workspaceIds.length;
     stats.auditMetadata.workerStartedAt = tick.started_at.toISOString();
     stats.auditMetadata.workspaceIds = workspaceIds;
+
+    const attentionEvents = await claimFleetGraphAttentionEvents({
+      lockedBy: instanceId,
+      limit: config.workerCandidateLimit * Math.max(1, workspaceIds.length),
+      now: now(),
+    }, client);
+    stats.eventCount = attentionEvents.length;
+    stats.auditMetadata.attentionEventIds = attentionEvents.map((event) => event.id);
+
+    for (const event of attentionEvents) {
+      if (now().getTime() > deadlineAt.getTime()) {
+        stats.auditMetadata.deadlineReached = true;
+        break;
+      }
+
+      try {
+        const summary: FleetGraphEventTickSummary = await runAttentionEvent({
+          event,
+          principal: fleetGraphSystemPrincipal(event.workspace_id),
+          db: client,
+          graphOptions: {
+            generateProactiveText: async ({ candidate }) => deterministicProactiveCreateText(candidate),
+          },
+        });
+        stats.detectorDecisionCount += summary.detectorDecisions;
+        stats.resultCount += summary.results.length;
+        stats.modelCallCount += modelCallsForSummary(summary);
+        await completeFleetGraphAttentionEvent({
+          eventId: event.id,
+          status: summary.skipped ? 'skipped' : 'completed',
+        }, client);
+      } catch (error) {
+        logger.error('[FleetGraph] Attention event failed', {
+          eventId: event.id,
+          workspaceId: event.workspace_id,
+          ...safeErrorMetadata(error),
+        });
+        const lastError = error instanceof Error ? error.message : String(error);
+        const failedEvent = await failFleetGraphAttentionEvent({
+          eventId: event.id,
+          lastError,
+          now: now(),
+        }, client);
+        stats.auditMetadata.eventFailures = [
+          ...eventFailures(stats.auditMetadata),
+          {
+            eventId: event.id,
+            status: failedEvent?.status ?? 'unknown',
+            attemptCount: failedEvent?.attempt_count,
+            ...safeErrorMetadata(error),
+          },
+        ];
+      }
+    }
 
     for (const workspaceId of workspaceIds) {
       if (now().getTime() > deadlineAt.getTime()) {

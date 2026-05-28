@@ -13,6 +13,9 @@ type FleetGraphChatAnswerPayload = {
 export type FleetGraphChatIntent =
   | 'why_flagged'
   | 'next_step'
+  | 'unblocker'
+  | 'urgency'
+  | 'project_weirdness'
   | 'summarize_changes'
   | 'unsupported';
 
@@ -23,10 +26,19 @@ export function classifyFleetGraphChatPrompt(prompt: string): FleetGraphChatInte
   if (/\b(changed?|updates?|different|since|progress)\b/.test(normalized)) {
     return 'summarize_changes';
   }
-  if (/\b(next|do|unblock|owner|owns|who|help|action)\b/.test(normalized)) {
+  if (/\b(who|unblock|unblocker|owner|owns|approver|dependency)\b/.test(normalized)) {
+    return 'unblocker';
+  }
+  if (/\b(urgent|urgency|risk|actually|serious|priority)\b/.test(normalized)) {
+    return 'urgency';
+  }
+  if (/\b(else|weird|odd|strange|project|anything)\b/.test(normalized)) {
+    return 'project_weirdness';
+  }
+  if (/\b(next|do|help|action|should)\b/.test(normalized)) {
     return 'next_step';
   }
-  if (/\b(why|flagged|blocked|reason|happened|explain)\b/.test(normalized)) {
+  if (/\b(why|flagged|blocked|reason|happened|explain|going on|what'?s going on)\b/.test(normalized)) {
     return 'why_flagged';
   }
 
@@ -37,11 +49,59 @@ export function chatAnswerFromVisibleOutput(output: FleetGraphVisibleOutput): Fl
   const nextStep = recommendedActionText(output);
   return {
     title: output.title,
-    body: blockerExcerpt(output) || output.summary,
+    body: attentionExcerpt(output) || output.summary,
     ...(nextStep ? { nextStep } : {}),
     sources: sourceLabels(output),
     humanGate: output.humanGate,
   };
+}
+
+export function chatAnswerForIntent(
+  intent: Exclude<FleetGraphChatIntent, 'summarize_changes' | 'unsupported'>,
+  output: FleetGraphVisibleOutput
+): FleetGraphChatAnswerPayload {
+  const nextStep = recommendedActionText(output);
+  const recipient = stringValue(output.proposedRecipient?.displayName) || stringValue(output.proposedRecipient?.role);
+  const reason = attentionExcerpt(output) || output.summary;
+  if (intent === 'unblocker') {
+    return {
+      title: 'Best connected person',
+      body: recipient
+        ? `${recipient} is the best first stop from the attached Ship context. ${reason}`
+        : `No owner is attached. ${reason}`,
+      ...(nextStep ? { nextStep } : {}),
+      sources: sourceLabels(output),
+      humanGate: output.humanGate,
+    };
+  }
+  if (intent === 'urgency') {
+    return {
+      title: 'Urgency read',
+      body: `${severityLabel(output.severity)}. ${reason}`,
+      ...(nextStep ? { nextStep } : {}),
+      sources: sourceLabels(output),
+      humanGate: output.humanGate,
+    };
+  }
+  if (intent === 'project_weirdness') {
+    return {
+      title: 'What stands out',
+      body: `From this attached context, the standout issue is: ${reason}`,
+      ...(nextStep ? { nextStep } : {}),
+      sources: sourceLabels(output),
+      humanGate: output.humanGate,
+    };
+  }
+  if (intent === 'next_step') {
+    return {
+      title: 'Next move',
+      body: reason,
+      ...(nextStep ? { nextStep } : {}),
+      sources: sourceLabels(output),
+      humanGate: output.humanGate,
+    };
+  }
+  return chatAnswerFromVisibleOutput(output);
 }
 
 export function chatAnswerFromChangeSummary(summary: FleetGraphChangeSummary): FleetGraphChatAnswerPayload {
@@ -66,6 +126,23 @@ export function unsupportedChatAnswer(reason: string): FleetGraphChatAnswerPaylo
 
 function blockerExcerpt(output: FleetGraphVisibleOutput): string | null {
   return output.evidence.find((item) => item.kind === 'blocker' && item.excerpt?.trim())?.excerpt?.trim() || null;
+}
+
+function attentionExcerpt(output: FleetGraphVisibleOutput): string | null {
+  return blockerExcerpt(output)
+    || output.evidence.find((item) => ['stale', 'at_risk'].includes(item.kind) && item.claim?.trim())?.claim?.trim()
+    || null;
+}
+
+function severityLabel(severity: unknown): string {
+  if (severity === 'urgent') return 'This is urgent';
+  if (severity === 'high') return 'This is high priority';
+  if (severity === 'medium') return 'This needs attention, but it is not marked high priority';
+  return 'The attached context does not show a strong urgency signal';
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function recommendedActionText(output: FleetGraphVisibleOutput): string | undefined {

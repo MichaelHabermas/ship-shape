@@ -3,9 +3,10 @@ import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import { authorize } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueCandidate } from './detection/detector.js';
+import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 import { getFleetGraphFindingById, type FleetGraphFinding, type JsonRecord } from './persistence.js';
-import type { FleetGraphEvidenceItem, FleetGraphVisibleOutput } from './types.js';
+import type { FleetGraphEvidenceItem } from '@ship/shared';
+import type { FleetGraphVisibleOutput } from './types.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -17,8 +18,10 @@ export type FleetGraphEvidenceBundle = {
 };
 
 export function evidenceFromDetectorCandidate(
-  candidate: BlockedImportantIssueCandidate
+  candidate: FleetGraphAttentionCandidate
 ): FleetGraphEvidenceItem[] {
+  const signalType = candidate.signalType ?? 'blocked';
+  const reason = candidate.attentionReason ?? 'Issue needs attention.';
   return [
     {
       kind: 'source_issue',
@@ -37,19 +40,19 @@ export function evidenceFromDetectorCandidate(
       visibleFields: ['title', 'sprint_number'],
     },
     {
-      kind: 'blocker',
+      kind: signalType === 'blocked' ? 'blocker' : signalType,
       sourceDocumentId: candidate.issue_id,
       sourceType: 'issue',
-      claim: candidate.blocker_text
+      claim: signalType === 'blocked' && candidate.blocker_text
         ? 'Latest blocker text'
-        : 'Blocker missing',
+        : reason,
       excerpt: candidate.blocker_text || undefined,
       visibility: 'internal',
-      visibleFields: ['blockers_encountered'],
+      visibleFields: signalType === 'blocked' ? ['blockers_encountered'] : ['state', 'priority', 'updated_at'],
     },
     {
       kind: 'dedupe',
-      claim: 'FleetGraph used the locked blocked-work dedupe key.',
+      claim: 'FleetGraph attention dedupe key.',
       excerpt: candidate.dedupeKey,
       visibility: 'internal',
       visibleFields: ['dedupe_key'],

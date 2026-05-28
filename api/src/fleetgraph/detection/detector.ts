@@ -1,15 +1,24 @@
 // FleetGraph deterministic detectors select candidate work before graph reasoning.
+import type { FleetGraphSignalType } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import {
   BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX,
+  AT_RISK_ISSUE_DEDUPE_PREFIX,
+  STALE_ISSUE_DEDUPE_PREFIX,
   blockedImportantIssueDedupeKey,
+  fleetGraphAttentionDedupeKey,
   recordFleetGraphRun,
+  signalLabelForType,
   sqlBlockedImportantIssueDedupeKey,
 } from '../persistence.js';
+import { listFleetGraphIssueAttentionContexts, type FleetGraphIssueAttentionContext } from './attention-context.js';
+import { attentionPolicyForContext } from './attention-policy.js';
+import { resolveFleetGraphCurrentWeek } from './current-week.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
+type SourceKey = `${string}:${string}:${string}`;
 
-type BlockedImportantIssueCandidateRow = {
+type FleetGraphAttentionCandidateRow = {
   workspace_id: string;
   issue_id: string;
   issue_title: string;
@@ -34,10 +43,17 @@ type BlockedImportantIssueCandidateRow = {
   blocker_text: string;
   blocker_iteration_id: string | null;
   blocker_iteration_created_at: Date | null;
+  meaningful_updated_at?: Date | null;
+  attention_reason?: string | null;
+  signal_type?: FleetGraphSignalType;
 };
 
-export type BlockedImportantIssueCandidate = BlockedImportantIssueCandidateRow & {
+export type FleetGraphAttentionCandidate = FleetGraphAttentionCandidateRow & {
   dedupeKey: string;
+  signalType?: FleetGraphSignalType;
+  signalLabel?: string;
+  attentionReason?: string;
+  meaningfulUpdatedAt?: Date | null;
 };
 
 export type FleetGraphDetectorQuietExitReason =
@@ -50,14 +66,14 @@ export type FleetGraphDetectorQuietExit = {
   count: number;
 };
 
-export type BlockedImportantIssueDedupeDecision = {
+export type FleetGraphAttentionDedupeDecision = {
   decision: 'create_finding' | 'update_finding';
-  candidate: BlockedImportantIssueCandidate;
+  candidate: FleetGraphAttentionCandidate;
   existingFindingId: string | null;
 };
 
-export type BlockedImportantIssueDecisionBatch = {
-  decisions: BlockedImportantIssueDedupeDecision[];
+export type FleetGraphAttentionDecisionBatch = {
+  decisions: FleetGraphAttentionDedupeDecision[];
 };
 
 export type FleetGraphStaleFinding = {
@@ -68,10 +84,20 @@ export type FleetGraphStaleFinding = {
   reason: FleetGraphDetectorQuietExitReason | 'condition_gone';
 };
 
-function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
+function mapCandidate(row: FleetGraphAttentionCandidateRow): FleetGraphAttentionCandidate {
+  const signalType = row.signal_type ?? 'blocked';
   return {
     ...row,
-    dedupeKey: blockedImportantIssueDedupeKey({
+    signalType,
+    signalLabel: signalLabelForType(signalType),
+    attentionReason: row.attention_reason || (signalType === 'blocked' ? 'Issue state is blocked.' : 'Issue needs attention.'),
+    meaningfulUpdatedAt: row.meaningful_updated_at ?? row.blocker_iteration_created_at ?? null,
+    dedupeKey: signalType === 'blocked' ? blockedImportantIssueDedupeKey({
+      workspaceId: row.workspace_id,
+      issueId: row.issue_id,
+      sprintId: row.sprint_id,
+    }) : fleetGraphAttentionDedupeKey({
+      signalType,
       workspaceId: row.workspace_id,
       issueId: row.issue_id,
       sprintId: row.sprint_id,
@@ -79,186 +105,86 @@ function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantI
   };
 }
 
-async function findBlockedImportantIssueCandidates(input: {
+function candidateFromContext(
+  context: FleetGraphIssueAttentionContext,
+  policy: NonNullable<ReturnType<typeof attentionPolicyForContext>>
+): FleetGraphAttentionCandidate {
+  return mapCandidate({
+    workspace_id: context.workspace_id,
+    issue_id: context.issue_id,
+    issue_title: context.issue_title,
+    issue_ticket_number: context.issue_ticket_number,
+    issue_state: context.issue_state,
+    issue_priority: context.issue_priority,
+    issue_assignee_id: context.issue_assignee_id,
+    issue_assignee_name: context.issue_assignee_name,
+    sprint_id: context.sprint_id,
+    sprint_title: context.sprint_title,
+    sprint_number: context.sprint_number,
+    sprint_owner_id: context.sprint_owner_id,
+    sprint_owner_name: context.sprint_owner_name,
+    project_id: context.project_id,
+    project_title: context.project_title,
+    project_owner_id: context.project_owner_id,
+    project_owner_name: context.project_owner_name,
+    program_id: context.program_id,
+    program_title: context.program_title,
+    program_owner_id: context.program_owner_id,
+    program_owner_name: context.program_owner_name,
+    blocker_text: context.blocker_text,
+    blocker_iteration_id: context.blocker_iteration_id,
+    blocker_iteration_created_at: context.blocker_iteration_created_at,
+    meaningful_updated_at: context.meaningful_updated_at,
+    attention_reason: policy.reason,
+    signal_type: policy.signalType,
+  });
+}
+
+async function findAttentionCandidatesFromContexts(input: {
   workspaceId: string;
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<BlockedImportantIssueCandidate[]> {
+  sourceIssueId?: string;
+  sourceSprintId?: string | null;
+  includePrivate?: boolean;
+}): Promise<FleetGraphAttentionCandidate[]> {
   const db = input.db ?? pool;
-  const result = await db.query<BlockedImportantIssueCandidateRow>(
-    `SELECT
-       i.workspace_id,
-       i.id AS issue_id,
-       i.title AS issue_title,
-       i.ticket_number AS issue_ticket_number,
-       i.properties->>'state' AS issue_state,
-       CASE i.properties->>'priority'
-         WHEN 'urgent' THEN 'urgent'
-         WHEN 'high' THEN 'high'
-         WHEN 'medium' THEN 'medium'
-         WHEN 'low' THEN 'low'
-       ELSE 'medium'
-       END AS issue_priority,
-       NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
-       assignee.name AS issue_assignee_name,
-       s.id AS sprint_id,
-       s.title AS sprint_title,
-       CASE
-         WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
-         ELSE NULL
-       END AS sprint_number,
-       COALESCE(
-         NULLIF(s.properties->>'owner_id', ''),
-         NULLIF(s.properties->'assignee_ids'->>0, '')
-       ) AS sprint_owner_id,
-       sprint_owner.name AS sprint_owner_name,
-       project.id AS project_id,
-       project.title AS project_title,
-       COALESCE(project_owner.id::text, project_owner_person_user.id::text, NULLIF(project.properties->>'owner_id', '')) AS project_owner_id,
-       COALESCE(project_owner.name, project_owner_person_user.name, project_owner_person.title) AS project_owner_name,
-       program.id AS program_id,
-       program.title AS program_title,
-       COALESCE(program_owner.id::text, program_owner_person_user.id::text, NULLIF(program.properties->>'owner_id', '')) AS program_owner_id,
-       COALESCE(program_owner.name, program_owner_person_user.name, program_owner_person.title) AS program_owner_name,
-       COALESCE(latest_iteration.blockers_encountered, '') AS blocker_text,
-       latest_iteration.id AS blocker_iteration_id,
-       latest_iteration.created_at AS blocker_iteration_created_at
-     FROM documents i
-     JOIN document_associations sprint_assoc
-       ON sprint_assoc.document_id = i.id
-      AND sprint_assoc.relationship_type = 'sprint'
-     JOIN documents s
-       ON s.id = sprint_assoc.related_id
-      AND s.workspace_id = i.workspace_id
-      AND s.document_type = 'sprint'
-      AND s.deleted_at IS NULL
-      AND s.archived_at IS NULL
-      LEFT JOIN LATERAL (
-       SELECT iteration.id, iteration.blockers_encountered, iteration.created_at
-         FROM issue_iterations iteration
-        WHERE iteration.issue_id = i.id
-          AND iteration.workspace_id = i.workspace_id
-          AND btrim(COALESCE(iteration.blockers_encountered, '')) <> ''
-        ORDER BY iteration.created_at DESC, iteration.id DESC
-        LIMIT 1
-     ) latest_iteration ON TRUE
-     LEFT JOIN users assignee
-       ON assignee.id = CASE
-            WHEN i.properties->>'assignee_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (i.properties->>'assignee_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN users sprint_owner
-       ON sprint_owner.id = CASE
-            WHEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, '')) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, ''))::uuid
-            ELSE NULL
-          END
-     LEFT JOIN LATERAL (
-       SELECT p.*
-         FROM document_associations project_assoc
-         JOIN documents p
-           ON p.id = project_assoc.related_id
-          AND p.workspace_id = i.workspace_id
-          AND p.document_type = 'project'
-          AND p.deleted_at IS NULL
-          AND p.archived_at IS NULL
-        WHERE project_assoc.document_id = i.id
-          AND project_assoc.relationship_type = 'project'
-        ORDER BY project_assoc.created_at DESC
-        LIMIT 1
-     ) project ON TRUE
-     LEFT JOIN users project_owner
-       ON project_owner.id = CASE
-            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN documents project_owner_person
-       ON project_owner_person.id = CASE
-            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-      AND project_owner_person.workspace_id = i.workspace_id
-      AND project_owner_person.document_type = 'person'
-      AND project_owner_person.deleted_at IS NULL
-      AND project_owner_person.archived_at IS NULL
-     LEFT JOIN users project_owner_person_user
-       ON project_owner_person_user.id = CASE
-            WHEN project_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project_owner_person.properties->>'user_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN LATERAL (
-       SELECT p.*
-         FROM document_associations program_assoc
-         JOIN documents p
-           ON p.id = program_assoc.related_id
-          AND p.workspace_id = i.workspace_id
-          AND p.document_type = 'program'
-          AND p.deleted_at IS NULL
-          AND p.archived_at IS NULL
-        WHERE program_assoc.relationship_type = 'program'
-          AND program_assoc.document_id IN (i.id, project.id, s.id)
-        ORDER BY
-          CASE program_assoc.document_id
-            WHEN i.id THEN 1
-            WHEN project.id THEN 2
-            ELSE 3
-          END,
-          program_assoc.created_at DESC
-        LIMIT 1
-     ) program ON TRUE
-     LEFT JOIN users program_owner
-       ON program_owner.id = CASE
-            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN documents program_owner_person
-       ON program_owner_person.id = CASE
-            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-      AND program_owner_person.workspace_id = i.workspace_id
-      AND program_owner_person.document_type = 'person'
-      AND program_owner_person.deleted_at IS NULL
-      AND program_owner_person.archived_at IS NULL
-     LEFT JOIN users program_owner_person_user
-       ON program_owner_person_user.id = CASE
-            WHEN program_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program_owner_person.properties->>'user_id')::uuid
-            ELSE NULL
-          END
-     WHERE i.workspace_id = $1
-       AND i.document_type = 'issue'
-       AND i.deleted_at IS NULL
-       AND i.archived_at IS NULL
-       AND COALESCE(i.visibility, 'workspace') <> 'private'
-       AND COALESCE(i.properties->>'state', 'backlog') = 'blocked'
-     ORDER BY
-       CASE i.properties->>'priority'
-         WHEN 'urgent' THEN 1
-         WHEN 'high' THEN 2
-         WHEN 'medium' THEN 3
-         WHEN 'low' THEN 4
-         ELSE 5
-       END,
-       latest_iteration.created_at DESC NULLS LAST,
-       i.updated_at DESC
-     LIMIT $2`,
-    [input.workspaceId, input.limit ?? 25]
-  );
+  const today = input.today ?? new Date();
+  const currentWeek = await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today });
+  const contexts = await listFleetGraphIssueAttentionContexts({
+    workspaceId: input.workspaceId,
+    sourceIssueId: input.sourceIssueId,
+    sourceSprintId: input.sourceSprintId,
+    includePrivate: input.includePrivate,
+    limit: input.limit,
+    db,
+  });
 
-  return result.rows.map(mapCandidate);
+  return strongestCandidatePerSource(contexts.flatMap((context) => {
+    const policy = attentionPolicyForContext({
+      context,
+      today,
+      currentSprintNumber: currentWeek.currentSprintNumber,
+      workspaceStartDate: currentWeek.workspaceStartDate,
+    });
+    return policy ? [candidateFromContext(context, policy)] : [];
+  }));
+}
+
+async function findFleetGraphAttentionCandidates(input: {
+  workspaceId: string;
+  db?: QueryRunner;
+  today?: Date;
+  limit?: number;
+}): Promise<FleetGraphAttentionCandidate[]> {
+  const candidates = await findAttentionCandidatesFromContexts(input);
+  return candidates.filter((candidate) => (candidate.signalType ?? 'blocked') === 'blocked');
 }
 
 function uniqueCandidatesByDedupeKey(
-  candidates: BlockedImportantIssueCandidate[]
-): BlockedImportantIssueCandidate[] {
+  candidates: FleetGraphAttentionCandidate[]
+): FleetGraphAttentionCandidate[] {
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
     if (seen.has(candidate.dedupeKey)) return false;
@@ -267,11 +193,33 @@ function uniqueCandidatesByDedupeKey(
   });
 }
 
-async function planBlockedImportantIssueDedupeDecisions(input: {
+function sourceKey(candidate: FleetGraphAttentionCandidate): SourceKey {
+  return `${candidate.workspace_id}:${candidate.issue_id}:${candidate.sprint_id}`;
+}
+
+function signalRank(candidate: FleetGraphAttentionCandidate): number {
+  if ((candidate.signalType ?? 'blocked') === 'blocked') return 3;
+  if (candidate.signalType === 'at_risk') return 2;
+  return 1;
+}
+
+function strongestCandidatePerSource(
+  candidates: FleetGraphAttentionCandidate[]
+): FleetGraphAttentionCandidate[] {
+  const bySource = new Map<SourceKey, FleetGraphAttentionCandidate>();
+  for (const candidate of candidates) {
+    const key = sourceKey(candidate);
+    const existing = bySource.get(key);
+    if (!existing || signalRank(candidate) > signalRank(existing)) bySource.set(key, candidate);
+  }
+  return [...bySource.values()];
+}
+
+async function planFleetGraphAttentionDedupeDecisions(input: {
   workspaceId: string;
-  candidates: BlockedImportantIssueCandidate[];
+  candidates: FleetGraphAttentionCandidate[];
   db?: QueryRunner;
-}): Promise<BlockedImportantIssueDedupeDecision[]> {
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
   const candidates = uniqueCandidatesByDedupeKey(input.candidates);
   if (candidates.length === 0) return [];
 
@@ -304,12 +252,55 @@ export async function detectBlockedImportantIssueDecisions(input: {
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<BlockedImportantIssueDedupeDecision[]> {
-  const candidates = await findBlockedImportantIssueCandidates(input);
-  return planBlockedImportantIssueDedupeDecisions({
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
+  const candidates = await findFleetGraphAttentionCandidates(input);
+  return planFleetGraphAttentionDedupeDecisions({
     workspaceId: input.workspaceId,
     candidates,
     db: input.db,
+  });
+}
+
+export async function detectFleetGraphAttentionDecisions(input: {
+  workspaceId: string;
+  db?: QueryRunner;
+  today?: Date;
+  limit?: number;
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
+  const db = input.db ?? pool;
+  const candidates = await findAttentionCandidatesFromContexts({
+    ...input,
+    db,
+  });
+  return planFleetGraphAttentionDedupeDecisions({
+    workspaceId: input.workspaceId,
+    candidates,
+    db,
+  });
+}
+
+export async function detectFleetGraphAttentionDecisionsForSource(input: {
+  workspaceId: string;
+  sourceIssueId: string;
+  sourceSprintId?: string | null;
+  db?: QueryRunner;
+  today?: Date;
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
+  const db = input.db ?? pool;
+  const candidates = await findAttentionCandidatesFromContexts({
+    workspaceId: input.workspaceId,
+    sourceIssueId: input.sourceIssueId,
+    sourceSprintId: input.sourceSprintId,
+    includePrivate: false,
+    limit: 25,
+    today: input.today,
+    db,
+  });
+
+  return planFleetGraphAttentionDedupeDecisions({
+    workspaceId: input.workspaceId,
+    candidates,
+    db,
   });
 }
 
@@ -431,8 +422,11 @@ export async function findStaleBlockedImportantIssueFindings(input: {
   limit?: number;
 }): Promise<FleetGraphStaleFinding[]> {
   const db = input.db ?? pool;
-  const candidates = await findBlockedImportantIssueCandidates({
+  const today = input.today ?? new Date();
+  const candidates = await findAttentionCandidatesFromContexts({
     ...input,
+    db,
+    today,
     limit: input.limit ?? 1000,
   });
   const activeDedupeKeys = new Set(candidates.map((candidate) => candidate.dedupeKey));
@@ -448,7 +442,11 @@ export async function findStaleBlockedImportantIssueFindings(input: {
        SELECT id, source_issue_id, source_sprint_id, dedupe_key
          FROM fleetgraph_findings
         WHERE workspace_id = $1
-          AND dedupe_key LIKE '${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:%'
+          AND (
+            dedupe_key LIKE '${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:%'
+            OR dedupe_key LIKE '${STALE_ISSUE_DEDUPE_PREFIX}:%'
+            OR dedupe_key LIKE '${AT_RISK_ISSUE_DEDUPE_PREFIX}:%'
+          )
           AND status IN ('open', 'needs_confirmation', 'error')
         ORDER BY updated_at ASC
         LIMIT $2
@@ -506,7 +504,9 @@ export async function findStaleBlockedImportantIssueFindings(input: {
          WHEN issue_id IS NULL OR sprint_id IS NULL THEN 'condition_gone'
          WHEN issue_visibility = 'private' THEN 'insufficient_visible_evidence'
          WHEN issue_state IN ('done', 'cancelled') THEN 'done_or_cancelled'
-         WHEN issue_state <> 'blocked' THEN 'condition_gone'
+         WHEN dedupe_key LIKE '${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:%' AND issue_state <> 'blocked' THEN 'condition_gone'
+         WHEN dedupe_key LIKE '${STALE_ISSUE_DEDUPE_PREFIX}:%' AND issue_state IN ('done', 'cancelled', 'blocked') THEN 'condition_gone'
+         WHEN dedupe_key LIKE '${AT_RISK_ISSUE_DEDUPE_PREFIX}:%' AND issue_state IN ('done', 'cancelled', 'blocked') THEN 'condition_gone'
          ELSE 'condition_gone'
        END AS reason
      FROM source_context`,

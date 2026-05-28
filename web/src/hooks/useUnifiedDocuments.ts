@@ -17,10 +17,14 @@ import { useProjectsQuery, Project } from './useProjectsQuery';
 import { useProgramsQuery, Program } from './useProgramsQuery';
 
 // Document types that can be queried
-export type UnifiedDocumentType = 'wiki' | 'issue' | 'project' | 'program';
+/** Document types available in list/catalog queries (not full editor union). */
+export type CatalogDocumentType = 'wiki' | 'issue' | 'project' | 'program';
+
+/** @deprecated Use {@link CatalogDocumentType} */
+export type UnifiedDocumentType = CatalogDocumentType;
 
 // Base document interface - common fields across all types
-export interface UnifiedDocumentBase {
+export interface CatalogDocumentBase {
   id: string;
   title: string;
   document_type: string;
@@ -29,15 +33,21 @@ export interface UnifiedDocumentBase {
   created_by?: string | null;
 }
 
-// Union type for all document types
-export type UnifiedDocument = WikiDocument | IssueListItem | Project | Program;
+/** @deprecated Use {@link CatalogDocumentBase} */
+export type UnifiedDocumentBase = CatalogDocumentBase;
+
+/** OpenAPI list union for catalog surfaces (issues list, projects, programs, wiki). */
+export type CatalogDocument = WikiDocument | IssueListItem | Project | Program;
+
+/** @deprecated Use {@link CatalogDocument} — collides with editor {@link UnifiedDocumentView}. */
+export type UnifiedDocument = CatalogDocument;
 
 // Options for querying documents
 export interface UseUnifiedDocumentsOptions {
   /**
    * Filter by document type(s). If not specified, returns all types.
    */
-  type?: UnifiedDocumentType | UnifiedDocumentType[];
+  type?: CatalogDocumentType | CatalogDocumentType[];
   /**
    * Enable/disable specific document types. Useful for partial fetching.
    * @default All types enabled
@@ -53,7 +63,7 @@ export interface UseUnifiedDocumentsOptions {
 // Return type for the unified hook
 export interface UseUnifiedDocumentsResult {
   /** All documents matching the query */
-  documents: UnifiedDocument[];
+  documents: CatalogDocument[];
   /** Documents grouped by type for type-safe access */
   byType: {
     wiki: WikiDocument[];
@@ -73,7 +83,7 @@ export interface UseUnifiedDocumentsResult {
   /** Refresh all document types */
   refresh: () => Promise<void>;
   /** Refresh specific document type */
-  refreshType: (type: UnifiedDocumentType) => Promise<void>;
+  refreshType: (type: CatalogDocumentType) => Promise<void>;
 }
 
 /**
@@ -132,7 +142,7 @@ export function useUnifiedDocuments(
   }, [shouldFetchProgram, programsQuery.data]);
 
   // Combine all documents
-  const documents = useMemo<UnifiedDocument[]>(() => {
+  const documents = useMemo<CatalogDocument[]>(() => {
     return [
       ...wikiDocs,
       ...issueDocs,
@@ -165,7 +175,7 @@ export function useUnifiedDocuments(
     ]);
   };
 
-  const refreshType = async (docType: UnifiedDocumentType) => {
+  const refreshType = async (docType: CatalogDocumentType) => {
     switch (docType) {
       case 'wiki':
         await wikiQuery.refetch();

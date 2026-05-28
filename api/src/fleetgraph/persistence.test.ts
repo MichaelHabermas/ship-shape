@@ -12,6 +12,12 @@ import {
   startFleetGraphWorkerTick,
   heartbeatFleetGraphWorkerTick,
   completeFleetGraphWorkerTick,
+  claimFleetGraphAttentionEvents,
+  completeFleetGraphAttentionEvent,
+  enqueueFleetGraphAttentionEvent,
+  failFleetGraphAttentionEvent,
+  markFleetGraphNotificationRead,
+  markVisibleFleetGraphNotificationsRead,
   type FleetGraphFindingStatus,
 } from './persistence.js';
 
@@ -243,6 +249,155 @@ describe('FleetGraph persistence', () => {
         null,
         JSON.stringify({ deadlineAt: deadlineAt.toISOString() }),
       ])
+    );
+  });
+
+  it('dedupes and claims durable attention events', async () => {
+    const eventId = '99999999-9999-4999-8999-999999999999';
+    const eventRow = {
+      id: eventId,
+      workspace_id: workspaceId,
+      source_issue_id: issueId,
+      source_sprint_id: sprintId,
+      event_type: 'issue_changed',
+      reason: 'issue_updated',
+      status: 'pending',
+      attempt_count: 0,
+      last_error: null,
+      available_at: new Date(),
+      locked_at: null,
+      locked_by: null,
+      processed_at: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    const db = dbReturning([eventRow]);
+
+    await enqueueFleetGraphAttentionEvent({
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      eventType: 'issue_changed',
+      reason: 'issue_updated',
+    }, db);
+    await claimFleetGraphAttentionEvents({ lockedBy: 'worker-1', limit: 2 }, db);
+    await completeFleetGraphAttentionEvent({ eventId, status: 'completed' }, db);
+
+    expect(db.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('ON CONFLICT'),
+      expect.arrayContaining([workspaceId, issueId, sprintId, 'issue_changed', 'issue_updated'])
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("status = 'processing'"),
+      [2, 'worker-1', null, 10]
+    );
+    expect(db.query.mock.calls[1]?.[0]).toContain("status = 'pending'");
+    expect(db.query.mock.calls[1]?.[0]).toContain("status = 'processing'");
+    expect(db.query.mock.calls[1]?.[0]).toContain('FOR UPDATE SKIP LOCKED');
+    expect(db.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("status = 'processing'"),
+      [eventId, 'completed', null]
+    );
+  });
+
+  it('marks failed attention events pending for retry before terminal attempts', async () => {
+    const eventId = '99999999-9999-4999-8999-999999999999';
+    const retryAt = new Date('2026-05-26T12:00:30Z');
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ attempt_count: 1 }]))
+        .mockResolvedValueOnce(pgResult([{
+          id: eventId,
+          workspace_id: workspaceId,
+          source_issue_id: issueId,
+          source_sprint_id: sprintId,
+          event_type: 'issue_changed',
+          reason: 'issue_updated',
+          status: 'pending',
+          attempt_count: 1,
+          last_error: 'temporary failure',
+          available_at: retryAt,
+          locked_at: null,
+          locked_by: null,
+          processed_at: null,
+          created_at: retryAt,
+          updated_at: retryAt,
+        }])),
+    };
+
+    const event = await failFleetGraphAttentionEvent({
+      eventId,
+      lastError: 'temporary failure',
+      maxAttempts: 3,
+      now: new Date('2026-05-26T12:00:00Z'),
+    }, db);
+
+    expect(event?.status).toBe('pending');
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("WHEN $3::boolean THEN 'failed' ELSE 'pending'"),
+      [eventId, 'temporary failure', false, retryAt]
+    );
+  });
+
+  it('marks attention events terminal failed at max attempts', async () => {
+    const eventId = '99999999-9999-4999-8999-999999999999';
+    const now = new Date('2026-05-26T12:00:00Z');
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ attempt_count: 3 }]))
+        .mockResolvedValueOnce(pgResult([{
+          id: eventId,
+          workspace_id: workspaceId,
+          source_issue_id: issueId,
+          source_sprint_id: sprintId,
+          event_type: 'issue_changed',
+          reason: 'issue_updated',
+          status: 'failed',
+          attempt_count: 3,
+          last_error: 'terminal failure',
+          available_at: now,
+          locked_at: null,
+          locked_by: null,
+          processed_at: now,
+          created_at: now,
+          updated_at: now,
+        }])),
+    };
+
+    const event = await failFleetGraphAttentionEvent({
+      eventId,
+      lastError: 'terminal failure',
+      maxAttempts: 3,
+      now,
+    }, db);
+
+    expect(event?.status).toBe('failed');
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.any(String),
+      [eventId, 'terminal failure', true, null]
+    );
+  });
+
+  it('marks notification read state without mutating findings', async () => {
+    const db = dbReturning([{ finding_id: findingId }]);
+
+    await markFleetGraphNotificationRead({ workspaceId, findingId, userId }, db);
+    await markVisibleFleetGraphNotificationsRead({ workspaceId, userId, findingIds: [findingId] }, db);
+
+    expect(db.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('fleetgraph_notification_reads'),
+      [workspaceId, findingId, userId]
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('fleetgraph_findings'),
+      [workspaceId, userId, [findingId]]
     );
   });
 });

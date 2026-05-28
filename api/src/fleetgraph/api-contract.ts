@@ -3,29 +3,14 @@ import type { Response } from 'express';
 import { z } from '../openapi/registry.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import { traceMetadataForResponse } from './trace.js';
+import { FLEETGRAPH_EVIDENCE_KIND_VALUES, type FleetGraphSignalType } from '@ship/shared';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
 import type { FleetGraphFinding, FleetGraphNotificationFinding } from './persistence.js';
+import { signalLabelForType, signalTypeFromDedupeKey } from './persistence.js';
 import { chatAnswerFromChangeSummary, chatAnswerFromVisibleOutput, unsupportedChatAnswer } from './runtime/chat.js';
 
-export type {
-  FleetGraphChangeSummaryResponse,
-  FleetGraphChatAnswer,
-  FleetGraphChatContext,
-  FleetGraphChatRequest,
-  FleetGraphChatResponse,
-  FleetGraphFindingResponse,
-  FleetGraphFindingsListResponse,
-  FleetGraphManualRunResponse,
-  FleetGraphManualRunResult,
-  FleetGraphNotificationResponse,
-  FleetGraphNotificationsListResponse,
-  FleetGraphRunResponse,
-  FleetGraphTrace,
-  FleetGraphVisibleOutput as FleetGraphWireVisibleOutput,
-} from '@ship/shared';
-
 export const FleetGraphEvidenceSchema = z.object({
-  kind: z.string(),
+  kind: z.enum(FLEETGRAPH_EVIDENCE_KIND_VALUES),
   sourceDocumentId: UuidSchema.optional(),
   sourceType: z.enum(['issue', 'sprint']).optional(),
   claim: z.string(),
@@ -72,34 +57,55 @@ export const FleetGraphTraceSchema = z.object({
   failureCategory: z.string().optional(),
 }).openapi('FleetGraphTrace');
 
-export const FleetGraphFindingResponseSchema = z.object({
-  id: UuidSchema,
-  kind: z.literal('blocker'),
-  status: z.string(),
+const FleetGraphAttentionSignalFieldsSchema = z.object({
+  signalType: z.enum(['blocked', 'stale', 'at_risk']),
+  signalLabel: z.string(),
+  reason: z.string(),
+});
+
+const FleetGraphSourceReferenceFieldsSchema = z.object({
   sourceIssueId: UuidSchema,
   sourceSprintId: UuidSchema,
+});
+
+const FleetGraphVisibleResponseFieldsSchema = z.object({
   visibleOutput: FleetGraphVisibleOutputSchema,
   traceMetadata: FleetGraphTraceSchema,
+});
+
+export const FleetGraphFindingResponseSchema = FleetGraphAttentionSignalFieldsSchema
+  .merge(FleetGraphSourceReferenceFieldsSchema)
+  .merge(FleetGraphVisibleResponseFieldsSchema)
+  .extend({
+    id: UuidSchema,
+    kind: z.literal('blocker'),
+    status: z.string(),
 }).openapi('FleetGraphFindingResponse');
 
 export const FleetGraphFindingsListResponseSchema = z.object({
   findings: z.array(FleetGraphFindingResponseSchema),
 }).openapi('FleetGraphFindingsListResponse');
 
-export const FleetGraphNotificationResponseSchema = z.object({
-  id: UuidSchema,
-  findingId: UuidSchema,
+const FleetGraphNotificationDisplayFieldsSchema = z.object({
   title: z.string(),
   issueTitle: z.string(),
   context: z.string(),
   owner: z.string().nullable(),
+  notificationText: z.string(),
   blockerText: z.string(),
-  sourceIssueId: UuidSchema,
-  sourceSprintId: UuidSchema,
   sourcePath: z.string(),
   detectedAt: z.string(),
-  visibleOutput: FleetGraphVisibleOutputSchema,
-  traceMetadata: FleetGraphTraceSchema,
+  isRead: z.boolean(),
+  readAt: z.string().nullable(),
+});
+
+export const FleetGraphNotificationResponseSchema = FleetGraphAttentionSignalFieldsSchema
+  .merge(FleetGraphSourceReferenceFieldsSchema)
+  .merge(FleetGraphVisibleResponseFieldsSchema)
+  .merge(FleetGraphNotificationDisplayFieldsSchema)
+  .extend({
+    id: UuidSchema,
+    findingId: UuidSchema,
 }).openapi('FleetGraphNotificationResponse');
 
 export const FleetGraphNotificationsListResponseSchema = z.object({
@@ -270,12 +276,20 @@ export function fleetGraphFindingResponse(input: {
   status: string;
   source_issue_id: string;
   source_sprint_id: string;
+  dedupe_key: string;
+  summary: string;
+  run_metadata: Record<string, unknown>;
   trace_metadata: unknown;
   visibleOutput: FleetGraphVisibleOutput;
 }): FleetGraphFindingResponseWire {
+  const signalType = signalTypeForFinding(input);
+  const reason = reasonForFinding(input);
   return {
     id: input.id,
     kind: 'blocker',
+    signalType,
+    signalLabel: signalLabelForType(signalType),
+    reason,
     status: input.status,
     sourceIssueId: input.source_issue_id,
     sourceSprintId: input.source_sprint_id,
@@ -291,18 +305,27 @@ export function fleetGraphNotificationResponse(input: {
   finding: FleetGraphNotificationFinding;
   visibleOutput: FleetGraphVisibleOutput;
 }): FleetGraphNotificationResponseWire {
+  const signalType = signalTypeForFinding(input.finding);
+  const reason = reasonForFinding(input.finding);
+  const notificationText = notificationTextForOutput(input.visibleOutput, reason);
   return {
     id: input.finding.id,
     findingId: input.finding.id,
+    signalType,
+    signalLabel: signalLabelForType(signalType),
+    reason,
     title: input.finding.issue_title,
     issueTitle: input.finding.issue_title,
     context: input.finding.context_title || 'Current week',
     owner: input.finding.owner_name,
-    blockerText: blockerTextForNotification(input.visibleOutput) || input.finding.summary,
+    notificationText,
+    blockerText: blockerTextForNotification(input.visibleOutput) || notificationText,
     sourceIssueId: input.finding.source_issue_id,
     sourceSprintId: input.finding.source_sprint_id,
     sourcePath: `/documents/${input.finding.source_issue_id}`,
     detectedAt: input.finding.first_detected_at.toISOString(),
+    isRead: input.finding.read_at !== null,
+    readAt: input.finding.read_at?.toISOString() ?? null,
     visibleOutput: serializeFleetGraphVisibleOutput(input.visibleOutput),
     traceMetadata: traceMetadataForResponse(input.finding.trace_metadata, {
       mode: 'proactive',
@@ -313,6 +336,21 @@ export function fleetGraphNotificationResponse(input: {
 
 function blockerTextForNotification(output: FleetGraphVisibleOutput): string | undefined {
   return output.evidence.find((item) => item.kind === 'blocker' && item.excerpt?.trim())?.excerpt;
+}
+
+function signalTypeForFinding(finding: Pick<FleetGraphFinding, 'dedupe_key' | 'run_metadata'>): FleetGraphSignalType {
+  const stored = finding.run_metadata?.signalType;
+  if (stored === 'blocked' || stored === 'stale' || stored === 'at_risk') return stored;
+  return signalTypeFromDedupeKey(finding.dedupe_key);
+}
+
+function reasonForFinding(finding: Pick<FleetGraphFinding, 'summary' | 'run_metadata'>): string {
+  const reason = finding.run_metadata?.reason;
+  return typeof reason === 'string' && reason.trim() ? reason.trim() : finding.summary;
+}
+
+function notificationTextForOutput(output: FleetGraphVisibleOutput, reason: string): string {
+  return blockerTextForNotification(output) || output.summary || reason;
 }
 
 export function fleetGraphResultIsNotFound(result: FleetGraphResult): boolean {

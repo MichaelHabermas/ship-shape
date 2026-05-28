@@ -5,11 +5,10 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { api, Workspace } from '@/lib/api';
+import type { WorkspaceWithRoleResponse } from '@ship/shared';
+import { api, type Workspace } from '@/lib/api';
 
-export interface WorkspaceWithRole extends Workspace {
-  role: 'admin' | 'member';
-}
+export type WorkspaceWithRole = WorkspaceWithRoleResponse;
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;

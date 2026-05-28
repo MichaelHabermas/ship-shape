@@ -3,7 +3,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { pgResult } from '../test/pg-result.js';
 import { runFleetGraphWorkerTick, startFleetGraphWorker } from './execution/worker.js';
 import type { ResolvedFleetGraphConfig } from '../config/fleetgraph.js';
-import type { FleetGraphExecuteTickSummary, FleetGraphTickInput } from './execution/tick-runner.js';
+import type {
+  FleetGraphEventTickSummary,
+  FleetGraphExecuteTickSummary,
+  FleetGraphTickInput,
+} from './execution/tick-runner.js';
 
 type RunTickFn = (
   input: Extract<FleetGraphTickInput, { mode: 'execute' }>
@@ -71,6 +75,16 @@ function result(modelCalls = 0): FleetGraphExecuteTickSummary {
       costMetadata: {},
       errorMetadata: {},
     }],
+  };
+}
+
+function eventResult(): FleetGraphEventTickSummary {
+  return {
+    mode: 'proactive',
+    eventId: '99999999-9999-4999-8999-999999999999',
+    detectorDecisions: 1,
+    results: result(0).results,
+    skipped: false,
   };
 }
 
@@ -154,6 +168,61 @@ describe('FleetGraph worker', () => {
       expect.any(Array)
     );
     expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('processes claimed attention events before scheduled workspace ticks', async () => {
+    const { db, client } = createDb();
+    const eventRow = {
+      id: '99999999-9999-4999-8999-999999999999',
+      workspace_id: 'workspace-1',
+      source_issue_id: '22222222-2222-4222-8222-222222222222',
+      source_sprint_id: null,
+      event_type: 'issue_changed',
+      reason: 'issue_updated',
+      status: 'processing',
+      attempt_count: 1,
+      last_error: null,
+      available_at: new Date('2026-05-26T12:00:00Z'),
+      locked_at: new Date('2026-05-26T12:00:00Z'),
+      locked_by: 'worker-1',
+      processed_at: null,
+      created_at: new Date('2026-05-26T12:00:00Z'),
+      updated_at: new Date('2026-05-26T12:00:00Z'),
+    };
+    client.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('pg_try_advisory_lock')) return pgResult([{ locked: true }]);
+      if (sql.includes('INSERT INTO fleetgraph_worker_ticks')) return pgResult([tickRow]);
+      if (sql.includes('FROM workspaces')) return pgResult([{ id: 'workspace-1' }]);
+      if (sql.includes('WITH claimed')) return pgResult([eventRow]);
+      if (sql.includes('UPDATE fleetgraph_attention_events')) return pgResult([{ ...eventRow, status: 'completed' }]);
+      if (sql.includes('UPDATE fleetgraph_worker_ticks')) return pgResult([tickRow]);
+      if (sql.includes('pg_advisory_unlock')) return pgResult([{ pg_advisory_unlock: true }]);
+      return pgResult([]);
+    });
+    const runTick = vi.fn<RunTickFn>(async () => result(0));
+    const runAttentionEvent = vi.fn(async () => eventResult());
+
+    const stats = await runFleetGraphWorkerTick({
+      config: baseConfig,
+      db: db as never,
+      runTick,
+      runAttentionEvent,
+      instanceId: 'worker-1',
+      now: () => new Date('2026-05-26T12:00:00Z'),
+    });
+
+    expect(stats.eventCount).toBe(1);
+    expect(stats.auditMetadata.attentionEventIds).toEqual([eventRow.id]);
+    expect(stats.detectorDecisionCount).toBe(2);
+    expect(runAttentionEvent).toHaveBeenCalledWith(expect.objectContaining({
+      event: eventRow,
+      principal: {
+        kind: 'fleetgraph_system',
+        workspaceId: 'workspace-1',
+        isSuperAdmin: false,
+      },
+    }));
+    expect(runTick).toHaveBeenCalledTimes(1);
   });
 
   it('skips execution when another worker holds the advisory lock', async () => {
