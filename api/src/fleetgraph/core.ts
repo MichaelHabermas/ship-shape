@@ -237,7 +237,7 @@ async function tracedFleetGraphNode(
 }
 
 function logFleetGraphNodeTouch(name: string, context: FleetGraphRuntimeContext): void {
-  if (process.env.FLEETGRAPH_CONSOLE_TRACE === '0') return;
+  if (process.env.FLEETGRAPH_CONSOLE_TRACE !== '1') return;
 
   console.log('[FleetGraph]', {
     node: name,

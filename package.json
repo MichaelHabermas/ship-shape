@@ -97,6 +97,8 @@
     "demo:seed": "pnpm fleetgraph:demo",
     "fleetgraph:detector": "pnpm --filter @ship/api fleetgraph:detector",
     "fleetgraph:demo": "pnpm --filter @ship/api fleetgraph:demo",
+    "fleetgraph:observe": "pnpm --filter @ship/api fleetgraph:observe && pnpm fleetgraph:observe:dashboard",
+    "fleetgraph:observe:dashboard": "node ./scripts/render-fleetgraph-observability-dashboard.mjs",
     "fleetgraph:eval:surface": "pnpm --filter @ship/api fleetgraph:eval:surface",
     "trace:smoke": "pnpm --filter @ship/api trace:smoke",
     "prepare": "husky",

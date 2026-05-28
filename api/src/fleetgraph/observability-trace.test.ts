@@ -1,6 +1,6 @@
 // Verifies FleetGraph external tracing stays best-effort and reviewer-safe.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { shutdownFleetGraphTracing, withFleetGraphTrace } from './observability-trace.js';
+import { postFleetGraphTraceScores, shutdownFleetGraphTracing, withFleetGraphTrace } from './observability-trace.js';
 import type { FleetGraphResult } from './types.js';
 
 const mocks = vi.hoisted(() => {
@@ -26,7 +26,10 @@ const mocks = vi.hoisted(() => {
     createRun: vi.fn(),
     updateRun: vi.fn(),
     shareRun: vi.fn(),
+    createFeedback: vi.fn(),
     getTraceUrl: vi.fn(),
+    langfuseScoreCreate: vi.fn(),
+    langfuseFlush: vi.fn(),
     clientShutdown: vi.fn(),
     sdkStart: vi.fn(),
     sdkShutdown: vi.fn(),
@@ -42,6 +45,7 @@ vi.mock('langsmith', () => ({
     createRun = mocks.createRun;
     updateRun = mocks.updateRun;
     shareRun = mocks.shareRun;
+    createFeedback = mocks.createFeedback;
   }),
 }));
 
@@ -55,6 +59,8 @@ vi.mock('langsmith/run_trees', () => ({
 vi.mock('@langfuse/client', () => ({
   LangfuseClient: vi.fn(class {
     getTraceUrl = mocks.getTraceUrl;
+    score = { create: mocks.langfuseScoreCreate };
+    flush = mocks.langfuseFlush;
     shutdown = mocks.clientShutdown;
   }),
 }));
@@ -82,7 +88,9 @@ describe('withFleetGraphTrace', () => {
     mocks.createRun.mockResolvedValue(undefined);
     mocks.updateRun.mockResolvedValue(undefined);
     mocks.shareRun.mockResolvedValue('https://smith.langchain.com/public/shared/r');
+    mocks.createFeedback.mockResolvedValue(undefined);
     mocks.getTraceUrl.mockResolvedValue('https://us.cloud.langfuse.com/project/project-id/traces/langfuse-trace-id');
+    mocks.langfuseFlush.mockResolvedValue(undefined);
     mocks.clientShutdown.mockResolvedValue(undefined);
     mocks.sdkShutdown.mockResolvedValue(undefined);
     delete process.env.LANGSMITH_TRACING;
@@ -340,6 +348,39 @@ describe('withFleetGraphTrace', () => {
     }, async (trace) => result(trace.traceId, trace.traceUrl))).rejects.toThrow(
       'FleetGraph tracing is disabled'
     );
+  });
+
+  it('posts provider scores best-effort without failing when one provider rejects', async () => {
+    enableLangSmith();
+    enableLangfuse();
+    mocks.createFeedback.mockRejectedValueOnce(new Error('LangSmith score failed'));
+
+    const capture = await withFleetGraphTrace({
+      name: 'fleetgraph.test',
+      inputs: { label: 'safe' },
+    }, async (trace) => result(trace.traceId, trace.traceUrl));
+    const failures = await postFleetGraphTraceScores({
+      providers: capture.providers,
+      scores: [{
+        name: 'usage_present',
+        value: 1,
+        passed: true,
+        comment: 'usage present',
+        metadata: { modelCalls: 0 },
+      }],
+    });
+
+    expect(failures).toEqual(['LangSmith score failed']);
+    expect(mocks.createFeedback).toHaveBeenCalledWith(expect.any(String), 'usage_present', expect.objectContaining({
+      score: 1,
+      comment: 'usage present',
+    }));
+    expect(mocks.langfuseScoreCreate).toHaveBeenCalledWith(expect.objectContaining({
+      traceId: 'langfuse-trace-id',
+      name: 'usage_present',
+      value: 1,
+    }));
+    expect(mocks.langfuseFlush).toHaveBeenCalled();
   });
 });
 

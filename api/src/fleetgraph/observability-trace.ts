@@ -6,6 +6,7 @@ import { startObservation, type LangfuseSpan } from '@langfuse/tracing';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { Client } from 'langsmith';
 import { convertToDottedOrderFormat } from 'langsmith/run_trees';
+import type { FleetGraphObservabilityScore } from './observability-scores.js';
 import type { FleetGraphResult, FleetGraphTraceMetadata } from './types.js';
 
 export type FleetGraphTraceIdentity = Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
@@ -116,6 +117,22 @@ export async function shutdownFleetGraphTracing(): Promise<void> {
   await settleProviderCalls(shutdowns);
   langfuseClient = null;
   langfuseSdk = null;
+}
+
+export async function postFleetGraphTraceScores(input: {
+  providers: FleetGraphTraceProviderEvidence[];
+  scores: readonly FleetGraphObservabilityScore[];
+}): Promise<string[]> {
+  const posts = input.providers.flatMap((provider) =>
+    input.scores.map((score) => postProviderScore(provider, score))
+  );
+  const failures = await settleProviderCalls(posts);
+  if (langfuseClient) {
+    failures.push(...await settleProviderCalls([
+      withTimeout(langfuseClient.flush(), TRACE_IO_TIMEOUT_MS, 'Langfuse score flush timed out'),
+    ]));
+  }
+  return failures;
 }
 
 async function createTraceProviders(input: {
@@ -530,6 +547,45 @@ function usageMetadataForLangfuse(tokenMetadata: FleetGraphResult['tokenMetadata
     ...(tokenMetadata.outputTokens !== undefined ? { output: tokenMetadata.outputTokens } : {}),
     ...(tokenMetadata.totalTokens !== undefined ? { total: tokenMetadata.totalTokens } : {}),
   };
+}
+
+async function postProviderScore(
+  provider: FleetGraphTraceProviderEvidence,
+  score: FleetGraphObservabilityScore
+): Promise<void> {
+  if (provider.provider === 'langsmith') {
+    ensureLangSmithEnv();
+    const client = new Client({ autoBatchTracing: false, tracingSamplingRate: 1 });
+    await withTimeout(client.createFeedback(provider.traceId, score.name, {
+      score: score.value,
+      comment: score.comment,
+      sourceInfo: {
+        source: 'fleetgraph-observability-trial',
+        passed: score.passed,
+        ...score.metadata,
+      },
+    }), TRACE_IO_TIMEOUT_MS, `LangSmith score ${score.name} timed out`);
+    return;
+  }
+
+  ensureLangfuseEnv();
+  const client = langfuseClient ?? new LangfuseClient({
+    publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+    secretKey: process.env.LANGFUSE_SECRET_KEY,
+    baseUrl: process.env.LANGFUSE_BASE_URL,
+  });
+  langfuseClient = client;
+  client.score.create({
+    traceId: provider.traceId,
+    name: score.name,
+    value: score.value,
+    comment: score.comment,
+    metadata: {
+      source: 'fleetgraph-observability-trial',
+      passed: score.passed,
+      ...score.metadata,
+    },
+  });
 }
 
 function traceUsageSummary(result: FleetGraphResult): {
