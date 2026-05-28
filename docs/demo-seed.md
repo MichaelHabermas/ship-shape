@@ -15,8 +15,8 @@ This attaches the stable reviewer to the loaded app workspace (`Ship Workspace`)
 - stable login: `fleetgraph.reviewer@ship.local` / `admin123`
 - FleetGraph reviewer, engineer, PM, program lead, and dependency-owner users
 - person, program, project, active week, inactive week, dependency note, and issue documents
-- urgent/high active-week blocked issues with blocker evidence
-- negative-control issues for unblocked, missing-evidence, medium-priority, done, inactive-week, duplicate, and private-source cases
+- blocked issue attention sources with and without blocker evidence
+- negative-control issues for unblocked, done, duplicate, private-source, stale, and at-risk policy cases
 - one duplicate-control FleetGraph finding
 - reviewer URLs and detector summary output
 

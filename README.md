@@ -245,6 +245,12 @@ The ledger is the claim authority. The dashboard and Current Ledger Truth block 
 
 ---
 
+## Week 5 FleetGraph Evidence
+
+Start with [`REVIEWER_GUIDE.md`](./REVIEWER_GUIDE.md). The final Week 5 deliverables are [`FLEETGRAPH.md`](./FLEETGRAPH.md) and [`PRESEARCH.md`](./PRESEARCH.md). Observability evidence is published in [`web/public/fleetgraph-observability/index.html`](./web/public/fleetgraph-observability/index.html).
+
+---
+
 ## Deployment
 
 Ship currently has a Render deployment path for public/demo evidence and an AWS/Terraform path for future government-style infrastructure work.

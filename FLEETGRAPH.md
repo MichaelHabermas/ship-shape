@@ -1,108 +1,197 @@
-# FleetGraph Current Compass
+# Agent Responsibility
 
-FleetGraph is Ship's internal project intelligence and attention engine.
+FleetGraph is Ship's project intelligence and attention engine. It watches real Ship work state, decides when a project condition deserves attention, routes the finding to the smallest useful audience, and gives the user a context-aware explanation path.
 
-It is not user-facing branding, a graph visualization, a standalone chatbot, or a dashboard with AI copy. It is the system that notices important project state, reasons from real Ship data, surfaces useful findings to connected people, and gives them a direct way to understand what to do next.
+What it monitors proactively:
 
-This file is a compass, not a chronicle. It should stay short. History, traces, eval output, reviewer proof, and implementation archaeology belong in linked evidence files.
+| Signal | Source state | Surfaced when |
+| --- | --- | --- |
+| Blocked | Issue `state = blocked` | Any visible active issue is blocked, including missing blocker text |
+| Stale | Issue `state = in_progress` or `in_review` with no meaningful update for 180+ days | Work appears abandoned but is not done/cancelled/blocked |
+| At risk | High/urgent current-week work | The issue has no assignee or is within 3 days of sprint end |
 
-## Source Truth Order
+What it reasons about on demand:
 
-When sources disagree, use this order:
+- Why a selected notification or source issue was flagged.
+- What evidence is visible to the current user.
+- What next action is useful without pretending work was changed.
+- Whether a user request is supported by the current context capsule.
 
-1. Week 5 specs in `my-docs/project-weeks-sot/week-5/w5-specs/`
-2. FleetGraph operating definition in `my-docs/project-weeks-sot/week-5/fleetgraph/AGENTS.md`
-3. Latest durable decisions in `my-docs/project-weeks-sot/week-5/DECISION_LOG-w5.md`
-4. Current code, tests, traces, persisted runs, and eval reports
+What it can do autonomously:
 
-Existing code and old docs are evidence, not authority. Do not preserve an old surface just because it exists.
+- Read permitted Ship state.
+- Claim FleetGraph attention events.
+- Run deterministic candidate policy before graph execution.
+- Create/update/suppress/resolve FleetGraph-owned findings.
+- Persist FleetGraph runs, evidence snapshots, trace metadata, and notification read state.
+- Surface in-app notifications and context chat answers.
 
-## Active Week 5 Loop
+What always requires a human:
 
-The current proof loop is:
+- Mutating Ship source records: status, owner, priority, sprint/week, title, content, due date.
+- Contacting another person or posting a comment/message.
+- Escalating to a director or accepting delivery risk on behalf of the team.
 
-1. A real Ship issue has an attention signal: blocked, long-stale active work, or current-week high-priority risk.
-2. FleetGraph detects it from existing Ship issue/week/iteration data.
-3. The finding routes to the smallest useful connected audience.
-4. The left rail shows a compact notification.
-5. The notification can open the source issue.
-6. The notification can open contextual chat with the source attached.
-7. Chat explains the situation from the same graph architecture used by proactive mode.
-8. Any Ship mutation or contact with another person remains behind a human gate.
+Who it notifies:
 
-The first slice is not "make an AI card." It is "make project attention become useful decision support."
+- Issue assignee or owner first.
+- Project owner/PM when execution ownership is missing or the action is project-level.
+- Program/workspace admin only as fallback for orphaned or escalated work.
+- Visibility wins over routing: user-facing output is filtered before display and restricted evidence becomes no-safe-output, not a leak.
 
-## Hard Rules
+How on-demand mode uses current view:
 
-- FleetGraph is internal terminology only.
-- Proactive mode and on-demand chat use the same graph boundary.
-- Use real Ship data, not fake UI placeholders.
-- Prefer existing Ship fields and associations before inventing FleetGraph-specific properties.
-- Blocked issue notification eligibility is `issue.state = blocked`.
-- Do not require current week, urgent/high priority, owner, or blocker text.
-- The source issue state is canonical. Do not create a shadow blocker lifecycle by default.
-- Human gates prevent Ship mutation or contacting people without approval.
-- Reviewer proof belongs in logs, persisted runs, traces, tests, screenshots, and docs.
-- Product UI exists for useful user decisions, not reviewer proof.
+- The chat request carries a bounded context capsule: issue/document/sprint/project/program/workspace identifiers plus any selected notification/finding.
+- The active page context is the anchor; notification context can add source evidence.
+- The same `runFleetGraph` graph boundary handles proactive and on-demand paths. The trigger differs; the graph runtime does not fork into separate products.
 
-## Current Product Surface
+# Graph Diagram
 
-Notifications live in the left rail. FleetGraph is one producer of generic notifications.
+```mermaid
+flowchart TD
+  A["Ship issue/week state changes"] --> B["FleetGraph attention event"]
+  C["2-minute worker repair scan"] --> D["Candidate policy"]
+  B --> D
+  D -->|eligible| E["runFleetGraph shared LangGraph runtime"]
+  D -->|not eligible| Q["quiet exit / suppress stale finding"]
+  U["User opens notification or page chat"] --> E
+  E --> N["normalizeTrigger"]
+  N --> R{"trigger type"}
+  R -->|proactive candidate| P["detectorDecision"]
+  R -->|existing finding| X["explainFinding"]
+  R -->|context chat| H["contextChat"]
+  R -->|refine/change/resolve/dismiss| O["bounded action node"]
+  P --> S{"decision"}
+  S -->|create/update| F["persist FleetGraph finding + run"]
+  S -->|resolved/restricted/duplicate| Q
+  X --> V["visible explanation"]
+  H --> V
+  O --> G{"Ship mutation/contact?"}
+  G -->|yes| I["human gate required"]
+  G -->|no| V
+  F --> L["left-rail notification"]
+  L --> M["open source issue"]
+  L --> H
+```
 
-An attention notification should stay compact:
+Primary runtime boundary: `api/src/fleetgraph/core.ts`. Proactive execution enters through `api/src/fleetgraph/execution/worker.ts`. User-facing routes enter through `api/src/routes/fleetgraph.ts`.
 
-- presentational signal chip plus raw issue title
-- age
-- owner or assignee, or `-` only when no owner/team exists
-- project or context
-- concise reason or latest non-empty blocker text when present
-- source and chat actions
+# Use Cases
 
-Chat is contextual by construction. Current page context is always present and cannot be removed. Extra contexts can be added or removed. Clicking an extra context navigates to that source. If an extra context becomes current, the previous current becomes an extra chip. Never render duplicate chips for the same source. The current context chip uses a small empty green ring marker, not `Current -`.
+| # | Role | Trigger | Agent detects / produces | Human decides |
+| ---: | --- | --- | --- | --- |
+| 1 | PM | Issue becomes blocked | Notification, source issue, blocker reason or missing-reason gap, owner/assignee, next unblock step | Ask owner, edit/send message, move work, or accept risk |
+| 2 | Engineer | Opens contextual chat from a blocked issue/finding | Explanation of why it was flagged, visible evidence, and next step | Follow up, ask deeper question, or update the issue manually |
+| 3 | PM | Active work has no meaningful update for 180+ days | Stale-work attention signal with source and suggested review action | Revive, close, reassign, or defer the work |
+| 4 | PM/Director | High/urgent current-week issue lacks owner or nears sprint end | At-risk signal with sprint context and likely accountable audience | Assign owner, re-scope, escalate, or accept carryover |
+| 5 | Reviewer/Admin | Needs proof that the agent is a graph, not a pipeline | Distinct proactive, on-demand, quiet, and human-gated trace paths | Inspect trace links and run/eval evidence |
 
-## Future Choice Test
+# Trigger Model
 
-Future product choices should be judged by whether they make the active loop clearer, faster, or more trustworthy.
+FleetGraph uses a hybrid trigger model:
 
-A good FleetGraph slice should improve at least one of these:
+- Event path: issue mutations enqueue durable `fleetgraph_attention_events`; the worker claims pending events and evaluates only changed sources.
+- Repair path: a 2-minute server-side worker scan catches missed events and revalidates open findings.
+- Test path: `POST /api/fleetgraph/test/worker-tick` is available only in `NODE_ENV=test` and admin-gated for deterministic E2E proof.
 
-- detecting real project state
-- routing to the right connected people
-- preserving current context across notification and chat
-- explaining evidence without leaking private or irrelevant details
-- helping the user decide the next useful action
-- proving graph path differences, gates, provenance, or latency outside the product UI
+Tradeoffs:
 
-If a choice mostly adds surface area, labels, or proof scaffolding, leave it out.
+| Choice | Why |
+| --- | --- |
+| Events first | Fast detection without full-workspace graph runs |
+| Repair scan | Prevents silent misses if enqueue/processing fails |
+| SQL policy before graph | Keeps most worker ticks zero-token and low-cost |
+| API-process worker with DB leases | Simple deployment; avoids duplicate scans across instances |
 
-## Current Evidence
+Latency defense:
 
-Key implementation boundaries:
+- Worker interval default: 120,000 ms.
+- Timed E2E path asserts mutation-created event processing under 30 seconds when the test worker trigger is invoked.
+- Production target remains under 5 minutes: event claim or next 2-minute repair scan, bounded context fetch, graph run, persisted finding, notification visible.
 
-- `api/src/fleetgraph/core.ts`
-- `api/src/fleetgraph/detection/`
-- `api/src/fleetgraph/persistence.ts`
-- `api/src/routes/fleetgraph.ts`
-- `api/src/fleetgraph/runtime/`
-- `web/src/components/FleetGraphNotificationsProbe.tsx`
-- `web/src/components/FleetGraphChatProbe.tsx`
+# Test Cases
 
-Key proof surfaces:
+| # | Ship state | Expected output | Evidence |
+| ---: | --- | --- | --- |
+| 1 | Issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | LangSmith proactive create: https://smith.langchain.com/public/ad258212-2b31-4c36-88f2-ad91401a7d86/r |
+| 2 | User asks from existing finding context | On-demand `explain` path returns visible evidence and next action | LangSmith explain: https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
+| 3 | No eligible candidate or unsupported safe output | Quiet exit, zero model calls, no finding created | Run report: `my-docs/evals/fleetgraph-observability/run-2026-05-28T22-44-44-783Z.md` |
+| 4 | Chat asks for next action on blocked source | Human gate required; issue remains blocked after chat | `e2e/fleetgraph-attention-loop.spec.ts` |
+| 5 | Current product copy from authored and runtime cases | 6 pass, 0 fail; no reviewer-proof scaffolding in UI copy | `my-docs/evals/fleetgraph-product-surface/latest.md` |
 
-- executable FleetGraph evals in `api/src/fleetgraph/eval/`
-- product-surface eval report at `my-docs/evals/fleetgraph-product-surface/latest.md`
-- persisted `fleetgraph_runs`
-- focused FleetGraph tests
-- reviewer guide and screenshots when preparing a walkthrough
+Latest observability run: `my-docs/evals/fleetgraph-observability/run-2026-05-28T22-44-44-783Z.md`.
 
-As of the latest product-surface report, current authored and runtime outputs pass. Historical persisted failures remain trend data only; they are not present-tense user-facing failures unless a current run reproduces them.
+- Traces: 4.
+- Model calls: 1.
+- Total tokens: 180.
+- Estimated cost: `$0.0000675`.
+- Score pass/fail: 32/0.
+- Langfuse trace coverage: 4/4.
+- LangSmith trace coverage: 4/4.
+- Two non-primary share attempts returned provider 404s; proactive create and explain have public LangSmith links and are the primary reviewer traces.
 
-## Current Bottleneck
+# Architecture Decisions
 
-The weakest remaining product question is not whether FleetGraph can detect an attention signal. It can.
+| Decision | Implementation | Defense |
+| --- | --- | --- |
+| One graph boundary | `runFleetGraph` in `api/src/fleetgraph/core.ts` compiles a shared LangGraph `StateGraph` | Proactive and on-demand modes branch inside one runtime |
+| Deterministic detection first | `api/src/fleetgraph/detection/attention-policy.ts` maps Ship issue context to `blocked`, `stale`, or `at_risk` | Avoids spending model tokens on broad scans |
+| FleetGraph owns diagnosis state only | Findings, runs, attention events, and read state are FleetGraph-owned tables | Ship issues/weeks/projects remain source of truth |
+| Human gate before consequences | Chat/action output marks approval required for mutation/contact-like work | Prevents fake autonomy and source-record changes without approval |
+| Context chat is bounded | `/api/fleetgraph/chat` supports context-attached prompts, not a standalone workspace chatbot | Satisfies embedded-context requirement without turning into generic chat |
+| Observability is provider-neutral | `api/src/fleetgraph/observability-trace.ts` emits sanitized LangSmith/Langfuse evidence | Reviewer proof does not leak prompts, completions, cookies, emails, or hidden evidence |
+| Reviewer proof stays out of product UI | Trace links, run metadata, and eval scores live in docs/reports | UI stays focused on user decisions |
 
-The bottleneck is whether the full loop feels like project intelligence:
+Public API/interface additions:
 
-Ship signal -> routed notification -> source -> contextual chat -> useful next action
+- `GET /api/fleetgraph/findings`
+- `GET /api/fleetgraph/notifications`
+- `POST /api/fleetgraph/notifications/read`
+- `POST /api/fleetgraph/notifications/:findingId/read`
+- `POST /api/fleetgraph/:findingId/explain`
+- `POST /api/fleetgraph/chat`
+- `POST /api/fleetgraph/manual-run` when explicitly enabled
+- `POST /api/fleetgraph/test/worker-tick` only in test mode
 
-Next slices should move that whole loop. Prefer work that proves lifecycle correctness, routing, context transfer, graph path differences, human gates, real-data provenance, and low detection latency together. Avoid slices that only make the card prettier.
+Shared wire types live in `shared/src/types/fleetgraph.ts`: findings, notifications, visible output, trace metadata, chat request/response, signal types, evidence, and manual-run response.
+
+# Cost Analysis
+
+Development/testing cost from latest observability run:
+
+| Item | Amount |
+| --- | ---: |
+| Model calls | 1 |
+| Total tokens | 180 |
+| Estimated spend | `$0.0000675` |
+| Score pass/fail | 32/0 |
+
+Pricing assumption used by the current FleetGraph scripts:
+
+- Input: `$0.15 / 1M tokens`.
+- Output: `$0.60 / 1M tokens`.
+- Observed proactive create cost: `$0.0000675`.
+- Quiet, explain, and refine paths in the latest trial used zero model tokens.
+
+Production projection assumptions:
+
+- 10 users per active project.
+- 2 proactive model-backed findings per project per day.
+- 1 on-demand model-backed invocation per user per day.
+- Average model-backed invocation: 3,000 input tokens + 750 output tokens.
+- Cost per average model-backed invocation: `(3,000 / 1,000,000 * $0.15) + (750 / 1,000,000 * $0.60) = $0.0009`.
+- SQL-only worker ticks and deterministic quiet exits are treated as zero model cost.
+
+| Scale | Projects | Proactive runs/month | On-demand runs/month | Estimated monthly model cost |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 users | 10 | 600 | 3,000 | `$3.24` |
+| 1,000 users | 100 | 6,000 | 30,000 | `$32.40` |
+| 10,000 users | 1,000 | 60,000 | 300,000 | `$324.00` |
+
+Cost cliffs and controls:
+
+- Full-workspace reasoning is not allowed; SQL selects candidates first.
+- No-candidate worker ticks spend zero model tokens.
+- Open findings use dedupe keys and suppression/update paths instead of repeated creates.
+- Context chat is scoped to the current page/finding capsule.
+- Program-wide summaries are future work and would need separate budgets before enabling.

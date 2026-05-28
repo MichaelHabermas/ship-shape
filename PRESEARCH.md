@@ -117,37 +117,39 @@
 
 - When does the proactive agent run without a user present?
 
-  **For MVP, FleetGraph runs as a server-side polling worker every 2 minutes, scoped to deterministic candidates and open findings.**
-  The worker does not scan the full workspace through the LLM. It runs cheap database eligibility checks for recently changed issues/projects/sprints/weeks and existing FleetGraph findings that need revalidation. Only eligible candidates enter the graph.
+  **FleetGraph now uses a hybrid trigger model: durable attention events first, plus a 2-minute server-side repair scan.**
+  Issue mutations enqueue FleetGraph-owned attention events after the Ship write succeeds. The worker claims pending events, evaluates the changed source with deterministic policy, and sends only eligible candidates into the shared graph. The scheduled scan remains as the catch-up path for missed events and open finding revalidation.
 
-  The MVP latency path is:
+  The deployed latency path is:
 
-  1. Ship state changes.
-  2. The next 2-minute worker tick queries candidates by `updated_at`, status, sprint/week membership, blocker state, ownership gaps, and open finding recheck time.
-  3. Eligible candidates enter the shared graph.
-  4. The graph fetches bounded context, reasons, persists a finding, and returns a UI-visible output.
+  1. Ship issue state changes.
+  2. The mutation enqueues a `fleetgraph_attention_events` row.
+  3. The worker claims the event or the next 2-minute repair scan finds the source.
+  4. Deterministic policy selects `blocked`, `stale`, `at_risk`, or quiet exit.
+  5. Eligible candidates enter the shared graph.
+  6. The graph persists a FleetGraph finding/run and returns UI-visible output.
 
 - Poll vs. webhook vs. hybrid - what are the tradeoffs?
 
-  **MVP uses polling because it is the fastest reliable path to a deployed proactive agent. The defensible long-term design is hybrid.**
+  **The final model is hybrid because it gives fast event-driven freshness without trusting events as the only safety net.**
 
-  - **Polling:** easiest to ship, works without invasive event plumbing, and catches missed transitions. The cost risk is waste if every tick scans too broadly.
-  - **Webhooks/internal events:** faster and cheaper for fresh changes, but require event definitions, replay, idempotency, failure recovery, and integration work.
-  - **Hybrid:** best final shape. Events enqueue changed scopes immediately; polling catches missed events, rechecks open findings, handles snoozes/cooldowns, and prevents silent drift.
+  - **Polling only:** simple, but either wastes work or waits up to the next tick for every change.
+  - **Events only:** fast, but missed event writes or worker failures can silently lose attention signals.
+  - **Hybrid:** events enqueue changed scopes immediately; polling catches missed events, rechecks open findings, handles cooldowns, and prevents silent drift.
 
-  The week-five implementation should not pretend to build the full hybrid system. It should document hybrid as the architecture direction while proving the proactive requirement with bounded polling.
+  The Week 5 implementation uses the hybrid model directly: FleetGraph-owned events for freshness and a worker repair scan for resilience.
 
 - How stale is too stale for your use cases?
 
   **Newly eligible high-confidence risks are too stale if they are not visible within 5 minutes.**
-  The timed MVP path treats a visible blocked issue as eligible as soon as the blocked state appears in Ship. Staleness, priority, and current-week membership can upgrade ranking or severity later; they are not reasons to wait silently. For sprint risk, the clock starts when the sprint/week enters the risk window and qualifying important work remains open. For missing updates, the clock starts when the expected cadence window passes.
+  The timed path treats a visible blocked issue as eligible as soon as the blocked state appears in Ship. Staleness, priority, and current-week membership can change the signal type or reason, but they are not reasons to wait silently once policy says the source is eligible. For sprint risk, the clock starts when the sprint/week enters the risk window and qualifying important work remains open. For stale work, the clock starts when the meaningful-update threshold passes.
 
   On-demand answers should use fresh reads at request time. Cached context may help compare prior state, but current decisions must be based on fresh permission-checked data.
 
 - What does your choice cost at 100 projects? At 1,000?
 
   **Project count is not the main cost driver; candidate count is.**
-  A 2-minute worker runs 720 ticks/day. A naive full scan would touch 72,000 project checks/day at 100 projects and 720,000 checks/day at 1,000 projects. That is acceptable only as cheap SQL, not as graph execution.
+  A 2-minute repair scan runs 720 ticks/day. A naive full scan would touch 72,000 project checks/day at 100 projects and 720,000 checks/day at 1,000 projects. That is acceptable only as cheap SQL, not as graph execution. The event path avoids waiting for the repair scan on normal issue mutations.
 
   MVP assumes:
 
