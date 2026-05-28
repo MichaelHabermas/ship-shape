@@ -35,7 +35,11 @@ import {
   type RecordFleetGraphRunInput,
   type SaveBlockedImportantIssueFindingInput,
 } from './persistence.js';
-import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
+import {
+  fleetGraphLangSmithEnabled,
+  withFleetGraphLangSmithTrace,
+  type FleetGraphLangSmithNodeRecorder,
+} from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
 import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
@@ -72,6 +76,7 @@ export type FleetGraphCoreOptions = {
   persistence?: FleetGraphPersistencePort;
   generateProactiveText?: typeof generateProactiveCreateText;
   externalTrace?: Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
+  traceRecorder?: FleetGraphLangSmithNodeRecorder;
   observabilityError?: string;
 };
 
@@ -124,7 +129,7 @@ export async function runFleetGraph(
       const capture = await withFleetGraphLangSmithTrace({
         name: `FleetGraph ${input.mode} ${input.trigger.type}`,
         inputs: traceSafeRunInputs(input),
-      }, (externalTrace) => runFleetGraph(input, { ...options, externalTrace }));
+      }, (externalTrace, traceRecorder) => runFleetGraph(input, { ...options, externalTrace, traceRecorder }));
       return capture.result;
     } catch (error) {
       // FleetGraph must still surface findings if external trace capture is temporarily unavailable.
@@ -187,17 +192,19 @@ function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord 
 
 function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
   return new StateGraph(FleetGraphState)
-    .addNode('normalizeTrigger', (state) => normalizeTriggerNode(state, context))
-    .addNode('detectorDecision', () => detectorDecisionNode(context))
-    .addNode('quietExit', () => quietExitNode(context))
-    .addNode('explainFinding', () => explainFindingNode(context))
-    .addNode('refineDraft', () => refineDraftNode(context))
-    .addNode('summarizeChanges', () => summarizeChangesNode(context))
-    .addNode('contextChat', () => contextChatNode(context))
-    .addNode('resolveFinding', () => resolveFindingNode(context))
-    .addNode('suppressFinding', () => suppressFindingNode(context))
-    .addNode('dismissFinding', () => dismissFindingNode(context))
-    .addNode('errorRun', () => errorRunNode(context))
+    .addNode('normalizeTrigger', (state) => tracedFleetGraphNode('normalizeTrigger', context, () =>
+      Promise.resolve(normalizeTriggerNode(state, context))
+    ))
+    .addNode('detectorDecision', () => tracedFleetGraphNode('detectorDecision', context, () => detectorDecisionNode(context)))
+    .addNode('quietExit', () => tracedFleetGraphNode('quietExit', context, () => quietExitNode(context)))
+    .addNode('explainFinding', () => tracedFleetGraphNode('explainFinding', context, () => explainFindingNode(context)))
+    .addNode('refineDraft', () => tracedFleetGraphNode('refineDraft', context, () => refineDraftNode(context)))
+    .addNode('summarizeChanges', () => tracedFleetGraphNode('summarizeChanges', context, () => summarizeChangesNode(context)))
+    .addNode('contextChat', () => tracedFleetGraphNode('contextChat', context, () => contextChatNode(context)))
+    .addNode('resolveFinding', () => tracedFleetGraphNode('resolveFinding', context, () => resolveFindingNode(context)))
+    .addNode('suppressFinding', () => tracedFleetGraphNode('suppressFinding', context, () => suppressFindingNode(context)))
+    .addNode('dismissFinding', () => tracedFleetGraphNode('dismissFinding', context, () => dismissFindingNode(context)))
+    .addNode('errorRun', () => tracedFleetGraphNode('errorRun', context, () => errorRunNode(context)))
     .addEdge(START, 'normalizeTrigger')
     .addConditionalEdges('normalizeTrigger', routeFleetGraphTrigger)
     .addEdge('detectorDecision', END)
@@ -211,6 +218,20 @@ function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
     .addEdge('dismissFinding', END)
     .addEdge('errorRun', END)
     .compile({ name: 'fleetgraph.shared_runtime' });
+}
+
+async function tracedFleetGraphNode(
+  name: string,
+  context: FleetGraphRuntimeContext,
+  run: () => Promise<Partial<FleetGraphStateValue>>
+): Promise<Partial<FleetGraphStateValue>> {
+  if (!context.options.traceRecorder) return run();
+
+  return context.options.traceRecorder.traceNode(name, {
+    mode: context.input.mode,
+    triggerType: context.input.trigger.type,
+    triggerReason: context.triggerReason,
+  }, run);
 }
 
 function normalizeTriggerNode(state: FleetGraphStateValue, context: FleetGraphRuntimeContext): Partial<FleetGraphStateValue> {

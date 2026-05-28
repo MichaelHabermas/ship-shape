@@ -13,6 +13,14 @@ export type FleetGraphLangSmithTraceCapture<T extends FleetGraphResult = FleetGr
   sharedTraceUrl: string | null;
 };
 
+export type FleetGraphLangSmithNodeRecorder = {
+  traceNode<T>(
+    name: string,
+    inputs: Record<string, unknown>,
+    run: () => Promise<T>
+  ): Promise<T>;
+};
+
 export function fleetGraphLangSmithEnabled(): boolean {
   return isEnabled(process.env.LANGSMITH_TRACING) || isEnabled(process.env.LANGCHAIN_TRACING_V2);
 }
@@ -33,7 +41,7 @@ export async function withFleetGraphLangSmithTrace<T extends FleetGraphResult>(
     name: string;
     inputs: Record<string, unknown>;
   },
-  run: (trace: FleetGraphLangSmithTraceIdentity) => Promise<T>
+  run: (trace: FleetGraphLangSmithTraceIdentity, recorder: FleetGraphLangSmithNodeRecorder) => Promise<T>
 ): Promise<FleetGraphLangSmithTraceCapture<T>> {
   ensureLangSmithEnv();
 
@@ -56,16 +64,16 @@ export async function withFleetGraphLangSmithTrace<T extends FleetGraphResult>(
     serialized: {},
   });
 
+  const recorder = createLangSmithNodeRecorder({
+    client,
+    projectName,
+    traceId,
+    parentRunId: traceId,
+    parentDottedOrder: rootOrder.dottedOrder,
+  });
+
   try {
-    const result = await run({ traceId, traceUrl });
-    await postNodePathChildren({
-      client,
-      projectName,
-      traceId,
-      parentRunId: traceId,
-      parentDottedOrder: rootOrder.dottedOrder,
-      nodePath: result.traceMetadata.nodePath,
-    });
+    const result = await run({ traceId, traceUrl }, recorder);
     await postModelCallChildren({
       client,
       projectName,
@@ -107,32 +115,46 @@ export async function withFleetGraphLangSmithTrace<T extends FleetGraphResult>(
   }
 }
 
-async function postNodePathChildren(input: {
+function createLangSmithNodeRecorder(input: {
   client: Client;
   projectName: string;
   traceId: string;
   parentRunId: string;
   parentDottedOrder: string;
-  nodePath: string[];
-}): Promise<void> {
-  for (const nodeName of input.nodePath) {
-    const childRunId = randomUUID();
-    const childOrder = convertToDottedOrderFormat(Date.now(), childRunId, 2);
-    await input.client.createRun({
-      id: childRunId,
-      trace_id: input.traceId,
-      parent_run_id: input.parentRunId,
-      name: `fleetgraph.${nodeName}`,
-      run_type: 'chain',
-      project_name: input.projectName,
-      start_time: childOrder.microsecondPrecisionDatestring,
-      end_time: new Date().toISOString(),
-      dotted_order: `${input.parentDottedOrder}.${childOrder.dottedOrder}`,
-      inputs: { node: nodeName },
-      outputs: { ok: true },
-      serialized: {},
-    });
-  }
+}): FleetGraphLangSmithNodeRecorder {
+  return {
+    async traceNode<T>(name: string, inputs: Record<string, unknown>, run: () => Promise<T>): Promise<T> {
+      const childRunId = randomUUID();
+      const childOrder = convertToDottedOrderFormat(Date.now(), childRunId, 2);
+      await input.client.createRun({
+        id: childRunId,
+        trace_id: input.traceId,
+        parent_run_id: input.parentRunId,
+        name: `fleetgraph.${name}`,
+        run_type: 'chain',
+        project_name: input.projectName,
+        start_time: childOrder.microsecondPrecisionDatestring,
+        dotted_order: `${input.parentDottedOrder}.${childOrder.dottedOrder}`,
+        inputs: scrubTraceInputs({ node: name, ...inputs }),
+        serialized: {},
+      });
+
+      try {
+        const output = await run();
+        await input.client.updateRun(childRunId, {
+          outputs: nodeOutput(name, output),
+          end_time: new Date().toISOString(),
+        });
+        return output;
+      } catch (error) {
+        await input.client.updateRun(childRunId, {
+          error: error instanceof Error ? error.message : String(error),
+          end_time: new Date().toISOString(),
+        });
+        throw error;
+      }
+    },
+  };
 }
 
 async function postModelCallChildren(input: {
@@ -211,6 +233,22 @@ function usageMetadataForLangSmith(tokenMetadata: FleetGraphResult['tokenMetadat
     ...(tokenMetadata.outputTokens !== undefined ? { output_tokens: tokenMetadata.outputTokens } : {}),
     ...(tokenMetadata.totalTokens !== undefined ? { total_tokens: tokenMetadata.totalTokens } : {}),
   };
+}
+
+function nodeOutput(name: string, output: unknown): Record<string, unknown> {
+  if (isFleetGraphStatePatch(output)) {
+    return {
+      node: name,
+      ...(typeof output.decision === 'string' ? { decision: output.decision } : {}),
+      ...(typeof output.triggerType === 'string' ? { triggerType: output.triggerType } : {}),
+      ...(typeof output.triggerReason === 'string' ? { triggerReason: output.triggerReason } : {}),
+    };
+  }
+  return { node: name, ok: true };
+}
+
+function isFleetGraphStatePatch(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function scrubTraceInputs(inputs: Record<string, unknown>): Record<string, unknown> {
