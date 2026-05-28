@@ -1,6 +1,6 @@
 # FleetGraph Product Surface Eval
 
-Generated: 2026-05-28T23:32:12.231Z
+Generated: 2026-05-28T23:30:21.584Z
 
 ## Current Surface Summary
 
@@ -222,99 +222,6 @@ Older fleetgraph_runs.output_snapshot rows for trend review only. These do not a
 
 - Pass: 0
 - Fail: 20
-
-### fg-surface-persisted-refine_draft-9818fc2c
-
-Persisted on_demand/refine_draft output from 2026-05-28T23:31:09.988Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (brevity, repetitionBudget, informationDensity, cavemanCopy)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 1 |
-| repetitionBudget | 1 |
-| informationDensity | 1 |
-| cavemanCopy | 1 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-explain-522f949a
-
-Persisted on_demand/explain output from 2026-05-28T23:31:06.200Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (brevity, repetitionBudget, informationDensity, cavemanCopy)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 1 |
-| repetitionBudget | 1 |
-| informationDensity | 1 |
-| cavemanCopy | 1 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-create_finding-b39e08dd
-
-Persisted proactive/create_finding output from 2026-05-28T23:31:05.136Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (brevity, repetitionBudget, informationDensity, cavemanCopy)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 1 |
-| repetitionBudget | 1 |
-| informationDensity | 1 |
-| cavemanCopy | 1 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
 
 ### fg-surface-persisted-refine_draft-7790a81e
 
@@ -832,6 +739,99 @@ Status: fail (brevity, repetitionBudget, informationDensity, cavemanCopy)
 | informationDensity | 2 |
 | cavemanCopy | 2 |
 | duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-create_finding-6e9d483c
+
+Persisted proactive/create_finding output from 2026-05-28T21:53:14.544Z
+
+Visible copy:
+
+> Blocked: FG Demo - SSO cert rotation blocked · The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo week. · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (brevity, repetitionBudget, informationDensity, cavemanCopy)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 2 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-refine_draft-8585e48a
+
+Persisted on_demand/refine_draft output from 2026-05-28T21:52:34.512Z
+
+Visible copy:
+
+> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 3 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-03833c4e
+
+Persisted on_demand/explain output from 2026-05-28T21:52:30.274Z
+
+Visible copy:
+
+> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 3 |
 | uncertaintyHonesty | 4 |
 | missingDataUsefulness | 4 |
 | uiProofSeparation | 4 |

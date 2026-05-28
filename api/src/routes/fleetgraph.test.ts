@@ -540,6 +540,25 @@ describe('FleetGraph routes', () => {
     expect(body.answer.nextStep).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
   });
 
+  it('returns quiet context chat answers as successful chat responses', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'quiet_exit',
+      traceMetadata: { mode: 'on_demand', decision: 'quiet_exit', nodePath: ['contextChatUnsupported'] },
+    } as never);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'How many issues do we have?',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+      })
+      .expect(200);
+
+    const body = JSON.parse(res.text) as { decision: string; answer: { body: string } };
+    expect(body.decision).toBe('quiet_exit');
+    expect(body.answer.body).toBe('FleetGraph could not answer from this context.');
+  });
+
   it('returns not found without identifiers for restricted explain output', async () => {
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'quiet_exit',

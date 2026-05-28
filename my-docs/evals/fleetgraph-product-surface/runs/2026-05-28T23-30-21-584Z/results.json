@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T23:32:12.231Z",
+  "generatedAt": "2026-05-28T23:30:21.584Z",
   "summary": {
     "average": {
       "actionability": 4,
@@ -235,11 +235,11 @@
           "actionability": 4,
           "groundedness": 3,
           "specificity": 3,
-          "brevity": 1.85,
+          "brevity": 2.2,
           "repetitionBudget": 1,
-          "informationDensity": 1.85,
-          "cavemanCopy": 1.85,
-          "duplicateFactControl": 3.4,
+          "informationDensity": 2.2,
+          "cavemanCopy": 2.2,
+          "duplicateFactControl": 3.45,
           "uncertaintyHonesty": 4,
           "missingDataUsefulness": 4,
           "uiProofSeparation": 4
@@ -248,108 +248,6 @@
         "failCount": 20
       },
       "results": [
-        {
-          "caseId": "fg-surface-persisted-refine_draft-9818fc2c",
-          "scores": {
-            "actionability": 4,
-            "groundedness": 3,
-            "specificity": 3,
-            "brevity": 1,
-            "repetitionBudget": 1,
-            "informationDensity": 1,
-            "cavemanCopy": 1,
-            "duplicateFactControl": 3,
-            "uncertaintyHonesty": 4,
-            "missingDataUsefulness": 4,
-            "uiProofSeparation": 4
-          },
-          "pass": false,
-          "failedDimensions": [
-            "brevity",
-            "repetitionBudget",
-            "informationDensity",
-            "cavemanCopy"
-          ],
-          "title": "Persisted on_demand/refine_draft output from 2026-05-28T23:31:09.988Z",
-          "visibleCopy": [
-            "Blocked: FG Demo - SSO cert rotation blocked",
-            "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned.",
-            "Ask Riley Builder to confirm owner and next step for Week 7."
-          ],
-          "notes": [
-            "Loaded from fleetgraph_runs.output_snapshot.",
-            "This is the report path that tracks real persisted FleetGraph outputs over time."
-          ],
-          "section": "historical"
-        },
-        {
-          "caseId": "fg-surface-persisted-explain-522f949a",
-          "scores": {
-            "actionability": 4,
-            "groundedness": 3,
-            "specificity": 3,
-            "brevity": 1,
-            "repetitionBudget": 1,
-            "informationDensity": 1,
-            "cavemanCopy": 1,
-            "duplicateFactControl": 3,
-            "uncertaintyHonesty": 4,
-            "missingDataUsefulness": 4,
-            "uiProofSeparation": 4
-          },
-          "pass": false,
-          "failedDimensions": [
-            "brevity",
-            "repetitionBudget",
-            "informationDensity",
-            "cavemanCopy"
-          ],
-          "title": "Persisted on_demand/explain output from 2026-05-28T23:31:06.200Z",
-          "visibleCopy": [
-            "Blocked: FG Demo - SSO cert rotation blocked",
-            "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned.",
-            "Ask Riley Builder to confirm owner and next step for Week 7."
-          ],
-          "notes": [
-            "Loaded from fleetgraph_runs.output_snapshot.",
-            "This is the report path that tracks real persisted FleetGraph outputs over time."
-          ],
-          "section": "historical"
-        },
-        {
-          "caseId": "fg-surface-persisted-create_finding-b39e08dd",
-          "scores": {
-            "actionability": 4,
-            "groundedness": 3,
-            "specificity": 3,
-            "brevity": 1,
-            "repetitionBudget": 1,
-            "informationDensity": 1,
-            "cavemanCopy": 1,
-            "duplicateFactControl": 3,
-            "uncertaintyHonesty": 4,
-            "missingDataUsefulness": 4,
-            "uiProofSeparation": 4
-          },
-          "pass": false,
-          "failedDimensions": [
-            "brevity",
-            "repetitionBudget",
-            "informationDensity",
-            "cavemanCopy"
-          ],
-          "title": "Persisted proactive/create_finding output from 2026-05-28T23:31:05.136Z",
-          "visibleCopy": [
-            "Blocked: FG Demo - SSO cert rotation blocked",
-            "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned.",
-            "Ask Riley Builder to confirm owner and next step for Week 7."
-          ],
-          "notes": [
-            "Loaded from fleetgraph_runs.output_snapshot.",
-            "This is the report path that tracks real persisted FleetGraph outputs over time."
-          ],
-          "section": "historical"
-        },
         {
           "caseId": "fg-surface-persisted-refine_draft-7790a81e",
           "scores": {
@@ -918,6 +816,102 @@
             "This is the report path that tracks real persisted FleetGraph outputs over time."
           ],
           "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-create_finding-6e9d483c",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 2,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "brevity",
+            "repetitionBudget",
+            "informationDensity",
+            "cavemanCopy"
+          ],
+          "title": "Persisted proactive/create_finding output from 2026-05-28T21:53:14.544Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - SSO cert rotation blocked",
+            "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo week.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-refine_draft-8585e48a",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 3,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted on_demand/refine_draft output from 2026-05-28T21:52:34.512Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - SSO cert rotation blocked",
+            "Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-explain-03833c4e",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 3,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted on_demand/explain output from 2026-05-28T21:52:30.274Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - SSO cert rotation blocked",
+            "Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
         }
       ]
     }
@@ -1106,108 +1100,6 @@
         "Failures here identify current runtime copy that needs product wording work."
       ],
       "section": "current"
-    },
-    {
-      "caseId": "fg-surface-persisted-refine_draft-9818fc2c",
-      "scores": {
-        "actionability": 4,
-        "groundedness": 3,
-        "specificity": 3,
-        "brevity": 1,
-        "repetitionBudget": 1,
-        "informationDensity": 1,
-        "cavemanCopy": 1,
-        "duplicateFactControl": 3,
-        "uncertaintyHonesty": 4,
-        "missingDataUsefulness": 4,
-        "uiProofSeparation": 4
-      },
-      "pass": false,
-      "failedDimensions": [
-        "brevity",
-        "repetitionBudget",
-        "informationDensity",
-        "cavemanCopy"
-      ],
-      "title": "Persisted on_demand/refine_draft output from 2026-05-28T23:31:09.988Z",
-      "visibleCopy": [
-        "Blocked: FG Demo - SSO cert rotation blocked",
-        "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned.",
-        "Ask Riley Builder to confirm owner and next step for Week 7."
-      ],
-      "notes": [
-        "Loaded from fleetgraph_runs.output_snapshot.",
-        "This is the report path that tracks real persisted FleetGraph outputs over time."
-      ],
-      "section": "historical"
-    },
-    {
-      "caseId": "fg-surface-persisted-explain-522f949a",
-      "scores": {
-        "actionability": 4,
-        "groundedness": 3,
-        "specificity": 3,
-        "brevity": 1,
-        "repetitionBudget": 1,
-        "informationDensity": 1,
-        "cavemanCopy": 1,
-        "duplicateFactControl": 3,
-        "uncertaintyHonesty": 4,
-        "missingDataUsefulness": 4,
-        "uiProofSeparation": 4
-      },
-      "pass": false,
-      "failedDimensions": [
-        "brevity",
-        "repetitionBudget",
-        "informationDensity",
-        "cavemanCopy"
-      ],
-      "title": "Persisted on_demand/explain output from 2026-05-28T23:31:06.200Z",
-      "visibleCopy": [
-        "Blocked: FG Demo - SSO cert rotation blocked",
-        "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned.",
-        "Ask Riley Builder to confirm owner and next step for Week 7."
-      ],
-      "notes": [
-        "Loaded from fleetgraph_runs.output_snapshot.",
-        "This is the report path that tracks real persisted FleetGraph outputs over time."
-      ],
-      "section": "historical"
-    },
-    {
-      "caseId": "fg-surface-persisted-create_finding-b39e08dd",
-      "scores": {
-        "actionability": 4,
-        "groundedness": 3,
-        "specificity": 3,
-        "brevity": 1,
-        "repetitionBudget": 1,
-        "informationDensity": 1,
-        "cavemanCopy": 1,
-        "duplicateFactControl": 3,
-        "uncertaintyHonesty": 4,
-        "missingDataUsefulness": 4,
-        "uiProofSeparation": 4
-      },
-      "pass": false,
-      "failedDimensions": [
-        "brevity",
-        "repetitionBudget",
-        "informationDensity",
-        "cavemanCopy"
-      ],
-      "title": "Persisted proactive/create_finding output from 2026-05-28T23:31:05.136Z",
-      "visibleCopy": [
-        "Blocked: FG Demo - SSO cert rotation blocked",
-        "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo scheduled in Week 7. Without this approval, the demo cannot move forward as planned.",
-        "Ask Riley Builder to confirm owner and next step for Week 7."
-      ],
-      "notes": [
-        "Loaded from fleetgraph_runs.output_snapshot.",
-        "This is the report path that tracks real persisted FleetGraph outputs over time."
-      ],
-      "section": "historical"
     },
     {
       "caseId": "fg-surface-persisted-refine_draft-7790a81e",
@@ -1770,6 +1662,102 @@
       "visibleCopy": [
         "Blocked: FG Demo - SSO cert rotation blocked",
         "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo week.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-create_finding-6e9d483c",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 2,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "brevity",
+        "repetitionBudget",
+        "informationDensity",
+        "cavemanCopy"
+      ],
+      "title": "Persisted proactive/create_finding output from 2026-05-28T21:53:14.544Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - SSO cert rotation blocked",
+        "The FleetGraph Demo is currently blocked due to the pending approval of the SSO certificate rotation window by the designated dependency owner, Casey. This approval is critical to proceed with the certificate update necessary for secure single sign-on functionality during the demo week.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-refine_draft-8585e48a",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted on_demand/refine_draft output from 2026-05-28T21:52:34.512Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - SSO cert rotation blocked",
+        "Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-explain-03833c4e",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted on_demand/explain output from 2026-05-28T21:52:30.274Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - SSO cert rotation blocked",
+        "Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7",
         "Ask Riley Builder to confirm owner and next step for Week 7."
       ],
       "notes": [

@@ -11,6 +11,7 @@ import type {
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson, apiPostJson } from '@/lib/api';
+import { getApiErrorStatus } from '@/lib/api-error';
 
 interface ChatContextItem {
   id: string;
@@ -34,6 +35,7 @@ interface ChatTurn {
   prompt: string;
   status: 'loading' | 'ready' | 'error';
   response?: Pick<FleetGraphChatResponse, 'decision' | 'answer'>;
+  errorMessage?: string;
 }
 
 export interface FleetGraphChatProbeRequest {
@@ -301,9 +303,10 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
       setChatTurns((turns) => turns.map((turn) => turn.id === turnId
         ? { ...turn, status: 'ready', response }
         : turn));
-    } catch {
+    } catch (error) {
+      const status = getApiErrorStatus(error);
       setChatTurns((turns) => turns.map((turn) => turn.id === turnId
-        ? { ...turn, status: 'error' }
+        ? { ...turn, status: 'error', errorMessage: chatErrorMessage(status) }
         : turn));
     }
   };
@@ -562,18 +565,13 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
         <div key={turn.id} className="flex w-full flex-col gap-3">
           <UserMessage>{turn.prompt}</UserMessage>
           {turn.status === 'loading' && (
-            <AssistantAnswer
-              eyebrow="Checking"
-              body="Checking current Ship context..."
-              metadata={[]}
-              sources={[]}
-            />
+            <AssistantThinking />
           )}
           {turn.status === 'error' && (
             <AssistantAnswer
-              eyebrow="No answer"
-              body="I could not answer from the current context."
-              metadata={['error']}
+              eyebrow="Chat unavailable"
+              body={turn.errorMessage || 'Ship could not reach the chat service.'}
+              metadata={[]}
               sources={[]}
             />
           )}
@@ -607,6 +605,23 @@ function UserMessage({ children }: { children: string }) {
       {children}
     </div>
   );
+}
+
+function AssistantThinking() {
+  return (
+    <div className="w-full text-sm leading-5 text-muted">
+      Checking...
+    </div>
+  );
+}
+
+function chatErrorMessage(status: number | undefined): string {
+  if (status === 401) return 'Your session expired. Refresh and sign in again.';
+  if (status === 403) return 'Chat was rejected by the API. Refresh the page and try again.';
+  if (status === 404) return 'Ship could not find a visible finding for this context.';
+  if (status === 429) return 'Chat is rate limited. Try again in a minute.';
+  if (status && status >= 500) return 'The Ship API is unavailable right now.';
+  return 'Ship could not reach the chat service.';
 }
 
 function AssistantAnswer({
