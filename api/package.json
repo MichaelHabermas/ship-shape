@@ -19,6 +19,8 @@
     "search:reindex": "tsx src/scripts/reindex-search.ts",
     "fleetgraph:detector": "tsx src/scripts/fleetgraph-detector.ts",
     "fleetgraph:demo": "tsx src/scripts/fleetgraph-demo.ts",
+    "fleetgraph:observe": "tsx src/scripts/fleetgraph-observe.ts",
+    "fleetgraph:observe:sync": "tsx src/scripts/fleetgraph-observability-history.ts",
     "fleetgraph:eval:surface": "tsx src/scripts/fleetgraph-product-surface-eval.ts",
     "db:orphan-check": "tsx src/db/scripts/orphan-diagnostic.ts",
     "openapi:generate": "tsx src/scripts/generate-openapi.ts",

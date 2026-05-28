@@ -6,7 +6,8 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
 import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
-import { shutdownFleetGraphTracing, withFleetGraphTrace } from '../fleetgraph/observability-trace.js';
+import { scoreFleetGraphObservabilityResult } from '../fleetgraph/observability-scores.js';
+import { postFleetGraphTraceScores, shutdownFleetGraphTracing, withFleetGraphTrace } from '../fleetgraph/observability-trace.js';
 import { saveBlockedImportantIssueFinding } from '../fleetgraph/persistence.js';
 import type { Principal } from '../security/principal.js';
 import { requireFirstRow } from '../utils/query-rows.js';
@@ -19,6 +20,8 @@ const DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PASSWORD ?? 'admin123';
 type IdRow = { id: string };
 type UserRow = { id: string; email: string; name: string };
 type WorkspaceRow = { id: string; sprint_start_date: Date | string };
+export type FleetGraphDemoTraceEvidence = Awaited<ReturnType<typeof captureTraceEvidence>>;
+export type FleetGraphDemoReport = Awaited<ReturnType<typeof seedFleetGraphDemo>>;
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -245,7 +248,9 @@ async function setDocumentUpdatedAt(documentId: string, updatedAt: Date): Promis
   );
 }
 
-async function seedDemo(): Promise<void> {
+export async function seedFleetGraphDemo(options: {
+  captureTraces?: boolean;
+} = {}) {
   assertLocalDemoDatabase();
   const workspace = await upsertWorkspace();
   const currentSprintNumber = computeCurrentSprintNumber(new Date(workspace.sprint_start_date));
@@ -472,7 +477,7 @@ async function seedDemo(): Promise<void> {
 
   const decisions = await detectFleetGraphAttentionDecisions({ workspaceId: workspace.id });
   const quietExits = await findBlockedImportantIssueQuietExits({ workspaceId: workspace.id });
-  const traceEvidence = process.argv.includes('--capture-traces')
+  const traceEvidence = options.captureTraces
     ? await captureTraceEvidence({
       workspaceId: workspace.id,
       adminUserId: admin.id,
@@ -480,7 +485,7 @@ async function seedDemo(): Promise<void> {
     })
     : null;
 
-  console.log(JSON.stringify({
+  return {
     workspaceId: workspace.id,
     currentSprintNumber,
     reviewerLogin: admin.email,
@@ -509,10 +514,10 @@ async function seedDemo(): Promise<void> {
       'Rerun detector after duplicate finding exists for update/quiet proof.',
     ],
     traceEvidence,
-  }, null, 2));
+  };
 }
 
-async function captureTraceEvidence(input: {
+export async function captureTraceEvidence(input: {
   workspaceId: string;
   adminUserId: string;
   positiveIssueId: string;
@@ -594,13 +599,18 @@ async function captureTraceEvidence(input: {
   }, { db: pool, externalTrace, traceRecorder }));
 
   return {
-    proactive: traceEvidenceFor(proactive),
-    explain: traceEvidenceFor(explain),
-    refine: traceEvidenceFor(refine),
+    proactive: await traceEvidenceFor(proactive),
+    explain: await traceEvidenceFor(explain),
+    refine: await traceEvidenceFor(refine),
   };
 }
 
-function traceEvidenceFor(capture: Awaited<ReturnType<typeof withFleetGraphTrace>>) {
+async function traceEvidenceFor(capture: Awaited<ReturnType<typeof withFleetGraphTrace>>) {
+  const observabilityScores = scoreFleetGraphObservabilityResult(capture.result);
+  const scorePostFailures = await postFleetGraphTraceScores({
+    providers: capture.providers,
+    scores: observabilityScores,
+  });
   return {
     decision: capture.result.decision,
     findingId: capture.result.finding?.id ?? null,
@@ -608,12 +618,20 @@ function traceEvidenceFor(capture: Awaited<ReturnType<typeof withFleetGraphTrace
     traceUrl: capture.traceUrl,
     sharedTraceUrl: capture.sharedTraceUrl,
     providers: capture.providers,
+    providerFailures: capture.providerFailures,
+    observabilityScores,
+    scorePostFailures,
+    tokenMetadata: capture.result.tokenMetadata,
+    costMetadata: capture.result.costMetadata,
     traceMetadata: capture.result.traceMetadata,
   };
 }
 
 export async function main(): Promise<void> {
-  await seedDemo();
+  const report = await seedFleetGraphDemo({
+    captureTraces: process.argv.includes('--capture-traces'),
+  });
+  console.log(JSON.stringify(report, null, 2));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

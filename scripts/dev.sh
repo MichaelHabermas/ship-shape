@@ -118,6 +118,7 @@ export PORT=$API_PORT
 export CORS_ORIGIN="http://localhost:$WEB_PORT"
 export VITE_PORT=$WEB_PORT
 export VITE_API_URL="http://localhost:$API_PORT"
+export FLEETGRAPH_CONSOLE_TRACE="${FLEETGRAPH_CONSOLE_TRACE:-1}"
 
 echo "Starting dev servers..."
 echo "  API: http://localhost:$API_PORT"

@@ -498,4 +498,18 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Decision:** FleetGraph external tracing now uses one provider-neutral facade that can emit the same sanitized run/node/model-call evidence to LangSmith and Langfuse. The graph receives one primary trace identity, preferring a provider with a shareable URL available before graph execution, while demo/smoke evidence can report all configured provider URLs.
 
-**Consequence:** Observability providers are evidence sinks, not execution control flow. Provider node setup/update/finalization failures are recorded as provider failures and must not skip, rerun, or fail the FleetGraph business node. Short-lived trace smoke/demo paths explicitly shut down tracing so Langfuse/OpenTelemetry exports are flushed before process exit. Future providers should plug into the facade contract or split into provider modules when the file grows, rather than leaking vendor SDKs into `core.ts`, routes, web, or shared packages.
+**Consequence:** Observability providers are evidence sinks, not execution control flow. Provider node setup/update/finalization failures are recorded as provider failures and must not skip, rerun, or fail the FleetGraph business node. Root traces always include explicit token/cost summaries, using `none` when no model or cost data exists; real model calls still emit provider-native LLM/generation children for vendor token/cost columns. Short-lived trace smoke/demo paths explicitly shut down tracing so Langfuse/OpenTelemetry exports are flushed before process exit. Future providers should plug into the facade contract or split into provider modules when the file grows, rather than leaking vendor SDKs into `core.ts`, routes, web, or shared packages.
+
+## D063 - FleetGraph Observability Trial Is Local-First
+
+**Decision:** Add `pnpm fleetgraph:observe` as the local dual-provider trial for Langfuse and LangSmith. It runs bounded demo/smoke traces, posts deterministic provider-native scores best-effort, and writes JSON/Markdown comparison reports under `my-docs/evals/fleetgraph-observability/`.
+
+**Consequence:** The trial can spend real model tokens only when the command is explicitly invoked, stays out of CI/production automation for v1, and treats the local report as canonical when provider score APIs behave differently. Failed-score traces, provider-friction traces, and real-cost traces are appended to the generated edge-case dataset for future replay. Future CI gates should reuse the same score names instead of inventing new evaluation vocabulary.
+
+## D064 - FleetGraph Observability Dashboard Has Provider History
+
+**Date:** 2026-05-28
+
+**Decision:** Extend the observability trial from per-run reports to a cumulative provider-history snapshot. `pnpm fleetgraph:observe:sync` pulls recent FleetGraph traces/runs from Langfuse and LangSmith, writes `provider-history.json`, and the dashboard generator publishes both the local dashboard and a deployed static artifact under `web/public/fleetgraph-observability/`.
+
+**Consequence:** Reviewer-facing observability now shows forced demo runs, cumulative local reports, and synced provider history in one place. Provider API failures must show as dashboard data, not erase the local report history. The static deployed dashboard intentionally uses a generated snapshot so provider secrets stay server-side/local and never ship to the browser.

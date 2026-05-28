@@ -225,6 +225,8 @@ async function tracedFleetGraphNode(
   context: FleetGraphRuntimeContext,
   run: () => Promise<Partial<FleetGraphStateValue>>
 ): Promise<Partial<FleetGraphStateValue>> {
+  logFleetGraphNodeTouch(name, context);
+
   if (!context.options.traceRecorder) return run();
 
   return context.options.traceRecorder.traceNode(name, {
@@ -232,6 +234,17 @@ async function tracedFleetGraphNode(
     triggerType: context.input.trigger.type,
     triggerReason: context.triggerReason,
   }, run);
+}
+
+function logFleetGraphNodeTouch(name: string, context: FleetGraphRuntimeContext): void {
+  if (process.env.FLEETGRAPH_CONSOLE_TRACE !== '1') return;
+
+  console.log('[FleetGraph]', {
+    node: name,
+    mode: context.input.mode,
+    triggerType: context.input.trigger.type,
+    triggerReason: context.triggerReason,
+  });
 }
 
 function normalizeTriggerNode(state: FleetGraphStateValue, context: FleetGraphRuntimeContext): Partial<FleetGraphStateValue> {
