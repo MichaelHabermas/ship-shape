@@ -137,6 +137,16 @@ describe('withFleetGraphTrace', () => {
     expect(findUpdateRun(capture.traceId).outputs).toMatchObject({
       decision: 'quiet_exit',
       nodePath: ['normalizeTrigger', 'produceOutput'],
+      tokenUsage: {
+        label: 'none',
+        modelCalls: 0,
+        provider: 'none',
+        model: 'none',
+      },
+      costUsage: {
+        label: 'none',
+        currency: 'none',
+      },
     });
     expect(mocks.shareRun).toHaveBeenCalledWith(capture.traceId);
   });
@@ -177,6 +187,50 @@ describe('withFleetGraphTrace', () => {
       model: 'gpt-4o-mini',
       usageDetails: { input: 120, output: 24, total: 144 },
     }), { asType: 'generation' });
+    expect(mocks.rootSpan.update).toHaveBeenCalledWith({
+      output: {
+        decision: 'quiet_exit',
+        nodePath: ['normalizeTrigger', 'produceOutput'],
+        tokenMetadata: {
+          modelCalls: 1,
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          inputTokens: 120,
+          outputTokens: 24,
+          totalTokens: 144,
+        },
+        costMetadata: {},
+        tokenUsage: {
+          label: '144 tokens',
+          modelCalls: 1,
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          inputTokens: 120,
+          outputTokens: 24,
+          totalTokens: 144,
+        },
+        costUsage: {
+          label: 'none',
+          currency: 'none',
+        },
+        errorMetadata: {},
+      },
+      metadata: {
+        tokenUsage: {
+          label: '144 tokens',
+          modelCalls: 1,
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          inputTokens: 120,
+          outputTokens: 24,
+          totalTokens: 144,
+        },
+        costUsage: {
+          label: 'none',
+          currency: 'none',
+        },
+      },
+    });
     expect(mocks.rootSpan.end).toHaveBeenCalled();
   });
 

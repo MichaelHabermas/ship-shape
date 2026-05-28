@@ -25,6 +25,8 @@ services:
         value: ship-shape-web.onrender.com
       - key: AWS_REGION
         value: us-east-1
+      - key: HOST
+        value: 0.0.0.0
       - key: FLEETGRAPH_WORKER_ENABLED
         value: "true"
       - key: FLEETGRAPH_WORKER_INTERVAL_MS

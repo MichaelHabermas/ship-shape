@@ -26,6 +26,7 @@ async function main() {
   const { startFleetGraphWorker } = await import('./fleetgraph/execution/worker.js');
 
   const PORT = process.env.PORT || 3000;
+  const HOST = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : 'localhost');
   const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
   const app = createApp(CORS_ORIGIN);
@@ -51,8 +52,8 @@ async function main() {
   installRuntimeShutdownHandlers(shutdownController);
 
   // Start server
-  server.listen(PORT, () => {
-    console.log(`API server running on http://localhost:${PORT}`);
+  server.listen(Number(PORT), HOST, () => {
+    console.log(`API server running on http://${HOST}:${PORT}`);
     console.log(`CORS origin: ${CORS_ORIGIN}`);
   });
 }

@@ -190,6 +190,7 @@ async function createLangSmithProvider(input: {
       inputs,
     }),
     async end(result) {
+      const usageSummary = traceUsageSummary(result);
       await postLangSmithModelCallChild({
         client,
         projectName,
@@ -204,6 +205,8 @@ async function createLangSmithProvider(input: {
           nodePath: result.traceMetadata.nodePath,
           tokenMetadata: result.tokenMetadata,
           costMetadata: result.costMetadata,
+          tokenUsage: usageSummary.tokenUsage,
+          costUsage: usageSummary.costUsage,
           errorMetadata: result.errorMetadata,
         },
         end_time: new Date().toISOString(),
@@ -262,6 +265,7 @@ async function createLangfuseProvider(input: {
     },
     startNode: (name, inputs) => startLangfuseNode(rootSpan, name, inputs),
     async end(result) {
+      const usageSummary = traceUsageSummary(result);
       postLangfuseModelCallChild(rootSpan, result.tokenMetadata);
       rootSpan.update({
         output: {
@@ -269,7 +273,13 @@ async function createLangfuseProvider(input: {
           nodePath: result.traceMetadata.nodePath,
           tokenMetadata: result.tokenMetadata,
           costMetadata: result.costMetadata,
+          tokenUsage: usageSummary.tokenUsage,
+          costUsage: usageSummary.costUsage,
           errorMetadata: result.errorMetadata,
+        },
+        metadata: {
+          tokenUsage: usageSummary.tokenUsage,
+          costUsage: usageSummary.costUsage,
         },
       });
       rootSpan.end();
@@ -519,6 +529,38 @@ function usageMetadataForLangfuse(tokenMetadata: FleetGraphResult['tokenMetadata
     ...(tokenMetadata.inputTokens !== undefined ? { input: tokenMetadata.inputTokens } : {}),
     ...(tokenMetadata.outputTokens !== undefined ? { output: tokenMetadata.outputTokens } : {}),
     ...(tokenMetadata.totalTokens !== undefined ? { total: tokenMetadata.totalTokens } : {}),
+  };
+}
+
+function traceUsageSummary(result: FleetGraphResult): {
+  tokenUsage: Record<string, string | number>;
+  costUsage: Record<string, string | number>;
+} {
+  const tokenMetadata = result.tokenMetadata;
+  const costMetadata = result.costMetadata;
+  const hasModelUsage = tokenMetadata.modelCalls > 0;
+  const hasKnownTokens = tokenMetadata.totalTokens !== undefined ||
+    tokenMetadata.inputTokens !== undefined ||
+    tokenMetadata.outputTokens !== undefined;
+  const hasKnownCost = costMetadata.estimatedCostUsd !== undefined;
+
+  return {
+    tokenUsage: {
+      label: hasModelUsage
+        ? (hasKnownTokens ? `${tokenMetadata.totalTokens ?? 'partial'} tokens` : 'unknown')
+        : 'none',
+      modelCalls: tokenMetadata.modelCalls,
+      provider: tokenMetadata.provider ?? 'none',
+      model: tokenMetadata.model ?? 'none',
+      ...(tokenMetadata.inputTokens !== undefined ? { inputTokens: tokenMetadata.inputTokens } : {}),
+      ...(tokenMetadata.outputTokens !== undefined ? { outputTokens: tokenMetadata.outputTokens } : {}),
+      ...(tokenMetadata.totalTokens !== undefined ? { totalTokens: tokenMetadata.totalTokens } : {}),
+    },
+    costUsage: {
+      label: hasKnownCost ? `$${costMetadata.estimatedCostUsd}` : 'none',
+      ...(costMetadata.estimatedCostUsd !== undefined ? { estimatedCostUsd: costMetadata.estimatedCostUsd } : {}),
+      currency: costMetadata.estimatedCostUsd !== undefined ? 'USD' : 'none',
+    },
   };
 }
 
