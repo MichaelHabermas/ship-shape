@@ -149,7 +149,7 @@ export const fleetGraphGoldenCases = [
     title: 'Done or cancelled work exits quietly',
     mode: 'proactive',
     inputState: {
-      fixture: 'active-week-urgent-blocker-done-or-cancelled',
+      fixture: 'blocked-finding-source-done-or-cancelled',
       trigger: 'detector quiet exit done_or_cancelled',
       shipState: [
         'issue previously had a blocked finding',
@@ -234,7 +234,7 @@ export const fleetGraphGoldenCases = [
       shipState: [
         'open FleetGraph finding exists',
         'source issue and sprint are visible to current user',
-        'finding evidence snapshot contains blocker text and active-week context',
+        'finding evidence snapshot contains blocker text and source week context',
       ],
     },
     expectedDecision: 'explain',

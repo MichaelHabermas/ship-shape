@@ -32,7 +32,7 @@ const candidate = {
   issue_id: issueId,
   issue_title: 'Blocked issue',
   issue_ticket_number: 101,
-  issue_state: 'in_progress',
+  issue_state: 'blocked',
   issue_priority: 'urgent' as const,
   issue_assignee_id: userId,
   sprint_id: sprintId,

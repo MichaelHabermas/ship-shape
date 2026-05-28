@@ -411,3 +411,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** In the contextual chat header, the current page/source chip uses a small empty green ring marker instead of the text `Current`, a filled dot, or a target icon. This keeps the current context visible while preserving horizontal space for source/context labels.
 
 **Consequence:** Do not reintroduce verbose `Current -` labels in the chip header. Extra context chips remain removable and source-switchable; the current context chip is the fixed anchor for the page the user is on.
+
+## D052 - FleetGraph Evals Split Reviewer Gates From Product Quality Metrics
+
+**Date:** 2026-05-28
+
+**Decision:** Keep reviewer-oriented golden cases as finish-line proof for Week 5 requirements: graph branch coverage, proactive/on-demand paths, human gates, no Ship mutation/contact, restricted evidence safety, persistence, and trace hygiene. Add product-surface evals beside them to score user-facing copy quality over time.
+
+**Consequence:** Do not remove reviewer evals just because their evidence is not product UI. Product-surface evals are trend metrics for actionability, groundedness, specificity, brevity, uncertainty honesty, and UI/proof separation; they complement reviewer gates instead of replacing them.
