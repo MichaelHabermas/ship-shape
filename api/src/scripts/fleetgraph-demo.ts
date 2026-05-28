@@ -541,13 +541,13 @@ async function captureTraceEvidence(input: {
       trigger: 'detector_decision',
       decision: positiveDecision.decision,
     },
-  }, (externalTrace) => runFleetGraph({
+  }, (externalTrace, traceRecorder) => runFleetGraph({
     workspaceId: input.workspaceId,
     principal: proactivePrincipal,
     mode: 'proactive',
     trigger: { type: 'detector_decision', detectorDecision: positiveDecision },
     triggerReason: 'demo-proactive-create',
-  }, { db: pool, externalTrace }));
+  }, { db: pool, externalTrace, traceRecorder }));
 
   const findingResult = await pool.query<{ id: string }>(
     `SELECT id
@@ -567,13 +567,13 @@ async function captureTraceEvidence(input: {
       mode: 'on_demand',
       trigger: 'explain_finding',
     },
-  }, (externalTrace) => runFleetGraph({
+  }, (externalTrace, traceRecorder) => runFleetGraph({
     workspaceId: input.workspaceId,
     principal: onDemandPrincipal,
     mode: 'on_demand',
     trigger: { type: 'explain_finding', findingId },
     triggerReason: 'demo-why-flagged',
-  }, { db: pool, externalTrace }));
+  }, { db: pool, externalTrace, traceRecorder }));
 
   const refine = await withFleetGraphLangSmithTrace({
     name: 'fleetgraph.on_demand_refine',
@@ -581,7 +581,7 @@ async function captureTraceEvidence(input: {
       mode: 'on_demand',
       trigger: 'refine_draft',
     },
-  }, (externalTrace) => runFleetGraph({
+  }, (externalTrace, traceRecorder) => runFleetGraph({
     workspaceId: input.workspaceId,
     principal: onDemandPrincipal,
     mode: 'on_demand',
@@ -591,7 +591,7 @@ async function captureTraceEvidence(input: {
       instruction: 'Make the unblock ask concise and mention the approval dependency.',
     },
     triggerReason: 'demo-refine-draft',
-  }, { db: pool, externalTrace }));
+  }, { db: pool, externalTrace, traceRecorder }));
 
   return {
     proactive: traceEvidenceFor(proactive),

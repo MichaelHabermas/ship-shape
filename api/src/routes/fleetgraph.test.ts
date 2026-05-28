@@ -8,6 +8,7 @@ import { authorizeRequest } from '../security/route-capability.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
+import { runFleetGraphWorkerTick } from '../fleetgraph/execution/worker.js';
 import {
   listFleetGraphFindingsForSource,
   listFleetGraphFindingsByIds,
@@ -59,6 +60,10 @@ vi.mock('../fleetgraph/evidence.js', () => ({
 
 vi.mock('../fleetgraph/execution/manual-run.js', () => ({
   runFleetGraphManualTick: vi.fn(),
+}));
+
+vi.mock('../fleetgraph/execution/worker.js', () => ({
+  runFleetGraphWorkerTick: vi.fn(),
 }));
 
 vi.mock('../fleetgraph/persistence.js', () => ({
@@ -203,6 +208,8 @@ describe('FleetGraph routes', () => {
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(runFleetGraph).mockReset();
     vi.mocked(runFleetGraphManualTick).mockReset();
+    vi.mocked(runFleetGraphWorkerTick).mockReset();
+    process.env.NODE_ENV = 'test';
     vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: true } as never);
     vi.mocked(authorizeRequest).mockResolvedValue({ allowed: true, reason: 'allowed' } as never);
   });
@@ -754,6 +761,48 @@ describe('FleetGraph routes', () => {
       .expect(400);
 
     expect(runFleetGraphManualTick).not.toHaveBeenCalled();
+  });
+
+  it('runs a test-only worker tick for the current workspace', async () => {
+    vi.mocked(runFleetGraphWorkerTick).mockResolvedValue({
+      workspaceCount: 1,
+      selectedWorkspaceCount: 1,
+      detectorDecisionCount: 1,
+      resultCount: 1,
+      eventCount: 1,
+      modelCallCount: 0,
+      auditMetadata: {
+        attentionEventIds: ['99999999-9999-4999-8999-999999999999'],
+      },
+    });
+
+    const res = await request(app())
+      .post('/api/fleetgraph/test/worker-tick')
+      .expect(200);
+
+    expect(JSON.parse(res.text)).toEqual({
+      success: true,
+      eventCount: 1,
+      detectorDecisionCount: 1,
+      resultCount: 1,
+      attentionEventIds: ['99999999-9999-4999-8999-999999999999'],
+    });
+    expect(runFleetGraphWorkerTick).toHaveBeenCalledWith({
+      workspaceIds: [workspaceId],
+      instanceId: `fleetgraph-test-${workspaceId}`,
+    });
+  });
+
+  it('hides the worker test trigger outside test mode', async () => {
+    process.env.NODE_ENV = 'production';
+    vi.mocked(authorizeRequest).mockClear();
+
+    await request(app())
+      .post('/api/fleetgraph/test/worker-tick')
+      .expect(404);
+
+    expect(authorizeRequest).not.toHaveBeenCalled();
+    expect(runFleetGraphWorkerTick).not.toHaveBeenCalled();
   });
 
   it.each([

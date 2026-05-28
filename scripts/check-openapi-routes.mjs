@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Checks runtime Express routes against the generated public OpenAPI route contract.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -14,6 +15,7 @@ const ignoredRuntimeRoutes = new Set([
   'GET /api/docs',
   'GET /api/openapi.json',
   'GET /api/openapi.yaml',
+  'POST /api/fleetgraph/test/worker-tick',
   'GET /health',
 ]);
 

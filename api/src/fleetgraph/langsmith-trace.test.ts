@@ -40,7 +40,7 @@ describe('withFleetGraphLangSmithTrace', () => {
     process.env = { ...previousEnv };
   });
 
-  it('posts scrubbed root inputs, node-path children, outputs, and a shared URL', async () => {
+  it('posts scrubbed root inputs, live node children, outputs, and a shared URL', async () => {
     const capture = await withFleetGraphLangSmithTrace({
       name: 'fleetgraph.test',
       inputs: {
@@ -48,7 +48,13 @@ describe('withFleetGraphLangSmithTrace', () => {
         token: 'secret-token',
         nested: { hidden: true },
       },
-    }, async (trace) => result(trace.traceId, trace.traceUrl));
+    }, async (trace, recorder) => {
+      await recorder.traceNode('normalizeTrigger', {
+        triggerType: 'quiet_exit',
+        token: 'secret-token',
+      }, async () => ({ decision: 'quiet_exit' }));
+      return result(trace.traceId, trace.traceUrl);
+    });
 
     expect(capture.sharedTraceUrl).toBe('https://smith.langchain.com/public/shared/r');
     expect(createRun).toHaveBeenNthCalledWith(1, expect.objectContaining({
@@ -58,12 +64,10 @@ describe('withFleetGraphLangSmithTrace', () => {
     expect(createRun).toHaveBeenNthCalledWith(2, expect.objectContaining({
       parent_run_id: capture.traceId,
       name: 'fleetgraph.normalizeTrigger',
-      inputs: { node: 'normalizeTrigger' },
+      inputs: { node: 'normalizeTrigger', triggerType: 'quiet_exit' },
     }));
-    expect(createRun).toHaveBeenNthCalledWith(3, expect.objectContaining({
-      parent_run_id: capture.traceId,
-      name: 'fleetgraph.produceOutput',
-      inputs: { node: 'produceOutput' },
+    expect(updateRun).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      outputs: { node: 'normalizeTrigger', decision: 'quiet_exit' },
     }));
     expect(updateRun).toHaveBeenCalledWith(capture.traceId, expect.objectContaining({
       outputs: {
@@ -75,6 +79,27 @@ describe('withFleetGraphLangSmithTrace', () => {
       },
     }));
     expect(shareRun).toHaveBeenCalledWith(capture.traceId);
+  });
+
+  it('marks live node children failed when the node throws', async () => {
+    const originalError = new Error('node failed');
+
+    await expect(withFleetGraphLangSmithTrace({
+      name: 'fleetgraph.test',
+      inputs: { label: 'safe' },
+    }, async (_trace, recorder) => recorder.traceNode('detectorDecision', {
+      triggerType: 'detector_decision',
+    }, async () => {
+      throw originalError;
+    }))).rejects.toBe(originalError);
+
+    expect(createRun).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'fleetgraph.detectorDecision',
+      inputs: { node: 'detectorDecision', triggerType: 'detector_decision' },
+    }));
+    expect(updateRun).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      error: 'node failed',
+    }));
   });
 
   it('honors FLEETGRAPH_LANGSMITH_SHARE=0', async () => {
