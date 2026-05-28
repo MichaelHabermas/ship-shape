@@ -1,6 +1,8 @@
+// Renders contextual chat for source-aware issue/document discussion.
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
+import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson, apiPostJson } from '@/lib/api';
 
 interface ChatContextItem {
@@ -73,6 +75,19 @@ function contextMatchesSource(item: ChatContextItem, sourcePath: string | undefi
   return Boolean(sourcePath && item.sourcePath === sourcePath);
 }
 
+function displayText(value: string): string {
+  return value.replace(/\bFleetGraph\b/g, 'Ship');
+}
+
+function compactBlockerText(value: string): string {
+  const text = value.trim();
+  return text
+    .replace(/^blocked\s+(?:but|because|on|by|for|until|while)\s+/i, '')
+    .replace(/^blocked[:\s-]+/i, '')
+    .replace(/^latest blocker[:\s-]+/i, '')
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
 export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetGraphChatProbeRequest | null }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -87,7 +102,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
   const currentSourcePath = useMemo(() => sourcePathForDocumentId(currentDocumentId), [currentDocumentId]);
   const [currentTitle, setCurrentTitle] = useState(surfaceLabel);
-  const currentContextLabel = `Current - ${currentTitle}`;
+  const currentContextLabel = `Current - ${displayText(currentTitle)}`;
   const visibleContextItems = contextItems.slice(0, 3);
   const overflowContextItems = contextItems.slice(3);
   const hasClearableContext = contextItems.length > 0;
@@ -132,7 +147,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     setContextItems((items) => {
       const contextItem: ChatContextItem = {
         id: `notification:${notification.id}`,
-        label: notification.title,
+        label: displayText(notification.title),
         sourcePath: notification.sourcePath,
         notification,
       };
@@ -242,16 +257,16 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
             <div className="min-w-0 pr-2">
               <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
                 <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted">
-                  {currentContextLabel}
+                  <span className="block max-w-[150px] truncate">{currentContextLabel}</span>
                 </span>
                 {visibleContextItems.map((item) => (
                   <button
                     type="button"
                     key={item.id}
                     onClick={() => activateContextItem(item.id)}
-                    className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
+                    className="flex max-w-[200px] shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
                   >
-                    {item.label}
+                    <span className="truncate">{displayText(item.label)}</span>
                     <span
                       aria-hidden="true"
                       onClick={(event) => {
@@ -369,7 +384,7 @@ function ContextPopover({
     <div ref={popoverRef} className="absolute right-10 top-[calc(100%-4px)] z-10 w-[280px] rounded-lg border border-border bg-[#111111] p-2 shadow-xl shadow-black/40">
       <div className="scrollbar-hide max-h-56 space-y-1 overflow-y-auto">
         <div className="rounded px-2 py-1.5 text-xs text-muted">
-          {surfaceLabel} - Untitled
+          {displayText(`${surfaceLabel} - Untitled`)}
         </div>
         {contextItems.map((item) => (
           <button
@@ -378,7 +393,7 @@ function ContextPopover({
             onClick={() => onActivateContext(item.id)}
             className="flex w-full items-center justify-between rounded border border-transparent px-2 py-1.5 text-left text-xs text-muted transition hover:border-border hover:text-foreground"
           >
-            <span>{item.label}</span>
+            <span className="truncate">{displayText(item.label)}</span>
             <span
               aria-hidden="true"
               onClick={(event) => {
@@ -421,7 +436,7 @@ function NotificationConversation({
   const sourceLabels = sourceLabelsForConversation(notification, output);
   const recommendedAction = recommendedActionText(output);
   const humanGateRequired = output ? output.humanGate.required === true : true;
-  const primaryText = output?.summary || notification.blockerText;
+  const primaryText = conversationBody(notification, output);
   const isLoading = explanation.status === 'loading';
   const isFallback = !output && explanation.status === 'error';
 
@@ -435,9 +450,9 @@ function NotificationConversation({
       <UserMessage>Why is this blocked?</UserMessage>
 
       <AssistantAnswer
-        eyebrow={`Blocked - ${notification.title}`}
+        eyebrow={displayText(notification.title)}
         body={isLoading ? 'Checking the graph explanation for this finding...' : primaryText}
-        metadata={[ownerLabel, notification.context, notification.age, ...(isFallback ? ['fallback'] : [])]}
+        metadata={[ownerLabel, displayText(notification.context), notification.age, ...(isFallback ? ['fallback'] : [])]}
         sources={sourceLabels}
       />
 
@@ -471,8 +486,13 @@ function AssistantAnswer({
 
   return (
     <div className="w-full text-foreground">
-      <p className="mb-1 text-[11px] leading-4 text-muted">{eyebrow}</p>
-      <p className="text-base leading-6">{body}</p>
+      <p className="mb-1 truncate text-[11px] leading-4 text-muted">{displayText(eyebrow)}</p>
+      <p className="text-base leading-6">
+        <span className="mr-2 inline-flex align-[2px]">
+          <NotificationLabelChip label="Blocked" />
+        </span>
+        {displayText(body)}
+      </p>
       <InlineProvenance metadata={metadataItems} sources={sources} />
     </div>
   );
@@ -484,7 +504,7 @@ function InlineProvenance({ metadata, sources }: { metadata: string[]; sources: 
       {metadata.map((item, index) => (
         <span key={`${item}-${index}`} className="inline-flex items-center gap-1.5">
           {index > 0 && <span aria-hidden="true">·</span>}
-          <span>{item}</span>
+          <span>{displayText(item)}</span>
         </span>
       ))}
       {sources.length > 0 && (
@@ -493,7 +513,7 @@ function InlineProvenance({ metadata, sources }: { metadata: string[]; sources: 
           {sources.map((label, index) => (
             <span key={label} className="inline-flex items-center gap-1">
               {index > 0 && <span aria-hidden="true">·</span>}
-              <button type="button" className="hover:text-foreground">{label}</button>
+              <button type="button" className="hover:text-foreground">{displayText(label)}</button>
             </span>
           ))}
         </>
@@ -506,7 +526,7 @@ function NextStepCard({ text, gateText }: { text: string; gateText: string }) {
   return (
     <div className="w-full rounded-lg border border-border bg-background/60 p-3">
       <p className="text-xs font-medium text-foreground">Possible next step</p>
-      <p className="mt-1 text-sm leading-5 text-muted">{text}</p>
+      <p className="mt-1 text-sm leading-5 text-muted">{displayText(text)}</p>
       <p className="mt-1 text-[13px] leading-[18px] text-muted">{gateText}</p>
       <button
         type="button"
@@ -526,7 +546,7 @@ export function FleetGraphExampleConversationPieces() {
         eyebrow="Example"
         body="The latest visible graph output is now the active explanation for the notification."
         metadata={['Example owner', 'Example week', 'fallback']}
-        sources={['Latest blocker update', 'Source issue']}
+        sources={['Source issue']}
       />
     </>
   );
@@ -540,17 +560,34 @@ function sourceLabelsForConversation(
     .filter((item) => item.visibility === 'actor_visible')
     .map((item) => sourceLabelForEvidence(item))
     .filter((label): label is string => Boolean(label))
-    ?? ['Latest blocker update', notification.context, notification.owner || '-'];
+    ?? [notification.context, notification.owner || '-'];
 
   return labels.filter((label, index) => label !== '-' && labels.indexOf(label) === index);
 }
 
 function sourceLabelForEvidence(item: FleetGraphEvidenceItem): string | null {
-  if (item.kind === 'blocker') return 'Latest blocker update';
+  if (item.kind === 'blocker') return null;
   if (item.kind === 'source_issue') return 'Source issue';
-  if (item.kind === 'source_sprint') return 'Current week';
+  if (item.kind === 'source_sprint') return 'Week';
   if (item.kind === 'finding') return 'Finding';
   return item.claim || null;
+}
+
+function conversationBody(
+  notification: FleetGraphNotificationProbeItem,
+  output: FleetGraphVisibleOutput | null
+): string {
+  return blockerExcerpt(output)
+    ? compactBlockerText(blockerExcerpt(output) ?? '')
+    : notification.blockerText
+      ? compactBlockerText(notification.blockerText)
+      : output?.summary
+    || 'No blocker reason was recorded.';
+}
+
+function blockerExcerpt(output: FleetGraphVisibleOutput | null): string | null {
+  const excerpt = output?.evidence.find((item) => item.kind === 'blocker' && item.excerpt?.trim())?.excerpt;
+  return excerpt?.trim() || null;
 }
 
 function recommendedActionText(output: FleetGraphVisibleOutput | null): string | null {

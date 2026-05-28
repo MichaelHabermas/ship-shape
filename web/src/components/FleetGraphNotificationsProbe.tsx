@@ -1,5 +1,7 @@
+// Renders the left-rail notification surface backed by real FleetGraph findings.
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson } from '@/lib/api';
 
 export interface FleetGraphNotificationProbeItem {
@@ -27,59 +29,12 @@ interface FleetGraphNotificationsResponse {
   }>;
 }
 
-export const fleetGraphNotificationProbeItems: FleetGraphNotificationProbeItem[] = [
-  {
-    id: 'api-access-blocker',
-    title: 'API access blocker',
-    age: '2d',
-    owner: 'Dev User',
-    context: 'Project Delta',
-    blockerText: 'Waiting on API access before backend queue work can continue.',
-  },
-  {
-    id: 'contract-review',
-    title: 'Contract review',
-    age: '18h',
-    owner: null,
-    context: 'Auth rollout',
-    blockerText: 'Next review step is named, but no connected owner is assigned.',
-  },
-  {
-    id: 'release-risk',
-    title: 'Release risk',
-    age: '5h',
-    owner: 'PM thread',
-    context: 'Sprint 12',
-    blockerText: 'Two linked issues depend on the same access request.',
-  },
-  {
-    id: 'backend-queue',
-    title: 'Backend queue',
-    age: '4h',
-    owner: 'Dev User',
-    context: 'Backend queue',
-    blockerText: 'Next item is ready, but the review handoff has not moved.',
-  },
-  {
-    id: 'standup-note',
-    title: 'Standup note',
-    age: '3h',
-    owner: null,
-    context: 'Standup note',
-    blockerText: "Same access blocker appears in today's update without an owner.",
-  },
-  {
-    id: 'dependent-release-risk',
-    title: 'Release risk',
-    age: '1h',
-    owner: 'Project Delta',
-    context: 'Release risk',
-    blockerText: 'A second dependent issue now points to the same unresolved handoff.',
-  },
-];
-
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
+}
+
+function displayText(value: string): string {
+  return value.replace(/\bFleetGraph\b/g, 'Ship');
 }
 
 export function FleetGraphNotificationsProbe({
@@ -90,7 +45,8 @@ export function FleetGraphNotificationsProbe({
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>(fleetGraphNotificationProbeItems);
+  const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>([]);
+  const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const notificationCount = notifications.length;
 
   useEffect(() => {
@@ -107,8 +63,12 @@ export function FleetGraphNotificationsProbe({
           ...notification,
           age: formatNotificationAge(notification.detectedAt),
         })));
+        setLoadStatus('ready');
       } catch {
-        if (!cancelled) setNotifications(fleetGraphNotificationProbeItems);
+        if (!cancelled) {
+          setNotifications([]);
+          setLoadStatus('error');
+        }
       }
     }
 
@@ -152,6 +112,9 @@ export function FleetGraphNotificationsProbe({
           </header>
 
           <div className="scrollbar-hide max-h-[440px] overflow-y-auto">
+            {notifications.length === 0 && (
+              <NotificationEmptyState status={loadStatus} />
+            )}
             {notifications.map((notification) => (
               <BlockedIssueNotification
                 key={notification.id}
@@ -180,6 +143,20 @@ export function FleetGraphNotificationsProbe({
   );
 }
 
+function NotificationEmptyState({ status }: { status: 'loading' | 'ready' | 'error' }) {
+  const text = status === 'error'
+    ? 'Notifications could not load.'
+    : status === 'loading'
+      ? 'Loading notifications...'
+      : 'No active notifications.';
+
+  return (
+    <div className="px-3 py-6 text-sm leading-5 text-muted">
+      {text}
+    </div>
+  );
+}
+
 function NotificationBadge({ count }: { count: number }) {
   return (
     <span className="absolute left-5 top-0 flex h-4 min-w-4 -translate-y-1/3 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-medium leading-none text-white">
@@ -203,19 +180,22 @@ function BlockedIssueNotification({
     <article className="border-b border-border bg-background/70 px-3 py-2 last:border-b-0">
       <div className="mb-1 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="line-clamp-1 text-sm font-medium leading-5 text-foreground">Blocked - {notification.title}</h3>
+          <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-medium leading-5 text-foreground">
+            <NotificationLabelChip label="Blocked" />
+            <span className="truncate">{displayText(notification.title)}</span>
+          </h3>
           <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
             <span>{notification.age}</span>
             <span aria-hidden="true">·</span>
-            <span>{ownerLabel}</span>
+            <span>{displayText(ownerLabel)}</span>
             <span aria-hidden="true">·</span>
-            <span>{notification.context}</span>
+            <span>{displayText(notification.context)}</span>
           </div>
         </div>
         <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
       </div>
 
-      <p className="line-clamp-2 text-sm leading-5 text-muted">{notification.blockerText}</p>
+      <p className="line-clamp-2 text-sm leading-5 text-muted">{displayText(notification.blockerText)}</p>
 
       <div className="mt-1.5 flex flex-wrap gap-2">
         <button

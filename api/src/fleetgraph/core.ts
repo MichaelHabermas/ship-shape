@@ -795,7 +795,7 @@ function decisionPacketFromCandidate(
   return {
     severity: candidate.issue_priority,
     confidence: 0.86,
-    title: `Blocked active-week work: ${candidate.issue_title}`,
+    title: `Blocked issue: ${candidate.issue_title}`,
     summary,
     recommendedAction: {
       type: 'confirm_unblock_path',

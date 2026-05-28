@@ -6,6 +6,8 @@ The canonical assignment context is everything in `my-docs/project-weeks-sot/wee
 
 Existing FleetGraph code, UI, database tables, traces, and docs are evidence, not authority. Read them when implementation needs archaeology, but do not let them steer the product just because they already exist. Some pieces may be useful. The previous direction as a whole was misaligned.
 
+Resist new FleetGraph-specific document properties, finding fields, or notification categories by default. Use existing Ship state first; add new properties only when there is a clear product advantage that cannot be represented by the source issue, associations, ownership, blocker iterations, or FleetGraph-owned finding state.
+
 ## What FleetGraph Means
 
 FleetGraph is Ship's project intelligence and attention engine.
@@ -91,4 +93,3 @@ First prove that a real project condition can become a notification for the righ
 Ordering, aging buckets, escalation ladders, dismissal semantics, filtering, and richer actions are later product decisions. They should be informed by the first working loop, not designed into the foundation prematurely.
 
 Complexity must justify itself. If a proposed feature does not make the attention loop clearer, faster, or more trustworthy, leave it out.
-

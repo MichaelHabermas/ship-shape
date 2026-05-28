@@ -33,7 +33,7 @@ export async function generateProactiveCreateText(input: {
       `Ticket: ${input.candidate.issue_ticket_number ?? 'unknown'}`,
       `Sprint: ${input.candidate.sprint_title}`,
       `Priority: ${input.candidate.issue_priority}`,
-      `Blocker: ${input.candidate.blocker_text}`,
+      `Blocker: ${blockerText(input.candidate)}`,
       'Return two short paragraphs: summary, then draft message.',
     ].join('\n')],
   ]);
@@ -48,11 +48,11 @@ export async function generateProactiveCreateText(input: {
 }
 
 function deterministicSummary(candidate: BlockedImportantIssueCandidate): string {
-  return `${candidate.issue_title} is urgent/high active-week work with a recorded blocker: ${candidate.blocker_text}`;
+  return `${candidate.issue_title} is blocked. ${blockerSentence(candidate)}`;
 }
 
 function deterministicDraft(candidate: BlockedImportantIssueCandidate): string {
-  return `Can you confirm the current unblock path for ${candidate.issue_title}? FleetGraph found this blocker in the active week: ${candidate.blocker_text}`;
+  return `Can you confirm the current unblock path for ${candidate.issue_title}? ${blockerSentence(candidate)}`;
 }
 
 export function deterministicProactiveCreateText(candidate: BlockedImportantIssueCandidate): FleetGraphProactiveCreateModelResult {
@@ -61,4 +61,14 @@ export function deterministicProactiveCreateText(candidate: BlockedImportantIssu
     draftMessage: deterministicDraft(candidate),
     tokenMetadata: { modelCalls: 0 },
   };
+}
+
+function blockerText(candidate: BlockedImportantIssueCandidate): string {
+  return candidate.blocker_text || 'No blocker reason recorded.';
+}
+
+function blockerSentence(candidate: BlockedImportantIssueCandidate): string {
+  return candidate.blocker_text
+    ? `Latest blocker: ${candidate.blocker_text}`
+    : 'No blocker reason was recorded.';
 }
