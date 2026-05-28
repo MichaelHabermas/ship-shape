@@ -419,3 +419,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Keep reviewer-oriented golden cases as finish-line proof for Week 5 requirements: graph branch coverage, proactive/on-demand paths, human gates, no Ship mutation/contact, restricted evidence safety, persistence, and trace hygiene. Add product-surface evals beside them to score user-facing copy quality over time.
 
 **Consequence:** Do not remove reviewer evals just because their evidence is not product UI. Product-surface evals are trend metrics for actionability, groundedness, specificity, brevity, uncertainty honesty, and UI/proof separation; they complement reviewer gates instead of replacing them.
+
+## D053 - FleetGraph Core Stays An Orchestrator
+
+**Date:** 2026-05-28
+
+**Decision:** `api/src/fleetgraph/core.ts` remains the shared LangGraph runtime and decision orchestration boundary, but deterministic helper logic now lives under `api/src/fleetgraph/runtime/`: `audience.ts` for recipient selection, `drafts.ts` for deterministic draft rewrites, `outputs.ts` for visible output and change summaries, `run-recording.ts` for persisted run/result serialization, and `json.ts` for shared JSON guards.
+
+**Consequence:** Future FleetGraph behavior should add graph nodes/decision handlers in `core.ts` only when orchestration changes. Product copy transforms, audience choice, output mapping, and persistence serialization should stay in `runtime/` unless moving them back clearly reduces complexity.

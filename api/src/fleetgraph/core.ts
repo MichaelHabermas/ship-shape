@@ -7,11 +7,13 @@ import {
   filterEvidenceForActor,
   getFindingForGraph,
   recommendedActionForVisibleOutput,
-  proposedRecipientForVisibleOutput,
-  recipientRationaleForRole,
   visibleOutputForFinding,
 } from './evidence.js';
 import { generateProactiveCreateText } from './model.js';
+import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
+import { deterministicRefinedDraft } from './runtime/drafts.js';
+import { isJsonRecord } from './runtime/json.js';
+import { changeSummaryFromOutputs, visibleOutputFromPacket, visibleOutputFromRun } from './runtime/outputs.js';
 import {
   dismissFleetGraphFinding,
   listFleetGraphAnchorRuns,
@@ -28,14 +30,12 @@ import {
 } from './persistence.js';
 import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
+import { resultFor, runInputFor } from './runtime/run-recording.js';
 import type {
-  FleetGraphChangeSummary,
-  FleetGraphCostMetadata,
   FleetGraphDecisionPacket,
   FleetGraphEvidenceItem,
   FleetGraphInput,
   FleetGraphResult,
-  FleetGraphTokenMetadata,
   FleetGraphTraceMetadata,
   FleetGraphVisibleOutput,
 } from './types.js';
@@ -825,303 +825,10 @@ function decisionPacketFromCandidate(
   };
 }
 
-function visibleOutputFromPacket(
-  packet: FleetGraphDecisionPacket,
-  evidence: FleetGraphEvidenceItem[]
-): FleetGraphVisibleOutput {
-  return {
-    title: packet.title,
-    summary: packet.summary,
-    severity: packet.severity,
-    confidence: packet.confidence,
-    recommendedAction: packet.recommendedAction,
-    proposedRecipient: proposedRecipientForVisibleOutput(packet.proposedRecipient),
-    recipientRationale: recipientRationaleForRole(packet.proposedRecipient.role),
-    uncertaintyNotes: packet.uncertaintyNotes,
-    evidence,
-    humanGate: packet.humanGate,
-    draftContent: packet.draftContent,
-  };
-}
-
-function visibleOutputFromRun(run: FleetGraphRun | undefined): FleetGraphVisibleOutput | null {
-  if (!run || !isJsonRecord(run.output_snapshot)) return null;
-  const output = run.output_snapshot;
-  if (typeof output.title !== 'string' || typeof output.summary !== 'string') return null;
-  return {
-    title: output.title,
-    summary: output.summary,
-    severity: fleetGraphSeverity(output.severity),
-    recommendedAction: isJsonRecord(output.recommendedAction) ? output.recommendedAction : undefined,
-    proposedRecipient: isJsonRecord(output.proposedRecipient) ? output.proposedRecipient : undefined,
-    uncertaintyNotes: Array.isArray(output.uncertaintyNotes)
-      ? output.uncertaintyNotes.filter((note): note is string => typeof note === 'string' && note.trim().length > 0)
-      : undefined,
-    evidence: [],
-    humanGate: isJsonRecord(output.humanGate) ? output.humanGate : {},
-    draftContent: isJsonRecord(output.draftContent) ? output.draftContent : undefined,
-  };
-}
-
-function changeSummaryFromOutputs(current: FleetGraphVisibleOutput, previous: FleetGraphVisibleOutput | null): FleetGraphChangeSummary {
-  if (!previous) {
-    return {
-      headline: 'No prior run',
-      rows: [
-        { label: 'Now', text: blockerLine(current.summary) },
-        { label: 'Not done', text: 'No issue changed. No message sent.' },
-      ],
-    };
-  }
-
-  const rows: FleetGraphChangeSummary['rows'] = [];
-  const previousBlocker = blockerLine(previous.summary);
-  const currentBlocker = blockerLine(current.summary);
-  if (previousBlocker !== currentBlocker) rows.push({ label: 'Now', text: currentBlocker });
-  if (previous.severity !== current.severity && current.severity) {
-    rows.push({ label: 'Changed', text: `Priority ${sentenceLabel(previous.severity)} -> ${sentenceLabel(current.severity)}.` });
-  }
-
-  const previousAction = actionLabel(previous);
-  const currentAction = actionLabel(current);
-  if (currentAction && currentAction !== previousAction) rows.push({ label: 'Next', text: currentAction });
-
-  if (rows.length === 0) {
-    return {
-      headline: 'No meaningful change',
-      rows: [{ label: 'Not done', text: 'No issue changed. No message sent.' }],
-    };
-  }
-
-  rows.push({ label: 'Not done', text: 'No issue changed. No message sent.' });
-  return {
-    headline: rows[0]?.text ?? 'Changed',
-    rows,
-  };
-}
-
-function blockerLine(summary: string): string {
-  const recordedBlocker = summary.match(/recorded blocker:\s*(.+)$/i)?.[1];
-  return (recordedBlocker ?? summary).replace(/\.$/, '').trim();
-}
-
-function actionLabel(output: FleetGraphVisibleOutput): string | null {
-  return stringFromJsonRecord(output.recommendedAction, ['label', 'text', 'summary']);
-}
-
-function sentenceLabel(value: unknown): string {
-  if (typeof value !== 'string' || !value.trim()) return 'Unknown';
-  const text = value.replace(/_/g, ' ');
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
-}
-
-function fleetGraphSeverity(value: unknown): FleetGraphVisibleOutput['severity'] {
-  return value === 'low' || value === 'medium' || value === 'high' || value === 'urgent' ? value : undefined;
-}
-
-function runInputFor(input: {
-  input: FleetGraphInput;
-  triggerReason: string;
-  decision: RecordFleetGraphRunInput['decision'];
-  findingId?: string | null;
-  sourceIssueId?: string | null;
-  sourceSprintId?: string | null;
-  dedupeKey?: string | null;
-  evidence?: unknown[];
-  output: unknown;
-  traceMetadata: FleetGraphTraceMetadata;
-  tokenMetadata: FleetGraphTokenMetadata;
-  costMetadata: FleetGraphCostMetadata;
-  errorMetadata?: JsonRecord;
-}): RecordFleetGraphRunInput {
-  return {
-    workspaceId: input.input.workspaceId,
-    findingId: input.findingId ?? null,
-    sourceIssueId: input.sourceIssueId ?? null,
-    sourceSprintId: input.sourceSprintId ?? null,
-    mode: input.input.mode,
-    triggerReason: input.triggerReason,
-    decision: input.decision,
-    dedupeKey: input.dedupeKey ?? null,
-    inputSnapshot: { triggerType: input.input.trigger.type },
-    evidenceSnapshot: input.evidence ?? [],
-    outputSnapshot: isJsonRecord(input.output) ? input.output : { value: input.output },
-    traceMetadata: traceMetadataJson(input.traceMetadata),
-    tokenMetadata: input.tokenMetadata,
-    costMetadata: input.costMetadata,
-    errorMetadata: input.errorMetadata ?? {},
-  };
-}
-
-function resultFor(input: {
-  decision: FleetGraphResult['decision'];
-  finding?: FleetGraphFinding | null;
-  run: FleetGraphRun;
-  findingInput?: SaveBlockedImportantIssueFindingInput;
-  runInput: RecordFleetGraphRunInput;
-  visibleOutput?: FleetGraphVisibleOutput;
-  changeSummary?: FleetGraphChangeSummary;
-  evidence: FleetGraphEvidenceItem[];
-  traceMetadata: FleetGraphTraceMetadata;
-  tokenMetadata: FleetGraphTokenMetadata;
-  costMetadata: FleetGraphCostMetadata;
-  errorMetadata?: JsonRecord;
-}): FleetGraphResult {
-  return {
-    decision: input.decision,
-    finding: input.finding,
-    run: input.run,
-    ...(input.findingInput ? { findingInput: input.findingInput } : {}),
-    runInput: input.runInput,
-    ...(input.visibleOutput ? { visibleOutput: input.visibleOutput } : {}),
-    ...(input.changeSummary ? { changeSummary: input.changeSummary } : {}),
-    evidence: input.evidence,
-    traceMetadata: input.traceMetadata,
-    tokenMetadata: input.tokenMetadata,
-    costMetadata: input.costMetadata,
-    errorMetadata: input.errorMetadata ?? {},
-  };
-}
-
-function isJsonRecord(value: unknown): value is JsonRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function deterministicRefinedDraft(finding: FleetGraphFinding, instruction: string): string {
-  const normalizedInstruction = instruction.toLowerCase();
-  const existingDraft = stringFromJsonRecord(finding.draft_content, ['message', 'text', 'draft', 'body']) ?? finding.summary;
-  const evidenceClaims = Array.isArray(finding.evidence_snapshot)
-    ? finding.evidence_snapshot
-        .map((item) => stringFromJsonRecord(item, ['claim']))
-        .filter((claim): claim is string => Boolean(claim))
-        .slice(0, 3)
-    : [];
-  const blockerExcerpt = evidenceClaims[0] ?? finding.summary;
-  const wantsMoreDetail = /\b(detail|detailed|context|explain|longer|specific|far more|a lot more)\b/.test(normalizedInstruction);
-  const wantsFirmer = /\b(firm|firmer|direct|harsher|harder|urgent|pressure|forceful)\b/.test(normalizedInstruction);
-  const wantsSofter = /\b(soft|softer|gentle|polite|warmer)\b/.test(normalizedInstruction);
-  const wantsShorter = /\b(short|shorter|concise|brief|tight)\b/.test(normalizedInstruction);
-
-  if (wantsShorter && !wantsMoreDetail) {
-    return `${finding.title}: please confirm the unblock path today. ${finding.summary}`;
-  }
-
-  if (wantsMoreDetail) {
-    const opener = wantsFirmer
-      ? `This needs a clear unblock decision now: ${finding.title}.`
-      : wantsSofter
-        ? `Can you help clarify the unblock path for ${finding.title}?`
-        : `Can you confirm the unblock path for ${finding.title}?`;
-    const consequence = wantsFirmer
-      ? 'Without a concrete owner, decision, or dependency update, this active-week work remains blocked and FleetGraph will continue treating it as PM-review work.'
-      : 'FleetGraph is keeping this in PM review until the current unblock path is confirmed.';
-    const evidenceText = evidenceClaims.length > 0
-      ? evidenceClaims.map((claim) => `- ${claim}`).join('\n')
-      : `- ${blockerExcerpt}`;
-
-    return `${opener}\n\nCurrent signal:\n${evidenceText}\n\nRequested next step: confirm who owns the unblock, what decision or approval is needed, and whether this can move today. ${consequence}`;
-  }
-
-  if (wantsFirmer) {
-    return `${finding.title} is still blocked and needs a direct unblock decision. ${finding.summary}\n\nPlease confirm the owner, dependency, and next step today so this does not stay stuck in active-week work.`;
-  }
-
-  if (wantsSofter) {
-    return `Can you help confirm the current unblock path for ${finding.title}? ${finding.summary}\n\nA quick owner or dependency update would help FleetGraph keep the active-week plan accurate.`;
-  }
-
-  return `${existingDraft}\n\nRevision request applied: ${instruction}`;
-}
-
-function stringFromJsonRecord(value: unknown, keys: string[]): string | null {
-  if (!isJsonRecord(value)) return null;
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
-  }
-  return null;
-}
-
 function candidateTitle(title: string): string {
   return title.trim() || 'Blocked issue';
 }
 
 function deterministicUpdateSummary(title: string): string {
   return `${title} still needs an unblock decision.`;
-}
-
-function nextActionForCandidate(
-  candidate: Extract<FleetGraphInput['trigger'], { type: 'detector_decision' }>['detectorDecision']['candidate'],
-  audience: FleetGraphAudience
-): string {
-  const recipient = audience.displayName ?? audienceLabel(audience.role);
-  if (!candidate.blocker_text.trim()) return `Ask ${recipient} to add the blocker reason.`;
-  const context = candidate.sprint_number ? `Week ${candidate.sprint_number}` : candidate.sprint_title;
-  return `Ask ${recipient} to confirm owner and next step for ${context}.`;
-}
-
-type FleetGraphAudience = {
-  role: 'issue_assignee' | 'project_owner' | 'sprint_owner' | 'program_owner' | 'unassigned';
-  userId: string | null;
-  displayName?: string;
-  rationale: string;
-};
-
-function audienceForCandidate(
-  candidate: Extract<FleetGraphInput['trigger'], { type: 'detector_decision' }>['detectorDecision']['candidate']
-): FleetGraphAudience {
-  if (!candidate.blocker_text.trim()) {
-    return firstAudience([
-      audience('project_owner', candidate.project_owner_id, candidate.project_owner_name, 'Missing blocker reason belongs with the project owner first.'),
-      audience('sprint_owner', candidate.sprint_owner_id, candidate.sprint_owner_name, 'Missing blocker reason falls back to the week owner.'),
-      audience('issue_assignee', candidate.issue_assignee_id, candidate.issue_assignee_name, 'Missing blocker reason falls back to the issue assignee.'),
-      audience('program_owner', candidate.program_owner_id, candidate.program_owner_name, 'Missing blocker reason falls back to the program owner.'),
-    ]);
-  }
-
-  return firstAudience([
-    audience('issue_assignee', candidate.issue_assignee_id, candidate.issue_assignee_name, 'The issue assignee is closest to the execution blocker.'),
-    audience('project_owner', candidate.project_owner_id, candidate.project_owner_name, 'The project owner is the next useful unblock audience.'),
-    audience('sprint_owner', candidate.sprint_owner_id, candidate.sprint_owner_name, 'The week owner is the fallback unblock audience.'),
-    audience('program_owner', candidate.program_owner_id, candidate.program_owner_name, 'The program owner is the final connected fallback.'),
-  ]);
-}
-
-function audience(
-  role: FleetGraphAudience['role'],
-  userId: string | null | undefined,
-  displayName: string | null | undefined,
-  rationale: string
-): FleetGraphAudience | null {
-  if (!userId && !displayName) return null;
-  return {
-    role,
-    userId: userId ?? null,
-    ...(displayName?.trim() ? { displayName: displayName.trim() } : {}),
-    rationale,
-  };
-}
-
-function firstAudience(audiences: Array<FleetGraphAudience | null>): FleetGraphAudience {
-  return audiences.find((item): item is FleetGraphAudience => item !== null) ?? {
-    role: 'unassigned',
-    userId: null,
-    displayName: undefined,
-    rationale: 'No issue, project, week, or program owner was found in Ship context.',
-  };
-}
-
-function audienceLabel(role: FleetGraphAudience['role']): string {
-  switch (role) {
-    case 'issue_assignee':
-      return 'the issue assignee';
-    case 'project_owner':
-      return 'the project owner';
-    case 'sprint_owner':
-      return 'the week owner';
-    case 'program_owner':
-      return 'the program owner';
-    case 'unassigned':
-      return 'an owner';
-  }
 }
