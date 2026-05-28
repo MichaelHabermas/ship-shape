@@ -23,7 +23,7 @@
     "db:orphan-check": "tsx src/db/scripts/orphan-diagnostic.ts",
     "openapi:generate": "tsx src/scripts/generate-openapi.ts",
     "mcp": "tsx src/mcp/server.ts",
-    "langsmith:smoke": "tsx src/scripts/langsmith-smoke.ts"
+    "trace:smoke": "tsx src/scripts/trace-smoke.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "7",
@@ -34,7 +34,11 @@
     "@aws-sdk/s3-request-presigner": "^3.1051.0",
     "@langchain/langgraph": "^1.3.2",
     "@langchain/openai": "^1.4.7",
+    "@langfuse/client": "^5.4.0",
+    "@langfuse/otel": "^5.4.0",
+    "@langfuse/tracing": "^5.4.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@opentelemetry/sdk-node": "^0.218.0",
     "@ship/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cookie": "^1.1.1",

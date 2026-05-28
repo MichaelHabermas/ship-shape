@@ -80,7 +80,11 @@ function isSafeTraceUrl(value: string): boolean {
     const parsed = new URL(value);
     return parsed.protocol === 'https:' && (
       parsed.hostname === 'smith.langchain.com' ||
-      parsed.hostname.endsWith('.smith.langchain.com')
+      parsed.hostname.endsWith('.smith.langchain.com') ||
+      parsed.hostname === 'cloud.langfuse.com' ||
+      parsed.hostname.endsWith('.cloud.langfuse.com') ||
+      parsed.hostname === 'us.cloud.langfuse.com' ||
+      parsed.hostname.endsWith('.us.cloud.langfuse.com')
     );
   } catch {
     return false;

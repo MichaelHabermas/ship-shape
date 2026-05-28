@@ -489,7 +489,7 @@ describe('FleetGraph shared core', () => {
     }
   });
 
-  it('records LangSmith capture failures in run error metadata', async () => {
+  it('records trace capture failures in run error metadata', async () => {
     const port = persistence();
 
     await runFleetGraph({
@@ -506,7 +506,7 @@ describe('FleetGraph shared core', () => {
     expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
       errorMetadata: {
         observability: {
-          langsmithCapture: 'failed',
+          traceCapture: 'failed',
           message: 'LangSmith shareRun timed out',
         },
       },
