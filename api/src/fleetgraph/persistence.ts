@@ -222,10 +222,38 @@ export type CompleteFleetGraphAttentionEventInput = {
   lastError?: string | null;
 };
 
+export type RetryFleetGraphAttentionEventInput = {
+  eventId: string;
+  lastError: string;
+  availableAt?: Date;
+};
+
+export type FailFleetGraphAttentionEventInput = {
+  eventId: string;
+  lastError: string;
+  maxAttempts?: number;
+  now?: Date;
+};
+
 export const BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX = 'blocked-important-issue';
 export const STALE_ISSUE_DEDUPE_PREFIX = 'stale-issue';
 export const AT_RISK_ISSUE_DEDUPE_PREFIX = 'at-risk-issue';
 const ATTENTION_EVENT_LEASE_TIMEOUT_MINUTES = 10;
+const ATTENTION_EVENT_MAX_ATTEMPTS = 5;
+const ATTENTION_EVENT_BASE_BACKOFF_MS = 30_000;
+const ATTENTION_EVENT_MAX_BACKOFF_MS = 30 * 60_000;
+
+function attentionEventRetryDelayMs(attemptCount: number): number {
+  const exponent = Math.max(0, attemptCount - 1);
+  return Math.min(
+    ATTENTION_EVENT_BASE_BACKOFF_MS * (2 ** exponent),
+    ATTENTION_EVENT_MAX_BACKOFF_MS
+  );
+}
+
+function boundedLastError(error: string): string {
+  return error.slice(0, 2_000);
+}
 
 function mapFinding(row: FleetGraphFindingRow): FleetGraphFinding {
   return {
@@ -352,6 +380,23 @@ export async function listFleetGraphFindingsForSource(
         AND status IN ('open', 'needs_confirmation', 'error')
       ORDER BY updated_at DESC`,
     [input.workspaceId, input.sourceIssueId ?? null, input.sourceSprintId ?? null]
+  );
+
+  return result.rows.map(mapFinding);
+}
+
+export async function listFleetGraphFindingsByIds(
+  input: { workspaceId: string; findingIds: string[] },
+  db: QueryRunner = pool
+): Promise<FleetGraphFinding[]> {
+  if (input.findingIds.length === 0) return [];
+  const result = await db.query<FleetGraphFindingRow>(
+    `SELECT *
+       FROM fleetgraph_findings
+      WHERE workspace_id = $1
+        AND id = ANY($2::uuid[])
+        AND status IN ('open', 'needs_confirmation', 'error')`,
+    [input.workspaceId, input.findingIds]
   );
 
   return result.rows.map(mapFinding);
@@ -549,6 +594,65 @@ export async function completeFleetGraphAttentionEvent(
         AND status = 'processing'
       RETURNING *`,
     [input.eventId, input.status, input.lastError ?? null]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function retryFleetGraphAttentionEvent(
+  input: RetryFleetGraphAttentionEventInput,
+  db: QueryRunner = pool
+): Promise<FleetGraphAttentionEvent | null> {
+  const result = await db.query<FleetGraphAttentionEventRow>(
+    `UPDATE fleetgraph_attention_events
+        SET status = 'pending',
+            last_error = $2,
+            available_at = COALESCE($3, NOW() + INTERVAL '1 minute'),
+            locked_at = NULL,
+            locked_by = NULL,
+            updated_at = NOW()
+      WHERE id = $1
+        AND status = 'processing'
+      RETURNING *`,
+    [input.eventId, input.lastError, input.availableAt ?? null]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function failFleetGraphAttentionEvent(
+  input: FailFleetGraphAttentionEventInput,
+  db: QueryRunner = pool
+): Promise<FleetGraphAttentionEvent | null> {
+  const maxAttempts = input.maxAttempts ?? ATTENTION_EVENT_MAX_ATTEMPTS;
+  const eventResult = await db.query<{ attempt_count: number }>(
+    `SELECT attempt_count
+       FROM fleetgraph_attention_events
+      WHERE id = $1
+        AND status = 'processing'
+      LIMIT 1`,
+    [input.eventId]
+  );
+  const attemptCount = eventResult.rows[0]?.attempt_count;
+  if (attemptCount === undefined) return null;
+
+  const terminal = attemptCount >= maxAttempts;
+  const availableAt = terminal
+    ? null
+    : new Date((input.now ?? new Date()).getTime() + attentionEventRetryDelayMs(attemptCount));
+  const result = await db.query<FleetGraphAttentionEventRow>(
+    `UPDATE fleetgraph_attention_events
+        SET status = CASE WHEN $3::boolean THEN 'failed' ELSE 'pending' END,
+            last_error = $2,
+            available_at = COALESCE($4, available_at),
+            processed_at = CASE WHEN $3::boolean THEN NOW() ELSE NULL END,
+            locked_at = NULL,
+            locked_by = NULL,
+            updated_at = NOW()
+      WHERE id = $1
+        AND status = 'processing'
+      RETURNING *`,
+    [input.eventId, boundedLastError(input.lastError), terminal, availableAt]
   );
 
   return result.rows[0] ?? null;

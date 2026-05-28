@@ -10,6 +10,7 @@ import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
 import {
   listFleetGraphFindingsForSource,
+  listFleetGraphFindingsByIds,
   listFleetGraphNotificationFindings,
   markFleetGraphNotificationRead,
   markVisibleFleetGraphNotificationsRead,
@@ -62,6 +63,7 @@ vi.mock('../fleetgraph/execution/manual-run.js', () => ({
 
 vi.mock('../fleetgraph/persistence.js', () => ({
   listFleetGraphFindingsForSource: vi.fn(),
+  listFleetGraphFindingsByIds: vi.fn(),
   listFleetGraphNotificationFindings: vi.fn(),
   markFleetGraphNotificationRead: vi.fn(),
   markVisibleFleetGraphNotificationsRead: vi.fn(),
@@ -194,7 +196,10 @@ function restrictedVisibleOutput(): FleetGraphVisibleOutput {
 describe('FleetGraph routes', () => {
   beforeEach(() => {
     vi.mocked(listFleetGraphFindingsForSource).mockReset();
+    vi.mocked(listFleetGraphFindingsByIds).mockReset();
     vi.mocked(listFleetGraphNotificationFindings).mockReset();
+    vi.mocked(markFleetGraphNotificationRead).mockReset();
+    vi.mocked(markVisibleFleetGraphNotificationsRead).mockReset();
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(runFleetGraph).mockReset();
     vi.mocked(runFleetGraphManualTick).mockReset();
@@ -255,6 +260,11 @@ describe('FleetGraph routes', () => {
   });
 
   it('marks one notification read for the current user', async () => {
+    vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([finding()]);
+    vi.mocked(visibleOutputForFinding).mockResolvedValue({
+      evidence: visibleOutput().evidence,
+      output: visibleOutput(),
+    });
     vi.mocked(markFleetGraphNotificationRead).mockResolvedValue(1);
 
     const res = await request(app())
@@ -271,6 +281,7 @@ describe('FleetGraph routes', () => {
   });
 
   it('reports when a notification read mark affects no visible active finding', async () => {
+    vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([]);
     vi.mocked(markFleetGraphNotificationRead).mockResolvedValue(0);
 
     const res = await request(app())
@@ -281,7 +292,31 @@ describe('FleetGraph routes', () => {
     expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 0 });
   });
 
+  it('does not mark one restricted notification read', async () => {
+    vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([finding()]);
+    vi.mocked(visibleOutputForFinding).mockResolvedValue({
+      evidence: [],
+      output: restrictedVisibleOutput(),
+    });
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/read`)
+      .send({})
+      .expect(200);
+
+    expect(markFleetGraphNotificationRead).not.toHaveBeenCalled();
+    expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 0 });
+  });
+
   it('marks provided visible notifications read for the current user', async () => {
+    vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([
+      finding(),
+      finding({ id: '66666666-6666-4666-8666-666666666666' }),
+    ]);
+    vi.mocked(visibleOutputForFinding).mockImplementation(async ({ finding: candidate }) => ({
+      evidence: [],
+      output: visibleOutput({ summary: candidate.summary }),
+    }));
     vi.mocked(markVisibleFleetGraphNotificationsRead).mockResolvedValue(2);
 
     const res = await request(app())
@@ -295,6 +330,31 @@ describe('FleetGraph routes', () => {
       findingIds: [findingId, '66666666-6666-4666-8666-666666666666'],
     });
     expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 2 });
+  });
+
+  it('marks only actor-visible notification ids in bulk read requests', async () => {
+    const restrictedId = '66666666-6666-4666-8666-666666666666';
+    vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([
+      finding(),
+      finding({ id: restrictedId }),
+    ]);
+    vi.mocked(visibleOutputForFinding).mockImplementation(async ({ finding: candidate }) => ({
+      evidence: [],
+      output: candidate.id === restrictedId ? restrictedVisibleOutput() : visibleOutput(),
+    }));
+    vi.mocked(markVisibleFleetGraphNotificationsRead).mockResolvedValue(1);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/notifications/read')
+      .send({ findingIds: [findingId, restrictedId] })
+      .expect(200);
+
+    expect(markVisibleFleetGraphNotificationsRead).toHaveBeenCalledWith({
+      workspaceId,
+      userId: '55555555-5555-4555-8555-555555555555',
+      findingIds: [findingId],
+    });
+    expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 1 });
   });
 
   it('serializes multiple notification signal types safely', async () => {

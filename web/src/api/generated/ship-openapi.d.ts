@@ -9014,7 +9014,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        findingIds?: string[];
+                        findingIds: string[];
                     };
                 };
             };
@@ -13095,7 +13095,8 @@ export interface components {
             rationale?: string;
         };
         FleetGraphEvidence: {
-            kind: string;
+            /** @enum {string} */
+            kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
             /**
              * Format: uuid
              * @description UUID identifier

@@ -12,6 +12,7 @@ import {
   claimFleetGraphAttentionEvents,
   completeFleetGraphAttentionEvent,
   completeFleetGraphWorkerTick,
+  failFleetGraphAttentionEvent,
   heartbeatFleetGraphWorkerTick,
   startFleetGraphWorkerTick,
   type JsonRecord,
@@ -20,6 +21,7 @@ import {
   runFleetGraphAttentionEvent,
   runFleetGraphTick,
   type FleetGraphExecuteTickSummary,
+  type FleetGraphEventTickSummary,
   type FleetGraphTickInput,
 } from './tick-runner.js';
 
@@ -31,6 +33,7 @@ type WorkerLogger = Pick<typeof console, 'log' | 'error'>;
 type WorkerRunTick = (
   input: Extract<FleetGraphTickInput, { mode: 'execute' }>
 ) => Promise<FleetGraphExecuteTickSummary>;
+type WorkerRunAttentionEvent = typeof runFleetGraphAttentionEvent;
 
 type TimerHandle = ReturnType<typeof setTimeout>;
 
@@ -42,6 +45,7 @@ export type FleetGraphWorkerOptions = {
   setTimeoutFn?: typeof setTimeout;
   clearTimeoutFn?: typeof clearTimeout;
   runTick?: WorkerRunTick;
+  runAttentionEvent?: WorkerRunAttentionEvent;
   now?: () => Date;
 };
 
@@ -154,6 +158,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
   const logger = options.logger ?? console;
   const now = options.now ?? (() => new Date());
   const runTick = options.runTick ?? runFleetGraphTick;
+  const runAttentionEvent = options.runAttentionEvent ?? runFleetGraphAttentionEvent;
   const instanceId = options.instanceId ?? `fleetgraph-${randomUUID()}`;
   const deadlineAt = new Date(now().getTime() + config.workerTickDeadlineMs);
   const client = await db.connect();
@@ -214,7 +219,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
       }
 
       try {
-        const summary = await runFleetGraphAttentionEvent({
+        const summary: FleetGraphEventTickSummary = await runAttentionEvent({
           event,
           principal: fleetGraphSystemPrincipal(event.workspace_id),
           db: client,
@@ -235,14 +240,20 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
           workspaceId: event.workspace_id,
           ...safeErrorMetadata(error),
         });
-        await completeFleetGraphAttentionEvent({
+        const lastError = error instanceof Error ? error.message : String(error);
+        const failedEvent = await failFleetGraphAttentionEvent({
           eventId: event.id,
-          status: 'failed',
-          lastError: error instanceof Error ? error.message : String(error),
+          lastError,
+          now: now(),
         }, client);
         stats.auditMetadata.eventFailures = [
           ...eventFailures(stats.auditMetadata),
-          { eventId: event.id, ...safeErrorMetadata(error) },
+          {
+            eventId: event.id,
+            status: failedEvent?.status ?? 'unknown',
+            attemptCount: failedEvent?.attempt_count,
+            ...safeErrorMetadata(error),
+          },
         ];
       }
     }

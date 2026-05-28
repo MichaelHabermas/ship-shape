@@ -8493,7 +8493,17 @@
         "type": "object",
         "properties": {
           "kind": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "source_issue",
+              "source_sprint",
+              "blocker",
+              "stale",
+              "at_risk",
+              "dedupe",
+              "finding",
+              "restricted"
+            ]
           },
           "sourceDocumentId": {
             "type": "string",
@@ -18097,9 +18107,13 @@
                       "description": "UUID identifier",
                       "example": "550e8400-e29b-41d4-a716-446655440000"
                     },
+                    "minItems": 1,
                     "maxItems": 99
                   }
-                }
+                },
+                "required": [
+                  "findingIds"
+                ]
               }
             }
           }

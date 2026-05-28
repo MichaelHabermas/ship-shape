@@ -547,6 +547,7 @@ function NotificationConversation({
         metadata={[ownerLabel, displayText(notification.context), notification.age, ...(isFallback ? ['fallback'] : [])]}
         sources={sourceLabels}
         signalLabel={notification.signalLabel}
+        signalType={notification.signalType}
       />
 
       <InlineGateNote text={nextStep} gateText={gateText} />
@@ -614,12 +615,14 @@ function AssistantAnswer({
   metadata,
   sources,
   signalLabel,
+  signalType = 'blocked',
 }: {
   eyebrow: string;
   body: string;
   metadata: string[];
   sources: string[];
   signalLabel?: string;
+  signalType?: FleetGraphNotificationProbeItem['signalType'];
 }) {
   const metadataItems = metadata.filter((item) => item && item !== '-');
 
@@ -629,7 +632,7 @@ function AssistantAnswer({
       <p className="text-base leading-6">
         {signalLabel && (
           <span className="mr-2 inline-flex align-[2px]">
-            <NotificationLabelChip label={signalLabel} />
+            <NotificationLabelChip label={signalLabel} signalType={signalType} />
           </span>
         )}
         {displayText(body)}

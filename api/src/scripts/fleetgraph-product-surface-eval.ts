@@ -14,7 +14,7 @@ import {
 } from '../fleetgraph/eval/product-surface.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from '../fleetgraph/core.js';
 import { blockedImportantIssueDedupeKey, type FleetGraphFinding, type FleetGraphRun, type RecordFleetGraphRunInput } from '../fleetgraph/persistence.js';
-import type { BlockedImportantIssueCandidate } from '../fleetgraph/detection/detector.js';
+import type { FleetGraphAttentionCandidate } from '../fleetgraph/detection/detector.js';
 import type { FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 
 export type SurfaceEvalReport = {
@@ -503,7 +503,7 @@ function visibleOwner(output: FleetGraphVisibleOutput): string | null {
   return typeof role === 'string' && role.trim() ? role : null;
 }
 
-function candidate(input: { issueTitle: string; blockerText: string; assigneeId: string | null }): BlockedImportantIssueCandidate {
+function candidate(input: { issueTitle: string; blockerText: string; assigneeId: string | null }): FleetGraphAttentionCandidate {
   return {
     workspace_id: workspaceId,
     issue_id: issueId,
@@ -533,7 +533,7 @@ function candidate(input: { issueTitle: string; blockerText: string; assigneeId:
   };
 }
 
-function findingFromCandidate(input: BlockedImportantIssueCandidate): FleetGraphFinding {
+function findingFromCandidate(input: FleetGraphAttentionCandidate): FleetGraphFinding {
   return finding({
     title: input.issue_title,
     summary: input.blocker_text

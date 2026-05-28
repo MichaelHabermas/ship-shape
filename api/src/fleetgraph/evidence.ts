@@ -3,7 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import { authorize } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueCandidate } from './detection/detector.js';
+import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 import { getFleetGraphFindingById, type FleetGraphFinding, type JsonRecord } from './persistence.js';
 import type { FleetGraphEvidenceItem } from '@ship/shared';
 import type { FleetGraphVisibleOutput } from './types.js';
@@ -18,7 +18,7 @@ export type FleetGraphEvidenceBundle = {
 };
 
 export function evidenceFromDetectorCandidate(
-  candidate: BlockedImportantIssueCandidate
+  candidate: FleetGraphAttentionCandidate
 ): FleetGraphEvidenceItem[] {
   const signalType = candidate.signalType ?? 'blocked';
   const reason = candidate.attentionReason ?? 'Issue needs attention.';

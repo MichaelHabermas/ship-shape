@@ -1,6 +1,6 @@
 // FleetGraph model adapter keeps real proactive-create LLM calls opt-in and testable.
 import { fleetGraphConfig } from '../config/fleetgraph.js';
-import type { BlockedImportantIssueCandidate } from './detection/detector.js';
+import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 import type { FleetGraphTokenMetadata } from './types.js';
 
 export type FleetGraphProactiveCreateModelResult = {
@@ -10,7 +10,7 @@ export type FleetGraphProactiveCreateModelResult = {
 };
 
 export async function generateProactiveCreateText(input: {
-  candidate: BlockedImportantIssueCandidate;
+  candidate: FleetGraphAttentionCandidate;
   modelEnabled?: boolean;
 }): Promise<FleetGraphProactiveCreateModelResult> {
   const config = fleetGraphConfig();
@@ -47,13 +47,13 @@ export async function generateProactiveCreateText(input: {
   };
 }
 
-function deterministicSummary(candidate: BlockedImportantIssueCandidate): string {
+function deterministicSummary(candidate: FleetGraphAttentionCandidate): string {
   return candidate.blocker_text
     ? `${trimSentence(candidate.blocker_text)} · ${weekLabel(candidate)}`
     : `Reason missing · ${weekLabel(candidate)}`;
 }
 
-function deterministicDraft(candidate: BlockedImportantIssueCandidate): string {
+function deterministicDraft(candidate: FleetGraphAttentionCandidate): string {
   if (!candidate.blocker_text.trim()) {
     return `Add the blocker reason for ${candidate.issue_title}.`;
   }
@@ -61,7 +61,7 @@ function deterministicDraft(candidate: BlockedImportantIssueCandidate): string {
   return `Confirm who owns this unblocker: ${trimSentence(candidate.blocker_text)}.`;
 }
 
-export function deterministicProactiveCreateText(candidate: BlockedImportantIssueCandidate): FleetGraphProactiveCreateModelResult {
+export function deterministicProactiveCreateText(candidate: FleetGraphAttentionCandidate): FleetGraphProactiveCreateModelResult {
   return {
     summary: deterministicSummary(candidate),
     draftMessage: deterministicDraft(candidate),
@@ -69,11 +69,11 @@ export function deterministicProactiveCreateText(candidate: BlockedImportantIssu
   };
 }
 
-function blockerText(candidate: BlockedImportantIssueCandidate): string {
+function blockerText(candidate: FleetGraphAttentionCandidate): string {
   return candidate.blocker_text || 'No blocker reason recorded.';
 }
 
-function weekLabel(candidate: BlockedImportantIssueCandidate): string {
+function weekLabel(candidate: FleetGraphAttentionCandidate): string {
   return candidate.sprint_number ? `Week ${candidate.sprint_number}` : candidate.sprint_title;
 }
 

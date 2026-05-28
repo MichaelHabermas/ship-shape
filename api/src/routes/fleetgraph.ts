@@ -30,6 +30,7 @@ import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
 import {
   listFleetGraphFindingsForSource,
+  listFleetGraphFindingsByIds,
   listFleetGraphNotificationFindings,
   markFleetGraphNotificationRead,
   markVisibleFleetGraphNotificationsRead,
@@ -45,16 +46,12 @@ const findingsQuerySchema = z.object({
   message: 'sourceIssueId or sourceSprintId is required',
 });
 
-const notificationsQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(99).optional(),
-});
+const notificationsQuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(99).optional() });
 
-const findingParamsSchema = z.object({
-  findingId: UuidSchema,
-});
+const findingParamsSchema = z.object({ findingId: UuidSchema });
 
 const markNotificationsReadBodySchema = z.object({
-  findingIds: z.array(UuidSchema).max(99).optional(),
+  findingIds: z.array(UuidSchema).min(1).max(99),
 });
 
 const markNotificationsReadResponseSchema = z.object({
@@ -80,6 +77,26 @@ async function requireWorkspaceAdminForFleetGraph(req: Request, res: Response): 
 
   sendLegacyError(res, 403, 'Workspace admin access required');
   return false;
+}
+
+async function actorVisibleFindingIds(input: {
+  workspaceId: string;
+  principal: ReturnType<typeof principalFromRequest>;
+  findingIds: string[];
+}): Promise<string[]> {
+  const findings = await listFleetGraphFindingsByIds({
+    workspaceId: input.workspaceId,
+    findingIds: input.findingIds,
+  });
+  const visible = await Promise.all(findings.map(async (finding) => {
+    const { output } = await visibleOutputForFinding({
+      principal: input.principal,
+      workspaceId: input.workspaceId,
+      finding,
+    });
+    return output.noSafeOutput ? null : finding.id;
+  }));
+  return visible.filter((findingId): findingId is string => findingId !== null);
 }
 
 router.get('/findings', authMiddleware, defineRoute({
@@ -167,7 +184,12 @@ router.post('/notifications/read', authMiddleware, defineRoute({
   async handler(req: Request, res: Response, parsed) {
     try {
       const { workspaceId, userId } = getAuthenticatedRouteContext(req);
-      const findingIds = parsed.body.findingIds ?? [];
+      const principal = principalFromRequest(req);
+      const findingIds = await actorVisibleFindingIds({
+        workspaceId,
+        principal,
+        findingIds: parsed.body.findingIds,
+      });
       const markedRead = await markVisibleFleetGraphNotificationsRead({
         workspaceId,
         userId,
@@ -195,11 +217,17 @@ router.post('/findings/:findingId/read', authMiddleware, defineRoute({
   async handler(req: Request, res: Response, parsed) {
     try {
       const { workspaceId, userId } = getAuthenticatedRouteContext(req);
-      const markedRead = await markFleetGraphNotificationRead({
+      const principal = principalFromRequest(req);
+      const [visibleFindingId] = await actorVisibleFindingIds({
+        workspaceId,
+        principal,
+        findingIds: [parsed.params.findingId],
+      });
+      const markedRead = visibleFindingId ? await markFleetGraphNotificationRead({
         workspaceId,
         userId,
-        findingId: parsed.params.findingId,
-      });
+        findingId: visibleFindingId,
+      }) : 0;
       res.json({ success: true, markedRead });
     } catch (err) {
       sendInternalError(res, err, 'Mark FleetGraph notification read error');

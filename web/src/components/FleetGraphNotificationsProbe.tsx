@@ -1,5 +1,5 @@
 // Renders the left-rail notification surface backed by real FleetGraph findings.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type {
   FleetGraphNotificationResponse,
@@ -18,6 +18,7 @@ export type FleetGraphNotificationProbeItem = Pick<
 };
 
 const SIGNAL_ORDER = ['blocked', 'stale', 'at_risk'] as const;
+type NotificationSignalType = typeof SIGNAL_ORDER[number];
 
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
@@ -36,15 +37,15 @@ export function FleetGraphNotificationsProbe({
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>([]);
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [expandedNotifications, setExpandedNotifications] = useState<Record<string, boolean>>({});
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const notificationCount = notifications.length;
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
-  const groupedNotifications = SIGNAL_ORDER.map((signalType) => ({
+  const signalCounts = SIGNAL_ORDER.map((signalType) => ({
     signalType,
     label: notifications.find((notification) => notification.signalType === signalType)?.signalLabel ?? signalType,
-    items: notifications.filter((notification) => notification.signalType === signalType),
-  })).filter((group) => group.items.length > 0);
+    count: notifications.filter((notification) => notification.signalType === signalType).length,
+  })).filter((item) => item.count > 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,8 +132,22 @@ export function FleetGraphNotificationsProbe({
           aria-label="Notifications"
           className="absolute bottom-0 left-[42px] w-[min(380px,calc(100vw-4rem))] overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
         >
-          <header className="flex items-center justify-between border-b border-border px-3 py-1.5">
-            <div className="text-sm font-medium text-foreground">Notifications</div>
+          <header className="flex items-center justify-between gap-3 border-b border-border px-3 py-1.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="shrink-0 text-sm font-medium text-foreground">Notifications</div>
+              {signalCounts.length > 0 && (
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  {signalCounts.map((item) => (
+                    <SignalCountPill
+                      key={item.signalType}
+                      signalType={item.signalType}
+                      label={item.label}
+                      count={item.count}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -147,32 +162,24 @@ export function FleetGraphNotificationsProbe({
             {notifications.length === 0 && (
               <NotificationEmptyState status={loadStatus} />
             )}
-            {groupedNotifications.map((group) => (
-              <NotificationGroup
-                key={group.signalType}
-                label={group.label}
-                count={group.items.length}
-                collapsed={collapsedGroups[group.signalType] === true}
-                onToggle={() => setCollapsedGroups((groups) => ({
-                  ...groups,
-                  [group.signalType]: groups[group.signalType] !== true,
+            {notifications.map((notification) => (
+              <AttentionNotification
+                key={notification.id}
+                notification={notification}
+                expanded={expandedNotifications[notification.id] === true}
+                onToggle={() => setExpandedNotifications((items) => ({
+                  ...items,
+                  [notification.id]: items[notification.id] !== true,
                 }))}
-              >
-                {group.items.map((notification) => (
-                  <AttentionNotification
-                    key={notification.id}
-                    notification={notification}
-                    onDiscuss={() => {
-                      void markRead(notification);
-                      onDiscuss(notification);
-                    }}
-                    onOpenSource={() => {
-                      void markRead(notification);
-                      if (notification.sourcePath) navigate(notification.sourcePath);
-                    }}
-                  />
-                ))}
-              </NotificationGroup>
+                onDiscuss={() => {
+                  void markRead(notification);
+                  onDiscuss(notification);
+                }}
+                onOpenSource={() => {
+                  void markRead(notification);
+                  if (notification.sourcePath) navigate(notification.sourcePath);
+                }}
+              />
             ))}
           </div>
         </section>
@@ -214,44 +221,33 @@ function NotificationBadge({ count }: { count: number }) {
   );
 }
 
-function NotificationGroup({
+function SignalCountPill({
+  signalType,
   label,
   count,
-  collapsed,
-  onToggle,
-  children,
 }: {
+  signalType: NotificationSignalType;
   label: string;
   count: number;
-  collapsed: boolean;
-  onToggle: () => void;
-  children: ReactNode;
 }) {
   return (
-    <section className="border-b border-border last:border-b-0">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between bg-[#151515] px-3 py-1.5 text-left text-xs font-medium text-foreground transition hover:bg-white/[0.04]"
-        aria-expanded={!collapsed}
-      >
-        <span className="flex items-center gap-2">
-          <span>{label}</span>
-          <span className="rounded border border-border px-1.5 py-0.5 text-[10px] leading-none text-muted">{count}</span>
-        </span>
-        <span className="text-muted">{collapsed ? '+' : '-'}</span>
-      </button>
-      {!collapsed && <div>{children}</div>}
-    </section>
+    <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-white/[0.03] px-1.5 py-0.5 text-[10px] leading-none text-muted">
+      <NotificationLabelChip label={label} signalType={signalType} />
+      <span>{count}</span>
+    </span>
   );
 }
 
 function AttentionNotification({
   notification,
+  expanded,
+  onToggle,
   onDiscuss,
   onOpenSource,
 }: {
   notification: FleetGraphNotificationProbeItem;
+  expanded: boolean;
+  onToggle: () => void;
   onDiscuss: () => void;
   onOpenSource: () => void;
 }) {
@@ -261,40 +257,51 @@ function AttentionNotification({
     <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${notification.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-5 text-foreground">
-            <NotificationLabelChip label={notification.signalLabel} />
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex min-w-0 items-center gap-1.5 text-left text-[13px] font-medium leading-5 text-foreground transition hover:text-white focus:outline-none focus:ring-2 focus:ring-accent"
+            aria-expanded={expanded}
+          >
+            <NotificationLabelChip label={notification.signalLabel} signalType={notification.signalType} />
             <span className="truncate">{displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}</span>
-          </h3>
-          <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
-            <span>{displayText(ownerLabel)}</span>
-            <span aria-hidden="true">·</span>
-            <span>{displayText(notification.context)}</span>
-            <span aria-hidden="true">·</span>
-            <span>{notification.age}</span>
-          </div>
+          </button>
+          {expanded && (
+            <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
+              <span>{displayText(ownerLabel)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{displayText(notification.context)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{notification.age}</span>
+            </div>
+          )}
         </div>
         {!notification.isRead && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />}
       </div>
 
-      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{displayText(notification.reason || notification.notificationText || notification.blockerText)}</p>
+      {expanded && (
+        <>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{displayText(notification.reason || notification.notificationText || notification.blockerText)}</p>
 
-      <div className="mt-1 flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          disabled={!notification.sourcePath}
-          onClick={onOpenSource}
-          className="flex h-8 items-center rounded border border-border px-2.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
-        >
-          Open source
-        </button>
-        <button
-          type="button"
-          onClick={onDiscuss}
-          className="flex h-8 items-center rounded bg-accent px-2.5 text-xs text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
-        >
-          Discuss
-        </button>
-      </div>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              disabled={!notification.sourcePath}
+              onClick={onOpenSource}
+              className="flex h-8 items-center rounded border border-border px-2.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
+            >
+              Open source
+            </button>
+            <button
+              type="button"
+              onClick={onDiscuss}
+              className="flex h-8 items-center rounded bg-accent px-2.5 text-xs text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              Discuss
+            </button>
+          </div>
+        </>
+      )}
     </article>
   );
 }

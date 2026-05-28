@@ -18,7 +18,7 @@ import { resolveFleetGraphCurrentWeek } from './current-week.js';
 type QueryRunner = Pick<typeof pool, 'query'>;
 type SourceKey = `${string}:${string}:${string}`;
 
-type BlockedImportantIssueCandidateRow = {
+type FleetGraphAttentionCandidateRow = {
   workspace_id: string;
   issue_id: string;
   issue_title: string;
@@ -48,7 +48,7 @@ type BlockedImportantIssueCandidateRow = {
   signal_type?: FleetGraphSignalType;
 };
 
-export type BlockedImportantIssueCandidate = BlockedImportantIssueCandidateRow & {
+export type FleetGraphAttentionCandidate = FleetGraphAttentionCandidateRow & {
   dedupeKey: string;
   signalType?: FleetGraphSignalType;
   signalLabel?: string;
@@ -66,14 +66,14 @@ export type FleetGraphDetectorQuietExit = {
   count: number;
 };
 
-export type BlockedImportantIssueDedupeDecision = {
+export type FleetGraphAttentionDedupeDecision = {
   decision: 'create_finding' | 'update_finding';
-  candidate: BlockedImportantIssueCandidate;
+  candidate: FleetGraphAttentionCandidate;
   existingFindingId: string | null;
 };
 
-export type BlockedImportantIssueDecisionBatch = {
-  decisions: BlockedImportantIssueDedupeDecision[];
+export type FleetGraphAttentionDecisionBatch = {
+  decisions: FleetGraphAttentionDedupeDecision[];
 };
 
 export type FleetGraphStaleFinding = {
@@ -84,7 +84,7 @@ export type FleetGraphStaleFinding = {
   reason: FleetGraphDetectorQuietExitReason | 'condition_gone';
 };
 
-function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantIssueCandidate {
+function mapCandidate(row: FleetGraphAttentionCandidateRow): FleetGraphAttentionCandidate {
   const signalType = row.signal_type ?? 'blocked';
   return {
     ...row,
@@ -108,7 +108,7 @@ function mapCandidate(row: BlockedImportantIssueCandidateRow): BlockedImportantI
 function candidateFromContext(
   context: FleetGraphIssueAttentionContext,
   policy: NonNullable<ReturnType<typeof attentionPolicyForContext>>
-): BlockedImportantIssueCandidate {
+): FleetGraphAttentionCandidate {
   return mapCandidate({
     workspace_id: context.workspace_id,
     issue_id: context.issue_id,
@@ -148,7 +148,7 @@ async function findAttentionCandidatesFromContexts(input: {
   sourceIssueId?: string;
   sourceSprintId?: string | null;
   includePrivate?: boolean;
-}): Promise<BlockedImportantIssueCandidate[]> {
+}): Promise<FleetGraphAttentionCandidate[]> {
   const db = input.db ?? pool;
   const today = input.today ?? new Date();
   const currentWeek = await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today });
@@ -172,19 +172,19 @@ async function findAttentionCandidatesFromContexts(input: {
   }));
 }
 
-async function findBlockedImportantIssueCandidates(input: {
+async function findFleetGraphAttentionCandidates(input: {
   workspaceId: string;
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<BlockedImportantIssueCandidate[]> {
+}): Promise<FleetGraphAttentionCandidate[]> {
   const candidates = await findAttentionCandidatesFromContexts(input);
   return candidates.filter((candidate) => (candidate.signalType ?? 'blocked') === 'blocked');
 }
 
 function uniqueCandidatesByDedupeKey(
-  candidates: BlockedImportantIssueCandidate[]
-): BlockedImportantIssueCandidate[] {
+  candidates: FleetGraphAttentionCandidate[]
+): FleetGraphAttentionCandidate[] {
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
     if (seen.has(candidate.dedupeKey)) return false;
@@ -193,20 +193,20 @@ function uniqueCandidatesByDedupeKey(
   });
 }
 
-function sourceKey(candidate: BlockedImportantIssueCandidate): SourceKey {
+function sourceKey(candidate: FleetGraphAttentionCandidate): SourceKey {
   return `${candidate.workspace_id}:${candidate.issue_id}:${candidate.sprint_id}`;
 }
 
-function signalRank(candidate: BlockedImportantIssueCandidate): number {
+function signalRank(candidate: FleetGraphAttentionCandidate): number {
   if ((candidate.signalType ?? 'blocked') === 'blocked') return 3;
   if (candidate.signalType === 'at_risk') return 2;
   return 1;
 }
 
 function strongestCandidatePerSource(
-  candidates: BlockedImportantIssueCandidate[]
-): BlockedImportantIssueCandidate[] {
-  const bySource = new Map<SourceKey, BlockedImportantIssueCandidate>();
+  candidates: FleetGraphAttentionCandidate[]
+): FleetGraphAttentionCandidate[] {
+  const bySource = new Map<SourceKey, FleetGraphAttentionCandidate>();
   for (const candidate of candidates) {
     const key = sourceKey(candidate);
     const existing = bySource.get(key);
@@ -215,11 +215,11 @@ function strongestCandidatePerSource(
   return [...bySource.values()];
 }
 
-async function planBlockedImportantIssueDedupeDecisions(input: {
+async function planFleetGraphAttentionDedupeDecisions(input: {
   workspaceId: string;
-  candidates: BlockedImportantIssueCandidate[];
+  candidates: FleetGraphAttentionCandidate[];
   db?: QueryRunner;
-}): Promise<BlockedImportantIssueDedupeDecision[]> {
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
   const candidates = uniqueCandidatesByDedupeKey(input.candidates);
   if (candidates.length === 0) return [];
 
@@ -252,9 +252,9 @@ export async function detectBlockedImportantIssueDecisions(input: {
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<BlockedImportantIssueDedupeDecision[]> {
-  const candidates = await findBlockedImportantIssueCandidates(input);
-  return planBlockedImportantIssueDedupeDecisions({
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
+  const candidates = await findFleetGraphAttentionCandidates(input);
+  return planFleetGraphAttentionDedupeDecisions({
     workspaceId: input.workspaceId,
     candidates,
     db: input.db,
@@ -266,14 +266,13 @@ export async function detectFleetGraphAttentionDecisions(input: {
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<BlockedImportantIssueDedupeDecision[]> {
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
   const db = input.db ?? pool;
   const candidates = await findAttentionCandidatesFromContexts({
     ...input,
     db,
-    limit: input.limit ?? 75,
   });
-  return planBlockedImportantIssueDedupeDecisions({
+  return planFleetGraphAttentionDedupeDecisions({
     workspaceId: input.workspaceId,
     candidates,
     db,
@@ -286,7 +285,7 @@ export async function detectFleetGraphAttentionDecisionsForSource(input: {
   sourceSprintId?: string | null;
   db?: QueryRunner;
   today?: Date;
-}): Promise<BlockedImportantIssueDedupeDecision[]> {
+}): Promise<FleetGraphAttentionDedupeDecision[]> {
   const db = input.db ?? pool;
   const candidates = await findAttentionCandidatesFromContexts({
     workspaceId: input.workspaceId,
@@ -298,7 +297,7 @@ export async function detectFleetGraphAttentionDecisionsForSource(input: {
     db,
   });
 
-  return planBlockedImportantIssueDedupeDecisions({
+  return planFleetGraphAttentionDedupeDecisions({
     workspaceId: input.workspaceId,
     candidates,
     db,

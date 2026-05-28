@@ -20,6 +20,7 @@ const dedupeKey = blockedImportantIssueDedupeKey({ workspaceId, issueId, sprintI
 function dbReturningCandidate() {
   return {
     query: vi.fn()
+      .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
       .mockResolvedValueOnce(pgResult([{
         workspace_id: workspaceId,
         issue_id: issueId,
@@ -28,13 +29,29 @@ function dbReturningCandidate() {
         issue_state: 'blocked',
         issue_priority: 'urgent',
         issue_assignee_id: '55555555-5555-4555-8555-555555555555',
+        issue_assignee_name: 'Casey Engineer',
+        issue_visibility: 'workspace',
+        issue_created_at: new Date('2026-05-20T12:00:00Z'),
+        issue_updated_at: new Date('2026-05-26T12:00:00Z'),
         sprint_id: sprintId,
         sprint_title: 'Week 2',
         sprint_number: 2,
         sprint_owner_id: null,
+        sprint_owner_name: null,
+        project_id: null,
+        project_title: null,
+        project_owner_id: null,
+        project_owner_name: null,
+        program_id: null,
+        program_title: null,
+        program_owner_id: null,
+        program_owner_name: null,
         blocker_text: 'Waiting on API credentials.',
         blocker_iteration_id: iterationId,
         blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
+        latest_iteration_id: iterationId,
+        latest_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
+        meaningful_updated_at: new Date('2026-05-26T12:00:00Z'),
       }])),
   };
 }
@@ -51,9 +68,9 @@ describe('FleetGraph detector', () => {
     });
 
     expect(db.query).toHaveBeenNthCalledWith(
-      1,
+      2,
       expect.any(String),
-      [workspaceId, 25]
+      [workspaceId, null, null, false, 250]
     );
   });
 
@@ -66,10 +83,9 @@ describe('FleetGraph detector', () => {
       db,
       today: new Date('2026-05-26T12:00:00Z'),
     });
-    const sql = db.query.mock.calls[0]?.[0] as string;
+    const sql = db.query.mock.calls[1]?.[0] as string;
 
     expect(sql).toContain("i.document_type = 'issue'");
-    expect(sql).toContain("COALESCE(i.properties->>'state', 'backlog') = 'blocked'");
     expect(sql).toContain("sprint_assoc.relationship_type = 'sprint'");
     expect(sql).toContain('LEFT JOIN LATERAL');
     expect(sql).toContain('ORDER BY iteration.created_at DESC, iteration.id DESC');
@@ -129,7 +145,7 @@ describe('FleetGraph detector', () => {
       limit: 10,
     });
 
-    expect(db.query).toHaveBeenCalledWith(expect.any(String), [workspaceId, 10]);
+    expect(db.query).toHaveBeenCalledWith(expect.any(String), [workspaceId, null, null, false, 10]);
     expect(db.query).toHaveBeenLastCalledWith(
       expect.stringContaining("status IN ('open', 'needs_confirmation', 'error')"),
       [workspaceId, [dedupeKey]]
@@ -172,6 +188,7 @@ describe('FleetGraph detector', () => {
     };
     const db = {
       query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
         .mockResolvedValueOnce(pgResult([candidateRow, candidateRow]))
         .mockResolvedValueOnce(pgResult([])),
     };
@@ -191,6 +208,7 @@ describe('FleetGraph detector', () => {
   it('does not query open findings when there are no candidates to dedupe', async () => {
     const db = {
       query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
         .mockResolvedValueOnce(pgResult([])),
     };
 
@@ -200,7 +218,7 @@ describe('FleetGraph detector', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     })).resolves.toEqual([]);
 
-    expect(db.query).toHaveBeenCalledTimes(1);
+    expect(db.query).toHaveBeenCalledTimes(2);
   });
 
   it('detects stale and at-risk attention candidates with distinct dedupe keys', async () => {
@@ -266,6 +284,8 @@ describe('FleetGraph detector', () => {
     ].sort());
     expect(db.query.mock.calls[1]?.[0]).toContain('latest_iteration.created_at AS latest_iteration_created_at');
     expect(db.query.mock.calls[1]?.[0]).toContain('COALESCE(latest_iteration.created_at, i.created_at) AS meaningful_updated_at');
+    const contextQueryParams = db.query.mock.calls[1]?.[1] as unknown[] | undefined;
+    expect(contextQueryParams?.[4]).toBe(250);
   });
 
   it('keeps the strongest attention signal per source before dedupe planning', async () => {
@@ -435,6 +455,9 @@ describe('FleetGraph detector', () => {
       issue_priority: 'high',
       issue_assignee_id: null,
       issue_assignee_name: null,
+      issue_visibility: 'workspace',
+      issue_created_at: new Date('2026-05-18T12:00:00Z'),
+      issue_updated_at: new Date('2026-05-18T12:00:00Z'),
       sprint_id: sprintId,
       sprint_title: 'Week 2',
       sprint_number: 2,
@@ -451,6 +474,8 @@ describe('FleetGraph detector', () => {
       blocker_text: '',
       blocker_iteration_id: null,
       blocker_iteration_created_at: null,
+      latest_iteration_id: null,
+      latest_iteration_created_at: null,
       meaningful_updated_at: new Date('2026-05-18T12:00:00Z'),
     };
     const staleDedupeKey = `stale-issue:${workspaceId}:${issueId}:${sprintId}`;
@@ -458,9 +483,7 @@ describe('FleetGraph detector', () => {
     const db = {
       query: vi.fn()
         .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
-        .mockResolvedValueOnce(pgResult([]))
-        .mockResolvedValueOnce(pgResult([{ ...baseRow, signal_type: 'stale' }]))
-        .mockResolvedValueOnce(pgResult([{ ...baseRow, signal_type: 'at_risk' }]))
+        .mockResolvedValueOnce(pgResult([baseRow]))
         .mockResolvedValueOnce(pgResult([{
           id: existingFindingId,
           source_issue_id: issueId,

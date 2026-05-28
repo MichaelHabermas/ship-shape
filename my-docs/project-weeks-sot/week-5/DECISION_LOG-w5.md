@@ -459,3 +459,19 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Use a FleetGraph-only durable attention event queue, not a generic Ship domain-event rail, for the first live attention loop. Issue mutations enqueue `fleetgraph_attention_events` after successful Ship writes, and the FleetGraph worker claims those events before its scheduled repair scan. Add only per-user read state for notifications; keep dismissal as existing finding state.
 
 **Consequence:** FleetGraph can recheck changed sources quickly and measure event latency without blocking source mutations or creating a broad platform bus. Enqueue failures must be logged/observable but must not fail canonical Ship writes. The scheduled worker scan remains the repair loop for missed or failed events.
+
+## D058 - FleetGraph Attention Queue Has Durable Guardrails
+
+**Date:** 2026-05-28
+
+**Decision:** Harden `fleetgraph_attention_events` as durable FleetGraph state. Queue rows must reference active issue/sprint source documents in the same workspace, processing leases can be reclaimed, retryable worker errors return events to `pending` with bounded backoff, and read-state writes are gated through the same actor-visible evidence path as notification reads.
+
+**Consequence:** FleetGraph freshness is no longer dependent on a single best-effort worker attempt or workspace-only read writes. Terminal event failure is reserved for max-attempt exhaustion; hidden/restricted findings return `markedRead: 0` instead of creating read state or becoming an existence oracle.
+
+## D059 - Attention Scans Must Not Starve Lower-Priority Signals
+
+**Date:** 2026-05-28
+
+**Decision:** Proactive FleetGraph workspace scans should use the issue-attention context reader's normal breadth before signal policy is applied. Do not add a smaller default pre-policy limit that can hide valid `Stale` work behind unrelated urgent/high rows.
+
+**Consequence:** Diagnostic/manual runs may still pass an explicit limit, and targeted event checks stay source-scoped. The repair scan remains broad enough to find lower-priority but legitimately stale work.

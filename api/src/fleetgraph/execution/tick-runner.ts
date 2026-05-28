@@ -2,7 +2,7 @@
 import { utcToday } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import type { Principal } from '../../security/principal.js';
-import { detectFleetGraphAttentionDecisions, detectFleetGraphAttentionDecisionsForSource, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
+import { detectFleetGraphAttentionDecisions, detectFleetGraphAttentionDecisionsForSource, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type FleetGraphAttentionDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
 import { runFleetGraph, type FleetGraphCoreOptions } from '../core.js';
 import type { FleetGraphAttentionEvent } from '../persistence.js';
 import type { FleetGraphResult } from '../types.js';
@@ -14,7 +14,7 @@ export type FleetGraphDryRunTickSummary = {
   today: string | null;
   decisionCount: number;
   dedupeDecisions: Array<{
-    decision: BlockedImportantIssueDedupeDecision['decision'];
+    decision: FleetGraphAttentionDedupeDecision['decision'];
     issueId: string;
     issueTitle: string;
     issuePriority: string;
@@ -66,7 +66,7 @@ export type FleetGraphTickInput =
     };
 
 function mapDedupeDecision(
-  decision: BlockedImportantIssueDedupeDecision
+  decision: FleetGraphAttentionDedupeDecision
 ): FleetGraphDryRunTickSummary['dedupeDecisions'][number] {
   const { candidate } = decision;
   return {

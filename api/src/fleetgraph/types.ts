@@ -8,7 +8,7 @@ import type {
   FleetGraphTrace,
 } from '@ship/shared';
 import type { Principal } from '../security/principal.js';
-import type { BlockedImportantIssueDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
+import type { FleetGraphAttentionDedupeDecision, FleetGraphDetectorQuietExit } from './detection/detector.js';
 import type {
   FleetGraphFinding,
   FleetGraphRun,
@@ -62,7 +62,7 @@ export type FleetGraphDecisionPacket = {
 export type FleetGraphTrigger =
   | {
       type: 'detector_decision';
-      detectorDecision: BlockedImportantIssueDedupeDecision;
+      detectorDecision: FleetGraphAttentionDedupeDecision;
     }
   | {
       type: 'quiet_exit';
