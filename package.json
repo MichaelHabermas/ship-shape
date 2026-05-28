@@ -101,6 +101,11 @@
     "fleetgraph:observe:sync": "pnpm --filter @ship/api fleetgraph:observe:sync",
     "fleetgraph:observe:dashboard": "node ./scripts/render-fleetgraph-observability-dashboard.mjs",
     "fleetgraph:eval:surface": "pnpm --filter @ship/api fleetgraph:eval:surface",
+    "fleetgraph:proof": "node ./scripts/fleetgraph-proof/run.mjs",
+    "fleetgraph:proof:check": "node ./scripts/fleetgraph-proof/check.mjs",
+    "fleetgraph:proof:check:blocked": "node ./scripts/fleetgraph-proof/check.mjs --allow-blocked",
+    "fleetgraph:proof:ci": "pnpm fleetgraph:proof:test && pnpm fleetgraph:proof -- --mode local --with-e2e && pnpm fleetgraph:proof:check",
+    "fleetgraph:proof:test": "node --test ./scripts/fleetgraph-proof/*.test.mjs",
     "trace:smoke": "pnpm --filter @ship/api trace:smoke",
     "prepare": "husky",
     "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"

@@ -502,6 +502,8 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 ## D063 - FleetGraph Observability Trial Is Local-First
 
+**Date:** 2026-05-28
+
 **Decision:** Add `pnpm fleetgraph:observe` as the local dual-provider trial for Langfuse and LangSmith. It runs bounded demo/smoke traces, posts deterministic provider-native scores best-effort, and writes JSON/Markdown comparison reports under `my-docs/evals/fleetgraph-observability/`.
 
 **Consequence:** The trial can spend real model tokens only when the command is explicitly invoked, stays out of CI/production automation for v1, and treats the local report as canonical when provider score APIs behave differently. Failed-score traces, provider-friction traces, and real-cost traces are appended to the generated edge-case dataset for future replay. Future CI gates should reuse the same score names instead of inventing new evaluation vocabulary.
@@ -513,3 +515,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Extend the observability trial from per-run reports to a cumulative provider-history snapshot. `pnpm fleetgraph:observe:sync` pulls recent FleetGraph traces/runs from Langfuse and LangSmith, writes `provider-history.json`, and the dashboard generator publishes both the local dashboard and a deployed static artifact under `web/public/fleetgraph-observability/`.
 
 **Consequence:** Reviewer-facing observability now shows forced demo runs, cumulative local reports, and synced provider history in one place. Provider API failures must show as dashboard data, not erase the local report history. The static deployed dashboard intentionally uses a generated snapshot so provider secrets stay server-side/local and never ship to the browser.
+
+## D065 - FleetGraph Final Proof Is A Static Evidence Packet
+
+**Date:** 2026-05-28
+
+**Decision:** Build the reviewer dashboard as generated evidence from `pnpm fleetgraph:proof`, not as product UI. The proof packet lives under `my-docs/evidence/fleetgraph-proof/`, runs existing FleetGraph tests/evals, and renders `latest.html`, `latest.json`, `latest.md`, plus timestamped copies.
+
+**Consequence:** The dashboard can be dense and reviewer-specific without polluting the left rail or chat. FleetGraph behavior remains owned by `api/src/fleetgraph/*`; proof scripts observe, gate, and package the behavior rather than reimplementing detection, actor filtering, dedupe, or chat semantics. The proof model distinguishes golden-case-defined paths from executable proof coverage, and the strict check fails blocked packets unless explicitly run in inspection mode.
