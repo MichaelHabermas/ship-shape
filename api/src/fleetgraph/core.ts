@@ -38,7 +38,7 @@ import {
 import { fleetGraphLangSmithEnabled, withFleetGraphLangSmithTrace } from './langsmith-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
-import type { FleetGraphEvidenceItem } from '@ship/shared';
+import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
 import type {
   FleetGraphDecisionPacket,
   FleetGraphInput,
@@ -362,9 +362,7 @@ async function runDetectorDecision(
       'resolveScope',
       'fetchCurrentObject',
       'filterVisibleEvidence',
-      signalType === 'blocked'
-        ? (detectorDecision.decision === 'create_finding' ? 'reasonProactiveCreate' : 'refreshExistingFinding')
-        : `reason${signalLabel.replace(/\s/g, '')}`,
+      attentionReasonTraceNode(signalType, detectorDecision.decision),
       'persistFleetGraphState',
       'produceOutput',
     ],
@@ -1104,4 +1102,15 @@ function deterministicAttentionSummary(
     return `${candidate.issue_title} is at risk. ${reason}`;
   }
   return deterministicUpdateSummary(candidateTitle(candidate.issue_title));
+}
+
+function attentionReasonTraceNode(
+  signalType: FleetGraphSignalType,
+  detectorDecision: 'create_finding' | 'update_finding'
+): string {
+  if (signalType === 'blocked') {
+    return detectorDecision === 'create_finding' ? 'reasonProactiveCreate' : 'refreshExistingFinding';
+  }
+  if (signalType === 'stale') return 'reasonStale';
+  return 'reasonAtRisk';
 }

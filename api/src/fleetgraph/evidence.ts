@@ -52,7 +52,7 @@ export function evidenceFromDetectorCandidate(
     },
     {
       kind: 'dedupe',
-      claim: 'FleetGraph used the locked blocked-work dedupe key.',
+      claim: 'FleetGraph attention dedupe key.',
       excerpt: candidate.dedupeKey,
       visibility: 'internal',
       visibleFields: ['dedupe_key'],

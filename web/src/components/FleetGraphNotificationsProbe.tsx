@@ -42,7 +42,7 @@ export function FleetGraphNotificationsProbe({
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
   const groupedNotifications = SIGNAL_ORDER.map((signalType) => ({
     signalType,
-    label: signalType === 'blocked' ? 'Blocked' : signalType === 'stale' ? 'Stale' : 'At risk',
+    label: notifications.find((notification) => notification.signalType === signalType)?.signalLabel ?? signalType,
     items: notifications.filter((notification) => notification.signalType === signalType),
   })).filter((group) => group.items.length > 0);
 

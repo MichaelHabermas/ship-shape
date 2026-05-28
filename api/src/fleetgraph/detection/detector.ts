@@ -12,17 +12,12 @@ import {
   sqlBlockedImportantIssueDedupeKey,
 } from '../persistence.js';
 import { listFleetGraphIssueAttentionContexts, type FleetGraphIssueAttentionContext } from './attention-context.js';
-import {
-  AT_RISK_SPRINT_END_DAYS,
-  attentionPolicyForContext,
-  isWithinCurrentSprintEndWindow,
-} from './attention-policy.js';
+import { attentionPolicyForContext } from './attention-policy.js';
 import { resolveFleetGraphCurrentWeek } from './current-week.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
 type SourceKey = `${string}:${string}:${string}`;
 
-const STALE_ISSUE_DAYS = 180;
 type BlockedImportantIssueCandidateRow = {
   workspace_id: string;
   issue_id: string;
@@ -76,8 +71,6 @@ export type BlockedImportantIssueDedupeDecision = {
   candidate: BlockedImportantIssueCandidate;
   existingFindingId: string | null;
 };
-
-export type FleetGraphAttentionDedupeDecision = BlockedImportantIssueDedupeDecision;
 
 export type BlockedImportantIssueDecisionBatch = {
   decisions: BlockedImportantIssueDedupeDecision[];
@@ -185,181 +178,8 @@ async function findBlockedImportantIssueCandidates(input: {
   today?: Date;
   limit?: number;
 }): Promise<BlockedImportantIssueCandidate[]> {
-  const db = input.db ?? pool;
-  const result = await db.query<BlockedImportantIssueCandidateRow>(
-    `SELECT
-       i.workspace_id,
-       i.id AS issue_id,
-       i.title AS issue_title,
-       i.ticket_number AS issue_ticket_number,
-       i.properties->>'state' AS issue_state,
-       CASE i.properties->>'priority'
-         WHEN 'urgent' THEN 'urgent'
-         WHEN 'high' THEN 'high'
-         WHEN 'medium' THEN 'medium'
-         WHEN 'low' THEN 'low'
-       ELSE 'medium'
-       END AS issue_priority,
-       NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
-       assignee.name AS issue_assignee_name,
-       s.id AS sprint_id,
-       s.title AS sprint_title,
-       CASE
-         WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
-         ELSE NULL
-       END AS sprint_number,
-       COALESCE(
-         NULLIF(s.properties->>'owner_id', ''),
-         NULLIF(s.properties->'assignee_ids'->>0, '')
-       ) AS sprint_owner_id,
-       sprint_owner.name AS sprint_owner_name,
-       project.id AS project_id,
-       project.title AS project_title,
-       COALESCE(project_owner.id::text, project_owner_person_user.id::text, NULLIF(project.properties->>'owner_id', '')) AS project_owner_id,
-       COALESCE(project_owner.name, project_owner_person_user.name, project_owner_person.title) AS project_owner_name,
-       program.id AS program_id,
-       program.title AS program_title,
-       COALESCE(program_owner.id::text, program_owner_person_user.id::text, NULLIF(program.properties->>'owner_id', '')) AS program_owner_id,
-       COALESCE(program_owner.name, program_owner_person_user.name, program_owner_person.title) AS program_owner_name,
-       COALESCE(latest_iteration.blockers_encountered, '') AS blocker_text,
-       latest_iteration.id AS blocker_iteration_id,
-       latest_iteration.created_at AS blocker_iteration_created_at,
-       latest_iteration.created_at AS meaningful_updated_at,
-       CASE
-         WHEN COALESCE(latest_iteration.blockers_encountered, '') = '' THEN 'Issue is blocked, but no blocker reason is recorded.'
-         ELSE 'Issue state is blocked.'
-       END AS attention_reason,
-       'blocked'::text AS signal_type
-     FROM documents i
-     JOIN document_associations sprint_assoc
-       ON sprint_assoc.document_id = i.id
-      AND sprint_assoc.relationship_type = 'sprint'
-     JOIN documents s
-       ON s.id = sprint_assoc.related_id
-      AND s.workspace_id = i.workspace_id
-      AND s.document_type = 'sprint'
-      AND s.deleted_at IS NULL
-      AND s.archived_at IS NULL
-      LEFT JOIN LATERAL (
-       SELECT iteration.id, iteration.blockers_encountered, iteration.created_at
-         FROM issue_iterations iteration
-        WHERE iteration.issue_id = i.id
-          AND iteration.workspace_id = i.workspace_id
-          AND btrim(COALESCE(iteration.blockers_encountered, '')) <> ''
-        ORDER BY iteration.created_at DESC, iteration.id DESC
-        LIMIT 1
-     ) latest_iteration ON TRUE
-     LEFT JOIN users assignee
-       ON assignee.id = CASE
-            WHEN i.properties->>'assignee_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (i.properties->>'assignee_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN users sprint_owner
-       ON sprint_owner.id = CASE
-            WHEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, '')) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, ''))::uuid
-            ELSE NULL
-          END
-     LEFT JOIN LATERAL (
-       SELECT p.*
-         FROM document_associations project_assoc
-         JOIN documents p
-           ON p.id = project_assoc.related_id
-          AND p.workspace_id = i.workspace_id
-          AND p.document_type = 'project'
-          AND p.deleted_at IS NULL
-          AND p.archived_at IS NULL
-        WHERE project_assoc.document_id = i.id
-          AND project_assoc.relationship_type = 'project'
-        ORDER BY project_assoc.created_at DESC
-        LIMIT 1
-     ) project ON TRUE
-     LEFT JOIN users project_owner
-       ON project_owner.id = CASE
-            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN documents project_owner_person
-       ON project_owner_person.id = CASE
-            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-      AND project_owner_person.workspace_id = i.workspace_id
-      AND project_owner_person.document_type = 'person'
-      AND project_owner_person.deleted_at IS NULL
-      AND project_owner_person.archived_at IS NULL
-     LEFT JOIN users project_owner_person_user
-       ON project_owner_person_user.id = CASE
-            WHEN project_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project_owner_person.properties->>'user_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN LATERAL (
-       SELECT p.*
-         FROM document_associations program_assoc
-         JOIN documents p
-           ON p.id = program_assoc.related_id
-          AND p.workspace_id = i.workspace_id
-          AND p.document_type = 'program'
-          AND p.deleted_at IS NULL
-          AND p.archived_at IS NULL
-        WHERE program_assoc.relationship_type = 'program'
-          AND program_assoc.document_id IN (i.id, project.id, s.id)
-        ORDER BY
-          CASE program_assoc.document_id
-            WHEN i.id THEN 1
-            WHEN project.id THEN 2
-            ELSE 3
-          END,
-          program_assoc.created_at DESC
-        LIMIT 1
-     ) program ON TRUE
-     LEFT JOIN users program_owner
-       ON program_owner.id = CASE
-            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN documents program_owner_person
-       ON program_owner_person.id = CASE
-            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-      AND program_owner_person.workspace_id = i.workspace_id
-      AND program_owner_person.document_type = 'person'
-      AND program_owner_person.deleted_at IS NULL
-      AND program_owner_person.archived_at IS NULL
-     LEFT JOIN users program_owner_person_user
-       ON program_owner_person_user.id = CASE
-            WHEN program_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program_owner_person.properties->>'user_id')::uuid
-            ELSE NULL
-          END
-     WHERE i.workspace_id = $1
-       AND i.document_type = 'issue'
-       AND i.deleted_at IS NULL
-       AND i.archived_at IS NULL
-       AND COALESCE(i.visibility, 'workspace') <> 'private'
-       AND COALESCE(i.properties->>'state', 'backlog') = 'blocked'
-     ORDER BY
-       CASE i.properties->>'priority'
-         WHEN 'urgent' THEN 1
-         WHEN 'high' THEN 2
-         WHEN 'medium' THEN 3
-         WHEN 'low' THEN 4
-         ELSE 5
-       END,
-       latest_iteration.created_at DESC NULLS LAST,
-       i.updated_at DESC
-     LIMIT $2`,
-    [input.workspaceId, input.limit ?? 25]
-  );
-
-  return result.rows.map(mapCandidate);
+  const candidates = await findAttentionCandidatesFromContexts(input);
+  return candidates.filter((candidate) => (candidate.signalType ?? 'blocked') === 'blocked');
 }
 
 function uniqueCandidatesByDedupeKey(
@@ -441,218 +261,12 @@ export async function detectBlockedImportantIssueDecisions(input: {
   });
 }
 
-async function findIssueAttentionCandidates(input: {
-  workspaceId: string;
-  db?: QueryRunner;
-  today?: Date;
-  limit?: number;
-  signalType: Exclude<FleetGraphSignalType, 'blocked'>;
-  currentSprintNumber?: number;
-  finalSprintWindow?: boolean;
-}): Promise<BlockedImportantIssueCandidate[]> {
-  const db = input.db ?? pool;
-  const staleDays = input.signalType === 'stale' ? STALE_ISSUE_DAYS : AT_RISK_SPRINT_END_DAYS;
-  const result = await db.query<BlockedImportantIssueCandidateRow>(
-    `SELECT
-       i.workspace_id,
-       i.id AS issue_id,
-       i.title AS issue_title,
-       i.ticket_number AS issue_ticket_number,
-       i.properties->>'state' AS issue_state,
-       CASE i.properties->>'priority'
-         WHEN 'urgent' THEN 'urgent'
-         WHEN 'high' THEN 'high'
-         WHEN 'medium' THEN 'medium'
-         WHEN 'low' THEN 'low'
-       ELSE 'medium'
-       END AS issue_priority,
-       NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
-       assignee.name AS issue_assignee_name,
-       s.id AS sprint_id,
-       s.title AS sprint_title,
-       CASE
-         WHEN s.properties->>'sprint_number' ~ '^\\d+$' THEN (s.properties->>'sprint_number')::int
-         ELSE NULL
-       END AS sprint_number,
-       COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, '')) AS sprint_owner_id,
-       sprint_owner.name AS sprint_owner_name,
-       project.id AS project_id,
-       project.title AS project_title,
-       COALESCE(project_owner.id::text, project_owner_person_user.id::text, NULLIF(project.properties->>'owner_id', '')) AS project_owner_id,
-       COALESCE(project_owner.name, project_owner_person_user.name, project_owner_person.title) AS project_owner_name,
-       program.id AS program_id,
-       program.title AS program_title,
-       COALESCE(program_owner.id::text, program_owner_person_user.id::text, NULLIF(program.properties->>'owner_id', '')) AS program_owner_id,
-       COALESCE(program_owner.name, program_owner_person_user.name, program_owner_person.title) AS program_owner_name,
-       '' AS blocker_text,
-       latest_iteration.id AS blocker_iteration_id,
-       latest_iteration.created_at AS blocker_iteration_created_at,
-       COALESCE(latest_iteration.created_at, i.created_at) AS meaningful_updated_at,
-       CASE
-         WHEN $3::text = 'stale' THEN CONCAT('No meaningful update for ', $4::int, '+ days.')
-         WHEN NULLIF(i.properties->>'assignee_id', '') IS NULL THEN 'High-priority current-week work has no owner.'
-         ELSE CONCAT('High-priority current-week work is within ', $4::int, ' days of sprint end.')
-       END AS attention_reason,
-       $3::text AS signal_type
-     FROM documents i
-     JOIN document_associations sprint_assoc
-       ON sprint_assoc.document_id = i.id
-      AND sprint_assoc.relationship_type = 'sprint'
-     JOIN documents s
-       ON s.id = sprint_assoc.related_id
-      AND s.workspace_id = i.workspace_id
-      AND s.document_type = 'sprint'
-      AND s.deleted_at IS NULL
-      AND s.archived_at IS NULL
-     LEFT JOIN LATERAL (
-       SELECT iteration.id, iteration.created_at
-         FROM issue_iterations iteration
-        WHERE iteration.issue_id = i.id
-          AND iteration.workspace_id = i.workspace_id
-        ORDER BY iteration.created_at DESC, iteration.id DESC
-        LIMIT 1
-     ) latest_iteration ON TRUE
-     LEFT JOIN users assignee
-       ON assignee.id = CASE
-            WHEN i.properties->>'assignee_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (i.properties->>'assignee_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN users sprint_owner
-       ON sprint_owner.id = CASE
-            WHEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, '')) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, ''))::uuid
-            ELSE NULL
-          END
-     LEFT JOIN LATERAL (
-       SELECT p.*
-         FROM document_associations project_assoc
-         JOIN documents p
-           ON p.id = project_assoc.related_id
-          AND p.workspace_id = i.workspace_id
-          AND p.document_type = 'project'
-          AND p.deleted_at IS NULL
-          AND p.archived_at IS NULL
-        WHERE project_assoc.document_id = i.id
-          AND project_assoc.relationship_type = 'project'
-        ORDER BY project_assoc.created_at DESC
-        LIMIT 1
-     ) project ON TRUE
-     LEFT JOIN users project_owner
-       ON project_owner.id = CASE
-            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN documents project_owner_person
-       ON project_owner_person.id = CASE
-            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-      AND project_owner_person.workspace_id = i.workspace_id
-      AND project_owner_person.document_type = 'person'
-      AND project_owner_person.deleted_at IS NULL
-      AND project_owner_person.archived_at IS NULL
-     LEFT JOIN users project_owner_person_user
-       ON project_owner_person_user.id = CASE
-            WHEN project_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (project_owner_person.properties->>'user_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN LATERAL (
-       SELECT p.*
-         FROM document_associations program_assoc
-         JOIN documents p
-           ON p.id = program_assoc.related_id
-          AND p.workspace_id = i.workspace_id
-          AND p.document_type = 'program'
-          AND p.deleted_at IS NULL
-          AND p.archived_at IS NULL
-        WHERE program_assoc.relationship_type = 'program'
-          AND program_assoc.document_id IN (i.id, project.id, s.id)
-        ORDER BY
-          CASE program_assoc.document_id
-            WHEN i.id THEN 1
-            WHEN project.id THEN 2
-            ELSE 3
-          END,
-          program_assoc.created_at DESC
-        LIMIT 1
-     ) program ON TRUE
-     LEFT JOIN users program_owner
-       ON program_owner.id = CASE
-            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-     LEFT JOIN documents program_owner_person
-       ON program_owner_person.id = CASE
-            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program.properties->>'owner_id')::uuid
-            ELSE NULL
-          END
-      AND program_owner_person.workspace_id = i.workspace_id
-      AND program_owner_person.document_type = 'person'
-      AND program_owner_person.deleted_at IS NULL
-      AND program_owner_person.archived_at IS NULL
-     LEFT JOIN users program_owner_person_user
-       ON program_owner_person_user.id = CASE
-            WHEN program_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-            THEN (program_owner_person.properties->>'user_id')::uuid
-            ELSE NULL
-          END
-     WHERE i.workspace_id = $1
-       AND i.document_type = 'issue'
-       AND i.deleted_at IS NULL
-       AND i.archived_at IS NULL
-       AND COALESCE(i.visibility, 'workspace') <> 'private'
-       AND COALESCE(i.properties->>'state', 'backlog') NOT IN ('done', 'cancelled', 'blocked')
-       AND (
-         ($3::text = 'stale'
-          AND COALESCE(i.properties->>'state', 'backlog') IN ('in_progress', 'in_review')
-          AND COALESCE(latest_iteration.created_at, i.created_at) <= ($2::timestamptz - ($4::int || ' days')::interval))
-         OR
-         ($3::text = 'at_risk'
-          AND (s.properties->>'sprint_number') ~ '^\\d+$'
-          AND (s.properties->>'sprint_number')::int = $5::int
-          AND COALESCE(i.properties->>'priority', 'medium') IN ('high', 'urgent')
-          AND (
-            NULLIF(i.properties->>'assignee_id', '') IS NULL
-            OR $7::boolean
-          ))
-       )
-     ORDER BY
-       CASE i.properties->>'priority'
-         WHEN 'urgent' THEN 1
-         WHEN 'high' THEN 2
-         WHEN 'medium' THEN 3
-         WHEN 'low' THEN 4
-         ELSE 5
-       END,
-       meaningful_updated_at ASC,
-       i.updated_at DESC
-     LIMIT $6`,
-    [
-      input.workspaceId,
-      input.today ?? new Date(),
-      input.signalType,
-      staleDays,
-      input.currentSprintNumber ?? null,
-      input.limit ?? 25,
-      input.finalSprintWindow === true,
-    ]
-  );
-
-  return result.rows.map(mapCandidate);
-}
-
 export async function detectFleetGraphAttentionDecisions(input: {
   workspaceId: string;
   db?: QueryRunner;
   today?: Date;
   limit?: number;
-}): Promise<FleetGraphAttentionDedupeDecision[]> {
+}): Promise<BlockedImportantIssueDedupeDecision[]> {
   const db = input.db ?? pool;
   const candidates = await findAttentionCandidatesFromContexts({
     ...input,
@@ -672,7 +286,7 @@ export async function detectFleetGraphAttentionDecisionsForSource(input: {
   sourceSprintId?: string | null;
   db?: QueryRunner;
   today?: Date;
-}): Promise<FleetGraphAttentionDedupeDecision[]> {
+}): Promise<BlockedImportantIssueDedupeDecision[]> {
   const db = input.db ?? pool;
   const candidates = await findAttentionCandidatesFromContexts({
     workspaceId: input.workspaceId,
@@ -810,34 +424,12 @@ export async function findStaleBlockedImportantIssueFindings(input: {
 }): Promise<FleetGraphStaleFinding[]> {
   const db = input.db ?? pool;
   const today = input.today ?? new Date();
-  const currentWeek = await resolveFleetGraphCurrentWeek(input.workspaceId, { db, today });
-  const candidates = strongestCandidatePerSource([
-    ...(await findBlockedImportantIssueCandidates({
-      ...input,
-      db,
-      today,
-      limit: input.limit ?? 1000,
-    })),
-    ...(await findIssueAttentionCandidates({
-      ...input,
-      db,
-      today,
-      limit: input.limit ?? 1000,
-      signalType: 'stale',
-    })),
-    ...(await findIssueAttentionCandidates({
-      ...input,
-      db,
-      today,
-      limit: input.limit ?? 1000,
-      signalType: 'at_risk',
-      currentSprintNumber: currentWeek.currentSprintNumber,
-      finalSprintWindow: isWithinCurrentSprintEndWindow({
-        workspaceStartDate: currentWeek.workspaceStartDate,
-        today,
-      }),
-    })),
-  ]);
+  const candidates = await findAttentionCandidatesFromContexts({
+    ...input,
+    db,
+    today,
+    limit: input.limit ?? 1000,
+  });
   const activeDedupeKeys = new Set(candidates.map((candidate) => candidate.dedupeKey));
 
   const result = await db.query<{

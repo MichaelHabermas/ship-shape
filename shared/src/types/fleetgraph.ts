@@ -31,12 +31,10 @@ export type FleetGraphEvidenceFields = {
   redactionReason?: string;
 };
 
-/** Runtime/detector evidence item (may use readonly visibleFields). */
 export type FleetGraphEvidenceItem = FleetGraphEvidenceFields & {
   visibleFields: readonly string[];
 };
 
-/** Wire evidence item in API responses. */
 export type FleetGraphEvidence = FleetGraphEvidenceFields & {
   visibleFields: string[];
 };
