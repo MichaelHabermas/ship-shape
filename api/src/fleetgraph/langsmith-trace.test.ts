@@ -69,7 +69,9 @@ describe('withFleetGraphLangSmithTrace', () => {
       outputs: {
         decision: 'quiet_exit',
         nodePath: ['normalizeTrigger', 'produceOutput'],
-        modelCalls: 0,
+        tokenMetadata: { modelCalls: 0 },
+        costMetadata: {},
+        errorMetadata: {},
       },
     }));
     expect(shareRun).toHaveBeenCalledWith(capture.traceId);
@@ -87,6 +89,41 @@ describe('withFleetGraphLangSmithTrace', () => {
     expect(shareRun).not.toHaveBeenCalled();
   });
 
+  it('posts a sanitized LLM child run with LangSmith usage metadata when tokens are present', async () => {
+    const capture = await withFleetGraphLangSmithTrace({
+      name: 'fleetgraph.test',
+      inputs: { label: 'safe' },
+    }, async (trace) => result(trace.traceId, trace.traceUrl, {
+      modelCalls: 1,
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      inputTokens: 120,
+      outputTokens: 24,
+      totalTokens: 144,
+    }));
+
+    expect(createRun).toHaveBeenCalledWith(expect.objectContaining({
+      parent_run_id: capture.traceId,
+      name: 'fleetgraph.proactive_create_model',
+      run_type: 'llm',
+      inputs: { messages: [{ role: 'user', content: '[redacted FleetGraph model input]' }] },
+      outputs: {
+        generations: [{ message: { role: 'assistant', content: '[redacted FleetGraph model output]' } }],
+        usage_metadata: {
+          input_tokens: 120,
+          output_tokens: 24,
+          total_tokens: 144,
+        },
+      },
+      extra: {
+        metadata: {
+          ls_provider: 'openai',
+          ls_model_name: 'gpt-4o-mini',
+        },
+      },
+    }));
+  });
+
   it('preserves the original run error when LangSmith failure cleanup also fails', async () => {
     const originalError = new Error('fleetgraph failed');
     updateRun.mockRejectedValueOnce(new Error('cleanup failed'));
@@ -100,7 +137,11 @@ describe('withFleetGraphLangSmithTrace', () => {
   });
 });
 
-function result(traceId: string | undefined, traceUrl: string | undefined): FleetGraphResult {
+function result(
+  traceId: string | undefined,
+  traceUrl: string | undefined,
+  tokenMetadata: FleetGraphResult['tokenMetadata'] = { modelCalls: 0 }
+): FleetGraphResult {
   const traceMetadata = {
     traceId,
     traceUrl,
@@ -125,7 +166,7 @@ function result(traceId: string | undefined, traceUrl: string | undefined): Flee
       evidence_snapshot: [],
       output_snapshot: {},
       trace_metadata: traceMetadata,
-      token_metadata: { modelCalls: 0 },
+      token_metadata: tokenMetadata,
       cost_metadata: {},
       error_metadata: {},
       started_at: new Date(),
@@ -141,13 +182,13 @@ function result(traceId: string | undefined, traceUrl: string | undefined): Flee
       evidenceSnapshot: [],
       outputSnapshot: {},
       traceMetadata,
-      tokenMetadata: { modelCalls: 0 },
+      tokenMetadata,
       costMetadata: {},
       errorMetadata: {},
     },
     evidence: [],
     traceMetadata,
-    tokenMetadata: { modelCalls: 0 },
+    tokenMetadata,
     costMetadata: {},
     errorMetadata: {},
   };

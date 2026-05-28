@@ -167,10 +167,13 @@ export function FleetGraphNotificationsProbe({
                 key={notification.id}
                 notification={notification}
                 expanded={expandedNotifications[notification.id] === true}
-                onToggle={() => setExpandedNotifications((items) => ({
-                  ...items,
-                  [notification.id]: items[notification.id] !== true,
-                }))}
+                onToggle={() => {
+                  void markRead(notification);
+                  setExpandedNotifications((items) => ({
+                    ...items,
+                    [notification.id]: items[notification.id] !== true,
+                  }));
+                }}
                 onDiscuss={() => {
                   void markRead(notification);
                   onDiscuss(notification);
@@ -231,10 +234,7 @@ function SignalCountPill({
   count: number;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-white/[0.03] px-1.5 py-0.5 text-[10px] leading-none text-muted">
-      <NotificationLabelChip label={label} signalType={signalType} />
-      <span>{count}</span>
-    </span>
+    <NotificationLabelChip label={`${label} ${count}`} signalType={signalType} />
   );
 }
 
@@ -255,16 +255,16 @@ function AttentionNotification({
 
   return (
     <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${notification.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>
-      <div className="flex items-start justify-between gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_10px] items-start gap-2">
         <div className="min-w-0">
           <button
             type="button"
             onClick={onToggle}
-            className="flex min-w-0 items-center gap-1.5 text-left text-[13px] font-medium leading-5 text-foreground transition hover:text-white focus:outline-none focus:ring-2 focus:ring-accent"
+            className="flex w-full min-w-0 items-center gap-1.5 text-left text-[13px] font-medium leading-5 text-foreground transition hover:text-white focus:outline-none focus:ring-2 focus:ring-accent"
             aria-expanded={expanded}
           >
             <NotificationLabelChip label={notification.signalLabel} signalType={notification.signalType} />
-            <span className="truncate">{displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}</span>
+            <span className="min-w-0 truncate">{displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}</span>
           </button>
           {expanded && (
             <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
@@ -276,7 +276,11 @@ function AttentionNotification({
             </div>
           )}
         </div>
-        {!notification.isRead && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />}
+        <span
+          aria-label={notification.isRead ? undefined : 'Unread'}
+          className={`mt-2 h-1.5 w-1.5 rounded-full ${notification.isRead ? 'bg-transparent' : 'bg-accent/70'}`}
+          title={notification.isRead ? undefined : 'Unread'}
+        />
       </div>
 
       {expanded && (

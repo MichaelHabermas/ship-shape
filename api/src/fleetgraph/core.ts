@@ -72,6 +72,7 @@ export type FleetGraphCoreOptions = {
   persistence?: FleetGraphPersistencePort;
   generateProactiveText?: typeof generateProactiveCreateText;
   externalTrace?: Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
+  observabilityError?: string;
 };
 
 const FleetGraphState = Annotation.Root({
@@ -125,8 +126,12 @@ export async function runFleetGraph(
         inputs: traceSafeRunInputs(input),
       }, (externalTrace) => runFleetGraph(input, { ...options, externalTrace }));
       return capture.result;
-    } catch {
+    } catch (error) {
       // FleetGraph must still surface findings if external trace capture is temporarily unavailable.
+      return runFleetGraph(input, {
+        ...options,
+        observabilityError: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -167,6 +172,17 @@ function shouldAutoCaptureTrace(options: FleetGraphCoreOptions): boolean {
   return !options.externalTrace
     && process.env.NODE_ENV !== 'test'
     && fleetGraphLangSmithEnabled();
+}
+
+function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord {
+  return options.observabilityError
+    ? {
+        observability: {
+          langsmithCapture: 'failed',
+          message: options.observabilityError.slice(0, 500),
+        },
+      }
+    : {};
 }
 
 function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
@@ -352,6 +368,7 @@ async function runDetectorDecision(
         summary: deterministicAttentionSummary(candidate),
         draftMessage: `Review ${candidate.issue_title}: ${candidate.attentionReason ?? 'Issue needs attention.'}`,
         tokenMetadata: { modelCalls: 0 },
+        costMetadata: {},
       };
   const decision = detectorDecision.decision;
   const traceMetadata = fleetGraphTraceMetadata({
@@ -406,7 +423,8 @@ async function runDetectorDecision(
     output: visibleOutput,
     traceMetadata,
     tokenMetadata: modelResult.tokenMetadata,
-    costMetadata: {},
+    costMetadata: modelResult.costMetadata,
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -420,7 +438,8 @@ async function runDetectorDecision(
     evidence: evidenceBundle.evidence,
     traceMetadata,
     tokenMetadata: modelResult.tokenMetadata,
-    costMetadata: {},
+    costMetadata: modelResult.costMetadata,
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -449,6 +468,7 @@ async function runQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -467,6 +487,7 @@ async function runQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -505,6 +526,7 @@ async function runExplainFinding(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -518,6 +540,7 @@ async function runExplainFinding(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -562,6 +585,7 @@ async function runSummarizeChanges(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -576,6 +600,7 @@ async function runSummarizeChanges(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -641,6 +666,7 @@ async function runContextChat(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -654,6 +680,7 @@ async function runContextChat(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -709,6 +736,7 @@ async function runContextChatChangeSummary(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -723,6 +751,7 @@ async function runContextChatChangeSummary(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -754,6 +783,7 @@ async function runContextChatQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -767,6 +797,7 @@ async function runContextChatQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -824,6 +855,7 @@ async function runRefineDraft(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -837,6 +869,7 @@ async function runRefineDraft(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -868,6 +901,7 @@ async function runRestrictedFindingQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
@@ -881,6 +915,7 @@ async function runRestrictedFindingQuietExit(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
 }
 
@@ -974,6 +1009,7 @@ async function runStatusOnly(
     traceMetadata,
     tokenMetadata: { modelCalls: 0 },
     costMetadata: {},
+    errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 

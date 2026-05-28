@@ -489,6 +489,30 @@ describe('FleetGraph shared core', () => {
     }
   });
 
+  it('records LangSmith capture failures in run error metadata', async () => {
+    const port = persistence();
+
+    await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: { type: 'explain_finding', findingId },
+    }, {
+      persistence: port,
+      db: readableSourceDb(),
+      observabilityError: 'LangSmith shareRun timed out',
+    });
+
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      errorMetadata: {
+        observability: {
+          langsmithCapture: 'failed',
+          message: 'LangSmith shareRun timed out',
+        },
+      },
+    }));
+  });
+
   it('records caller-provided external trace identity for resolve runs', async () => {
     const port = persistence();
 

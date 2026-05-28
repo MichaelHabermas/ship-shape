@@ -39,8 +39,11 @@ export type FleetGraphTraceMetadata = Omit<FleetGraphTrace, 'decision'> & {
 
 export type FleetGraphTokenMetadata = {
   modelCalls: number;
+  provider?: string;
+  model?: string;
   inputTokens?: number;
   outputTokens?: number;
+  totalTokens?: number;
 };
 
 export type FleetGraphCostMetadata = {

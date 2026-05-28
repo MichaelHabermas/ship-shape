@@ -66,11 +66,21 @@ export async function withFleetGraphLangSmithTrace<T extends FleetGraphResult>(
       parentDottedOrder: rootOrder.dottedOrder,
       nodePath: result.traceMetadata.nodePath,
     });
+    await postModelCallChildren({
+      client,
+      projectName,
+      traceId,
+      parentRunId: traceId,
+      parentDottedOrder: rootOrder.dottedOrder,
+      tokenMetadata: result.tokenMetadata,
+    });
     await client.updateRun(traceId, {
       outputs: {
         decision: result.decision,
         nodePath: result.traceMetadata.nodePath,
-        modelCalls: result.tokenMetadata.modelCalls,
+        tokenMetadata: result.tokenMetadata,
+        costMetadata: result.costMetadata,
+        errorMetadata: result.errorMetadata,
       },
       end_time: new Date().toISOString(),
     });
@@ -125,6 +135,49 @@ async function postNodePathChildren(input: {
   }
 }
 
+async function postModelCallChildren(input: {
+  client: Client;
+  projectName: string;
+  traceId: string;
+  parentRunId: string;
+  parentDottedOrder: string;
+  tokenMetadata: FleetGraphResult['tokenMetadata'];
+}): Promise<void> {
+  if (
+    input.tokenMetadata.modelCalls <= 0 ||
+    !input.tokenMetadata.provider ||
+    !input.tokenMetadata.model
+  ) {
+    return;
+  }
+
+  const childRunId = randomUUID();
+  const childOrder = convertToDottedOrderFormat(Date.now(), childRunId, 2);
+  await input.client.createRun({
+    id: childRunId,
+    trace_id: input.traceId,
+    parent_run_id: input.parentRunId,
+    name: 'fleetgraph.proactive_create_model',
+    run_type: 'llm',
+    project_name: input.projectName,
+    start_time: childOrder.microsecondPrecisionDatestring,
+    end_time: new Date().toISOString(),
+    dotted_order: `${input.parentDottedOrder}.${childOrder.dottedOrder}`,
+    inputs: { messages: [{ role: 'user', content: '[redacted FleetGraph model input]' }] },
+    outputs: {
+      generations: [{ message: { role: 'assistant', content: '[redacted FleetGraph model output]' } }],
+      usage_metadata: usageMetadataForLangSmith(input.tokenMetadata),
+    },
+    extra: {
+      metadata: {
+        ls_provider: input.tokenMetadata.provider,
+        ls_model_name: input.tokenMetadata.model,
+      },
+    },
+    serialized: {},
+  });
+}
+
 async function shareRunWithRetry(client: Client, runId: string): Promise<string> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -150,6 +203,14 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: s
   } finally {
     if (timeout) clearTimeout(timeout);
   }
+}
+
+function usageMetadataForLangSmith(tokenMetadata: FleetGraphResult['tokenMetadata']): Record<string, number> {
+  return {
+    ...(tokenMetadata.inputTokens !== undefined ? { input_tokens: tokenMetadata.inputTokens } : {}),
+    ...(tokenMetadata.outputTokens !== undefined ? { output_tokens: tokenMetadata.outputTokens } : {}),
+    ...(tokenMetadata.totalTokens !== undefined ? { total_tokens: tokenMetadata.totalTokens } : {}),
+  };
 }
 
 function scrubTraceInputs(inputs: Record<string, unknown>): Record<string, unknown> {
