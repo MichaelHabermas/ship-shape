@@ -4,6 +4,8 @@ export type FleetGraphSeverity = 'low' | 'medium' | 'high' | 'urgent';
 
 export type FleetGraphRunMode = 'proactive' | 'on_demand';
 
+export type FleetGraphSignalType = 'blocked' | 'stale' | 'at_risk';
+
 export type FleetGraphEvidenceVisibility = 'internal' | 'actor_visible' | 'restricted';
 
 export type FleetGraphEvidence = {
@@ -121,35 +123,54 @@ export type FleetGraphChatResponse = {
   traceMetadata: FleetGraphTrace;
 };
 
-export type FleetGraphFindingResponse = {
-  id: string;
-  kind: 'blocker';
-  status: string;
+export type FleetGraphAttentionSignalFields = {
+  signalType: FleetGraphSignalType;
+  signalLabel: string;
+  reason: string;
+};
+
+export type FleetGraphSourceReferenceFields = {
   sourceIssueId: string;
   sourceSprintId: string;
+};
+
+export type FleetGraphVisibleResponseFields = {
   visibleOutput: FleetGraphVisibleOutput;
   traceMetadata: FleetGraphTrace;
 };
+
+export type FleetGraphFindingResponse = FleetGraphAttentionSignalFields
+  & FleetGraphSourceReferenceFields
+  & FleetGraphVisibleResponseFields
+  & {
+    id: string;
+    kind: 'blocker';
+    status: string;
+  };
 
 export type FleetGraphFindingsListResponse = {
   findings: FleetGraphFindingResponse[];
 };
 
-export type FleetGraphNotificationResponse = {
-  id: string;
-  findingId: string;
+export type FleetGraphNotificationDisplayFields = {
   title: string;
   issueTitle: string;
   context: string;
   owner: string | null;
+  notificationText: string;
   blockerText: string;
-  sourceIssueId: string;
-  sourceSprintId: string;
   sourcePath: string;
   detectedAt: string;
-  visibleOutput: FleetGraphVisibleOutput;
-  traceMetadata: FleetGraphTrace;
 };
+
+export type FleetGraphNotificationResponse = FleetGraphAttentionSignalFields
+  & FleetGraphSourceReferenceFields
+  & FleetGraphVisibleResponseFields
+  & FleetGraphNotificationDisplayFields
+  & {
+    id: string;
+    findingId: string;
+  };
 
 export type FleetGraphNotificationsListResponse = {
   notifications: FleetGraphNotificationResponse[];

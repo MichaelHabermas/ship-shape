@@ -443,3 +443,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** FleetGraph uses subfolders only where the boundary is worth the indirection: `runtime/` for helper logic behind `runFleetGraph`, `detection/` for read-only candidate/current-week/manual detector preview logic, and `execution/` for worker ticks, scheduled execution, and manual admin execution.
 
 **Consequence:** Do not folderize every top-level FleetGraph file by default. `core.ts`, `persistence.ts`, `evidence.ts`, `api-contract.ts`, `types.ts`, trace/model files, tests, and evals can stay top-level until they become real clusters with a separate reason to change.
+
+## D056 - FleetGraph Attention Signals Reuse Findings
+
+**Date:** 2026-05-28
+
+**Decision:** Expand notifications from blocked-only to `Blocked`, `Stale`, and `At risk` without a schema migration. Keep `fleetgraph_findings.kind` and the legacy wire `kind` as `'blocker'` for compatibility, and put the real product signal in dedupe prefixes, run/finding metadata, and API `signalType`.
+
+**Consequence:** One source issue/week should have at most one active attention signal in the product loop, with precedence `blocked > at_risk > stale`. `Stale` means active non-blocked work (`in_progress`/`in_review`) with no issue iteration for 180+ days; one-week inactivity is sprint follow-up, not stale. `At risk` means current-week high/urgent non-blocked work with a concrete risk reason: missing assignee or no issue iteration for 3+ days. Week-end pressure alone is not enough to create at-risk noise. If a source becomes private or otherwise invisible, suppress the FleetGraph finding rather than marking the Ship work resolved.

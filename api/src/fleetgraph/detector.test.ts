@@ -2,8 +2,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../test/pg-result.js';
 import {
+  detectFleetGraphAttentionDecisions,
   detectBlockedImportantIssueDecisions,
   findBlockedImportantIssueQuietExits,
+  findStaleBlockedImportantIssueFindings,
   recordBlockedImportantIssueQuietExitRun,
 } from './detection/detector.js';
 import { blockedImportantIssueDedupeKey } from './persistence.js';
@@ -199,6 +201,192 @@ describe('FleetGraph detector', () => {
     })).resolves.toEqual([]);
 
     expect(db.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('detects stale and at-risk attention candidates with distinct dedupe keys', async () => {
+    const staleIssueId = '88888888-8888-4888-8888-888888888888';
+    const riskIssueId = '99999999-9999-4999-8999-999999999999';
+    const baseRow = {
+      workspace_id: workspaceId,
+      issue_title: 'Attention issue',
+      issue_ticket_number: 102,
+      issue_state: 'in_progress',
+      issue_priority: 'high',
+      issue_assignee_id: '55555555-5555-4555-8555-555555555555',
+      issue_assignee_name: 'Casey Engineer',
+      sprint_id: sprintId,
+      sprint_title: 'Week 2',
+      sprint_number: 2,
+      sprint_owner_id: null,
+      sprint_owner_name: null,
+      project_id: null,
+      project_title: null,
+      project_owner_id: null,
+      project_owner_name: null,
+      program_id: null,
+      program_title: null,
+      program_owner_id: null,
+      program_owner_name: null,
+      blocker_text: '',
+      blocker_iteration_id: null,
+      blocker_iteration_created_at: null,
+      meaningful_updated_at: new Date('2026-05-18T12:00:00Z'),
+    };
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([{
+          ...baseRow,
+          issue_id: staleIssueId,
+          issue_priority: 'medium',
+          attention_reason: 'No meaningful update for 180+ days.',
+          signal_type: 'stale',
+        }]))
+        .mockResolvedValueOnce(pgResult([{
+          ...baseRow,
+          issue_id: riskIssueId,
+          attention_reason: 'High-priority current-week work has no owner.',
+          signal_type: 'at_risk',
+        }]))
+        .mockResolvedValueOnce(pgResult([])),
+    };
+
+    const decisions = await detectFleetGraphAttentionDecisions({
+      workspaceId,
+      db,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+
+    expect(decisions.map((decision) => decision.candidate.signalType)).toEqual(['at_risk', 'stale']);
+    expect(decisions[0]?.candidate.dedupeKey).toBe(`at-risk-issue:${workspaceId}:${riskIssueId}:${sprintId}`);
+    expect(decisions[1]?.candidate.dedupeKey).toBe(`stale-issue:${workspaceId}:${staleIssueId}:${sprintId}`);
+    expect(db.query.mock.calls[2]?.[0]).toContain("COALESCE(i.properties->>'state', 'backlog') NOT IN ('done', 'cancelled', 'blocked')");
+    expect(db.query.mock.calls[2]?.[0]).toContain("COALESCE(i.properties->>'state', 'backlog') IN ('in_progress', 'in_review')");
+    expect(db.query.mock.calls[2]?.[0]).toContain('COALESCE(latest_iteration.created_at, i.created_at)');
+    expect(db.query.mock.calls[3]?.[0]).toContain("COALESCE(i.properties->>'priority', 'medium') IN ('high', 'urgent')");
+    expect(db.query.mock.calls[3]?.[0]).not.toContain('OR $6::boolean');
+    expect(db.query.mock.calls[3]?.[0]).toContain("NULLIF(i.properties->>'assignee_id', '') IS NULL");
+  });
+
+  it('keeps the strongest attention signal per source before dedupe planning', async () => {
+    const baseRow = {
+      workspace_id: workspaceId,
+      issue_id: issueId,
+      issue_title: 'Same source issue',
+      issue_ticket_number: 102,
+      issue_state: 'in_progress',
+      issue_priority: 'high',
+      issue_assignee_id: null,
+      issue_assignee_name: null,
+      sprint_id: sprintId,
+      sprint_title: 'Week 2',
+      sprint_number: 2,
+      sprint_owner_id: null,
+      sprint_owner_name: null,
+      project_id: null,
+      project_title: null,
+      project_owner_id: null,
+      project_owner_name: null,
+      program_id: null,
+      program_title: null,
+      program_owner_id: null,
+      program_owner_name: null,
+      blocker_text: '',
+      blocker_iteration_id: null,
+      blocker_iteration_created_at: null,
+      meaningful_updated_at: new Date('2026-05-18T12:00:00Z'),
+    };
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([{
+          ...baseRow,
+          attention_reason: 'No meaningful update for 180+ days.',
+          signal_type: 'stale',
+        }]))
+        .mockResolvedValueOnce(pgResult([{
+          ...baseRow,
+          attention_reason: 'High-priority current-week work has no owner.',
+          signal_type: 'at_risk',
+        }]))
+        .mockResolvedValueOnce(pgResult([])),
+    };
+
+    const decisions = await detectFleetGraphAttentionDecisions({
+      workspaceId,
+      db,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.candidate.signalType).toBe('at_risk');
+    expect(decisions[0]?.candidate.dedupeKey).toBe(`at-risk-issue:${workspaceId}:${issueId}:${sprintId}`);
+    expect(db.query).toHaveBeenLastCalledWith(
+      expect.any(String),
+      [workspaceId, [`at-risk-issue:${workspaceId}:${issueId}:${sprintId}`]]
+    );
+  });
+
+  it('stales weaker open findings when a stronger source signal is active', async () => {
+    const baseRow = {
+      workspace_id: workspaceId,
+      issue_id: issueId,
+      issue_title: 'Same source issue',
+      issue_ticket_number: 102,
+      issue_state: 'in_progress',
+      issue_priority: 'high',
+      issue_assignee_id: null,
+      issue_assignee_name: null,
+      sprint_id: sprintId,
+      sprint_title: 'Week 2',
+      sprint_number: 2,
+      sprint_owner_id: null,
+      sprint_owner_name: null,
+      project_id: null,
+      project_title: null,
+      project_owner_id: null,
+      project_owner_name: null,
+      program_id: null,
+      program_title: null,
+      program_owner_id: null,
+      program_owner_name: null,
+      blocker_text: '',
+      blocker_iteration_id: null,
+      blocker_iteration_created_at: null,
+      meaningful_updated_at: new Date('2026-05-18T12:00:00Z'),
+    };
+    const staleDedupeKey = `stale-issue:${workspaceId}:${issueId}:${sprintId}`;
+    const atRiskDedupeKey = `at-risk-issue:${workspaceId}:${issueId}:${sprintId}`;
+    const db = {
+      query: vi.fn()
+        .mockResolvedValueOnce(pgResult([{ sprint_start_date: '2026-05-19' }]))
+        .mockResolvedValueOnce(pgResult([]))
+        .mockResolvedValueOnce(pgResult([{ ...baseRow, signal_type: 'stale' }]))
+        .mockResolvedValueOnce(pgResult([{ ...baseRow, signal_type: 'at_risk' }]))
+        .mockResolvedValueOnce(pgResult([{
+          id: existingFindingId,
+          source_issue_id: issueId,
+          source_sprint_id: sprintId,
+          dedupe_key: staleDedupeKey,
+          reason: 'condition_gone',
+        }, {
+          id: '88888888-8888-4888-8888-888888888888',
+          source_issue_id: issueId,
+          source_sprint_id: sprintId,
+          dedupe_key: atRiskDedupeKey,
+          reason: 'condition_gone',
+        }])),
+    };
+
+    const staleFindings = await findStaleBlockedImportantIssueFindings({
+      workspaceId,
+      db,
+      today: new Date('2026-05-26T12:00:00Z'),
+    });
+
+    expect(staleFindings.map((finding) => finding.dedupeKey)).toEqual([staleDedupeKey]);
   });
 
   it.each([

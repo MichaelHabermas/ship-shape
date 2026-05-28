@@ -1,5 +1,5 @@
 // Renders the left-rail notification surface backed by real FleetGraph findings.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type {
   FleetGraphNotificationResponse,
@@ -10,10 +10,12 @@ import { apiGetJson } from '@/lib/api';
 
 export type FleetGraphNotificationProbeItem = Pick<
   FleetGraphNotificationResponse,
-  'id' | 'findingId' | 'title' | 'owner' | 'context' | 'blockerText' | 'sourcePath' | 'detectedAt'
+  'id' | 'findingId' | 'signalType' | 'signalLabel' | 'reason' | 'title' | 'owner' | 'context' | 'notificationText' | 'blockerText' | 'sourcePath' | 'detectedAt'
 > & {
   age: string;
 };
+
+const SIGNAL_ORDER = ['blocked', 'stale', 'at_risk'] as const;
 
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
@@ -32,8 +34,14 @@ export function FleetGraphNotificationsProbe({
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const notificationCount = notifications.length;
+  const groupedNotifications = SIGNAL_ORDER.map((signalType) => ({
+    signalType,
+    label: signalType === 'blocked' ? 'Blocked' : signalType === 'stale' ? 'Stale' : 'At risk',
+    items: notifications.filter((notification) => notification.signalType === signalType),
+  })).filter((group) => group.items.length > 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,9 +56,13 @@ export function FleetGraphNotificationsProbe({
         setNotifications(data.notifications.map((notification) => ({
           id: notification.id,
           findingId: notification.findingId,
+          signalType: notification.signalType,
+          signalLabel: notification.signalLabel,
+          reason: notification.reason,
           title: notification.title,
           owner: notification.owner,
           context: notification.context,
+          notificationText: notification.notificationText,
           blockerText: notification.blockerText,
           sourcePath: notification.sourcePath,
           detectedAt: notification.detectedAt,
@@ -108,15 +120,28 @@ export function FleetGraphNotificationsProbe({
             {notifications.length === 0 && (
               <NotificationEmptyState status={loadStatus} />
             )}
-            {notifications.map((notification) => (
-              <BlockedIssueNotification
-                key={notification.id}
-                notification={notification}
-                onDiscuss={() => onDiscuss(notification)}
-                onOpenSource={() => {
-                  if (notification.sourcePath) navigate(notification.sourcePath);
-                }}
-              />
+            {groupedNotifications.map((group) => (
+              <NotificationGroup
+                key={group.signalType}
+                label={group.label}
+                count={group.items.length}
+                collapsed={collapsedGroups[group.signalType] === true}
+                onToggle={() => setCollapsedGroups((groups) => ({
+                  ...groups,
+                  [group.signalType]: groups[group.signalType] !== true,
+                }))}
+              >
+                {group.items.map((notification) => (
+                  <AttentionNotification
+                    key={notification.id}
+                    notification={notification}
+                    onDiscuss={() => onDiscuss(notification)}
+                    onOpenSource={() => {
+                      if (notification.sourcePath) navigate(notification.sourcePath);
+                    }}
+                  />
+                ))}
+              </NotificationGroup>
             ))}
           </div>
         </section>
@@ -158,7 +183,39 @@ function NotificationBadge({ count }: { count: number }) {
   );
 }
 
-function BlockedIssueNotification({
+function NotificationGroup({
+  label,
+  count,
+  collapsed,
+  onToggle,
+  children,
+}: {
+  label: string;
+  count: number;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-b border-border last:border-b-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between bg-[#151515] px-3 py-1.5 text-left text-xs font-medium text-foreground transition hover:bg-white/[0.04]"
+        aria-expanded={!collapsed}
+      >
+        <span className="flex items-center gap-2">
+          <span>{label}</span>
+          <span className="rounded border border-border px-1.5 py-0.5 text-[10px] leading-none text-muted">{count}</span>
+        </span>
+        <span className="text-muted">{collapsed ? '+' : '-'}</span>
+      </button>
+      {!collapsed && <div>{children}</div>}
+    </section>
+  );
+}
+
+function AttentionNotification({
   notification,
   onDiscuss,
   onOpenSource,
@@ -170,45 +227,52 @@ function BlockedIssueNotification({
   const ownerLabel = notification.owner || '-';
 
   return (
-    <article className="border-b border-border bg-background/70 px-3 py-2 last:border-b-0">
-      <div className="mb-1 flex items-start justify-between gap-2">
+    <article className="border-t border-border/70 bg-background/70 px-3 py-1.5 first:border-t-0">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-medium leading-5 text-foreground">
-            <NotificationLabelChip label="Blocked" />
-            <span className="truncate">{displayText(notification.title)}</span>
+          <h3 className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-5 text-foreground">
+            <NotificationLabelChip label={notification.signalLabel} />
+            <span className="truncate">{displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}</span>
           </h3>
           <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
-            <span>{notification.age}</span>
-            <span aria-hidden="true">·</span>
             <span>{displayText(ownerLabel)}</span>
             <span aria-hidden="true">·</span>
             <span>{displayText(notification.context)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{notification.age}</span>
           </div>
         </div>
         <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
       </div>
 
-      <p className="line-clamp-2 text-sm leading-5 text-muted">{displayText(notification.blockerText)}</p>
+      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{displayText(notification.reason || notification.notificationText || notification.blockerText)}</p>
 
-      <div className="mt-1.5 flex flex-wrap gap-2">
+      <div className="mt-1 flex flex-wrap gap-1.5">
         <button
           type="button"
           disabled={!notification.sourcePath}
           onClick={onOpenSource}
-          className="rounded border border-border px-2.5 py-1 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5"
+          className="flex h-8 items-center rounded border border-border px-2.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
         >
           Open source
         </button>
         <button
           type="button"
           onClick={onDiscuss}
-          className="rounded bg-accent px-2.5 py-1 text-xs text-white transition hover:bg-accent-hover"
+          className="flex h-8 items-center rounded bg-accent px-2.5 text-xs text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
         >
           Discuss
         </button>
       </div>
     </article>
   );
+}
+
+function titleWithoutSignalPrefix(title: string, signalLabel: string): string {
+  const prefix = `${signalLabel}:`;
+  return title.toLowerCase().startsWith(prefix.toLowerCase())
+    ? title.slice(prefix.length).trim()
+    : title;
 }
 
 function formatNotificationAge(value: string): string {

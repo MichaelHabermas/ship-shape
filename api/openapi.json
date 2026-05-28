@@ -8654,6 +8654,20 @@
               "blocker"
             ]
           },
+          "signalType": {
+            "type": "string",
+            "enum": [
+              "blocked",
+              "stale",
+              "at_risk"
+            ]
+          },
+          "signalLabel": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
           "status": {
             "type": "string"
           },
@@ -8679,6 +8693,9 @@
         "required": [
           "id",
           "kind",
+          "signalType",
+          "signalLabel",
+          "reason",
           "status",
           "sourceIssueId",
           "sourceSprintId",
@@ -8715,6 +8732,20 @@
             "description": "UUID identifier",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
+          "signalType": {
+            "type": "string",
+            "enum": [
+              "blocked",
+              "stale",
+              "at_risk"
+            ]
+          },
+          "signalLabel": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
           "title": {
             "type": "string"
           },
@@ -8727,6 +8758,9 @@
           "owner": {
             "type": "string",
             "nullable": true
+          },
+          "notificationText": {
+            "type": "string"
           },
           "blockerText": {
             "type": "string"
@@ -8759,10 +8793,14 @@
         "required": [
           "id",
           "findingId",
+          "signalType",
+          "signalLabel",
+          "reason",
           "title",
           "issueTitle",
           "context",
           "owner",
+          "notificationText",
           "blockerText",
           "sourceIssueId",
           "sourceSprintId",

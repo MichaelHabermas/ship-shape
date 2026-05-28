@@ -1,6 +1,6 @@
 // Verifies the shared FleetGraph tick runner keeps dry-run and execute modes explicit.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings } from './detection/detector.js';
+import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings } from './detection/detector.js';
 import { runFleetGraph } from './core.js';
 import { runFleetGraphTick } from './execution/tick-runner.js';
 import type { Principal } from '../security/principal.js';
@@ -19,7 +19,7 @@ const principal: Principal = {
 };
 
 vi.mock('./detection/detector.js', () => ({
-  detectBlockedImportantIssueDecisions: vi.fn(),
+  detectFleetGraphAttentionDecisions: vi.fn(),
   findBlockedImportantIssueQuietExits: vi.fn(),
   findStaleBlockedImportantIssueFindings: vi.fn(),
 }));
@@ -62,7 +62,7 @@ const detectorDecision = {
 
 describe('FleetGraph tick runner', () => {
   beforeEach(() => {
-    vi.mocked(detectBlockedImportantIssueDecisions).mockReset();
+    vi.mocked(detectFleetGraphAttentionDecisions).mockReset();
     vi.mocked(findBlockedImportantIssueQuietExits).mockReset();
     vi.mocked(findStaleBlockedImportantIssueFindings).mockReset();
     vi.mocked(runFleetGraph).mockReset();
@@ -70,7 +70,7 @@ describe('FleetGraph tick runner', () => {
   });
 
   it('summarizes dry-run detector output without graph execution', async () => {
-    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([detectorDecision]);
+    vi.mocked(detectFleetGraphAttentionDecisions).mockResolvedValue([detectorDecision]);
     vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue([{ reason: 'duplicate_open_finding', count: 2 }]);
 
     const summary = await runFleetGraphTick({
@@ -87,7 +87,7 @@ describe('FleetGraph tick runner', () => {
   });
 
   it('resolves stale open findings before processing detector decisions', async () => {
-    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([detectorDecision]);
+    vi.mocked(detectFleetGraphAttentionDecisions).mockResolvedValue([detectorDecision]);
     vi.mocked(findStaleBlockedImportantIssueFindings).mockResolvedValue([{
       findingId: '88888888-8888-4888-8888-888888888888',
       sourceIssueId: issueId,
@@ -119,8 +119,38 @@ describe('FleetGraph tick runner', () => {
     }), expect.any(Object));
   });
 
+  it('suppresses stale findings whose sources become invisible', async () => {
+    vi.mocked(detectFleetGraphAttentionDecisions).mockResolvedValue([]);
+    vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue([]);
+    vi.mocked(findStaleBlockedImportantIssueFindings).mockResolvedValue([{
+      findingId: '88888888-8888-4888-8888-888888888888',
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      dedupeKey: detectorDecision.candidate.dedupeKey,
+      reason: 'insufficient_visible_evidence',
+    }]);
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'suppress',
+      finding: null,
+      traceMetadata: { mode: 'proactive', decision: 'suppress', nodePath: ['produceOutput'] },
+    } as never);
+
+    await runFleetGraphTick({
+      mode: 'execute',
+      workspaceId,
+      principal,
+      triggerReason: 'scheduled-worker',
+      db: { query: vi.fn() },
+    });
+
+    expect(runFleetGraph).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      trigger: { type: 'suppress_finding', findingId: '88888888-8888-4888-8888-888888888888' },
+      triggerReason: 'scheduled-worker',
+    }), expect.any(Object));
+  });
+
   it('runs detector decisions through the shared proactive graph path', async () => {
-    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([detectorDecision]);
+    vi.mocked(detectFleetGraphAttentionDecisions).mockResolvedValue([detectorDecision]);
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'create_finding',
       finding: null,
@@ -147,7 +177,7 @@ describe('FleetGraph tick runner', () => {
 
   it('records a quiet graph run when execute mode has no candidates', async () => {
     const quietExits = [{ reason: 'duplicate_open_finding' as const, count: 2 }];
-    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([]);
+    vi.mocked(detectFleetGraphAttentionDecisions).mockResolvedValue([]);
     vi.mocked(findBlockedImportantIssueQuietExits).mockResolvedValue(quietExits);
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'quiet_exit',

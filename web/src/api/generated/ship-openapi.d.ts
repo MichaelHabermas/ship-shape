@@ -13032,6 +13032,10 @@ export interface components {
             id: string;
             /** @enum {string} */
             kind: "blocker";
+            /** @enum {string} */
+            signalType: "blocked" | "stale" | "at_risk";
+            signalLabel: string;
+            reason: string;
             status: string;
             /**
              * Format: uuid
@@ -13064,10 +13068,15 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             findingId: string;
+            /** @enum {string} */
+            signalType: "blocked" | "stale" | "at_risk";
+            signalLabel: string;
+            reason: string;
             title: string;
             issueTitle: string;
             context: string;
             owner: string | null;
+            notificationText: string;
             blockerText: string;
             /**
              * Format: uuid

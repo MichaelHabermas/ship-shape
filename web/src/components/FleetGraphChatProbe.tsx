@@ -282,7 +282,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
               decision: 'quiet_exit',
               answer: {
                 title: 'Open a source first',
-                body: 'Open an issue, week, project, program, document, or notification before asking FleetGraph.',
+                body: 'Open an issue, week, project, program, document, or notification before asking.',
                 sources: [],
                 humanGate: { required: false },
               },
@@ -337,24 +337,23 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
               <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
                 <CurrentContextChip title={currentTitle} />
                 {visibleContextItems.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    onClick={() => activateContextItem(item.id)}
-                    className="flex max-w-[calc((100%-2.75rem)/2)] shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:text-foreground"
-                  >
-                    <span className="truncate">{displayText(item.label)}</span>
-                    <span
-                      aria-hidden="true"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        removeContextItem(item.id);
-                      }}
-                      className="text-xs leading-none text-muted"
+                  <span key={item.id} className="flex max-w-[calc((100%-2.75rem)/2)] shrink-0 overflow-hidden rounded border border-border bg-background text-[11px] leading-4 text-muted">
+                    <button
+                      type="button"
+                      onClick={() => activateContextItem(item.id)}
+                      className="min-w-0 px-1.5 py-0.5 transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                    >
+                      <span className="block truncate">{displayText(item.label)}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeContextItem(item.id)}
+                      className="px-1 text-xs leading-none text-muted transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                      aria-label={`Remove ${displayText(item.label)} from context`}
                     >
                       x
-                    </span>
-                  </button>
+                    </button>
+                  </span>
                 ))}
                 {overflowContextItems.length > 0 && (
                   <button
@@ -424,7 +423,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                 value={draft}
                 onChange={handleDraftChange}
                 rows={1}
-                placeholder={activeNotification ? 'Ask about this blocked issue...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
+                placeholder={activeNotification ? 'Ask about this signal...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
                 className="scrollbar-hide max-h-[120px] min-h-6 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 text-sm leading-5 text-foreground outline-none ring-0 placeholder:text-muted focus:outline-none focus:ring-0"
               />
               <button
@@ -473,24 +472,23 @@ function ContextPopover({
           {displayText(`${surfaceLabel} - Untitled`)}
         </div>
         {contextItems.map((item) => (
-          <button
-            type="button"
-            key={item.id}
-            onClick={() => onActivateContext(item.id)}
-            className="flex w-full items-center justify-between rounded border border-transparent px-2 py-1.5 text-left text-xs text-muted transition hover:border-border hover:text-foreground"
-          >
-            <span className="truncate">{displayText(item.label)}</span>
-            <span
-              aria-hidden="true"
-              onClick={(event) => {
-                event.stopPropagation();
-                onRemoveContext(item.id);
-              }}
-              className="text-xs text-muted"
+          <div key={item.id} className="flex w-full items-center rounded border border-transparent text-xs text-muted transition hover:border-border">
+            <button
+              type="button"
+              onClick={() => onActivateContext(item.id)}
+              className="min-w-0 flex-1 px-2 py-1.5 text-left transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <span className="block truncate">{displayText(item.label)}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemoveContext(item.id)}
+              className="px-2 py-1.5 text-xs text-muted transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+              aria-label={`Remove ${displayText(item.label)} from context`}
             >
               x
-            </span>
-          </button>
+            </button>
+          </div>
         ))}
       </div>
     </div>
@@ -541,16 +539,17 @@ function NotificationConversation({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <UserMessage>Why is this blocked?</UserMessage>
+      <UserMessage>What's going on here?</UserMessage>
 
       <AssistantAnswer
-        eyebrow={displayText(notification.title)}
+        eyebrow={displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}
         body={isLoading ? 'Checking the graph explanation for this finding...' : primaryText}
         metadata={[ownerLabel, displayText(notification.context), notification.age, ...(isFallback ? ['fallback'] : [])]}
         sources={sourceLabels}
+        signalLabel={notification.signalLabel}
       />
 
-      <NextStepCard text={nextStep} gateText={gateText} />
+      <InlineGateNote text={nextStep} gateText={gateText} />
     </div>
   );
 }
@@ -563,7 +562,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
           <UserMessage>{turn.prompt}</UserMessage>
           {turn.status === 'loading' && (
             <AssistantAnswer
-              eyebrow="FleetGraph"
+              eyebrow="Checking"
               body="Checking current Ship context..."
               metadata={[]}
               sources={[]}
@@ -571,7 +570,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
           )}
           {turn.status === 'error' && (
             <AssistantAnswer
-              eyebrow="FleetGraph"
+              eyebrow="No answer"
               body="I could not answer from the current context."
               metadata={['error']}
               sources={[]}
@@ -586,7 +585,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
                 sources={turn.response.answer.sources.map((source) => source.label)}
               />
               {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
-                <NextStepCard
+                <InlineGateNote
                   text={turn.response.answer.nextStep || 'A human must approve the next action before Ship changes anything.'}
                   gateText={turn.response.answer.humanGate.required === true
                     ? 'Approval required before Ship changes anything or sends a message.'
@@ -614,11 +613,13 @@ function AssistantAnswer({
   body,
   metadata,
   sources,
+  signalLabel,
 }: {
   eyebrow: string;
   body: string;
   metadata: string[];
   sources: string[];
+  signalLabel?: string;
 }) {
   const metadataItems = metadata.filter((item) => item && item !== '-');
 
@@ -626,9 +627,11 @@ function AssistantAnswer({
     <div className="w-full text-foreground">
       <p className="mb-1 truncate text-[11px] leading-4 text-muted">{displayText(eyebrow)}</p>
       <p className="text-base leading-6">
-        <span className="mr-2 inline-flex align-[2px]">
-          <NotificationLabelChip label="Blocked" />
-        </span>
+        {signalLabel && (
+          <span className="mr-2 inline-flex align-[2px]">
+            <NotificationLabelChip label={signalLabel} />
+          </span>
+        )}
         {displayText(body)}
       </p>
       <InlineProvenance metadata={metadataItems} sources={sources} />
@@ -660,13 +663,11 @@ function InlineProvenance({ metadata, sources }: { metadata: string[]; sources: 
   );
 }
 
-function NextStepCard({ text, gateText }: { text: string; gateText: string }) {
+function InlineGateNote({ text, gateText }: { text: string; gateText: string }) {
   return (
-    <div className="w-full rounded-lg border border-border bg-background/60 p-3">
-      <p className="text-xs font-medium text-foreground">Possible next step</p>
-      <p className="mt-1 text-sm leading-5 text-muted">{displayText(text)}</p>
-      <p className="mt-1 text-[13px] leading-[18px] text-muted">{gateText}</p>
-    </div>
+    <p className="text-[13px] leading-5 text-muted">
+      <span className="text-foreground">Next:</span> {displayText(text)} <span className="text-muted/70">{gateText}</span>
+    </p>
   );
 }
 
@@ -695,12 +696,22 @@ function conversationBody(
   notification: FleetGraphNotificationProbeItem,
   output: FleetGraphVisibleOutput | null
 ): string {
+  if (notification.signalType !== 'blocked') {
+    return notification.notificationText || notification.reason || output?.summary || 'This work needs attention.';
+  }
   return blockerExcerpt(output)
     ? compactBlockerText(blockerExcerpt(output) ?? '')
-    : notification.blockerText
-      ? compactBlockerText(notification.blockerText)
+    : notification.notificationText || notification.blockerText
+      ? compactBlockerText(notification.notificationText || notification.blockerText)
       : output?.summary
     || 'No blocker reason was recorded.';
+}
+
+function titleWithoutSignalPrefix(title: string, signalLabel: string): string {
+  const prefix = `${signalLabel}:`;
+  return title.toLowerCase().startsWith(prefix.toLowerCase())
+    ? title.slice(prefix.length).trim()
+    : title;
 }
 
 function blockerExcerpt(output: FleetGraphVisibleOutput | null): string | null {

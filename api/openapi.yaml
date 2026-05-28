@@ -6522,6 +6522,16 @@ components:
           type: string
           enum:
             - blocker
+        signalType:
+          type: string
+          enum:
+            - blocked
+            - stale
+            - at_risk
+        signalLabel:
+          type: string
+        reason:
+          type: string
         status:
           type: string
         sourceIssueId:
@@ -6541,6 +6551,9 @@ components:
       required:
         - id
         - kind
+        - signalType
+        - signalLabel
+        - reason
         - status
         - sourceIssueId
         - sourceSprintId
@@ -6568,6 +6581,16 @@ components:
           format: uuid
           description: UUID identifier
           example: 550e8400-e29b-41d4-a716-446655440000
+        signalType:
+          type: string
+          enum:
+            - blocked
+            - stale
+            - at_risk
+        signalLabel:
+          type: string
+        reason:
+          type: string
         title:
           type: string
         issueTitle:
@@ -6577,6 +6600,8 @@ components:
         owner:
           type: string
           nullable: true
+        notificationText:
+          type: string
         blockerText:
           type: string
         sourceIssueId:
@@ -6600,10 +6625,14 @@ components:
       required:
         - id
         - findingId
+        - signalType
+        - signalLabel
+        - reason
         - title
         - issueTitle
         - context
         - owner
+        - notificationText
         - blockerText
         - sourceIssueId
         - sourceSprintId

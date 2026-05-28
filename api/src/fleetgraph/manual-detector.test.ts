@@ -1,14 +1,14 @@
 // Verifies the manual FleetGraph detector summary remains read-only and worker-free.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  detectBlockedImportantIssueDecisions,
+  detectFleetGraphAttentionDecisions,
   findStaleBlockedImportantIssueFindings,
   findBlockedImportantIssueQuietExits,
 } from './detection/detector.js';
 import { runManualFleetGraphDetector } from './detection/manual-detector.js';
 
 vi.mock('./detection/detector.js', () => ({
-  detectBlockedImportantIssueDecisions: vi.fn(),
+  detectFleetGraphAttentionDecisions: vi.fn(),
   findStaleBlockedImportantIssueFindings: vi.fn(),
   findBlockedImportantIssueQuietExits: vi.fn(),
 }));
@@ -46,7 +46,7 @@ describe('manual FleetGraph detector runner', () => {
       blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
       dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
     } as const;
-    vi.mocked(detectBlockedImportantIssueDecisions).mockResolvedValue([
+    vi.mocked(detectFleetGraphAttentionDecisions).mockResolvedValue([
       {
         decision: 'create_finding',
         existingFindingId: null,
@@ -69,7 +69,7 @@ describe('manual FleetGraph detector runner', () => {
       limit: 5,
     });
 
-    expect(detectBlockedImportantIssueDecisions).toHaveBeenCalledWith(expect.objectContaining({
+    expect(detectFleetGraphAttentionDecisions).toHaveBeenCalledWith(expect.objectContaining({
       workspaceId,
       today,
       limit: 5,
@@ -90,6 +90,10 @@ describe('manual FleetGraph detector runner', () => {
         sprintId,
         sprintTitle: 'Week 2',
         blockerText: 'Waiting on API credentials.',
+        signalType: 'blocked',
+        signalLabel: 'Blocked',
+        reason: 'Waiting on API credentials.',
+        evidenceText: 'Waiting on API credentials.',
         dedupeKey: `blocked-important-issue:${workspaceId}:${issueId}:${sprintId}`,
         existingFindingId: null,
       }],

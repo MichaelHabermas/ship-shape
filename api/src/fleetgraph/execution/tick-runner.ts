@@ -2,7 +2,7 @@
 import { utcToday } from '@ship/shared';
 import { pool } from '../../db/client.js';
 import type { Principal } from '../../security/principal.js';
-import { detectBlockedImportantIssueDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
+import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits, findStaleBlockedImportantIssueFindings, type BlockedImportantIssueDedupeDecision, type FleetGraphDetectorQuietExit, type FleetGraphStaleFinding } from '../detection/detector.js';
 import { runFleetGraph, type FleetGraphCoreOptions } from '../core.js';
 import type { FleetGraphResult } from '../types.js';
 
@@ -20,6 +20,10 @@ export type FleetGraphDryRunTickSummary = {
     sprintId: string;
     sprintTitle: string;
     blockerText: string;
+    signalType: string;
+    signalLabel: string;
+    reason: string;
+    evidenceText: string;
     dedupeKey: string;
     existingFindingId: string | null;
   }>;
@@ -67,9 +71,20 @@ function mapDedupeDecision(
     sprintId: candidate.sprint_id,
     sprintTitle: candidate.sprint_title,
     blockerText: candidate.blocker_text,
+    signalType: candidate.signalType ?? 'blocked',
+    signalLabel: candidate.signalLabel ?? 'Blocked',
+    reason: candidate.attentionReason ?? candidate.blocker_text,
+    evidenceText: candidate.blocker_text || candidate.attentionReason || '',
     dedupeKey: candidate.dedupeKey,
     existingFindingId: decision.existingFindingId,
   };
+}
+
+function inactiveFindingTrigger(staleFinding: FleetGraphStaleFinding): Parameters<typeof runFleetGraph>[0]['trigger'] {
+  if (staleFinding.reason === 'insufficient_visible_evidence') {
+    return { type: 'suppress_finding', findingId: staleFinding.findingId };
+  }
+  return { type: 'resolve_finding', findingId: staleFinding.findingId };
 }
 
 async function runWithOwnedTransaction<T>(fn: (db: QueryRunner) => Promise<T>): Promise<T> {
@@ -108,7 +123,7 @@ export async function runFleetGraphTick(input: Extract<FleetGraphTickInput, { mo
 export async function runFleetGraphTick(input: FleetGraphTickInput): Promise<FleetGraphDryRunTickSummary | FleetGraphExecuteTickSummary> {
   const db = input.db ?? pool;
   const today = input.today ?? utcToday();
-  const decisions = await detectBlockedImportantIssueDecisions({
+  const decisions = await detectFleetGraphAttentionDecisions({
     workspaceId: input.workspaceId,
     today,
     limit: input.limit,
@@ -153,7 +168,7 @@ export async function runFleetGraphTick(input: FleetGraphTickInput): Promise<Fle
     });
     const results: FleetGraphResult[] = [];
     for (const staleFinding of staleFindings) {
-      results.push(await runGraphExecute(input, db, { type: 'resolve_finding', findingId: staleFinding.findingId }));
+      results.push(await runGraphExecute(input, db, inactiveFindingTrigger(staleFinding)));
     }
     const quietResult = await runGraphExecute(input, db, { type: 'quiet_exit', quietExits });
     results.push(quietResult);
@@ -167,7 +182,7 @@ export async function runFleetGraphTick(input: FleetGraphTickInput): Promise<Fle
 
   const results: FleetGraphResult[] = [];
   for (const staleFinding of staleFindings) {
-    results.push(await runGraphExecute(input, db, { type: 'resolve_finding', findingId: staleFinding.findingId }));
+    results.push(await runGraphExecute(input, db, inactiveFindingTrigger(staleFinding)));
   }
   for (const detectorDecision of decisions) {
     results.push(await runGraphExecute(input, db, { type: 'detector_decision', detectorDecision }));

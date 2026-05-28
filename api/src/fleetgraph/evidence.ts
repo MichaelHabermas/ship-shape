@@ -19,6 +19,8 @@ export type FleetGraphEvidenceBundle = {
 export function evidenceFromDetectorCandidate(
   candidate: BlockedImportantIssueCandidate
 ): FleetGraphEvidenceItem[] {
+  const signalType = candidate.signalType ?? 'blocked';
+  const reason = candidate.attentionReason ?? 'Issue needs attention.';
   return [
     {
       kind: 'source_issue',
@@ -37,15 +39,15 @@ export function evidenceFromDetectorCandidate(
       visibleFields: ['title', 'sprint_number'],
     },
     {
-      kind: 'blocker',
+      kind: signalType === 'blocked' ? 'blocker' : signalType,
       sourceDocumentId: candidate.issue_id,
       sourceType: 'issue',
-      claim: candidate.blocker_text
+      claim: signalType === 'blocked' && candidate.blocker_text
         ? 'Latest blocker text'
-        : 'Blocker missing',
+        : reason,
       excerpt: candidate.blocker_text || undefined,
       visibility: 'internal',
-      visibleFields: ['blockers_encountered'],
+      visibleFields: signalType === 'blocked' ? ['blockers_encountered'] : ['state', 'priority', 'updated_at'],
     },
     {
       kind: 'dedupe',

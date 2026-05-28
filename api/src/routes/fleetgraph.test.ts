@@ -61,6 +61,12 @@ vi.mock('../fleetgraph/execution/manual-run.js', () => ({
 vi.mock('../fleetgraph/persistence.js', () => ({
   listFleetGraphFindingsForSource: vi.fn(),
   listFleetGraphNotificationFindings: vi.fn(),
+  signalTypeFromDedupeKey: (dedupeKey: string) => {
+    if (dedupeKey.startsWith('stale-issue:')) return 'stale';
+    if (dedupeKey.startsWith('at-risk-issue:')) return 'at_risk';
+    return 'blocked';
+  },
+  signalLabelForType: (signalType: string) => signalType === 'stale' ? 'Stale' : signalType === 'at_risk' ? 'At risk' : 'Blocked',
 }));
 
 type FleetGraphFindingsTestBody = {
@@ -78,6 +84,10 @@ type FleetGraphNotificationsTestBody = {
     context: string;
     owner: string | null;
     blockerText: string;
+    signalType: string;
+    signalLabel: string;
+    reason: string;
+    notificationText: string;
     sourcePath: string;
   }>;
 };
@@ -225,9 +235,44 @@ describe('FleetGraph routes', () => {
       title: 'API access blocker',
       context: 'Sprint 12',
       owner: 'PM thread',
+      signalType: 'blocked',
+      signalLabel: 'Blocked',
+      reason: 'Visible summary',
+      notificationText: 'Waiting on API access before backend queue work can continue.',
       blockerText: 'Waiting on API access before backend queue work can continue.',
       sourcePath: `/documents/${issueId}`,
     });
+  });
+
+  it('serializes multiple notification signal types safely', async () => {
+    vi.mocked(listFleetGraphNotificationFindings).mockResolvedValue([
+      notificationFinding(),
+      notificationFinding({
+        id: '66666666-6666-4666-8666-666666666666',
+        dedupe_key: `stale-issue:${workspaceId}:${issueId}:${sprintId}`,
+        run_metadata: { signalType: 'stale', reason: 'No meaningful update for 180+ days.' },
+        summary: 'No meaningful update for 180+ days.',
+      }),
+      notificationFinding({
+        id: '77777777-7777-4777-8777-777777777777',
+        dedupe_key: `at-risk-issue:${workspaceId}:${issueId}:${sprintId}`,
+        run_metadata: { signalType: 'at_risk', reason: 'High-priority current-week work has no owner.' },
+        summary: 'High-priority current-week work has no owner.',
+      }),
+    ]);
+    vi.mocked(visibleOutputForFinding).mockImplementation(async ({ finding }) => ({
+      evidence: [],
+      output: visibleOutput({ summary: finding.summary }),
+    }));
+
+    const res = await request(app())
+      .get('/api/fleetgraph/notifications?limit=10')
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphNotificationsTestBody;
+    expect(body.notifications.map((notification) => notification.signalType)).toEqual(['blocked', 'stale', 'at_risk']);
+    expect(body.notifications.map((notification) => notification.signalLabel)).toEqual(['Blocked', 'Stale', 'At risk']);
+    expect(body.notifications[1]?.notificationText).toBe('No meaningful update for 180+ days.');
   });
 
   it('omits notifications without safe actor-visible output', async () => {

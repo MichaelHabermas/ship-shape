@@ -127,7 +127,9 @@ router.get('/notifications', authMiddleware, defineRoute({
         const { output } = await visibleOutputForFinding({ principal, workspaceId, finding });
         if (output.noSafeOutput) return null;
         return fleetGraphNotificationResponse({ finding, visibleOutput: output });
-      }))).filter((notification): notification is FleetGraphNotificationResponse => notification !== null);
+      })))
+        .filter((notification): notification is FleetGraphNotificationResponse => notification !== null)
+        .slice(0, parsed.query.limit ?? 25);
 
       res.json({ notifications });
     } catch (err) {

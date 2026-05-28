@@ -400,6 +400,34 @@ describe('FleetGraph shared core', () => {
     }));
   });
 
+  it('answers broad-but-context-bound chat without becoming workspace-wide', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What else is weird in this project?',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('explain');
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.outputSnapshot).toMatchObject({
+      answer: {
+        title: 'What stands out',
+      },
+    });
+    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('workspace-wide');
+  });
+
   it('quietly declines context chat when no active finding is attached', async () => {
     const port = persistence();
     vi.mocked(port.listFindingsForSource).mockResolvedValue([]);

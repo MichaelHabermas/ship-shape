@@ -1,10 +1,11 @@
 // FleetGraph persistence helpers own finding/run writes without mutating Ship source records.
-import type { FleetGraphRunMode, FleetGraphSeverity } from '@ship/shared';
+import type { FleetGraphRunMode, FleetGraphSeverity, FleetGraphSignalType } from '@ship/shared';
 import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import { requireFirstRow } from '../utils/query-rows.js';
 
 export type { FleetGraphRunMode, FleetGraphSeverity } from '@ship/shared';
+export type { FleetGraphSignalType } from '@ship/shared';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -26,6 +27,7 @@ export type FleetGraphRunDecision =
   | 'needs_confirmation'
   | 'dismiss'
   | 'resolve'
+  | 'suppress'
   | 'error';
 
 export type JsonRecord = Record<string, unknown>;
@@ -167,6 +169,8 @@ export type CompleteFleetGraphWorkerTickInput = {
 };
 
 export const BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX = 'blocked-important-issue';
+export const STALE_ISSUE_DEDUPE_PREFIX = 'stale-issue';
+export const AT_RISK_ISSUE_DEDUPE_PREFIX = 'at-risk-issue';
 
 function mapFinding(row: FleetGraphFindingRow): FleetGraphFinding {
   return {
@@ -194,6 +198,47 @@ export function blockedImportantIssueDedupeKey(input: {
   sprintId: string;
 }): string {
   return `${BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX}:${input.workspaceId}:${input.issueId}:${input.sprintId}`;
+}
+
+export function fleetGraphAttentionDedupeKey(input: {
+  signalType: FleetGraphSignalType;
+  workspaceId: string;
+  issueId: string;
+  sprintId: string;
+}): string {
+  return `${dedupePrefixForSignalType(input.signalType)}:${input.workspaceId}:${input.issueId}:${input.sprintId}`;
+}
+
+export function signalTypeFromDedupeKey(dedupeKey: string): FleetGraphSignalType {
+  if (dedupeKey.startsWith(`${STALE_ISSUE_DEDUPE_PREFIX}:`)) return 'stale';
+  if (dedupeKey.startsWith(`${AT_RISK_ISSUE_DEDUPE_PREFIX}:`)) return 'at_risk';
+  return 'blocked';
+}
+
+export function fleetGraphSignalType(value: unknown): FleetGraphSignalType {
+  return value === 'stale' || value === 'at_risk' || value === 'blocked' ? value : 'blocked';
+}
+
+export function signalLabelForType(signalType: FleetGraphSignalType): string {
+  switch (signalType) {
+    case 'blocked':
+      return 'Blocked';
+    case 'stale':
+      return 'Stale';
+    case 'at_risk':
+      return 'At risk';
+  }
+}
+
+export function dedupePrefixForSignalType(signalType: FleetGraphSignalType): string {
+  switch (signalType) {
+    case 'blocked':
+      return BLOCKED_IMPORTANT_ISSUE_DEDUPE_PREFIX;
+    case 'stale':
+      return STALE_ISSUE_DEDUPE_PREFIX;
+    case 'at_risk':
+      return AT_RISK_ISSUE_DEDUPE_PREFIX;
+  }
 }
 
 export function sqlBlockedImportantIssueDedupeKey(
@@ -260,6 +305,7 @@ export async function listFleetGraphNotificationFindings(
   input: { workspaceId: string; limit?: number },
   db: QueryRunner = pool
 ): Promise<FleetGraphNotificationFinding[]> {
+  const limit = input.limit ?? 25;
   const result = await db.query<FleetGraphNotificationRow>(
     `SELECT f.*,
             issue.title AS issue_title,
@@ -308,7 +354,7 @@ export async function listFleetGraphNotificationFindings(
         AND f.status IN ('open', 'needs_confirmation', 'error')
       ORDER BY f.last_detected_at DESC, f.updated_at DESC
       LIMIT $2`,
-    [input.workspaceId, input.limit ?? 25]
+    [input.workspaceId, limit * 3]
   );
 
   return result.rows.map(mapNotificationFinding);
@@ -318,7 +364,9 @@ export async function saveBlockedImportantIssueFinding(
   input: SaveBlockedImportantIssueFindingInput,
   db: QueryRunner = pool
 ): Promise<FleetGraphFinding> {
-  const dedupeKey = blockedImportantIssueDedupeKey({
+  const signalType = fleetGraphSignalType(input.runMetadata?.signalType);
+  const dedupeKey = fleetGraphAttentionDedupeKey({
+    signalType,
     workspaceId: input.workspaceId,
     issueId: input.sourceIssueId,
     sprintId: input.sourceSprintId,

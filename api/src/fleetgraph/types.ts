@@ -27,7 +27,7 @@ export type {
 } from '@ship/shared';
 
 export type FleetGraphEvidenceItem = {
-  kind: 'source_issue' | 'source_sprint' | 'blocker' | 'dedupe' | 'finding' | 'restricted';
+  kind: 'source_issue' | 'source_sprint' | 'blocker' | 'stale' | 'at_risk' | 'dedupe' | 'finding' | 'restricted';
   sourceDocumentId?: string;
   sourceType?: 'issue' | 'sprint';
   claim: string;
@@ -107,6 +107,10 @@ export type FleetGraphTrigger =
     }
   | {
       type: 'resolve_finding';
+      findingId: string;
+    }
+  | {
+      type: 'suppress_finding';
       findingId: string;
     }
   | {
