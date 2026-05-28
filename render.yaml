@@ -3,8 +3,7 @@ services:
     name: ship-shape-api
     runtime: node
     plan: free
-    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:api
-    preDeployCommand: pnpm --filter @ship/api exec node dist/db/migrate.js
+    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:api && pnpm --filter @ship/api exec node dist/db/migrate.js
     startCommand: pnpm --filter @ship/api start
     healthCheckPath: /health
     envVars:
