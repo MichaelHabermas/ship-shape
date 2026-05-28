@@ -24,7 +24,7 @@ export function evidenceFromDetectorCandidate(
       kind: 'source_issue',
       sourceDocumentId: candidate.issue_id,
       sourceType: 'issue',
-      claim: `Source issue ${candidate.issue_ticket_number ? `#${candidate.issue_ticket_number}` : ''} is blocked.`,
+      claim: candidate.issue_ticket_number ? `Issue #${candidate.issue_ticket_number}` : 'Source issue',
       visibility: 'internal',
       visibleFields: ['title', 'ticket_number', 'priority', 'state'],
     },
@@ -32,7 +32,7 @@ export function evidenceFromDetectorCandidate(
       kind: 'source_sprint',
       sourceDocumentId: candidate.sprint_id,
       sourceType: 'sprint',
-      claim: `The issue belongs to sprint ${candidate.sprint_number ?? 'unknown'}.`,
+      claim: candidate.sprint_number ? `Week ${candidate.sprint_number}` : candidate.sprint_title,
       visibility: 'internal',
       visibleFields: ['title', 'sprint_number'],
     },
@@ -41,8 +41,8 @@ export function evidenceFromDetectorCandidate(
       sourceDocumentId: candidate.issue_id,
       sourceType: 'issue',
       claim: candidate.blocker_text
-        ? 'The latest issue iteration has non-empty blocker text.'
-        : 'The issue is blocked but has no recorded blocker text.',
+        ? 'Latest blocker text'
+        : 'Blocker missing',
       excerpt: candidate.blocker_text || undefined,
       visibility: 'internal',
       visibleFields: ['blockers_encountered'],
@@ -193,19 +193,27 @@ export function proposedRecipientForVisibleOutput(recipient: JsonRecord | undefi
   const safe: JsonRecord = {};
   const role = recipient.role;
   const userId = recipient.userId;
+  const displayName = recipient.displayName;
   const rationale = recipient.rationale;
   if (typeof role === 'string' && role.trim()) safe.role = role;
   if (typeof userId === 'string' || userId === null) safe.userId = userId;
+  if (typeof displayName === 'string' && displayName.trim()) safe.displayName = displayName;
   if (typeof rationale === 'string' && rationale.trim()) safe.rationale = rationale;
   return Object.keys(safe).length > 0 ? safe : undefined;
 }
 
 export function recipientRationaleForRole(role: unknown): string | undefined {
   if (role === 'issue_assignee') {
-    return 'Recipient is the issue assignee, falling back to the sprint owner.';
+    return 'Recipient is the issue assignee.';
+  }
+  if (role === 'project_owner') {
+    return 'Recipient is the project owner.';
   }
   if (role === 'sprint_owner') {
-    return 'Recipient is the sprint owner because the issue has no assignee.';
+    return 'Recipient is the week owner.';
+  }
+  if (role === 'program_owner') {
+    return 'Recipient is the program owner.';
   }
   return undefined;
 }

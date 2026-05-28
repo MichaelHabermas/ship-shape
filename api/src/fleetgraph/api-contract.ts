@@ -26,6 +26,7 @@ export const FleetGraphRecommendedActionSchema = z.object({
 export const FleetGraphProposedRecipientSchema = z.object({
   role: z.string().optional(),
   userId: UuidSchema.nullable().optional(),
+  displayName: z.string().optional(),
   rationale: z.string().optional(),
 }).openapi('FleetGraphProposedRecipient');
 
@@ -141,9 +142,11 @@ function proposedRecipientForResponse(recipient: Record<string, unknown> | undef
   const safe: Record<string, unknown> = {};
   const role = recipient.role;
   const userId = recipient.userId;
+  const displayName = recipient.displayName;
   const rationale = recipient.rationale;
   if (typeof role === 'string' && role.trim()) safe.role = role;
   if (typeof userId === 'string' || userId === null) safe.userId = userId;
+  if (typeof displayName === 'string' && displayName.trim()) safe.displayName = displayName;
   if (typeof rationale === 'string' && rationale.trim()) safe.rationale = rationale;
   return Object.keys(safe).length > 0 ? safe : undefined;
 }

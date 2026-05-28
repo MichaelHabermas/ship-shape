@@ -1,21 +1,21 @@
 {
-  "generatedAt": "2026-05-28T14:33:23.428Z",
+  "generatedAt": "2026-05-28T04:26:26.875Z",
   "summary": {
     "average": {
       "actionability": 4,
-      "groundedness": 2.12,
-      "specificity": 2.35,
+      "groundedness": 2,
+      "specificity": 2.23,
       "brevity": 2.58,
-      "repetitionBudget": 1.69,
-      "informationDensity": 2.23,
-      "cavemanCopy": 2.58,
+      "repetitionBudget": 1.46,
+      "informationDensity": 2.19,
+      "cavemanCopy": 2.5,
       "duplicateFactControl": 3.92,
-      "uncertaintyHonesty": 4,
-      "missingDataUsefulness": 4,
+      "uncertaintyHonesty": 3.92,
+      "missingDataUsefulness": 3.92,
       "uiProofSeparation": 4
     },
-    "passCount": 6,
-    "failCount": 20
+    "passCount": 3,
+    "failCount": 23
   },
   "results": [
     {
@@ -119,7 +119,7 @@
         "groundedness": 3,
         "specificity": 3,
         "brevity": 4,
-        "repetitionBudget": 4,
+        "repetitionBudget": 2,
         "informationDensity": 4,
         "cavemanCopy": 4,
         "duplicateFactControl": 3,
@@ -127,13 +127,15 @@
         "missingDataUsefulness": 4,
         "uiProofSeparation": 4
       },
-      "pass": true,
-      "failedDimensions": [],
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
       "title": "Runtime proactive clear-blocker output from runFleetGraph",
       "visibleCopy": [
         "Runtime issue clear blocker",
         "Waiting on API credentials · Week 11",
-        "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+        "Ask issue_assignee to confirm Waiting on API credentials for Week 11."
       ],
       "notes": [
         "Generated through runFleetGraph, not a hand-authored product-surface example.",
@@ -144,24 +146,28 @@
       "caseId": "fg-surface-runtime-proactive-missing-blocker",
       "scores": {
         "actionability": 4,
-        "groundedness": 3,
-        "specificity": 4,
+        "groundedness": 2,
+        "specificity": 3,
         "brevity": 4,
-        "repetitionBudget": 4,
+        "repetitionBudget": 2,
         "informationDensity": 4,
-        "cavemanCopy": 4,
+        "cavemanCopy": 3,
         "duplicateFactControl": 4,
         "uncertaintyHonesty": 4,
         "missingDataUsefulness": 4,
         "uiProofSeparation": 4
       },
-      "pass": true,
-      "failedDimensions": [],
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "repetitionBudget"
+      ],
       "title": "Runtime proactive missing-blocker output from runFleetGraph",
       "visibleCopy": [
-        "Runtime issue needs reason",
-        "Reason missing · Week 11",
-        "Ask Audit Load User 029 to add the blocker reason."
+        "Runtime issue missing blocker",
+        "Blocker missing · Week 11",
+        "Add blocker reason.",
+        "No blocker reason is recorded."
       ],
       "notes": [
         "Generated through runFleetGraph, not a hand-authored product-surface example.",
@@ -172,24 +178,30 @@
       "caseId": "fg-surface-runtime-explain-existing-finding",
       "scores": {
         "actionability": 4,
-        "groundedness": 3,
-        "specificity": 3,
+        "groundedness": 1,
+        "specificity": 1,
         "brevity": 4,
-        "repetitionBudget": 4,
-        "informationDensity": 4,
-        "cavemanCopy": 4,
+        "repetitionBudget": 2,
+        "informationDensity": 3,
+        "cavemanCopy": 3,
         "duplicateFactControl": 3,
-        "uncertaintyHonesty": 4,
-        "missingDataUsefulness": 4,
+        "uncertaintyHonesty": 2,
+        "missingDataUsefulness": 2,
         "uiProofSeparation": 4
       },
-      "pass": true,
-      "failedDimensions": [],
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "uncertaintyHonesty",
+        "missingDataUsefulness"
+      ],
       "title": "Runtime explain output from runFleetGraph",
       "visibleCopy": [
         "Runtime existing finding",
-        "Waiting on review · Week 11",
-        "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+        "Runtime existing finding is blocked with a recorded blocker: Waiting on review.",
+        "Confirm the unblock path"
       ],
       "notes": [
         "Generated through runFleetGraph, not a hand-authored product-surface example.",

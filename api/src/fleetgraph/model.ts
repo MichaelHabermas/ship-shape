@@ -48,11 +48,17 @@ export async function generateProactiveCreateText(input: {
 }
 
 function deterministicSummary(candidate: BlockedImportantIssueCandidate): string {
-  return `${candidate.issue_title} is blocked. ${blockerSentence(candidate)}`;
+  return candidate.blocker_text
+    ? `${trimSentence(candidate.blocker_text)} · ${weekLabel(candidate)}`
+    : `Reason missing · ${weekLabel(candidate)}`;
 }
 
 function deterministicDraft(candidate: BlockedImportantIssueCandidate): string {
-  return `Can you confirm the current unblock path for ${candidate.issue_title}? ${blockerSentence(candidate)}`;
+  if (!candidate.blocker_text.trim()) {
+    return `Add the blocker reason for ${candidate.issue_title}.`;
+  }
+
+  return `Confirm who owns this unblocker: ${trimSentence(candidate.blocker_text)}.`;
 }
 
 export function deterministicProactiveCreateText(candidate: BlockedImportantIssueCandidate): FleetGraphProactiveCreateModelResult {
@@ -67,8 +73,10 @@ function blockerText(candidate: BlockedImportantIssueCandidate): string {
   return candidate.blocker_text || 'No blocker reason recorded.';
 }
 
-function blockerSentence(candidate: BlockedImportantIssueCandidate): string {
-  return candidate.blocker_text
-    ? `Latest blocker: ${candidate.blocker_text}`
-    : 'No blocker reason was recorded.';
+function weekLabel(candidate: BlockedImportantIssueCandidate): string {
+  return candidate.sprint_number ? `Week ${candidate.sprint_number}` : candidate.sprint_title;
+}
+
+function trimSentence(value: string): string {
+  return value.trim().replace(/\.$/, '');
 }

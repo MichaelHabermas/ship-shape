@@ -265,7 +265,7 @@ export async function listFleetGraphNotificationFindings(
     `SELECT f.*,
             issue.title AS issue_title,
             sprint.title AS context_title,
-            COALESCE(owner.name, assignee.name) AS owner_name
+            COALESCE(owner.name, owner_person_user.name, owner_person.title, assignee.name) AS owner_name
        FROM fleetgraph_findings f
        JOIN documents issue
          ON issue.id = f.source_issue_id
@@ -281,6 +281,22 @@ export async function listFleetGraphNotificationFindings(
          ON owner.id = CASE
               WHEN f.proposed_recipient->>'userId' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
               THEN (f.proposed_recipient->>'userId')::uuid
+              ELSE NULL
+            END
+       LEFT JOIN documents owner_person
+         ON owner_person.id = CASE
+              WHEN f.proposed_recipient->>'userId' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              THEN (f.proposed_recipient->>'userId')::uuid
+              ELSE NULL
+            END
+        AND owner_person.workspace_id = f.workspace_id
+        AND owner_person.document_type = 'person'
+        AND owner_person.deleted_at IS NULL
+        AND owner_person.archived_at IS NULL
+       LEFT JOIN users owner_person_user
+         ON owner_person_user.id = CASE
+              WHEN owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+              THEN (owner_person.properties->>'user_id')::uuid
               ELSE NULL
             END
        LEFT JOIN users assignee

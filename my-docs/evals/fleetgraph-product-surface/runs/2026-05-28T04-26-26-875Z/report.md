@@ -1,24 +1,24 @@
 # FleetGraph Product Surface Eval
 
-Generated: 2026-05-28T14:33:23.428Z
+Generated: 2026-05-28T04:26:26.875Z
 
 ## Summary
 
-- Pass: 6
-- Fail: 20
+- Pass: 3
+- Fail: 23
 
 | Dimension | Average |
 | --- | ---: |
 | actionability | 4.00 |
-| groundedness | 2.12 |
-| specificity | 2.35 |
+| groundedness | 2.00 |
+| specificity | 2.23 |
 | brevity | 2.58 |
-| repetitionBudget | 1.69 |
-| informationDensity | 2.23 |
-| cavemanCopy | 2.58 |
+| repetitionBudget | 1.46 |
+| informationDensity | 2.19 |
+| cavemanCopy | 2.50 |
 | duplicateFactControl | 3.92 |
-| uncertaintyHonesty | 4.00 |
-| missingDataUsefulness | 4.00 |
+| uncertaintyHonesty | 3.92 |
+| missingDataUsefulness | 3.92 |
 | uiProofSeparation | 4.00 |
 
 ## Cases
@@ -122,9 +122,9 @@ Runtime proactive clear-blocker output from runFleetGraph
 
 Visible copy:
 
-> Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11.
+> Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask issue_assignee to confirm Waiting on API credentials for Week 11.
 
-Status: pass
+Status: fail (repetitionBudget)
 
 | Dimension | Score |
 | --- | ---: |
@@ -132,7 +132,7 @@ Status: pass
 | groundedness | 3 |
 | specificity | 3 |
 | brevity | 4 |
-| repetitionBudget | 4 |
+| repetitionBudget | 2 |
 | informationDensity | 4 |
 | cavemanCopy | 4 |
 | duplicateFactControl | 3 |
@@ -153,19 +153,19 @@ Runtime proactive missing-blocker output from runFleetGraph
 
 Visible copy:
 
-> Runtime issue needs reason · Reason missing · Week 11 · Ask Audit Load User 029 to add the blocker reason.
+> Runtime issue missing blocker · Blocker missing · Week 11 · Add blocker reason. · No blocker reason is recorded.
 
-Status: pass
+Status: fail (groundedness, repetitionBudget)
 
 | Dimension | Score |
 | --- | ---: |
 | actionability | 4 |
-| groundedness | 3 |
-| specificity | 4 |
+| groundedness | 2 |
+| specificity | 3 |
 | brevity | 4 |
-| repetitionBudget | 4 |
+| repetitionBudget | 2 |
 | informationDensity | 4 |
-| cavemanCopy | 4 |
+| cavemanCopy | 3 |
 | duplicateFactControl | 4 |
 | uncertaintyHonesty | 4 |
 | missingDataUsefulness | 4 |
@@ -184,22 +184,22 @@ Runtime explain output from runFleetGraph
 
 Visible copy:
 
-> Runtime existing finding · Waiting on review · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11.
+> Runtime existing finding · Runtime existing finding is blocked with a recorded blocker: Waiting on review. · Confirm the unblock path
 
-Status: pass
+Status: fail (groundedness, specificity, repetitionBudget, uncertaintyHonesty, missingDataUsefulness)
 
 | Dimension | Score |
 | --- | ---: |
 | actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
+| groundedness | 1 |
+| specificity | 1 |
 | brevity | 4 |
-| repetitionBudget | 4 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
+| repetitionBudget | 2 |
+| informationDensity | 3 |
+| cavemanCopy | 3 |
 | duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
+| uncertaintyHonesty | 2 |
+| missingDataUsefulness | 2 |
 | uiProofSeparation | 4 |
 
 Notes:

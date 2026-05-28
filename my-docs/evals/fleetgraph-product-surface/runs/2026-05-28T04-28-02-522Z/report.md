@@ -1,19 +1,19 @@
 # FleetGraph Product Surface Eval
 
-Generated: 2026-05-28T14:33:23.428Z
+Generated: 2026-05-28T04:28:02.522Z
 
 ## Summary
 
-- Pass: 6
-- Fail: 20
+- Pass: 5
+- Fail: 21
 
 | Dimension | Average |
 | --- | ---: |
 | actionability | 4.00 |
-| groundedness | 2.12 |
-| specificity | 2.35 |
+| groundedness | 2.08 |
+| specificity | 2.31 |
 | brevity | 2.58 |
-| repetitionBudget | 1.69 |
+| repetitionBudget | 1.62 |
 | informationDensity | 2.23 |
 | cavemanCopy | 2.58 |
 | duplicateFactControl | 3.92 |
@@ -122,7 +122,7 @@ Runtime proactive clear-blocker output from runFleetGraph
 
 Visible copy:
 
-> Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11.
+> Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask issue_assignee to confirm owner and next step for Week 11.
 
 Status: pass
 
@@ -132,7 +132,7 @@ Status: pass
 | groundedness | 3 |
 | specificity | 3 |
 | brevity | 4 |
-| repetitionBudget | 4 |
+| repetitionBudget | 3 |
 | informationDensity | 4 |
 | cavemanCopy | 4 |
 | duplicateFactControl | 3 |
@@ -153,17 +153,17 @@ Runtime proactive missing-blocker output from runFleetGraph
 
 Visible copy:
 
-> Runtime issue needs reason · Reason missing · Week 11 · Ask Audit Load User 029 to add the blocker reason.
+> Runtime issue missing reason · Reason missing · Week 11 · Add the blocker reason.
 
-Status: pass
+Status: fail (groundedness)
 
 | Dimension | Score |
 | --- | ---: |
 | actionability | 4 |
-| groundedness | 3 |
-| specificity | 4 |
+| groundedness | 2 |
+| specificity | 3 |
 | brevity | 4 |
-| repetitionBudget | 4 |
+| repetitionBudget | 3 |
 | informationDensity | 4 |
 | cavemanCopy | 4 |
 | duplicateFactControl | 4 |
@@ -184,7 +184,7 @@ Runtime explain output from runFleetGraph
 
 Visible copy:
 
-> Runtime existing finding · Waiting on review · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11.
+> Runtime existing finding · Waiting on review · Week 11 · Ask issue_assignee to confirm owner and next step for Week 11.
 
 Status: pass
 

@@ -17,10 +17,20 @@ type BlockedImportantIssueCandidateRow = {
   issue_state: string | null;
   issue_priority: 'low' | 'medium' | 'high' | 'urgent';
   issue_assignee_id: string | null;
+  issue_assignee_name: string | null;
   sprint_id: string;
   sprint_title: string;
   sprint_number: number | null;
   sprint_owner_id: string | null;
+  sprint_owner_name: string | null;
+  project_id: string | null;
+  project_title: string | null;
+  project_owner_id: string | null;
+  project_owner_name: string | null;
+  program_id: string | null;
+  program_title: string | null;
+  program_owner_id: string | null;
+  program_owner_name: string | null;
   blocker_text: string;
   blocker_iteration_id: string | null;
   blocker_iteration_created_at: Date | null;
@@ -88,9 +98,10 @@ async function findBlockedImportantIssueCandidates(input: {
          WHEN 'high' THEN 'high'
          WHEN 'medium' THEN 'medium'
          WHEN 'low' THEN 'low'
-         ELSE 'medium'
+       ELSE 'medium'
        END AS issue_priority,
        NULLIF(i.properties->>'assignee_id', '') AS issue_assignee_id,
+       assignee.name AS issue_assignee_name,
        s.id AS sprint_id,
        s.title AS sprint_title,
        CASE
@@ -101,6 +112,15 @@ async function findBlockedImportantIssueCandidates(input: {
          NULLIF(s.properties->>'owner_id', ''),
          NULLIF(s.properties->'assignee_ids'->>0, '')
        ) AS sprint_owner_id,
+       sprint_owner.name AS sprint_owner_name,
+       project.id AS project_id,
+       project.title AS project_title,
+       COALESCE(project_owner.id::text, project_owner_person_user.id::text, NULLIF(project.properties->>'owner_id', '')) AS project_owner_id,
+       COALESCE(project_owner.name, project_owner_person_user.name, project_owner_person.title) AS project_owner_name,
+       program.id AS program_id,
+       program.title AS program_title,
+       COALESCE(program_owner.id::text, program_owner_person_user.id::text, NULLIF(program.properties->>'owner_id', '')) AS program_owner_id,
+       COALESCE(program_owner.name, program_owner_person_user.name, program_owner_person.title) AS program_owner_name,
        COALESCE(latest_iteration.blockers_encountered, '') AS blocker_text,
        latest_iteration.id AS blocker_iteration_id,
        latest_iteration.created_at AS blocker_iteration_created_at
@@ -123,6 +143,96 @@ async function findBlockedImportantIssueCandidates(input: {
         ORDER BY iteration.created_at DESC, iteration.id DESC
         LIMIT 1
      ) latest_iteration ON TRUE
+     LEFT JOIN users assignee
+       ON assignee.id = CASE
+            WHEN i.properties->>'assignee_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (i.properties->>'assignee_id')::uuid
+            ELSE NULL
+          END
+     LEFT JOIN users sprint_owner
+       ON sprint_owner.id = CASE
+            WHEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, '')) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN COALESCE(NULLIF(s.properties->>'owner_id', ''), NULLIF(s.properties->'assignee_ids'->>0, ''))::uuid
+            ELSE NULL
+          END
+     LEFT JOIN LATERAL (
+       SELECT p.*
+         FROM document_associations project_assoc
+         JOIN documents p
+           ON p.id = project_assoc.related_id
+          AND p.workspace_id = i.workspace_id
+          AND p.document_type = 'project'
+          AND p.deleted_at IS NULL
+          AND p.archived_at IS NULL
+        WHERE project_assoc.document_id = i.id
+          AND project_assoc.relationship_type = 'project'
+        ORDER BY project_assoc.created_at DESC
+        LIMIT 1
+     ) project ON TRUE
+     LEFT JOIN users project_owner
+       ON project_owner.id = CASE
+            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (project.properties->>'owner_id')::uuid
+            ELSE NULL
+          END
+     LEFT JOIN documents project_owner_person
+       ON project_owner_person.id = CASE
+            WHEN project.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (project.properties->>'owner_id')::uuid
+            ELSE NULL
+          END
+      AND project_owner_person.workspace_id = i.workspace_id
+      AND project_owner_person.document_type = 'person'
+      AND project_owner_person.deleted_at IS NULL
+      AND project_owner_person.archived_at IS NULL
+     LEFT JOIN users project_owner_person_user
+       ON project_owner_person_user.id = CASE
+            WHEN project_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (project_owner_person.properties->>'user_id')::uuid
+            ELSE NULL
+          END
+     LEFT JOIN LATERAL (
+       SELECT p.*
+         FROM document_associations program_assoc
+         JOIN documents p
+           ON p.id = program_assoc.related_id
+          AND p.workspace_id = i.workspace_id
+          AND p.document_type = 'program'
+          AND p.deleted_at IS NULL
+          AND p.archived_at IS NULL
+        WHERE program_assoc.relationship_type = 'program'
+          AND program_assoc.document_id IN (i.id, project.id, s.id)
+        ORDER BY
+          CASE program_assoc.document_id
+            WHEN i.id THEN 1
+            WHEN project.id THEN 2
+            ELSE 3
+          END,
+          program_assoc.created_at DESC
+        LIMIT 1
+     ) program ON TRUE
+     LEFT JOIN users program_owner
+       ON program_owner.id = CASE
+            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (program.properties->>'owner_id')::uuid
+            ELSE NULL
+          END
+     LEFT JOIN documents program_owner_person
+       ON program_owner_person.id = CASE
+            WHEN program.properties->>'owner_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (program.properties->>'owner_id')::uuid
+            ELSE NULL
+          END
+      AND program_owner_person.workspace_id = i.workspace_id
+      AND program_owner_person.document_type = 'person'
+      AND program_owner_person.deleted_at IS NULL
+      AND program_owner_person.archived_at IS NULL
+     LEFT JOIN users program_owner_person_user
+       ON program_owner_person_user.id = CASE
+            WHEN program_owner_person.properties->>'user_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN (program_owner_person.properties->>'user_id')::uuid
+            ELSE NULL
+          END
      WHERE i.workspace_id = $1
        AND i.document_type = 'issue'
        AND i.deleted_at IS NULL

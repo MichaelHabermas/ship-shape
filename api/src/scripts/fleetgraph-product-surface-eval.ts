@@ -226,14 +226,40 @@ async function runtimeSurfaceCases(): Promise<FleetGraphProductSurfaceCase[]> {
     assigneeId: userId,
   });
   const missingBlocker = candidate({
-    issueTitle: 'Runtime issue missing blocker',
+    issueTitle: 'Runtime issue needs reason',
     blockerText: '',
     assigneeId: userId,
   });
   const existingFinding = finding({
     title: 'Runtime existing finding',
-    summary: 'Runtime existing finding is blocked with a recorded blocker: Waiting on review.',
-    recommended_action: { label: 'Confirm the unblock path' },
+    summary: 'Waiting on review · Week 11',
+    recommended_action: {
+      label: 'Ask Audit Load User 029 to confirm owner and next step for Week 11.',
+      text: 'Ask Audit Load User 029 to confirm owner and next step for Week 11.',
+    },
+    evidence_snapshot: [{
+      kind: 'source_issue',
+      sourceDocumentId: issueId,
+      sourceType: 'issue',
+      claim: 'Issue #110',
+      visibility: 'internal',
+      visibleFields: ['title', 'state'],
+    }, {
+      kind: 'source_sprint',
+      sourceDocumentId: sprintId,
+      sourceType: 'sprint',
+      claim: 'Week 11',
+      visibility: 'internal',
+      visibleFields: ['title', 'sprint_number'],
+    }, {
+      kind: 'blocker',
+      sourceDocumentId: issueId,
+      sourceType: 'issue',
+      claim: 'Latest blocker text',
+      excerpt: 'Waiting on review.',
+      visibility: 'internal',
+      visibleFields: ['blockers_encountered'],
+    }],
   });
 
   const clearResult = await runFleetGraph({
@@ -389,7 +415,9 @@ function visibleAction(output: FleetGraphVisibleOutput): string | undefined {
 
 function visibleOwner(output: FleetGraphVisibleOutput): string | null {
   const recipient = output.proposedRecipient;
+  const displayName = recipient?.displayName;
   const role = recipient?.role;
+  if (typeof displayName === 'string' && displayName.trim()) return displayName;
   return typeof role === 'string' && role.trim() ? role : null;
 }
 
@@ -402,10 +430,20 @@ function candidate(input: { issueTitle: string; blockerText: string; assigneeId:
     issue_state: 'blocked',
     issue_priority: 'medium',
     issue_assignee_id: input.assigneeId,
+    issue_assignee_name: input.assigneeId ? 'Audit Load User 029' : null,
     sprint_id: sprintId,
     sprint_title: 'Week 11',
     sprint_number: 11,
     sprint_owner_id: null,
+    sprint_owner_name: null,
+    project_id: null,
+    project_title: null,
+    project_owner_id: null,
+    project_owner_name: null,
+    program_id: null,
+    program_title: null,
+    program_owner_id: null,
+    program_owner_name: null,
     blocker_text: input.blockerText,
     blocker_iteration_id: input.blockerText ? '66666666-6666-4666-8666-666666666666' : null,
     blocker_iteration_created_at: input.blockerText ? new Date('2026-05-28T00:00:00Z') : null,
@@ -415,27 +453,37 @@ function candidate(input: { issueTitle: string; blockerText: string; assigneeId:
 
 function findingFromCandidate(input: BlockedImportantIssueCandidate): FleetGraphFinding {
   return finding({
-    title: `Blocked issue: ${input.issue_title}`,
-    summary: `${input.issue_title} is blocked. ${input.blocker_text ? `Latest blocker: ${input.blocker_text}` : 'No blocker reason was recorded.'}`,
+    title: input.issue_title,
+    summary: input.blocker_text
+      ? `${input.blocker_text.replace(/\.$/, '')} · Week ${input.sprint_number ?? input.sprint_title}`
+      : `Reason missing · Week ${input.sprint_number ?? input.sprint_title}`,
+    recommended_action: {
+      label: input.blocker_text
+        ? `Ask Audit Load User 029 to confirm owner and next step for Week ${input.sprint_number ?? input.sprint_title}.`
+        : 'Ask Audit Load User 029 to add the blocker reason.',
+      text: input.blocker_text
+        ? `Ask Audit Load User 029 to confirm owner and next step for Week ${input.sprint_number ?? input.sprint_title}.`
+        : 'Ask Audit Load User 029 to add the blocker reason.',
+    },
     evidence_snapshot: [{
       kind: 'source_issue',
       sourceDocumentId: issueId,
       sourceType: 'issue',
-      claim: 'Source issue is blocked.',
+      claim: 'Issue #110',
       visibility: 'internal',
       visibleFields: ['title', 'state'],
     }, {
       kind: 'source_sprint',
       sourceDocumentId: sprintId,
       sourceType: 'sprint',
-      claim: 'The issue belongs to sprint 11.',
+      claim: 'Week 11',
       visibility: 'internal',
       visibleFields: ['title', 'sprint_number'],
     }, {
       kind: 'blocker',
       sourceDocumentId: issueId,
       sourceType: 'issue',
-      claim: input.blocker_text ? 'Latest blocker text is present.' : 'No blocker text is recorded.',
+      claim: input.blocker_text ? 'Latest blocker text' : 'Blocker missing',
       excerpt: input.blocker_text || undefined,
       visibility: 'internal',
       visibleFields: ['blockers_encountered'],
@@ -458,7 +506,7 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
     evidence_snapshot: [],
     recommended_action: { label: 'Confirm the unblock path' },
     draft_content: {},
-    proposed_recipient: { role: 'issue_assignee', userId },
+    proposed_recipient: { role: 'issue_assignee', userId, displayName: 'Audit Load User 029' },
     human_gate: { required: true },
     trace_metadata: {},
     run_metadata: {},
