@@ -22,7 +22,7 @@
 
 ### OWASP hardening (2026-05-29)
 
-- **Governance mass assignment:** `submitted_at` added to `GOVERNANCE_PROPERTY_KEYS`; generic PATCH/create rejects all governance keys for every principal (including workspace admins). Tests: `documents-governance-patch.test.ts`, probe `input-governance-mass-assignment`.
+- **Governance mass assignment:** `submitted_at` in `GOVERNANCE_PROPERTY_KEYS` (blocked on generic PATCH/create for all principals). Server sets `submitted_at` on first weekly plan/retro content save via `stampWeeklyAccountabilitySubmittedAt`. Tests: `documents-governance-patch.test.ts`, `document-governance.test.ts`, probe `input-governance-mass-assignment`.
 - **Programs/projects:** `requireProgramWrite` / `requireProjectWrite` + `requireDocumentCreate` on mutating routes; token scope tests in `programs-projects-token-scope.test.ts`.
 - **Comments / undo-conversion:** `comments.ts` uses `authorize` read; `undo-conversion` uses write + `creator_or_admin` with converter fallback.
 

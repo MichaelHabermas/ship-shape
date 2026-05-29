@@ -530,4 +530,12 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Decision:** Close OWASP plan items 1–4 (authorization, bcrypt rounds, CSP) without adding Trivy/dependency scanning in this slice. Governance fields (`GOVERNANCE_PROPERTY_KEYS`, including `submitted_at`) are blocked on generic document create/PATCH for all principals, including workspace admin. The governed path is `POST /api/documents/:id/commands` with `set_governance` after capability `action: 'governance'`; `updateDocumentMutation` must not reject or strip governance keys when `capability.action === 'governance'`. Program and project mutating routes use write/create capability guards, not read guards. Password hashing standardizes on `PASSWORD_BCRYPT_ROUNDS = 12`. Admin credentials UI uses external JS; Helmet CSP removes `script-src 'unsafe-inline'`.
 
-**Consequence:** Mass-assignment probes should pass with zero findings on `input-governance-mass-assignment`. API tokens need explicit write/governance scopes for program/project/document mutations they were implicitly allowed before. `submitted_at` lifecycle still needs a dedicated governed setter if product requires setting it on save—PATCH injection remains blocked by design. OWASP code changes should land in a security-focused commit/PR separate from FleetGraph product slices and probe artifact snapshots unless the human explicitly combines them.
+**Consequence:** Mass-assignment probes should pass with zero findings on `input-governance-mass-assignment`. API tokens need explicit write/governance scopes for program/project/document mutations they were implicitly allowed before. `submitted_at` is set server-side on first weekly plan/retro content save (`stampWeeklyAccountabilitySubmittedAt`); clients cannot inject it via properties. OWASP code changes should land in a security-focused commit/PR separate from FleetGraph product slices; FleetGraph and timestamped probe run folders were unstaged from the security index on 2026-05-29 per D066.
+
+## D067 - OpenAPI Contract Includes Admin Credentials App Script
+
+**Date:** 2026-05-29
+
+**Decision:** Register `GET /admin/credentials/app.js` in the OpenAPI registry and regenerate `api/openapi.json` / `web/src/api/generated/ship-openapi.d.ts` whenever security routes change. `pnpm openapi:check:strict` must stay at zero missing/stale routes.
+
+**Consequence:** CSP externalization of the super-admin credentials UI remains contract-visible; route drift fails CI-style checks locally via `openapi:check:strict`.
