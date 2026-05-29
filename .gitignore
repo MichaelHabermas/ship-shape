@@ -141,3 +141,6 @@ web/dev-dist/
 
 .superpowers/
 my-docs/gai-ify-resources
+
+# FleetGraph observability eval scratch runs (datasets stay tracked)
+my-docs/evals/fleetgraph-observability/run-*/

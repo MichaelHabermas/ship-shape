@@ -12,6 +12,12 @@ export type FleetGraphProactiveCreateModelResult = {
   costMetadata: FleetGraphCostMetadata;
 };
 
+export type FleetGraphContextChatModelResult = {
+  answer: string;
+  tokenMetadata: FleetGraphTokenMetadata;
+  costMetadata: FleetGraphCostMetadata;
+};
+
 export async function generateProactiveCreateText(input: {
   candidate: FleetGraphAttentionCandidate;
   modelEnabled?: boolean;
@@ -49,6 +55,44 @@ export async function generateProactiveCreateText(input: {
   return {
     summary: summary?.trim() || deterministicSummary(input.candidate),
     draftMessage: draftParts.join('\n\n').trim() || deterministicDraft(input.candidate),
+    tokenMetadata,
+    costMetadata,
+  };
+}
+
+export async function generateContextChatText(input: {
+  prompt: string;
+  context: string;
+  modelEnabled?: boolean;
+}): Promise<FleetGraphContextChatModelResult | null> {
+  const config = fleetGraphConfig();
+  const shouldCallModel = input.modelEnabled ?? (
+    process.env.FLEETGRAPH_REAL_MODEL_ENABLED === 'true'
+    && Boolean(config.modelName)
+    && Boolean(process.env.OPENAI_API_KEY)
+  );
+
+  if (!shouldCallModel) return null;
+
+  const { ChatOpenAI } = await import('@langchain/openai');
+  const modelName = config.modelName ?? FLEETGRAPH_DEFAULT_MODEL;
+  const model = new ChatOpenAI(chatOpenAIOptions(modelName));
+  const response = await model.invoke([
+    ['system', [
+      'You are Ship chat. Answer naturally and directly.',
+      'Use the provided Ship context when it helps.',
+      'If the user asks a general question that is not about the Ship context, answer it as a normal chat question instead of forcing it back to the context.',
+      'Use Markdown for structure when it improves readability. Do not claim Ship changed data or contacted anyone.',
+    ].join(' ')],
+    ['human', [
+      `Ship context:\n${input.context || '(none)'}`,
+      `User question:\n${input.prompt}`,
+    ].join('\n\n')],
+  ]);
+  const tokenMetadata = tokenMetadataFromResponse(response, modelName);
+  const costMetadata = costMetadataFromResponse(response, tokenMetadata, modelName);
+  return {
+    answer: String(response.content).trim(),
     tokenMetadata,
     costMetadata,
   };

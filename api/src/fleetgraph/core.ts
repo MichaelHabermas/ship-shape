@@ -9,12 +9,20 @@ import {
   recommendedActionForVisibleOutput,
   visibleOutputForFinding,
 } from './evidence.js';
-import { generateProactiveCreateText } from './model.js';
+import { generateContextChatText, generateProactiveCreateText } from './model.js';
 import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
 import {
   chatAnswerFromChangeSummary,
+  classifyFleetGraphChatPrompt,
+  decisionForContextChatIntent,
   unsupportedChatAnswer,
 } from './runtime/chat.js';
+import {
+  chatModelAnswerFromContext,
+  contextTextForModel,
+  deterministicContextChatAnswer,
+  resolveContextChatBundle,
+} from './runtime/context-chat.js';
 import { deterministicRefinedDraft } from './runtime/drafts.js';
 import { isJsonRecord } from './runtime/json.js';
 import { changeSummaryFromOutputs, visibleOutputFromPacket, visibleOutputFromRun } from './runtime/outputs.js';
@@ -43,8 +51,6 @@ import { fleetGraphStableHash } from './trace-hash.js';
 import { noModelCostMetadata, noModelTokenMetadata } from './usage-metadata.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
 import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
-import { authorize } from '../security/capabilities.js';
-import type { Principal } from '../security/principal.js';
 import type {
   FleetGraphDecisionPacket,
   FleetGraphInput,
@@ -54,27 +60,6 @@ import type {
 } from './types.js';
 
 type QueryRunner = Pick<typeof pool, 'query'>;
-
-type ContextChatContext = Extract<FleetGraphInput['trigger'], { type: 'context_chat' }>['context'];
-type ContextChatDocument = {
-  id: string;
-  document_type: string;
-  title: string;
-  properties: Record<string, unknown>;
-  content: unknown;
-  belongsTo: Array<{ type: string; title: string }>;
-};
-type ContextChatSignal = {
-  finding: FleetGraphFinding;
-  output: FleetGraphVisibleOutput;
-  evidence: FleetGraphEvidenceItem[];
-};
-type ContextChatBundle = {
-  documents: ContextChatDocument[];
-  signals: ContextChatSignal[];
-  visibleOutput?: FleetGraphVisibleOutput;
-  evidence: FleetGraphEvidenceItem[];
-};
 
 export type FleetGraphPersistencePort = {
   saveFinding(input: SaveBlockedImportantIssueFindingInput): Promise<FleetGraphFinding>;
@@ -215,7 +200,7 @@ function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord 
 
 function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
   return new StateGraph(FleetGraphState)
-    .addNode('normalizeTrigger', (state) => tracedFleetGraphNode('normalizeTrigger', context, () =>
+    .addNode('normalizeTrigger', (state: FleetGraphStateValue) => tracedFleetGraphNode('normalizeTrigger', context, () =>
       Promise.resolve(normalizeTriggerNode(state, context))
     ))
     .addNode('detectorDecision', () => tracedFleetGraphNode('detectorDecision', context, () => detectorDecisionNode(context)))
@@ -297,6 +282,7 @@ function routeFleetGraphTrigger(state: FleetGraphStateValue): FleetGraphNodeName
     case 'error':
       return 'errorRun';
   }
+  throw new Error(`Unhandled FleetGraph trigger type: ${String(state.triggerType)}`);
 }
 
 async function detectorDecisionNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
@@ -678,370 +664,63 @@ async function runContextChat(
     );
   }
 
-  const answer = chatAnswerFromContext(input.trigger.prompt, bundle);
+  const primarySignal = bundle.signals[0];
+  const intent = classifyFleetGraphChatPrompt(input.trigger.prompt);
+  if (intent === 'summarize_changes' && primarySignal) {
+    return runContextChatChangeSummary(
+      input,
+      persistence,
+      triggerReason,
+      primarySignal.finding,
+      primarySignal.evidence,
+      primarySignal.output,
+      options
+    );
+  }
+
+  const modelResult = await generateContextChatText({
+    prompt: input.trigger.prompt,
+    context: contextTextForModel(bundle),
+  });
+  const answer = modelResult
+    ? chatModelAnswerFromContext(modelResult.answer, bundle)
+    : deterministicContextChatAnswer(input.trigger.prompt, bundle);
+  const decision = decisionForContextChatIntent(intent);
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
-    decision: 'explain',
+    decision,
     nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentContext', 'contextChat', 'produceOutput'],
     ...options.externalTrace,
   });
   const runInput = runInputFor({
     input,
     triggerReason,
-    decision: 'explain',
-    findingId: bundle.signals[0]?.finding.id,
-    sourceIssueId: bundle.signals[0]?.finding.source_issue_id ?? (bundle.documents[0]?.document_type === 'issue' ? bundle.documents[0].id : undefined),
-    sourceSprintId: bundle.signals[0]?.finding.source_sprint_id,
-    dedupeKey: bundle.signals[0]?.finding.dedupe_key,
+    decision,
+    findingId: primarySignal?.finding.id,
+    sourceIssueId: primarySignal?.finding.source_issue_id ?? (bundle.documents[0]?.document_type === 'issue' ? bundle.documents[0].id : undefined),
+    sourceSprintId: primarySignal?.finding.source_sprint_id,
+    dedupeKey: primarySignal?.finding.dedupe_key,
     evidence: bundle.evidence,
     output: { answer, contextDocuments: bundle.documents.map((document) => ({ id: document.id, title: document.title, type: document.document_type })) },
     traceMetadata,
-    tokenMetadata: noModelTokenMetadata(),
-    costMetadata: noModelCostMetadata(),
+    tokenMetadata: modelResult?.tokenMetadata ?? noModelTokenMetadata(),
+    costMetadata: modelResult?.costMetadata ?? noModelCostMetadata(),
     errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
   return resultFor({
-    decision: 'explain',
-    finding: bundle.signals[0]?.finding ?? null,
+    decision,
+    finding: primarySignal?.finding ?? null,
     run,
     runInput,
     visibleOutput: bundle.visibleOutput,
     evidence: bundle.evidence,
     traceMetadata,
-    tokenMetadata: noModelTokenMetadata(),
-    costMetadata: noModelCostMetadata(),
+    tokenMetadata: modelResult?.tokenMetadata ?? noModelTokenMetadata(),
+    costMetadata: modelResult?.costMetadata ?? noModelCostMetadata(),
     errorMetadata: observabilityErrorMetadata(options),
   });
-}
-
-async function resolveContextChatBundle(
-  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
-  persistence: FleetGraphPersistencePort,
-  options: FleetGraphCoreOptions
-): Promise<ContextChatBundle> {
-  const contexts = uniqueChatContexts([input.trigger.context, ...(input.trigger.context.attachedContexts ?? [])]);
-  const documents: ContextChatDocument[] = [];
-  const signals: ContextChatSignal[] = [];
-  const evidence: FleetGraphEvidenceItem[] = [];
-
-  for (const context of contexts) {
-    const finding = await resolveFindingForChatContext(input, persistence, context);
-    if (finding) {
-      const visible = await visibleOutputForFinding({
-        principal: input.principal,
-        workspaceId: input.workspaceId,
-        finding,
-        db: options.db,
-      });
-      if (!visible.output.noSafeOutput) {
-        signals.push({ finding, output: visible.output, evidence: visible.evidence });
-        evidence.push(...visible.evidence);
-      }
-      for (const documentId of [finding.source_issue_id, finding.source_sprint_id]) {
-        const document = await loadContextChatDocument({
-          db: options.db,
-          principal: input.principal,
-          workspaceId: input.workspaceId,
-          documentId,
-        });
-        if (document) documents.push(document);
-      }
-      continue;
-    }
-
-    const documentId = context.documentId ?? documentIdFromSourcePath(context.sourcePath);
-    if (!documentId) continue;
-    const document = await loadContextChatDocument({
-      db: options.db,
-      principal: input.principal,
-      workspaceId: input.workspaceId,
-      documentId,
-    });
-    if (document) documents.push(document);
-  }
-
-  return {
-    documents: uniqueDocuments(documents),
-    signals,
-    visibleOutput: signals[0]?.output,
-    evidence,
-  };
-}
-
-async function resolveFindingForChatContext(
-  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
-  persistence: FleetGraphPersistencePort,
-  context: ContextChatContext
-): Promise<FleetGraphFinding | null> {
-  if (context.findingId) return persistence.getFinding(input.workspaceId, context.findingId);
-
-  const documentId = context.documentId ?? documentIdFromSourcePath(context.sourcePath);
-  if (!documentId) return null;
-  if (context.kind === 'sprint') {
-    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceSprintId: documentId });
-    return findings[0] ?? null;
-  }
-  if (context.kind === 'issue' || context.kind === 'document') {
-    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceIssueId: documentId });
-    return findings[0] ?? null;
-  }
-
-  return null;
-}
-
-async function loadContextChatDocument(input: {
-  db?: QueryRunner;
-  principal?: Principal;
-  workspaceId: string;
-  documentId: string;
-}): Promise<ContextChatDocument | null> {
-  if (!input.principal) return null;
-  const db = input.db ?? pool;
-  const decision = await authorize(db, input.principal, {
-    resource: 'document',
-    action: 'read',
-    documentId: input.documentId,
-  });
-  if (!decision.allowed) return null;
-
-  const result = await db.query<{
-    id: string;
-    document_type: string;
-    title: string;
-    properties: Record<string, unknown> | null;
-    content: unknown;
-  }>(
-    `SELECT id, document_type, title, properties, content
-       FROM documents
-      WHERE id = $1
-        AND workspace_id = $2
-        AND archived_at IS NULL
-        AND deleted_at IS NULL`,
-    [input.documentId, input.workspaceId]
-  );
-  const row = result.rows[0];
-  if (!row) return null;
-
-  const associations = await db.query<{ type: string; title: string }>(
-    `SELECT da.relationship_type AS type, d.title
-       FROM document_associations da
-       JOIN documents d ON d.id = da.related_id
-      WHERE da.document_id = $1
-        AND d.workspace_id = $2
-        AND d.archived_at IS NULL
-        AND d.deleted_at IS NULL
-      ORDER BY da.relationship_type, d.title
-      LIMIT 8`,
-    [input.documentId, input.workspaceId]
-  );
-
-  return {
-    id: row.id,
-    document_type: row.document_type,
-    title: row.title,
-    properties: row.properties ?? {},
-    content: row.content,
-    belongsTo: associations.rows,
-  };
-}
-
-function chatAnswerFromContext(prompt: string, bundle: ContextChatBundle): {
-  title: string;
-  body: string;
-  nextStep?: string;
-  sources: Array<{ label: string; kind: string }>;
-  humanGate: Record<string, unknown>;
-} {
-  const normalized = prompt.trim().toLowerCase();
-  const primaryDocument = bundle.documents[0];
-  const primarySignal = bundle.signals[0];
-  const sources = [
-    ...bundle.documents.map((document) => ({ label: document.title, kind: document.document_type })),
-    ...bundle.signals.map((signal) => ({ label: signal.output.title, kind: 'finding' })),
-  ].filter((source, index, items) => items.findIndex((item) => item.label === source.label && item.kind === source.kind) === index);
-
-  if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
-    const target = primaryDocument?.title ?? primarySignal?.output.title ?? 'this context';
-    return {
-      title: 'Chat',
-      body: `Hi. I can talk through ${target}.`,
-      sources,
-      humanGate: { required: false },
-    };
-  }
-
-  if (/\b(next|do|action|should|move|unblock)\b/.test(normalized) && primarySignal) {
-    const nextStep = recommendedActionFromOutput(primarySignal.output);
-    return {
-      title: 'Next move',
-      body: nextStep || signalReason(primarySignal.output) || `The next move is tied to ${primarySignal.output.title}.`,
-      ...(nextStep ? { nextStep } : {}),
-      sources,
-      humanGate: primarySignal.output.humanGate,
-    };
-  }
-
-  if (/\b(why|flagged|blocked|stale|risk|reason|attention|signal)\b/.test(normalized) && primarySignal) {
-    return {
-      title: primarySignal.output.title,
-      body: signalReason(primarySignal.output) || primarySignal.output.summary,
-      ...(recommendedActionFromOutput(primarySignal.output) ? { nextStep: recommendedActionFromOutput(primarySignal.output) } : {}),
-      sources,
-      humanGate: primarySignal.output.humanGate,
-    };
-  }
-
-  if (primaryDocument) {
-    return {
-      title: primaryDocument.title,
-      body: documentAnswer(primaryDocument, bundle.documents.slice(1), primarySignal),
-      ...(primarySignal && recommendedActionFromOutput(primarySignal.output) ? { nextStep: recommendedActionFromOutput(primarySignal.output) } : {}),
-      sources,
-      humanGate: primarySignal?.output.humanGate ?? { required: false },
-    };
-  }
-
-  if (primarySignal) {
-    return {
-      title: primarySignal.output.title,
-      body: [primarySignal.output.summary, signalReason(primarySignal.output)].filter(Boolean).join(' '),
-      ...(recommendedActionFromOutput(primarySignal.output) ? { nextStep: recommendedActionFromOutput(primarySignal.output) } : {}),
-      sources,
-      humanGate: primarySignal.output.humanGate,
-    };
-  }
-
-  return unsupportedChatAnswer('I do not have visible context for that yet.');
-}
-
-function documentAnswer(
-  document: ContextChatDocument,
-  attachedDocuments: ContextChatDocument[],
-  signal: ContextChatSignal | undefined
-): string {
-  const lines: string[] = [];
-  const contentText = textFromTipTap(document.content);
-  const properties = compactDocumentProperties(document.properties);
-  const belongsTo = document.belongsTo.map((item) => `${labelForDocumentType(item.type)}: ${item.title}`);
-
-  const documentTypeLabel = labelForDocumentType(document.document_type);
-  lines.push(`${document.title} is ${indefiniteArticle(documentTypeLabel)} ${documentTypeLabel}.`);
-  if (properties.length > 0) lines.push(properties.join(' '));
-  if (belongsTo.length > 0) lines.push(`It is connected to ${belongsTo.join(', ')}.`);
-  if (contentText) lines.push(contentText);
-  if (signal) {
-    const reason = signalReason(signal.output);
-    if (reason) lines.push(`Current signal: ${reason}`);
-  }
-  if (attachedDocuments.length > 0) {
-    lines.push(`Also in context: ${attachedDocuments.map((item) => item.title).join(', ')}.`);
-  }
-
-  return lines.join('\n\n');
-}
-
-function compactDocumentProperties(properties: Record<string, unknown>): string[] {
-  const labels: Array<[string, string]> = [
-    ['state', 'State'],
-    ['status', 'Status'],
-    ['priority', 'Priority'],
-    ['source', 'Source'],
-    ['plan_approval', 'Plan approval'],
-    ['review_approval', 'Review approval'],
-  ];
-  return labels
-    .map(([key, label]) => {
-      const value = properties[key];
-      return typeof value === 'string' && value.trim() ? `${label}: ${value.trim()}.` : null;
-    })
-    .filter((line): line is string => Boolean(line));
-}
-
-function textFromTipTap(value: unknown): string {
-  const text = collectTipTapText(value).replace(/\s+/g, ' ').trim();
-  if (!text) return '';
-  return text.length > 900 ? `${text.slice(0, 900).trim()}...` : text;
-}
-
-function collectTipTapText(value: unknown): string {
-  if (!value || typeof value !== 'object') return '';
-  const node = value as { text?: unknown; content?: unknown };
-  const ownText = typeof node.text === 'string' ? node.text : '';
-  const childText = Array.isArray(node.content) ? node.content.map(collectTipTapText).join(' ') : '';
-  return [ownText, childText].filter(Boolean).join(' ');
-}
-
-function signalReason(output: FleetGraphVisibleOutput): string | null {
-  return output.evidence.find((item) => item.kind === 'blocker' && item.excerpt?.trim())?.excerpt?.trim()
-    || output.evidence.find((item) => ['stale', 'at_risk'].includes(item.kind) && item.claim?.trim())?.claim?.trim()
-    || output.summary
-    || null;
-}
-
-function recommendedActionFromOutput(output: FleetGraphVisibleOutput): string | undefined {
-  return stringFromUnknown(output.recommendedAction?.text)
-    || stringFromUnknown(output.recommendedAction?.summary)
-    || stringFromUnknown(output.recommendedAction?.label)
-    || undefined;
-}
-
-function stringFromUnknown(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function labelForDocumentType(type: string): string {
-  if (type === 'sprint') return 'week';
-  return type.replace(/_/g, ' ');
-}
-
-function indefiniteArticle(label: string): 'a' | 'an' {
-  return /^[aeiou]/i.test(label) ? 'an' : 'a';
-}
-
-function uniqueChatContexts(contexts: ContextChatContext[]): ContextChatContext[] {
-  const seen = new Set<string>();
-  return contexts.filter((context) => {
-    const key = context.findingId ? `finding:${context.findingId}` : `document:${context.documentId ?? documentIdFromSourcePath(context.sourcePath) ?? context.kind}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function uniqueDocuments(documents: ContextChatDocument[]): ContextChatDocument[] {
-  const seen = new Set<string>();
-  return documents.filter((document) => {
-    if (seen.has(document.id)) return false;
-    seen.add(document.id);
-    return true;
-  });
-}
-
-function documentIdFromSourcePath(sourcePath: string | undefined): string | null {
-  const match = sourcePath?.match(/^\/(?:documents|issues|projects|programs|sprints)\/([^/?#]+)/);
-  return match?.[1] ?? null;
-}
-
-async function resolveContextChatFinding(
-  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
-  persistence: FleetGraphPersistencePort
-): Promise<FleetGraphFinding | null> {
-  const { context } = input.trigger;
-  if (context.findingId) return persistence.getFinding(input.workspaceId, context.findingId);
-
-  if (!context.documentId) return null;
-  if (context.kind === 'sprint') {
-    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceSprintId: context.documentId });
-    return findings[0] ?? null;
-  }
-  if (context.kind === 'issue' || context.kind === 'document') {
-    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceIssueId: context.documentId });
-    return findings[0] ?? null;
-  }
-
-  return null;
 }
 
 async function runContextChatChangeSummary(

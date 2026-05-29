@@ -179,10 +179,8 @@ describe('FleetGraph executable golden cases', () => {
     expect(result.findingInput?.evidenceSnapshot).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: 'blocker' }),
     ]));
-    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
-      decision: 'create_finding',
-      tokenMetadata: { modelCalls: 0 },
-    }));
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'create_finding' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
     expectSafeTrace(requireMockInput(vi.mocked(port.recordRun)));
   });
 
@@ -219,10 +217,8 @@ describe('FleetGraph executable golden cases', () => {
 
     expect(result.decision).toBe(testCase.expectedDecision);
     expect(port.saveFinding).not.toHaveBeenCalled();
-    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
-      decision: 'quiet_exit',
-      tokenMetadata: { modelCalls: 0 },
-    }));
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'quiet_exit' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 
   it('executes explain existing finding with visible evidence and no model call', async () => {
@@ -237,10 +233,8 @@ describe('FleetGraph executable golden cases', () => {
 
     expect(result.decision).toBe(testCase.expectedDecision);
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
-    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
-      decision: 'explain',
-      tokenMetadata: { modelCalls: 0 },
-    }));
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'explain' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 
   it('executes dismiss finding as FleetGraph-only status update', async () => {
@@ -264,10 +258,8 @@ describe('FleetGraph executable golden cases', () => {
       findingId,
       dismissedBy: userId,
     }));
-    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
-      decision: 'dismiss',
-      tokenMetadata: { modelCalls: 0 },
-    }));
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'dismiss' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 
   it('executes restricted-source hidden case as no-safe-output', async () => {
