@@ -41,9 +41,15 @@ function getEventsWsUrl(): string {
 export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
+  const userRef = useRef(user);
+  const intentionalDisconnectRef = useRef(false);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const subscribersRef = useRef<Map<RealtimeEventType, Set<EventCallback>>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   // Subscribe to events
   const subscribe = useCallback((eventType: RealtimeEventType, callback: EventCallback) => {
@@ -62,10 +68,12 @@ export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
 
   // Connect to WebSocket
   const connect = useCallback(() => {
+    if (!userRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
     if (wsRef.current?.readyState === WebSocket.CONNECTING) return;
     if (wsRef.current?.readyState === WebSocket.CLOSING) return;
 
+    intentionalDisconnectRef.current = false;
     const ws = new WebSocket(getEventsWsUrl());
     wsRef.current = ws;
 
@@ -98,9 +106,10 @@ export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
         wsRef.current = null;
       }
 
-      // Reconnect after delay if user is still logged in
-      if (user) {
+      // Reconnect after delay if user is still logged in.
+      if (!intentionalDisconnectRef.current && userRef.current) {
         reconnectTimeoutRef.current = setTimeout(() => {
+          if (!userRef.current) return;
           console.log('[RealtimeEvents] Reconnecting...');
           connect();
         }, 3000);
@@ -111,10 +120,11 @@ export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
       console.error('[RealtimeEvents] Error:', err);
       ws.close();
     };
-  }, [user]);
+  }, []);
 
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
+    intentionalDisconnectRef.current = true;
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;

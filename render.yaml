@@ -3,7 +3,7 @@ services:
     name: ship-shape-api
     runtime: node
     plan: free
-    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:api && pnpm --filter @ship/api exec node dist/db/migrate.js
+    buildCommand: CI=true pnpm install --frozen-lockfile && pnpm build:api && pnpm --filter @ship/api exec node dist/db/migrate.js && pnpm --filter @ship/api exec node dist/db/seed.js && FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB=1 FLEETGRAPH_DEMO_WEB_URL=https://ship-shape-web.onrender.com pnpm --filter @ship/api exec node dist/scripts/fleetgraph-demo.js
     startCommand: pnpm --filter @ship/api start
     healthCheckPath: /health
     envVars:
@@ -28,7 +28,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: FLEETGRAPH_WORKER_ENABLED
-        value: "true"
+        value: "false"
       - key: FLEETGRAPH_WORKER_INTERVAL_MS
         value: "120000"
       - key: FLEETGRAPH_MANUAL_RUN_API_ENABLED

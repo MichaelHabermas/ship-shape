@@ -3,8 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import session from 'express-session';
-import { csrfSync } from 'csrf-sync';
+import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
 import documentsRoutes from './routes/documents.js';
@@ -40,7 +39,7 @@ import { documentCommentsRouter, commentsRouter } from './routes/comments.js';
 import { authMiddleware } from './middleware/auth.js';
 import { setupSwagger } from './swagger.js';
 import { initializeCAIA } from './services/caia.js';
-import { sessionSameSitePolicy } from './config/session-cookies.js';
+import { sessionCookieOptions } from './config/session-cookies.js';
 import { isDevEnv, isProduction, isTestEnv } from './config/runtime.js';
 
 // Validate SESSION_SECRET in production
@@ -54,26 +53,50 @@ function getHeaderValue(value: string | string[] | undefined): string | undefine
   return Array.isArray(value) ? value[0] : value;
 }
 
-// CSRF protection setup
-const { csrfSynchronisedProtection, generateToken } = csrfSync({
-  getTokenFromRequest: (req) => getHeaderValue(req.headers['x-csrf-token']) ?? '',
-});
-
 // Conditional CSRF middleware - skip for API token auth (Bearer tokens are not vulnerable to CSRF)
 import { Request, Response, NextFunction } from 'express';
+const CSRF_COOKIE_NAME = 'csrf_token';
+
+function generateCsrfToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function csrfTokensMatch(expected: string, presented: string): boolean {
+  const expectedBuffer = Buffer.from(expected);
+  const presentedBuffer = Buffer.from(presented);
+  return expectedBuffer.length === presentedBuffer.length
+    && crypto.timingSafeEqual(expectedBuffer, presentedBuffer);
+}
+
 const conditionalCsrf = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers?.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     // Skip CSRF for API token requests - Bearer tokens are not auto-attached by browsers
     return next();
   }
+
   const originDecision = validateCookieAuthOrigin(req);
   if (!originDecision.allowed) {
     res.status(403).json({ error: originDecision.reason });
     return;
   }
-  // Apply CSRF protection for session-based auth
-  return csrfSynchronisedProtection(req, res, next);
+
+  if (!isStateChangingMethod(req.method)) {
+    return next();
+  }
+
+  const expectedToken = req.signedCookies?.[CSRF_COOKIE_NAME];
+  const presentedToken = getHeaderValue(req.headers['x-csrf-token']);
+  if (
+    typeof expectedToken !== 'string'
+    || typeof presentedToken !== 'string'
+    || !csrfTokensMatch(expectedToken, presentedToken)
+  ) {
+    res.status(403).json({ error: 'Invalid or missing CSRF token' });
+    return;
+  }
+
+  return next();
 };
 
 function isStateChangingMethod(method: string): boolean {
@@ -138,15 +161,6 @@ function validateCookieAuthOrigin(req: Request): { allowed: true } | { allowed: 
   }
 
   return { allowed: false, reason: 'Cross-site request rejected' };
-}
-
-function isCsrfError(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false;
-  const candidate = err as { name?: string; message?: string; code?: string; status?: number };
-  return candidate.status === 403
-    && (candidate.name === 'ForbiddenError'
-      || candidate.code === 'EBADCSRFTOKEN'
-      || candidate.message?.toLowerCase().includes('csrf') === true);
 }
 
 function isBodyParserSyntaxError(err: unknown): boolean {
@@ -253,22 +267,11 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
   app.use(express.urlencoded({ extended: true, limit: '10mb' })); // For HTML form submissions
   app.use(cookieParser(sessionSecret));
 
-  // Session middleware for CSRF token storage
-  app.use(session({
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: isProduction(),
-      sameSite: sessionSameSitePolicy(),
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    },
-  }));
-
   // CSRF token endpoint (must be before CSRF protection middleware)
-  app.get('/api/csrf-token', (req, res) => {
-    res.json({ token: generateToken(req) });
+  app.get('/api/csrf-token', (_req, res) => {
+    const token = generateCsrfToken();
+    res.cookie(CSRF_COOKIE_NAME, token, sessionCookieOptions({ signed: true }, 'lax'));
+    res.json({ token });
   });
 
   // Health check (no CSRF needed)
@@ -366,12 +369,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
       return;
     }
 
-    if (!isCsrfError(err)) {
-      next(err);
-      return;
-    }
-
-    res.status(403).json({ error: 'Invalid or missing CSRF token' });
+    next(err);
   });
 
   return app;
