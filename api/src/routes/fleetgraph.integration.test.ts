@@ -14,6 +14,14 @@ const testRunId = `${Date.now().toString(36)}${Math.random().toString(36).slice(
 type CsrfResponseBody = { token: string };
 type FleetGraphFindingsBody = { findings: unknown[] };
 type FleetGraphRunBody = { decision: string; finding?: unknown };
+type FleetGraphChatBody = {
+  decision: string;
+  answer?: {
+    title?: string;
+    body?: string;
+    nextStep?: string;
+  };
+};
 
 async function createUser(label: string): Promise<string> {
   const result = await pool.query<{ id: string }>(
@@ -219,6 +227,48 @@ describe('FleetGraph route security', () => {
       .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
       .set('Authorization', `Bearer ${readOnlyToken}`)
       .expect(403);
+  });
+
+  it('answers attached document chat through the real FleetGraph route', async () => {
+    await saveBlockedImportantIssueFinding({
+      workspaceId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      severity: 'urgent',
+      confidence: 0.86,
+      title: 'Private source finding for chat',
+      summary: 'This chat smoke summary proves the route can answer from attached context.',
+      evidenceSnapshot: [{
+        kind: 'source_issue',
+        sourceDocumentId: issueId,
+        sourceType: 'issue',
+        claim: 'Hidden private issue is blocked.',
+        excerpt: 'chat smoke blocker',
+        visibility: 'internal',
+        visibleFields: ['title'],
+      }],
+      humanGate: { required: true },
+    });
+
+    const res = await request(app)
+      .post('/api/fleetgraph/chat')
+      .set('Cookie', adminCookie)
+      .set('x-csrf-token', adminCsrf)
+      .send({
+        prompt: "What's happening here?",
+        context: {
+          kind: 'document',
+          documentId: issueId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      })
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphChatBody;
+    expect(body.decision).toBe('explain');
+    expect(body.answer?.title).toBe('Private source finding for chat');
+    expect(body.answer?.body).toContain('This chat smoke summary proves the route can answer from attached context.');
+    expect(res.text).not.toContain('I can answer from the attached issue');
   });
 
   it('fails closed for manual runs in production unless explicitly enabled', async () => {

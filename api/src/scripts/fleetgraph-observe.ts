@@ -162,8 +162,6 @@ function configureProviderSelection(providers: ProviderSelection): void {
 
 function configureModelSpend(noModel: boolean): void {
   process.env.FLEETGRAPH_REAL_MODEL_ENABLED = noModel ? 'false' : 'true';
-  process.env.FLEETGRAPH_MODEL_INPUT_COST_PER_1M ??= '0.15';
-  process.env.FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M ??= '0.60';
 }
 
 async function runSmokeObservation(): Promise<ObservedTrace> {

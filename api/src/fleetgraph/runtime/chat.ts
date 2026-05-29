@@ -23,6 +23,12 @@ export function classifyFleetGraphChatPrompt(prompt: string): FleetGraphChatInte
   const normalized = prompt.trim().toLowerCase();
   if (!normalized) return 'unsupported';
 
+  if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
+    return 'why_flagged';
+  }
+  if (/\b(how many|count|list|show all|all issues|issues do we have|workspace)\b/.test(normalized)) {
+    return 'unsupported';
+  }
   if (/\b(changed?|updates?|different|since|progress)\b/.test(normalized)) {
     return 'summarize_changes';
   }
@@ -38,7 +44,7 @@ export function classifyFleetGraphChatPrompt(prompt: string): FleetGraphChatInte
   if (/\b(next|do|help|action|should)\b/.test(normalized)) {
     return 'next_step';
   }
-  if (/\b(why|flagged|blocked|reason|happened|explain|going on|what'?s going on)\b/.test(normalized)) {
+  if (/\b(why|flagged|blocked|reason|happened|happening|explain|status|going on|what'?s going on|what'?s this|what is this)\b/.test(normalized)) {
     return 'why_flagged';
   }
 

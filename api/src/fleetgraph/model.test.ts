@@ -34,7 +34,7 @@ describe('generateProactiveCreateText', () => {
     process.env = { ...previousEnv };
   });
 
-  it('captures provider, model, and token usage from real model responses', async () => {
+  it('captures provider, model, token usage, and catalog cost from real model responses', async () => {
     const result = await generateProactiveCreateText({ candidate });
 
     expect(result.tokenMetadata).toEqual({
@@ -45,7 +45,7 @@ describe('generateProactiveCreateText', () => {
       outputTokens: 24,
       totalTokens: 144,
     });
-    expect(result.costMetadata).toEqual({});
+    expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.0000324);
   });
 
   it('estimates cost only from explicit per-million-token env pricing', async () => {

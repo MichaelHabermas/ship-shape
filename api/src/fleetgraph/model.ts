@@ -1,5 +1,6 @@
 // FleetGraph model adapter keeps real proactive-create LLM calls opt-in and testable.
 import { fleetGraphConfig } from '../config/fleetgraph.js';
+import { FLEETGRAPH_DEFAULT_MODEL, resolveFleetGraphModelPricing } from '../config/fleetgraph-models.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 import type { FleetGraphTokenMetadata } from './types.js';
 
@@ -28,7 +29,7 @@ export async function generateProactiveCreateText(input: {
   }
 
   const { ChatOpenAI } = await import('@langchain/openai');
-  const modelName = config.modelName ?? 'gpt-4o-mini';
+  const modelName = config.modelName ?? FLEETGRAPH_DEFAULT_MODEL;
   const model = new ChatOpenAI({ model: modelName, temperature: 0 });
   const response = await model.invoke([
     ['system', 'Write concise, evidence-grounded FleetGraph unblock copy. Do not claim Ship was mutated or anyone was contacted.'],
@@ -44,7 +45,7 @@ export async function generateProactiveCreateText(input: {
   const content = String(response.content);
   const [summary, ...draftParts] = content.split(/\n\n+/);
   const tokenMetadata = tokenMetadataFromResponse(response, modelName);
-  const costMetadata = costMetadataFromResponse(response, tokenMetadata);
+  const costMetadata = costMetadataFromResponse(response, tokenMetadata, modelName);
 
   return {
     summary: summary?.trim() || deterministicSummary(input.candidate),
@@ -106,14 +107,18 @@ function tokenMetadataFromResponse(response: unknown, model: string): FleetGraph
 
 function costMetadataFromResponse(
   response: unknown,
-  tokenMetadata: FleetGraphTokenMetadata
+  tokenMetadata: FleetGraphTokenMetadata,
+  modelName: string
 ): FleetGraphProactiveCreateModelResult['costMetadata'] {
   const usage = recordValue(response, 'usage_metadata') ?? recordValue(response, 'usageMetadata');
   const directCost = numberValue(usage, 'total_cost') ?? numberValue(usage, 'totalCost');
   if (directCost !== undefined) return { estimatedCostUsd: directCost };
 
-  const inputCostPerMillion = envNumber('FLEETGRAPH_MODEL_INPUT_COST_PER_1M');
-  const outputCostPerMillion = envNumber('FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M');
+  const catalogPricing = resolveFleetGraphModelPricing(modelName);
+  const inputCostPerMillion = envNumber('FLEETGRAPH_MODEL_INPUT_COST_PER_1M')
+    ?? catalogPricing?.inputCostPer1M;
+  const outputCostPerMillion = envNumber('FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M')
+    ?? catalogPricing?.outputCostPer1M;
   if (
     inputCostPerMillion === undefined ||
     outputCostPerMillion === undefined ||

@@ -33,12 +33,21 @@ services:
         value: "120000"
       - key: FLEETGRAPH_MANUAL_RUN_API_ENABLED
         value: "true"
+      # Real LLM calls are opt-in: set OPENAI_API_KEY in Render, then flip REAL_MODEL_ENABLED.
+      - key: FLEETGRAPH_REAL_MODEL_ENABLED
+        value: "false"
+      - key: FLEETGRAPH_MODEL
+        value: gpt-4.1-mini
+      - key: OPENAI_API_KEY
+        sync: false
       - key: LANGSMITH_TRACING
         value: "true"
       - key: LANGCHAIN_TRACING_V2
         value: "true"
       - key: LANGSMITH_PROJECT
         value: ship-shape-fleetgraph
+      - key: LANGSMITH_ENDPOINT
+        value: https://api.smith.langchain.com
       - key: LANGSMITH_API_KEY
         sync: false
       - key: LANGFUSE_BASE_URL

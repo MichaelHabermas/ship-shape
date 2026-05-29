@@ -400,6 +400,56 @@ describe('FleetGraph shared core', () => {
     }));
   });
 
+  it('answers natural current-context prompts from an attached finding', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: "What's happening here?",
+        context: {
+          kind: 'document',
+          documentId: issueId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('explain');
+    expect(result.visibleOutput?.summary).toContain('Blocked issue');
+    expect(port.listFindingsForSource).toHaveBeenCalledWith({ workspaceId, sourceIssueId: issueId });
+  });
+
+  it('treats a greeting as a request for the attached context summary', async () => {
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'hi',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: readableSourceDb() });
+
+    expect(result.decision).toBe('explain');
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.outputSnapshot).toMatchObject({
+      answer: {
+        title: 'Blocked issue: Blocked issue',
+      },
+    });
+  });
+
   it('answers broad-but-context-bound chat without becoming workspace-wide', async () => {
     const port = persistence();
 
