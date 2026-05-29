@@ -159,13 +159,14 @@ router.get('/notifications', authMiddleware, defineRoute({
         userId,
         limit: parsed.query.limit,
       });
-      const notifications = (await Promise.all(findings.map(async (finding) => {
+      const notifications: FleetGraphNotificationResponse[] = [];
+      for (const finding of findings) {
         const { output } = await visibleOutputForFinding({ principal, workspaceId, finding });
-        if (output.noSafeOutput) return null;
-        return fleetGraphNotificationResponse({ finding, visibleOutput: output });
-      })))
-        .filter((notification): notification is FleetGraphNotificationResponse => notification !== null)
-        .slice(0, parsed.query.limit ?? 25);
+        if (!output.noSafeOutput) {
+          notifications.push(fleetGraphNotificationResponse({ finding, visibleOutput: output }));
+        }
+        if (notifications.length >= (parsed.query.limit ?? 25)) break;
+      }
 
       res.json({ notifications });
     } catch (err) {
