@@ -23,6 +23,7 @@ describe('generateProactiveCreateText', () => {
     process.env.FLEETGRAPH_MODEL = 'gpt-4o-mini';
     process.env.OPENAI_API_KEY = 'test-key';
     delete process.env.FLEETGRAPH_MODEL_INPUT_COST_PER_1M;
+    delete process.env.FLEETGRAPH_MODEL_CACHED_INPUT_COST_PER_1M;
     delete process.env.FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M;
     invoke.mockResolvedValue({
       content: 'Blocked by API access.\n\nCan you confirm who owns the API access unblocker?',
@@ -56,11 +57,43 @@ describe('generateProactiveCreateText', () => {
 
   it('estimates cost only from explicit per-million-token env pricing', async () => {
     process.env.FLEETGRAPH_MODEL_INPUT_COST_PER_1M = '0.15';
+    process.env.FLEETGRAPH_MODEL_CACHED_INPUT_COST_PER_1M = '0.075';
     process.env.FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M = '0.60';
 
     const result = await generateProactiveCreateText({ candidate });
 
     expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.0000324);
+  });
+
+  it('tracks cached input tokens and prices them separately when the provider reports them', async () => {
+    process.env.FLEETGRAPH_MODEL = 'gpt-5.5';
+    invoke.mockResolvedValueOnce({
+      content: 'Blocked by API access.\n\nCan you confirm who owns the API access unblocker?',
+      usage_metadata: {
+        input_tokens: 120,
+        input_token_details: {
+          cached_tokens: 40,
+        },
+        output_tokens: 24,
+        total_tokens: 144,
+      },
+    });
+
+    const result = await generateProactiveCreateText({ candidate });
+
+    expect(result.tokenMetadata).toMatchObject({
+      inputTokens: 120,
+      cachedInputTokens: 40,
+      billableInputTokens: 80,
+      outputTokens: 24,
+    });
+    expect(result.costMetadata).toMatchObject({
+      inputCostUsd: 0.0004,
+      cachedInputCostUsd: 0.00002,
+      outputCostUsd: 0.00072,
+      costSource: 'catalog_estimate',
+    });
+    expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.00114);
   });
 
   it('omits temperature for models that only support the provider default', async () => {

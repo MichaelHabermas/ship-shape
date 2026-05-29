@@ -43,6 +43,8 @@ export type FleetGraphTokenMetadata = {
   provider?: string;
   model?: string;
   inputTokens?: number;
+  cachedInputTokens?: number;
+  billableInputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
   usageSource?: 'none' | 'model_response' | 'partial_model_response' | 'synthetic_calibration';
@@ -52,6 +54,7 @@ export type FleetGraphTokenMetadata = {
 export type FleetGraphCostMetadata = {
   estimatedCostUsd?: number;
   inputCostUsd?: number;
+  cachedInputCostUsd?: number;
   outputCostUsd?: number;
   currency?: 'USD';
   costSource?: 'none' | 'model_response' | 'catalog_estimate' | 'env_estimate' | 'synthetic_calibration';

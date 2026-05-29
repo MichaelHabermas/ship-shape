@@ -2054,5 +2054,104 @@
       "output_groundedness": 1
     },
     "reportPath": "/Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evals/fleetgraph-observability/run-2026-05-29T16-48-47-461Z.json"
+  },
+  {
+    "id": "2026-05-29T16:52:49.024Z:proactive_create:model_cost",
+    "addedAt": "2026-05-29T16:52:49.024Z",
+    "sourceRunGeneratedAt": "2026-05-29T16:52:49.024Z",
+    "label": "proactive_create",
+    "decision": "create_finding",
+    "reason": "model_cost",
+    "failedScores": [],
+    "providerFailures": [],
+    "tokenMetadata": {
+      "modelCalls": 1,
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "usageSource": "model_response",
+      "inputTokens": 89,
+      "cachedInputTokens": 0,
+      "billableInputTokens": 89,
+      "outputTokens": 176,
+      "totalTokens": 265
+    },
+    "costMetadata": {
+      "inputCostUsd": 0.000445,
+      "outputCostUsd": 0.00528,
+      "estimatedCostUsd": 0.005725,
+      "currency": "USD",
+      "costSource": "catalog_estimate"
+    },
+    "providers": [
+      {
+        "provider": "langsmith",
+        "traceId": "d610e49e-e84d-4c4e-b54a-2c05a652b53b",
+        "traceUrl": "https://smith.langchain.com/r/d610e49e-e84d-4c4e-b54a-2c05a652b53b",
+        "sharedTraceUrl": "https://smith.langchain.com/public/831d2215-2768-4962-8d75-8539b51a810e/r"
+      },
+      {
+        "provider": "langfuse",
+        "traceId": "05eeddfea5d23c3e583a370f11b1633c",
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/05eeddfea5d23c3e583a370f11b1633c",
+        "sharedTraceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/05eeddfea5d23c3e583a370f11b1633c"
+      }
+    ],
+    "expectedScores": {
+      "trace_safety": 1,
+      "usage_present": 1,
+      "quiet_exit_zero_cost": 1,
+      "human_gate_present": 1,
+      "no_fake_mutation_claim": 1,
+      "decision_shape_valid": 1,
+      "output_actionability": 1,
+      "output_groundedness": 1
+    },
+    "reportPath": "/Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evals/fleetgraph-observability/run-2026-05-29T16-52-49-024Z.json"
+  },
+  {
+    "id": "2026-05-29T16:52:49.024Z:explain:provider_failure",
+    "addedAt": "2026-05-29T16:52:49.024Z",
+    "sourceRunGeneratedAt": "2026-05-29T16:52:49.024Z",
+    "label": "explain",
+    "decision": "explain",
+    "reason": "provider_failure",
+    "failedScores": [],
+    "providerFailures": [
+      "Failed to share run. Received status [404]: Not Found. Message: {\"detail\":\"Run not found\"}"
+    ],
+    "tokenMetadata": {
+      "modelCalls": 0,
+      "usageSource": "none",
+      "noUsageReason": "deterministic_no_model_call"
+    },
+    "costMetadata": {
+      "costSource": "none",
+      "noCostReason": "deterministic_no_model_call"
+    },
+    "providers": [
+      {
+        "provider": "langsmith",
+        "traceId": "7b8dc57e-00e7-4139-8c14-689f58a36ac0",
+        "traceUrl": "https://smith.langchain.com/r/7b8dc57e-00e7-4139-8c14-689f58a36ac0",
+        "sharedTraceUrl": null
+      },
+      {
+        "provider": "langfuse",
+        "traceId": "c68e3e9a4fb4630d25f5f559f5484d3e",
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/c68e3e9a4fb4630d25f5f559f5484d3e",
+        "sharedTraceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/c68e3e9a4fb4630d25f5f559f5484d3e"
+      }
+    ],
+    "expectedScores": {
+      "trace_safety": 1,
+      "usage_present": 1,
+      "quiet_exit_zero_cost": 1,
+      "human_gate_present": 1,
+      "no_fake_mutation_claim": 1,
+      "decision_shape_valid": 1,
+      "output_actionability": 1,
+      "output_groundedness": 1
+    },
+    "reportPath": "/Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evals/fleetgraph-observability/run-2026-05-29T16-52-49-024Z.json"
   }
 ]

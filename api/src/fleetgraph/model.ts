@@ -98,10 +98,23 @@ function tokenMetadataFromResponse(response: unknown, model: string): FleetGraph
   const usage = recordValue(response, 'usage_metadata') ?? recordValue(response, 'usageMetadata');
   const responseMetadata = recordValue(response, 'response_metadata') ?? recordValue(response, 'responseMetadata');
   const tokenUsage = recordValue(responseMetadata, 'tokenUsage') ?? recordValue(responseMetadata, 'token_usage');
+  const inputTokenDetails = recordValue(usage, 'input_token_details') ??
+    recordValue(usage, 'inputTokenDetails') ??
+    recordValue(usage, 'prompt_tokens_details') ??
+    recordValue(usage, 'promptTokensDetails') ??
+    recordValue(tokenUsage, 'promptTokensDetails') ??
+    recordValue(tokenUsage, 'prompt_tokens_details');
   const inputTokens = numberValue(usage, 'input_tokens')
     ?? numberValue(usage, 'prompt_tokens')
     ?? numberValue(tokenUsage, 'promptTokens')
     ?? numberValue(tokenUsage, 'prompt_tokens');
+  const cachedInputTokens = numberValue(inputTokenDetails, 'cached_tokens') ??
+    numberValue(inputTokenDetails, 'cachedTokens') ??
+    numberValue(inputTokenDetails, 'cache_read') ??
+    numberValue(inputTokenDetails, 'cacheRead');
+  const billableInputTokens = inputTokens !== undefined && cachedInputTokens !== undefined
+    ? Math.max(inputTokens - cachedInputTokens, 0)
+    : undefined;
   const outputTokens = numberValue(usage, 'output_tokens')
     ?? numberValue(usage, 'completion_tokens')
     ?? numberValue(tokenUsage, 'completionTokens')
@@ -118,6 +131,8 @@ function tokenMetadataFromResponse(response: unknown, model: string): FleetGraph
     usageSource: totalTokens !== undefined ? 'model_response' : 'partial_model_response',
     ...(totalTokens === undefined ? { noUsageReason: 'model_response_missing_total_tokens' } : {}),
     ...(inputTokens !== undefined ? { inputTokens } : {}),
+    ...(cachedInputTokens !== undefined ? { cachedInputTokens } : {}),
+    ...(billableInputTokens !== undefined ? { billableInputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(totalTokens !== undefined ? { totalTokens } : {}),
   };
@@ -141,6 +156,8 @@ function costMetadataFromResponse(
   const catalogPricing = resolveFleetGraphModelPricing(modelName);
   const inputCostPerMillion = envNumber('FLEETGRAPH_MODEL_INPUT_COST_PER_1M')
     ?? catalogPricing?.inputCostPer1M;
+  const cachedInputCostPerMillion = envNumber('FLEETGRAPH_MODEL_CACHED_INPUT_COST_PER_1M')
+    ?? catalogPricing?.cachedInputCostPer1M;
   const outputCostPerMillion = envNumber('FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M')
     ?? catalogPricing?.outputCostPer1M;
   if (
@@ -155,14 +172,21 @@ function costMetadataFromResponse(
     };
   }
 
-  const inputCostUsd = (tokenMetadata.inputTokens / 1_000_000) * inputCostPerMillion;
+  const cachedInputTokens = tokenMetadata.cachedInputTokens ?? 0;
+  const billableInputTokens = tokenMetadata.billableInputTokens ?? Math.max(tokenMetadata.inputTokens - cachedInputTokens, 0);
+  const inputCostUsd = (billableInputTokens / 1_000_000) * inputCostPerMillion;
+  const cachedInputCostUsd = cachedInputCostPerMillion !== undefined
+    ? (cachedInputTokens / 1_000_000) * cachedInputCostPerMillion
+    : 0;
   const outputCostUsd = (tokenMetadata.outputTokens / 1_000_000) * outputCostPerMillion;
   return {
     inputCostUsd,
+    ...(cachedInputTokens > 0 ? { cachedInputCostUsd } : {}),
     outputCostUsd,
-    estimatedCostUsd: inputCostUsd + outputCostUsd,
+    estimatedCostUsd: inputCostUsd + cachedInputCostUsd + outputCostUsd,
     currency: 'USD',
     costSource: envNumber('FLEETGRAPH_MODEL_INPUT_COST_PER_1M') !== undefined ||
+      envNumber('FLEETGRAPH_MODEL_CACHED_INPUT_COST_PER_1M') !== undefined ||
       envNumber('FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M') !== undefined
       ? 'env_estimate'
       : 'catalog_estimate',

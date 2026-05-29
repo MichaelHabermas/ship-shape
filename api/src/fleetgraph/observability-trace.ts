@@ -606,6 +606,8 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: s
 function usageMetadataForLangSmith(tokenMetadata: FleetGraphResult['tokenMetadata']): Record<string, number> {
   return {
     ...(tokenMetadata.inputTokens !== undefined ? { input_tokens: tokenMetadata.inputTokens } : {}),
+    ...(tokenMetadata.cachedInputTokens !== undefined ? { cached_input_tokens: tokenMetadata.cachedInputTokens } : {}),
+    ...(tokenMetadata.billableInputTokens !== undefined ? { billable_input_tokens: tokenMetadata.billableInputTokens } : {}),
     ...(tokenMetadata.outputTokens !== undefined ? { output_tokens: tokenMetadata.outputTokens } : {}),
     ...(tokenMetadata.totalTokens !== undefined ? { total_tokens: tokenMetadata.totalTokens } : {}),
   };
@@ -614,6 +616,8 @@ function usageMetadataForLangSmith(tokenMetadata: FleetGraphResult['tokenMetadat
 function usageMetadataForLangfuse(tokenMetadata: FleetGraphResult['tokenMetadata']): Record<string, number> {
   return {
     ...(tokenMetadata.inputTokens !== undefined ? { input: tokenMetadata.inputTokens } : {}),
+    ...(tokenMetadata.cachedInputTokens !== undefined ? { cachedInput: tokenMetadata.cachedInputTokens } : {}),
+    ...(tokenMetadata.billableInputTokens !== undefined ? { billableInput: tokenMetadata.billableInputTokens } : {}),
     ...(tokenMetadata.outputTokens !== undefined ? { output: tokenMetadata.outputTokens } : {}),
     ...(tokenMetadata.totalTokens !== undefined ? { total: tokenMetadata.totalTokens } : {}),
   };
@@ -622,6 +626,7 @@ function usageMetadataForLangfuse(tokenMetadata: FleetGraphResult['tokenMetadata
 function costDetailsForLangfuse(costMetadata: FleetGraphResult['costMetadata']): Record<string, number> {
   return {
     ...(costMetadata.inputCostUsd !== undefined ? { input: costMetadata.inputCostUsd } : {}),
+    ...(costMetadata.cachedInputCostUsd !== undefined ? { cachedInput: costMetadata.cachedInputCostUsd } : {}),
     ...(costMetadata.outputCostUsd !== undefined ? { output: costMetadata.outputCostUsd } : {}),
     ...(costMetadata.estimatedCostUsd !== undefined ? {
       total: costMetadata.estimatedCostUsd,
@@ -692,6 +697,8 @@ function traceUsageSummary(result: FleetGraphResult): {
       usageSource: tokenMetadata.usageSource ?? (hasModelUsage ? 'unknown' : 'none'),
       ...(tokenMetadata.noUsageReason ? { noUsageReason: tokenMetadata.noUsageReason } : {}),
       ...(tokenMetadata.inputTokens !== undefined ? { inputTokens: tokenMetadata.inputTokens } : {}),
+      ...(tokenMetadata.cachedInputTokens !== undefined ? { cachedInputTokens: tokenMetadata.cachedInputTokens } : {}),
+      ...(tokenMetadata.billableInputTokens !== undefined ? { billableInputTokens: tokenMetadata.billableInputTokens } : {}),
       ...(tokenMetadata.outputTokens !== undefined ? { outputTokens: tokenMetadata.outputTokens } : {}),
       ...(tokenMetadata.totalTokens !== undefined ? { totalTokens: tokenMetadata.totalTokens } : {}),
     },
@@ -699,6 +706,7 @@ function traceUsageSummary(result: FleetGraphResult): {
       label: hasKnownCost ? `$${costMetadata.estimatedCostUsd}` : 'none',
       ...(costMetadata.estimatedCostUsd !== undefined ? { estimatedCostUsd: costMetadata.estimatedCostUsd } : {}),
       ...(costMetadata.inputCostUsd !== undefined ? { inputCostUsd: costMetadata.inputCostUsd } : {}),
+      ...(costMetadata.cachedInputCostUsd !== undefined ? { cachedInputCostUsd: costMetadata.cachedInputCostUsd } : {}),
       ...(costMetadata.outputCostUsd !== undefined ? { outputCostUsd: costMetadata.outputCostUsd } : {}),
       costSource: costMetadata.costSource ?? (hasKnownCost ? 'unknown' : 'none'),
       ...(costMetadata.noCostReason ? { noCostReason: costMetadata.noCostReason } : {}),
@@ -771,12 +779,15 @@ function resultObservabilityMetadata(
     modelProvider: result.tokenMetadata.provider ?? 'none',
     modelName: result.tokenMetadata.model ?? 'none',
     inputTokens: result.tokenMetadata.inputTokens,
+    cachedInputTokens: result.tokenMetadata.cachedInputTokens,
+    billableInputTokens: result.tokenMetadata.billableInputTokens,
     outputTokens: result.tokenMetadata.outputTokens,
     totalTokens: result.tokenMetadata.totalTokens,
     usageSource: result.tokenMetadata.usageSource ?? (result.tokenMetadata.modelCalls > 0 ? 'unknown' : 'none'),
     noUsageReason: result.tokenMetadata.noUsageReason ?? (result.tokenMetadata.modelCalls > 0 ? undefined : 'no_model_call'),
     estimatedCostUsd: result.costMetadata.estimatedCostUsd,
     inputCostUsd: result.costMetadata.inputCostUsd,
+    cachedInputCostUsd: result.costMetadata.cachedInputCostUsd,
     outputCostUsd: result.costMetadata.outputCostUsd,
     costSource: result.costMetadata.costSource ?? (result.costMetadata.estimatedCostUsd !== undefined ? 'unknown' : 'none'),
     noCostReason: result.costMetadata.noCostReason ?? (result.tokenMetadata.modelCalls > 0 ? undefined : 'no_model_call'),
@@ -822,11 +833,16 @@ function modelCallMetadata(
     usageSource: tokenMetadata.usageSource,
     noUsageReason: tokenMetadata.noUsageReason,
     inputTokens: tokenMetadata.inputTokens,
+    cachedInputTokens: tokenMetadata.cachedInputTokens,
+    billableInputTokens: tokenMetadata.billableInputTokens,
     outputTokens: tokenMetadata.outputTokens,
     totalTokens: tokenMetadata.totalTokens,
     costSource: costMetadata.costSource,
     noCostReason: costMetadata.noCostReason,
     estimatedCostUsd: costMetadata.estimatedCostUsd,
+    inputCostUsd: costMetadata.inputCostUsd,
+    cachedInputCostUsd: costMetadata.cachedInputCostUsd,
+    outputCostUsd: costMetadata.outputCostUsd,
     promptSource: 'code_template',
     promptName: 'fleetgraph.proactive_create',
   });
