@@ -146,7 +146,10 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   }, [currentDocumentId, surfaceLabel]);
 
   useEffect(() => {
-    setContextItems((items) => items.filter((item) => !contextMatchesSource(item, currentSourcePath)));
+    setContextItems((items) => items.filter((item) => {
+      if (item.notification) return true;
+      return !contextMatchesSource(item, currentSourcePath);
+    }));
   }, [currentSourcePath]);
 
   useEffect(() => {

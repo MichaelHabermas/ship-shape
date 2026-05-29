@@ -20,6 +20,22 @@ export type FleetGraphNotificationProbeItem = Pick<
 const SIGNAL_ORDER = ['blocked', 'stale', 'at_risk'] as const;
 type NotificationSignalType = typeof SIGNAL_ORDER[number];
 
+type FleetGraphNotificationGroup = {
+  id: string;
+  title: string;
+  owner: string;
+  context: string;
+  sourcePath: string;
+  age: string;
+  detectedAt: string;
+  isRead: boolean;
+  notifications: FleetGraphNotificationProbeItem[];
+  signals: Array<{
+    signalType: NotificationSignalType;
+    signalLabel: string;
+  }>;
+};
+
 function getNotificationCountLabel(count: number): string {
   return count > 99 ? '99+' : String(count);
 }
@@ -39,8 +55,9 @@ export function FleetGraphNotificationsProbe({
   const [notifications, setNotifications] = useState<FleetGraphNotificationProbeItem[]>([]);
   const [expandedNotifications, setExpandedNotifications] = useState<Record<string, boolean>>({});
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const notificationCount = notifications.length;
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  const notificationGroups = groupNotificationsBySource(notifications);
+  const notificationCount = notificationGroups.length;
+  const unreadCount = notificationGroups.filter((group) => !group.isRead).length;
   const signalCounts = SIGNAL_ORDER.map((signalType) => ({
     signalType,
     label: notifications.find((notification) => notification.signalType === signalType)?.signalLabel ?? signalType,
@@ -104,7 +121,7 @@ export function FleetGraphNotificationsProbe({
   }, [open]);
 
   async function markRead(notification: FleetGraphNotificationProbeItem) {
-    if (notification.isRead) return;
+    if (notification.isRead) return true;
     setNotifications((items) => items.map((item) => (
       item.findingId === notification.findingId
         ? { ...item, isRead: true, readAt: new Date().toISOString() }
@@ -116,13 +133,19 @@ export function FleetGraphNotificationsProbe({
         {},
         'Failed to mark notification read'
       );
+      return true;
     } catch {
       setNotifications((items) => items.map((item) => (
         item.findingId === notification.findingId
           ? { ...item, isRead: notification.isRead, readAt: notification.readAt }
           : item
       )));
+      return false;
     }
+  }
+
+  async function markGroupRead(group: FleetGraphNotificationGroup) {
+    await Promise.all(group.notifications.map((notification) => markRead(notification)));
   }
 
   return (
@@ -159,28 +182,28 @@ export function FleetGraphNotificationsProbe({
           </header>
 
           <div className="scrollbar-hide max-h-[440px] overflow-y-auto">
-            {notifications.length === 0 && (
+            {notificationGroups.length === 0 && (
               <NotificationEmptyState status={loadStatus} />
             )}
-            {notifications.map((notification) => (
+            {notificationGroups.map((group) => (
               <AttentionNotification
-                key={notification.id}
-                notification={notification}
-                expanded={expandedNotifications[notification.id] === true}
+                key={group.id}
+                group={group}
+                expanded={expandedNotifications[group.id] === true}
                 onToggle={() => {
-                  void markRead(notification);
+                  void markGroupRead(group);
                   setExpandedNotifications((items) => ({
                     ...items,
-                    [notification.id]: items[notification.id] !== true,
+                    [group.id]: items[group.id] !== true,
                   }));
                 }}
-                onDiscuss={() => {
-                  void markRead(notification);
+                onDiscuss={(notification) => {
+                  void markGroupRead(group);
                   onDiscuss(notification);
                 }}
                 onOpenSource={() => {
-                  void markRead(notification);
-                  if (notification.sourcePath) navigate(notification.sourcePath);
+                  void markGroupRead(group);
+                  if (group.sourcePath) navigate(group.sourcePath);
                 }}
               />
             ))}
@@ -238,23 +261,75 @@ function SignalCountPill({
   );
 }
 
+function groupNotificationsBySource(
+  notifications: FleetGraphNotificationProbeItem[]
+): FleetGraphNotificationGroup[] {
+  const groups = new Map<string, FleetGraphNotificationProbeItem[]>();
+  for (const notification of notifications) {
+    const key = notification.sourcePath || notification.title || notification.id;
+    groups.set(key, [...(groups.get(key) ?? []), notification]);
+  }
+
+  return [...groups.entries()].map(([key, groupNotifications]) => {
+    const sortedNotifications = sortNotificationsBySignal(groupNotifications);
+    const primary = sortedNotifications[0]!;
+    const detectedAt = mostRecentDetectedAt(sortedNotifications);
+    const signals = SIGNAL_ORDER.flatMap((signalType) => {
+      const notification = sortedNotifications.find((item) => item.signalType === signalType);
+      return notification ? [{ signalType, signalLabel: notification.signalLabel }] : [];
+    });
+
+    return {
+      id: key,
+      title: primary.title,
+      owner: primary.owner ?? '',
+      context: primary.context,
+      sourcePath: primary.sourcePath,
+      detectedAt,
+      age: formatNotificationAge(detectedAt),
+      isRead: sortedNotifications.every((notification) => notification.isRead),
+      notifications: sortedNotifications,
+      signals,
+    };
+  }).sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
+}
+
+function sortNotificationsBySignal(
+  notifications: FleetGraphNotificationProbeItem[]
+): FleetGraphNotificationProbeItem[] {
+  return [...notifications].sort((a, b) => {
+    const signalDifference = SIGNAL_ORDER.indexOf(a.signalType) - SIGNAL_ORDER.indexOf(b.signalType);
+    if (signalDifference !== 0) return signalDifference;
+    return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+  });
+}
+
+function mostRecentDetectedAt(notifications: FleetGraphNotificationProbeItem[]): string {
+  return notifications.reduce((latest, notification) => (
+    new Date(notification.detectedAt).getTime() > new Date(latest).getTime()
+      ? notification.detectedAt
+      : latest
+  ), notifications[0]?.detectedAt ?? new Date().toISOString());
+}
+
 function AttentionNotification({
-  notification,
+  group,
   expanded,
   onToggle,
   onDiscuss,
   onOpenSource,
 }: {
-  notification: FleetGraphNotificationProbeItem;
+  group: FleetGraphNotificationGroup;
   expanded: boolean;
   onToggle: () => void;
-  onDiscuss: () => void;
+  onDiscuss: (notification: FleetGraphNotificationProbeItem) => void;
   onOpenSource: () => void;
 }) {
-  const ownerLabel = notification.owner || '-';
+  const ownerLabel = group.owner || '-';
+  const primaryNotification = group.notifications[0]!;
 
   return (
-    <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${notification.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>
+    <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${group.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>
       <div className="grid grid-cols-[minmax(0,1fr)_10px] items-start gap-2">
         <div className="min-w-0">
           <button
@@ -263,34 +338,49 @@ function AttentionNotification({
             className="flex w-full min-w-0 items-center gap-1.5 text-left text-[13px] font-medium leading-5 text-foreground transition hover:text-white focus:outline-none focus:ring-2 focus:ring-accent"
             aria-expanded={expanded}
           >
-            <NotificationLabelChip label={notification.signalLabel} signalType={notification.signalType} />
-            <span className="min-w-0 truncate">{displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}</span>
+            <span className="flex shrink-0 items-center gap-1">
+              {group.signals.map((signal) => (
+                <NotificationLabelChip
+                  key={signal.signalType}
+                  label={signal.signalLabel}
+                  signalType={signal.signalType}
+                />
+              ))}
+            </span>
+            <span className="min-w-0 truncate">{displayText(titleWithoutSignalPrefix(group.title, primaryNotification.signalLabel))}</span>
           </button>
           {expanded && (
             <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] leading-4 text-muted">
               <span>{displayText(ownerLabel)}</span>
               <span aria-hidden="true">·</span>
-              <span>{displayText(notification.context)}</span>
+              <span>{displayText(group.context)}</span>
               <span aria-hidden="true">·</span>
-              <span>{notification.age}</span>
+              <span>{group.age}</span>
             </div>
           )}
         </div>
         <span
-          aria-label={notification.isRead ? undefined : 'Unread'}
-          className={`mt-2 h-1.5 w-1.5 rounded-full ${notification.isRead ? 'bg-transparent' : 'bg-accent/70'}`}
-          title={notification.isRead ? undefined : 'Unread'}
+          aria-label={group.isRead ? undefined : 'Unread'}
+          className={`mt-2 h-1.5 w-1.5 rounded-full ${group.isRead ? 'bg-transparent' : 'bg-accent/70'}`}
+          title={group.isRead ? undefined : 'Unread'}
         />
       </div>
 
       {expanded && (
         <>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{displayText(notification.reason || notification.notificationText || notification.blockerText)}</p>
+          <div className="mt-1 space-y-1">
+            {group.notifications.map((notification) => (
+              <p key={notification.id} className="text-xs leading-5 text-muted">
+                <span className="font-medium text-foreground">{displayText(notification.signalLabel)}: </span>
+                {displayText(notification.reason || notification.notificationText || notification.blockerText)}
+              </p>
+            ))}
+          </div>
 
           <div className="mt-1 flex flex-wrap gap-1.5">
             <button
               type="button"
-              disabled={!notification.sourcePath}
+              disabled={!group.sourcePath}
               onClick={onOpenSource}
               className="flex h-8 items-center rounded border border-border px-2.5 text-xs text-foreground transition hover:border-[#3a3a3a] hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
             >
@@ -298,7 +388,7 @@ function AttentionNotification({
             </button>
             <button
               type="button"
-              onClick={onDiscuss}
+              onClick={() => onDiscuss(primaryNotification)}
               className="flex h-8 items-center rounded bg-accent px-2.5 text-xs text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
             >
               Discuss

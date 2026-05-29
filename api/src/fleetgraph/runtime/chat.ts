@@ -11,6 +11,7 @@ type FleetGraphChatAnswerPayload = {
 };
 
 export type FleetGraphChatIntent =
+  | 'greeting'
   | 'why_flagged'
   | 'next_step'
   | 'unblocker'
@@ -24,7 +25,7 @@ export function classifyFleetGraphChatPrompt(prompt: string): FleetGraphChatInte
   if (!normalized) return 'unsupported';
 
   if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
-    return 'why_flagged';
+    return 'greeting';
   }
   if (/\b(how many|count|list|show all|all issues|issues do we have|workspace)\b/.test(normalized)) {
     return 'unsupported';
@@ -69,6 +70,14 @@ export function chatAnswerForIntent(
   const nextStep = recommendedActionText(output);
   const recipient = stringValue(output.proposedRecipient?.displayName) || stringValue(output.proposedRecipient?.role);
   const reason = attentionExcerpt(output) || output.summary;
+  if (intent === 'greeting') {
+    return {
+      title: 'Ready',
+      body: 'Hi. I can help unpack this signal, find the owner, or suggest the next move.',
+      sources: [],
+      humanGate: { required: false },
+    };
+  }
   if (intent === 'unblocker') {
     return {
       title: 'Best connected person',
