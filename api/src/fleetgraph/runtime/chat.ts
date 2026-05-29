@@ -87,7 +87,12 @@ export function chatAnswerForIntent(
   const recipient = stringValue(output.proposedRecipient?.displayName) || stringValue(output.proposedRecipient?.role);
   const reason = attentionExcerpt(output) || output.summary;
   if (intent === 'greeting') {
-    return chatAnswerFromVisibleOutput(output);
+    return {
+      title: 'Chat',
+      body: `Hi. I can talk through ${output.title}.`,
+      sources: sourceLabels(output),
+      humanGate: { required: false },
+    };
   }
   if (intent === 'unblocker') {
     return {

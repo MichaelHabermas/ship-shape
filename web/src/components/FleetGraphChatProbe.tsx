@@ -678,7 +678,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
                   eyebrow={undefined}
                   body={turn.response.answer.body}
                   metadata={[]}
-                  sources={turn.response.answer.sources.map((source) => source.label)}
+                  sources={[]}
                 />
                 {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
                   <InlineGateNote

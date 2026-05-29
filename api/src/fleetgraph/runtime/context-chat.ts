@@ -140,7 +140,7 @@ export function sourcesFromContextBundle(bundle: ContextChatBundle): Array<{ lab
   return [
     ...bundle.documents.map((document) => ({ label: document.title, kind: document.document_type })),
     ...bundle.signals.map((signal) => ({ label: signal.output.title, kind: 'finding' })),
-  ].filter((source, index, items) => items.findIndex((item) => item.label === source.label && item.kind === source.kind) === index);
+  ].filter((source, index, items) => items.findIndex((item) => item.label === source.label) === index);
 }
 
 export function deterministicContextChatAnswer(prompt: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
@@ -148,13 +148,8 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
   const primaryDocument = bundle.documents[0];
   const primarySignal = bundle.signals[0];
   const sources = sourcesFromContextBundle(bundle);
-
-  if (primarySignal && intent !== 'unsupported' && intent !== 'summarize_changes') {
-    const answer = chatAnswerForIntent(intent, primarySignal.output);
-    return { ...answer, sources: mergeChatSources(answer.sources, sources) };
-  }
-
   const normalized = prompt.trim().toLowerCase();
+
   if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
     const target = primaryDocument?.title ?? primarySignal?.output.title ?? 'this context';
     return {
@@ -163,6 +158,17 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
       sources,
       humanGate: { required: false },
     };
+  }
+
+  if (
+    primarySignal
+    && intent !== 'unsupported'
+    && intent !== 'summarize_changes'
+    && intent !== 'greeting'
+    && signalSpecificPrompt(normalized)
+  ) {
+    const answer = chatAnswerForIntent(intent, primarySignal.output);
+    return { ...answer, sources: mergeChatSources(answer.sources, sources) };
   }
 
   if (primaryDocument) {
@@ -189,6 +195,10 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
   }
 
   return unsupportedChatAnswer('I do not have visible context for that yet.');
+}
+
+function signalSpecificPrompt(normalizedPrompt: string): boolean {
+  return /\b(why|flagged|blocked|blocker|stale|risk|urgent|urgency|reason|attention|signal|next step|next move|what next|what should (i|we) do|unblock|owner|approver|dependency)\b/.test(normalizedPrompt);
 }
 
 export function chatModelAnswerFromContext(body: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
