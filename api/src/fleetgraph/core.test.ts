@@ -463,7 +463,7 @@ describe('FleetGraph shared core', () => {
     expect(port.listFindingsForSource).toHaveBeenCalledWith({ workspaceId, sourceIssueId: issueId });
   });
 
-  it('treats a greeting as a request for the attached context summary', async () => {
+  it('treats a greeting as chat, not a request for the finding summary', async () => {
     const port = persistence();
 
     const result = await runFleetGraph({
@@ -485,12 +485,13 @@ describe('FleetGraph shared core', () => {
     const runInput = requireMockInput(vi.mocked(port.recordRun));
     expect(runInput.outputSnapshot).toMatchObject({
       answer: {
-        title: 'Blocked issue: Blocked issue',
+        title: 'Chat',
+        body: 'Hi. I can talk through Blocked issue.',
       },
     });
   });
 
-  it('answers broad-but-context-bound chat without becoming workspace-wide', async () => {
+  it('answers broad-but-context-bound chat from the document instead of the signal template', async () => {
     const port = persistence();
 
     const result = await runFleetGraph({
@@ -512,10 +513,38 @@ describe('FleetGraph shared core', () => {
     const runInput = requireMockInput(vi.mocked(port.recordRun));
     expect(runInput.outputSnapshot).toMatchObject({
       answer: {
-        title: 'What stands out',
+        title: 'Blocked issue',
       },
     });
-    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('workspace-wide');
+    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('From this attached context');
+  });
+
+  it('changes shape when the user asks for a simpler summary', async () => {
+    const port = persistence();
+
+    await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Summarize it simpler.',
+        context: {
+          kind: 'document',
+          documentId: issueId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    }, { persistence: port, db: contextChatDb() });
+
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.outputSnapshot).toMatchObject({
+      answer: {
+        title: 'Blocked issue',
+      },
+    });
+    expect(JSON.stringify(runInput.outputSnapshot)).toContain('Status: in_progress.');
+    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('It is connected to');
   });
 
   it('answers from a readable document when no finding is attached', async () => {
@@ -537,7 +566,7 @@ describe('FleetGraph shared core', () => {
       },
     }, { persistence: port, db: contextChatDb() });
 
-    expect(result.decision).toBe('needs_confirmation');
+    expect(result.decision).toBe('explain');
     expect(result.visibleOutput).toBeUndefined();
     const runInput = requireMockInput(vi.mocked(port.recordRun));
     expect(runInput.outputSnapshot).toMatchObject({

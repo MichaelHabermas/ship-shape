@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
 
@@ -50,7 +51,7 @@ describe('Auth API', () => {
     testWorkspaceId = workspaceResult.rows[0].id
 
     // Create password hash
-    passwordHash = await bcrypt.hash(testPassword, 10)
+    passwordHash = await bcrypt.hash(testPassword, PASSWORD_BCRYPT_ROUNDS)
 
     // Create test user with password
     const userResult = await pool.query(

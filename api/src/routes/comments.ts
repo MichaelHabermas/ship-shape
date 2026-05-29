@@ -2,9 +2,10 @@ import { Router, type Router as ExpressRouter, Request, Response } from 'express
 import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
-import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+import { guardDocumentIdParam, requireDocumentCapability } from '../security/route-capability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 
 // ============== Document-scoped routes (/api/documents/:id/comments) ==============
 
@@ -16,33 +17,28 @@ const createCommentSchema = z.object({
   parent_id: z.string().uuid().optional(),
 });
 
-async function canAccessDocument(documentId: string, userId: string, workspaceId: string): Promise<boolean> {
-  const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-  const result = await pool.query(
-    `SELECT id FROM documents
-     WHERE id = $1 AND workspace_id = $2
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}
-     LIMIT 1`,
-    [documentId, workspaceId, userId, isAdmin]
+async function guardDocumentCommentRead(
+  req: Request,
+  res: Response,
+  rawDocumentId: string | string[] | undefined
+): Promise<string | null> {
+  const documentId = guardDocumentIdParam(res, rawDocumentId, 'Document not found');
+  if (!documentId) return null;
+  const decision = await requireDocumentCapability(
+    req,
+    res,
+    { resource: 'document', action: 'read', documentId },
+    'Document not found'
   );
-  return result.rows.length > 0;
+  return decision ? documentId : null;
 }
 
 // GET /api/documents/:id/comments
 documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const documentId = req.params.id;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    if (typeof documentId !== 'string') {
-      res.status(400).json({ error: 'Document id is required' });
-      return;
-    }
-
-    if (!(await canAccessDocument(documentId, userId, workspaceId))) {
-      res.status(404).json({ error: 'Document not found' });
-      return;
-    }
+    const documentId = await guardDocumentCommentRead(req, res, req.params.id);
+    if (!documentId) return;
+    const { workspaceId } = getAuthenticatedRouteContext(req);
 
     const result = await pool.query(
       `SELECT c.*, u.name as author_name, u.email as author_email
@@ -78,13 +74,9 @@ documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request,
 // POST /api/documents/:id/comments
 documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const documentId = req.params.id;
+    const documentId = await guardDocumentCommentRead(req, res, req.params.id);
+    if (!documentId) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    if (typeof documentId !== 'string') {
-      res.status(400).json({ error: 'Document id is required' });
-      return;
-    }
 
     const parsed = createCommentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -94,12 +86,6 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
 
     const { comment_id, content, parent_id } = parsed.data;
 
-    if (!(await canAccessDocument(documentId, userId, workspaceId))) {
-      res.status(404).json({ error: 'Document not found' });
-      return;
-    }
-
-    // If replying, verify parent exists and belongs to same document
     if (parent_id) {
       const parentCheck = await pool.query(
         'SELECT id FROM comments WHERE id = $1 AND document_id = $2',
@@ -120,7 +106,6 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
 
     const comment = result.rows[0];
 
-    // Get author info
     const authorResult = await pool.query(
       'SELECT id, name, email FROM users WHERE id = $1',
       [userId]
@@ -173,15 +158,9 @@ commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response)
       return;
     }
 
-    // Check comment exists in workspace and its document is visible to this user.
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-    const existing = await pool.query(
-      `SELECT c.*
-       FROM comments c
-       JOIN documents d ON d.id = c.document_id AND d.workspace_id = c.workspace_id
-       WHERE c.id = $1 AND c.workspace_id = $2
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-      [commentId, workspaceId, userId, isAdmin]
+    const existing = await pool.query<{ document_id: string; author_id: string }>(
+      `SELECT document_id, author_id FROM comments WHERE id = $1 AND workspace_id = $2`,
+      [commentId, workspaceId]
     );
 
     if (existing.rows.length === 0) {
@@ -189,8 +168,17 @@ commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response)
       return;
     }
 
-    // Content edits require author ownership; resolving is allowed by any workspace member
-    if (parsed.data.content !== undefined && existing.rows[0]?.author_id !== userId) {
+    const commentRow = requireFirstRow(existing.rows);
+    const documentId = commentRow.document_id;
+    const decision = await requireDocumentCapability(
+      req,
+      res,
+      { resource: 'document', action: 'read', documentId },
+      'Comment not found'
+    );
+    if (!decision) return;
+
+    if (parsed.data.content !== undefined && commentRow.author_id !== userId) {
       res.status(403).json({ error: 'Only the comment author can edit content' });
       return;
     }
@@ -263,21 +251,32 @@ commentsRouter.delete('/:id', authMiddleware, async (req: Request, res: Response
       return;
     }
 
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-    const result = await pool.query(
-      `DELETE FROM comments c
-       USING documents d
-       WHERE c.id = $1 AND c.workspace_id = $2 AND c.author_id = $3
-         AND d.id = c.document_id AND d.workspace_id = c.workspace_id
-         AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}
-       RETURNING c.id`,
-      [commentId, workspaceId, userId, isAdmin]
+    const existing = await pool.query<{ document_id: string; author_id: string }>(
+      `SELECT document_id, author_id FROM comments WHERE id = $1 AND workspace_id = $2`,
+      [commentId, workspaceId]
     );
 
-    if (result.rows.length === 0) {
+    if (existing.rows.length === 0) {
       res.status(404).json({ error: 'Comment not found' });
       return;
     }
+
+    const commentRow = requireFirstRow(existing.rows);
+    if (commentRow.author_id !== userId) {
+      res.status(404).json({ error: 'Comment not found' });
+      return;
+    }
+
+    const documentId = commentRow.document_id;
+    const decision = await requireDocumentCapability(
+      req,
+      res,
+      { resource: 'document', action: 'read', documentId },
+      'Comment not found'
+    );
+    if (!decision) return;
+
+    await pool.query('DELETE FROM comments WHERE id = $1 AND workspace_id = $2', [commentId, workspaceId]);
 
     res.json({ success: true });
   } catch (err) {

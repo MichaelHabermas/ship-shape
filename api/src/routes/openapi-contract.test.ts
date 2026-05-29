@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
@@ -31,7 +32,7 @@ describe('OpenAPI runtime response contracts', () => {
     );
     testWorkspaceId = workspaceResult.rows[0].id;
 
-    const passwordHash = await bcrypt.hash('contract-password', 10);
+    const passwordHash = await bcrypt.hash('contract-password', PASSWORD_BCRYPT_ROUNDS);
     const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, $2, 'OpenAPI Contract User')

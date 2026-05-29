@@ -22,6 +22,7 @@ import { readdirSync, readFileSync, existsSync } from 'fs';
 import path from 'path';
 import getPort, { portNumbers } from 'get-port';
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import os from 'os';
 
 /**
@@ -339,7 +340,7 @@ async function runMigrations(dbUrl: string): Promise<void> {
  */
 async function seedMinimalTestData(pool: Pool): Promise<void> {
   // Hash the test password
-  const passwordHash = await bcrypt.hash('admin123', 10);
+  const passwordHash = await bcrypt.hash('admin123', PASSWORD_BCRYPT_ROUNDS);
 
   // Create workspace with sprint_start_date 3 months ago (matches full seed)
   // IMPORTANT: Use UTC throughout to match the API's date math (team.ts parses as UTC)

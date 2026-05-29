@@ -7,6 +7,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import { pool } from '../db/client.js';
 import { extractHypothesisFromContent, extractSuccessCriteriaFromContent, extractVisionFromContent, extractGoalsFromContent } from '../utils/extractHypothesis.js';
+import { stampWeeklyAccountabilitySubmittedAt } from '../utils/document-governance.js';
 import { yjsToJson, jsonToYjs } from '../utils/yjsConverter.js';
 import { resolveInitialContent } from '../db/document-content-codec.js';
 import { upsertDocumentSearchIndex } from '../utils/tiptap-search.js';
@@ -197,15 +198,22 @@ async function persistDocumentStrict(docName: string, doc: Y.Doc, principal?: Pr
     }
   }
 
+  const contentChanged =
+    JSON.stringify(content) !== (existingContent ? JSON.stringify(existingContent) : null);
+
   // Update properties with extracted values (null clears the property)
   // Note: 'plan' is the canonical field name (renamed from 'hypothesis' in migration 032)
-  const updatedProps = {
-    ...existingProps,
-    plan: hypothesis,
-    success_criteria: successCriteria,
-    vision: vision,
-    goals: goals,
-  };
+  const updatedProps = stampWeeklyAccountabilitySubmittedAt(
+    documentType,
+    {
+      ...existingProps,
+      plan: hypothesis,
+      success_criteria: successCriteria,
+      vision: vision,
+      goals: goals,
+    },
+    contentChanged
+  );
 
   // Persist yjs_state, content (JSON backup), and updated properties
   // The content column is kept in sync with yjs_state to serve as a fallback

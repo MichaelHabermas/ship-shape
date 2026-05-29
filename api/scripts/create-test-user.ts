@@ -12,6 +12,7 @@
  */
 
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import pg from 'pg';
 const { Pool } = pg;
 
@@ -49,7 +50,7 @@ async function createTestUser() {
       console.log(existingUser.rows[0]);
 
       // Update password for existing user
-      const passwordHash = await bcrypt.hash(TEST_USER.password, 10);
+      const passwordHash = await bcrypt.hash(TEST_USER.password, PASSWORD_BCRYPT_ROUNDS);
       await pool.query(
         'UPDATE users SET password_hash = $1, name = $2 WHERE LOWER(email) = LOWER($3)',
         [passwordHash, TEST_USER.name, TEST_USER.email]
@@ -57,7 +58,7 @@ async function createTestUser() {
       console.log('Password updated for existing user');
     } else {
       // Create new user
-      const passwordHash = await bcrypt.hash(TEST_USER.password, 10);
+      const passwordHash = await bcrypt.hash(TEST_USER.password, PASSWORD_BCRYPT_ROUNDS);
 
       const result = await pool.query(
         `INSERT INTO users (email, password_hash, name, is_super_admin)

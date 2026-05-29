@@ -28,6 +28,23 @@ registry.register('SaveCredentialsRequest', SaveCredentialsRequestSchema);
 const CredentialsMutationResponseSchema = successEnvelope(JsonObjectSchema, 'CredentialsMutationResponse');
 registry.register('CredentialsMutationResponse', CredentialsMutationResponseSchema);
 
+const CredentialsAppJsSchema = z.string().openapi({ description: 'External admin credentials page script' });
+registry.register('CredentialsAppJs', CredentialsAppJsSchema);
+
+registry.registerPath({
+  method: 'get',
+  path: '/admin/credentials/app.js',
+  tags: ['Admin', 'Credentials'],
+  summary: 'Admin credentials page script (CSP-safe external JS)',
+  responses: {
+    200: {
+      description: 'JavaScript bundle',
+      content: { 'application/javascript': { schema: CredentialsAppJsSchema } },
+    },
+    403: { description: 'Super admin required' },
+  },
+});
+
 registry.registerPath({
   method: 'get',
   path: '/admin/credentials',

@@ -28,6 +28,9 @@ importers:
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
+      '@ship/shared':
+        specifier: workspace:*
+        version: link:shared
       '@ship/shipshape-security':
         specifier: workspace:*
         version: link:packages/shipshape-security

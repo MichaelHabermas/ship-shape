@@ -1,9 +1,9 @@
 {
   "category": "cat-8-security-audit",
-  "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json",
-  "attackSurfacesMeasured": 5,
+  "structuredReport": "my-docs/evidence/security-audit/runs/cat8-2026-05-29T18-58-44-654Z/report.json",
+  "attackSurfacesMeasured": 1,
   "attackSurfacesTotal": 5,
-  "manualReviewComplete": true,
+  "manualReviewComplete": false,
   "findingSuggestions": [],
   "registrySuggestions": [],
   "note": "Workflow status is CLI-owned (security-findings.json). Probe appends verifications only."

@@ -23,16 +23,21 @@ vi.mock('../middleware/auth.js', () => ({
   }),
 }));
 
-vi.mock('../security/route-capability.js', () => ({
-  guardDocumentIdParam: vi.fn((_res, rawId: string | string[] | undefined) =>
-    typeof rawId === 'string' ? rawId : null
-  ),
-  requireProjectRead: vi.fn().mockResolvedValue({
+vi.mock('../security/route-capability.js', () => {
+  const allowedProjectDecision = {
     allowed: true,
     reason: 'allowed',
     principal: { kind: 'session', userId: 'user-123', workspaceId: 'ws-123', isSuperAdmin: false, sessionId: 'test' },
-  }),
-}));
+  };
+  return {
+    guardDocumentIdParam: vi.fn((_res: unknown, rawId: string | string[] | undefined) =>
+      typeof rawId === 'string' ? rawId : null
+    ),
+    requireProjectRead: vi.fn().mockResolvedValue(allowedProjectDecision),
+    requireProjectWrite: vi.fn().mockResolvedValue(allowedProjectDecision),
+    requireDocumentCreate: vi.fn().mockResolvedValue(allowedProjectDecision),
+  };
+});
 
 import { pool } from '../db/client.js';
 import express from 'express';

@@ -4,7 +4,12 @@ import { pool } from '../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { guardDocumentIdParam, requireProgramRead } from '../security/route-capability.js';
+import {
+  guardDocumentIdParam,
+  requireDocumentCreate,
+  requireProgramRead,
+  requireProgramWrite,
+} from '../security/route-capability.js';
 import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
@@ -26,6 +31,19 @@ async function guardProgramRead(
   const id = guardDocumentIdParam(res, rawId, 'Program not found');
   if (!id) return null;
   if (!(await requireProgramRead(req, res, id))) {
+    return null;
+  }
+  return id;
+}
+
+async function guardProgramWrite(
+  req: Request,
+  res: Response,
+  rawId: string | string[] | undefined
+): Promise<string | null> {
+  const id = guardDocumentIdParam(res, rawId, 'Program not found');
+  if (!id) return null;
+  if (!(await requireProgramWrite(req, res, id))) {
     return null;
   }
   return id;
@@ -278,6 +296,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const { title, color, emoji, owner_id, accountable_id, consulted_ids, informed_ids } = parsed.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
+    if (!(await requireDocumentCreate(req, res))) {
+      return;
+    }
+
     // Build properties JSONB with RACI fields
     const properties: Record<string, unknown> = {
       color: color || '#6366f1',
@@ -322,7 +344,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // Update program
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProgramWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = updateProgramSchema.safeParse(req.body);
@@ -331,15 +354,12 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
-    // Verify program exists and user can access it
     const existing = await pool.query<ProgramExistsRow>(
       `SELECT id, properties FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
+       WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'`,
+      [id, workspaceId]
     );
 
     if (existing.rows.length === 0) {
@@ -442,24 +462,9 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 // Delete program
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = await guardProgramWrite(req, res, req.params.id);
+    if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-
-    // Get visibility context for filtering
-    const { isAdmin } = await getVisibilityContext(userId, workspaceId);
-
-    // First verify user can access the program
-    const accessCheck = await pool.query<ProgramExistsRow>(
-      `SELECT id FROM documents
-       WHERE id = $1 AND workspace_id = $2 AND document_type = 'program'
-         AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-      [id, workspaceId, userId, isAdmin]
-    );
-
-    if (accessCheck.rows.length === 0) {
-      res.status(404).json({ error: 'Program not found' });
-      return;
-    }
 
     // Remove associations to this program
     await pool.query(
@@ -806,7 +811,8 @@ const mergeProgramSchema = z.object({
 router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const sourceId = String(req.params.id);
+    const sourceId = await guardProgramWrite(req, res, req.params.id);
+    if (!sourceId) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     const parsed = mergeProgramSchema.safeParse(req.body);
@@ -819,6 +825,10 @@ router.post('/:id/merge', authMiddleware, async (req: Request, res: Response) =>
 
     if (sourceId === targetId) {
       res.status(400).json({ error: 'Cannot merge a program into itself' });
+      return;
+    }
+
+    if (!(await requireProgramWrite(req, res, targetId))) {
       return;
     }
 

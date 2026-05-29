@@ -111,6 +111,7 @@
     "postinstall": "git config merge.ours.driver true && (command -v comply >/dev/null 2>&1 || echo '\\n⚠️  comply CLI not installed - pre-commit hooks require it\\n   Install with: pip install comply-cli\\n')"
   },
   "devDependencies": {
+    "@ship/shared": "workspace:*",
     "@ship/shipshape-security": "workspace:*",
     "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.60.0",

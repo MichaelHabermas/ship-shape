@@ -238,7 +238,7 @@ export function createApp(corsOrigin: string = 'http://localhost:5173'): express
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"], // Admin credentials page uses inline scripts
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"], // TipTap editor needs inline styles
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: ["'self'", "wss:", "ws:"], // WebSocket connections

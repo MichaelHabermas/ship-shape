@@ -23,6 +23,7 @@ import {
 } from '../services/document-mutations.js';
 import { authorize, capabilityDenialStatus, documentCommandCapability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
+import { guardDocumentIdParam } from '../security/route-capability.js';
 
 const router = Router();
 
@@ -772,21 +773,49 @@ router.post('/:id/convert', authMiddleware, async (req: Request, res: Response) 
 
 // POST /documents/:id/undo-conversion - Undo a document conversion using snapshots
 router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Response) => {
-  const id = String(req.params.id);
+  const id = guardDocumentIdParam(res, req.params.id, 'Document not found');
+  if (!id) return;
   const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+  const principal = principalFromRequest(req);
 
-  const { allowed, doc: currentDoc } = await loadDocumentForRead(req, id);
+  let writeDecision = await authorize(pool, principal, {
+    resource: 'document',
+    action: 'write',
+    documentId: id,
+    enforce: 'creator_or_admin',
+  });
 
-  if (!allowed || !currentDoc) {
-    res.status(404).json({ error: 'Document not found' });
-    return;
+  if (!writeDecision.allowed) {
+    const readDecision = await authorize(pool, principal, {
+      resource: 'document',
+      action: 'read',
+      documentId: id,
+    });
+    if (!readDecision.allowed) {
+      res.status(capabilityDenialStatus(readDecision.reason)).json({ error: readDecision.reason });
+      return;
+    }
+    const converterCheck = await pool.query<{ converted_by: string | null }>(
+      `SELECT converted_by FROM documents WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`,
+      [id, workspaceId]
+    );
+    const convertedBy = converterCheck.rows[0]?.converted_by;
+    if (convertedBy !== userId) {
+      res.status(403).json({ error: 'Only the document creator or converter can undo conversion' });
+      return;
+    }
+    writeDecision = readDecision;
   }
 
-  // Only the creator or the person who converted it can undo
-  const isCreator = currentDoc.created_by === userId;
-  const isConverter = currentDoc.converted_by === userId;
-  if (!isCreator && !isConverter) {
-    res.status(403).json({ error: 'Only the document creator or converter can undo conversion' });
+  const currentDocResult = await pool.query<DocumentAccessRow>(
+    `SELECT d.*, true AS can_access
+       FROM documents d
+      WHERE d.id = $1 AND d.workspace_id = $2 AND d.deleted_at IS NULL`,
+    [id, workspaceId]
+  );
+  const currentDoc = currentDocResult.rows[0];
+  if (!currentDoc) {
+    res.status(404).json({ error: 'Document not found' });
     return;
   }
 

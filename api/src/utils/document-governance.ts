@@ -5,6 +5,7 @@ export const GOVERNANCE_PROPERTY_KEYS = [
   'retro_approval',
   'review_rating',
   'public_feedback_enabled',
+  'submitted_at',
 ] as const;
 
 /** RACI fields that must only be changed by workspace admins on generic document PATCH. */
@@ -40,14 +41,28 @@ export function formatForbiddenGovernanceKeys(keys: readonly string[]): string {
   return keys.join(', ');
 }
 
-export function stripForbiddenGovernanceKeys<T extends Record<string, unknown>>(
-  properties: T,
-  options: { isAdmin: boolean }
-): T {
-  if (options.isAdmin) return properties;
+/** Strip governance keys from merged properties (defense in depth after explicit rejection). */
+export function stripForbiddenGovernanceKeys<T extends Record<string, unknown>>(properties: T): T {
   const next = { ...properties };
   for (const key of GOVERNANCE_PROPERTY_KEYS) {
     delete next[key];
   }
   return next;
+}
+
+const WEEKLY_ACCOUNTABILITY_TYPES = new Set(['weekly_plan', 'weekly_retro']);
+
+/** Set submitted_at on first content save for weekly accountability docs (server-only). */
+export function stampWeeklyAccountabilitySubmittedAt(
+  documentType: string | undefined,
+  properties: Record<string, unknown>,
+  contentChanged: boolean
+): Record<string, unknown> {
+  if (!contentChanged || !documentType || !WEEKLY_ACCOUNTABILITY_TYPES.has(documentType)) {
+    return properties;
+  }
+  if (properties.submitted_at != null && properties.submitted_at !== undefined) {
+    return properties;
+  }
+  return { ...properties, submitted_at: new Date().toISOString() };
 }

@@ -523,3 +523,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Build the reviewer dashboard as generated evidence from `pnpm fleetgraph:proof`, not as product UI. The proof packet lives under `my-docs/evidence/fleetgraph-proof/`, runs existing FleetGraph tests/evals, and renders `latest.html`, `latest.json`, `latest.md`, plus timestamped copies.
 
 **Consequence:** The dashboard can be dense and reviewer-specific without polluting the left rail or chat. FleetGraph behavior remains owned by `api/src/fleetgraph/*`; proof scripts observe, gate, and package the behavior rather than reimplementing detection, actor filtering, dedupe, or chat semantics. The proof model distinguishes golden-case-defined paths from executable proof coverage, and the strict check fails blocked packets unless explicitly run in inspection mode.
+
+## D066 - OWASP Cat 8 Governance And Write Gates
+
+**Date:** 2026-05-29
+
+**Decision:** Close OWASP plan items 1–4 (authorization, bcrypt rounds, CSP) without adding Trivy/dependency scanning in this slice. Governance fields (`GOVERNANCE_PROPERTY_KEYS`, including `submitted_at`) are blocked on generic document create/PATCH for all principals, including workspace admin. The governed path is `POST /api/documents/:id/commands` with `set_governance` after capability `action: 'governance'`; `updateDocumentMutation` must not reject or strip governance keys when `capability.action === 'governance'`. Program and project mutating routes use write/create capability guards, not read guards. Password hashing standardizes on `PASSWORD_BCRYPT_ROUNDS = 12`. Admin credentials UI uses external JS; Helmet CSP removes `script-src 'unsafe-inline'`.
+
+**Consequence:** Mass-assignment probes should pass with zero findings on `input-governance-mass-assignment`. API tokens need explicit write/governance scopes for program/project/document mutations they were implicitly allowed before. `submitted_at` lifecycle still needs a dedicated governed setter if product requires setting it on save—PATCH injection remains blocked by design. OWASP code changes should land in a security-focused commit/PR separate from FleetGraph product slices and probe artifact snapshots unless the human explicitly combines them.

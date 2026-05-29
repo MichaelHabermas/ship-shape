@@ -13,8 +13,6 @@ import { generateContextChatText, generateProactiveCreateText } from './model.js
 import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
 import {
   chatAnswerFromChangeSummary,
-  classifyFleetGraphChatPrompt,
-  decisionForContextChatIntent,
   unsupportedChatAnswer,
 } from './runtime/chat.js';
 import {
@@ -665,19 +663,6 @@ async function runContextChat(
   }
 
   const primarySignal = bundle.signals[0];
-  const intent = classifyFleetGraphChatPrompt(input.trigger.prompt);
-  if (intent === 'summarize_changes' && primarySignal) {
-    return runContextChatChangeSummary(
-      input,
-      persistence,
-      triggerReason,
-      primarySignal.finding,
-      primarySignal.evidence,
-      primarySignal.output,
-      options
-    );
-  }
-
   const modelResult = await generateContextChatText({
     prompt: input.trigger.prompt,
     context: contextTextForModel(bundle),
@@ -685,7 +670,7 @@ async function runContextChat(
   const answer = modelResult
     ? chatModelAnswerFromContext(modelResult.answer, bundle)
     : deterministicContextChatAnswer(input.trigger.prompt, bundle);
-  const decision = decisionForContextChatIntent(intent);
+  const decision = answer.humanGate.required === true ? 'needs_confirmation' : 'explain';
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision,

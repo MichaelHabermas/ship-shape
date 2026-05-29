@@ -1,6 +1,6 @@
 # Authorization matrix (Slice 1.1)
 
-**Date:** 2026-05-24  
+**Date:** 2026-05-24 (OWASP hardening pass: 2026-05-29)  
 **Purpose:** Inventory every production auth gate before Epic 1 code changes.  
 **Canonical checklist:** `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (Wave 1, Epic 1).  
 **Agent context:** `docs/context-manifest.md` (`security` profile) → this file + `docs/claude-reference/security.md`.
@@ -13,12 +13,18 @@
 
 | Pattern | Production count | Gap |
 |---------|------------------|-----|
-| `authorize(` call sites | **11** | Document/collaboration paths ignore per-action for session users |
+| `authorize(` call sites | **Growing** (documents reads, commands, comments, programs/projects writes) | List/aggregation routes still use `VISIBILITY_FILTER_SQL` |
 | `requireCapability` callers | **removed (Slice 1.2)** | Deleted per D080 |
-| `canAccessDocument` (local duplicates) | **3 implementations**, 7 call sites | Not unified with `authorize` |
-| `workspaceAccessMiddleware` | **1 definition**, **0 mounts** | Dead middleware |
+| `canAccessDocument` (local duplicates) | **1** (collaboration wrapper only) | `comments.ts` migrated to `requireDocumentCapability` (2026-05-29) |
+| `workspaceAccessMiddleware` | **removed** | Was dead code |
 | `Principal.kind === 'setup'` | **0 constructors** | `setup.ts` uses env token, not capability layer |
-| Mutation entrypoints without token scope | **5** | All use `DocumentActor` only |
+| Mutation entrypoints without token scope | **Reduced** | Programs/projects writes use `require*Write`; document mutations use `authorizeDocumentMutation` |
+
+### OWASP hardening (2026-05-29)
+
+- **Governance mass assignment:** `submitted_at` added to `GOVERNANCE_PROPERTY_KEYS`; generic PATCH/create rejects all governance keys for every principal (including workspace admins). Tests: `documents-governance-patch.test.ts`, probe `input-governance-mass-assignment`.
+- **Programs/projects:** `requireProgramWrite` / `requireProjectWrite` + `requireDocumentCreate` on mutating routes; token scope tests in `programs-projects-token-scope.test.ts`.
+- **Comments / undo-conversion:** `comments.ts` uses `authorize` read; `undo-conversion` uses write + `creator_or_admin` with converter fallback.
 
 ---
 
@@ -36,19 +42,14 @@
 
 ---
 
-## `documents.ts` routes without `authorize`
+## `documents.ts` routes (2026-05-29)
 
-| Method | Path | Gate today | Target (Epic 1) |
-|--------|------|------------|-------------------|
-| GET | `/:id` | Local `canAccessDocument` | `authorize` read |
-| GET | `/:id/content` | Inline visibility SQL | `authorize` read |
-| PATCH | `/:id/content` | → `updateDocumentContentMutation` | Mutation + token scope |
-| POST | `/` | → `createDocumentMutation` | Mutation + token scope |
-| PATCH | `/:id` | → `updateDocumentMutation` | Mutation + token scope |
-| DELETE | `/:id` | → `deleteDocumentMutation` | Mutation + token scope |
-| POST | `/:id/convert` | → `convertDocumentMutation` | Mutation + token scope |
-| POST | `/:id/commands` | `authorize` (read-level) | Honest action + mutation parity |
-| POST | `/:id/undo-conversion` | Local `canAccessDocument` | `authorize` write |
+| Method | Path | Gate today |
+|--------|------|------------|
+| GET | `/:id`, `/:id/content` | `loadDocumentForRead` → `authorize` read |
+| PATCH/POST/DELETE/convert | mutations | `*DocumentMutation` → `authorizeDocumentMutation` + token scope |
+| POST | `/:id/commands` | `documentCommandCapability` + `authorize` with honest action |
+| POST | `/:id/undo-conversion` | `authorize` write (`creator_or_admin`) + converter fallback |
 
 ---
 
@@ -81,15 +82,19 @@ Seed only: `DOCUMENT_POLICY_CASES` + types. Runtime policy is `authorize()` in `
 
 ---
 
-## Flagged gaps (Slice 1.1 → 1.3)
+## Flagged gaps (remaining)
 
-1. **Token scope on mutations** — Scoped API tokens can hit legacy REST write routes that bypass `authorize`.
-2. **Commands read-level pass** — `capabilityForCommand` maps delete/governance actions but `authorize()` treats session document actions as read.
-3. **Triple `canAccessDocument`** — `documents.ts`, `comments.ts`, collaboration wrapper.
-4. **`workspaceAccessMiddleware`** — defined in `auth.ts:269`, never mounted.
-5. **`requireCapability`** — zero callers.
-6. **Dead deny reasons** — `file_not_bound`, `file_not_owned_or_admin` never returned from `authorize()`.
-7. **Collapsed vocabulary (D080)** — `read | write | governance | collaborate`; commands map via `documentCommandCapability()`.
+1. **List/aggregation routes** — `GET /api/issues`, team grids, bootstrap rows still use `VISIBILITY_FILTER_SQL` without per-row `authorize()` (intentional N+1 avoidance).
+2. **Dead deny reasons** — `file_not_bound`, `file_not_owned_or_admin` never returned from `authorize()`.
+3. **Collaboration `canAccessDocumentForCollab`** — thin wrapper over `authorize`; rename/consolidate optional.
+
+### Closed in OWASP pass (2026-05-29)
+
+- Token scope on programs/projects/document mutations
+- Commands use `documentCommandCapability` + enforce rules in `enforceDocumentSessionRule`
+- Comments unified with `authorize`
+- Governance keys on generic PATCH (incl. `submitted_at`, admin bypass removed)
+- `workspaceAccessMiddleware` removed
 
 ---
 

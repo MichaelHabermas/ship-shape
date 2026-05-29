@@ -1,7 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { getVisibilityContext } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { guardDocumentIdParam, requireProjectRead } from '../security/route-capability.js';
+import {
+  guardDocumentIdParam,
+  requireDocumentCreate,
+  requireProjectRead,
+  requireProjectWrite,
+} from '../security/route-capability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import {
@@ -43,6 +48,19 @@ async function guardProjectRead(
   const id = guardDocumentIdParam(res, rawId, 'Project not found');
   if (!id) return null;
   if (!(await requireProjectRead(req, res, id))) {
+    return null;
+  }
+  return id;
+}
+
+async function guardProjectWrite(
+  req: Request,
+  res: Response,
+  rawId: string | string[] | undefined
+): Promise<string | null> {
+  const id = guardDocumentIdParam(res, rawId, 'Project not found');
+  if (!id) return null;
+  if (!(await requireProjectWrite(req, res, id))) {
     return null;
   }
   return id;
@@ -132,6 +150,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
+    if (!(await requireDocumentCreate(req, res))) {
+      return;
+    }
+
     respondProject(res, await createProject({ workspaceId, userId, data: parsed.data }));
   } catch (err) {
     sendInternalError(res, err, 'Create project error:');
@@ -140,7 +162,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const parsed = updateProjectSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -164,7 +186,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -205,7 +227,7 @@ router.post('/:id/retro', authMiddleware, async (req: Request, res: Response) =>
       sendValidationError(res, parsed.error);
       return;
     }
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -229,7 +251,7 @@ router.patch('/:id/retro', authMiddleware, async (req: Request, res: Response) =
       sendValidationError(res, parsed.error);
       return;
     }
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -307,7 +329,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
       sendValidationError(res, parsed.error);
       return;
     }
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -326,7 +348,7 @@ router.post('/:id/sprints', authMiddleware, async (req: Request, res: Response) 
 
 router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
@@ -344,7 +366,7 @@ router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Respo
 
 router.post('/:id/approve-retro', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const id = await guardProjectRead(req, res, req.params.id);
+    const id = await guardProjectWrite(req, res, req.params.id);
     if (!id) return;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);

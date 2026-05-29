@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
 import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS } from '@ship/shared';
@@ -207,7 +208,7 @@ router.post('/:token/accept', async (req: Request, res: Response): Promise<void>
         return;
       }
 
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await bcrypt.hash(password, PASSWORD_BCRYPT_ROUNDS);
       const userName = name || invite.email.split('@')[0];
 
       const newUserResult = await pool.query(

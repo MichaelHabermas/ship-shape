@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import { loadProductionSecrets } from '../config/ssm.js';
 import { databaseSslOptions } from '../config/runtime.js';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocument.js';
@@ -139,7 +140,7 @@ async function seed() {
       { email: 'jack.brown@ship.local', name: 'Jack Brown' },
     ];
 
-    const passwordHash = await bcrypt.hash('admin123', 10);
+    const passwordHash = await bcrypt.hash('admin123', PASSWORD_BCRYPT_ROUNDS);
     let usersCreated = 0;
 
     for (const member of teamMembers) {

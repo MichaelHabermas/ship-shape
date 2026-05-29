@@ -27,3 +27,6 @@ export const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
 
 // Absolute session timeout (12 hours) - NIST SP 800-63B-4 AAL2 requirement
 export const ABSOLUTE_SESSION_TIMEOUT_MS = 12 * 60 * 60 * 1000;
+
+/** bcrypt cost factor for password hashing (OWASP recommendation: >= 12). */
+export const PASSWORD_BCRYPT_ROUNDS = 12;

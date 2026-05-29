@@ -8,9 +8,6 @@ import type { FleetGraphFinding } from '../persistence.js';
 import type { FleetGraphInput, FleetGraphVisibleOutput } from '../types.js';
 import type { FleetGraphEvidenceItem } from '@ship/shared';
 import {
-  chatAnswerForIntent,
-  classifyFleetGraphChatPrompt,
-  mergeChatSources,
   unsupportedChatAnswer,
   type FleetGraphChatAnswerPayload,
 } from './chat.js';
@@ -144,7 +141,6 @@ export function sourcesFromContextBundle(bundle: ContextChatBundle): Array<{ lab
 }
 
 export function deterministicContextChatAnswer(prompt: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
-  const intent = classifyFleetGraphChatPrompt(prompt);
   const primaryDocument = bundle.documents[0];
   const primarySignal = bundle.signals[0];
   const sources = sourcesFromContextBundle(bundle);
@@ -160,19 +156,12 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
     };
   }
 
-  if (
-    primarySignal
-    && intent !== 'unsupported'
-    && intent !== 'summarize_changes'
-    && intent !== 'greeting'
-    && signalSpecificPrompt(normalized)
-  ) {
-    const answer = chatAnswerForIntent(intent, primarySignal.output);
-    return { ...answer, sources: mergeChatSources(answer.sources, sources) };
+  if (primarySignal && signalSpecificPrompt(normalized)) {
+    return signalAnswer(normalized, primarySignal, sources);
   }
 
   if (primaryDocument) {
-    const asksForShipAction = /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item)\b/.test(normalized);
+    const asksForShipAction = asksForAction(normalized);
     return {
       title: primaryDocument.title,
       body: fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal),
@@ -187,10 +176,9 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
   if (primarySignal) {
     return {
       title: primarySignal.output.title,
-      body: [primarySignal.output.summary, signalReason(primarySignal.output)].filter(Boolean).join(' '),
-      ...(recommendedActionFromOutput(primarySignal.output) ? { nextStep: recommendedActionFromOutput(primarySignal.output) } : {}),
+      body: signalReason(primarySignal.output) ?? primarySignal.output.summary,
       sources,
-      humanGate: primarySignal.output.humanGate,
+      humanGate: { required: false },
     };
   }
 
@@ -199,6 +187,35 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
 
 function signalSpecificPrompt(normalizedPrompt: string): boolean {
   return /\b(why|flagged|blocked|blocker|stale|risk|urgent|urgency|reason|attention|signal|next step|next move|what next|what should (i|we) do|unblock|owner|approver|dependency)\b/.test(normalizedPrompt);
+}
+
+function signalAnswer(
+  normalizedPrompt: string,
+  signal: ContextChatSignal,
+  sources: Array<{ label: string; kind: string }>
+): FleetGraphChatAnswerPayload {
+  const reason = signalReason(signal.output) ?? signal.output.summary;
+  const nextStep = recommendedActionFromOutput(signal.output);
+  if (asksForAction(normalizedPrompt)) {
+    return {
+      title: 'Next move',
+      body: nextStep || reason,
+      ...(nextStep ? { nextStep } : {}),
+      sources,
+      humanGate: signal.output.humanGate,
+    };
+  }
+
+  return {
+    title: signal.output.title,
+    body: reason,
+    sources,
+    humanGate: { required: false },
+  };
+}
+
+function asksForAction(normalizedPrompt: string): boolean {
+  return /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item)\b/.test(normalizedPrompt);
 }
 
 export function chatModelAnswerFromContext(body: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
@@ -304,6 +321,10 @@ function fallbackAnswer(
   attachedDocuments: ContextChatDocument[],
   signal: ContextChatSignal | undefined
 ): string {
+  if (/\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(prompt)) {
+    return simpleDocumentAnswer(document, signal);
+  }
+
   if (/\bpython\b/i.test(prompt) && /\blinked list\b/i.test(prompt)) {
     return [
       'Here is the basic Python shape:',
@@ -325,6 +346,19 @@ function fallbackAnswer(
   }
 
   return documentAnswer(document, attachedDocuments, signal);
+}
+
+function simpleDocumentAnswer(
+  document: ContextChatDocument,
+  signal: ContextChatSignal | undefined
+): string {
+  const reason = signal ? signalReason(signal.output) : null;
+  const state = stringFromUnknown(document.properties.state) ?? stringFromUnknown(document.properties.status);
+  const bits = [
+    reason || `${document.title} needs attention.`,
+    state ? `Status: ${state}.` : null,
+  ].filter(Boolean);
+  return bits.join('\n\n');
 }
 
 function documentAnswer(

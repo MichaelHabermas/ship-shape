@@ -6,6 +6,7 @@
  */
 
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -62,7 +63,7 @@ async function ensurePersonDocument(
 }
 
 async function upsertDeployUser(pool: pg.Pool, workspaceId: string, spec: DeployUserSpec) {
-  const passwordHash = await bcrypt.hash(spec.password, 10);
+  const passwordHash = await bcrypt.hash(spec.password, PASSWORD_BCRYPT_ROUNDS);
 
   const existing = await pool.query<{ id: string }>(
     'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',

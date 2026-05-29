@@ -33,7 +33,7 @@ async function createUser(label: string): Promise<string> {
   return requireFirstRow(result.rows).id;
 }
 
-async function createSession(input: { userId: string; workspaceId: string }): Promise<string> {
+async function createSession(input: { userId: string; workspaceId: string }): Promise<{ cookie: string; csrfToken: string }> {
   const sessionId = crypto.randomBytes(32).toString('hex');
   await pool.query(
     `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -44,13 +44,8 @@ async function createSession(input: { userId: string; workspaceId: string }): Pr
   const csrfRes = await request(app).get('/api/csrf-token').set('Cookie', cookie);
   const csrfCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] ?? '';
   if (csrfCookie) cookie = `${cookie}; ${csrfCookie}`;
-  return cookie;
-}
-
-async function csrfToken(cookie: string): Promise<string> {
-  const res = await request(app).get('/api/csrf-token').set('Cookie', cookie);
-  const body = JSON.parse(res.text) as CsrfResponseBody;
-  return body.token;
+  const body = JSON.parse(csrfRes.text) as CsrfResponseBody;
+  return { cookie, csrfToken: body.token };
 }
 
 describe('FleetGraph route security', () => {
@@ -119,10 +114,12 @@ describe('FleetGraph route security', () => {
       humanGate: { required: true },
     });
     findingId = finding.id;
-    memberCookie = await createSession({ userId: memberId, workspaceId });
-    memberCsrf = await csrfToken(memberCookie);
-    adminCookie = await createSession({ userId: adminId, workspaceId });
-    adminCsrf = await csrfToken(adminCookie);
+    const memberSession = await createSession({ userId: memberId, workspaceId });
+    memberCookie = memberSession.cookie;
+    memberCsrf = memberSession.csrfToken;
+    const adminSession = await createSession({ userId: adminId, workspaceId });
+    adminCookie = adminSession.cookie;
+    adminCsrf = adminSession.csrfToken;
     adminToken = `ship_${crypto.randomBytes(32).toString('hex')}`;
     readOnlyToken = `ship_${crypto.randomBytes(32).toString('hex')}`;
     await pool.query(
@@ -266,8 +263,8 @@ describe('FleetGraph route security', () => {
 
     const body = JSON.parse(res.text) as FleetGraphChatBody;
     expect(body.decision).toBe('explain');
-    expect(body.answer?.title).toBe('Private source finding for chat');
-    expect(body.answer?.body).toContain('This chat smoke summary proves the route can answer from attached context.');
+    expect(body.answer?.title).toBe('Private blocked issue');
+    expect(body.answer?.body).toContain('Private blocked issue is an issue.');
     expect(res.text).not.toContain('I can answer from the attached issue');
   });
 

@@ -42,9 +42,13 @@ export function respondLegacyCapabilityDenied(
   notFoundMessage = 'Not found'
 ): void {
   const status = capabilityDenialStatus(decision.reason);
-  res.status(status).json({
-    error: status === 404 ? notFoundMessage : 'Forbidden',
-  });
+  const error =
+    status === 404
+      ? notFoundMessage
+      : decision.reason === 'token_scope_denied'
+        ? 'token_scope_denied'
+        : 'Forbidden';
+  res.status(status).json({ error });
 }
 
 export async function requireDocumentCapability(
@@ -108,6 +112,29 @@ export async function requireProgramRead(
   programId: string
 ): Promise<CapabilityDecision | null> {
   return requireDocument(req, res, { type: 'program', action: 'read', id: programId, notFoundMessage: 'Program not found' });
+}
+
+export async function requireProgramWrite(
+  req: Request,
+  res: Response,
+  programId: string
+): Promise<CapabilityDecision | null> {
+  return requireDocument(req, res, { type: 'program', action: 'write', id: programId, notFoundMessage: 'Program not found' });
+}
+
+export async function requireProjectWrite(
+  req: Request,
+  res: Response,
+  projectId: string
+): Promise<CapabilityDecision | null> {
+  return requireDocument(req, res, { type: 'project', action: 'write', id: projectId, notFoundMessage: 'Project not found' });
+}
+
+export async function requireDocumentCreate(
+  req: Request,
+  res: Response
+): Promise<CapabilityDecision | null> {
+  return requireDocumentCapability(req, res, { resource: 'document', action: 'write' });
 }
 
 export async function requireSprintRead(

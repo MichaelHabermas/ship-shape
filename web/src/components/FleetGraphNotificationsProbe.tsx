@@ -57,11 +57,14 @@ export function FleetGraphNotificationsProbe({
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const notificationGroups = groupNotificationsBySource(notifications);
   const notificationCount = notificationGroups.length;
-  const unreadCount = notificationGroups.filter((group) => !group.isRead).length;
   const signalCounts = SIGNAL_ORDER.map((signalType) => ({
     signalType,
-    label: notifications.find((notification) => notification.signalType === signalType)?.signalLabel ?? signalType,
-    count: notifications.filter((notification) => notification.signalType === signalType).length,
+    label: notificationGroups
+      .flatMap((group) => group.signals)
+      .find((signal) => signal.signalType === signalType)?.signalLabel ?? signalType,
+    count: notificationGroups.filter((group) => (
+      group.signals.some((signal) => signal.signalType === signalType)
+    )).length,
   })).filter((item) => item.count > 0);
 
   useEffect(() => {
@@ -219,7 +222,7 @@ export function FleetGraphNotificationsProbe({
         className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-border/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
       >
         <BellIcon />
-        <NotificationBadge count={unreadCount || notificationCount} />
+        <NotificationBadge count={notificationCount} />
       </button>
     </div>
   );

@@ -6,8 +6,13 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": false,
     "types": ["node", "@playwright/test"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@ship/shared": ["../shared/dist"],
+      "@ship/shared/*": ["../shared/dist/*"]
+    }
   },
+  "references": [{ "path": "../shared" }],
   "include": ["./**/*.ts", "../playwright.config.ts", "../playwright.isolated.config.ts"],
   "exclude": ["node_modules"]
 }

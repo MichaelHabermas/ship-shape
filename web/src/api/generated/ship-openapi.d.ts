@@ -8075,6 +8075,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/credentials/app.js": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin credentials page script (CSP-safe external JS) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description JavaScript bundle */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/javascript": string;
+                    };
+                };
+                /** @description Super admin required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/credentials": {
         parameters: {
             query?: never;
@@ -13040,6 +13083,8 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** @description External admin credentials page script */
+        CredentialsAppJs: string;
         DevDatabaseStatusResponse: {
             connected: boolean;
             unreachable?: boolean;
@@ -13266,6 +13311,23 @@ export interface components {
              */
             findingId?: string;
             sourcePath?: string;
+            attachedContexts?: {
+                /** @enum {string} */
+                kind: "issue" | "sprint" | "project" | "program" | "document" | "workspace" | "notification" | "finding";
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                documentId?: string;
+                /**
+                 * Format: uuid
+                 * @description UUID identifier
+                 * @example 550e8400-e29b-41d4-a716-446655440000
+                 */
+                findingId?: string;
+                sourcePath?: string;
+            }[];
         };
         FleetGraphChatResponse: {
             decision: string;

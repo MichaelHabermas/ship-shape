@@ -8350,6 +8350,10 @@
           "data"
         ]
       },
+      "CredentialsAppJs": {
+        "type": "string",
+        "description": "External admin credentials page script"
+      },
       "DevDatabaseStatusResponse": {
         "type": "object",
         "properties": {
@@ -9003,6 +9007,47 @@
           "sourcePath": {
             "type": "string",
             "maxLength": 512
+          },
+          "attachedContexts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "issue",
+                    "sprint",
+                    "project",
+                    "program",
+                    "document",
+                    "workspace",
+                    "notification",
+                    "finding"
+                  ]
+                },
+                "documentId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "findingId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID identifier",
+                  "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "sourcePath": {
+                  "type": "string",
+                  "maxLength": 512
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "maxItems": 8
           }
         },
         "required": [
@@ -17271,6 +17316,31 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminJsonResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Super admin required"
+          }
+        }
+      }
+    },
+    "/admin/credentials/app.js": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Credentials"
+        ],
+        "summary": "Admin credentials page script (CSP-safe external JS)",
+        "responses": {
+          "200": {
+            "description": "JavaScript bundle",
+            "content": {
+              "application/javascript": {
+                "schema": {
+                  "type": "string",
+                  "description": "External admin credentials page script"
                 }
               }
             }

@@ -3,6 +3,7 @@
 import { pathToFileURL } from 'url';
 import { computeCurrentSprintNumber } from '@ship/shared';
 import bcrypt from 'bcryptjs';
+import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import { pool } from '../db/client.js';
 import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
@@ -94,7 +95,7 @@ async function upsertWorkspace(): Promise<WorkspaceRow> {
 }
 
 async function upsertUser(email: string, name: string, workspaceId: string, role: 'admin' | 'member'): Promise<UserRow> {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, PASSWORD_BCRYPT_ROUNDS);
   const existing = await pool.query<UserRow>(
     'SELECT id, email, name FROM users WHERE lower(email) = lower($1) LIMIT 1',
     [email]

@@ -7,7 +7,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "rm -rf dist && tsc && cp src/db/schema.sql dist/db/schema.sql && cp -r src/db/migrations dist/db/migrations",
+    "build": "rm -rf dist && tsc && cp src/db/schema.sql dist/db/schema.sql && cp -r src/db/migrations dist/db/migrations && cp -r src/static dist/static",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "type-check": "pnpm --filter @ship/shared build && tsc --noEmit",

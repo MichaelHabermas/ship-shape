@@ -28,6 +28,7 @@ import {
   findForbiddenRaciKeys,
   formatForbiddenGovernanceKeys,
   stripForbiddenGovernanceKeys,
+  stampWeeklyAccountabilitySubmittedAt,
 } from '../utils/document-governance.js';
 import { asApprovalRecord } from '../utils/approval-workflow.js';
 import { getDocumentAccessContext, getReadableDocument, type DocumentActor } from './document-access.js';
@@ -316,10 +317,15 @@ export async function updateDocumentContentMutation({
       return { ok: false, status: 404, body: { error: 'Document not found' } };
     }
 
-    const newProps = {
-      ...(existing.properties || {}),
-      ...extractedContentProperties(content),
-    };
+    const contentChanged = JSON.stringify(content) !== JSON.stringify(existing.content ?? null);
+    const newProps = stampWeeklyAccountabilitySubmittedAt(
+      existing.document_type,
+      {
+        ...(existing.properties || {}),
+        ...extractedContentProperties(content),
+      },
+      contentChanged
+    );
 
     await client.query('BEGIN');
     await client.query(
@@ -503,7 +509,7 @@ export async function createDocumentMutation({
     } = input;
     let { visibility } = input;
 
-    const forbiddenOnCreate = isAdmin ? [] : findForbiddenGovernanceKeys(properties);
+    const forbiddenOnCreate = findForbiddenGovernanceKeys(properties);
     if (forbiddenOnCreate.length > 0) {
       return {
         ok: false,
@@ -651,8 +657,11 @@ export async function updateDocumentMutation({
     }
 
     const { isAdmin } = await getDocumentAccessContext(actor, client);
+    const isGovernanceCommand = capability?.action === 'governance';
 
-    const forbiddenGovernanceKeys = isAdmin ? [] : findForbiddenGovernanceKeys(patch.properties);
+    const forbiddenGovernanceKeys = isGovernanceCommand
+      ? []
+      : findForbiddenGovernanceKeys(patch.properties);
     if (forbiddenGovernanceKeys.length > 0) {
       return {
         ok: false,
@@ -769,7 +778,9 @@ export async function updateDocumentMutation({
         ...topLevelProps,
         ...(contentUpdated ? extractedProps : {}),
       };
-      newProps = stripForbiddenGovernanceKeys(newProps, { isAdmin });
+      if (!isGovernanceCommand) {
+        newProps = stripForbiddenGovernanceKeys(newProps);
+      }
 
       if (existing.document_type === 'project' || existing.document_type === 'sprint') {
         let linkedIssuesCount = 0;

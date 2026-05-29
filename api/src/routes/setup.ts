@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
-import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
+import { ERROR_CODES, HTTP_STATUS, PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from '../db/welcomeDocument.js';
 import { defineRoute } from '../openapi/define-route.js';
 import { ApiErrorResponseSchema } from '../openapi/schemas/common.js';
@@ -113,7 +113,7 @@ router.post(
         return;
       }
 
-      const passwordHash = await bcrypt.hash(password, 12);
+      const passwordHash = await bcrypt.hash(password, PASSWORD_BCRYPT_ROUNDS);
       const client = await pool.connect();
 
       try {
