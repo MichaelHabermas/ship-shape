@@ -1,5 +1,5 @@
 // Idempotent FleetGraph demo setup seeds reviewer-safe attention scenarios.
-// Stable reviewer login: fleetgraph.reviewer@ship.local / admin123.
+// Non-local demo seeding requires FLEETGRAPH_DEMO_PASSWORD.
 import { pathToFileURL } from 'url';
 import { computeCurrentSprintNumber } from '@ship/shared';
 import bcrypt from 'bcryptjs';
@@ -16,7 +16,6 @@ import { requireFirstRow } from '../utils/query-rows.js';
 const FALLBACK_WORKSPACE_NAME = 'FleetGraph Demo Workspace';
 const SEEDED_APP_WORKSPACE_NAME = 'Ship Workspace';
 const BASE_URL = process.env.FLEETGRAPH_DEMO_WEB_URL ?? 'http://localhost:5173';
-const DEMO_PASSWORD = process.env.FLEETGRAPH_DEMO_PASSWORD ?? 'admin123';
 
 type IdRow = { id: string };
 type UserRow = { id: string; email: string; name: string };
@@ -38,7 +37,12 @@ function mondayWeeksAgo(weeksAgo: number): string {
 }
 
 function assertLocalDemoDatabase(): void {
-  if (process.env.FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB === '1') return;
+  if (process.env.FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB === '1') {
+    if (!process.env.FLEETGRAPH_DEMO_PASSWORD) {
+      throw new Error('FLEETGRAPH_DEMO_PASSWORD is required when seeding a non-local FleetGraph demo database.');
+    }
+    return;
+  }
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) return;
 
@@ -47,6 +51,10 @@ function assertLocalDemoDatabase(): void {
   if (localHosts.has(parsed.hostname)) return;
 
   throw new Error('Refusing to seed the FleetGraph demo world against a non-local DATABASE_URL. Set FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB=1 only for an intentional demo database.');
+}
+
+function demoPassword(): string {
+  return process.env.FLEETGRAPH_DEMO_PASSWORD ?? 'admin123';
 }
 
 async function upsertWorkspace(): Promise<WorkspaceRow> {
@@ -95,7 +103,7 @@ async function upsertWorkspace(): Promise<WorkspaceRow> {
 }
 
 async function upsertUser(email: string, name: string, workspaceId: string, role: 'admin' | 'member'): Promise<UserRow> {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, PASSWORD_BCRYPT_ROUNDS);
+  const passwordHash = await bcrypt.hash(demoPassword(), PASSWORD_BCRYPT_ROUNDS);
   const existing = await pool.query<UserRow>(
     'SELECT id, email, name FROM users WHERE lower(email) = lower($1) LIMIT 1',
     [email]
@@ -490,7 +498,7 @@ export async function seedFleetGraphDemo(options: {
     workspaceId: workspace.id,
     currentSprintNumber,
     reviewerLogin: admin.email,
-    reviewerPassword: DEMO_PASSWORD,
+    reviewerPassword: demoPassword(),
     decisionCount: decisions.length,
     decisions: decisions.map((decision) => ({
       decision: decision.decision,
@@ -539,6 +547,10 @@ export async function captureTraceEvidence(input: {
   const decisions = await detectFleetGraphAttentionDecisions({ workspaceId: input.workspaceId, db: pool });
   const positiveDecision = decisions.find((decision) => decision.candidate.issue_id === input.positiveIssueId);
   if (!positiveDecision) throw new Error('Missing positive FleetGraph demo decision for trace capture');
+  const staleDecision = decisions.find((decision) => decision.candidate.signalType === 'stale');
+  if (!staleDecision) throw new Error('Missing stale FleetGraph demo decision for trace capture');
+  const atRiskDecision = decisions.find((decision) => decision.candidate.signalType === 'at_risk');
+  if (!atRiskDecision) throw new Error('Missing at-risk FleetGraph demo decision for trace capture');
 
   const proactive = await withFleetGraphTrace({
     name: 'fleetgraph.proactive_create',
@@ -553,6 +565,38 @@ export async function captureTraceEvidence(input: {
     mode: 'proactive',
     trigger: { type: 'detector_decision', detectorDecision: positiveDecision },
     triggerReason: 'demo-proactive-create',
+  }, { db: pool, externalTrace, traceRecorder }));
+
+  const stale = await withFleetGraphTrace({
+    name: 'fleetgraph.proactive_stale',
+    inputs: {
+      mode: 'proactive',
+      trigger: 'detector_decision',
+      signalType: 'stale',
+      decision: staleDecision.decision,
+    },
+  }, (externalTrace, traceRecorder) => runFleetGraph({
+    workspaceId: input.workspaceId,
+    principal: proactivePrincipal,
+    mode: 'proactive',
+    trigger: { type: 'detector_decision', detectorDecision: staleDecision },
+    triggerReason: 'demo-proactive-stale',
+  }, { db: pool, externalTrace, traceRecorder }));
+
+  const atRisk = await withFleetGraphTrace({
+    name: 'fleetgraph.proactive_at_risk',
+    inputs: {
+      mode: 'proactive',
+      trigger: 'detector_decision',
+      signalType: 'at_risk',
+      decision: atRiskDecision.decision,
+    },
+  }, (externalTrace, traceRecorder) => runFleetGraph({
+    workspaceId: input.workspaceId,
+    principal: proactivePrincipal,
+    mode: 'proactive',
+    trigger: { type: 'detector_decision', detectorDecision: atRiskDecision },
+    triggerReason: 'demo-proactive-at-risk',
   }, { db: pool, externalTrace, traceRecorder }));
 
   const findingResult = await pool.query<{ id: string }>(
@@ -601,6 +645,8 @@ export async function captureTraceEvidence(input: {
 
   return {
     proactive: await traceEvidenceFor(proactive),
+    stale: await traceEvidenceFor(stale),
+    atRisk: await traceEvidenceFor(atRisk),
     explain: await traceEvidenceFor(explain),
     refine: await traceEvidenceFor(refine),
   };

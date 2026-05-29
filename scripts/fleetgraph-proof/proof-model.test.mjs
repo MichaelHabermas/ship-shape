@@ -97,6 +97,42 @@ test('validateProofPacket catches decision drift from required scenarios', () =>
   assert.equal(packet.verdict, 'fail');
 });
 
+test('deployed proof blocks without a completed worker output tick', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'deployed',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(REQUIRED_SCENARIOS.map((scenario) => scenario.goldenCaseId)),
+    executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [{ id: 'deployed', required: true, status: 'configured' }],
+    deployedEvidence: {
+      signalTypes: ['at_risk', 'blocked', 'stale'],
+      completedWorkerTickCount: 0,
+      hasRecentCompletedWorkerOutput: false,
+      stuckRunningTickCount: 0,
+    },
+    commandResults: [],
+    artifacts: [
+      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
+      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
+      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
+    ],
+  });
+
+  assert.equal(packet.verdict, 'blocked');
+});
+
 test('validateProofPacket reports missing required scenario', () => {
   const packet = {
     generatedAt: '2026-05-28T00:00:00.000Z',

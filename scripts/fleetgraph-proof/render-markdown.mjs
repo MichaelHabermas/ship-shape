@@ -13,6 +13,7 @@ export function renderMarkdown(packet) {
     '',
     `Required scenarios: ${packet.summary.provenScenarioCount}/${packet.summary.requiredScenarioCount}`,
     `Current product surface: ${packet.summary.currentSurfacePass ?? '-'} pass / ${packet.summary.currentSurfaceFail ?? '-'} fail`,
+    `Deployed signals: ${(packet.summary.deployedSignals ?? []).join(', ') || '-'}`,
     '',
     '## Attention Loop',
     '',
@@ -35,6 +36,12 @@ export function renderMarkdown(packet) {
     ...packet.currentFindings.map((finding) =>
       `| ${finding.signal} | ${finding.source} | ${finding.visibleCopy} | ${finding.nextAction} | ${finding.status} |`
     ),
+    '',
+    '## Deployed Evidence',
+    '',
+    packet.deployedEvidence
+      ? `Worker ticks: ${packet.deployedEvidence.workerTickCount}; completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}; stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}; signals: ${packet.deployedEvidence.signalTypes.join(', ') || '-'}; scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).join(', ') || '-'}`
+      : 'No deployed database evidence was configured.',
     '',
     '## Safety',
     '',

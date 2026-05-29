@@ -63,6 +63,8 @@ export type FleetGraphScenarioLabel =
   | 'branch:dismiss'
   | 'branch:resolve'
   | 'branch:error'
+  | 'signal:stale'
+  | 'signal:at_risk'
   | 'action:fleetgraph_write'
   | 'action:no_ship_write'
   | 'action:human_gate'

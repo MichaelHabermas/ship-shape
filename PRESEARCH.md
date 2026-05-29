@@ -1,5 +1,9 @@
 # Presearch Checklist Answers
 
+## Final Proof Posture
+
+The final Week 5 proof posture is all-signal and deployed: `blocked`, `stale`, and `at_risk` are not merely design discovery items. Each final claimed signal must be backed by executable golden cases and deployed proof data from real Ship tables: worker ticks, attention events or repair-scan output, FleetGraph findings/runs, and reviewer-visible notifications. Local E2E remains deterministic proof of the loop mechanics; deployed proof is what supports deployed no-user-present claims.
+
 ## Phase 1: Define Your Agent
 
 ### 1. Agent Responsibility Scoping

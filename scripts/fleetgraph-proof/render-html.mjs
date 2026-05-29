@@ -74,6 +74,7 @@ export function renderHtml(packet, options = {}) {
     <span class="meta">${escapeHtml(packet.target)}</span>
     <span class="meta">surface ${packet.summary.currentSurfacePass ?? '-'} pass / ${packet.summary.currentSurfaceFail ?? '-'} fail</span>
     <span class="meta">scenarios ${packet.summary.provenScenarioCount}/${packet.summary.requiredScenarioCount}</span>
+    <span class="meta">signals ${(packet.summary.deployedSignals ?? []).join(', ') || '-'}</span>
   </section>
 
   <h2>Attention Loop Timeline</h2>
@@ -96,6 +97,13 @@ export function renderHtml(packet, options = {}) {
       ${packet.currentFindings.map((finding) => `<tr><td>${escapeHtml(finding.signal)}</td><td>${escapeHtml(finding.source)}</td><td>${escapeHtml(finding.visibleCopy)}</td><td>${escapeHtml(finding.nextAction)}</td><td>${chip(finding.status)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No current product-surface samples were available.</td></tr>'}
     </tbody>
   </table>
+
+  <h2>Deployed Evidence</h2>
+  <div class="panel small">
+    ${packet.deployedEvidence
+      ? `<p>Worker ticks: ${packet.deployedEvidence.workerTickCount}</p><p>Completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}</p><p>Stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}</p><p>Signals: ${(packet.deployedEvidence.signalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p><p>Scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p>`
+      : '<p>No deployed database evidence was configured.</p>'}
+  </div>
 
   <div class="grid">
     <section>
