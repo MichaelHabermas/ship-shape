@@ -35,6 +35,7 @@ export type FleetGraphVisibleOutput = {
 
 export type FleetGraphTraceMetadata = Omit<FleetGraphTrace, 'decision'> & {
   decision: FleetGraphRunDecision;
+  observability?: JsonRecord;
 };
 
 export type FleetGraphTokenMetadata = {
@@ -44,10 +45,17 @@ export type FleetGraphTokenMetadata = {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
+  usageSource?: 'none' | 'model_response' | 'partial_model_response' | 'synthetic_calibration';
+  noUsageReason?: string;
 };
 
 export type FleetGraphCostMetadata = {
   estimatedCostUsd?: number;
+  inputCostUsd?: number;
+  outputCostUsd?: number;
+  currency?: 'USD';
+  costSource?: 'none' | 'model_response' | 'catalog_estimate' | 'env_estimate' | 'synthetic_calibration';
+  noCostReason?: string;
 };
 
 export type FleetGraphDecisionPacket = {

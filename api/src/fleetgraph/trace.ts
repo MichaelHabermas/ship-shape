@@ -10,6 +10,7 @@ export function fleetGraphTraceMetadata(input: {
   traceId?: string;
   traceUrl?: string;
   failureCategory?: string;
+  observability?: JsonRecord;
 }): FleetGraphTraceMetadata {
   return {
     mode: input.mode,
@@ -18,6 +19,7 @@ export function fleetGraphTraceMetadata(input: {
     ...(input.traceId ? { traceId: input.traceId } : {}),
     ...(input.traceUrl ? { traceUrl: input.traceUrl } : {}),
     ...(input.failureCategory ? { failureCategory: input.failureCategory } : {}),
+    ...(input.observability ? { observability: input.observability } : {}),
   };
 }
 
@@ -29,6 +31,7 @@ export function traceMetadataJson(metadata: FleetGraphTraceMetadata): JsonRecord
     ...(metadata.traceId ? { traceId: metadata.traceId } : {}),
     ...(metadata.traceUrl ? { traceUrl: metadata.traceUrl } : {}),
     ...(metadata.failureCategory ? { failureCategory: metadata.failureCategory } : {}),
+    ...(isJsonRecord(metadata.observability) ? { observability: metadata.observability } : {}),
   });
 }
 
@@ -43,6 +46,7 @@ export function sanitizeFleetGraphTraceMetadata(metadata: JsonRecord): JsonRecor
   if (typeof metadata.traceId === 'string') sanitized.traceId = metadata.traceId;
   if (typeof metadata.traceUrl === 'string' && isSafeTraceUrl(metadata.traceUrl)) sanitized.traceUrl = metadata.traceUrl;
   if (typeof metadata.failureCategory === 'string') sanitized.failureCategory = metadata.failureCategory;
+  if (isJsonRecord(metadata.observability)) sanitized.observability = sanitizeObservabilityMetadata(metadata.observability);
 
   return sanitized;
 }
@@ -66,6 +70,7 @@ export function traceMetadataForResponse(
     ...(typeof sanitized.traceId === 'string' ? { traceId: sanitized.traceId } : {}),
     ...(typeof sanitized.traceUrl === 'string' ? { traceUrl: sanitized.traceUrl } : {}),
     ...(typeof sanitized.failureCategory === 'string' ? { failureCategory: sanitized.failureCategory } : {}),
+    ...(isJsonRecord(sanitized.observability) ? { observability: sanitized.observability } : {}),
   };
 }
 
@@ -89,4 +94,32 @@ function isSafeTraceUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeObservabilityMetadata(metadata: JsonRecord): JsonRecord {
+  const safe: JsonRecord = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!/^[a-zA-Z0-9_.-]{1,80}$/.test(key)) continue;
+    if (
+      /prompt|completion|authorization|cookie|password|secret|token/i.test(key) &&
+      key !== 'modelTokenCount' &&
+      key !== 'tokenUsage'
+    ) {
+      continue;
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
+      safe[key] = value;
+    } else if (Array.isArray(value)) {
+      const strings = value.filter((item): item is string => typeof item === 'string').slice(0, 20);
+      if (strings.length > 0) safe[key] = strings;
+    } else if (isJsonRecord(value)) {
+      const nested = sanitizeObservabilityMetadata(value);
+      if (Object.keys(nested).length > 0) safe[key] = nested;
+    }
+  }
+  return safe;
 }

@@ -71,12 +71,7 @@ export function chatAnswerForIntent(
   const recipient = stringValue(output.proposedRecipient?.displayName) || stringValue(output.proposedRecipient?.role);
   const reason = attentionExcerpt(output) || output.summary;
   if (intent === 'greeting') {
-    return {
-      title: 'Ready',
-      body: 'Hi. I can help unpack this signal, find the owner, or suggest the next move.',
-      sources: [],
-      humanGate: { required: false },
-    };
+    return chatAnswerFromVisibleOutput(output);
   }
   if (intent === 'unblocker') {
     return {

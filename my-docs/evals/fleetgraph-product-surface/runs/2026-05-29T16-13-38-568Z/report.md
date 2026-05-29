@@ -1,6 +1,6 @@
 # FleetGraph Product Surface Eval
 
-Generated: 2026-05-29T16:36:14.390Z
+Generated: 2026-05-29T16:13:38.568Z
 
 ## Current Surface Summary
 
@@ -222,285 +222,6 @@ Older fleetgraph_runs.output_snapshot rows for trend review only. These do not a
 
 - Pass: 0
 - Fail: 20
-
-### fg-surface-persisted-refine_draft-041314d0
-
-Persisted on_demand/refine_draft output from 2026-05-29T16:34:11.808Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-refine_draft-cddee1d6
-
-Persisted on_demand/refine_draft output from 2026-05-29T16:34:10.662Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-explain-2fb2e06b
-
-Persisted on_demand/explain output from 2026-05-29T16:34:07.965Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-explain-1cb4d4fa
-
-Persisted on_demand/explain output from 2026-05-29T16:34:06.725Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-create_finding-592d7133
-
-Persisted proactive/create_finding output from 2026-05-29T16:34:02.118Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-create_finding-2e121a0c
-
-Persisted proactive/create_finding output from 2026-05-29T16:34:01.225Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-refine_draft-dcf24dfe
-
-Persisted on_demand/refine_draft output from 2026-05-29T16:33:36.277Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-explain-86813c9b
-
-Persisted on_demand/explain output from 2026-05-29T16:33:30.613Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-create_finding-3d34ca54
-
-Persisted proactive/create_finding output from 2026-05-29T16:33:26.791Z
-
-Visible copy:
-
-> Blocked: FG Demo - SSO cert rotation blocked · Blocked on Casey Dependency Owner approving the SSO cert rotation window · Week 7 · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 3 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
 
 ### fg-surface-persisted-refine_draft-ee788ef1
 
@@ -835,6 +556,285 @@ Status: fail (groundedness, specificity, brevity, repetitionBudget, informationD
 | uncertaintyHonesty | 2 |
 | missingDataUsefulness | 2 |
 | uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-06928401
+
+Persisted on_demand/explain output from 2026-05-29T15:40:14.054Z
+
+Visible copy:
+
+> Reviewer evidence import waits on sample archive (blocked) · The reviewer sample archive has not been delivered. · Resolve this signal while preserving the other active attention context on the same issue. · This source issue intentionally has multiple active FleetGraph findings. · Check whether the UI preserves the selected signal when several notifications share one document.
+
+Status: fail (actionability, groundedness, specificity, brevity, repetitionBudget, informationDensity, cavemanCopy, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 2 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 2 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-624a0dd5
+
+Persisted on_demand/explain output from 2026-05-29T15:40:07.247Z
+
+Visible copy:
+
+> Project health rollup stalled after initial schema notes · The issue has old design notes but no code, comments, or status movement since the first estimate. · Open the issue, confirm the owner, and record the next dated action. · Seed data intentionally varies age, owner, severity, and due date. · Confirm the issue document before taking action.
+
+Status: fail (groundedness, specificity, brevity, repetitionBudget, informationDensity, cavemanCopy, uncertaintyHonesty, missingDataUsefulness)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 1 |
+| specificity | 2 |
+| brevity | 2 |
+| repetitionBudget | 1 |
+| informationDensity | 1 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 2 |
+| missingDataUsefulness | 2 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-24bdc2e1
+
+Persisted on_demand/explain output from 2026-05-29T15:38:07.061Z
+
+Visible copy:
+
+> Reviewer evidence import waits on sample archive (blocked) · The reviewer sample archive has not been delivered. · Resolve this signal while preserving the other active attention context on the same issue. · This source issue intentionally has multiple active FleetGraph findings. · Check whether the UI preserves the selected signal when several notifications share one document.
+
+Status: fail (actionability, groundedness, specificity, brevity, repetitionBudget, informationDensity, cavemanCopy, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 2 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 2 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-4e4783bf
+
+Persisted on_demand/explain output from 2026-05-29T15:37:21.027Z
+
+Visible copy:
+
+> Reviewer evidence import waits on sample archive (blocked) · The reviewer sample archive has not been delivered. · Resolve this signal while preserving the other active attention context on the same issue. · This source issue intentionally has multiple active FleetGraph findings. · Check whether the UI preserves the selected signal when several notifications share one document.
+
+Status: fail (actionability, groundedness, specificity, brevity, repetitionBudget, informationDensity, cavemanCopy, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 2 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 2 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-0c19a676
+
+Persisted on_demand/explain output from 2026-05-29T15:37:00.575Z
+
+Visible copy:
+
+> Reviewer evidence import waits on sample archive (blocked) · The reviewer sample archive has not been delivered. · Resolve this signal while preserving the other active attention context on the same issue. · This source issue intentionally has multiple active FleetGraph findings. · Check whether the UI preserves the selected signal when several notifications share one document.
+
+Status: fail (actionability, groundedness, specificity, brevity, repetitionBudget, informationDensity, cavemanCopy, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 2 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 2 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-2d5c144e
+
+Persisted on_demand/explain output from 2026-05-29T15:02:38.339Z
+
+Visible copy:
+
+> FG Demo - Duplicate open finding control · Seeded duplicate control finding for FleetGraph reviewer readiness.
+
+Status: fail (actionability, groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 1 |
+| groundedness | 1 |
+| specificity | 1 |
+| brevity | 4 |
+| repetitionBudget | 2 |
+| informationDensity | 2 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 1 |
+| missingDataUsefulness | 1 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-6b02475a
+
+Persisted on_demand/explain output from 2026-05-29T15:00:30.044Z
+
+Visible copy:
+
+> FG Demo - Duplicate open finding control · Seeded duplicate control finding for FleetGraph reviewer readiness.
+
+Status: fail (actionability, groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 1 |
+| groundedness | 1 |
+| specificity | 1 |
+| brevity | 4 |
+| repetitionBudget | 2 |
+| informationDensity | 2 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 1 |
+| missingDataUsefulness | 1 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-815f4fe4
+
+Persisted on_demand/explain output from 2026-05-29T14:58:23.376Z
+
+Visible copy:
+
+> FG Demo - Duplicate open finding control · Seeded duplicate control finding for FleetGraph reviewer readiness.
+
+Status: fail (actionability, groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 1 |
+| groundedness | 1 |
+| specificity | 1 |
+| brevity | 4 |
+| repetitionBudget | 2 |
+| informationDensity | 2 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 1 |
+| missingDataUsefulness | 1 |
+| uiProofSeparation | 1 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-explain-4c2fdbb4
+
+Persisted on_demand/explain output from 2026-05-29T01:12:19.676Z
+
+Visible copy:
+
+> FG Demo - Duplicate open finding control · Seeded duplicate control finding for FleetGraph reviewer readiness.
+
+Status: fail (actionability, groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness, uiProofSeparation)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 1 |
+| groundedness | 1 |
+| specificity | 1 |
+| brevity | 4 |
+| repetitionBudget | 2 |
+| informationDensity | 2 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 1 |
+| missingDataUsefulness | 1 |
+| uiProofSeparation | 1 |
 
 Notes:
 - Loaded from fleetgraph_runs.output_snapshot.

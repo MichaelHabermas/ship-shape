@@ -338,7 +338,7 @@ describe('FleetGraph shared core', () => {
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
     expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
       decision: 'explain',
-      tokenMetadata: { modelCalls: 0 },
+      tokenMetadata: expect.objectContaining({ modelCalls: 0 }),
     }));
   });
 
@@ -396,7 +396,7 @@ describe('FleetGraph shared core', () => {
       decision: 'needs_confirmation',
       triggerReason: 'context_chat',
       inputSnapshot: { triggerType: 'context_chat' },
-      tokenMetadata: { modelCalls: 0 },
+      tokenMetadata: expect.objectContaining({ modelCalls: 0 }),
     }));
   });
 
@@ -504,7 +504,7 @@ describe('FleetGraph shared core', () => {
       decision: 'quiet_exit',
       triggerReason: 'context_chat',
       inputSnapshot: { triggerType: 'context_chat' },
-      tokenMetadata: { modelCalls: 0 },
+      tokenMetadata: expect.objectContaining({ modelCalls: 0 }),
     }));
   });
 

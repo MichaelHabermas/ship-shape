@@ -113,6 +113,12 @@ export type FleetGraphChatContext = {
   documentId?: string;
   findingId?: string;
   sourcePath?: string;
+  attachedContexts?: Array<{
+    kind: FleetGraphChatContextKind;
+    documentId?: string;
+    findingId?: string;
+    sourcePath?: string;
+  }>;
 };
 
 export type FleetGraphChatAnswerSource = {

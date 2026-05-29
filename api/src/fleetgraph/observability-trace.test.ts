@@ -183,32 +183,37 @@ describe('withFleetGraphTrace', () => {
     expect(capture.sharedTraceUrl).toBe('https://us.cloud.langfuse.com/project/project-id/traces/langfuse-trace-id');
     expect(mocks.startObservation).toHaveBeenCalledWith('fleetgraph.test', expect.objectContaining({
       input: { label: 'safe' },
-    }));
+    }), { asType: 'agent' });
     expect(mocks.rootSpan.setTraceAsPublic).toHaveBeenCalled();
-    expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.normalizeTrigger', {
+    expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.normalizeTrigger', expect.objectContaining({
       input: { node: 'normalizeTrigger', triggerType: 'quiet_exit' },
-    });
-    expect(mocks.childSpan.update).toHaveBeenCalledWith({
+      metadata: expect.objectContaining({
+        provider: 'langfuse',
+        subsystem: 'fleetgraph',
+        promptName: 'fleetgraph.quiet_exit',
+      }),
+    }), { asType: 'chain' });
+    expect(mocks.childSpan.update).toHaveBeenCalledWith(expect.objectContaining({
       output: { node: 'normalizeTrigger', decision: 'quiet_exit' },
-    });
+    }));
     expect(mocks.rootSpan.startObservation).toHaveBeenCalledWith('fleetgraph.proactive_create_model', expect.objectContaining({
       model: 'gpt-4o-mini',
       usageDetails: { input: 120, output: 24, total: 144 },
     }), { asType: 'generation' });
-    expect(mocks.rootSpan.update).toHaveBeenCalledWith({
-      output: {
+    expect(mocks.rootSpan.update).toHaveBeenCalledWith(expect.objectContaining({
+      output: expect.objectContaining({
         decision: 'quiet_exit',
         nodePath: ['normalizeTrigger', 'produceOutput'],
-        tokenMetadata: {
+        tokenMetadata: expect.objectContaining({
           modelCalls: 1,
           provider: 'openai',
           model: 'gpt-4o-mini',
           inputTokens: 120,
           outputTokens: 24,
           totalTokens: 144,
-        },
+        }),
         costMetadata: {},
-        tokenUsage: {
+        tokenUsage: expect.objectContaining({
           label: '144 tokens',
           modelCalls: 1,
           provider: 'openai',
@@ -216,15 +221,19 @@ describe('withFleetGraphTrace', () => {
           inputTokens: 120,
           outputTokens: 24,
           totalTokens: 144,
-        },
-        costUsage: {
+        }),
+        costUsage: expect.objectContaining({
           label: 'none',
+          costSource: 'none',
           currency: 'none',
-        },
+        }),
         errorMetadata: {},
-      },
-      metadata: {
-        tokenUsage: {
+      }),
+      metadata: expect.objectContaining({
+        provider: 'langfuse',
+        subsystem: 'fleetgraph',
+        modelBoundary: 'real_model',
+        tokenUsage: expect.objectContaining({
           label: '144 tokens',
           modelCalls: 1,
           provider: 'openai',
@@ -232,13 +241,14 @@ describe('withFleetGraphTrace', () => {
           inputTokens: 120,
           outputTokens: 24,
           totalTokens: 144,
-        },
-        costUsage: {
+        }),
+        costUsage: expect.objectContaining({
           label: 'none',
+          costSource: 'none',
           currency: 'none',
-        },
-      },
-    });
+        }),
+      }),
+    }));
     expect(mocks.rootSpan.end).toHaveBeenCalled();
   });
 

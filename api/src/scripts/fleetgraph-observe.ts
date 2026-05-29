@@ -464,8 +464,15 @@ function smokeResult(traceId: string | undefined, traceUrl: string | undefined):
       evidence_snapshot: [],
       output_snapshot: {},
       trace_metadata: traceMetadata,
-      token_metadata: { modelCalls: 0 },
-      cost_metadata: {},
+      token_metadata: {
+        modelCalls: 0,
+        usageSource: 'none',
+        noUsageReason: 'observability_smoke_no_model_call',
+      },
+      cost_metadata: {
+        costSource: 'none',
+        noCostReason: 'observability_smoke_no_model_call',
+      },
       error_metadata: {},
       started_at: new Date(),
       completed_at: new Date(),
@@ -480,8 +487,15 @@ function smokeResult(traceId: string | undefined, traceUrl: string | undefined):
       evidenceSnapshot: [],
       outputSnapshot: {},
       traceMetadata,
-      tokenMetadata: { modelCalls: 0 },
-      costMetadata: {},
+      tokenMetadata: {
+        modelCalls: 0,
+        usageSource: 'none',
+        noUsageReason: 'observability_smoke_no_model_call',
+      },
+      costMetadata: {
+        costSource: 'none',
+        noCostReason: 'observability_smoke_no_model_call',
+      },
       errorMetadata: {},
     },
     visibleOutput: {
@@ -492,8 +506,15 @@ function smokeResult(traceId: string | undefined, traceUrl: string | undefined):
     },
     evidence: [],
     traceMetadata,
-    tokenMetadata: { modelCalls: 0 },
-    costMetadata: {},
+    tokenMetadata: {
+      modelCalls: 0,
+      usageSource: 'none',
+      noUsageReason: 'observability_smoke_no_model_call',
+    },
+    costMetadata: {
+      costSource: 'none',
+      noCostReason: 'observability_smoke_no_model_call',
+    },
     errorMetadata: {},
   };
 }

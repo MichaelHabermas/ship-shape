@@ -3,9 +3,14 @@ import { generateProactiveCreateText } from './model.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 
 const invoke = vi.fn();
+const chatOpenAIOptions = vi.hoisted(() => vi.fn());
 
 vi.mock('@langchain/openai', () => ({
   ChatOpenAI: vi.fn(class {
+    constructor(options: unknown) {
+      chatOpenAIOptions(options);
+    }
+
     invoke = invoke;
   }),
 }));
@@ -44,6 +49,7 @@ describe('generateProactiveCreateText', () => {
       inputTokens: 120,
       outputTokens: 24,
       totalTokens: 144,
+      usageSource: 'model_response',
     });
     expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.0000324);
   });
@@ -55,6 +61,26 @@ describe('generateProactiveCreateText', () => {
     const result = await generateProactiveCreateText({ candidate });
 
     expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.0000324);
+  });
+
+  it('omits temperature for models that only support the provider default', async () => {
+    process.env.FLEETGRAPH_MODEL = 'gpt-5-mini';
+
+    await generateProactiveCreateText({ candidate });
+
+    expect(chatOpenAIOptions).toHaveBeenCalledWith({ model: 'gpt-5-mini' });
+  });
+
+  it('estimates GPT-5.5 cost from the pricing catalog', async () => {
+    process.env.FLEETGRAPH_MODEL = 'gpt-5.5';
+
+    const result = await generateProactiveCreateText({ candidate });
+
+    expect(result.costMetadata).toMatchObject({
+      currency: 'USD',
+      costSource: 'catalog_estimate',
+    });
+    expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.00132);
   });
 });
 

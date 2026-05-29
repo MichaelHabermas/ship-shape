@@ -18,6 +18,8 @@ interface ChatContextItem {
   label: string;
   sourcePath?: string;
   notification?: FleetGraphNotificationProbeItem;
+  context: FleetGraphChatContext;
+  attached?: boolean;
 }
 
 interface DocumentTitleResponse {
@@ -55,8 +57,16 @@ function getSurfaceLabel(pathname: string): string {
 }
 
 function getCurrentDocumentId(pathname: string): string | null {
-  if (!pathname.startsWith('/documents/')) return null;
-  return pathname.split('/documents/')[1]?.split(/[/?#]/)[0] || null;
+  const match = pathname.match(/^\/(?:documents|issues|projects|programs|sprints)\/([^/?#]+)/);
+  return match?.[1] ?? null;
+}
+
+function getCurrentContextKind(pathname: string): FleetGraphChatContext['kind'] {
+  if (pathname.startsWith('/issues/')) return 'issue';
+  if (pathname.startsWith('/projects/')) return 'project';
+  if (pathname.startsWith('/programs/')) return 'program';
+  if (pathname.startsWith('/sprints/')) return 'sprint';
+  return 'document';
 }
 
 function sourcePathForDocumentId(documentId: string | null): string | undefined {
@@ -108,10 +118,13 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
 
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
-  const currentSourcePath = useMemo(() => sourcePathForDocumentId(currentDocumentId), [currentDocumentId]);
+  const currentContextKind = useMemo(() => getCurrentContextKind(location.pathname), [location.pathname]);
+  const currentSourcePath = useMemo(() => (
+    currentDocumentId ? sourcePathForDocumentId(currentDocumentId) : undefined
+  ), [currentDocumentId]);
   const [currentTitle, setCurrentTitle] = useState(surfaceLabel);
   const extraContextItems = useMemo(
-    () => dedupeContextItems(contextItems.filter((item) => !contextMatchesSource(item, currentSourcePath))),
+    () => dedupeContextItems(contextItems.filter((item) => item.attached || item.notification || !contextMatchesSource(item, currentSourcePath))),
     [contextItems, currentSourcePath]
   );
   
@@ -167,6 +180,11 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         label: displayText(notification.title),
         sourcePath: notification.sourcePath,
         notification,
+        context: {
+          kind: 'notification',
+          findingId: notification.findingId,
+          sourcePath: notification.sourcePath,
+        },
       };
       return dedupeContextItems([
         contextItem,
@@ -222,6 +240,11 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
           id: `current:${currentSourcePath}`,
           label: currentTitle,
           sourcePath: currentSourcePath,
+          context: {
+            kind: currentContextKind,
+            documentId: currentDocumentId ?? undefined,
+            sourcePath: currentSourcePath,
+          },
         }
       : null;
 
@@ -246,6 +269,24 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     setContextOpen(false);
   };
 
+  const addCurrentContext = () => {
+    if (!currentDocumentId || !currentSourcePath) return;
+    setContextItems((items) => dedupeContextItems([
+      {
+        id: `attached:${currentSourcePath}`,
+        label: currentTitle,
+        sourcePath: currentSourcePath,
+        attached: true,
+        context: {
+          kind: currentContextKind,
+          documentId: currentDocumentId,
+          sourcePath: currentSourcePath,
+        },
+      },
+      ...items,
+    ]));
+  };
+
   const handleDraftChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setDraft(event.target.value);
     event.target.style.height = '0px';
@@ -261,18 +302,23 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   };
 
   const chatContext = (): FleetGraphChatContext | null => {
+    const attachedContexts = contextItems
+      .filter((item) => item.attached || item.notification)
+      .map((item) => item.context);
     if (activeNotification?.findingId) {
       return {
         kind: 'notification',
         findingId: activeNotification.findingId,
         sourcePath: activeNotification.sourcePath,
+        ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
       };
     }
     if (currentDocumentId) {
       return {
-        kind: 'document',
+        kind: currentContextKind,
         documentId: currentDocumentId,
         sourcePath: currentSourcePath,
+        ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
       };
     }
     return null;
@@ -353,6 +399,16 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
             <div className="min-w-0 flex-1 pr-2">
               <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
                 <CurrentContextChip title={currentTitle} />
+                <button
+                  type="button"
+                  onClick={addCurrentContext}
+                  disabled={!currentDocumentId || contextItems.some((item) => item.attached && contextMatchesSource(item, currentSourcePath))}
+                  className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] leading-4 text-muted transition hover:border-[#3a3a3a] hover:bg-white/5 hover:text-foreground disabled:cursor-default disabled:opacity-40"
+                  aria-label="Add current page to chat context"
+                  title="Add current page to chat context"
+                >
+                  +
+                </button>
                 {visibleContextItems.map((item) => (
                   <span key={item.id} className="flex max-w-[calc((100%-2.75rem)/2)] shrink-0 overflow-hidden rounded border border-border bg-background text-[11px] leading-4 text-muted">
                     <button

@@ -1,5 +1,6 @@
 // FleetGraph tracing creates reviewer-shareable traces without exposing raw Ship data.
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
+import { execFileSync } from 'child_process';
 import { LangfuseClient } from '@langfuse/client';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { startObservation, type LangfuseSpan } from '@langfuse/tracing';
@@ -52,9 +53,11 @@ type TraceProviderNode = {
 const TRACE_IO_TIMEOUT_MS = 5000;
 const TRACE_SHARE_TIMEOUT_MS = 5000;
 const TRACE_SHUTDOWN_TIMEOUT_MS = 10000;
+const OBSERVABILITY_SCHEMA_VERSION = '2026-05-29.1';
 
 let langfuseSdk: NodeSDK | null = null;
 let langfuseClient: LangfuseClient | null = null;
+let gitShaCache: string | null | undefined;
 
 export function fleetGraphTracingEnabled(): boolean {
   return fleetGraphLangSmithEnabled() || fleetGraphLangfuseEnabled();
@@ -177,6 +180,11 @@ async function createLangSmithProvider(input: {
   const traceUrl = `https://smith.langchain.com/r/${traceId}`;
   const startedAt = Date.now();
   const rootOrder = convertToDottedOrderFormat(startedAt, traceId, 1);
+  const startMetadata = baseObservabilityMetadata(input.inputs, {
+    provider: 'langsmith',
+    traceId,
+    projectName,
+  });
 
   await withTimeout(client.createRun({
     id: traceId,
@@ -187,6 +195,12 @@ async function createLangSmithProvider(input: {
     start_time: rootOrder.microsecondPrecisionDatestring,
     dotted_order: rootOrder.dottedOrder,
     inputs: scrubTraceInputs(input.inputs),
+    extra: {
+      metadata: {
+        ...startMetadata,
+        tags: observabilityTags(input.inputs, { provider: 'langsmith' }),
+      },
+    },
     serialized: {},
   }), TRACE_IO_TIMEOUT_MS, 'LangSmith createRun timed out');
 
@@ -208,6 +222,11 @@ async function createLangSmithProvider(input: {
     }),
     async end(result) {
       const usageSummary = traceUsageSummary(result);
+      const endMetadata = resultObservabilityMetadata(input.inputs, result, {
+        provider: 'langsmith',
+        traceId,
+        projectName,
+      });
       await postLangSmithModelCallChild({
         client,
         projectName,
@@ -215,6 +234,7 @@ async function createLangSmithProvider(input: {
         parentRunId: traceId,
         parentDottedOrder: rootOrder.dottedOrder,
         tokenMetadata: result.tokenMetadata,
+        costMetadata: result.costMetadata,
       });
       await withTimeout(client.updateRun(traceId, {
         outputs: {
@@ -225,6 +245,9 @@ async function createLangSmithProvider(input: {
           tokenUsage: usageSummary.tokenUsage,
           costUsage: usageSummary.costUsage,
           errorMetadata: result.errorMetadata,
+        },
+        extra: {
+          metadata: endMetadata,
         },
         end_time: new Date().toISOString(),
       }), TRACE_IO_TIMEOUT_MS, 'LangSmith updateRun timed out');
@@ -260,14 +283,17 @@ async function createLangfuseProvider(input: {
     baseUrl: process.env.LANGFUSE_BASE_URL,
   });
   langfuseClient = client;
+  const startMetadata = baseObservabilityMetadata(input.inputs, {
+    provider: 'langfuse',
+    projectName: process.env.LANGFUSE_PROJECT?.trim(),
+  });
 
   const rootSpan = startObservation(input.name, {
     input: scrubTraceInputs(input.inputs),
-    metadata: {
-      provider: 'langfuse',
-      project: process.env.LANGFUSE_PROJECT?.trim() || undefined,
-    },
-  });
+    metadata: startMetadata,
+    environment: observabilityEnvironment(),
+    version: observabilityVersion(),
+  }, { asType: 'agent' });
   const traceUrl = await client.getTraceUrl(rootSpan.traceId);
   if (process.env.FLEETGRAPH_LANGFUSE_SHARE !== '0') {
     rootSpan.setTraceAsPublic();
@@ -283,7 +309,13 @@ async function createLangfuseProvider(input: {
     startNode: (name, inputs) => startLangfuseNode(rootSpan, name, inputs),
     async end(result) {
       const usageSummary = traceUsageSummary(result);
-      postLangfuseModelCallChild(rootSpan, result.tokenMetadata);
+      postLangfuseModelCallChild(rootSpan, result.tokenMetadata, result.costMetadata);
+      const endMetadata = resultObservabilityMetadata(input.inputs, result, {
+        provider: 'langfuse',
+        traceId: rootSpan.traceId,
+        traceUrl,
+        projectName: process.env.LANGFUSE_PROJECT?.trim(),
+      });
       rootSpan.update({
         output: {
           decision: result.decision,
@@ -295,9 +327,12 @@ async function createLangfuseProvider(input: {
           errorMetadata: result.errorMetadata,
         },
         metadata: {
+          ...endMetadata,
           tokenUsage: usageSummary.tokenUsage,
           costUsage: usageSummary.costUsage,
         },
+        environment: observabilityEnvironment(),
+        version: observabilityVersion(),
       });
       rootSpan.end();
     },
@@ -394,6 +429,17 @@ async function startLangSmithNode(input: {
     start_time: childOrder.microsecondPrecisionDatestring,
     dotted_order: `${input.parentDottedOrder}.${childOrder.dottedOrder}`,
     inputs: scrubTraceInputs({ node: input.name, ...input.inputs }),
+    extra: {
+      metadata: {
+        ...baseObservabilityMetadata(input.inputs, {
+          provider: 'langsmith',
+          traceId: input.traceId,
+          projectName: input.projectName,
+        }),
+        node: input.name,
+        tags: observabilityTags(input.inputs, { provider: 'langsmith', node: input.name }),
+      },
+    },
     serialized: {},
   }), TRACE_IO_TIMEOUT_MS, 'LangSmith child createRun timed out');
 
@@ -417,7 +463,17 @@ async function startLangSmithNode(input: {
 async function startLangfuseNode(rootSpan: LangfuseSpan, name: string, inputs: Record<string, unknown>): Promise<TraceProviderNode> {
   const child = rootSpan.startObservation(`fleetgraph.${name}`, {
     input: scrubTraceInputs({ node: name, ...inputs }),
-  });
+    metadata: {
+      ...baseObservabilityMetadata(inputs, {
+        provider: 'langfuse',
+        traceId: rootSpan.traceId,
+        projectName: process.env.LANGFUSE_PROJECT?.trim(),
+      }),
+      node: name,
+    },
+    environment: observabilityEnvironment(),
+    version: observabilityVersion(),
+  }, { asType: 'chain' });
 
   return {
     provider: 'langfuse',
@@ -442,6 +498,7 @@ async function postLangSmithModelCallChild(input: {
   parentRunId: string;
   parentDottedOrder: string;
   tokenMetadata: FleetGraphResult['tokenMetadata'];
+  costMetadata: FleetGraphResult['costMetadata'];
 }): Promise<void> {
   if (
     input.tokenMetadata.modelCalls <= 0 ||
@@ -472,13 +529,19 @@ async function postLangSmithModelCallChild(input: {
       metadata: {
         ls_provider: input.tokenMetadata.provider,
         ls_model_name: input.tokenMetadata.model,
+        ...modelCallMetadata(input.tokenMetadata, input.costMetadata),
+        tags: observabilityTags({}, { provider: 'langsmith', node: 'model_call' }),
       },
     },
     serialized: {},
   }), TRACE_IO_TIMEOUT_MS, 'LangSmith model child createRun timed out');
 }
 
-function postLangfuseModelCallChild(rootSpan: LangfuseSpan, tokenMetadata: FleetGraphResult['tokenMetadata']): void {
+function postLangfuseModelCallChild(
+  rootSpan: LangfuseSpan,
+  tokenMetadata: FleetGraphResult['tokenMetadata'],
+  costMetadata: FleetGraphResult['costMetadata']
+): void {
   if (
     tokenMetadata.modelCalls <= 0 ||
     !tokenMetadata.provider ||
@@ -491,10 +554,17 @@ function postLangfuseModelCallChild(rootSpan: LangfuseSpan, tokenMetadata: Fleet
     input: [{ role: 'user', content: '[redacted FleetGraph model input]' }],
     output: [{ role: 'assistant', content: '[redacted FleetGraph model output]' }],
     model: tokenMetadata.model,
+    modelParameters: {
+      temperature: 0,
+    },
     usageDetails: usageMetadataForLangfuse(tokenMetadata),
+    costDetails: costDetailsForLangfuse(costMetadata),
     metadata: {
       provider: tokenMetadata.provider,
+      ...modelCallMetadata(tokenMetadata, costMetadata),
     },
+    environment: observabilityEnvironment(),
+    version: observabilityVersion(),
   }, { asType: 'generation' });
   generation.end();
 }
@@ -546,6 +616,17 @@ function usageMetadataForLangfuse(tokenMetadata: FleetGraphResult['tokenMetadata
     ...(tokenMetadata.inputTokens !== undefined ? { input: tokenMetadata.inputTokens } : {}),
     ...(tokenMetadata.outputTokens !== undefined ? { output: tokenMetadata.outputTokens } : {}),
     ...(tokenMetadata.totalTokens !== undefined ? { total: tokenMetadata.totalTokens } : {}),
+  };
+}
+
+function costDetailsForLangfuse(costMetadata: FleetGraphResult['costMetadata']): Record<string, number> {
+  return {
+    ...(costMetadata.inputCostUsd !== undefined ? { input: costMetadata.inputCostUsd } : {}),
+    ...(costMetadata.outputCostUsd !== undefined ? { output: costMetadata.outputCostUsd } : {}),
+    ...(costMetadata.estimatedCostUsd !== undefined ? {
+      total: costMetadata.estimatedCostUsd,
+      totalCost: costMetadata.estimatedCostUsd,
+    } : {}),
   };
 }
 
@@ -608,6 +689,8 @@ function traceUsageSummary(result: FleetGraphResult): {
       modelCalls: tokenMetadata.modelCalls,
       provider: tokenMetadata.provider ?? 'none',
       model: tokenMetadata.model ?? 'none',
+      usageSource: tokenMetadata.usageSource ?? (hasModelUsage ? 'unknown' : 'none'),
+      ...(tokenMetadata.noUsageReason ? { noUsageReason: tokenMetadata.noUsageReason } : {}),
       ...(tokenMetadata.inputTokens !== undefined ? { inputTokens: tokenMetadata.inputTokens } : {}),
       ...(tokenMetadata.outputTokens !== undefined ? { outputTokens: tokenMetadata.outputTokens } : {}),
       ...(tokenMetadata.totalTokens !== undefined ? { totalTokens: tokenMetadata.totalTokens } : {}),
@@ -615,9 +698,203 @@ function traceUsageSummary(result: FleetGraphResult): {
     costUsage: {
       label: hasKnownCost ? `$${costMetadata.estimatedCostUsd}` : 'none',
       ...(costMetadata.estimatedCostUsd !== undefined ? { estimatedCostUsd: costMetadata.estimatedCostUsd } : {}),
-      currency: costMetadata.estimatedCostUsd !== undefined ? 'USD' : 'none',
+      ...(costMetadata.inputCostUsd !== undefined ? { inputCostUsd: costMetadata.inputCostUsd } : {}),
+      ...(costMetadata.outputCostUsd !== undefined ? { outputCostUsd: costMetadata.outputCostUsd } : {}),
+      costSource: costMetadata.costSource ?? (hasKnownCost ? 'unknown' : 'none'),
+      ...(costMetadata.noCostReason ? { noCostReason: costMetadata.noCostReason } : {}),
+      currency: costMetadata.currency ?? (costMetadata.estimatedCostUsd !== undefined ? 'USD' : 'none'),
     },
   };
+}
+
+function baseObservabilityMetadata(
+  inputs: Record<string, unknown>,
+  provider: {
+    provider: 'langsmith' | 'langfuse';
+    traceId?: string;
+    traceUrl?: string;
+    projectName?: string;
+  }
+): Record<string, unknown> {
+  const triggerType = stringValue(inputs.triggerType);
+  const triggerReason = stringValue(inputs.triggerReason);
+  const mode = stringValue(inputs.mode);
+  return compactRecord({
+    observabilitySchemaVersion: OBSERVABILITY_SCHEMA_VERSION,
+    telemetryLane: process.env.FLEETGRAPH_OBSERVABILITY_LANE || 'real',
+    synthetic: process.env.FLEETGRAPH_OBSERVABILITY_LANE === 'synthetic_calibration',
+    provider: provider.provider,
+    providerProject: provider.projectName,
+    providerTraceId: provider.traceId,
+    providerTraceUrl: provider.traceUrl,
+    app: 'ship-shape',
+    subsystem: 'fleetgraph',
+    environment: observabilityEnvironment(),
+    release: observabilityRelease(),
+    version: observabilityVersion(),
+    gitSha: gitSha(),
+    mode,
+    triggerType,
+    triggerReason,
+    workspaceHash: stringValue(inputs.workspaceHash),
+    modelBoundary: 'none_yet',
+    promptSource: 'code_template',
+    promptName: promptNameForTrigger(triggerType),
+    promptVersion: promptVersionForTrigger(triggerType),
+    costSource: 'pending_result',
+    usageSource: 'pending_result',
+    ttftSource: 'not_applicable_until_generation_streaming',
+  });
+}
+
+function resultObservabilityMetadata(
+  inputs: Record<string, unknown>,
+  result: FleetGraphResult,
+  provider: {
+    provider: 'langsmith' | 'langfuse';
+    traceId?: string;
+    traceUrl?: string;
+    projectName?: string;
+  }
+): Record<string, unknown> {
+  const usageSummary = traceUsageSummary(result);
+  return compactRecord({
+    ...baseObservabilityMetadata(inputs, provider),
+    decision: result.decision,
+    nodePath: result.traceMetadata.nodePath.join('>'),
+    nodeCount: result.traceMetadata.nodePath.length,
+    findingIdHash: result.finding?.id ? stableHash(result.finding.id) : undefined,
+    sourceIssueHash: result.runInput.sourceIssueId ? stableHash(result.runInput.sourceIssueId) : undefined,
+    sourceSprintHash: result.runInput.sourceSprintId ? stableHash(result.runInput.sourceSprintId) : undefined,
+    modelBoundary: result.tokenMetadata.modelCalls > 0 ? 'real_model' : 'deterministic',
+    modelCalls: result.tokenMetadata.modelCalls,
+    modelProvider: result.tokenMetadata.provider ?? 'none',
+    modelName: result.tokenMetadata.model ?? 'none',
+    inputTokens: result.tokenMetadata.inputTokens,
+    outputTokens: result.tokenMetadata.outputTokens,
+    totalTokens: result.tokenMetadata.totalTokens,
+    usageSource: result.tokenMetadata.usageSource ?? (result.tokenMetadata.modelCalls > 0 ? 'unknown' : 'none'),
+    noUsageReason: result.tokenMetadata.noUsageReason ?? (result.tokenMetadata.modelCalls > 0 ? undefined : 'no_model_call'),
+    estimatedCostUsd: result.costMetadata.estimatedCostUsd,
+    inputCostUsd: result.costMetadata.inputCostUsd,
+    outputCostUsd: result.costMetadata.outputCostUsd,
+    costSource: result.costMetadata.costSource ?? (result.costMetadata.estimatedCostUsd !== undefined ? 'unknown' : 'none'),
+    noCostReason: result.costMetadata.noCostReason ?? (result.tokenMetadata.modelCalls > 0 ? undefined : 'no_model_call'),
+    tokenUsage: usageSummary.tokenUsage,
+    costUsage: usageSummary.costUsage,
+    visibleEvidenceCount: result.visibleOutput?.evidence.length ?? result.evidence.length,
+    noSafeOutput: result.visibleOutput?.noSafeOutput ?? false,
+    errorCategory: typeof result.errorMetadata.category === 'string' ? result.errorMetadata.category : undefined,
+  });
+}
+
+function observabilityTags(
+  inputs: Record<string, unknown>,
+  options: {
+    provider: 'langsmith' | 'langfuse';
+    result?: FleetGraphResult;
+    node?: string;
+  }
+): string[] {
+  const triggerType = stringValue(inputs.triggerType);
+  const mode = stringValue(inputs.mode);
+  return [
+    'fleetgraph',
+    'provider_compare',
+    `provider:${options.provider}`,
+    process.env.FLEETGRAPH_OBSERVABILITY_LANE === 'synthetic_calibration' ? 'synthetic_calibration' : 'real',
+    mode ? `mode:${mode}` : undefined,
+    triggerType ? `trigger:${triggerType}` : undefined,
+    options.result ? `decision:${options.result.decision}` : undefined,
+    options.result ? `model_boundary:${options.result.tokenMetadata.modelCalls > 0 ? 'real_model' : 'deterministic'}` : undefined,
+    options.node ? `node:${options.node}` : undefined,
+  ].filter((tag): tag is string => Boolean(tag));
+}
+
+function modelCallMetadata(
+  tokenMetadata: FleetGraphResult['tokenMetadata'],
+  costMetadata: FleetGraphResult['costMetadata']
+): Record<string, unknown> {
+  return compactRecord({
+    modelBoundary: tokenMetadata.modelCalls > 0 ? 'real_model' : 'deterministic',
+    modelProvider: tokenMetadata.provider,
+    modelName: tokenMetadata.model,
+    usageSource: tokenMetadata.usageSource,
+    noUsageReason: tokenMetadata.noUsageReason,
+    inputTokens: tokenMetadata.inputTokens,
+    outputTokens: tokenMetadata.outputTokens,
+    totalTokens: tokenMetadata.totalTokens,
+    costSource: costMetadata.costSource,
+    noCostReason: costMetadata.noCostReason,
+    estimatedCostUsd: costMetadata.estimatedCostUsd,
+    promptSource: 'code_template',
+    promptName: 'fleetgraph.proactive_create',
+  });
+}
+
+function promptNameForTrigger(triggerType?: string): string | undefined {
+  if (!triggerType) return undefined;
+  if (triggerType === 'detector_decision') return 'fleetgraph.proactive_create';
+  if (triggerType === 'refine_draft') return 'fleetgraph.refine_draft';
+  if (triggerType === 'explain_finding') return 'fleetgraph.explain_finding';
+  if (triggerType === 'context_chat') return 'fleetgraph.context_chat';
+  return `fleetgraph.${triggerType}`;
+}
+
+function promptVersionForTrigger(triggerType?: string): string | undefined {
+  return triggerType ? OBSERVABILITY_SCHEMA_VERSION : undefined;
+}
+
+function observabilityEnvironment(): string {
+  return process.env.LANGFUSE_TRACING_ENVIRONMENT?.trim() ||
+    process.env.FLEETGRAPH_OBSERVABILITY_ENVIRONMENT?.trim() ||
+    process.env.NODE_ENV ||
+    'development';
+}
+
+function observabilityRelease(): string {
+  return process.env.RENDER_GIT_COMMIT?.trim() ||
+    process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
+    gitSha() ||
+    'local';
+}
+
+function observabilityVersion(): string {
+  return process.env.npm_package_version?.trim() || '0.0.0';
+}
+
+function gitSha(): string | undefined {
+  if (gitShaCache !== undefined) return gitShaCache ?? undefined;
+  const fromEnv = process.env.GIT_SHA?.trim() || process.env.COMMIT_SHA?.trim();
+  if (fromEnv) {
+    gitShaCache = fromEnv.slice(0, 40);
+    return gitShaCache;
+  }
+  try {
+    gitShaCache = execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    gitShaCache = null;
+  }
+  return gitShaCache ?? undefined;
+}
+
+function stableHash(value: string): string {
+  return `sha256:${createHash('sha256').update(value).digest('hex').slice(0, 16)}`;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function compactRecord(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) =>
+    value !== undefined &&
+    !(Array.isArray(value) && value.length === 0)
+  ));
 }
 
 function nodeOutput(name: string, output: unknown): Record<string, unknown> {

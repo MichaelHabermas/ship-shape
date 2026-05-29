@@ -2,15 +2,13 @@
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { FLEETGRAPH_DEFAULT_MODEL, resolveFleetGraphModelPricing } from '../config/fleetgraph-models.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
-import type { FleetGraphTokenMetadata } from './types.js';
+import type { FleetGraphCostMetadata, FleetGraphTokenMetadata } from './types.js';
 
 export type FleetGraphProactiveCreateModelResult = {
   summary: string;
   draftMessage: string;
   tokenMetadata: FleetGraphTokenMetadata;
-  costMetadata: {
-    estimatedCostUsd?: number;
-  };
+  costMetadata: FleetGraphCostMetadata;
 };
 
 export async function generateProactiveCreateText(input: {
@@ -30,7 +28,7 @@ export async function generateProactiveCreateText(input: {
 
   const { ChatOpenAI } = await import('@langchain/openai');
   const modelName = config.modelName ?? FLEETGRAPH_DEFAULT_MODEL;
-  const model = new ChatOpenAI({ model: modelName, temperature: 0 });
+  const model = new ChatOpenAI(chatOpenAIOptions(modelName));
   const response = await model.invoke([
     ['system', 'Write concise, evidence-grounded FleetGraph unblock copy. Do not claim Ship was mutated or anyone was contacted.'],
     ['human', [
@@ -55,6 +53,17 @@ export async function generateProactiveCreateText(input: {
   };
 }
 
+function chatOpenAIOptions(modelName: string): { model: string; temperature?: number } {
+  return modelSupportsCustomTemperature(modelName)
+    ? { model: modelName, temperature: 0 }
+    : { model: modelName };
+}
+
+function modelSupportsCustomTemperature(modelName: string): boolean {
+  const normalized = modelName.toLowerCase();
+  return !normalized.startsWith('gpt-5') && !normalized.startsWith('o');
+}
+
 function deterministicSummary(candidate: FleetGraphAttentionCandidate): string {
   return candidate.blocker_text
     ? `${trimSentence(candidate.blocker_text)} · ${weekLabel(candidate)}`
@@ -73,8 +82,15 @@ export function deterministicProactiveCreateText(candidate: FleetGraphAttentionC
   return {
     summary: deterministicSummary(candidate),
     draftMessage: deterministicDraft(candidate),
-    tokenMetadata: { modelCalls: 0 },
-    costMetadata: {},
+    tokenMetadata: {
+      modelCalls: 0,
+      usageSource: 'none',
+      noUsageReason: 'deterministic_no_model_call',
+    },
+    costMetadata: {
+      costSource: 'none',
+      noCostReason: 'deterministic_no_model_call',
+    },
   };
 }
 
@@ -99,6 +115,8 @@ function tokenMetadataFromResponse(response: unknown, model: string): FleetGraph
     modelCalls: 1,
     provider: 'openai',
     model,
+    usageSource: totalTokens !== undefined ? 'model_response' : 'partial_model_response',
+    ...(totalTokens === undefined ? { noUsageReason: 'model_response_missing_total_tokens' } : {}),
     ...(inputTokens !== undefined ? { inputTokens } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(totalTokens !== undefined ? { totalTokens } : {}),
@@ -112,7 +130,13 @@ function costMetadataFromResponse(
 ): FleetGraphProactiveCreateModelResult['costMetadata'] {
   const usage = recordValue(response, 'usage_metadata') ?? recordValue(response, 'usageMetadata');
   const directCost = numberValue(usage, 'total_cost') ?? numberValue(usage, 'totalCost');
-  if (directCost !== undefined) return { estimatedCostUsd: directCost };
+  if (directCost !== undefined) {
+    return {
+      estimatedCostUsd: directCost,
+      currency: 'USD',
+      costSource: 'model_response',
+    };
+  }
 
   const catalogPricing = resolveFleetGraphModelPricing(modelName);
   const inputCostPerMillion = envNumber('FLEETGRAPH_MODEL_INPUT_COST_PER_1M')
@@ -125,14 +149,23 @@ function costMetadataFromResponse(
     tokenMetadata.inputTokens === undefined ||
     tokenMetadata.outputTokens === undefined
   ) {
-    return {};
+    return {
+      costSource: 'none',
+      noCostReason: 'missing_pricing_or_token_breakdown',
+    };
   }
 
+  const inputCostUsd = (tokenMetadata.inputTokens / 1_000_000) * inputCostPerMillion;
+  const outputCostUsd = (tokenMetadata.outputTokens / 1_000_000) * outputCostPerMillion;
   return {
-    estimatedCostUsd: (
-      (tokenMetadata.inputTokens / 1_000_000) * inputCostPerMillion +
-      (tokenMetadata.outputTokens / 1_000_000) * outputCostPerMillion
-    ),
+    inputCostUsd,
+    outputCostUsd,
+    estimatedCostUsd: inputCostUsd + outputCostUsd,
+    currency: 'USD',
+    costSource: envNumber('FLEETGRAPH_MODEL_INPUT_COST_PER_1M') !== undefined ||
+      envNumber('FLEETGRAPH_MODEL_OUTPUT_COST_PER_1M') !== undefined
+      ? 'env_estimate'
+      : 'catalog_estimate',
   };
 }
 

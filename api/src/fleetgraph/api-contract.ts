@@ -143,11 +143,21 @@ export const FleetGraphManualRunResponseSchema = z.object({
   results: z.array(FleetGraphManualRunResultSchema),
 }).openapi('FleetGraphManualRunResponse');
 
+const FleetGraphAttachedChatContextSchema = z.object({
+  kind: z.enum(['issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding']),
+  documentId: UuidSchema.optional(),
+  findingId: UuidSchema.optional(),
+  sourcePath: z.string().max(512).optional(),
+}).refine((context) => context.findingId || context.documentId || context.kind === 'workspace', {
+  message: 'attached context requires findingId, documentId, or workspace kind',
+});
+
 export const FleetGraphChatContextSchema = z.object({
   kind: z.enum(['issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding']),
   documentId: UuidSchema.optional(),
   findingId: UuidSchema.optional(),
   sourcePath: z.string().max(512).optional(),
+  attachedContexts: z.array(FleetGraphAttachedChatContextSchema).max(8).optional(),
 }).refine((context) => context.findingId || context.documentId || context.kind === 'workspace', {
   message: 'context requires findingId, documentId, or workspace kind',
 }).openapi('FleetGraphChatContext');
@@ -237,7 +247,7 @@ function changeSummaryForResponse(value: unknown): FleetGraphChangeSummaryBodyWi
 }
 
 function chatAnswerForResponse(result: FleetGraphResult): FleetGraphChatAnswerWire {
-  const recordedAnswer = FleetGraphChatAnswerSchema.safeParse(result.runInput.outputSnapshot?.answer);
+  const recordedAnswer = FleetGraphChatAnswerSchema.safeParse(result.runInput?.outputSnapshot?.answer);
   if (recordedAnswer.success) {
     return recordedAnswer.data;
   }
