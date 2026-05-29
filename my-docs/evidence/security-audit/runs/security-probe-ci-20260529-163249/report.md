@@ -1,19 +1,28 @@
-# Security Probe security-probe-ci-20260529-163354
+# Security Probe security-probe-ci-20260529-163249
 
 - API URL: http://127.0.0.1:3099
 - Web URL: http://localhost:5199
 - Mode: local-active
 - Attack surfaces measured: 5/5
-- Findings: 0
-- Triage: known-open=0, new=0, resolved=0, regression=0
+- Findings: 1
+- Triage: known-open=0, new=1, resolved=0, regression=0
 
 ## Finding triage
 
-No triaged findings in this run.
+### New this run (not in registry)
+
+- High or critical dependency CVEs found (cat8-dependency-high-critical-cves)
 
 ## Findings
 
-No security findings were confirmed by this run.
+### HIGH: High or critical dependency CVEs found
+- ID: cat8-dependency-high-critical-cves
+- Probe: dependency-pnpm-audit
+- Expected: No high/critical CVEs, or each is listed with reachability and feature mapping.
+- Observed: 1 high/critical advisory item(s) parsed from pnpm audit.
+- Fix candidate: Upgrade, override, remove, or document reachability for affected packages.
+- Reproduction:
+  - Run pnpm security:probe -- --probe dependency-pnpm-audit
 
 ## Probe Results
 
@@ -50,7 +59,7 @@ No security findings were confirmed by this run.
 - input-file-upload-size-mismatch: passed
 - input-file-serve-headers: passed
 - input-governance-mass-assignment: passed
-- dependency-pnpm-audit: passed
+- dependency-pnpm-audit: failed
 - manual-cors-csp: passed
 - manual-secrets: passed
 - manual-rate-limits: passed

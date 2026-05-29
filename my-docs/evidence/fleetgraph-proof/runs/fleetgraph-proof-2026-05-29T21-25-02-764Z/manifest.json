@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-29T21:32:28.607Z",
-  "runId": "fleetgraph-proof-2026-05-29T21-32-28-607Z",
+  "generatedAt": "2026-05-29T21:25:02.764Z",
+  "runId": "fleetgraph-proof-2026-05-29T21-25-02-764Z",
   "target": "local",
   "git": {
     "branch": "rebuild-chat-3",
     "sha": "852e9dcdb41070f82d3bf495c8e87b8a0bae1495",
     "dirty": true
   },
-  "verdict": "pass",
+  "verdict": "risk",
   "summary": {
     "requiredScenarioCount": 7,
-    "provenScenarioCount": 7,
+    "provenScenarioCount": 4,
     "currentSurfacePass": 6,
     "currentSurfaceFail": 0,
     "deployedConfigured": false
@@ -127,11 +127,11 @@
         "quiet": "defined",
         "humanGate": "not applicable"
       },
-      "status": "executed",
+      "status": "defined",
       "decision": "quiet_exit",
       "mode": "proactive",
       "evidence": [
-        "Executable proof covers fg-quiet-done-cancelled",
+        "Golden case defines fg-quiet-done-cancelled",
         "Expected quiet_exit",
         "mode:proactive",
         "branch:quiet",
@@ -211,11 +211,11 @@
         "quiet": "not applicable",
         "humanGate": "defined"
       },
-      "status": "executed",
+      "status": "defined",
       "decision": "needs_confirmation",
       "mode": "on_demand",
       "evidence": [
-        "Executable proof covers fg-human-gated-action-prep",
+        "Golden case defines fg-human-gated-action-prep",
         "Expected needs_confirmation",
         "mode:on_demand",
         "branch:needs_confirmation",
@@ -239,11 +239,11 @@
         "quiet": "not applicable",
         "humanGate": "not applicable"
       },
-      "status": "executed",
+      "status": "defined",
       "decision": "resolve",
       "mode": "proactive",
       "evidence": [
-        "Executable proof covers fg-resolve-condition-gone",
+        "Golden case defines fg-resolve-condition-gone",
         "Expected resolve",
         "mode:proactive",
         "branch:resolve",
@@ -282,10 +282,10 @@
       "scenarioId": "proactive-quiet-exit",
       "title": "Done or cancelled work exits quietly",
       "cells": {
-        "proactive": "executed",
+        "proactive": "defined",
         "onDemand": "not applicable",
         "update": "not applicable",
-        "quiet": "executed",
+        "quiet": "defined",
         "humanGate": "not applicable"
       }
     },
@@ -316,17 +316,17 @@
       "title": "Next-action chat preserves human gate",
       "cells": {
         "proactive": "not applicable",
-        "onDemand": "executed",
+        "onDemand": "defined",
         "update": "not applicable",
         "quiet": "not applicable",
-        "humanGate": "executed"
+        "humanGate": "defined"
       }
     },
     {
       "scenarioId": "source-condition-resolved",
       "title": "Finding resolves when source condition disappears",
       "cells": {
-        "proactive": "executed",
+        "proactive": "defined",
         "onDemand": "not applicable",
         "update": "not applicable",
         "quiet": "not applicable",
@@ -397,7 +397,7 @@
     },
     {
       "name": "Human gate before next action",
-      "status": "pass",
+      "status": "blocked",
       "evidence": "fg-human-gated-action-prep"
     },
     {
@@ -408,7 +408,7 @@
   ],
   "costs": {
     "runCount": 4,
-    "measuredCommandMs": 17836,
+    "measuredCommandMs": 14712,
     "modelCost": "bounded / not measured in this proof packet",
     "p95Latency": "not measured",
     "projected100Projects": "requires deployed telemetry",
@@ -419,15 +419,15 @@
       "name": "product surface eval",
       "command": "pnpm fleetgraph:eval:surface",
       "status": "pass",
-      "durationMs": 15383,
-      "stdoutTail": "> ship@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/api fleetgraph:eval:surface\n\n\n> @ship/api@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/scripts/fleetgraph-product-surface-eval.ts\n\n◇ injected env (11) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]\n◇ injected env (7) from .env // tip: ◈ encrypted .env [www.dotenvx.com]\nFleetGraph product-surface eval current: 6 pass, 0 fail\nFleetGraph product-surface eval historical: 0 pass, 0 fail (trend only)\nMarkdown: my-docs/evals/fleetgraph-product-surface/latest.md\nJSON: my-docs/evals/fleetgraph-product-surface/latest.json\nReview board: my-docs/evals/fleetgraph-product-surface/latest.html\nRun: my-docs/evals/fleetgraph-product-surface/runs/2026-05-29T21-32-29-826Z",
+      "durationMs": 12293,
+      "stdoutTail": "> ship@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/api fleetgraph:eval:surface\n\n\n> @ship/api@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/scripts/fleetgraph-product-surface-eval.ts\n\n◇ injected env (11) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]\n◇ injected env (7) from .env // tip: ◈ encrypted .env [www.dotenvx.com]\nFleetGraph product-surface eval current: 6 pass, 0 fail\nFleetGraph product-surface eval historical: 0 pass, 0 fail (trend only)\nMarkdown: my-docs/evals/fleetgraph-product-surface/latest.md\nJSON: my-docs/evals/fleetgraph-product-surface/latest.json\nReview board: my-docs/evals/fleetgraph-product-surface/latest.html\nRun: my-docs/evals/fleetgraph-product-surface/runs/2026-05-29T21-25-03-643Z",
       "stderrTail": ""
     },
     {
       "name": "shared package build",
       "command": "pnpm build:shared",
       "status": "pass",
-      "durationMs": 656,
+      "durationMs": 615,
       "stdoutTail": "> ship@0.0.0 build:shared /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/shared build\n\n\n> @ship/shared@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/shared\n> tsc",
       "stderrTail": ""
     },
@@ -435,8 +435,8 @@
       "name": "FleetGraph proof tests",
       "command": "pnpm --filter @ship/api test src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts",
       "status": "pass",
-      "durationMs": 1797,
-      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  25 passed (25)\n   Start at  16:32:45\n   Duration  1.41s (transform 171ms, setup 84ms, import 638ms, tests 342ms, environment 0ms)",
+      "durationMs": 1804,
+      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  22 passed (22)\n   Start at  16:25:16\n   Duration  1.42s (transform 182ms, setup 89ms, import 634ms, tests 334ms, environment 0ms)",
       "stderrTail": ""
     },
     {
@@ -465,7 +465,7 @@
     },
     {
       "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-29T21-32-28-607Z/proof.html",
+      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-29T21-25-02-764Z/proof.html",
       "kind": "html"
     },
     {
@@ -489,7 +489,10 @@
       "kind": "test"
     }
   ],
-  "risks": [],
+  "risks": [
+    "One or more required graph paths is defined by golden cases but not executed by the focused proof tests yet.",
+    "One or more optional verification commands was skipped."
+  ],
   "nonClaims": [
     "This dashboard is not product UI and does not add FleetGraph branding to the app.",
     "This proof packet does not claim autonomous Ship mutation or external contact.",

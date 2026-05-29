@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T20:46:45.031Z",
+  "updatedAt": "2026-05-29T21:34:01.649Z",
   "discovery": {
     "date": "2026-05-22",
     "method": "deep_review",
@@ -263,6 +263,60 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "authorization-governance-properties-injection",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "input-governance-mass-assignment",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -394,6 +448,33 @@
           "at": "2026-05-24T20:46:29.904Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-governance-accountable-self-assign",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "authorization-governance-accountable-self-assign",
           "result": "pass",
           "stillActive": false,
@@ -533,6 +614,33 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "authorization-governance-week-status-bypass",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -668,6 +776,33 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "authorization-weekly-plan-idor-documents",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -799,6 +934,33 @@
           "at": "2026-05-24T20:46:29.904Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-weekly-plan-idor-websocket",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "authorization-weekly-plan-idor-websocket",
           "result": "pass",
           "stillActive": false,
@@ -983,6 +1145,33 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "authorization-bulk-issue-foreign-target",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -1123,6 +1312,33 @@
           "at": "2026-05-24T20:46:29.904Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-file-document-scope",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "authorization-file-document-scope",
           "result": "pass",
           "stillActive": false,
@@ -1303,6 +1519,33 @@
           "at": "2026-05-24T20:46:29.904Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-dashboard-private-metadata",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "authorization-dashboard-private-metadata",
           "result": "pass",
           "stillActive": false,
@@ -1590,6 +1833,60 @@
           "at": "2026-05-24T20:46:29.905Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "abuse-login-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "abuse-public-feedback-rate-limit",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "abuse-login-rate-limit",
           "result": "pass",
           "stillActive": false,
@@ -2179,6 +2476,33 @@
           "result": "pass",
           "stillActive": false,
           "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "authorization-file-upload-hijack-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
         }
       ]
     },
@@ -2310,6 +2634,33 @@
           "at": "2026-05-24T20:46:29.905Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "authorization-websocket-origin-reject",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "authorization-websocket-origin-reject",
           "result": "pass",
           "stillActive": false,
@@ -2642,6 +2993,60 @@
           "at": "2026-05-24T20:46:29.905Z",
           "method": "probe",
           "runId": "security-probe-ci-20260524-154623",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:32:56.218Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163249",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:33:37.211Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163329",
+          "probeId": "auth-session-member-impersonation-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
+          "probeId": "auth-session-member-audit-logs-denied",
+          "result": "pass",
+          "stillActive": false,
+          "note": null
+        },
+        {
+          "at": "2026-05-29T21:34:01.389Z",
+          "method": "probe",
+          "runId": "security-probe-ci-20260529-163354",
           "probeId": "auth-session-member-impersonation-denied",
           "result": "pass",
           "stillActive": false,

@@ -1,4 +1,4 @@
-# Security Probe security-probe-ci-20260529-163354
+# Security Probe security-probe-ci-20260529-163329
 
 - API URL: http://127.0.0.1:3099
 - Web URL: http://localhost:5199
@@ -50,7 +50,7 @@ No security findings were confirmed by this run.
 - input-file-upload-size-mismatch: passed
 - input-file-serve-headers: passed
 - input-governance-mass-assignment: passed
-- dependency-pnpm-audit: passed
+- dependency-pnpm-audit: error
 - manual-cors-csp: passed
 - manual-secrets: passed
 - manual-rate-limits: passed

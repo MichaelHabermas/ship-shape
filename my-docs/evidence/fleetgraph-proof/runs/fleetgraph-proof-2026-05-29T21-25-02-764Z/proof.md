@@ -1,14 +1,14 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-29T21:32:28.607Z
-Run: fleetgraph-proof-2026-05-29T21-32-28-607Z
+Generated: 2026-05-29T21:25:02.764Z
+Run: fleetgraph-proof-2026-05-29T21-25-02-764Z
 Target: local
-Verdict: pass
+Verdict: risk
 Git: rebuild-chat-3 @ 852e9dcdb41070f82d3bf495c8e87b8a0bae1495
 
 ## Verdict
 
-Required scenarios: 7/7
+Required scenarios: 4/7
 Current product surface: 6 pass / 0 fail
 
 ## Attention Loop
@@ -28,11 +28,11 @@ Current product surface: 6 pass / 0 fail
 | --- | --- | --- | --- | --- | --- |
 | Proactive blocked finding creates notification | executed | not applicable | not applicable | not applicable | executed |
 | Duplicate source updates existing finding | executed | not applicable | executed | not applicable | not applicable |
-| Done or cancelled work exits quietly | executed | not applicable | not applicable | executed | not applicable |
+| Done or cancelled work exits quietly | defined | not applicable | not applicable | defined | not applicable |
 | Restricted evidence does not leak | executed | not applicable | not applicable | executed | not applicable |
 | On-demand source explanation stays grounded | not applicable | executed | not applicable | not applicable | not applicable |
-| Next-action chat preserves human gate | not applicable | executed | not applicable | not applicable | executed |
-| Finding resolves when source condition disappears | executed | not applicable | not applicable | not applicable | not applicable |
+| Next-action chat preserves human gate | not applicable | defined | not applicable | not applicable | defined |
+| Finding resolves when source condition disappears | defined | not applicable | not applicable | not applicable | not applicable |
 
 ## Current Findings
 
@@ -49,12 +49,13 @@ Current product surface: 6 pass / 0 fail
 
 - pass: Permission-filtered evidence (fg-restricted-source-hidden)
 - pass: No autonomous Ship mutation/contact (FleetGraph golden-case mutation boundaries)
-- pass: Human gate before next action (fg-human-gated-action-prep)
+- blocked: Human gate before next action (fg-human-gated-action-prep)
 - pass: Reviewer proof kept out of product UI (fleetgraph-product-surface latest.json)
 
 ## Risks
 
-- None recorded.
+- One or more required graph paths is defined by golden cases but not executed by the focused proof tests yet.
+- One or more optional verification commands was skipped.
 
 ## Non-Claims
 
@@ -67,7 +68,7 @@ Current product surface: 6 pass / 0 fail
 - Static dashboard: my-docs/evidence/fleetgraph-proof/latest.html
 - Proof JSON: my-docs/evidence/fleetgraph-proof/latest.json
 - Proof Markdown: my-docs/evidence/fleetgraph-proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-29T21-32-28-607Z/proof.html
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-29T21-25-02-764Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

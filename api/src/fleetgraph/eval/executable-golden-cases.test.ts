@@ -237,6 +237,104 @@ describe('FleetGraph executable golden cases', () => {
     expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 
+  it('executes proactive quiet exit when source work is done or cancelled', async () => {
+    const testCase = requireGoldenCase('fg-quiet-done-cancelled');
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: testCase.mode,
+      trigger: {
+        type: 'quiet_exit',
+        quietExits: [{ reason: 'done_or_cancelled', count: 1 }],
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(port.saveFinding).not.toHaveBeenCalled();
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'quiet_exit' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+  });
+
+  it('executes resolve finding when the stale source condition is gone', async () => {
+    const testCase = requireGoldenCase('fg-resolve-condition-gone');
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: { type: 'resolve_finding', findingId },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(port.resolveFinding).toHaveBeenCalledWith({ workspaceId, findingId });
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'resolve' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+  });
+
+  it('executes human-gated next-action prep without sending', async () => {
+    const testCase = requireGoldenCase('fg-human-gated-action-prep');
+    const port = persistence();
+    const db = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.includes('workspace_memberships')) {
+          return pgResult([{ role: 'member' }]);
+        }
+        if (sql.includes('document_associations')) {
+          return pgResult([]);
+        }
+        if (sql.includes('FROM documents')) {
+          const documentId = String(params?.[0] ?? '');
+          if (documentId === issueId) {
+            return pgResult([{
+              id: issueId,
+              title: 'Blocked issue',
+              document_type: 'issue',
+              properties: { priority: 'urgent', state: 'in_progress' },
+              content: null,
+              yjs_state: null,
+            }]);
+          }
+          if (documentId === sprintId) {
+            return pgResult([{
+              id: sprintId,
+              title: 'Week 2',
+              document_type: 'sprint',
+              properties: { sprint_number: 2 },
+              content: null,
+              yjs_state: null,
+            }]);
+          }
+          return pgResult([]);
+        }
+        return pgResult([{ role: 'member' }]);
+      }),
+    };
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: testCase.mode,
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What should I send the owner?',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    } satisfies FleetGraphInput, { persistence: port, db });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(result.visibleOutput?.summary).toContain('Blocked issue');
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'needs_confirmation',
+      triggerReason: 'context_chat',
+    }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+  });
+
   it('executes dismiss finding as FleetGraph-only status update', async () => {
     const testCase = requireGoldenCase('fg-dismiss-finding');
     const port = persistence();

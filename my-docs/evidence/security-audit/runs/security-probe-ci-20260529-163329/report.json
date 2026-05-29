@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-29T21:34:01.385Z",
+  "generatedAt": "2026-05-29T21:33:37.208Z",
   "run": {
-    "id": "security-probe-ci-20260529-163354",
-    "startedAt": "2026-05-29T21:34:00.157Z",
-    "finishedAt": "2026-05-29T21:34:01.385Z",
+    "id": "security-probe-ci-20260529-163329",
+    "startedAt": "2026-05-29T21:33:35.955Z",
+    "finishedAt": "2026-05-29T21:33:37.208Z",
     "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
     "target": "local",
     "mode": "local-active",
@@ -13,7 +13,7 @@
     "wsUrl": "ws://127.0.0.1:3099"
   },
   "summary": {
-    "status": "pass",
+    "status": "fail",
     "attackSurfacesMeasured": 5,
     "attackSurfacesTotal": 5,
     "findings": 0,
@@ -26,7 +26,8 @@
     },
     "highOrCriticalDependencyCves": 0,
     "probesByStatus": {
-      "passed": 40
+      "passed": 39,
+      "error": 1
     }
   },
   "surfaces": {
@@ -88,7 +89,7 @@
       ]
     },
     "dependencyCves": {
-      "status": "pass",
+      "status": "error",
       "findings": [],
       "probes": [
         "dependency-pnpm-audit"
@@ -198,7 +199,7 @@
       "id": "auth-session-api-token-super-admin-boundary",
       "name": "API tokens cannot access super-admin routes",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 8,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -207,7 +208,7 @@
       "id": "auth-session-member-audit-logs-denied",
       "name": "Member cannot access global audit logs",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -216,7 +217,7 @@
       "id": "auth-session-member-impersonation-denied",
       "name": "Member cannot impersonate users",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -225,7 +226,7 @@
       "id": "authorization-governance-properties-injection",
       "name": "Member cannot forge plan_approval via documents PATCH",
       "status": "passed",
-      "durationMs": 21,
+      "durationMs": 30,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -234,7 +235,7 @@
       "id": "authorization-governance-accountable-self-assign",
       "name": "Member cannot self-assign accountable_id on program",
       "status": "passed",
-      "durationMs": 11,
+      "durationMs": 14,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -243,7 +244,7 @@
       "id": "authorization-governance-week-status-bypass",
       "name": "Member cannot complete sprint via ungoverned status PATCH",
       "status": "passed",
-      "durationMs": 12,
+      "durationMs": 16,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -252,7 +253,7 @@
       "id": "authorization-weekly-plan-idor-documents",
       "name": "Member cannot access peer weekly plan via documents API",
       "status": "passed",
-      "durationMs": 19,
+      "durationMs": 20,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -264,7 +265,7 @@
       "id": "authorization-weekly-plan-idor-websocket",
       "name": "Member cannot join peer weekly plan collaboration room",
       "status": "passed",
-      "durationMs": 11,
+      "durationMs": 13,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -291,7 +292,7 @@
       "id": "authorization-bulk-issue-foreign-target",
       "name": "Bulk issue update does not mutate inaccessible foreign IDs",
       "status": "passed",
-      "durationMs": 9,
+      "durationMs": 13,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -300,7 +301,7 @@
       "id": "authorization-dashboard-private-metadata",
       "name": "Dashboard my-focus does not expose private project titles to unrelated members",
       "status": "passed",
-      "durationMs": 4,
+      "durationMs": 6,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -318,7 +319,7 @@
       "id": "websocket-no-cookie-denied",
       "name": "Unauthenticated collaboration upgrade rejected",
       "status": "passed",
-      "durationMs": 0,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -336,7 +337,7 @@
       "id": "websocket-malformed-frame",
       "name": "Malformed WebSocket message rejected deterministically",
       "status": "passed",
-      "durationMs": 6,
+      "durationMs": 7,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -358,7 +359,7 @@
       "id": "websocket-oversized-frame",
       "name": "Oversized WebSocket frame bounded by server",
       "status": "passed",
-      "durationMs": 18,
+      "durationMs": 19,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -409,7 +410,7 @@
       "id": "input-long-field-validation",
       "name": "Excessively long document title rejected",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -445,7 +446,7 @@
       "id": "input-file-serve-headers",
       "name": "Served uploads use safe download headers",
       "status": "passed",
-      "durationMs": 4,
+      "durationMs": 5,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -454,7 +455,7 @@
       "id": "input-governance-mass-assignment",
       "name": "Governance fields rejected on generic PATCH",
       "status": "passed",
-      "durationMs": 10,
+      "durationMs": 13,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -462,21 +463,17 @@
     {
       "id": "dependency-pnpm-audit",
       "name": "pnpm audit high/critical CVE check",
-      "status": "passed",
-      "durationMs": 545,
+      "status": "error",
+      "durationMs": 512,
       "targetSafe": true,
-      "findingIds": [],
-      "details": {
-        "highCriticalCount": 0,
-        "auditExitCode": 1,
-        "note": "pnpm audit exited non-zero for lower-severity advisories only"
-      }
+      "errorMessage": "pnpm audit exited 1",
+      "findingIds": []
     },
     {
       "id": "manual-cors-csp",
       "name": "Assisted CORS/CSP review",
       "status": "passed",
-      "durationMs": 0,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -519,7 +516,7 @@
       "id": "manual-verbose-errors",
       "name": "Assisted verbose error leakage review",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 4,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -540,7 +537,7 @@
       "id": "abuse-public-feedback-rate-limit",
       "name": "Public feedback endpoint resists burst submissions",
       "status": "passed",
-      "durationMs": 25,
+      "durationMs": 28,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -552,7 +549,7 @@
   "createdArtifacts": [],
   "suggestedLedgerUpdate": {
     "category": "cat-8-security-audit",
-    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260529-163354/report.json",
+    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260529-163329/report.json",
     "attackSurfacesMeasured": 5,
     "attackSurfacesTotal": 5,
     "manualReviewComplete": true,

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-29T21:34:01.385Z",
+  "generatedAt": "2026-05-29T21:32:56.215Z",
   "run": {
-    "id": "security-probe-ci-20260529-163354",
-    "startedAt": "2026-05-29T21:34:00.157Z",
-    "finishedAt": "2026-05-29T21:34:01.385Z",
+    "id": "security-probe-ci-20260529-163249",
+    "startedAt": "2026-05-29T21:32:54.931Z",
+    "finishedAt": "2026-05-29T21:32:56.215Z",
     "repo": "/Users/michaelhabermas/repos/GAI/ship-shape",
     "target": "local",
     "mode": "local-active",
@@ -13,20 +13,23 @@
     "wsUrl": "ws://127.0.0.1:3099"
   },
   "summary": {
-    "status": "pass",
+    "status": "warn",
     "attackSurfacesMeasured": 5,
     "attackSurfacesTotal": 5,
-    "findings": 0,
-    "findingsBySeverity": {},
+    "findings": 1,
+    "findingsBySeverity": {
+      "high": 1
+    },
     "triageCounts": {
       "knownOpen": 0,
       "resolved": 0,
-      "new": 0,
+      "new": 1,
       "regression": 0
     },
-    "highOrCriticalDependencyCves": 0,
+    "highOrCriticalDependencyCves": 1,
     "probesByStatus": {
-      "passed": 40
+      "passed": 39,
+      "failed": 1
     }
   },
   "surfaces": {
@@ -88,8 +91,10 @@
       ]
     },
     "dependencyCves": {
-      "status": "pass",
-      "findings": [],
+      "status": "fail",
+      "findings": [
+        "cat8-dependency-high-critical-cves"
+      ],
       "probes": [
         "dependency-pnpm-audit"
       ]
@@ -132,23 +137,90 @@
   "triage": {
     "knownOpen": [],
     "resolved": [],
-    "new": [],
+    "new": [
+      {
+        "id": "cat8-dependency-high-critical-cves",
+        "probeId": "dependency-pnpm-audit",
+        "title": "High or critical dependency CVEs found",
+        "severity": "high",
+        "confidence": "confirmed",
+        "category": "dependency",
+        "owasp": null,
+        "ledgerId": null,
+        "fingerprint": "sha256:4b809060ab9a23f5fc0e3d0bc14d60a2d674c0c6f2fb40e7cffecc924a3978fc",
+        "affected": {
+          "packageName": "tmp"
+        },
+        "evidence": {
+          "reproduction": [
+            "Run pnpm security:probe -- --probe dependency-pnpm-audit"
+          ],
+          "advisories": [
+            {
+              "name": "tmp",
+              "severity": "high",
+              "title": "tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape",
+              "url": "https://github.com/advisories/GHSA-ph9p-34f9-6g65"
+            }
+          ]
+        },
+        "expected": "No high/critical CVEs, or each is listed with reachability and feature mapping.",
+        "observed": "1 high/critical advisory item(s) parsed from pnpm audit.",
+        "fixCandidate": "Upgrade, override, remove, or document reachability for affected packages.",
+        "safeToAutoFix": false,
+        "registryStatus": null,
+        "findingStatus": null,
+        "triage": "new"
+      }
+    ],
     "regression": [],
     "counts": {
       "knownOpen": 0,
       "resolved": 0,
-      "new": 0,
+      "new": 1,
       "regression": 0
     }
   },
   "coverageGaps": [],
-  "findings": [],
+  "findings": [
+    {
+      "id": "cat8-dependency-high-critical-cves",
+      "probeId": "dependency-pnpm-audit",
+      "title": "High or critical dependency CVEs found",
+      "severity": "high",
+      "confidence": "confirmed",
+      "category": "dependency",
+      "owasp": null,
+      "ledgerId": null,
+      "fingerprint": "sha256:4b809060ab9a23f5fc0e3d0bc14d60a2d674c0c6f2fb40e7cffecc924a3978fc",
+      "affected": {
+        "packageName": "tmp"
+      },
+      "evidence": {
+        "reproduction": [
+          "Run pnpm security:probe -- --probe dependency-pnpm-audit"
+        ],
+        "advisories": [
+          {
+            "name": "tmp",
+            "severity": "high",
+            "title": "tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape",
+            "url": "https://github.com/advisories/GHSA-ph9p-34f9-6g65"
+          }
+        ]
+      },
+      "expected": "No high/critical CVEs, or each is listed with reachability and feature mapping.",
+      "observed": "1 high/critical advisory item(s) parsed from pnpm audit.",
+      "fixCandidate": "Upgrade, override, remove, or document reachability for affected packages.",
+      "safeToAutoFix": false
+    }
+  ],
   "probes": [
     {
       "id": "auth-session-unauthenticated-api",
       "name": "Unauthenticated protected API access rejected",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -157,7 +229,7 @@
       "id": "auth-session-invalid-bearer",
       "name": "Invalid bearer token rejected",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -198,7 +270,7 @@
       "id": "auth-session-api-token-super-admin-boundary",
       "name": "API tokens cannot access super-admin routes",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 9,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -207,7 +279,7 @@
       "id": "auth-session-member-audit-logs-denied",
       "name": "Member cannot access global audit logs",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -225,7 +297,7 @@
       "id": "authorization-governance-properties-injection",
       "name": "Member cannot forge plan_approval via documents PATCH",
       "status": "passed",
-      "durationMs": 21,
+      "durationMs": 32,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -234,7 +306,7 @@
       "id": "authorization-governance-accountable-self-assign",
       "name": "Member cannot self-assign accountable_id on program",
       "status": "passed",
-      "durationMs": 11,
+      "durationMs": 14,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -243,7 +315,7 @@
       "id": "authorization-governance-week-status-bypass",
       "name": "Member cannot complete sprint via ungoverned status PATCH",
       "status": "passed",
-      "durationMs": 12,
+      "durationMs": 15,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -252,7 +324,7 @@
       "id": "authorization-weekly-plan-idor-documents",
       "name": "Member cannot access peer weekly plan via documents API",
       "status": "passed",
-      "durationMs": 19,
+      "durationMs": 24,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -264,7 +336,7 @@
       "id": "authorization-weekly-plan-idor-websocket",
       "name": "Member cannot join peer weekly plan collaboration room",
       "status": "passed",
-      "durationMs": 11,
+      "durationMs": 14,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -273,7 +345,7 @@
       "id": "authorization-websocket-origin-reject",
       "name": "Cross-origin WebSocket upgrade rejected",
       "status": "passed",
-      "durationMs": 3,
+      "durationMs": 5,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -291,7 +363,7 @@
       "id": "authorization-bulk-issue-foreign-target",
       "name": "Bulk issue update does not mutate inaccessible foreign IDs",
       "status": "passed",
-      "durationMs": 9,
+      "durationMs": 12,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -300,7 +372,7 @@
       "id": "authorization-dashboard-private-metadata",
       "name": "Dashboard my-focus does not expose private project titles to unrelated members",
       "status": "passed",
-      "durationMs": 4,
+      "durationMs": 5,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -309,7 +381,7 @@
       "id": "authorization-file-document-scope",
       "name": "File serve respects parent document visibility",
       "status": "passed",
-      "durationMs": 7,
+      "durationMs": 8,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -336,7 +408,7 @@
       "id": "websocket-malformed-frame",
       "name": "Malformed WebSocket message rejected deterministically",
       "status": "passed",
-      "durationMs": 6,
+      "durationMs": 8,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -347,7 +419,7 @@
       "id": "websocket-unknown-message-type",
       "name": "Unknown WebSocket message type rejected deterministically",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 6,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -358,7 +430,7 @@
       "id": "websocket-oversized-frame",
       "name": "Oversized WebSocket frame bounded by server",
       "status": "passed",
-      "durationMs": 18,
+      "durationMs": 22,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -369,7 +441,7 @@
       "id": "websocket-events-malformed-message",
       "name": "Malformed events WebSocket message rejected",
       "status": "passed",
-      "durationMs": 2,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -409,7 +481,7 @@
       "id": "input-long-field-validation",
       "name": "Excessively long document title rejected",
       "status": "passed",
-      "durationMs": 1,
+      "durationMs": 2,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -418,7 +490,7 @@
       "id": "input-issue-payloads",
       "name": "Issue payloads remain inert and validation bounded",
       "status": "passed",
-      "durationMs": 4,
+      "durationMs": 5,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -445,7 +517,7 @@
       "id": "input-file-serve-headers",
       "name": "Served uploads use safe download headers",
       "status": "passed",
-      "durationMs": 4,
+      "durationMs": 7,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -454,7 +526,7 @@
       "id": "input-governance-mass-assignment",
       "name": "Governance fields rejected on generic PATCH",
       "status": "passed",
-      "durationMs": 10,
+      "durationMs": 13,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -462,21 +534,18 @@
     {
       "id": "dependency-pnpm-audit",
       "name": "pnpm audit high/critical CVE check",
-      "status": "passed",
-      "durationMs": 545,
+      "status": "failed",
+      "durationMs": 521,
       "targetSafe": true,
-      "findingIds": [],
-      "details": {
-        "highCriticalCount": 0,
-        "auditExitCode": 1,
-        "note": "pnpm audit exited non-zero for lower-severity advisories only"
-      }
+      "findingIds": [
+        "cat8-dependency-high-critical-cves"
+      ]
     },
     {
       "id": "manual-cors-csp",
       "name": "Assisted CORS/CSP review",
       "status": "passed",
-      "durationMs": 0,
+      "durationMs": 1,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -519,7 +588,7 @@
       "id": "manual-verbose-errors",
       "name": "Assisted verbose error leakage review",
       "status": "passed",
-      "durationMs": 5,
+      "durationMs": 3,
       "targetSafe": true,
       "findingIds": [],
       "details": {}
@@ -540,7 +609,7 @@
       "id": "abuse-public-feedback-rate-limit",
       "name": "Public feedback endpoint resists burst submissions",
       "status": "passed",
-      "durationMs": 25,
+      "durationMs": 28,
       "targetSafe": true,
       "findingIds": [],
       "details": {
@@ -552,12 +621,32 @@
   "createdArtifacts": [],
   "suggestedLedgerUpdate": {
     "category": "cat-8-security-audit",
-    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260529-163354/report.json",
+    "structuredReport": "my-docs/evidence/security-audit/runs/security-probe-ci-20260529-163249/report.json",
     "attackSurfacesMeasured": 5,
     "attackSurfacesTotal": 5,
     "manualReviewComplete": true,
-    "findingSuggestions": [],
-    "registrySuggestions": [],
+    "findingSuggestions": [
+      {
+        "action": "add",
+        "fingerprint": "sha256:4b809060ab9a23f5fc0e3d0bc14d60a2d674c0c6f2fb40e7cffecc924a3978fc",
+        "probeId": "dependency-pnpm-audit",
+        "findingId": "cat8-dependency-high-critical-cves",
+        "ledgerId": null,
+        "status": "open",
+        "title": "High or critical dependency CVEs found"
+      }
+    ],
+    "registrySuggestions": [
+      {
+        "action": "add",
+        "fingerprint": "sha256:4b809060ab9a23f5fc0e3d0bc14d60a2d674c0c6f2fb40e7cffecc924a3978fc",
+        "probeId": "dependency-pnpm-audit",
+        "findingId": "cat8-dependency-high-critical-cves",
+        "ledgerId": null,
+        "status": "open",
+        "title": "High or critical dependency CVEs found"
+      }
+    ],
     "note": "Workflow status is CLI-owned (security-findings.json). Probe appends verifications only."
   }
 }

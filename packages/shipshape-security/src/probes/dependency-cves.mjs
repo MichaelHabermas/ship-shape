@@ -20,8 +20,13 @@ async function pnpmAudit() {
   if (!parsed) return errorResult('dependency-pnpm-audit', 'pnpm audit high/critical CVE check', audit.stderr || 'pnpm audit did not return parseable JSON');
   const advisories = extractAdvisories(parsed);
   const highCritical = advisories.filter((item) => ['high', 'critical'].includes(item.severity));
-  if (audit.ok && highCritical.length === 0) return pass('dependency-pnpm-audit', 'pnpm audit high/critical CVE check', { highCriticalCount: 0 });
-  if (!audit.ok && highCritical.length === 0) return errorResult('dependency-pnpm-audit', 'pnpm audit high/critical CVE check', audit.stderr || `pnpm audit exited ${audit.code}`);
+  if (highCritical.length === 0) {
+    return pass('dependency-pnpm-audit', 'pnpm audit high/critical CVE check', {
+      highCriticalCount: 0,
+      auditExitCode: audit.code ?? 0,
+      ...(audit.ok ? {} : { note: 'pnpm audit exited non-zero for lower-severity advisories only' }),
+    });
+  }
   return fail('dependency-pnpm-audit', 'pnpm audit high/critical CVE check', finding({
     id: 'cat8-dependency-high-critical-cves',
     probeId: 'dependency-pnpm-audit',

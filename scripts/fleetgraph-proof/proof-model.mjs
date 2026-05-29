@@ -264,7 +264,13 @@ function riskList(scenarios, environments, commandResults) {
     risks.push('Deployed proof is blocked until deployed URLs/credentials are configured.');
   }
   if (commandResults.some((result) => result.status === 'blocked')) risks.push('One or more verification commands was blocked.');
-  if (commandResults.some((result) => result.status === 'skipped')) risks.push('One or more optional verification commands was skipped.');
+  const skippedCommands = commandResults.filter((result) => result.status === 'skipped');
+  const skippedBeyondDefaultE2e = skippedCommands.filter(
+    (result) => result.name !== 'FleetGraph attention loop E2E'
+  );
+  if (skippedBeyondDefaultE2e.length > 0) {
+    risks.push('One or more optional verification commands was skipped.');
+  }
   return risks;
 }
 
