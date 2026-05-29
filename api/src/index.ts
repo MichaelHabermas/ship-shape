@@ -52,9 +52,12 @@ async function main() {
   });
   installRuntimeShutdownHandlers(shutdownController);
 
-  server.listen(Number(PORT), HOST, () => {
-    console.log(`API server listening on http://${HOST}:${PORT}`);
-    console.log(`CORS origin: ${CORS_ORIGIN}`);
+  await new Promise<void>((resolve) => {
+    server.listen(Number(PORT), HOST, () => {
+      console.log(`API server listening on http://${HOST}:${PORT}`);
+      console.log(`CORS origin: ${CORS_ORIGIN}`);
+      resolve();
+    });
   });
 
   // Load secrets from SSM in production (before importing app)
