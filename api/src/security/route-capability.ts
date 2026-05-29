@@ -9,6 +9,7 @@ import {
   type DocumentCapabilityAction,
   type DocumentCapabilityEnforce,
 } from './capabilities.js';
+import { legacyMutationErrorMessage } from './legacy-mutation-error.js';
 import { principalFromRequest } from './principal.js';
 import type { DocumentType } from '@ship/shared';
 
@@ -42,13 +43,7 @@ export function respondLegacyCapabilityDenied(
   notFoundMessage = 'Not found'
 ): void {
   const status = capabilityDenialStatus(decision.reason);
-  const error =
-    status === 404
-      ? notFoundMessage
-      : decision.reason === 'token_scope_denied'
-        ? 'token_scope_denied'
-        : 'Forbidden';
-  res.status(status).json({ error });
+  res.status(status).json({ error: legacyMutationErrorMessage(decision.reason, notFoundMessage) });
 }
 
 export async function requireDocumentCapability(
@@ -73,6 +68,8 @@ export async function requireDocument(
     action: DocumentCapabilityAction;
     id: string;
     enforce?: DocumentCapabilityEnforce;
+    includeArchived?: boolean;
+    includeDeleted?: boolean;
     notFoundMessage?: string;
   }
 ): Promise<CapabilityDecision | null> {
@@ -85,6 +82,8 @@ export async function requireDocument(
       documentId: input.id,
       expectedType: input.type,
       ...(input.enforce ? { enforce: input.enforce } : {}),
+      ...(input.includeArchived ? { includeArchived: true } : {}),
+      ...(input.includeDeleted ? { includeDeleted: true } : {}),
     },
     input.notFoundMessage ?? 'Not found'
   );
@@ -157,9 +156,21 @@ export async function requireIssueWrite(
   req: Request,
   res: Response,
   issueId: string,
-  enforce?: 'creator_or_admin'
+  options: {
+    enforce?: 'creator_or_admin';
+    includeArchived?: boolean;
+    includeDeleted?: boolean;
+  } = {}
 ): Promise<CapabilityDecision | null> {
-  return requireDocument(req, res, { type: 'issue', action: 'write', id: issueId, enforce, notFoundMessage: 'Issue not found' });
+  return requireDocument(req, res, {
+    type: 'issue',
+    action: 'write',
+    id: issueId,
+    enforce: options.enforce,
+    includeArchived: options.includeArchived,
+    includeDeleted: options.includeDeleted,
+    notFoundMessage: 'Issue not found',
+  });
 }
 
 export async function requirePersonRead(

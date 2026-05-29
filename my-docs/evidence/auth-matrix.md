@@ -18,12 +18,14 @@
 | `canAccessDocument` (local duplicates) | **1** (collaboration wrapper only) | `comments.ts` migrated to `requireDocumentCapability` (2026-05-29) |
 | `workspaceAccessMiddleware` | **removed** | Was dead code |
 | `Principal.kind === 'setup'` | **0 constructors** | `setup.ts` uses env token, not capability layer |
-| Mutation entrypoints without token scope | **Reduced** | Programs/projects writes use `require*Write`; document mutations use `authorizeDocumentMutation` |
+| Mutation entrypoints without token scope | **Closed for project/program/issue writes** | Service `guardDocumentMutation` / `guardDocumentCreate` / `guardDocumentMutationsBatch` in [`mutation-capability-guard.ts`](../../api/src/services/mutation-capability-guard.ts); program/project routes only validate UUID params |
 
 ### OWASP hardening (2026-05-29)
 
 - **Governance mass assignment:** `submitted_at` in `GOVERNANCE_PROPERTY_KEYS` (blocked on generic PATCH/create for all principals). Server sets `submitted_at` on first weekly plan/retro content save via `stampWeeklyAccountabilitySubmittedAt`. Tests: `documents-governance-patch.test.ts`, `document-governance.test.ts`, probe `input-governance-mass-assignment`.
-- **Programs/projects:** `requireProgramWrite` / `requireProjectWrite` + `requireDocumentCreate` on mutating routes; token scope tests in `programs-projects-token-scope.test.ts`.
+- **Programs/projects:** `requireProgramWrite` / `requireProjectWrite` on routes; writes in `programs-service.ts` / `projects-service.ts` call `guardDocument*`; token scope tests in `programs-projects-token-scope.test.ts`, `projects-mutation-guard.test.ts`.
+- **Issue bulk:** `bulkUpdateIssuesMutation` guards each id (`creator_or_admin` on delete; `includeArchived` / `includeDeleted` on restore); all-auth-fail → 403; sprint/project refs use `requireReferenceableDocument`; `issue-bulk-mutation-guard.test.ts`.
+- **Week lifecycle:** `requireWeekLifecycleAuthority` uses capability write on sprint row, not visibility-only SQL; `governance-auth.test.ts`.
 - **Comments / undo-conversion:** `comments.ts` uses `authorize` read; `undo-conversion` uses write + `creator_or_admin` with converter fallback.
 
 ---
@@ -88,6 +90,12 @@ Seed only: `DOCUMENT_POLICY_CASES` + types. Runtime policy is `authorize()` in `
 2. **Dead deny reasons** — `file_not_bound`, `file_not_owned_or_admin` never returned from `authorize()`.
 3. **Collaboration `canAccessDocumentForCollab`** — thin wrapper over `authorize`; rename/consolidate optional.
 
+### Closed — service-layer project/program writes (2026-05-29)
+
+- [`projects-service.ts`](../../api/src/services/projects-service.ts), [`project-nested-service.ts`](../../api/src/services/project-nested-service.ts), [`project-retro-service.ts`](../../api/src/services/project-retro-service.ts): write paths take `Principal` and call `guardDocumentMutation` / `guardDocumentCreate` before SQL (no `VISIBILITY_FILTER_SQL` on writes).
+- [`programs.ts`](../../api/src/routes/programs.ts) POST/PATCH/DELETE/merge: same guards after route `require*Write`.
+- Tests: service-layer [`projects-mutation-guard.test.ts`](../../api/src/services/__tests__/projects-mutation-guard.test.ts) (direct `Principal`, bypasses routes); route token scope [`programs-projects-token-scope.test.ts`](../../api/src/routes/programs-projects-token-scope.test.ts) (PATCH/DELETE/POST create).
+
 ### Closed in OWASP pass (2026-05-29)
 
 - Token scope on programs/projects/document mutations
@@ -103,8 +111,8 @@ Seed only: `DOCUMENT_POLICY_CASES` + types. Runtime policy is `authorize()` in `
 | Route file | ~LOC | Handlers | Auth today | Risk |
 |------------|------|----------|------------|------|
 | `issues.ts` | 1454 | 16 | Partial `DocumentActor` | Med — finish first |
-| `projects.ts` | 1865 | 14 | Visibility SQL | Med–High |
-| `programs.ts` | 992 | 11 | Visibility SQL | Med |
+| `projects.ts` | 1865 | 14 | Route `require*Write` + service `guardDocument*` on writes; visibility SQL on list/get only | Low (writes) |
+| `programs.ts` | ~900 | 11 | Route `require*Write`; writes delegate to `programs-service.ts` (`guardDocument*`); visibility SQL on list/get/merge-preview | Low (writes) |
 | `team.ts` | 1762 | 11 | Visibility + allocation admin | Med |
 | `admin.ts` | 2021 | 23 | Super-admin only | Epic 8 (platform) |
 

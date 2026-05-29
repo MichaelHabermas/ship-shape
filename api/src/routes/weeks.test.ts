@@ -340,6 +340,23 @@ describe('Sprints API', () => {
 
       expect(res.status).toBe(404)
     })
+
+    it('ignores status in PATCH body (lifecycle uses POST /start)', async () => {
+      await pool.query(
+        `UPDATE documents SET properties = properties || $1::jsonb WHERE id = $2`,
+        [JSON.stringify({ status: 'planning' }), testSprintId]
+      );
+
+      const res = await request(app)
+        .patch(`/api/weeks/${testSprintId}`)
+        .set('Cookie', sessionCookie)
+        .set('x-csrf-token', csrfToken)
+        .send({ title: 'Planning week title', status: 'completed' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.name).toBe('Planning week title');
+      expect(res.body.status).toBe('planning');
+    });
   })
 
   describe('DELETE /api/weeks/:id', () => {

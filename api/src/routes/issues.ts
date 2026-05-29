@@ -484,7 +484,13 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!id || !(await requireIssueWrite(req, res, id, 'creator_or_admin'))) {
+    if (
+      !id ||
+      !(await requireIssueWrite(req, res, id, {
+        enforce: 'creator_or_admin',
+        includeArchived: true,
+      }))
+    ) {
       return;
     }
     const { workspaceId } = getAuthenticatedRouteContext(req);
