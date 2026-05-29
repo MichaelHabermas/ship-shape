@@ -53,7 +53,7 @@ export function FleetGraphNotificationsProbe({
     async function loadNotifications() {
       try {
         const data = await apiGetJson<FleetGraphNotificationsListResponse>(
-          '/api/fleetgraph/notifications?limit=25',
+          '/api/fleetgraph/notifications?limit=99',
           'Failed to fetch notifications'
         );
         if (cancelled) return;

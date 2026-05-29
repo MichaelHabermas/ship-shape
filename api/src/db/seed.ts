@@ -38,6 +38,42 @@ async function createAssociation(
   );
 }
 
+function makeRichIssueContent(input: {
+  problem: string;
+  impact: string;
+  context: string;
+  acceptance: string[];
+  notes: string[];
+}) {
+  return {
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Problem' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: input.problem }] },
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Impact' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: input.impact }] },
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Context' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: input.context }] },
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Acceptance criteria' }] },
+      {
+        type: 'bulletList',
+        content: input.acceptance.map(item => ({
+          type: 'listItem',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: item }] }],
+        })),
+      },
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Investigation notes' }] },
+      {
+        type: 'bulletList',
+        content: input.notes.map(item => ({
+          type: 'listItem',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: item }] }],
+        })),
+      },
+    ],
+  };
+}
+
 async function seed() {
   // Load secrets from SSM in production (must happen before Pool creation)
   await loadProductionSecrets();
@@ -801,6 +837,249 @@ async function seed() {
       console.log(`✅ Created ${issuesCreated} issues`);
     } else {
       console.log('ℹ️  All issues already exist');
+    }
+
+    const fleetGraphSignalTemplates = [
+      {
+        signalType: 'blocked',
+        state: 'blocked',
+        prefix: 'FG-BLOCKED',
+        summaries: [
+          ['SSO callback contract blocked by identity provider review', 'Waiting on the identity team to confirm the callback payload and signing key rotation window before the API contract can be finalized.'],
+          ['Payment reconciliation blocked by missing treasury sample file', 'The importer cannot be validated until Finance provides the May close sample with reversal, partial payment, and duplicate invoice cases.'],
+          ['Notification digest blocked on email domain approval', 'The digest job is ready for staging, but SES domain verification is still pending with platform operations.'],
+          ['Role migration blocked by production permission export', 'The migration plan needs the current role export so we can prove no workspace admins lose access during cutover.'],
+          ['Mobile upload flow blocked by antivirus vendor response', 'The attachment scanner is rejecting signed iOS uploads and the vendor has not confirmed the expected MIME override.'],
+          ['Data retention job blocked by legal hold matrix', 'The delete worker cannot ship until Legal marks which document classes are exempt from the 90-day retention window.'],
+          ['Bulk move blocked by week ownership ambiguity', 'Moving issues between weeks needs a decision on whether owner reassignment follows the issue or stays with the source week.'],
+          ['Reviewer console blocked by CSP exception approval', 'The embedded evidence viewer needs one approved frame-src exception before it can render reviewer artifacts.'],
+          ['Audit export blocked by column classification', 'Security has not classified two export columns, so the CSV generator cannot decide whether masking is required.'],
+          ['Workspace invite flow blocked by SMTP bounce analysis', 'Invites to agency domains are bouncing and mail operations has not returned the DMARC alignment report.'],
+        ],
+      },
+      {
+        signalType: 'stale',
+        state: 'in_progress',
+        prefix: 'FG-STALE',
+        summaries: [
+          ['Search relevance tuning has not moved since kickoff', 'No implementation update has landed for 34 days despite the issue being assigned to the current week.'],
+          ['Project health rollup stalled after initial schema notes', 'The issue has old design notes but no code, comments, or status movement since the first estimate.'],
+          ['Attachment preview accessibility follow-up is idle', 'The accessibility finding remains open and the last update predates the most recent review cycle.'],
+          ['API pagination cleanup stopped after route inventory', 'The route inventory was captured, but no endpoint has been converted or marked out of scope.'],
+          ['Week dashboard empty-state copy is aging out', 'The issue is still in progress while the copy decision has been unchanged for more than three weeks.'],
+          ['Document conversion audit has no recent evidence', 'The conversion checklist has not been updated since the first test pass and risk is accumulating.'],
+          ['Resource allocation export has gone quiet', 'The issue has an owner and estimate, but there are no recent commits or standup references.'],
+          ['Keyboard navigation polish is still open after review', 'The review was completed, but the follow-up issue has not changed state since the notes were attached.'],
+          ['Program breadcrumb cleanup has stale design assumptions', 'The issue references an old navigation model and needs refresh before implementation continues.'],
+          ['Bulk selection affordance has no current owner signal', 'The issue remains assigned, but no one has updated scope, blockers, or next action in 29 days.'],
+        ],
+      },
+      {
+        signalType: 'at_risk',
+        state: 'todo',
+        prefix: 'FG-RISK',
+        summaries: [
+          ['Security evidence bundle at risk for reviewer deadline', 'The issue is due in two days and still lacks the automated evidence links reviewers expect.'],
+          ['Week close reconciliation at risk due to unresolved children', 'Several child issues remain incomplete and the week close path will surface noisy warnings.'],
+          ['Invite acceptance flow at risk from cross-browser gap', 'Safari coverage is missing for the redirect path used by external collaborators.'],
+          ['Audit log viewer at risk from large workspace load', 'The query is still unpaged and the test workspace now has enough data to trigger slow responses.'],
+          ['Program status badge at risk from mixed source states', 'The rollup combines stale, blocked, and cancelled issues without a deterministic precedence rule.'],
+          ['Export redaction at risk before compliance demo', 'The demo depends on redacted exports, but masking rules are still represented as notes only.'],
+          ['FleetGraph explain action at risk from missing draft path', 'Notifications can open a discussion, but the recommended draft path is not validated end to end.'],
+          ['My Week accountability at risk from skipped plan coverage', 'Some assignees have active week work and no plan document, which will confuse the heatmap.'],
+          ['Project retro summary at risk from incomplete impact data', 'The retro generator has expected impact but no actual impact or next-step data on several projects.'],
+          ['Realtime document handoff at risk from reconnect edge case', 'The collaboration state recovers after refresh but not after a network drop during editing.'],
+        ],
+      },
+    ] as const;
+
+    let attentionIssuesCreated = 0;
+    let fleetGraphFindingsCreated = 0;
+    const currentSprints = sprints.filter(s => s.number === currentSprintNumber);
+
+    for (const [groupIndex, group] of fleetGraphSignalTemplates.entries()) {
+      for (let i = 0; i < group.summaries.length; i++) {
+        const [title, summary] = group.summaries[i]!;
+        const program = programs[(i + groupIndex) % programs.length]!;
+        const programProjects = projects.filter(p => p.programId === program.id);
+        const project = programProjects[i % programProjects.length]!;
+        const sprint = currentSprints.find(s => s.programId === program.id) ?? sprints.find(s => s.programId === program.id)!;
+        const team = programTeams[program.id]!;
+        const assignee = allUsers[team[i % team.length]!]!;
+        const daysAgo = 5 + groupIndex * 11 + i * 3;
+        const detectedHoursAgo = 2 + groupIndex * 4 + i * 5;
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + (group.signalType === 'at_risk' ? (i % 4) + 1 : 7 + i));
+        const titleWithPrefix = `${group.prefix}-${String(i + 1).padStart(2, '0')} ${title}`;
+
+        const existingIssue = await pool.query<IdRow>(
+          `SELECT d.id FROM documents d
+           JOIN document_associations da ON da.document_id = d.id
+             AND da.related_id = $2 AND da.relationship_type = 'program'
+           WHERE d.workspace_id = $1 AND d.document_type = 'issue' AND d.title = $3`,
+          [workspaceId, program.id, titleWithPrefix]
+        );
+
+        let issueId = existingIssue.rows[0]?.id;
+        if (!issueId) {
+          maxTickets[program.id]!++;
+          const blockerText = group.signalType === 'blocked' ? summary : null;
+          const content = makeRichIssueContent({
+            problem: summary,
+            impact: group.signalType === 'blocked'
+              ? 'Delivery is stopped until the external dependency is resolved; downstream work should not be scheduled against this issue.'
+              : group.signalType === 'stale'
+                ? 'The issue is still assigned and visible in current planning, but the lack of movement makes progress reporting unreliable.'
+                : 'The issue can still land, but the deadline, dependency, or quality bar is tight enough that it needs active management now.',
+            context: `Seeded FleetGraph ${group.signalType} scenario for ${program.name}. The dates, owners, and reasons are intentionally varied so notification sorting, filtering, and discussion flows have realistic data.`,
+            acceptance: [
+              'Owner has a concrete next action with a named dependency or decision maker.',
+              'Issue status, priority, and due date reflect the current risk.',
+              'FleetGraph notification explains why this item needs attention without exposing hidden data.',
+            ],
+            notes: [
+              `Assignee: ${assignee.name}.`,
+              `Age: ${daysAgo} days since the last meaningful issue update.`,
+              `Reason: ${summary}`,
+            ],
+          });
+          const properties = {
+            state: group.state,
+            priority: i % 3 === 0 ? 'urgent' : i % 3 === 1 ? 'high' : 'medium',
+            source: 'internal',
+            assignee_id: assignee.id,
+            estimate: 3 + (i % 6),
+            due_date: dueDate.toISOString().split('T')[0],
+            feedback_status: null,
+            rejection_reason: null,
+            blocker_text: blockerText,
+            blocked_reason: blockerText,
+            attention_seed: group.signalType,
+          };
+          const issueResult = await pool.query<IdRow>(
+            `INSERT INTO documents (
+               workspace_id, document_type, title, content, properties, ticket_number, created_by, created_at, updated_at
+             )
+             VALUES ($1, 'issue', $2, $3, $4, $5, $6, NOW() - ($7::int * INTERVAL '1 day'), NOW() - ($7::int * INTERVAL '1 day'))
+             RETURNING id`,
+            [
+              workspaceId,
+              titleWithPrefix,
+              JSON.stringify(content),
+              JSON.stringify(properties),
+              maxTickets[program.id],
+              assignee.id,
+              daysAgo,
+            ]
+          );
+          issueId = requireFirstRow(issueResult.rows).id;
+          await createAssociation(pool, issueId, program.id, 'program');
+          await createAssociation(pool, issueId, project.id, 'project');
+          await createAssociation(pool, issueId, sprint.id, 'sprint');
+          attentionIssuesCreated++;
+        }
+
+        const dedupeKey = `${group.signalType === 'at_risk' ? 'at-risk' : group.signalType}-issue:${workspaceId}:${issueId}:${sprint.id}`;
+        const existingFinding = await pool.query<IdRow>(
+          `SELECT id FROM fleetgraph_findings
+           WHERE workspace_id = $1 AND dedupe_key = $2 AND status IN ('open', 'needs_confirmation', 'error')`,
+          [workspaceId, dedupeKey]
+        );
+
+        if (!existingFinding.rows[0]) {
+          const evidence = [
+            {
+              kind: 'source_issue',
+              sourceDocumentId: issueId,
+              sourceType: 'issue',
+              claim: `Issue ${titleWithPrefix}`,
+              visibility: 'internal',
+              visibleFields: ['title', 'ticket_number', 'priority', 'state'],
+            },
+            {
+              kind: 'source_sprint',
+              sourceDocumentId: sprint.id,
+              sourceType: 'sprint',
+              claim: `Week ${sprint.number}`,
+              visibility: 'internal',
+              visibleFields: ['title', 'sprint_number'],
+            },
+            {
+              kind: group.signalType === 'blocked' ? 'blocker' : group.signalType,
+              sourceDocumentId: issueId,
+              sourceType: 'issue',
+              claim: group.signalType === 'blocked' ? 'Current blocker' : summary,
+              excerpt: summary,
+              visibility: 'internal',
+              visibleFields: ['state', 'priority', 'updated_at', 'due_date'],
+            },
+          ];
+          await pool.query(
+            `INSERT INTO fleetgraph_findings (
+               workspace_id, source_issue_id, source_sprint_id, dedupe_key,
+               status, severity, confidence, title, summary, evidence_snapshot,
+               recommended_action, draft_content, proposed_recipient, human_gate,
+               trace_metadata, run_metadata, first_detected_at, last_detected_at, created_at, updated_at
+             )
+             VALUES (
+               $1, $2, $3, $4, 'open', $5, $6, $7, $8, $9,
+               $10, $11, $12, $13, $14, $15,
+               NOW() - ($16::int * INTERVAL '1 hour'),
+               NOW() - ($16::int * INTERVAL '1 hour'),
+               NOW() - ($16::int * INTERVAL '1 hour'),
+               NOW() - ($16::int * INTERVAL '1 hour')
+             )`,
+            [
+              workspaceId,
+              issueId,
+              sprint.id,
+              dedupeKey,
+              group.signalType === 'at_risk' || i % 3 === 0 ? 'high' : 'medium',
+              0.82 + (i % 4) * 0.035,
+              title,
+              summary,
+              JSON.stringify(evidence),
+              JSON.stringify({
+                label: group.signalType === 'blocked' ? 'Unblock issue' : group.signalType === 'stale' ? 'Refresh plan' : 'Reduce risk',
+                summary: 'Open the issue, confirm the owner, and record the next dated action.',
+              }),
+              JSON.stringify({
+                subject: title,
+                body: `Can you update ${titleWithPrefix}? FleetGraph flagged it because: ${summary}`,
+              }),
+              JSON.stringify({
+                role: 'issue_assignee',
+                userId: assignee.id,
+                displayName: assignee.name,
+                rationale: 'Seeded scenario routes the notification to the issue assignee.',
+              }),
+              JSON.stringify({ required: false, reason: 'seed_demo_data' }),
+              JSON.stringify({ mode: 'proactive', decision: 'create_finding', seed: true }),
+              JSON.stringify({
+                signalType: group.signalType,
+                reason: summary,
+                uncertaintyNotes: [
+                  'Seed data intentionally varies age, owner, severity, and due date.',
+                  'Confirm the issue document before taking action.',
+                ],
+              }),
+              detectedHoursAgo,
+            ]
+          );
+          fleetGraphFindingsCreated++;
+        }
+      }
+    }
+
+    if (attentionIssuesCreated > 0) {
+      console.log(`✅ Created ${attentionIssuesCreated} FleetGraph attention issues`);
+    } else {
+      console.log('ℹ️  All FleetGraph attention issues already exist');
+    }
+    if (fleetGraphFindingsCreated > 0) {
+      console.log(`✅ Created ${fleetGraphFindingsCreated} FleetGraph notification findings`);
+    } else {
+      console.log('ℹ️  All FleetGraph notification findings already exist');
     }
 
     // Create welcome/tutorial wiki document

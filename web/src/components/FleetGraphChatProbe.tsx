@@ -536,7 +536,9 @@ function NotificationConversation({
   notification: FleetGraphNotificationProbeItem;
   explanation: ExplanationState;
 }) {
+  const ownerLabel = notification.owner || '-';
   const output = explanation.status === 'ready' ? explanation.output : null;
+  const sourceLabels = sourceLabelsForConversation(notification, output);
   const recommendedAction = recommendedActionText(output);
   const humanGateRequired = output ? output.humanGate.required === true : true;
   const primaryText = conversationBody(notification, output);
@@ -554,16 +556,16 @@ function NotificationConversation({
       <UserMessage>What's going on here?</UserMessage>
 
       <AssistantAnswer
-        eyebrow={undefined}
+        eyebrow={displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}
         body={isLoading ? 'Checking the graph explanation for this finding...' : primaryText}
-        metadata={isFallback ? ['fallback'] : []}
-        sources={[]}
+        metadata={[ownerLabel, displayText(notification.context), notification.age, ...(isFallback ? ['fallback'] : [])]}
+        sources={sourceLabels}
         signalLabel={notification.signalLabel}
         signalType={notification.signalType}
       />
 
       {showNextStep && (
-        <InlineGateNote text={nextStep} gateText={gateText} label="Next best move:" />
+        <NextStepCard text={nextStep} gateText={gateText} />
       )}
     </div>
   );
@@ -703,6 +705,18 @@ function InlineGateNote({ text, gateText, label = 'Next:' }: { text: string; gat
         <span className="text-muted/70">{gateText}</span>
       )}
     </p>
+  );
+}
+
+function NextStepCard({ text, gateText }: { text: string; gateText?: string }) {
+  return (
+    <div className="w-full rounded-lg border border-border bg-background/60 p-3">
+      <p className="text-xs font-medium text-foreground">Possible next step</p>
+      <p className="mt-1 text-sm leading-5 text-muted">{displayText(text)}</p>
+      {gateText && (
+        <p className="mt-1 text-[13px] leading-[18px] text-muted">{gateText}</p>
+      )}
+    </div>
   );
 }
 
