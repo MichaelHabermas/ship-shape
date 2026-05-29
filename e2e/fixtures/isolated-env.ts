@@ -159,6 +159,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
           ...process.env,
           PORT: String(port),
           DATABASE_URL: dbUrl,
+          PG_POOL_MAX: '20',
           CORS_ORIGIN: '*', // Allow any origin during tests
           NODE_ENV: 'test',
           // Prevent dotenv from overriding our DATABASE_URL

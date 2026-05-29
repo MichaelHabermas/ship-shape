@@ -13,11 +13,16 @@ config({ path: join(__dirname, '../../.env') });
 
 const { Pool } = pg;
 
+const configuredPoolMax = Number(process.env.PG_POOL_MAX);
+const poolMax = Number.isFinite(configuredPoolMax) && configuredPoolMax > 0
+  ? configuredPoolMax
+  : isProduction() ? 20 : 10;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: databaseSslOptions(),
   // Production-ready pool configuration
-  max: isProduction() ? 20 : 10, // Max connections (default is 10)
+  max: poolMax, // Max connections (default is 10 locally, 20 in production)
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   connectionTimeoutMillis: 2000, // Fail fast if can't connect in 2 seconds
   maxUses: 7500, // Recycle connections after 7500 queries to prevent memory leaks

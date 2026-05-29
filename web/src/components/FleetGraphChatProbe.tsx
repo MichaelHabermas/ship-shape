@@ -534,9 +534,7 @@ function NotificationConversation({
   notification: FleetGraphNotificationProbeItem;
   explanation: ExplanationState;
 }) {
-  const ownerLabel = notification.owner || '-';
   const output = explanation.status === 'ready' ? explanation.output : null;
-  const sourceLabels = sourceLabelsForConversation(notification, output);
   const recommendedAction = recommendedActionText(output);
   const humanGateRequired = output ? output.humanGate.required === true : true;
   const primaryText = conversationBody(notification, output);
@@ -553,45 +551,23 @@ function NotificationConversation({
       <UserMessage>What's going on here?</UserMessage>
 
       <AssistantAnswer
-        eyebrow={displayText(titleWithoutSignalPrefix(notification.title, notification.signalLabel))}
+        eyebrow={undefined}
         body={isLoading ? 'Checking the graph explanation for this finding...' : primaryText}
-        metadata={[ownerLabel, displayText(notification.context), notification.age, ...(isFallback ? ['fallback'] : [])]}
-        sources={sourceLabels}
+        metadata={isFallback ? ['fallback'] : []}
+        sources={[]}
         signalLabel={notification.signalLabel}
         signalType={notification.signalType}
       />
 
-      <InlineGateNote text={nextStep} gateText={gateText} />
+      <InlineGateNote text={nextStep} gateText={gateText} label="Next best move:" />
     </div>
   );
 }
 
 function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
-  let lastReadyTitle = '';
-  let lastReadyDecision = '';
-  let lastReadySources = '';
-
   return (
     <>
       {turns.map((turn) => {
-        const sources = turn.response?.answer.sources.map((source) => source.label) ?? [];
-        const sourceKey = sources.join('|');
-        const showTitle = turn.status !== 'ready'
-          || !turn.response
-          || turn.response.answer.title !== lastReadyTitle;
-        const showDecision = turn.status === 'ready'
-          && turn.response
-          && turn.response.decision !== lastReadyDecision;
-        const showSources = turn.status === 'ready'
-          && turn.response
-          && sourceKey !== lastReadySources;
-
-        if (turn.status === 'ready' && turn.response) {
-          lastReadyTitle = turn.response.answer.title;
-          lastReadyDecision = turn.response.decision;
-          lastReadySources = sourceKey;
-        }
-
         return (
           <div key={turn.id} className="flex w-full flex-col gap-3">
             <UserMessage>{turn.prompt}</UserMessage>
@@ -609,10 +585,10 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
             {turn.status === 'ready' && turn.response && (
               <>
                 <AssistantAnswer
-                  eyebrow={showTitle ? turn.response.answer.title : undefined}
+                  eyebrow={undefined}
                   body={turn.response.answer.body}
-                  metadata={showDecision ? [turn.response.decision] : []}
-                  sources={showSources ? sources : []}
+                  metadata={[]}
+                  sources={[]}
                 />
                 {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
                   <InlineGateNote
@@ -715,10 +691,10 @@ function InlineProvenance({ metadata, sources }: { metadata: string[]; sources: 
   );
 }
 
-function InlineGateNote({ text, gateText }: { text: string; gateText: string }) {
+function InlineGateNote({ text, gateText, label = 'Next:' }: { text: string; gateText: string; label?: string }) {
   return (
     <p className="text-[13px] leading-5 text-muted">
-      <span className="text-foreground">Next:</span> {displayText(text)} <span className="text-muted/70">{gateText}</span>
+      <span className="text-foreground">{label}</span> {displayText(text)} <span className="text-muted/70">{gateText}</span>
     </p>
   );
 }
