@@ -82,11 +82,12 @@ export async function getReadableDocument(
   actor: DocumentActor,
   docId: string,
   expectedType?: DocumentType,
-  options: { includeArchived?: boolean } = {}
+  options: { includeArchived?: boolean; includeDeleted?: boolean } = {}
 ): Promise<AccessibleDocument | null> {
   const { isAdmin } = await getDocumentAccessContext(actor, db);
   const typeFilter = expectedType ? 'AND d.document_type = $5' : '';
   const archiveFilter = options.includeArchived ? '' : 'AND d.archived_at IS NULL';
+  const deletedFilter = options.includeDeleted ? '' : 'AND d.deleted_at IS NULL';
   const params = expectedType
     ? [docId, actor.workspaceId, actor.userId, isAdmin, expectedType]
     : [docId, actor.workspaceId, actor.userId, isAdmin];
@@ -94,10 +95,10 @@ export async function getReadableDocument(
   const result = await db.query(
     `SELECT d.id, d.title, d.document_type, d.workspace_id, d.created_by,
             d.visibility, d.properties, d.archived_at, d.deleted_at
-       FROM documents d
-      WHERE d.id = $1
-        AND d.workspace_id = $2
-        AND d.deleted_at IS NULL
+      FROM documents d
+     WHERE d.id = $1
+       AND d.workspace_id = $2
+        ${deletedFilter}
         ${archiveFilter}
         ${typeFilter}
         AND ${visibilityPredicate('d', '$3', '$4')}`,

@@ -22,6 +22,14 @@ Use multiple profiles only when the task clearly crosses boundaries. If no profi
 - Document authorization is capability-based (`api/src/security/capabilities.ts`); `document-policy.ts` is seed data only. For auth work use the `security` profile, `my-docs/evidence/auth-matrix.md`, and the remediation checklist pointer in `my-docs/CODE_QUALITY_REMEDIATION_PLAN.md` (do not duplicate that plan here).
 - Do not add `export type { … } from '…'` passthrough barrels; import types from where they are defined (`@ship/shared`, `@/api/schemas`, etc.). See `docs/claude-reference/anti-patterns.md` §11.
 
+## Communication Surface
+
+Be terse for structural metadata: titles, labels, task names, status lines, commit summaries, PR titles, filenames, and UI microcopy.
+
+Do not make the actual conversation terse by default. In conversation, be natural, specific, and willing to think through uncertainty. Match the user's depth instead of compressing every answer.
+
+Use metadata only when it reduces ambiguity: starting a multi-step task, switching contexts, summarizing a result, naming a saved artifact, or handing work off. Do not repeat metadata once the context is established.
+
 ## Feature branches
 
 Durable feature branches live on **GitHub (`origin`)** and **GitLab (`gitlab`)**. Temporary agent/Codex worktrees are not branch inventory. See `docs/feature-branches.md` and run `pnpm branches:sync` to fetch remotes, create local tracking branches, and mirror `origin` → `gitlab`.

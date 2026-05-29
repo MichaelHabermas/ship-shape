@@ -67,6 +67,11 @@ export interface UseCollabSessionResult {
 }
 
 function getCollaborationWsUrl(): string {
+  const wsUrl = import.meta.env.VITE_WS_URL;
+  if (typeof wsUrl === 'string' && wsUrl.length > 0) {
+    return wsUrl.replace(/^http/, 'ws') + '/collaboration';
+  }
+
   const apiUrl = import.meta.env.VITE_API_URL ?? '';
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return apiUrl

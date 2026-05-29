@@ -55,6 +55,7 @@ normal_specs=(
   e2e/existing-user-invite.spec.ts
   e2e/feedback-consolidation.spec.ts
   e2e/file-upload-api.spec.ts
+  e2e/fleetgraph-attention-loop.spec.ts
   e2e/icons.spec.ts
   e2e/issue-display-id.spec.ts
   e2e/issue-estimates.spec.ts

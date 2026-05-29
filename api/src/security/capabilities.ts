@@ -28,6 +28,7 @@ export type Capability =
       expectedType?: DocumentType;
       enforce?: DocumentCapabilityEnforce;
       includeArchived?: boolean;
+      includeDeleted?: boolean;
     }
   | {
       resource: 'document_reference';
@@ -61,6 +62,7 @@ export type DocumentMutationCapability = {
   documentId?: string;
   enforce?: DocumentCapabilityEnforce;
   includeArchived?: boolean;
+  includeDeleted?: boolean;
 };
 
 export function capabilityDenialStatus(reason: CapabilityDenyReason | 'allowed'): number {
@@ -208,10 +210,11 @@ async function readableDocumentDecision(
   principal: Principal,
   actor: DocumentActor,
   documentId: string,
-  options: { expectedType?: DocumentType; includeArchived?: boolean } = {}
+  options: { expectedType?: DocumentType; includeArchived?: boolean; includeDeleted?: boolean } = {}
 ): Promise<CapabilityDecision> {
   const document = await getReadableDocument(db, actor, documentId, options.expectedType, {
     includeArchived: options.includeArchived,
+    includeDeleted: 'includeDeleted' in options ? options.includeDeleted === true : false,
   });
   if (!document) return decision(principal, false, 'document_not_found');
   if (!(await canReadAccountabilityDocument(db, actor, document))) {
@@ -301,7 +304,8 @@ export async function authorize(
     }
     const readDecision = await readableDocumentDecision(db, principal, actor, capability.documentId, {
       expectedType: capability.expectedType,
-      includeArchived: capability.includeArchived,
+    includeArchived: capability.includeArchived,
+    includeDeleted: capability.includeDeleted,
     });
     if (!readDecision.allowed || !readDecision.document) {
       return readDecision;

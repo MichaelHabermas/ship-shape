@@ -581,6 +581,26 @@ export async function bulkUpdateIssuesMutation(
   const failed: { id: string; error: string }[] = [];
   const validIds: string[] = [];
 
+  if (action === 'restore') {
+    const denied = await guardIssueMutation(client, principal, { action: 'write' });
+    if (denied) return denied;
+
+    const restorableResult = await client.query<IdRow>(
+      `SELECT id FROM documents
+       WHERE id = ANY($1)
+         AND workspace_id = $2
+         AND document_type = 'issue'`,
+      [ids, workspaceId]
+    );
+    const restorableIds = new Set(restorableResult.rows.map((row) => row.id));
+    for (const id of ids) {
+      if (restorableIds.has(id)) {
+        validIds.push(id);
+      } else {
+        failed.push({ id, error: 'Issue not found' });
+      }
+    }
+  } else {
   for (const id of ids) {
     const denied = await guardIssueMutation(client, principal, {
       action: 'write',
@@ -592,6 +612,7 @@ export async function bulkUpdateIssuesMutation(
       continue;
     }
     validIds.push(id);
+  }
   }
 
   await client.query('BEGIN');

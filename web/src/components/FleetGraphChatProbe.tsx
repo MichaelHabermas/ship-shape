@@ -567,42 +567,66 @@ function NotificationConversation({
 }
 
 function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
+  let lastReadyTitle = '';
+  let lastReadyDecision = '';
+  let lastReadySources = '';
+
   return (
     <>
-      {turns.map((turn) => (
-        <div key={turn.id} className="flex w-full flex-col gap-3">
-          <UserMessage>{turn.prompt}</UserMessage>
-          {turn.status === 'loading' && (
-            <AssistantThinking />
-          )}
-          {turn.status === 'error' && (
-            <AssistantAnswer
-              eyebrow="Chat unavailable"
-              body={turn.errorMessage || 'Ship could not reach the chat service.'}
-              metadata={[]}
-              sources={[]}
-            />
-          )}
-          {turn.status === 'ready' && turn.response && (
-            <>
+      {turns.map((turn) => {
+        const sources = turn.response?.answer.sources.map((source) => source.label) ?? [];
+        const sourceKey = sources.join('|');
+        const showTitle = turn.status !== 'ready'
+          || !turn.response
+          || turn.response.answer.title !== lastReadyTitle;
+        const showDecision = turn.status === 'ready'
+          && turn.response
+          && turn.response.decision !== lastReadyDecision;
+        const showSources = turn.status === 'ready'
+          && turn.response
+          && sourceKey !== lastReadySources;
+
+        if (turn.status === 'ready' && turn.response) {
+          lastReadyTitle = turn.response.answer.title;
+          lastReadyDecision = turn.response.decision;
+          lastReadySources = sourceKey;
+        }
+
+        return (
+          <div key={turn.id} className="flex w-full flex-col gap-3">
+            <UserMessage>{turn.prompt}</UserMessage>
+            {turn.status === 'loading' && (
+              <AssistantThinking />
+            )}
+            {turn.status === 'error' && (
               <AssistantAnswer
-                eyebrow={turn.response.answer.title}
-                body={turn.response.answer.body}
-                metadata={[turn.response.decision]}
-                sources={turn.response.answer.sources.map((source) => source.label)}
+                eyebrow="Chat unavailable"
+                body={turn.errorMessage || 'Ship could not reach the chat service.'}
+                metadata={[]}
+                sources={[]}
               />
-              {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
-                <InlineGateNote
-                  text={turn.response.answer.nextStep || 'A human must approve the next action before Ship changes anything.'}
-                  gateText={turn.response.answer.humanGate.required === true
-                    ? 'Approval required before Ship changes anything or sends a message.'
-                    : 'No approval gate is required for this answer.'}
+            )}
+            {turn.status === 'ready' && turn.response && (
+              <>
+                <AssistantAnswer
+                  eyebrow={showTitle ? turn.response.answer.title : undefined}
+                  body={turn.response.answer.body}
+                  metadata={showDecision ? [turn.response.decision] : []}
+                  sources={showSources ? sources : []}
                 />
-              )}
-            </>
-          )}
-        </div>
-      ))}
+                {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
+                  <InlineGateNote
+                    text={turn.response.answer.nextStep || 'A human must approve the next action before Ship changes anything.'}
+                    gateText={turn.response.answer.humanGate.required === true
+                      ? 'Approval required before Ship changes anything or sends a message.'
+                      : 'No approval gate is required for this answer.'}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -640,7 +664,7 @@ function AssistantAnswer({
   signalLabel,
   signalType = 'blocked',
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   body: string;
   metadata: string[];
   sources: string[];
@@ -651,7 +675,9 @@ function AssistantAnswer({
 
   return (
     <div className="w-full text-foreground">
-      <p className="mb-1 truncate text-[11px] leading-4 text-muted">{displayText(eyebrow)}</p>
+      {eyebrow && (
+        <p className="mb-1 truncate text-[11px] leading-4 text-muted">{displayText(eyebrow)}</p>
+      )}
       <p className="text-base leading-6">
         {signalLabel && (
           <span className="mr-2 inline-flex align-[2px]">

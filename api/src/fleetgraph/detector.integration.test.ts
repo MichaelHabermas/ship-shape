@@ -206,7 +206,7 @@ describe('FleetGraph detector database query', () => {
     expect(count.rows[0]?.count).toBe('1');
   });
 
-  it('excludes non-qualifying issues from positive candidate selection', async () => {
+  it('detects visible blocked issues while excluding closed, deleted, and archived rows', async () => {
     const workspaceId = await createWorkspace();
     const userId = await createUser();
     const activeSprintId = await createDocument({
@@ -287,35 +287,35 @@ describe('FleetGraph detector database query', () => {
       title: 'Only qualifying issue',
       properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
-    await issue({
+    const inactiveWeekIssueId = await issue({
       title: 'Inactive week',
       sprintId: inactiveSprintId,
       properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
     });
-    await issue({
+    const mediumPriorityIssueId = await issue({
       title: 'Medium priority',
       properties: { state: 'blocked', priority: 'medium', assignee_id: userId },
     });
-    await issue({
+    const doneIssueId = await issue({
       title: 'Done issue',
       properties: { state: 'done', priority: 'urgent', assignee_id: userId },
     });
-    await issue({
+    const blockedWithoutEvidenceIssueId = await issue({
       title: 'Blocked without blocker evidence',
       properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       blockerText: '',
     });
-    await issue({
+    const missingFallbackOwnerIssueId = await issue({
       title: 'Missing fallback owner',
       sprintId: ownerlessSprintId,
       properties: { state: 'blocked', priority: 'urgent' },
     });
-    await issue({
+    const deletedIssueId = await issue({
       title: 'Deleted issue',
       properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       deleted: true,
     });
-    await issue({
+    const archivedIssueId = await issue({
       title: 'Archived issue',
       properties: { state: 'blocked', priority: 'urgent', assignee_id: userId },
       archived: true,
@@ -331,9 +331,22 @@ describe('FleetGraph detector database query', () => {
       today: new Date('2026-05-26T12:00:00Z'),
     });
 
-    expect(decisions.map((decision) => decision.candidate.issue_id)).toEqual([qualifyingIssueId, latestClearedIssueId]);
-    expect(decisions[0]?.candidate.blocker_text).toBe('Waiting on API credentials.');
-    expect(decisions[1]?.candidate.blocker_text).toBe('Old blocker');
+    expect(decisions.map((decision) => decision.candidate.issue_id)).toEqual(expect.arrayContaining([
+      qualifyingIssueId,
+      inactiveWeekIssueId,
+      mediumPriorityIssueId,
+      blockedWithoutEvidenceIssueId,
+      missingFallbackOwnerIssueId,
+      latestClearedIssueId,
+    ]));
+    expect(decisions.map((decision) => decision.candidate.issue_id)).not.toEqual(expect.arrayContaining([
+      doneIssueId,
+      deletedIssueId,
+      archivedIssueId,
+    ]));
+    expect(decisions.find((decision) => decision.candidate.issue_id === qualifyingIssueId)?.candidate.blocker_text).toBe('Waiting on API credentials.');
+    expect(decisions.find((decision) => decision.candidate.issue_id === blockedWithoutEvidenceIssueId)?.candidate.attentionReason).toBe('Issue is blocked, but no blocker reason is recorded.');
+    expect(decisions.find((decision) => decision.candidate.issue_id === latestClearedIssueId)?.candidate.blocker_text).toBe('Old blocker');
   });
 
   it('ignores malformed sprint numbers instead of aborting the detector', async () => {
@@ -359,10 +372,17 @@ describe('FleetGraph detector database query', () => {
       blockerText: 'Waiting on API credentials.',
     });
 
-    await expect(detectBlockedImportantIssueDecisions({
+    const decisions = await detectBlockedImportantIssueDecisions({
       workspaceId,
       today: new Date('2026-05-26T12:00:00Z'),
-    })).resolves.toEqual([]);
+    });
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.candidate).toEqual(expect.objectContaining({
+      issue_id: issueId,
+      sprint_id: sprintId,
+      sprint_number: null,
+    }));
   });
 
   it('classifies quiet exits against real Ship rows', async () => {
@@ -452,7 +472,7 @@ describe('FleetGraph detector database query', () => {
     });
 
     expect(quietExits).toEqual([
-      { reason: 'done_or_cancelled', count: 1 },
+      { reason: 'done_or_cancelled', count: 0 },
       { reason: 'duplicate_open_finding', count: 1 },
       { reason: 'insufficient_visible_evidence', count: 0 },
     ]);

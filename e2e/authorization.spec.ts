@@ -257,7 +257,7 @@ test.describe('Authorization - Cross-Workspace Isolation', () => {
     expect(response.status()).toBe(200)
     const data = await response.json()
     expect(data.updated.map((issue: { id: string }) => issue.id)).toEqual([boundary.ownedIssueId])
-    expect(data.failed).toContainEqual({ id: boundary.foreignIssueId, error: 'Not found or no access' })
+    expect(data.failed).toContainEqual({ id: boundary.foreignIssueId, error: 'Issue not found' })
 
     const states = await dbPool.query(
       `SELECT id, properties->>'state' AS state
