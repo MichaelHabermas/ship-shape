@@ -241,6 +241,8 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     setContextItems([]);
     setActiveNotification(null);
     setExplanation({ status: 'idle' });
+    setChatTurns([]);
+    setDraft('');
     setContextOpen(false);
   };
 
