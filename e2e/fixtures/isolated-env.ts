@@ -160,6 +160,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
           PORT: String(port),
           DATABASE_URL: dbUrl,
           PG_POOL_MAX: '20',
+          COLLAB_MAX_CONNECTIONS_PER_IP: '500',
+          COLLAB_MAX_CONNECTIONS_PER_USER: '200',
+          COLLAB_MAX_CONNECTIONS_PER_WORKSPACE: '1000',
           CORS_ORIGIN: '*', // Allow any origin during tests
           NODE_ENV: 'test',
           // Prevent dotenv from overriding our DATABASE_URL

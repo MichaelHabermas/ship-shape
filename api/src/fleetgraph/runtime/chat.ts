@@ -107,6 +107,15 @@ export function chatAnswerForIntent(
       humanGate: output.humanGate,
     };
   }
+  if (intent === 'why_flagged') {
+    return {
+      title: output.title,
+      body: `It's flagged for this reason: ${reason}`,
+      ...(nextStep ? { nextStep } : {}),
+      sources: sourceLabels(output),
+      humanGate: output.humanGate,
+    };
+  }
   return chatAnswerFromVisibleOutput(output);
 }
 

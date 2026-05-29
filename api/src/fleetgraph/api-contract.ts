@@ -237,6 +237,11 @@ function changeSummaryForResponse(value: unknown): FleetGraphChangeSummaryBodyWi
 }
 
 function chatAnswerForResponse(result: FleetGraphResult): FleetGraphChatAnswerWire {
+  const recordedAnswer = FleetGraphChatAnswerSchema.safeParse(result.runInput.outputSnapshot?.answer);
+  if (recordedAnswer.success) {
+    return recordedAnswer.data;
+  }
+
   const changeSummary = changeSummaryForResponse(result.changeSummary);
   if (changeSummary) {
     return FleetGraphChatAnswerSchema.parse(chatAnswerFromChangeSummary(changeSummary));

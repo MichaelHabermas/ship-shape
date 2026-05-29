@@ -156,6 +156,8 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     setOpen(true);
     setActiveNotification(notification);
     setExplanation(notification.findingId ? { status: 'loading', findingId: notification.findingId } : { status: 'idle' });
+    setChatTurns([]);
+    setDraft('');
     setContextItems((items) => {
       const contextItem: ChatContextItem = {
         id: `notification:${notification.id}`,
@@ -540,11 +542,12 @@ function NotificationConversation({
   const primaryText = conversationBody(notification, output);
   const isLoading = explanation.status === 'loading';
   const isFallback = !output && explanation.status === 'error';
+  const showNextStep = !isLoading && Boolean(recommendedAction || humanGateRequired);
 
   const nextStep = recommendedAction || 'Ask the connected owner to confirm the unblocker and the next handoff.';
   const gateText = humanGateRequired
     ? 'Human approval is required before Ship state changes or any message is sent.'
-    : 'No approval gate is required for this explanation.';
+    : '';
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -559,7 +562,9 @@ function NotificationConversation({
         signalType={notification.signalType}
       />
 
-      <InlineGateNote text={nextStep} gateText={gateText} label="Next best move:" />
+      {showNextStep && (
+        <InlineGateNote text={nextStep} gateText={gateText} label="Next best move:" />
+      )}
     </div>
   );
 }
@@ -595,7 +600,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
                     text={turn.response.answer.nextStep || 'A human must approve the next action before Ship changes anything.'}
                     gateText={turn.response.answer.humanGate.required === true
                       ? 'Approval required before Ship changes anything or sends a message.'
-                      : 'No approval gate is required for this answer.'}
+                      : ''}
                   />
                 )}
               </>
@@ -691,10 +696,12 @@ function InlineProvenance({ metadata, sources }: { metadata: string[]; sources: 
   );
 }
 
-function InlineGateNote({ text, gateText, label = 'Next:' }: { text: string; gateText: string; label?: string }) {
+function InlineGateNote({ text, gateText, label = 'Next:' }: { text: string; gateText?: string; label?: string }) {
   return (
     <p className="text-[13px] leading-5 text-muted">
-      <span className="text-foreground">{label}</span> {displayText(text)} <span className="text-muted/70">{gateText}</span>
+      <span className="text-foreground">{label}</span> {displayText(text)} {gateText && (
+        <span className="text-muted/70">{gateText}</span>
+      )}
     </p>
   );
 }
