@@ -36,9 +36,7 @@ import {
   type AccountabilityPersonRow,
   type AssignmentInferenceIssueRow,
   type ExplicitAssignmentRow,
-  type IdRow,
   type PersonSprintMetricsIssueRow,
-  type PersonUserIdRow,
   type ReviewPersonRow,
   type ReviewSprintMapEntry,
   type ReviewSprintRow,
@@ -713,7 +711,7 @@ router.get('/accountability', authMiddleware, async (req: Request, res: Response
 // Only visible to the person themselves or workspace admins
 router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
+    const { workspaceId } = getAuthenticatedRouteContext(req);
     const personId = guardDocumentIdParam(res, req.params.personId, 'Person not found');
     if (!personId || !(await requirePersonRead(req, res, personId))) {
       return;

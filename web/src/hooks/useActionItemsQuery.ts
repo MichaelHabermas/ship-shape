@@ -22,7 +22,7 @@ export function useActionItemsQuery() {
     queryKey: actionItemsKeys.list(),
     queryFn: async () => {
       const response = await apiClient.GET('/accountability/action-items');
-      return assertApiData(response, 'Failed to fetch action items') as ActionItemsResponse;
+      return assertApiData(response, 'Failed to fetch action items');
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,

@@ -11,10 +11,7 @@ import {
 } from './evidence.js';
 import { generateContextChatText, generateProactiveCreateText } from './model.js';
 import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
-import {
-  chatAnswerFromChangeSummary,
-  unsupportedChatAnswer,
-} from './runtime/chat.js';
+import { unsupportedChatAnswer } from './runtime/chat.js';
 import {
   chatModelAnswerFromContext,
   contextTextForModel,
@@ -666,10 +663,11 @@ async function runContextChat(
   const modelResult = await generateContextChatText({
     prompt: input.trigger.prompt,
     context: contextTextForModel(bundle),
+    history: input.trigger.history ?? [],
   });
   const answer = modelResult
     ? chatModelAnswerFromContext(modelResult.answer, bundle)
-    : deterministicContextChatAnswer(input.trigger.prompt, bundle);
+    : deterministicContextChatAnswer(input.trigger.prompt, bundle, input.trigger.history ?? []);
   const decision = answer.humanGate.required === true ? 'needs_confirmation' : 'explain';
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
@@ -704,57 +702,6 @@ async function runContextChat(
     traceMetadata,
     tokenMetadata: modelResult?.tokenMetadata ?? noModelTokenMetadata(),
     costMetadata: modelResult?.costMetadata ?? noModelCostMetadata(),
-    errorMetadata: observabilityErrorMetadata(options),
-  });
-}
-
-async function runContextChatChangeSummary(
-  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
-  persistence: FleetGraphPersistencePort,
-  triggerReason: string,
-  finding: FleetGraphFinding,
-  evidence: FleetGraphEvidenceItem[],
-  output: FleetGraphVisibleOutput,
-  options: FleetGraphCoreOptions
-): Promise<FleetGraphResult> {
-  const anchors = await persistence.listAnchorRuns({ workspaceId: input.workspaceId, findingId: finding.id, limit: 2 });
-  const previousOutput = visibleOutputFromRun(anchors[1]);
-  const changeSummary = changeSummaryFromOutputs(output, previousOutput);
-  const answer = chatAnswerFromChangeSummary(changeSummary);
-  const traceMetadata = fleetGraphTraceMetadata({
-    mode: input.mode,
-    decision: 'summarize_changes',
-    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'contextChatChanges', 'produceOutput'],
-    ...options.externalTrace,
-  });
-  const runInput = runInputFor({
-    input,
-    triggerReason,
-    decision: 'summarize_changes',
-    findingId: finding.id,
-    sourceIssueId: finding.source_issue_id,
-    sourceSprintId: finding.source_sprint_id,
-    dedupeKey: finding.dedupe_key,
-    evidence,
-    output: { answer, changeSummary },
-    traceMetadata,
-    tokenMetadata: noModelTokenMetadata(),
-    costMetadata: noModelCostMetadata(),
-    errorMetadata: observabilityErrorMetadata(options),
-  });
-  const run = await persistence.recordRun(runInput);
-
-  return resultFor({
-    decision: 'summarize_changes',
-    finding,
-    run,
-    runInput,
-    visibleOutput: output,
-    changeSummary,
-    evidence,
-    traceMetadata,
-    tokenMetadata: noModelTokenMetadata(),
-    costMetadata: noModelCostMetadata(),
     errorMetadata: observabilityErrorMetadata(options),
   });
 }

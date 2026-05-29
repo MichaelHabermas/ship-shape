@@ -486,7 +486,7 @@ describe('FleetGraph shared core', () => {
     expect(runInput.outputSnapshot).toMatchObject({
       answer: {
         title: 'Chat',
-        body: 'Hi. I can talk through Blocked issue.',
+        body: 'Hi. What would you like to look at?',
       },
     });
   });

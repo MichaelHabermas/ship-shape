@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Runs Playwright E2E specs through resource-profiled normal, realtime, and isolated lanes.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -56,6 +57,7 @@ normal_specs=(
   e2e/feedback-consolidation.spec.ts
   e2e/file-upload-api.spec.ts
   e2e/fleetgraph-attention-loop.spec.ts
+  e2e/fleetgraph-chat.spec.ts
   e2e/icons.spec.ts
   e2e/issue-display-id.spec.ts
   e2e/issue-estimates.spec.ts

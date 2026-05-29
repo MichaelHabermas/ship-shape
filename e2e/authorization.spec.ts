@@ -1,4 +1,4 @@
-import { test, expect, Page } from './fixtures/isolated-env'
+import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, loginAsMember, getCsrfToken, login } from './fixtures/api-auth';
 
 import type { Pool } from 'pg'

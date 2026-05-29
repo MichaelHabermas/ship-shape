@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { buildProofPacket } from './proof-model.mjs';
 import { renderHtml } from './render-html.mjs';
@@ -12,8 +13,16 @@ import { redactProofValue } from './redact.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
+const apiRequire = createRequire(path.join(repoRoot, 'api/package.json'));
+const { config: loadEnv } = apiRequire('dotenv');
+const pg = apiRequire('pg');
 const outputRoot = path.join(repoRoot, 'my-docs/evidence/fleetgraph-proof');
 const runsRoot = path.join(outputRoot, 'runs');
+const defaultDeployedApiUrl = 'https://ship-shape-api.onrender.com';
+const defaultDeployedWebUrl = 'https://ship-shape-web.onrender.com';
+
+loadEnv({ path: path.join(repoRoot, 'api/.env.local') });
+loadEnv({ path: path.join(repoRoot, 'api/.env') });
 
 const options = parseArgs(process.argv.slice(2));
 const generatedAt = new Date();
@@ -57,9 +66,14 @@ if (options.withE2e) {
   });
 }
 
+const proofTestsPassed = commandResults.some((result) =>
+  result.name === 'FleetGraph proof tests' && result.status === 'pass'
+);
 const e2ePassed = commandResults.some((result) =>
   result.name === 'FleetGraph attention loop E2E' && result.status === 'pass'
 );
+const environments = await environmentChecks(options);
+const deployedEvidence = await deployedDatabaseEvidence(options);
 
 const packet = redactProofValue(buildProofPacket({
   generatedAt: generatedAt.toISOString(),
@@ -67,10 +81,11 @@ const packet = redactProofValue(buildProofPacket({
   target: options.mode,
   git: gitInfo(),
   goldenCaseIndex: await readGoldenCaseIndex(),
-  executedCaseIds: await readExecutableGoldenCaseIds(),
+  executedCaseIds: proofTestsPassed ? await readExecutableGoldenCaseIds() : new Set(),
   executedScenarioIds: e2ePassed ? new Set(['context-chat-human-gate', 'source-condition-resolved']) : new Set(),
   productSurface: await readJsonIfExists(path.join(repoRoot, 'my-docs/evals/fleetgraph-product-surface/latest.json')),
-  environments: await environmentChecks(options),
+  environments,
+  deployedEvidence,
   commandResults,
   artifacts: artifactPlan(runId),
 }));
@@ -93,7 +108,7 @@ if (packet.risks.length) {
   console.log('Risks:');
   for (const risk of packet.risks) console.log(`- ${risk}`);
 }
-process.exitCode = packet.verdict === 'fail' ? 1 : 0;
+process.exitCode = packet.verdict === 'pass' ? 0 : 1;
 
 function parseArgs(args) {
   const parsed = {
@@ -196,28 +211,288 @@ async function environmentChecks({ mode }) {
     });
   }
   if (mode === 'deployed' || mode === 'both') {
-    const apiUrl = process.env.FLEETGRAPH_PROOF_API_URL;
-    const webUrl = process.env.FLEETGRAPH_PROOF_WEB_URL;
+    const apiUrl = process.env.FLEETGRAPH_PROOF_API_URL ?? defaultDeployedApiUrl;
+    const webUrl = process.env.FLEETGRAPH_PROOF_WEB_URL ?? defaultDeployedWebUrl;
+    const databaseUrl = process.env.FLEETGRAPH_PROOF_DATABASE_URL;
+    const renderPostgres = process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES;
+    const hasDatabaseEvidenceSource = Boolean(databaseUrl || renderPostgres);
     environments.push({
       id: 'deployed',
       label: 'Deployed',
       required: mode !== 'local',
-      status: apiUrl && webUrl ? await deployedStatus(apiUrl, webUrl) : 'blocked',
-      note: apiUrl && webUrl
-        ? `Configured API and web URLs.`
-        : 'Set FLEETGRAPH_PROOF_API_URL and FLEETGRAPH_PROOF_WEB_URL to include deployed proof.',
+      status: apiUrl && webUrl && hasDatabaseEvidenceSource ? await deployedStatus(apiUrl, webUrl) : 'blocked',
+      note: apiUrl && webUrl && hasDatabaseEvidenceSource
+        ? `Configured API, web, and deployed database evidence inputs${renderPostgres ? ' via Render Postgres.' : '.'}`
+        : 'Set FLEETGRAPH_PROOF_RENDER_POSTGRES or FLEETGRAPH_PROOF_DATABASE_URL to include deployed database proof.',
     });
   }
   return environments;
 }
 
+async function deployedDatabaseEvidence({ mode }) {
+  if (mode === 'local') return null;
+  if (process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES) {
+    return deployedDatabaseEvidenceFromRender(process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES);
+  }
+  const databaseUrl = process.env.FLEETGRAPH_PROOF_DATABASE_URL;
+  if (!databaseUrl) return null;
+
+  const pool = new pg.Pool({
+    connectionString: databaseUrl,
+    max: 1,
+    connectionTimeoutMillis: 10_000,
+    query_timeout: 15_000,
+    statement_timeout: 15_000,
+  });
+  try {
+    const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows] = await Promise.all([
+      pool.query(
+        `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
+           FROM fleetgraph_worker_ticks
+          WHERE started_at >= now() - interval '24 hours'
+          ORDER BY started_at DESC
+          LIMIT 5`
+      ),
+      pool.query(
+        `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
+           FROM fleetgraph_worker_ticks
+          WHERE started_at >= now() - interval '24 hours'
+            AND status = 'completed'
+          ORDER BY completed_at DESC
+          LIMIT 5`
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS count
+           FROM fleetgraph_worker_ticks
+          WHERE status = 'running'
+            AND deadline_at < now()`
+      ),
+      pool.query(
+        `SELECT status, COUNT(*)::int AS count
+           FROM fleetgraph_attention_events
+          WHERE created_at >= now() - interval '24 hours'
+          GROUP BY status
+          ORDER BY status`
+      ),
+      pool.query(
+        `SELECT COALESCE(run_metadata->>'signalType', 'blocked') AS signal_type,
+                COUNT(*)::int AS count,
+                MAX(updated_at) AS last_seen_at
+           FROM fleetgraph_findings
+          WHERE updated_at >= now() - interval '24 hours'
+            AND status IN ('open', 'needs_confirmation', 'error')
+          GROUP BY COALESCE(run_metadata->>'signalType', 'blocked')
+          ORDER BY signal_type`
+      ),
+      pool.query(
+        `SELECT trigger_reason,
+                CASE
+                  WHEN dedupe_key LIKE 'stale-issue:%' THEN 'stale'
+                  WHEN dedupe_key LIKE 'at-risk-issue:%' THEN 'at_risk'
+                  ELSE 'blocked'
+                END AS signal_type,
+                COUNT(*)::int AS count
+           FROM fleetgraph_runs
+          WHERE created_at >= now() - interval '24 hours'
+            AND decision IN ('create_finding', 'update_finding', 'resolve', 'suppress')
+          GROUP BY trigger_reason, signal_type
+          ORDER BY trigger_reason, signal_type`
+      ),
+    ]);
+    return summarizeDeployedEvidence({
+      evidenceSource: 'database-url',
+      workerTicks: workerTicks.rows,
+      completedWorkerTicks: completedWorkerTicks.rows,
+      stuckTicks: stuckTicks.rows,
+      eventCounts: eventCounts.rows,
+      signalRows: signalRows.rows,
+      runRows: runRows.rows,
+    });
+  } finally {
+    await pool.end();
+  }
+}
+
+function deployedDatabaseEvidenceFromRender(postgresIdOrName) {
+  const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows] = [
+    renderPsql(postgresIdOrName, `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
+       FROM fleetgraph_worker_ticks
+      WHERE started_at >= now() - interval '24 hours'
+      ORDER BY started_at DESC
+      LIMIT 5`),
+    renderPsql(postgresIdOrName, `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
+       FROM fleetgraph_worker_ticks
+      WHERE started_at >= now() - interval '24 hours'
+        AND status = 'completed'
+      ORDER BY completed_at DESC
+      LIMIT 5`),
+    renderPsql(postgresIdOrName, `SELECT COUNT(*)::int AS count
+       FROM fleetgraph_worker_ticks
+      WHERE status = 'running'
+        AND deadline_at < now()`),
+    renderPsql(postgresIdOrName, `SELECT status, COUNT(*)::int AS count
+       FROM fleetgraph_attention_events
+      WHERE created_at >= now() - interval '24 hours'
+      GROUP BY status
+      ORDER BY status`),
+    renderPsql(postgresIdOrName, `SELECT COALESCE(run_metadata->>'signalType', 'blocked') AS signal_type,
+            COUNT(*)::int AS count,
+            MAX(updated_at) AS last_seen_at
+       FROM fleetgraph_findings
+      WHERE updated_at >= now() - interval '24 hours'
+        AND status IN ('open', 'needs_confirmation', 'error')
+      GROUP BY COALESCE(run_metadata->>'signalType', 'blocked')
+      ORDER BY signal_type`),
+    renderPsql(postgresIdOrName, `SELECT trigger_reason,
+            CASE
+              WHEN dedupe_key LIKE 'stale-issue:%' THEN 'stale'
+              WHEN dedupe_key LIKE 'at-risk-issue:%' THEN 'at_risk'
+              ELSE 'blocked'
+            END AS signal_type,
+            COUNT(*)::int AS count
+       FROM fleetgraph_runs
+      WHERE created_at >= now() - interval '24 hours'
+        AND decision IN ('create_finding', 'update_finding', 'resolve', 'suppress')
+      GROUP BY trigger_reason, signal_type
+      ORDER BY trigger_reason, signal_type`),
+  ];
+  return summarizeDeployedEvidence({
+    evidenceSource: 'render-postgres',
+    workerTicks,
+    completedWorkerTicks,
+    stuckTicks,
+    eventCounts,
+    signalRows,
+    runRows,
+  });
+}
+
+function summarizeDeployedEvidence({
+  evidenceSource,
+  workerTicks,
+  completedWorkerTicks,
+  stuckTicks,
+  eventCounts,
+  signalRows,
+  runRows,
+}) {
+  const activeRunningTickCount = workerTicks.filter((row) => row.status === 'running').length;
+  const signalCounts = countSignals([...signalRows, ...runRows]);
+  const scheduledWorkerSignalCounts = countSignals(
+    runRows.filter((row) => row.trigger_reason === 'scheduled-worker')
+  );
+  return {
+    checkedAt: new Date().toISOString(),
+    evidenceSource,
+    workerTickCount: workerTicks.length,
+    completedWorkerTickCount: completedWorkerTicks.length,
+    hasRecentCompletedWorkerOutput: completedWorkerTicks.some(hasWorkerOutput),
+    activeRunningTickCount,
+    stuckRunningTickCount: Number(stuckTicks[0]?.count ?? 0),
+    eventCounts: countBy(eventCounts, 'status'),
+    signalTypes: deployedSignalTypes(signalCounts),
+    signalCounts,
+    scheduledWorkerSignalTypes: deployedSignalTypes(scheduledWorkerSignalCounts),
+    scheduledWorkerSignalCounts,
+  };
+}
+
+function hasWorkerOutput(row) {
+  return row.status === 'completed'
+    && Boolean(row.completed_at)
+    && (Number(row.detector_decision_count ?? 0) > 0 || Number(row.result_count ?? 0) > 0);
+}
+
+function countSignals(rows) {
+  const counts = {};
+  for (const row of rows) {
+    if (!['blocked', 'stale', 'at_risk'].includes(row.signal_type)) continue;
+    counts[row.signal_type] = (counts[row.signal_type] ?? 0) + Number(row.count ?? 0);
+  }
+  return counts;
+}
+
+function countBy(rows, key) {
+  const counts = {};
+  for (const row of rows) counts[row[key]] = Number(row.count ?? 0);
+  return counts;
+}
+
+function deployedSignalTypes(signalCounts) {
+  const signals = new Set();
+  for (const signal of Object.keys(signalCounts)) signals.add(signal);
+  return [...signals].sort();
+}
+
+function renderPsql(postgresIdOrName, sql) {
+  const result = spawnSync('render', [
+    'psql',
+    postgresIdOrName,
+    '--command',
+    sql,
+    '--output',
+    'text',
+    '--',
+    '--csv',
+    '-q',
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 20_000,
+  });
+  if (result.error) {
+    throw new Error(`render psql failed: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(`render psql failed: ${tail(result.stderr || result.stdout, 2000)}`);
+  }
+  return parseCsv(result.stdout);
+}
+
+function parseCsv(csv) {
+  const lines = String(csv ?? '').trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitCsvLine(lines[0]);
+  return lines.slice(1).map((line) => Object.fromEntries(
+    splitCsvLine(line).map((value, index) => [headers[index], value])
+  ));
+}
+
+function splitCsvLine(line) {
+  const values = [];
+  let value = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      value += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      values.push(value);
+      value = '';
+    } else {
+      value += char;
+    }
+  }
+  values.push(value);
+  return values;
+}
+
 async function deployedStatus(apiUrl, webUrl) {
-  const checks = await Promise.allSettled([fetchUrl(apiUrl), fetchUrl(webUrl)]);
+  const checks = await Promise.allSettled([fetchUrl(deployedApiHealthUrl(apiUrl)), fetchUrl(webUrl)]);
   return checks.every((check) => check.status === 'fulfilled') ? 'configured' : 'blocked';
 }
 
+function deployedApiHealthUrl(apiUrl) {
+  return new URL('/health', apiUrl).toString();
+}
+
 async function fetchUrl(url) {
-  const response = await fetch(url, { method: 'GET' });
+  const response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
 }
 

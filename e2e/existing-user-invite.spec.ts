@@ -11,7 +11,7 @@
  * person documents containing user_id.
  */
 
-import { test, expect, Page } from './fixtures/isolated-env'
+import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth';
 
 

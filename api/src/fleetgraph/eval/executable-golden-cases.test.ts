@@ -8,6 +8,7 @@ import {
   type FleetGraphRun,
   type RecordFleetGraphRunInput,
 } from '../persistence.js';
+import type { FleetGraphAttentionCandidate } from '../detection/detector.js';
 import type { FleetGraphInput } from '../types.js';
 import type { Principal } from '../../security/principal.js';
 import { fleetGraphGoldenCases } from './golden-cases.js';
@@ -54,6 +55,25 @@ const candidate = {
   blocker_iteration_created_at: new Date('2026-05-26T12:00:00Z'),
   dedupeKey,
 };
+
+function candidateForSignal(
+  signalType: 'blocked' | 'stale' | 'at_risk',
+  overrides: Partial<FleetGraphAttentionCandidate> = {}
+): FleetGraphAttentionCandidate {
+  return {
+    ...candidate,
+    issue_state: signalType === 'blocked' ? 'blocked' : 'in_progress',
+    blocker_text: signalType === 'blocked' ? candidate.blocker_text : '',
+    signalType,
+    attentionReason: signalType === 'stale'
+      ? 'No meaningful update for 180+ days.'
+      : signalType === 'at_risk'
+        ? 'High-priority current-week work has no owner.'
+        : 'Issue state is blocked.',
+    dedupeKey: `${signalType === 'blocked' ? 'blocked-important-issue' : signalType === 'stale' ? 'stale-issue' : 'at-risk-issue'}:${workspaceId}:${issueId}:${sprintId}`,
+    ...overrides,
+  };
+}
 
 function requireGoldenCase(id: string) {
   const testCase = fleetGraphGoldenCases.find((candidateCase) => candidateCase.id === id);
@@ -205,6 +225,46 @@ describe('FleetGraph executable golden cases', () => {
     }));
   });
 
+  it('executes proactive stale create with signal-specific output', async () => {
+    const testCase = requireGoldenCase('fg-create-stale-visible-issue');
+    const port = persistence();
+    const staleCandidate = candidateForSignal('stale', { issue_title: 'Stale cleanup work' });
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: testCase.mode,
+      trigger: {
+        type: 'detector_decision',
+        detectorDecision: { decision: 'create_finding', candidate: staleCandidate, existingFindingId: null },
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(result.findingInput?.runMetadata).toMatchObject({ signalType: 'stale' });
+    expect(result.visibleOutput?.summary).toMatch(/stale|180/i);
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'create_finding' }));
+  });
+
+  it('executes proactive at-risk create with signal-specific output', async () => {
+    const testCase = requireGoldenCase('fg-create-at-risk-visible-issue');
+    const port = persistence();
+    const atRiskCandidate = candidateForSignal('at_risk', { issue_title: 'At-risk rollout task' });
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: testCase.mode,
+      trigger: {
+        type: 'detector_decision',
+        detectorDecision: { decision: 'create_finding', candidate: atRiskCandidate, existingFindingId: null },
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(result.findingInput?.runMetadata).toMatchObject({ signalType: 'at_risk' });
+    expect(result.visibleOutput?.summary).toMatch(/risk|owner/i);
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'create_finding' }));
+  });
+
   it('executes restricted-context quiet exit without model calls or finding writes', async () => {
     const testCase = requireGoldenCase('fg-restricted-source-hidden');
     const port = persistence();
@@ -234,6 +294,104 @@ describe('FleetGraph executable golden cases', () => {
     expect(result.decision).toBe(testCase.expectedDecision);
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
     expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'explain' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+  });
+
+  it('executes proactive quiet exit when source work is done or cancelled', async () => {
+    const testCase = requireGoldenCase('fg-quiet-done-cancelled');
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: testCase.mode,
+      trigger: {
+        type: 'quiet_exit',
+        quietExits: [{ reason: 'done_or_cancelled', count: 1 }],
+      },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(port.saveFinding).not.toHaveBeenCalled();
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'quiet_exit' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+  });
+
+  it('executes resolve finding when the stale source condition is gone', async () => {
+    const testCase = requireGoldenCase('fg-resolve-condition-gone');
+    const port = persistence();
+
+    const result = await runFleetGraph({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: { type: 'resolve_finding', findingId },
+    }, { persistence: port });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(port.resolveFinding).toHaveBeenCalledWith({ workspaceId, findingId });
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'resolve' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+  });
+
+  it('executes human-gated next-action prep without sending', async () => {
+    const testCase = requireGoldenCase('fg-human-gated-action-prep');
+    const port = persistence();
+    const db = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.includes('workspace_memberships')) {
+          return pgResult([{ role: 'member' }]);
+        }
+        if (sql.includes('document_associations')) {
+          return pgResult([]);
+        }
+        if (sql.includes('FROM documents')) {
+          const documentId = String(params?.[0] ?? '');
+          if (documentId === issueId) {
+            return pgResult([{
+              id: issueId,
+              title: 'Blocked issue',
+              document_type: 'issue',
+              properties: { priority: 'urgent', state: 'in_progress' },
+              content: null,
+              yjs_state: null,
+            }]);
+          }
+          if (documentId === sprintId) {
+            return pgResult([{
+              id: sprintId,
+              title: 'Week 2',
+              document_type: 'sprint',
+              properties: { sprint_number: 2 },
+              content: null,
+              yjs_state: null,
+            }]);
+          }
+          return pgResult([]);
+        }
+        return pgResult([{ role: 'member' }]);
+      }),
+    };
+
+    const result = await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: testCase.mode,
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What should I send the owner?',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+        },
+      },
+    } satisfies FleetGraphInput, { persistence: port, db: db as never });
+
+    expect(result.decision).toBe(testCase.expectedDecision);
+    expect(result.visibleOutput?.summary).toContain('Blocked issue');
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
+      decision: 'needs_confirmation',
+      triggerReason: 'context_chat',
+    }));
     expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 

@@ -401,6 +401,7 @@ router.post('/chat', authMiddleware, defineRoute({
           type: 'context_chat',
           prompt: parsed.body.prompt,
           context: parsed.body.context,
+          ...(parsed.body.history ? { history: parsed.body.history } : {}),
         },
         triggerReason: 'context-chat',
       });

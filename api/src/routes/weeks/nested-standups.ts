@@ -189,7 +189,7 @@ router.post('/:id/standups', authMiddleware, async (req: Request, res: Response)
     const author = authorResult.rows[0];
 
     // Broadcast celebration when standup is created
-    broadcastToUser(userId, 'accountability:updated', { type: 'standup', targetId: id as string });
+    broadcastToUser(userId, 'accountability:updated', { type: 'standup', targetId: id });
 
     res.status(201).json({
       id: standup.id,

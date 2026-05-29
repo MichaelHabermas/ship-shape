@@ -141,6 +141,66 @@ export const fleetGraphProductSurfaceCases = [
       'User copy can show missing owner compactly without exposing graph/debug fields.',
     ],
   },
+  {
+    id: 'fg-surface-stale-active-work',
+    title: 'Stale work copy names inactivity and the review move',
+    input: {
+      cardTitle: 'Integration cleanup',
+      cardSummary: 'Integration cleanup looks stale. No meaningful update for 180+ days.',
+      blockerText: 'No meaningful update for 180+ days',
+      owner: 'Riley Builder',
+      context: 'Week 11',
+      nextAction: 'Review or close.',
+      visibleCopy: [
+        'Stale',
+        'Integration cleanup',
+        'No meaningful update for 180+ days',
+        'Riley Builder',
+        'Week 11',
+        'Review or close.',
+      ],
+    },
+    expectedMinimum: scoreThresholds({
+      actionability: 4,
+      uncertaintyHonesty: 4,
+      missingDataUsefulness: 4,
+      uiProofSeparation: 4,
+    }),
+    notes: [
+      'Stale copy should explain the time-based evidence.',
+      'The next step stays human-owned instead of pretending FleetGraph closed work.',
+    ],
+  },
+  {
+    id: 'fg-surface-at-risk-current-week',
+    title: 'At-risk work copy names current-week risk and owner decision',
+    input: {
+      cardTitle: 'Rollout checklist',
+      cardSummary: 'Rollout checklist is at risk because current-week high-priority work has no owner.',
+      blockerText: 'Owner missing',
+      owner: null,
+      context: 'Week 11',
+      nextAction: 'Confirm owner.',
+      visibleCopy: [
+        'At risk',
+        'Rollout checklist',
+        'Owner missing',
+        'High-priority current-week work',
+        'Week 11',
+        'Confirm owner.',
+      ],
+    },
+    expectedMinimum: scoreThresholds({
+      actionability: 4,
+      specificity: 3,
+      missingDataUsefulness: 4,
+      uiProofSeparation: 4,
+    }),
+    notes: [
+      'At-risk copy should identify the planning risk, not only urgency.',
+      'Missing owner becomes a decision prompt for the PM.',
+    ],
+  },
 ] as const satisfies readonly FleetGraphProductSurfaceCase[];
 
 export function scoreFleetGraphProductSurfaceCase(

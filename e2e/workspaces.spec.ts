@@ -1,5 +1,5 @@
-import { test, expect, Page } from './fixtures/isolated-env'
-import { loginAsSuperAdmin, login } from './fixtures/api-auth';
+import { test, expect } from './fixtures/isolated-env'
+import { loginAsSuperAdmin } from './fixtures/api-auth';
 
 
 test.describe('Workspace Switcher', () => {

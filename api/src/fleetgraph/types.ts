@@ -2,6 +2,7 @@
 import type {
   FleetGraphChangeSummary,
   FleetGraphChatContext,
+  FleetGraphChatHistoryEntry,
   FleetGraphEvidenceItem,
   FleetGraphRunMode,
   FleetGraphSeverity,
@@ -99,6 +100,7 @@ export type FleetGraphTrigger =
       type: 'context_chat';
       prompt: string;
       context: FleetGraphChatContext;
+      history?: FleetGraphChatHistoryEntry[];
     }
   | {
       type: 'resolve_finding';

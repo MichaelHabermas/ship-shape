@@ -17,6 +17,22 @@ export const REQUIRED_SCENARIOS = [
     matrix: { proactive: 'executed', onDemand: 'not applicable', update: 'executed', quiet: 'not applicable', humanGate: 'not applicable' },
   },
   {
+    id: 'proactive-stale-create',
+    title: 'Proactive stale finding creates notification',
+    goldenCaseId: 'fg-create-stale-visible-issue',
+    path: 'proactive stale create',
+    expected: 'create_finding',
+    matrix: { proactive: 'executed', onDemand: 'not applicable', update: 'not applicable', quiet: 'not applicable', humanGate: 'executed' },
+  },
+  {
+    id: 'proactive-at-risk-create',
+    title: 'Proactive at-risk finding creates notification',
+    goldenCaseId: 'fg-create-at-risk-visible-issue',
+    path: 'proactive at-risk create',
+    expected: 'create_finding',
+    matrix: { proactive: 'executed', onDemand: 'not applicable', update: 'not applicable', quiet: 'not applicable', humanGate: 'executed' },
+  },
+  {
     id: 'proactive-quiet-exit',
     title: 'Done or cancelled work exits quietly',
     goldenCaseId: 'fg-quiet-done-cancelled',
@@ -70,7 +86,7 @@ export const LOOP_STEPS = [
 export const NON_CLAIMS = [
   'This dashboard is not product UI and does not add FleetGraph branding to the app.',
   'This proof packet does not claim autonomous Ship mutation or external contact.',
-  'A blocked deployed target means evidence was not configured here, not that production passed.',
+  'A blocked deployed target means required deployed evidence was missing, not that production passed.',
 ];
 
 export function buildProofPacket(input) {
@@ -102,8 +118,12 @@ export function buildProofPacket(input) {
       currentSurfacePass: currentSurface?.summary?.passCount ?? null,
       currentSurfaceFail: currentSurface?.summary?.failCount ?? null,
       deployedConfigured: environments.some((environment) => environment.id === 'deployed' && environment.status !== 'blocked'),
+      deployedSignals: input.deployedEvidence?.signalTypes ?? [],
+      deployedCompletedWorkerTicks: input.deployedEvidence?.completedWorkerTickCount ?? 0,
+      deployedScheduledWorkerSignals: input.deployedEvidence?.scheduledWorkerSignalTypes ?? [],
     },
     environments,
+    deployedEvidence: input.deployedEvidence ?? null,
     loopTimeline,
     scenarios,
     graphPathMatrix: matrixFromScenarios(scenarios),
@@ -148,8 +168,17 @@ export function deriveVerdict(packet) {
   if (packet.scenarios.some((scenario) => scenario.status === 'missing' || scenario.status === 'mismatch')) return 'fail';
   if (packet.environments.some((environment) => environment.required && environment.status === 'blocked')) return 'blocked';
   if (packet.scenarios.some((scenario) => scenario.status === 'blocked')) return 'blocked';
+  if (packet.target !== 'local' && !hasAllDeployedSignals(packet.deployedEvidence)) return 'blocked';
+  if (packet.target !== 'local' && !packet.deployedEvidence?.hasRecentCompletedWorkerOutput) return 'blocked';
+  if (packet.target !== 'local' && Number(packet.deployedEvidence?.stuckRunningTickCount ?? 0) > 0) return 'blocked';
   if (packet.risks.length > 0) return 'risk';
   return 'pass';
+}
+
+function hasAllDeployedSignals(deployedEvidence) {
+  if (!deployedEvidence) return false;
+  const signals = new Set(deployedEvidence.signalTypes ?? []);
+  return ['blocked', 'stale', 'at_risk'].every((signal) => signals.has(signal));
 }
 
 function scenarioFromGoldenCase(scenario, goldenCaseIndex, executedCaseIds, executedScenarioIds) {
@@ -264,7 +293,13 @@ function riskList(scenarios, environments, commandResults) {
     risks.push('Deployed proof is blocked until deployed URLs/credentials are configured.');
   }
   if (commandResults.some((result) => result.status === 'blocked')) risks.push('One or more verification commands was blocked.');
-  if (commandResults.some((result) => result.status === 'skipped')) risks.push('One or more optional verification commands was skipped.');
+  const skippedCommands = commandResults.filter((result) => result.status === 'skipped');
+  const skippedBeyondDefaultE2e = skippedCommands.filter(
+    (result) => result.name !== 'FleetGraph attention loop E2E'
+  );
+  if (skippedBeyondDefaultE2e.length > 0) {
+    risks.push('One or more optional verification commands was skipped.');
+  }
   return risks;
 }
 

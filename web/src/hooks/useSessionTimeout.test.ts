@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSessionTimeout } from './useSessionTimeout';
+import * as api from '@/lib/api';
 import { clearCsrfToken } from '@/lib/api';
 
 /**
@@ -77,6 +78,7 @@ describe('useSessionTimeout', () => {
     clearCsrfToken();
     mockSuccessfulSessionFetch();
     global.fetch = mockFetch;
+    vi.spyOn(api, 'apiPost').mockResolvedValue(jsonResponse({ success: true }));
     // Mock document event listeners
     vi.spyOn(document, 'addEventListener');
     vi.spyOn(document, 'removeEventListener');

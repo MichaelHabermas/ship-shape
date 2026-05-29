@@ -12,6 +12,7 @@ RUN_ID="${SECURITY_PROBE_RUN_ID:-security-probe-ci-$(date +%Y%m%d-%H%M%S)}"
 DATABASE_URL="${DATABASE_URL:-postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit}"
 export DATABASE_URL
 export PORT="${API_PORT}"
+export HOST="${HOST:-127.0.0.1}"
 export CORS_ORIGIN="http://localhost:${WEB_PORT}"
 export SESSION_SECRET="${SESSION_SECRET:-security-probe-ci-secret}"
 
@@ -86,7 +87,7 @@ DATABASE_URL="${DATABASE_URL}" pnpm --filter @ship/api db:migrate
 DATABASE_URL="${DATABASE_URL}" pnpm --filter @ship/api db:seed
 
 : >"${API_LOG}"
-env DATABASE_URL="${DATABASE_URL}" PORT="${API_PORT}" CORS_ORIGIN="${CORS_ORIGIN}" SESSION_SECRET="${SESSION_SECRET}" \
+env DATABASE_URL="${DATABASE_URL}" PORT="${API_PORT}" HOST="${HOST}" CORS_ORIGIN="${CORS_ORIGIN}" SESSION_SECRET="${SESSION_SECRET}" \
   pnpm --filter @ship/api exec tsx src/index.ts >>"${API_LOG}" 2>&1 &
 API_PID=$!
 echo "${API_PID}" >"${PID_FILE}"

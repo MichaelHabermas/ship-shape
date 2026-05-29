@@ -13340,9 +13340,15 @@ export interface components {
             };
             traceMetadata: components["schemas"]["FleetGraphTrace"];
         };
+        FleetGraphChatHistoryEntry: {
+            /** @enum {string} */
+            role: "user" | "assistant";
+            content: string;
+        };
         FleetGraphChatRequest: {
             prompt: string;
             context: components["schemas"]["FleetGraphChatContext"];
+            history?: components["schemas"]["FleetGraphChatHistoryEntry"][];
             clientMessageId?: string;
         };
         FleetGraphManualRunResult: {

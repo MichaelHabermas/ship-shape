@@ -4,11 +4,13 @@ import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   FleetGraphChatContext,
+  FleetGraphChatHistoryEntry,
   FleetGraphChatResponse,
   FleetGraphEvidence,
   FleetGraphRunResponse,
   FleetGraphVisibleOutput,
 } from '@ship/shared';
+import { FLEETGRAPH_CHAT_HISTORY_LIMIT } from '@ship/shared';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson, apiPostJson } from '@/lib/api';
@@ -357,9 +359,16 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     }
 
     try {
+      const history = chatTurns.flatMap<FleetGraphChatHistoryEntry>((turn) => {
+        const entries: FleetGraphChatHistoryEntry[] = [{ role: 'user', content: turn.prompt }];
+        if (turn.status === 'ready' && turn.response?.answer.body) {
+          entries.push({ role: 'assistant', content: turn.response.answer.body });
+        }
+        return entries;
+      }).slice(-FLEETGRAPH_CHAT_HISTORY_LIMIT);
       const response = await apiPostJson<FleetGraphChatResponse>(
         '/api/fleetgraph/chat',
-        { prompt, context },
+        { prompt, context, ...(history.length > 0 ? { history } : {}) },
         'Failed to ask Ship'
       );
       setChatTurns((turns) => turns.map((turn) => turn.id === turnId
@@ -699,7 +708,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
 
 function UserMessage({ children }: { children: string }) {
   return (
-    <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white">
+    <div className="self-end rounded-lg bg-accent px-3.5 py-2.5 text-sm leading-5 text-white" data-testid="chat-user-message">
       {children}
     </div>
   );
@@ -740,7 +749,7 @@ function AssistantAnswer({
   const metadataItems = metadata.filter((item) => item && item !== '-');
 
   return (
-    <div className="w-full text-foreground">
+    <div className="w-full text-foreground" data-testid="chat-assistant-message">
       {eyebrow && (
         <p className="mb-1 truncate text-[11px] leading-4 text-muted">{displayText(eyebrow)}</p>
       )}

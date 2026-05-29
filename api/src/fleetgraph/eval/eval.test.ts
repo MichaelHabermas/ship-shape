@@ -73,7 +73,7 @@ describe('FleetGraph eval pack', () => {
       )).toHaveLength(1);
     }
 
-    expect(fleetGraphGoldenCases).toHaveLength(17);
+    expect(fleetGraphGoldenCases).toHaveLength(19);
   });
 
   it('keeps FleetGraph-only writes explicit and blocks Ship mutation or contact', () => {

@@ -27,7 +27,6 @@ import { BacklogPickerModal } from '@/components/dialogs/BacklogPickerModal';
 import { useSelectionPersistenceOptional } from '@/contexts/SelectionPersistenceContext';
 import type { UseSelectionReturn } from '@/components/SelectableList';
 import { ALL_COLUMNS, DEFAULT_FILTER_TABS, SORT_OPTIONS } from '@/components/issues/issues-list-constants';
-import { StatusBadge, PriorityBadge } from '@/components/issues/issue-badges';
 import { IssuesTableView } from '@/components/issues/IssuesTableView';
 import { IssuesKanbanView } from '@/components/issues/IssuesKanbanView';
 import { IssuesListContextMenu } from '@/components/issues/IssuesListContextMenu';
@@ -513,7 +512,6 @@ export function IssuesList({
       {!hideHeader && (
         <IssuesListHeader
           headerContent={headerContent}
-          storageKeyPrefix={storageKeyPrefix}
           sortBy={sortBy}
           onSortChange={setSortBy}
           viewModes={viewModes}

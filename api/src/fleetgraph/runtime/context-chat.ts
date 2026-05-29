@@ -6,7 +6,7 @@ import type { Principal } from '../../security/principal.js';
 import { visibleOutputForFinding } from '../evidence.js';
 import type { FleetGraphFinding } from '../persistence.js';
 import type { FleetGraphInput, FleetGraphVisibleOutput } from '../types.js';
-import type { FleetGraphEvidenceItem } from '@ship/shared';
+import type { FleetGraphChatHistoryEntry, FleetGraphEvidenceItem } from '@ship/shared';
 import {
   unsupportedChatAnswer,
   type FleetGraphChatAnswerPayload,
@@ -140,17 +140,20 @@ export function sourcesFromContextBundle(bundle: ContextChatBundle): Array<{ lab
   ].filter((source, index, items) => items.findIndex((item) => item.label === source.label) === index);
 }
 
-export function deterministicContextChatAnswer(prompt: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
+export function deterministicContextChatAnswer(
+  prompt: string,
+  bundle: ContextChatBundle,
+  history: FleetGraphChatHistoryEntry[] = []
+): FleetGraphChatAnswerPayload {
   const primaryDocument = bundle.documents[0];
   const primarySignal = bundle.signals[0];
   const sources = sourcesFromContextBundle(bundle);
   const normalized = prompt.trim().toLowerCase();
 
   if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
-    const target = primaryDocument?.title ?? primarySignal?.output.title ?? 'this context';
     return {
       title: 'Chat',
-      body: `Hi. I can talk through ${target}.`,
+      body: 'Hi. What would you like to look at?',
       sources,
       humanGate: { required: false },
     };
@@ -161,10 +164,19 @@ export function deterministicContextChatAnswer(prompt: string, bundle: ContextCh
   }
 
   if (primaryDocument) {
+    if (asksForFormatChange(normalized)) {
+      return {
+        title: primaryDocument.title,
+        body: bulletAnswerFromDocument(primaryDocument, bundle.documents.slice(1), primarySignal),
+        sources,
+        humanGate: { required: false },
+      };
+    }
+
     const asksForShipAction = asksForAction(normalized);
     return {
       title: primaryDocument.title,
-      body: fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal),
+      body: fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal, history),
       ...(asksForShipAction && primarySignal && recommendedActionFromOutput(primarySignal.output)
         ? { nextStep: recommendedActionFromOutput(primarySignal.output) }
         : {}),
@@ -216,6 +228,10 @@ function signalAnswer(
 
 function asksForAction(normalizedPrompt: string): boolean {
   return /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item)\b/.test(normalizedPrompt);
+}
+
+function asksForFormatChange(normalizedPrompt: string): boolean {
+  return /\b(bullet|bullets|bullet points|format as|make (that|it) (a )?list)\b/.test(normalizedPrompt);
 }
 
 export function chatModelAnswerFromContext(body: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
@@ -319,10 +335,11 @@ function fallbackAnswer(
   prompt: string,
   document: ContextChatDocument,
   attachedDocuments: ContextChatDocument[],
-  signal: ContextChatSignal | undefined
+  signal: ContextChatSignal | undefined,
+  history: FleetGraphChatHistoryEntry[]
 ): string {
   if (/\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(prompt)) {
-    return simpleDocumentAnswer(document, signal);
+    return simpleDocumentAnswer(document, signal, history);
   }
 
   if (/\bpython\b/i.test(prompt) && /\blinked list\b/i.test(prompt)) {
@@ -350,15 +367,34 @@ function fallbackAnswer(
 
 function simpleDocumentAnswer(
   document: ContextChatDocument,
-  signal: ContextChatSignal | undefined
+  signal: ContextChatSignal | undefined,
+  history: FleetGraphChatHistoryEntry[]
 ): string {
+  if (lastHistoryContent(history, 'assistant') && /\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(lastHistoryContent(history, 'user') ?? '')) {
+    return shortestDocumentAnswer(document, signal);
+  }
+
   const reason = signal ? signalReason(signal.output) : null;
+  const support = reason ? null : strongestDocumentSentence(document);
   const state = stringFromUnknown(document.properties.state) ?? stringFromUnknown(document.properties.status);
+  const priority = stringFromUnknown(document.properties.priority);
   const bits = [
     reason || `${document.title} needs attention.`,
+    support,
     state ? `Status: ${state}.` : null,
+    priority ? `Priority: ${priority}.` : null,
   ].filter(Boolean);
   return bits.join('\n\n');
+}
+
+function shortestDocumentAnswer(
+  document: ContextChatDocument,
+  signal: ContextChatSignal | undefined
+): string {
+  return [
+    document.title,
+    conciseFact(signal ? signalReason(signal.output) : strongestDocumentSentence(document)),
+  ].filter(Boolean).join(' · ');
 }
 
 function documentAnswer(
@@ -387,6 +423,29 @@ function documentAnswer(
   return lines.join('\n\n');
 }
 
+function bulletAnswerFromDocument(
+  document: ContextChatDocument,
+  attachedDocuments: ContextChatDocument[],
+  signal: ContextChatSignal | undefined
+): string {
+  const text = documentAnswer(document, attachedDocuments, signal);
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  return sentences.map((sentence) => `- ${sentence.replace(/\s+/g, ' ')}`).join('\n');
+}
+
+function lastHistoryContent(history: FleetGraphChatHistoryEntry[], role: FleetGraphChatHistoryEntry['role']): string | null {
+  for (let index = history.length - 1; index >= 0; index--) {
+    const entry = history[index];
+    if (!entry) continue;
+    if (entry.role === role && entry.content.trim()) return entry.content.trim();
+  }
+  return null;
+}
+
 function compactDocumentProperties(properties: Record<string, unknown>): string[] {
   const labels: Array<[string, string]> = [
     ['state', 'State'],
@@ -408,6 +467,18 @@ function textFromTipTap(value: unknown): string {
   const text = collectTipTapText(value).replace(/\s+/g, ' ').trim();
   if (!text) return '';
   return text.length > 900 ? `${text.slice(0, 900).trim()}...` : text;
+}
+
+function strongestDocumentSentence(document: ContextChatDocument): string | null {
+  const text = textFromTipTap(document.content);
+  if (!text) return null;
+  const sentences = text.split(/(?<=[.!?])\s+/).map((sentence) => sentence.trim()).filter(Boolean);
+  return sentences[0] ?? null;
+}
+
+function conciseFact(value: string | null): string | null {
+  if (!value) return null;
+  return value.length > 80 ? `${value.slice(0, 77).trim()}...` : value;
 }
 
 function collectTipTapText(value: unknown): string {
