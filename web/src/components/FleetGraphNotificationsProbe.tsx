@@ -275,7 +275,7 @@ function groupNotificationsBySource(
 
   return [...groups.entries()].map(([key, groupNotifications]) => {
     const sortedNotifications = sortNotificationsBySignal(groupNotifications);
-    const primary = sortedNotifications[0]!;
+    const primary = sortedNotifications[0];
     const detectedAt = mostRecentDetectedAt(sortedNotifications);
     const signals = SIGNAL_ORDER.flatMap((signalType) => {
       const notification = sortedNotifications.find((item) => item.signalType === signalType);
@@ -329,7 +329,7 @@ function AttentionNotification({
   onOpenSource: () => void;
 }) {
   const ownerLabel = group.owner || '-';
-  const primaryNotification = group.notifications[0]!;
+  const primaryNotification = group.notifications[0];
 
   return (
     <article className={`border-t border-border/70 px-3 py-1.5 first:border-t-0 ${group.isRead ? 'bg-background/70' : 'bg-accent/5'}`}>

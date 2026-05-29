@@ -4,7 +4,6 @@ import { apiClient, assertApiData } from '@/api/client';
 import type { BulkUpdateIssuesResponse, BulkUpdatedIssue, Issue, IssueListItem } from '@/api/schemas';
 import type {
   CascadeWarning,
-  IncompleteChild,
   BelongsTo,
   BelongsToType,
   IssueState,

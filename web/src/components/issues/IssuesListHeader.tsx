@@ -6,7 +6,6 @@ import { ALL_COLUMNS, SORT_OPTIONS } from '@/components/issues/issues-list-const
 
 export interface IssuesListHeaderProps {
   headerContent?: React.ReactNode;
-  storageKeyPrefix: string;
   sortBy: string;
   onSortChange: (value: string) => void;
   viewModes: ViewMode[];
@@ -35,7 +34,6 @@ export interface IssuesListHeaderProps {
 
 export function IssuesListHeader({
   headerContent,
-  storageKeyPrefix,
   sortBy,
   onSortChange,
   viewModes,

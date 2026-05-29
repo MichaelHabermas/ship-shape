@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
-import { z } from 'zod';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { IdRow, requireFirstRow } from '../test/pg-result.js';

@@ -1,4 +1,4 @@
-import { test, expect, Page } from './fixtures/isolated-env'
+import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin } from './fixtures/api-auth';
 
 

@@ -30,7 +30,7 @@ export function generateApiToken(): { token: string; hash: string; prefix: strin
 
 export function normalizeApiTokenScopes(scopes: unknown): ApiTokenScope[] {
   if (!Array.isArray(scopes) || scopes.length === 0) return [LEGACY_FULL_SCOPE];
-  return scopes.filter((scope): scope is ApiTokenScope => typeof scope === 'string') as ApiTokenScope[];
+  return scopes.filter((scope): scope is ApiTokenScope => typeof scope === 'string');
 }
 
 type TokenRow = {

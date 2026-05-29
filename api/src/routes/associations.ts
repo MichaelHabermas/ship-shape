@@ -14,14 +14,6 @@ import { sendInternalError, sendLegacyError, sendValidationError } from '../util
 
 const router = Router();
 
-interface DocumentChildRow {
-  id: string;
-  title: string | null;
-  document_type: string;
-  ticket_number: number | null;
-  child_count: string;
-}
-
 // Validation schemas
 const createAssociationSchema = z.object({
   related_id: z.string().uuid(),
