@@ -540,6 +540,72 @@ describe('FleetGraph routes', () => {
     expect(body.answer.nextStep).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
   });
 
+  it('passes bounded context chat history through runFleetGraph', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue({
+      decision: 'explain',
+      traceMetadata: { mode: 'on_demand', decision: 'explain', nodePath: ['contextChat'] },
+    } as never);
+
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Make it simpler',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+        history: [
+          { role: 'user', content: 'Summarize this' },
+          { role: 'assistant', content: 'This is a longer summary.' },
+        ],
+      })
+      .expect(200);
+
+    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Make it simpler',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+        history: [
+          { role: 'user', content: 'Summarize this' },
+          { role: 'assistant', content: 'This is a longer summary.' },
+        ],
+      },
+    }));
+  });
+
+  it('rejects context chat history beyond the bounded request limit', async () => {
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Make it simpler',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+        history: Array.from({ length: 7 }, (_, index) => ({ role: 'user', content: `turn ${index}` })),
+      })
+      .expect(400);
+
+    expect(runFleetGraph).not.toHaveBeenCalled();
+  });
+
+  it('rejects blank or oversized context chat history entries', async () => {
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Make it simpler',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+        history: [{ role: 'assistant', content: '   ' }],
+      })
+      .expect(400);
+
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Make it simpler',
+        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
+        history: [{ role: 'assistant', content: 'x'.repeat(4001) }],
+      })
+      .expect(400);
+
+    expect(runFleetGraph).not.toHaveBeenCalled();
+  });
+
   it('returns quiet context chat answers as successful chat responses', async () => {
     vi.mocked(runFleetGraph).mockResolvedValue({
       decision: 'quiet_exit',

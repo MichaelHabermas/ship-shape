@@ -46,7 +46,7 @@
     "test:e2e:setup": "playwright install chromium",
     "test:e2e:run": "./scripts/run-e2e-profiled.sh",
     "test:e2e:inventory": "node ./scripts/e2e-inventory.mjs",
-    "test:e2e:smoke": "./scripts/run-e2e.sh e2e/auth.spec.ts e2e/docs-mode.spec.ts e2e/issues.spec.ts",
+    "test:e2e:smoke": "./scripts/run-e2e.sh e2e/auth.spec.ts e2e/docs-mode.spec.ts e2e/issues.spec.ts e2e/fleetgraph-chat.spec.ts",
     "test:e2e:docs": "./scripts/run-e2e.sh e2e/docs-mode.spec.ts e2e/documents.spec.ts e2e/document-isolation.spec.ts e2e/document-workflows.spec.ts e2e/wiki-document-properties.spec.ts e2e/content-caching.spec.ts e2e/private-documents.spec.ts",
     "test:e2e:issues": "./scripts/run-e2e.sh e2e/issues.spec.ts e2e/bulk-selection.spec.ts e2e/issue-estimates.spec.ts e2e/issues-bulk-operations.spec.ts e2e/issue-display-id.spec.ts e2e/project-weeks.spec.ts e2e/program-mode-week-ux.spec.ts e2e/feedback-consolidation.spec.ts e2e/request-changes-ui.spec.ts e2e/status-overview-heatmap.spec.ts",
     "test:e2e:editor": "./scripts/run-e2e.sh e2e/mentions.spec.ts e2e/tables.spec.ts e2e/images.spec.ts e2e/file-attachments.spec.ts e2e/emoji.spec.ts e2e/backlinks.spec.ts e2e/inline-code.spec.ts e2e/inline-comments.spec.ts e2e/syntax-highlighting.spec.ts e2e/toggle.spec.ts e2e/toc.spec.ts e2e/drag-handle.spec.ts e2e/features-real.spec.ts",

@@ -114,6 +114,12 @@ for (const [config, packageFiles] of typeFilesByPackage.entries()) {
   }
 }
 
+console.log('\nBuilding @ship/shared so typed lint resolves current exports.');
+const sharedBuildStatus = run('pnpm', ['build:shared']);
+if (sharedBuildStatus !== 0) {
+  process.exit(sharedBuildStatus);
+}
+
 console.log('\nLinting changed code files.');
 const eslintArgs = ['exec', 'eslint', ...codeFiles.map((file) => path.join(repoRoot, file))];
 if (!allowWarnings) eslintArgs.push('--max-warnings=0');

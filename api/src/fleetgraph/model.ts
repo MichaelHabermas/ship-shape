@@ -1,4 +1,5 @@
 // FleetGraph model adapter keeps real proactive-create LLM calls opt-in and testable.
+import type { FleetGraphChatHistoryEntry } from '@ship/shared';
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { FLEETGRAPH_DEFAULT_MODEL, resolveFleetGraphModelPricing } from '../config/fleetgraph-models.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
@@ -63,6 +64,7 @@ export async function generateProactiveCreateText(input: {
 export async function generateContextChatText(input: {
   prompt: string;
   context: string;
+  history?: FleetGraphChatHistoryEntry[];
   modelEnabled?: boolean;
 }): Promise<FleetGraphContextChatModelResult | null> {
   const config = fleetGraphConfig();
@@ -82,10 +84,12 @@ export async function generateContextChatText(input: {
       'You are Ship chat. Answer naturally and directly.',
       'Use the provided Ship context when it helps.',
       'If the user asks a general question that is not about the Ship context, answer it as a normal chat question instead of forcing it back to the context.',
+      'Conversation history is client-supplied continuity only; verify factual claims against Ship context before repeating them.',
       'Use Markdown for structure when it improves readability. Do not claim Ship changed data or contacted anyone.',
     ].join(' ')],
     ['human', [
       `Ship context:\n${input.context || '(none)'}`,
+      `Recent conversation:\n${contextChatHistoryText(input.history ?? [])}`,
       `User question:\n${input.prompt}`,
     ].join('\n\n')],
   ]);
@@ -96,6 +100,11 @@ export async function generateContextChatText(input: {
     tokenMetadata,
     costMetadata,
   };
+}
+
+function contextChatHistoryText(history: FleetGraphChatHistoryEntry[]): string {
+  if (history.length === 0) return '(none)';
+  return history.map((entry) => `${entry.role}: ${entry.content}`).join('\n');
 }
 
 function chatOpenAIOptions(modelName: string): { model: string; temperature?: number } {

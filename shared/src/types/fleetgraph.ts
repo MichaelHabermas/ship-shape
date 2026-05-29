@@ -1,5 +1,7 @@
 // FleetGraph wire types shared between API responses and web clients.
 
+export const FLEETGRAPH_CHAT_HISTORY_LIMIT: number = 6;
+
 export type FleetGraphSeverity = 'low' | 'medium' | 'high' | 'urgent';
 
 export type FleetGraphRunMode = 'proactive' | 'on_demand';
@@ -134,9 +136,15 @@ export type FleetGraphChatAnswer = {
   humanGate: Record<string, unknown>;
 };
 
+export type FleetGraphChatHistoryEntry = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 export type FleetGraphChatRequest = {
   prompt: string;
   context: FleetGraphChatContext;
+  history?: FleetGraphChatHistoryEntry[];
   clientMessageId?: string;
 };
 

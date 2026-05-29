@@ -1,5 +1,6 @@
 // FleetGraph API contract owns schemas and safe response serialization.
 import type { Response } from 'express';
+import { FLEETGRAPH_CHAT_HISTORY_LIMIT } from '@ship/shared';
 import { z } from '../openapi/registry.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import { traceMetadataForResponse } from './trace.js';
@@ -170,9 +171,15 @@ export const FleetGraphChatContextSchema = FleetGraphChatContextFieldsSchema.ext
   { message: 'context requires findingId, documentId, or workspace kind' }
 ).openapi('FleetGraphChatContext');
 
+export const FleetGraphChatHistoryEntrySchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().trim().min(1).max(4_000),
+}).openapi('FleetGraphChatHistoryEntry');
+
 export const FleetGraphChatRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(2_000),
   context: FleetGraphChatContextSchema,
+  history: z.array(FleetGraphChatHistoryEntrySchema).max(FLEETGRAPH_CHAT_HISTORY_LIMIT).optional(),
   clientMessageId: z.string().max(128).optional(),
 }).openapi('FleetGraphChatRequest');
 

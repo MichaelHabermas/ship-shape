@@ -571,3 +571,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** (1) Shared `legacyMutationErrorMessage` in `legacy-mutation-error.ts`; `document-mutations` uses `guardDocumentMutation` with legacy wire errors. (2) `guardDocumentMutationsBatch` + `getReadableDocumentsBatch` for bulk issue guards. (3) Service-only write guards on program/project mutating routes (UUID param check at route). (4) Single/bulk issue delete parity via `includeArchived` on `requireIssueWrite`. (5) Bulk state updates use `getTimestampUpdates` + `incomplete_children` per issue. (6) SS-FIND-003: remove `status` from week PATCH schema; lifecycle via `POST /start`. (7) `takeSprintSnapshot` filters issues with `VISIBILITY_FILTER_SQL`. (8) Merge preview uses write guards like merge execute (no read/visibility mismatch).
 
 **Consequence:** One fewer auth error dialect in HTTP responses; bulk guards scale better; week status cannot be patched around lifecycle; snapshots match visible issue lists.
+
+## D072 - FleetGraph Chat Behavior Golden Cases
+
+**Date:** 2026-05-29
+
+**Decision:** Treat FleetGraph chat quality as a behavior contract, not a function-output snapshot. Add `api/src/fleetgraph/eval/chat-behavior.ts` as the replayable corpus for real chat problems: greetings must stay conversational, summaries must be grounded in visible context, simplification must be materially shorter, sparse context must not invent facts, and follow-ups may use bounded recent history. `/api/fleetgraph/chat` accepts optional capped `history` entries so deterministic and future model-backed paths can distinguish a new request from a rewrite request.
+
+**Consequence:** Every future chat regression should become a named golden case before or with the fix. CI-safe checks remain deterministic and no-model by default; Playwright smoke proves browser wiring only. Chat history is bounded request context, not a new persistence surface or a broad workspace assistant.

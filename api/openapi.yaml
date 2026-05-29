@@ -6848,6 +6848,21 @@ components:
         - answer
         - context
         - traceMetadata
+    FleetGraphChatHistoryEntry:
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+        - role
+        - content
     FleetGraphChatRequest:
       type: object
       properties:
@@ -6857,6 +6872,11 @@ components:
           maxLength: 2000
         context:
           $ref: "#/components/schemas/FleetGraphChatContext"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/FleetGraphChatHistoryEntry"
+          maxItems: 6
         clientMessageId:
           type: string
           maxLength: 128
