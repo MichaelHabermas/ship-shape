@@ -143,24 +143,32 @@ export const FleetGraphManualRunResponseSchema = z.object({
   results: z.array(FleetGraphManualRunResultSchema),
 }).openapi('FleetGraphManualRunResponse');
 
-const FleetGraphAttachedChatContextSchema = z.object({
-  kind: z.enum(['issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding']),
+const fleetGraphChatContextKind = z.enum([
+  'issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding',
+]);
+
+const FleetGraphChatContextFieldsSchema = z.object({
+  kind: fleetGraphChatContextKind,
   documentId: UuidSchema.optional(),
   findingId: UuidSchema.optional(),
   sourcePath: z.string().max(512).optional(),
-}).refine((context) => context.findingId || context.documentId || context.kind === 'workspace', {
-  message: 'attached context requires findingId, documentId, or workspace kind',
 });
 
-export const FleetGraphChatContextSchema = z.object({
-  kind: z.enum(['issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding']),
-  documentId: UuidSchema.optional(),
-  findingId: UuidSchema.optional(),
-  sourcePath: z.string().max(512).optional(),
+function fleetGraphChatContextRefine(context: z.infer<typeof FleetGraphChatContextFieldsSchema>): boolean {
+  return Boolean(context.findingId || context.documentId || context.kind === 'workspace');
+}
+
+const FleetGraphAttachedChatContextSchema = FleetGraphChatContextFieldsSchema.refine(
+  fleetGraphChatContextRefine,
+  { message: 'attached context requires findingId, documentId, or workspace kind' }
+);
+
+export const FleetGraphChatContextSchema = FleetGraphChatContextFieldsSchema.extend({
   attachedContexts: z.array(FleetGraphAttachedChatContextSchema).max(8).optional(),
-}).refine((context) => context.findingId || context.documentId || context.kind === 'workspace', {
-  message: 'context requires findingId, documentId, or workspace kind',
-}).openapi('FleetGraphChatContext');
+}).refine(
+  fleetGraphChatContextRefine,
+  { message: 'context requires findingId, documentId, or workspace kind' }
+).openapi('FleetGraphChatContext');
 
 export const FleetGraphChatRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(2_000),

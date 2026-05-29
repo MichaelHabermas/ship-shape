@@ -1,5 +1,6 @@
 // Renders contextual FleetGraph chat for source-aware page and notification discussion.
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   FleetGraphChatContext,
@@ -115,6 +116,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   const [explanation, setExplanation] = useState<ExplanationState>({ status: 'idle' });
   const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
   const [nextTurnId, setNextTurnId] = useState(1);
+  const [expanded, setExpanded] = useState(false);
 
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
@@ -124,7 +126,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   ), [currentDocumentId]);
   const [currentTitle, setCurrentTitle] = useState(surfaceLabel);
   const extraContextItems = useMemo(
-    () => dedupeContextItems(contextItems.filter((item) => item.attached || item.notification || !contextMatchesSource(item, currentSourcePath))),
+    () => dedupeContextItems(contextItems.filter((item) => !contextMatchesSource(item, currentSourcePath))),
     [contextItems, currentSourcePath]
   );
   
@@ -303,7 +305,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
 
   const chatContext = (): FleetGraphChatContext | null => {
     const attachedContexts = contextItems
-      .filter((item) => item.attached || item.notification)
+      .filter((item) => (item.attached || item.notification) && !contextMatchesSource(item, currentSourcePath))
       .map((item) => item.context);
     if (activeNotification?.findingId) {
       return {
@@ -358,7 +360,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
       const response = await apiPostJson<FleetGraphChatResponse>(
         '/api/fleetgraph/chat',
         { prompt, context },
-        'Failed to ask FleetGraph'
+        'Failed to ask Ship'
       );
       setChatTurns((turns) => turns.map((turn) => turn.id === turnId
         ? { ...turn, status: 'ready', response }
@@ -393,11 +395,16 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
       {open && (
         <section
           aria-label="Context chat"
-          className="flex h-[min(620px,calc(100vh-7rem))] w-[min(420px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40"
+          className={[
+            'flex flex-col overflow-hidden rounded-lg border border-border bg-[#111111] shadow-2xl shadow-black/40 transition-[height,width] duration-200',
+            expanded
+              ? 'h-[min(780px,calc(100vh-3rem))] w-[min(760px,calc(100vw-3rem))]'
+              : 'h-[min(620px,calc(100vh-7rem))] w-[min(420px,calc(100vw-2.5rem))]',
+          ].join(' ')}
         >
           <header className="relative flex items-center justify-between border-b border-border px-3.5 pb-2.5 pt-2">
             <div className="min-w-0 flex-1 pr-2">
-              <div className="flex max-h-[52px] min-w-0 flex-wrap gap-1.5 overflow-hidden">
+              <div className="flex max-h-[52px] min-w-0 flex-wrap items-center gap-1.5 overflow-hidden">
                 <CurrentContextChip title={currentTitle} />
                 <button
                   type="button"
@@ -438,25 +445,38 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                     +{overflowContextItems.length}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={clearContextItems}
-                  disabled={!hasClearableContext}
-                  className="shrink-0 rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[11px] leading-4 text-red-300 transition hover:border-red-400 hover:bg-red-500/20 disabled:cursor-default disabled:border-border disabled:bg-background disabled:text-muted/50"
-                  aria-label="Clear added context"
-                >
-                  C
-                </button>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="ml-3 flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Close chat"
-            >
-              <CloseIcon />
-            </button>
+            <div className="ml-3 flex shrink-0 items-center rounded-md border border-border bg-background/70">
+              <button
+                type="button"
+                onClick={clearContextItems}
+                disabled={!hasClearableContext && chatTurns.length === 0}
+                className="flex h-8 w-8 items-center justify-center text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-default disabled:opacity-35"
+                aria-label="Clear chat"
+                title="Clear chat"
+              >
+                <ClearIcon />
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpanded((value) => !value)}
+                className="flex h-8 w-8 items-center justify-center border-l border-border text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                aria-label={expanded ? 'Shrink chat' : 'Expand chat'}
+                title={expanded ? 'Shrink chat' : 'Expand chat'}
+              >
+                {expanded ? <ShrinkIcon /> : <ExpandIcon />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex h-8 w-8 items-center justify-center border-l border-border text-muted transition hover:bg-white/5 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                aria-label="Close chat"
+                title="Close chat"
+              >
+                <CloseIcon />
+              </button>
+            </div>
 
             {contextOpen && (
               <ContextPopover
@@ -497,7 +517,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                 onChange={handleDraftChange}
                 onKeyDown={handleDraftKeyDown}
                 rows={1}
-                placeholder={activeNotification ? 'Ask about this signal...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
+                placeholder={activeNotification ? 'Ask anything...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
                 className="scrollbar-hide max-h-[120px] min-h-6 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 text-sm leading-5 text-foreground outline-none ring-0 placeholder:text-muted focus:outline-none focus:ring-0"
               />
               <button
@@ -513,15 +533,17 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         </section>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex h-14 w-14 items-center justify-center rounded-full border border-[#1f6fae] bg-accent text-white shadow-lg shadow-black/35 transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-        aria-label={open ? 'Hide chat' : 'Open chat'}
-        aria-expanded={open}
-      >
-        <ChatIcon />
-      </button>
+      {(!open || !expanded) && (
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-[#1f6fae] bg-accent text-white shadow-lg shadow-black/35 transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+          aria-label={open ? 'Hide chat' : 'Open chat'}
+          aria-expanded={open}
+        >
+          <ChatIcon />
+        </button>
+      )}
     </div>
   );
 }
@@ -656,7 +678,7 @@ function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
                   eyebrow={undefined}
                   body={turn.response.answer.body}
                   metadata={[]}
-                  sources={[]}
+                  sources={turn.response.answer.sources.map((source) => source.label)}
                 />
                 {(turn.response.answer.nextStep || turn.response.answer.humanGate.required === true) && (
                   <InlineGateNote
@@ -686,7 +708,7 @@ function UserMessage({ children }: { children: string }) {
 function AssistantThinking() {
   return (
     <div className="w-full text-sm leading-5 text-muted">
-      Checking...
+      Thinking...
     </div>
   );
 }
@@ -694,7 +716,7 @@ function AssistantThinking() {
 function chatErrorMessage(status: number | undefined): string {
   if (status === 401) return 'Your session expired. Refresh and sign in again.';
   if (status === 403) return 'Chat was rejected by the API. Refresh the page and try again.';
-  if (status === 404) return 'Ship could not find a visible finding for this context.';
+  if (status === 404) return 'Ship could not find visible context for this chat.';
   if (status === 429) return 'Chat is rate limited. Try again in a minute.';
   if (status && status >= 500) return 'The Ship API is unavailable right now.';
   return 'Ship could not reach the chat service.';
@@ -722,15 +744,51 @@ function AssistantAnswer({
       {eyebrow && (
         <p className="mb-1 truncate text-[11px] leading-4 text-muted">{displayText(eyebrow)}</p>
       )}
-      <p className="text-base leading-6">
-        {signalLabel && (
+      {signalLabel ? (
+        <p className="text-base leading-6">
           <span className="mr-2 inline-flex align-[2px]">
             <NotificationLabelChip label={signalLabel} signalType={signalType} />
           </span>
-        )}
-        {displayText(body)}
-      </p>
+          {displayText(body)}
+        </p>
+      ) : (
+        <MarkdownMessage text={displayText(body)} />
+      )}
       <InlineProvenance metadata={metadataItems} sources={sources} />
+    </div>
+  );
+}
+
+function MarkdownMessage({ text }: { text: string }) {
+  return (
+    <div className="text-base leading-6 text-foreground">
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="mb-3 ml-5 list-disc space-y-1 last:mb-0">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-3 ml-5 list-decimal space-y-1 last:mb-0">{children}</ol>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          code: ({ className, children }) => {
+            const isBlock = Boolean(className);
+            return isBlock
+              ? <code className={className}>{children}</code>
+              : <code className="rounded border border-border bg-background px-1 py-0.5 text-[0.9em] text-foreground">{children}</code>;
+          },
+          pre: ({ children }) => (
+            <pre className="mb-3 overflow-x-auto rounded-md border border-border bg-background p-3 text-sm leading-5 text-foreground last:mb-0">
+              {children}
+            </pre>
+          ),
+          strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+          a: ({ children, href }) => (
+            <a href={href} className="text-accent underline underline-offset-2" target="_blank" rel="noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -849,6 +907,30 @@ function CloseIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+function ClearIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 6h18M8 6V4h8v2M10 11v6M14 11v6M6 6l1 14h10l1-14" />
+    </svg>
+  );
+}
+
+function ExpandIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5M3 3l7 7M21 3l-7 7M21 21l-7-7M3 21l7-7" />
+    </svg>
+  );
+}
+
+function ShrinkIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M10 3v7H3M14 3v7h7M21 14h-7v7M10 21v-7H3M3 10l7-7M21 10l-7-7M14 21l7-7M10 14l-7 7" />
     </svg>
   );
 }

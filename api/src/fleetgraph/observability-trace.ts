@@ -1,5 +1,5 @@
 // FleetGraph tracing creates reviewer-shareable traces without exposing raw Ship data.
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import { execFileSync } from 'child_process';
 import { LangfuseClient } from '@langfuse/client';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
@@ -8,6 +8,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { Client } from 'langsmith';
 import { convertToDottedOrderFormat } from 'langsmith/run_trees';
 import type { FleetGraphObservabilityScore } from './observability-scores.js';
+import { fleetGraphStableHash } from './trace-hash.js';
+import { FLEETGRAPH_NO_MODEL_USAGE_REASON } from './usage-metadata.js';
 import type { FleetGraphResult, FleetGraphTraceMetadata } from './types.js';
 
 export type FleetGraphTraceIdentity = Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
@@ -233,6 +235,7 @@ async function createLangSmithProvider(input: {
         traceId,
         parentRunId: traceId,
         parentDottedOrder: rootOrder.dottedOrder,
+        traceInputs: input.inputs,
         tokenMetadata: result.tokenMetadata,
         costMetadata: result.costMetadata,
       });
@@ -309,7 +312,7 @@ async function createLangfuseProvider(input: {
     startNode: (name, inputs) => startLangfuseNode(rootSpan, name, inputs),
     async end(result) {
       const usageSummary = traceUsageSummary(result);
-      postLangfuseModelCallChild(rootSpan, result.tokenMetadata, result.costMetadata);
+      postLangfuseModelCallChild(rootSpan, input.inputs, result.tokenMetadata, result.costMetadata);
       const endMetadata = resultObservabilityMetadata(input.inputs, result, {
         provider: 'langfuse',
         traceId: rootSpan.traceId,
@@ -326,11 +329,7 @@ async function createLangfuseProvider(input: {
           costUsage: usageSummary.costUsage,
           errorMetadata: result.errorMetadata,
         },
-        metadata: {
-          ...endMetadata,
-          tokenUsage: usageSummary.tokenUsage,
-          costUsage: usageSummary.costUsage,
-        },
+        metadata: endMetadata,
         environment: observabilityEnvironment(),
         version: observabilityVersion(),
       });
@@ -497,6 +496,7 @@ async function postLangSmithModelCallChild(input: {
   traceId: string;
   parentRunId: string;
   parentDottedOrder: string;
+  traceInputs: Record<string, unknown>;
   tokenMetadata: FleetGraphResult['tokenMetadata'];
   costMetadata: FleetGraphResult['costMetadata'];
 }): Promise<void> {
@@ -529,8 +529,8 @@ async function postLangSmithModelCallChild(input: {
       metadata: {
         ls_provider: input.tokenMetadata.provider,
         ls_model_name: input.tokenMetadata.model,
-        ...modelCallMetadata(input.tokenMetadata, input.costMetadata),
-        tags: observabilityTags({}, { provider: 'langsmith', node: 'model_call' }),
+        ...modelCallMetadata(input.traceInputs, input.tokenMetadata, input.costMetadata),
+        tags: observabilityTags(input.traceInputs, { provider: 'langsmith', node: 'model_call' }),
       },
     },
     serialized: {},
@@ -539,6 +539,7 @@ async function postLangSmithModelCallChild(input: {
 
 function postLangfuseModelCallChild(
   rootSpan: LangfuseSpan,
+  traceInputs: Record<string, unknown>,
   tokenMetadata: FleetGraphResult['tokenMetadata'],
   costMetadata: FleetGraphResult['costMetadata']
 ): void {
@@ -554,14 +555,11 @@ function postLangfuseModelCallChild(
     input: [{ role: 'user', content: '[redacted FleetGraph model input]' }],
     output: [{ role: 'assistant', content: '[redacted FleetGraph model output]' }],
     model: tokenMetadata.model,
-    modelParameters: {
-      temperature: 0,
-    },
     usageDetails: usageMetadataForLangfuse(tokenMetadata),
     costDetails: costDetailsForLangfuse(costMetadata),
     metadata: {
       provider: tokenMetadata.provider,
-      ...modelCallMetadata(tokenMetadata, costMetadata),
+      ...modelCallMetadata(traceInputs, tokenMetadata, costMetadata),
     },
     environment: observabilityEnvironment(),
     version: observabilityVersion(),
@@ -628,10 +626,7 @@ function costDetailsForLangfuse(costMetadata: FleetGraphResult['costMetadata']):
     ...(costMetadata.inputCostUsd !== undefined ? { input: costMetadata.inputCostUsd } : {}),
     ...(costMetadata.cachedInputCostUsd !== undefined ? { cachedInput: costMetadata.cachedInputCostUsd } : {}),
     ...(costMetadata.outputCostUsd !== undefined ? { output: costMetadata.outputCostUsd } : {}),
-    ...(costMetadata.estimatedCostUsd !== undefined ? {
-      total: costMetadata.estimatedCostUsd,
-      totalCost: costMetadata.estimatedCostUsd,
-    } : {}),
+    ...(costMetadata.estimatedCostUsd !== undefined ? { total: costMetadata.estimatedCostUsd } : {}),
   };
 }
 
@@ -745,13 +740,9 @@ function baseObservabilityMetadata(
     triggerType,
     triggerReason,
     workspaceHash: stringValue(inputs.workspaceHash),
-    modelBoundary: 'none_yet',
     promptSource: 'code_template',
     promptName: promptNameForTrigger(triggerType),
     promptVersion: promptVersionForTrigger(triggerType),
-    costSource: 'pending_result',
-    usageSource: 'pending_result',
-    ttftSource: 'not_applicable_until_generation_streaming',
   });
 }
 
@@ -771,9 +762,9 @@ function resultObservabilityMetadata(
     decision: result.decision,
     nodePath: result.traceMetadata.nodePath.join('>'),
     nodeCount: result.traceMetadata.nodePath.length,
-    findingIdHash: result.finding?.id ? stableHash(result.finding.id) : undefined,
-    sourceIssueHash: result.runInput.sourceIssueId ? stableHash(result.runInput.sourceIssueId) : undefined,
-    sourceSprintHash: result.runInput.sourceSprintId ? stableHash(result.runInput.sourceSprintId) : undefined,
+    findingIdHash: result.finding?.id ? fleetGraphStableHash(result.finding.id) : undefined,
+    sourceIssueHash: result.runInput.sourceIssueId ? fleetGraphStableHash(result.runInput.sourceIssueId) : undefined,
+    sourceSprintHash: result.runInput.sourceSprintId ? fleetGraphStableHash(result.runInput.sourceSprintId) : undefined,
     modelBoundary: result.tokenMetadata.modelCalls > 0 ? 'real_model' : 'deterministic',
     modelCalls: result.tokenMetadata.modelCalls,
     modelProvider: result.tokenMetadata.provider ?? 'none',
@@ -784,13 +775,17 @@ function resultObservabilityMetadata(
     outputTokens: result.tokenMetadata.outputTokens,
     totalTokens: result.tokenMetadata.totalTokens,
     usageSource: result.tokenMetadata.usageSource ?? (result.tokenMetadata.modelCalls > 0 ? 'unknown' : 'none'),
-    noUsageReason: result.tokenMetadata.noUsageReason ?? (result.tokenMetadata.modelCalls > 0 ? undefined : 'no_model_call'),
+    noUsageReason: result.tokenMetadata.noUsageReason ?? (
+      result.tokenMetadata.modelCalls > 0 ? undefined : FLEETGRAPH_NO_MODEL_USAGE_REASON
+    ),
     estimatedCostUsd: result.costMetadata.estimatedCostUsd,
     inputCostUsd: result.costMetadata.inputCostUsd,
     cachedInputCostUsd: result.costMetadata.cachedInputCostUsd,
     outputCostUsd: result.costMetadata.outputCostUsd,
     costSource: result.costMetadata.costSource ?? (result.costMetadata.estimatedCostUsd !== undefined ? 'unknown' : 'none'),
-    noCostReason: result.costMetadata.noCostReason ?? (result.tokenMetadata.modelCalls > 0 ? undefined : 'no_model_call'),
+    noCostReason: result.costMetadata.noCostReason ?? (
+      result.tokenMetadata.modelCalls > 0 ? undefined : FLEETGRAPH_NO_MODEL_USAGE_REASON
+    ),
     tokenUsage: usageSummary.tokenUsage,
     costUsage: usageSummary.costUsage,
     visibleEvidenceCount: result.visibleOutput?.evidence.length ?? result.evidence.length,
@@ -823,9 +818,11 @@ function observabilityTags(
 }
 
 function modelCallMetadata(
+  traceInputs: Record<string, unknown>,
   tokenMetadata: FleetGraphResult['tokenMetadata'],
   costMetadata: FleetGraphResult['costMetadata']
 ): Record<string, unknown> {
+  const triggerType = stringValue(traceInputs.triggerType);
   return compactRecord({
     modelBoundary: tokenMetadata.modelCalls > 0 ? 'real_model' : 'deterministic',
     modelProvider: tokenMetadata.provider,
@@ -844,7 +841,8 @@ function modelCallMetadata(
     cachedInputCostUsd: costMetadata.cachedInputCostUsd,
     outputCostUsd: costMetadata.outputCostUsd,
     promptSource: 'code_template',
-    promptName: 'fleetgraph.proactive_create',
+    promptName: promptNameForTrigger(triggerType),
+    promptVersion: promptVersionForTrigger(triggerType),
   });
 }
 
@@ -896,10 +894,6 @@ function gitSha(): string | undefined {
     gitShaCache = null;
   }
   return gitShaCache ?? undefined;
-}
-
-function stableHash(value: string): string {
-  return `sha256:${createHash('sha256').update(value).digest('hex').slice(0, 16)}`;
 }
 
 function stringValue(value: unknown): string | undefined {

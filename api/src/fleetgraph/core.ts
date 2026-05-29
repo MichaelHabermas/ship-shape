@@ -9,14 +9,20 @@ import {
   recommendedActionForVisibleOutput,
   visibleOutputForFinding,
 } from './evidence.js';
-import { generateProactiveCreateText } from './model.js';
+import { generateContextChatText, generateProactiveCreateText } from './model.js';
 import { audienceForCandidate, nextActionForCandidate } from './runtime/audience.js';
 import {
   chatAnswerFromChangeSummary,
-  chatAnswerForIntent,
   classifyFleetGraphChatPrompt,
+  decisionForContextChatIntent,
   unsupportedChatAnswer,
 } from './runtime/chat.js';
+import {
+  chatModelAnswerFromContext,
+  contextTextForModel,
+  deterministicContextChatAnswer,
+  resolveContextChatBundle,
+} from './runtime/context-chat.js';
 import { deterministicRefinedDraft } from './runtime/drafts.js';
 import { isJsonRecord } from './runtime/json.js';
 import { changeSummaryFromOutputs, visibleOutputFromPacket, visibleOutputFromRun } from './runtime/outputs.js';
@@ -41,14 +47,14 @@ import {
   type FleetGraphNodeRecorder,
 } from './observability-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
+import { fleetGraphStableHash } from './trace-hash.js';
+import { noModelCostMetadata, noModelTokenMetadata } from './usage-metadata.js';
 import { resultFor, runInputFor } from './runtime/run-recording.js';
 import type { FleetGraphEvidenceItem, FleetGraphSignalType } from '@ship/shared';
 import type {
-  FleetGraphCostMetadata,
   FleetGraphDecisionPacket,
   FleetGraphInput,
   FleetGraphResult,
-  FleetGraphTokenMetadata,
   FleetGraphTraceMetadata,
   FleetGraphVisibleOutput,
 } from './types.js';
@@ -168,19 +174,11 @@ export async function runFleetGraph(
 
 function traceSafeRunInputs(input: FleetGraphInput): Record<string, unknown> {
   return {
-    workspaceHash: hashForTrace(input.workspaceId),
+    workspaceHash: fleetGraphStableHash(input.workspaceId),
     mode: input.mode,
     triggerType: input.trigger.type,
     triggerReason: input.triggerReason ?? input.trigger.type,
   };
-}
-
-function hashForTrace(value: string): string {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
-  }
-  return `fg_${Math.abs(hash).toString(36)}`;
 }
 
 function shouldAutoCaptureTrace(options: FleetGraphCoreOptions): boolean {
@@ -202,7 +200,7 @@ function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord 
 
 function fleetGraphRuntime(context: FleetGraphRuntimeContext) {
   return new StateGraph(FleetGraphState)
-    .addNode('normalizeTrigger', (state) => tracedFleetGraphNode('normalizeTrigger', context, () =>
+    .addNode('normalizeTrigger', (state: FleetGraphStateValue) => tracedFleetGraphNode('normalizeTrigger', context, () =>
       Promise.resolve(normalizeTriggerNode(state, context))
     ))
     .addNode('detectorDecision', () => tracedFleetGraphNode('detectorDecision', context, () => detectorDecisionNode(context)))
@@ -284,6 +282,7 @@ function routeFleetGraphTrigger(state: FleetGraphStateValue): FleetGraphNodeName
     case 'error':
       return 'errorRun';
   }
+  throw new Error(`Unhandled FleetGraph trigger type: ${String(state.triggerType)}`);
 }
 
 async function detectorDecisionNode(context: FleetGraphRuntimeContext): Promise<Partial<FleetGraphStateValue>> {
@@ -654,98 +653,74 @@ async function runContextChat(
   triggerReason: string,
   options: FleetGraphCoreOptions
 ): Promise<FleetGraphResult> {
-  const finding = await resolveContextChatFinding(input, persistence);
-  if (!finding) {
+  const bundle = await resolveContextChatBundle(input, persistence, options);
+  if (bundle.documents.length === 0 && bundle.signals.length === 0) {
     return runContextChatQuietExit(
       input,
       persistence,
       triggerReason,
-      'Open a FleetGraph notification or a blocked issue with an active finding before asking.',
+      'Open an issue, week, project, program, document, or notification before asking.',
       options
     );
   }
 
-  const { evidence, output } = await visibleOutputForFinding({
-    principal: input.principal,
-    workspaceId: input.workspaceId,
-    finding,
-    db: options.db,
-  });
-  if (output.noSafeOutput) {
-    return runRestrictedFindingQuietExit(input, persistence, triggerReason, finding, evidence, output, options);
-  }
-
+  const primarySignal = bundle.signals[0];
   const intent = classifyFleetGraphChatPrompt(input.trigger.prompt);
-  if (intent === 'summarize_changes') {
-    return runContextChatChangeSummary(input, persistence, triggerReason, finding, evidence, output, options);
-  }
-  if (intent === 'unsupported') {
-    return runContextChatQuietExit(
+  if (intent === 'summarize_changes' && primarySignal) {
+    return runContextChatChangeSummary(
       input,
       persistence,
       triggerReason,
-      'I can answer from the attached issue, notification, or week context. Workspace-wide questions need a narrower source first.',
+      primarySignal.finding,
+      primarySignal.evidence,
+      primarySignal.output,
       options
     );
   }
 
-  const decision = intent === 'next_step' || intent === 'unblocker' ? 'needs_confirmation' : 'explain';
-  const answer = chatAnswerForIntent(intent, output);
+  const modelResult = await generateContextChatText({
+    prompt: input.trigger.prompt,
+    context: contextTextForModel(bundle),
+  });
+  const answer = modelResult
+    ? chatModelAnswerFromContext(modelResult.answer, bundle)
+    : deterministicContextChatAnswer(input.trigger.prompt, bundle);
+  const decision = decisionForContextChatIntent(intent);
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,
     decision,
-    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentObject', 'filterVisibleEvidence', 'contextChat', 'produceOutput'],
+    nodePath: ['normalizeTrigger', 'resolveScope', 'fetchCurrentContext', 'contextChat', 'produceOutput'],
     ...options.externalTrace,
   });
   const runInput = runInputFor({
     input,
     triggerReason,
     decision,
-    findingId: finding.id,
-    sourceIssueId: finding.source_issue_id,
-    sourceSprintId: finding.source_sprint_id,
-    dedupeKey: finding.dedupe_key,
-    evidence,
-    output: { answer, visibleOutput: output },
+    findingId: primarySignal?.finding.id,
+    sourceIssueId: primarySignal?.finding.source_issue_id ?? (bundle.documents[0]?.document_type === 'issue' ? bundle.documents[0].id : undefined),
+    sourceSprintId: primarySignal?.finding.source_sprint_id,
+    dedupeKey: primarySignal?.finding.dedupe_key,
+    evidence: bundle.evidence,
+    output: { answer, contextDocuments: bundle.documents.map((document) => ({ id: document.id, title: document.title, type: document.document_type })) },
     traceMetadata,
-    tokenMetadata: noModelTokenMetadata(),
-    costMetadata: noModelCostMetadata(),
+    tokenMetadata: modelResult?.tokenMetadata ?? noModelTokenMetadata(),
+    costMetadata: modelResult?.costMetadata ?? noModelCostMetadata(),
     errorMetadata: observabilityErrorMetadata(options),
   });
   const run = await persistence.recordRun(runInput);
 
   return resultFor({
     decision,
-    finding,
+    finding: primarySignal?.finding ?? null,
     run,
     runInput,
-    visibleOutput: output,
-    evidence,
+    visibleOutput: bundle.visibleOutput,
+    evidence: bundle.evidence,
     traceMetadata,
-    tokenMetadata: noModelTokenMetadata(),
-    costMetadata: noModelCostMetadata(),
+    tokenMetadata: modelResult?.tokenMetadata ?? noModelTokenMetadata(),
+    costMetadata: modelResult?.costMetadata ?? noModelCostMetadata(),
     errorMetadata: observabilityErrorMetadata(options),
   });
-}
-
-async function resolveContextChatFinding(
-  input: FleetGraphInput & { trigger: Extract<FleetGraphInput['trigger'], { type: 'context_chat' }> },
-  persistence: FleetGraphPersistencePort
-): Promise<FleetGraphFinding | null> {
-  const { context } = input.trigger;
-  if (context.findingId) return persistence.getFinding(input.workspaceId, context.findingId);
-
-  if (!context.documentId) return null;
-  if (context.kind === 'sprint') {
-    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceSprintId: context.documentId });
-    return findings[0] ?? null;
-  }
-  if (context.kind === 'issue' || context.kind === 'document') {
-    const findings = await persistence.listFindingsForSource({ workspaceId: input.workspaceId, sourceIssueId: context.documentId });
-    return findings[0] ?? null;
-  }
-
-  return null;
 }
 
 async function runContextChatChangeSummary(
@@ -1193,19 +1168,4 @@ function attentionReasonTraceNode(
   }
   if (signalType === 'stale') return 'reasonStale';
   return 'reasonAtRisk';
-}
-
-function noModelTokenMetadata(): FleetGraphTokenMetadata {
-  return {
-    modelCalls: 0,
-    usageSource: 'none',
-    noUsageReason: 'deterministic_no_model_call',
-  };
-}
-
-function noModelCostMetadata(): FleetGraphCostMetadata {
-  return {
-    costSource: 'none',
-    noCostReason: 'deterministic_no_model_call',
-  };
 }

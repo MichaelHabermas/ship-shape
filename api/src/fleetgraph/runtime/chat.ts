@@ -1,8 +1,9 @@
 // FleetGraph chat helpers keep typed on-demand prompts scoped to the active context.
 import type { FleetGraphChangeSummary } from '@ship/shared';
+import type { FleetGraphRunDecision } from '../persistence.js';
 import type { FleetGraphVisibleOutput } from '../types.js';
 
-type FleetGraphChatAnswerPayload = {
+export type FleetGraphChatAnswerPayload = {
   title: string;
   body: string;
   nextStep?: string;
@@ -50,6 +51,21 @@ export function classifyFleetGraphChatPrompt(prompt: string): FleetGraphChatInte
   }
 
   return 'unsupported';
+}
+
+export function decisionForContextChatIntent(intent: FleetGraphChatIntent): FleetGraphRunDecision {
+  if (intent === 'unblocker' || intent === 'next_step') return 'needs_confirmation';
+  if (intent === 'summarize_changes') return 'summarize_changes';
+  return 'explain';
+}
+
+export function mergeChatSources(
+  ...sourceLists: Array<Array<{ label: string; kind: string }>>
+): Array<{ label: string; kind: string }> {
+  const items = sourceLists.flat();
+  return items.filter((source, index) => (
+    items.findIndex((item) => item.label === source.label && item.kind === source.kind) === index
+  ));
 }
 
 export function chatAnswerFromVisibleOutput(output: FleetGraphVisibleOutput): FleetGraphChatAnswerPayload {

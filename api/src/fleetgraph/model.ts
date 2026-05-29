@@ -2,11 +2,18 @@
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { FLEETGRAPH_DEFAULT_MODEL, resolveFleetGraphModelPricing } from '../config/fleetgraph-models.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
+import { noModelCostMetadata, noModelTokenMetadata } from './usage-metadata.js';
 import type { FleetGraphCostMetadata, FleetGraphTokenMetadata } from './types.js';
 
 export type FleetGraphProactiveCreateModelResult = {
   summary: string;
   draftMessage: string;
+  tokenMetadata: FleetGraphTokenMetadata;
+  costMetadata: FleetGraphCostMetadata;
+};
+
+export type FleetGraphContextChatModelResult = {
+  answer: string;
   tokenMetadata: FleetGraphTokenMetadata;
   costMetadata: FleetGraphCostMetadata;
 };
@@ -53,6 +60,44 @@ export async function generateProactiveCreateText(input: {
   };
 }
 
+export async function generateContextChatText(input: {
+  prompt: string;
+  context: string;
+  modelEnabled?: boolean;
+}): Promise<FleetGraphContextChatModelResult | null> {
+  const config = fleetGraphConfig();
+  const shouldCallModel = input.modelEnabled ?? (
+    process.env.FLEETGRAPH_REAL_MODEL_ENABLED === 'true'
+    && Boolean(config.modelName)
+    && Boolean(process.env.OPENAI_API_KEY)
+  );
+
+  if (!shouldCallModel) return null;
+
+  const { ChatOpenAI } = await import('@langchain/openai');
+  const modelName = config.modelName ?? FLEETGRAPH_DEFAULT_MODEL;
+  const model = new ChatOpenAI(chatOpenAIOptions(modelName));
+  const response = await model.invoke([
+    ['system', [
+      'You are Ship chat. Answer naturally and directly.',
+      'Use the provided Ship context when it helps.',
+      'If the user asks a general question that is not about the Ship context, answer it as a normal chat question instead of forcing it back to the context.',
+      'Use Markdown for structure when it improves readability. Do not claim Ship changed data or contacted anyone.',
+    ].join(' ')],
+    ['human', [
+      `Ship context:\n${input.context || '(none)'}`,
+      `User question:\n${input.prompt}`,
+    ].join('\n\n')],
+  ]);
+  const tokenMetadata = tokenMetadataFromResponse(response, modelName);
+  const costMetadata = costMetadataFromResponse(response, tokenMetadata, modelName);
+  return {
+    answer: String(response.content).trim(),
+    tokenMetadata,
+    costMetadata,
+  };
+}
+
 function chatOpenAIOptions(modelName: string): { model: string; temperature?: number } {
   return modelSupportsCustomTemperature(modelName)
     ? { model: modelName, temperature: 0 }
@@ -82,15 +127,8 @@ export function deterministicProactiveCreateText(candidate: FleetGraphAttentionC
   return {
     summary: deterministicSummary(candidate),
     draftMessage: deterministicDraft(candidate),
-    tokenMetadata: {
-      modelCalls: 0,
-      usageSource: 'none',
-      noUsageReason: 'deterministic_no_model_call',
-    },
-    costMetadata: {
-      costSource: 'none',
-      noCostReason: 'deterministic_no_model_call',
-    },
+    tokenMetadata: noModelTokenMetadata(),
+    costMetadata: noModelCostMetadata(),
   };
 }
 

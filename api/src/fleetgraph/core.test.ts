@@ -1,5 +1,7 @@
 // Verifies the shared FleetGraph core boundary without real model calls or Ship mutations.
+import type { FleetGraphEvidenceItem } from '@ship/shared';
 import { describe, expect, it, vi } from 'vitest';
+import { pool } from '../db/client.js';
 import { pgResult } from '../test/pg-result.js';
 import { runFleetGraph, type FleetGraphPersistencePort } from './core.js';
 import { evidenceFromDetectorCandidate, filterEvidenceForActor, visibleOutputForFinding } from './evidence.js';
@@ -17,6 +19,8 @@ const sprintId = '33333333-3333-4333-8333-333333333333';
 const findingId = '44444444-4444-4444-8444-444444444444';
 const userId = '55555555-5555-4555-8555-555555555555';
 const dedupeKey = blockedImportantIssueDedupeKey({ workspaceId, issueId, sprintId });
+
+type TestQueryRunner = Pick<typeof pool, 'query'>;
 
 const principal: Principal = {
   kind: 'session',
@@ -167,6 +171,44 @@ function readableSourceDb() {
         archived_at: null,
         deleted_at: null,
       }])),
+  };
+}
+
+function contextChatDb(): TestQueryRunner {
+  return {
+    query: vi.fn(async (sql: string, params?: unknown[]) => {
+      if (sql.includes('workspace_memberships')) {
+        return pgResult([{ role: 'member' }]);
+      }
+      if (sql.includes('document_associations')) {
+        return pgResult([]);
+      }
+      if (sql.includes('FROM documents')) {
+        const documentId = String(params?.[0] ?? '');
+        if (documentId === issueId) {
+          return pgResult([{
+            id: issueId,
+            title: 'Blocked issue',
+            document_type: 'issue',
+            properties: { priority: 'urgent', state: 'in_progress' },
+            content: null,
+            yjs_state: null,
+          }]);
+        }
+        if (documentId === sprintId) {
+          return pgResult([{
+            id: sprintId,
+            title: 'Week 2',
+            document_type: 'sprint',
+            properties: { sprint_number: 2 },
+            content: null,
+            yjs_state: null,
+          }]);
+        }
+        return pgResult([]);
+      }
+      return pgResult([{ role: 'member' }]);
+    }) as unknown as TestQueryRunner['query'],
   };
 }
 
@@ -336,10 +378,8 @@ describe('FleetGraph shared core', () => {
 
     expect(result.decision).toBe('explain');
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
-    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
-      decision: 'explain',
-      tokenMetadata: expect.objectContaining({ modelCalls: 0 }),
-    }));
+    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'explain' }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 
   it('records caller-provided external trace identity in run metadata', async () => {
@@ -386,7 +426,7 @@ describe('FleetGraph shared core', () => {
           sourcePath: `/documents/${issueId}`,
         },
       },
-    }, { persistence: port, db: readableSourceDb() });
+    }, { persistence: port, db: contextChatDb() });
 
     expect(result.decision).toBe('needs_confirmation');
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
@@ -396,8 +436,8 @@ describe('FleetGraph shared core', () => {
       decision: 'needs_confirmation',
       triggerReason: 'context_chat',
       inputSnapshot: { triggerType: 'context_chat' },
-      tokenMetadata: expect.objectContaining({ modelCalls: 0 }),
     }));
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
   });
 
   it('answers natural current-context prompts from an attached finding', async () => {
@@ -416,7 +456,7 @@ describe('FleetGraph shared core', () => {
           sourcePath: `/documents/${issueId}`,
         },
       },
-    }, { persistence: port, db: readableSourceDb() });
+    }, { persistence: port, db: contextChatDb() });
 
     expect(result.decision).toBe('explain');
     expect(result.visibleOutput?.summary).toContain('Blocked issue');
@@ -439,7 +479,7 @@ describe('FleetGraph shared core', () => {
           sourcePath: `/documents/${issueId}`,
         },
       },
-    }, { persistence: port, db: readableSourceDb() });
+    }, { persistence: port, db: contextChatDb() });
 
     expect(result.decision).toBe('explain');
     const runInput = requireMockInput(vi.mocked(port.recordRun));
@@ -466,7 +506,7 @@ describe('FleetGraph shared core', () => {
           sourcePath: `/documents/${issueId}`,
         },
       },
-    }, { persistence: port, db: readableSourceDb() });
+    }, { persistence: port, db: contextChatDb() });
 
     expect(result.decision).toBe('explain');
     const runInput = requireMockInput(vi.mocked(port.recordRun));
@@ -478,7 +518,7 @@ describe('FleetGraph shared core', () => {
     expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('workspace-wide');
   });
 
-  it('quietly declines context chat when no active finding is attached', async () => {
+  it('answers from a readable document when no finding is attached', async () => {
     const port = persistence();
     vi.mocked(port.listFindingsForSource).mockResolvedValue([]);
 
@@ -495,17 +535,16 @@ describe('FleetGraph shared core', () => {
           sourcePath: `/documents/${issueId}`,
         },
       },
-    }, { persistence: port, db: readableSourceDb() });
+    }, { persistence: port, db: contextChatDb() });
 
-    expect(result.decision).toBe('quiet_exit');
-    expect(result.visibleOutput?.title).toBe('FleetGraph needs context');
-    expect(result.traceMetadata.nodePath).toContain('contextChatUnsupported');
-    expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({
-      decision: 'quiet_exit',
-      triggerReason: 'context_chat',
-      inputSnapshot: { triggerType: 'context_chat' },
-      tokenMetadata: expect.objectContaining({ modelCalls: 0 }),
-    }));
+    expect(result.decision).toBe('needs_confirmation');
+    expect(result.visibleOutput).toBeUndefined();
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.outputSnapshot).toMatchObject({
+      answer: {
+        title: 'Blocked issue',
+      },
+    });
   });
 
   it('preserves process-level LangSmith env flags during graph runs', async () => {
@@ -801,7 +840,7 @@ describe('FleetGraph shared core', () => {
     });
 
     expect(bundle.noSafeOutput).toBe(false);
-    expect(bundle.evidence.some((item) => item.kind === 'dedupe')).toBe(false);
+    expect(bundle.evidence.some((item: FleetGraphEvidenceItem) => item.kind === 'dedupe')).toBe(false);
     expect(JSON.stringify(bundle.evidence)).not.toContain(dedupeKey);
   });
 
