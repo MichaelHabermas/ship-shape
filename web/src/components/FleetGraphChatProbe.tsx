@@ -358,7 +358,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
       const response = await apiPostJson<FleetGraphChatResponse>(
         '/api/fleetgraph/chat',
         { prompt, context },
-        'Failed to ask FleetGraph'
+        'Failed to ask Ship'
       );
       setChatTurns((turns) => turns.map((turn) => turn.id === turnId
         ? { ...turn, status: 'ready', response }
@@ -497,7 +497,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
                 onChange={handleDraftChange}
                 onKeyDown={handleDraftKeyDown}
                 rows={1}
-                placeholder={activeNotification ? 'Ask about this signal...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
+                placeholder={activeNotification ? 'Ask anything...' : `Ask about this ${surfaceLabel.toLowerCase()}...`}
                 className="scrollbar-hide max-h-[120px] min-h-6 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 text-sm leading-5 text-foreground outline-none ring-0 placeholder:text-muted focus:outline-none focus:ring-0"
               />
               <button
@@ -686,7 +686,7 @@ function UserMessage({ children }: { children: string }) {
 function AssistantThinking() {
   return (
     <div className="w-full text-sm leading-5 text-muted">
-      Checking...
+      Thinking...
     </div>
   );
 }
@@ -694,7 +694,7 @@ function AssistantThinking() {
 function chatErrorMessage(status: number | undefined): string {
   if (status === 401) return 'Your session expired. Refresh and sign in again.';
   if (status === 403) return 'Chat was rejected by the API. Refresh the page and try again.';
-  if (status === 404) return 'Ship could not find a visible finding for this context.';
+  if (status === 404) return 'Ship could not find visible context for this chat.';
   if (status === 429) return 'Chat is rate limited. Try again in a minute.';
   if (status && status >= 500) return 'The Ship API is unavailable right now.';
   return 'Ship could not reach the chat service.';

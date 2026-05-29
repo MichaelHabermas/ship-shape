@@ -115,6 +115,18 @@ describe('generateProactiveCreateText', () => {
     });
     expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.00132);
   });
+
+  it('estimates GPT-5.4 cost from the pricing catalog', async () => {
+    process.env.FLEETGRAPH_MODEL = 'gpt-5.4';
+
+    const result = await generateProactiveCreateText({ candidate });
+
+    expect(result.costMetadata).toMatchObject({
+      currency: 'USD',
+      costSource: 'catalog_estimate',
+    });
+    expect(result.costMetadata.estimatedCostUsd).toBeCloseTo(0.00066);
+  });
 });
 
 const candidate: FleetGraphAttentionCandidate = {

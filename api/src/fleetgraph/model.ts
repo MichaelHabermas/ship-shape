@@ -2,6 +2,7 @@
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { FLEETGRAPH_DEFAULT_MODEL, resolveFleetGraphModelPricing } from '../config/fleetgraph-models.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
+import { noModelCostMetadata, noModelTokenMetadata } from './usage-metadata.js';
 import type { FleetGraphCostMetadata, FleetGraphTokenMetadata } from './types.js';
 
 export type FleetGraphProactiveCreateModelResult = {
@@ -82,15 +83,8 @@ export function deterministicProactiveCreateText(candidate: FleetGraphAttentionC
   return {
     summary: deterministicSummary(candidate),
     draftMessage: deterministicDraft(candidate),
-    tokenMetadata: {
-      modelCalls: 0,
-      usageSource: 'none',
-      noUsageReason: 'deterministic_no_model_call',
-    },
-    costMetadata: {
-      costSource: 'none',
-      noCostReason: 'deterministic_no_model_call',
-    },
+    tokenMetadata: noModelTokenMetadata(),
+    costMetadata: noModelCostMetadata(),
   };
 }
 
