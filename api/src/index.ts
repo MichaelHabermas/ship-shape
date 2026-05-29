@@ -1,5 +1,5 @@
 // API bootstrap wires Express, collaboration, FleetGraph worker, and graceful shutdown.
-import { createServer } from 'http';
+import { createServer, type RequestListener } from 'http';
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -13,6 +13,50 @@ config({ path: join(__dirname, '../.env.local') });
 config({ path: join(__dirname, '../.env') });
 
 async function main() {
+  const PORT = process.env.PORT || 3000;
+  const HOST = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : 'localhost');
+  const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  let closeCollaboration: () => Promise<void> | void = () => undefined;
+  let stopFleetGraphWorker: () => void | Promise<void> = () => undefined;
+
+  const bootHealthHandler: RequestListener = (req, res) => {
+    if (req.url?.split('?')[0] === '/health') {
+      res.writeHead(200, {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': CORS_ORIGIN,
+        'Content-Type': 'application/json; charset=utf-8',
+        'Vary': 'Origin',
+      });
+      res.end(JSON.stringify({ status: 'starting' }));
+      return;
+    }
+
+    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: 'API is starting' }));
+  };
+  const server = createServer(bootHealthHandler);
+
+  // DDoS protection: Set server-wide timeouts to prevent slow-read attacks (Slowloris)
+  server.timeout = 60000; // 60 seconds max request duration
+  server.keepAliveTimeout = 65000; // 65 seconds (slightly longer than timeout)
+  server.headersTimeout = 66000; // 66 seconds (slightly longer than keepAlive)
+
+  const shutdownController = createShutdownController({
+    server,
+    cleanup: async () => {
+      await stopFleetGraphWorker();
+      await closeCollaboration();
+      const { closeDatabasePool } = await import('./db/client.js');
+      await closeDatabasePool();
+    },
+  });
+  installRuntimeShutdownHandlers(shutdownController);
+
+  server.listen(Number(PORT), HOST, () => {
+    console.log(`API server listening on http://${HOST}:${PORT}`);
+    console.log(`CORS origin: ${CORS_ORIGIN}`);
+  });
+
   // Load secrets from SSM in production (before importing app)
   if (process.env.NODE_ENV === 'production') {
     const { loadProductionSecrets } = await import('./config/ssm.js');
@@ -22,46 +66,17 @@ async function main() {
   // Now import app after secrets are loaded
   const { createApp } = await import('./app.js');
   const { setupCollaboration } = await import('./collaboration/index.js');
-  const { closeDatabasePool } = await import('./db/client.js');
-
-  const PORT = process.env.PORT || 3000;
-  const HOST = process.env.HOST || (process.env.RENDER ? '0.0.0.0' : 'localhost');
-  const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
   const app = createApp(CORS_ORIGIN);
-  const server = createServer(app);
-
-  // DDoS protection: Set server-wide timeouts to prevent slow-read attacks (Slowloris)
-  server.timeout = 60000; // 60 seconds max request duration
-  server.keepAliveTimeout = 65000; // 65 seconds (slightly longer than timeout)
-  server.headersTimeout = 66000; // 66 seconds (slightly longer than keepAlive)
+  server.removeListener('request', bootHealthHandler);
+  server.on('request', app);
 
   // Setup WebSocket collaboration server
-  const closeCollaboration = setupCollaboration(server, { allowedOrigin: CORS_ORIGIN });
-  let stopFleetGraphWorker: () => void | Promise<void> = () => undefined;
+  closeCollaboration = setupCollaboration(server, { allowedOrigin: CORS_ORIGIN });
 
-  const shutdownController = createShutdownController({
-    server,
-    cleanup: async () => {
-      await stopFleetGraphWorker();
-      await closeCollaboration();
-      await closeDatabasePool();
-    },
-  });
-  installRuntimeShutdownHandlers(shutdownController);
-
-  // Start server
-  server.listen(Number(PORT), HOST, () => {
-    console.log(`API server running on http://${HOST}:${PORT}`);
-    console.log(`CORS origin: ${CORS_ORIGIN}`);
-    import('./fleetgraph/execution/worker.js')
-      .then(({ startFleetGraphWorker }) => {
-        stopFleetGraphWorker = startFleetGraphWorker();
-      })
-      .catch((err) => {
-        console.error('Failed to start FleetGraph worker:', err);
-      });
-  });
+  const { startFleetGraphWorker } = await import('./fleetgraph/execution/worker.js');
+  stopFleetGraphWorker = startFleetGraphWorker();
+  console.log('API app ready');
 }
 
 main().catch((err) => {
