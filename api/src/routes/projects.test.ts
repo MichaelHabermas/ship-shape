@@ -19,8 +19,24 @@ vi.mock('../middleware/auth.js', () => ({
   authMiddleware: vi.fn((req, _res, next) => {
     req.userId = 'user-123';
     req.workspaceId = 'ws-123';
+    req.sessionId = 'test-session';
     next();
   }),
+}));
+
+vi.mock('../services/mutation-capability-guard.js', () => ({
+  guardDocumentMutation: vi.fn().mockResolvedValue({ ok: true }),
+  guardDocumentCreate: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
+vi.mock('../security/principal.js', () => ({
+  principalFromRequest: vi.fn(() => ({
+    kind: 'session',
+    sessionId: 'test-session',
+    userId: 'user-123',
+    workspaceId: 'ws-123',
+    isSuperAdmin: false,
+  })),
 }));
 
 vi.mock('../security/route-capability.js', () => {
@@ -326,9 +342,9 @@ describe('Projects API', () => {
   describe('DELETE /api/projects/:id', () => {
     it('deletes project and removes references', async () => {
       vi.mocked(pool.query)
-        // Access check
+        // Existence check
         .mockResolvedValueOnce(pgResult([{ id: 'project-123' }]))
-        // Remove project_id from children
+        // Remove project associations
         .mockResolvedValueOnce(pgCommand(0))
         // Delete project
         .mockResolvedValueOnce(pgCommand(1, 'DELETE'));

@@ -1,17 +1,14 @@
+// Document visibility reads and reference checks for routes and capability authorization.
 import type { Request } from 'express';
 import type { Pool, PoolClient } from 'pg';
 import type { BelongsToType, DocumentType } from '@ship/shared';
 import { pool } from '../db/client.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
+export type { DocumentActor } from '../security/document-actor.js';
+import type { DocumentActor } from '../security/document-actor.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
-
-export interface DocumentActor {
-  userId: string;
-  workspaceId: string;
-  isSuperAdmin: boolean;
-}
 
 export interface AccessibleDocument {
   id: string;
@@ -47,7 +44,7 @@ export async function getDocumentAccessContext(
     return { actor, isAdmin: true };
   }
 
-  const result = await db.query(
+  const result = await db.query<{ role: string }>(
     'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
     [actor.workspaceId, actor.userId]
   );
@@ -92,7 +89,7 @@ export async function getReadableDocument(
     ? [docId, actor.workspaceId, actor.userId, isAdmin, expectedType]
     : [docId, actor.workspaceId, actor.userId, isAdmin];
 
-  const result = await db.query(
+  const result = await db.query<AccessibleDocument>(
     `SELECT d.id, d.title, d.document_type, d.workspace_id, d.created_by,
             d.visibility, d.properties, d.archived_at, d.deleted_at
       FROM documents d
@@ -106,6 +103,39 @@ export async function getReadableDocument(
   );
 
   return result.rows[0] ?? null;
+}
+
+export async function getReadableDocumentsBatch(
+  db: QueryRunner,
+  actor: DocumentActor,
+  docIds: string[],
+  expectedType?: DocumentType,
+  options: { includeArchived?: boolean; includeDeleted?: boolean } = {}
+): Promise<AccessibleDocument[]> {
+  if (docIds.length === 0) return [];
+
+  const { isAdmin } = await getDocumentAccessContext(actor, db);
+  const typeFilter = expectedType ? 'AND d.document_type = $5' : '';
+  const archiveFilter = options.includeArchived ? '' : 'AND d.archived_at IS NULL';
+  const deletedFilter = options.includeDeleted ? '' : 'AND d.deleted_at IS NULL';
+  const params = expectedType
+    ? [docIds, actor.workspaceId, actor.userId, isAdmin, expectedType]
+    : [docIds, actor.workspaceId, actor.userId, isAdmin];
+
+  const result = await db.query<AccessibleDocument>(
+    `SELECT d.id, d.title, d.document_type, d.workspace_id, d.created_by,
+            d.visibility, d.properties, d.archived_at, d.deleted_at
+      FROM documents d
+     WHERE d.id = ANY($1::uuid[])
+       AND d.workspace_id = $2
+        ${deletedFilter}
+        ${archiveFilter}
+        ${typeFilter}
+        AND ${visibilityPredicate('d', '$3', '$4')}`,
+    params
+  );
+
+  return result.rows;
 }
 
 export async function canReadDocument(

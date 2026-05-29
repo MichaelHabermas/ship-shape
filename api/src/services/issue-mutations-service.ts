@@ -3,20 +3,14 @@ import type { Pool, PoolClient } from 'pg';
 import type { BelongsTo, IssueProperties } from '@ship/shared';
 import { pool } from '../db/client.js';
 import { extractIssueFromRow, type IssueDocumentRow } from '../db/documents-repository.js';
-import {
-  authorize,
-  capabilityDenialStatus,
-  type DocumentMutationCapability,
-} from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
-import type { DocumentType } from '@ship/shared';
+import { guardIssueCreate, guardIssueMutation } from './issue-mutation-guards.js';
+export { bulkUpdateIssuesMutation, type BulkUpdateIssuesInput } from './issue-bulk-mutations.js';
 import {
   logDocumentChange,
   getTimestampUpdates,
   getBelongsToAssociations,
-  getBelongsToAssociationsBatch,
   syncBelongsToAssociations,
-  syncAssociationOfTypeForDocuments,
 } from '../utils/document-crud.js';
 import { broadcastToUser } from '../collaboration/index.js';
 import {
@@ -36,7 +30,6 @@ import {
 import { requireFirstRow } from '../utils/query-rows.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../fleetgraph/events.js';
 import {
-  issueStateSchema,
   type createIssueRequestSchema,
   type updateIssueRequestSchema,
 } from '../schemas/document-boundary.js';
@@ -50,7 +43,6 @@ export type IssueMutationResult<T> =
 
 type TicketNumberRow = { next_number: number };
 type CountRow = { count: string | number };
-type IdRow = { id: string };
 type IssueTitlePropertiesRow = {
   id: string;
   title: string;
@@ -89,57 +81,6 @@ export type UpdateIssueInput = {
   issueId: string;
   data: z.infer<typeof updateIssueRequestSchema>;
 };
-
-export type BulkUpdateIssuesInput = {
-  client: PoolClient;
-  principal: Principal;
-  userId: string;
-  workspaceId: string;
-  ids: string[];
-  action: 'archive' | 'delete' | 'restore' | 'update';
-  updates?: {
-    state?: z.infer<typeof issueStateSchema>;
-    sprint_id?: string | null;
-    assignee_id?: string | null;
-    project_id?: string | null;
-  };
-};
-
-async function guardIssueMutation(
-  db: QueryRunner,
-  principal: Principal,
-  spec: DocumentMutationCapability & { expectedType?: DocumentType }
-): Promise<IssueMutationResult<never> | null> {
-  const decision = await authorize(db, principal, {
-    resource: 'document',
-    action: spec.action,
-    documentId: spec.documentId,
-    enforce: spec.enforce,
-    includeArchived: spec.includeArchived,
-    expectedType: spec.expectedType,
-  });
-  if (decision.allowed) return null;
-  const status = capabilityDenialStatus(decision.reason);
-  return {
-    ok: false,
-    status,
-    body: { error: status === 404 ? 'Issue not found' : 'Forbidden' },
-  };
-}
-
-async function guardIssueCreate(
-  db: QueryRunner,
-  principal: Principal
-): Promise<IssueMutationResult<never> | null> {
-  const decision = await authorize(db, principal, { resource: 'document', action: 'write' });
-  if (decision.allowed) return null;
-  const status = capabilityDenialStatus(decision.reason);
-  return {
-    ok: false,
-    status,
-    body: { error: status === 403 ? 'Forbidden' : 'Issue not found' },
-  };
-}
 
 function toCount(value: string | number): number {
   return typeof value === 'number' ? value : Number(value);
@@ -571,220 +512,6 @@ export async function updateIssueMutation(
     status: 200,
     body: { ...issue, display_id: `#${row.ticket_number}`, belongs_to: belongsTo },
   };
-}
-
-export async function bulkUpdateIssuesMutation(
-  input: BulkUpdateIssuesInput
-): Promise<IssueMutationResult<{ updated: Record<string, unknown>[]; failed: { id: string; error: string }[] }>> {
-  const { client, principal, workspaceId, ids, action, updates } = input;
-
-  const failed: { id: string; error: string }[] = [];
-  const validIds: string[] = [];
-
-  if (action === 'restore') {
-    const denied = await guardIssueMutation(client, principal, { action: 'write' });
-    if (denied) return denied;
-
-    const restorableResult = await client.query<IdRow>(
-      `SELECT id FROM documents
-       WHERE id = ANY($1)
-         AND workspace_id = $2
-         AND document_type = 'issue'`,
-      [ids, workspaceId]
-    );
-    const restorableIds = new Set(restorableResult.rows.map((row) => row.id));
-    for (const id of ids) {
-      if (restorableIds.has(id)) {
-        validIds.push(id);
-      } else {
-        failed.push({ id, error: 'Issue not found' });
-      }
-    }
-  } else {
-  for (const id of ids) {
-    const denied = await guardIssueMutation(client, principal, {
-      action: 'write',
-      documentId: id,
-      expectedType: 'issue',
-    });
-    if (denied) {
-      failed.push({ id, error: denied.body.error as string });
-      continue;
-    }
-    validIds.push(id);
-  }
-  }
-
-  await client.query('BEGIN');
-
-  if (validIds.length === 0) {
-    await client.query('ROLLBACK');
-    return { ok: false, status: 404, body: { error: 'No valid issues found', failed } };
-  }
-
-  let targetIds = [...validIds];
-  let result: { rows: IssueDocumentRow[] };
-
-  switch (action) {
-    case 'archive':
-      result = await client.query<IssueDocumentRow>(
-        `UPDATE documents SET archived_at = NOW(), updated_at = NOW()
-         WHERE id = ANY($1) AND workspace_id = $2
-         RETURNING *`,
-        [validIds, workspaceId]
-      );
-      break;
-
-    case 'delete':
-      {
-        const systemGeneratedResult = await client.query<IdRow>(
-          `SELECT id FROM documents
-           WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'issue'
-             AND properties->>'is_system_generated' = 'true'`,
-          [targetIds, workspaceId]
-        );
-        const blockedIds = new Set(systemGeneratedResult.rows.map((row) => row.id));
-        for (const id of targetIds) {
-          if (blockedIds.has(id)) {
-            failed.push({ id, error: 'Cannot delete system-generated accountability issues' });
-          }
-        }
-        targetIds = targetIds.filter((id) => !blockedIds.has(id));
-        if (targetIds.length === 0) {
-          await client.query('COMMIT');
-          return { ok: true, status: 200, body: { updated: [], failed } };
-        }
-      }
-      result = await client.query<IssueDocumentRow>(
-        `UPDATE documents SET deleted_at = NOW(), updated_at = NOW()
-         WHERE id = ANY($1) AND workspace_id = $2
-         RETURNING *`,
-        [targetIds, workspaceId]
-      );
-      break;
-
-    case 'restore':
-      result = await client.query<IssueDocumentRow>(
-        `UPDATE documents SET archived_at = NULL, deleted_at = NULL, updated_at = NOW()
-         WHERE id = ANY($1) AND workspace_id = $2
-         RETURNING *`,
-        [validIds, workspaceId]
-      );
-      break;
-
-    case 'update':
-      if (!updates || Object.keys(updates).length === 0) {
-        await client.query('ROLLBACK');
-        return { ok: false, status: 400, body: { error: 'Updates required for update action' } };
-      }
-
-      if (updates.sprint_id !== undefined && updates.sprint_id !== null) {
-        const missingEstimateResult = await client.query<IdRow>(
-          `SELECT id FROM documents
-           WHERE id = ANY($1) AND workspace_id = $2 AND document_type = 'issue'
-             AND NOT (
-               properties ? 'estimate'
-               AND jsonb_typeof(properties->'estimate') = 'number'
-               AND (properties->>'estimate')::numeric > 0
-             )`,
-          [targetIds, workspaceId]
-        );
-        const missingEstimateIds = new Set(missingEstimateResult.rows.map((row) => row.id));
-        for (const id of targetIds) {
-          if (missingEstimateIds.has(id)) {
-            failed.push({ id, error: 'estimate_required_for_sprint_assignment' });
-          }
-        }
-        targetIds = targetIds.filter((id) => !missingEstimateIds.has(id));
-        if (targetIds.length === 0) {
-          await client.query('COMMIT');
-          return { ok: true, status: 200, body: { updated: [], failed } };
-        }
-      }
-
-      const setClauses: string[] = ['updated_at = NOW()'];
-      const values: unknown[] = [targetIds, workspaceId];
-      let paramIdx = 3;
-
-      if (updates.state !== undefined) {
-        setClauses.push(`properties = jsonb_set(COALESCE(properties, '{}'), '{state}', $${paramIdx}::jsonb)`);
-        values.push(JSON.stringify(updates.state));
-        paramIdx++;
-      }
-
-      if (updates.assignee_id !== undefined) {
-        setClauses.push(`properties = jsonb_set(COALESCE(properties, '{}'), '{assignee_id}', $${paramIdx}::jsonb)`);
-        values.push(updates.assignee_id === null ? 'null' : JSON.stringify(updates.assignee_id));
-        paramIdx++;
-      }
-
-      result = await client.query<IssueDocumentRow>(
-        `UPDATE documents SET ${setClauses.join(', ')}
-         WHERE id = ANY($1) AND workspace_id = $2
-         RETURNING *`,
-        values
-      );
-
-      if (updates.project_id !== undefined) {
-        let projectId: string | null = updates.project_id;
-        if (projectId !== null) {
-          const projectCheck = await client.query<IdRow>(
-            `SELECT id FROM documents
-             WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-               AND deleted_at IS NULL`,
-            [projectId, workspaceId]
-          );
-          if (projectCheck.rows.length === 0) {
-            projectId = null;
-          }
-        }
-        await syncAssociationOfTypeForDocuments(targetIds, 'project', projectId, client);
-      }
-
-      if (updates.sprint_id !== undefined) {
-        let sprintId: string | null = updates.sprint_id;
-        if (sprintId !== null) {
-          const sprintCheck = await client.query<IdRow>(
-            `SELECT id FROM documents
-             WHERE id = $1 AND workspace_id = $2 AND document_type = 'sprint'
-               AND deleted_at IS NULL`,
-            [sprintId, workspaceId]
-          );
-          if (sprintCheck.rows.length === 0) {
-            sprintId = null;
-          }
-        }
-        await syncAssociationOfTypeForDocuments(targetIds, 'sprint', sprintId, client);
-      }
-      break;
-
-    default:
-      await client.query('ROLLBACK');
-      return { ok: false, status: 400, body: { error: 'Invalid action' } };
-  }
-
-  await client.query('COMMIT');
-
-  await enqueueFleetGraphIssueAttentionEvents({
-    workspaceId,
-    issueIds: result.rows.map((row) => row.id),
-    eventType: updates?.sprint_id !== undefined ? 'issue_week_changed' : 'issue_changed',
-    reason: `bulk_issue_${action}`,
-  });
-
-  const associationsMap = await getBelongsToAssociationsBatch(result.rows.map((row) => row.id));
-  const updated = result.rows.map((row) => {
-    const issue = extractIssueFromRow(row);
-    return {
-      ...issue,
-      display_id: `#${issue.ticket_number}`,
-      archived_at: row.archived_at,
-      deleted_at: row.deleted_at,
-      belongs_to: associationsMap.get(row.id) ?? [],
-    };
-  });
-
-  return { ok: true, status: 200, body: { updated, failed } };
 }
 
 export async function acceptIssueMutation(input: {

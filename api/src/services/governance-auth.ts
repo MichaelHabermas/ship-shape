@@ -1,10 +1,13 @@
+// Week lifecycle and team governance checks (capability-aware, not visibility-only).
 import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db/client.js';
-import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import {
   checkSprintSupervisorAuth,
   type ApprovalAuthResult,
 } from '../utils/approval-workflow.js';
+import type { Principal } from '../security/principal.js';
+import { documentActorFromPrincipal } from '../security/document-actor.js';
+import { guardDocumentMutation } from './mutation-capability-guard.js';
 import {
   type DocumentAccessContext,
   getDocumentAccessContext,
@@ -21,7 +24,7 @@ async function getSprintOwnerReportsTo(
   sprintId: string,
   workspaceId: string
 ): Promise<string | null> {
-  const result = await db.query(
+  const result = await db.query<{ reports_to: string | null }>(
     `SELECT owner_person.properties->>'reports_to' as reports_to
      FROM documents d
      LEFT JOIN documents owner_person
@@ -51,31 +54,37 @@ export async function requireTeamAllocationAuthority(
 
 export async function requireWeekLifecycleAuthority(
   db: QueryRunner,
-  actor: DocumentActor,
+  principal: Principal,
   sprintId: string,
   action: 'start_week' | 'carryover'
 ): Promise<GovernanceAuthResult> {
+  const actor = documentActorFromPrincipal(principal);
   const { isAdmin } = await getDocumentAccessContext(actor, db);
 
-  const sprintResult = await db.query(
-    `SELECT d.id, d.properties,
-            prog.properties->>'accountable_id' as program_accountable_id
-     FROM documents d
-     LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
-     LEFT JOIN documents prog ON prog_da.related_id = prog.id
-     WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'
-       AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-    [sprintId, actor.workspaceId, actor.userId, isAdmin]
+  const writeGuard = await guardDocumentMutation(
+    db,
+    principal,
+    { action: 'write', documentId: sprintId, expectedType: 'sprint' },
+    { notFoundMessage: 'Week not found' }
   );
-
-  if (sprintResult.rows.length === 0) {
-    return { authorized: false, error: 'Week not found' };
+  if (!writeGuard.ok) {
+    return { authorized: false, error: writeGuard.body.error };
   }
 
-  const sprint = sprintResult.rows[0];
+  const sprintProperties = (writeGuard.document?.properties ?? {}) as { owner_id?: string };
+
+  const programResult = await db.query<{ program_accountable_id: string | null }>(
+    `SELECT prog.properties->>'accountable_id' as program_accountable_id
+     FROM document_associations prog_da
+     JOIN documents prog ON prog_da.related_id = prog.id
+     WHERE prog_da.document_id = $1 AND prog_da.relationship_type = 'program'`,
+    [sprintId]
+  );
+  const programAccountableId = programResult.rows[0]?.program_accountable_id ?? null;
+
   const ownerReportsTo = await getSprintOwnerReportsTo(db, sprintId, actor.workspaceId);
   const auth = checkSprintSupervisorAuth(
-    sprint.program_accountable_id,
+    programAccountableId,
     ownerReportsTo,
     actor.userId,
     isAdmin,
@@ -86,7 +95,7 @@ export async function requireWeekLifecycleAuthority(
     return auth;
   }
 
-  const sprintOwnerId = sprint.properties?.owner_id;
+  const sprintOwnerId = sprintProperties.owner_id;
   if (typeof sprintOwnerId === 'string') {
     const ownerUserResult = await db.query<{ user_id: string | null }>(
       `SELECT properties->>'user_id' as user_id

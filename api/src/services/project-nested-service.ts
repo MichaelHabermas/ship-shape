@@ -1,4 +1,10 @@
+// Project nested routes: issues/sprints under a project (writes use capability guards).
 import { pool } from '../db/client.js';
+import type { Principal } from '../security/principal.js';
+import {
+  guardDocumentMutation,
+  type MutationGuardDenial,
+} from './mutation-capability-guard.js';
 import {
   extractSprintFromRow,
   mapProjectIssueRow,
@@ -18,6 +24,10 @@ import type { z } from 'zod';
 export type ProjectNestedResult<T> =
   | { ok: true; status: number; body: T }
   | { ok: false; status: number; body: Record<string, unknown> };
+
+function mapNestedGuardDenial(denial: MutationGuardDenial): ProjectNestedResult<never> {
+  return { ok: false, status: denial.status, body: denial.body };
+}
 
 const PROJECT_SPRINTS_SELECT = `
   SELECT d.id, d.title, d.properties, prog_da.related_id as program_id,
@@ -107,22 +117,30 @@ export async function listProjectSprints(input: {
 }
 
 export async function createProjectSprint(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
   data: z.infer<typeof createProjectSprintSchema>;
 }): Promise<ProjectNestedResult<Record<string, unknown>>> {
-  const { projectId, workspaceId, userId, isAdmin, data } = input;
+  const { principal, projectId, workspaceId, userId, data } = input;
+
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapNestedGuardDenial(writeDenied);
 
   const projectCheck = await pool.query<ProjectWithProgramRow>(
     `SELECT d.id, prog_da.related_id as program_id, w.sprint_start_date
      FROM documents d
      JOIN workspaces w ON d.workspace_id = w.id
      LEFT JOIN document_associations prog_da ON prog_da.document_id = d.id AND prog_da.relationship_type = 'program'
-     WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'
-       AND ${VISIBILITY_FILTER_SQL('d', '$3', '$4')}`,
-    [projectId, workspaceId, userId, isAdmin]
+     WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'project'`,
+    [projectId, workspaceId]
   );
 
   const project = projectCheck.rows[0];

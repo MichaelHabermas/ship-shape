@@ -1,15 +1,17 @@
 // Capability authorization maps principals and scopes to workspace/document decisions.
 import type { Pool, PoolClient } from 'pg';
 import type { BelongsToType, DocumentType } from '@ship/shared';
+import type { DocumentActor } from './document-actor.js';
+import { documentActorFromPrincipal } from './document-actor.js';
+import type { ApiTokenScope, Principal } from './principal.js';
 import {
   canReadAccountabilityDocument,
   expectedTypeForRelationship,
   getDocumentAccessContext,
   getReadableDocument,
+  getReadableDocumentsBatch,
   type AccessibleDocument,
-  type DocumentActor,
 } from '../services/document-access.js';
-import type { ApiTokenScope, Principal } from './principal.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
@@ -60,6 +62,7 @@ export type CapabilityDecision = {
 export type DocumentMutationCapability = {
   action: DocumentCapabilityAction;
   documentId?: string;
+  expectedType?: DocumentType;
   enforce?: DocumentCapabilityEnforce;
   includeArchived?: boolean;
   includeDeleted?: boolean;
@@ -102,11 +105,7 @@ export function documentCommandCapability(command: { type: DocumentCommandType }
 
 function actorFromPrincipal(principal: Principal): DocumentActor | null {
   if (principal.kind === 'setup' || principal.kind === 'fleetgraph_system') return null;
-  return {
-    userId: principal.userId,
-    workspaceId: principal.workspaceId,
-    isSuperAdmin: principal.isSuperAdmin,
-  };
+  return documentActorFromPrincipal(principal);
 }
 
 function decision(
@@ -336,6 +335,71 @@ export async function authorize(
   return decision(principal, false, 'anonymous');
 }
 
+export type DocumentMutationBatchDecision =
+  | { id: string; allowed: true; document: AccessibleDocument }
+  | { id: string; allowed: false; reason: CapabilityDenyReason };
+
+export async function authorizeDocumentMutationsBatch(
+  db: QueryRunner,
+  principal: Principal,
+  documentIds: string[],
+  spec: Omit<DocumentMutationCapability, 'documentId'>
+): Promise<DocumentMutationBatchDecision[]> {
+  const tokenDecision = await authorize(db, principal, {
+    resource: 'document',
+    action: spec.action,
+    enforce: spec.enforce,
+  });
+  if (!tokenDecision.allowed) {
+    const reason =
+      tokenDecision.reason === 'allowed' ? 'token_scope_denied' : tokenDecision.reason;
+    return documentIds.map((id) => ({ id, allowed: false as const, reason }));
+  }
+
+  const actor = actorFromPrincipal(principal);
+  if (!actor) {
+    return documentIds.map((id) => ({ id, allowed: false as const, reason: 'anonymous' as const }));
+  }
+
+  const documents = await getReadableDocumentsBatch(db, actor, documentIds, spec.expectedType, {
+    includeArchived: spec.includeArchived,
+    includeDeleted: spec.includeDeleted,
+  });
+  const byId = new Map(documents.map((document) => [document.id, document]));
+
+  const results: DocumentMutationBatchDecision[] = [];
+  for (const id of documentIds) {
+    const document = byId.get(id);
+    if (!document) {
+      results.push({ id, allowed: false, reason: 'document_not_found' });
+      continue;
+    }
+    if (!(await canReadAccountabilityDocument(db, actor, document))) {
+      results.push({ id, allowed: false, reason: 'accountability_scope_denied' });
+      continue;
+    }
+    const enforceDecision = await enforceDocumentSessionRule(
+      db,
+      principal,
+      actor,
+      {
+        resource: 'document',
+        action: spec.action,
+        enforce: spec.enforce,
+      },
+      document
+    );
+    if (!enforceDecision.allowed) {
+      const reason =
+        enforceDecision.reason === 'allowed' ? 'not_creator_or_admin' : enforceDecision.reason;
+      results.push({ id, allowed: false, reason });
+      continue;
+    }
+    results.push({ id, allowed: true, document });
+  }
+  return results;
+}
+
 export async function authorizeDocumentMutation(
   db: QueryRunner,
   principal: Principal,
@@ -347,5 +411,7 @@ export async function authorizeDocumentMutation(
     documentId: spec.documentId,
     enforce: spec.enforce,
     includeArchived: spec.includeArchived,
+    includeDeleted: spec.includeDeleted,
+    expectedType: spec.expectedType,
   });
 }

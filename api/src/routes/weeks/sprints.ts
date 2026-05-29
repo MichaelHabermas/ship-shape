@@ -5,7 +5,6 @@ import { pool } from '../../db/client.js';
 import { z } from 'zod';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { getActor } from '../../services/document-access.js';
 import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
@@ -16,6 +15,7 @@ import {
 } from '../../utils/approval-workflow.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import { visibleAssociatedIssueCountSql } from '../../services/document-graph-visibility.js';
+import { principalFromRequest } from '../../security/principal.js';
 import { requireWeekRead, requireWeekWrite } from './week-access.js';
 import type {
   SprintRow,
@@ -131,7 +131,6 @@ const updateSprintSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   owner_id: z.string().uuid().optional().nullable(), // Allow clearing owner
   sprint_number: z.number().int().positive().optional(),
-  status: z.enum(['planning', 'active', 'completed']).optional(),
 });
 
 // Separate schema for plan updates (append mode)
@@ -220,13 +219,18 @@ function isSprintActive(sprintNumber: number, workspaceStartDate: Date | string)
   return today >= startDate;
 }
 
-// Take a snapshot of current issues in the sprint
-async function takeSprintSnapshot(sprintId: string): Promise<string[]> {
+// Take a snapshot of issues visible to the actor in the sprint
+async function takeSprintSnapshot(
+  sprintId: string,
+  userId: string,
+  isAdmin: boolean
+): Promise<string[]> {
   const result = await pool.query<SprintIssueIdRow>(
     `SELECT d.id FROM documents d
      JOIN document_associations da ON da.document_id = d.id
-     WHERE da.related_id = $1 AND da.relationship_type = 'sprint' AND d.document_type = 'issue'`,
-    [sprintId]
+     WHERE da.related_id = $1 AND da.relationship_type = 'sprint' AND d.document_type = 'issue'
+       AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}`,
+    [sprintId, userId, isAdmin]
   );
   return result.rows.map(row => row.id);
 }
@@ -390,7 +394,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (workspaceStartDate && isSprintActive(sprintNumber, workspaceStartDate) && !props.planned_issue_ids) {
       // Take the snapshot
       const sprintId = id;
-      const plannedIssueIds = await takeSprintSnapshot(sprintId);
+      const plannedIssueIds = await takeSprintSnapshot(sprintId, userId, isAdmin);
       const snapshotTakenAt = new Date().toISOString();
 
       // Update the sprint properties with the snapshot
@@ -735,16 +739,6 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
       propsChanged = true;
     }
 
-    // Handle status update — lifecycle only (SS-FIND-003); not generic member PATCH
-    if (data.status !== undefined) {
-      if (!isAdmin) {
-        res.status(403).json({ error: 'Sprint status cannot be changed via this endpoint' });
-        return;
-      }
-      newProps.status = data.status;
-      propsChanged = true;
-    }
-
     if (propsChanged) {
       updates.push(`properties = $${paramIndex++}`);
       values.push(JSON.stringify(newProps));
@@ -831,8 +825,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const actor = getActor(req);
-    const auth = await requireWeekLifecycleAuthority(pool, actor, id, 'start_week');
+    const auth = await requireWeekLifecycleAuthority(pool, principalFromRequest(req), id, 'start_week');
     if (!auth.authorized) {
       res.status(403).json({ error: auth.error });
       return;
@@ -855,7 +848,7 @@ router.post('/:id/start', authMiddleware, async (req: Request, res: Response) =>
 
     // Take the scope snapshot
     const sprintId = id;
-    const plannedIssueIds = await takeSprintSnapshot(sprintId);
+    const plannedIssueIds = await takeSprintSnapshot(sprintId, userId, isAdmin);
     const snapshotTakenAt = new Date().toISOString();
 
     // Update sprint properties with snapshot and active status

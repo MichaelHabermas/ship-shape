@@ -8,8 +8,8 @@ import { logDocumentChange } from '../../utils/document-crud.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import { extractText } from '../../utils/document-content.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
-import { getActor } from '../../services/document-access.js';
 import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
+import { principalFromRequest } from '../../security/principal.js';
 import { requireWeekRead, requireWeekWrite } from './week-access.js';
 import type {
   SprintReviewSprintData,
@@ -235,7 +235,7 @@ router.get('/:id/review', authMiddleware, async (req: Request, res: Response) =>
         res.status(404).json({ error: 'Weekly review not found' });
         return;
       }
-      res.json(extractReviewResponseFromRow(review, id as string));
+      res.json(extractReviewResponseFromRow(review, id));
       return;
     }
 
@@ -366,7 +366,7 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
     );
 
     // Broadcast celebration when sprint review is created
-    broadcastToUser(userId, 'accountability:updated', { type: 'weekly_review', targetId: id as string });
+    broadcastToUser(userId, 'accountability:updated', { type: 'weekly_review', targetId: id });
 
     // Log initial review content to document_history for approval workflow tracking
     if (reviewContent) {
@@ -551,7 +551,7 @@ router.patch('/:id/review', authMiddleware, async (req: Request, res: Response) 
       return;
     }
 
-    res.json(extractReviewResponseFromRow(review, id as string));
+    res.json(extractReviewResponseFromRow(review, id));
   } catch (err) {
     sendInternalError(res, err, 'Update sprint review error:');
   }
@@ -595,8 +595,12 @@ router.post('/:id/carryover', authMiddleware, async (req: Request, res: Response
       return;
     }
 
-    const actor = getActor(req);
-    const auth = await requireWeekLifecycleAuthority(pool, actor, sourceSprintId as string, 'carryover');
+    const auth = await requireWeekLifecycleAuthority(
+      pool,
+      principalFromRequest(req),
+      sourceSprintId,
+      'carryover'
+    );
     if (!auth.authorized) {
       res.status(403).json({ error: auth.error });
       return;

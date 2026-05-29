@@ -1,4 +1,10 @@
+// Project-level retro content and properties (writes use capability guards).
 import { pool } from '../db/client.js';
+import type { Principal } from '../security/principal.js';
+import {
+  guardDocumentMutation,
+  type MutationGuardDenial,
+} from './mutation-capability-guard.js';
 import type { ProjectRouteProperties } from '@ship/shared';
 import type {
   ProjectRetroIssueRow,
@@ -21,6 +27,10 @@ import type { z } from 'zod';
 export type ProjectRetroResult<T> =
   | { ok: true; status: number; body: T }
   | { ok: false; status: number; body: Record<string, unknown> };
+
+function mapRetroGuardDenial(denial: MutationGuardDenial): ProjectRetroResult<never> {
+  return { ok: false, status: denial.status, body: denial.body };
+}
 
 type RetroResponseBody = {
   is_draft: boolean;
@@ -128,19 +138,27 @@ export async function getProjectRetro(input: {
 }
 
 export async function createProjectRetro(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
   data: z.infer<typeof projectRetroSchema>;
 }): Promise<ProjectRetroResult<Omit<RetroResponseBody, 'weeks' | 'issues_summary'>>> {
-  const { projectId, workspaceId, userId, isAdmin, data } = input;
+  const { principal, projectId, workspaceId, userId, data } = input;
+
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapRetroGuardDenial(writeDenied);
 
   const existing = await pool.query<ProjectPropertiesRow>(
     `SELECT id, properties FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [projectId, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
+    [projectId, workspaceId]
   );
 
   if (existing.rows.length === 0) {
@@ -205,19 +223,27 @@ export async function createProjectRetro(input: {
 }
 
 export async function updateProjectRetro(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
   data: z.infer<typeof projectRetroSchema>;
 }): Promise<ProjectRetroResult<Omit<RetroResponseBody, 'weeks' | 'issues_summary'>>> {
-  const { projectId, workspaceId, userId, isAdmin, data } = input;
+  const { principal, projectId, workspaceId, userId, data } = input;
+
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapRetroGuardDenial(writeDenied);
 
   const existing = await pool.query<ProjectPropertiesRow>(
     `SELECT id, properties, content FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [projectId, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
+    [projectId, workspaceId]
   );
 
   if (existing.rows.length === 0) {

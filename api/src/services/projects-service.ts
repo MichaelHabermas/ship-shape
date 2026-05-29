@@ -1,10 +1,15 @@
 // Project service owns project CRUD, rollups, and approval side effects.
 import type { ProjectRouteProperties } from '@ship/shared';
 import { pool } from '../db/client.js';
+import type { Principal } from '../security/principal.js';
+import {
+  guardDocumentCreate,
+  guardDocumentMutation,
+  mutationGuardDenial,
+} from './mutation-capability-guard.js';
 import {
   extractProjectFromRow,
   PROJECT_INFERRED_STATUS_SQL,
-  projectAccessible,
   type DocumentTypeRow,
   type ProjectPropertiesRow,
   type ProjectRow,
@@ -39,6 +44,10 @@ export type ProjectServiceResult<T> =
   | { ok: true; status: number; body: T }
   | { ok: true; status: 301; converted: { documentType: string; id: string } }
   | { ok: false; status: number; body: Record<string, unknown> };
+
+function mapProjectGuardDenial(denial: Parameters<typeof mutationGuardDenial>[0]): ProjectServiceResult<never> {
+  return mutationGuardDenial(denial);
+}
 
 export type ListProjectsInput = {
   workspaceId: string;
@@ -143,11 +152,15 @@ export async function getProject(input: {
 }
 
 export async function createProject(input: {
+  principal: Principal;
   workspaceId: string;
   userId: string;
   data: z.infer<typeof createProjectSchema>;
 }): Promise<ProjectServiceResult<ReturnType<typeof extractProjectFromRow> & { owner: { id: string; name: string; email: string } | null }>> {
-  const { workspaceId, userId, data } = input;
+  const { principal, workspaceId, userId, data } = input;
+
+  const createDenied = await guardDocumentCreate(pool, principal);
+  if (!createDenied.ok) return mapProjectGuardDenial(createDenied);
   const {
     title,
     impact,
@@ -223,19 +236,27 @@ export async function createProject(input: {
 }
 
 export async function updateProject(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
   data: z.infer<typeof updateProjectSchema>;
 }): Promise<ProjectServiceResult<ReturnType<typeof extractProjectFromRow>>> {
-  const { projectId, workspaceId, userId, isAdmin, data } = input;
+  const { principal, projectId, workspaceId, userId, isAdmin, data } = input;
+
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapProjectGuardDenial(writeDenied);
 
   const existing = await pool.query<ProjectPropertiesRow>(
     `SELECT id, properties FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [projectId, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
+    [projectId, workspaceId]
   );
 
   if (existing.rows.length === 0) {
@@ -384,14 +405,28 @@ export async function updateProject(input: {
 }
 
 export async function deleteProject(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
 }): Promise<ProjectServiceResult<null>> {
-  const { projectId, workspaceId, userId, isAdmin } = input;
+  const { principal, projectId, workspaceId } = input;
 
-  if (!(await projectAccessible(projectId, workspaceId, userId, isAdmin))) {
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapProjectGuardDenial(writeDenied);
+
+  const existing = await pool.query<{ id: string }>(
+    `SELECT id FROM documents
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
+    [projectId, workspaceId]
+  );
+  if (existing.rows.length === 0) {
     return { ok: false, status: 404, body: { error: 'Project not found' } };
   }
 
@@ -409,18 +444,26 @@ export async function deleteProject(input: {
 }
 
 export async function approveProjectPlan(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
 }): Promise<ProjectServiceResult<{ success: true; approval: unknown }>> {
-  const { projectId, workspaceId, userId, isAdmin } = input;
+  const { principal, projectId, workspaceId, userId, isAdmin } = input;
+
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapProjectGuardDenial(writeDenied);
 
   const projectResult = await pool.query<ProjectPropertiesRow>(
     `SELECT id, properties FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [projectId, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
+    [projectId, workspaceId]
   );
 
   const project = projectResult.rows[0];
@@ -448,18 +491,26 @@ export async function approveProjectPlan(input: {
 }
 
 export async function approveProjectRetro(input: {
+  principal: Principal;
   projectId: string;
   workspaceId: string;
   userId: string;
   isAdmin: boolean;
 }): Promise<ProjectServiceResult<{ success: true; approval: unknown }>> {
-  const { projectId, workspaceId, userId, isAdmin } = input;
+  const { principal, projectId, workspaceId, userId, isAdmin } = input;
+
+  const writeDenied = await guardDocumentMutation(
+    pool,
+    principal,
+    { action: 'write', documentId: projectId, expectedType: 'project' },
+    { notFoundMessage: 'Project not found' }
+  );
+  if (!writeDenied.ok) return mapProjectGuardDenial(writeDenied);
 
   const projectResult = await pool.query<ProjectPropertiesRow>(
     `SELECT id, properties FROM documents
-     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'
-       AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
-    [projectId, workspaceId, userId, isAdmin]
+     WHERE id = $1 AND workspace_id = $2 AND document_type = 'project'`,
+    [projectId, workspaceId]
   );
 
   const project = projectResult.rows[0];

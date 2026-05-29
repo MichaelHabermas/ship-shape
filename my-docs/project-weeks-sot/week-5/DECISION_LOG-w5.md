@@ -539,3 +539,35 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Register `GET /admin/credentials/app.js` in the OpenAPI registry and regenerate `api/openapi.json` / `web/src/api/generated/ship-openapi.d.ts` whenever security routes change. `pnpm openapi:check:strict` must stay at zero missing/stale routes.
 
 **Consequence:** CSP externalization of the super-admin credentials UI remains contract-visible; route drift fails CI-style checks locally via `openapi:check:strict`.
+
+## D068 - Service-Layer Write Guards For Projects And Programs
+
+**Date:** 2026-05-29
+
+**Decision:** Add [`mutation-capability-guard.ts`](../../api/src/services/mutation-capability-guard.ts) and require `Principal` + `guardDocumentMutation` / `guardDocumentCreate` at the start of project/program write services and `programs.ts` mutating handlers. Writes load rows by `id + workspace_id + document_type` after capability passes; reads/lists keep `VISIBILITY_FILTER_SQL`.
+
+**Consequence:** API tokens with `documents:read` cannot mutate via service even if a route guard regresses. Issue mutations share the same guard module. Week lifecycle (`governance-auth`) and team allocation remain separate slices.
+
+## D069 - Galaxy-Brain Auth Follow-Ups (Bulk Issues, Programs Service, Week Lifecycle)
+
+**Date:** 2026-05-29
+
+**Decision:** (1) Bulk issue mutations run per-id `guardIssueMutation` with `bulkIssueWriteGuardSpec`: `restore` sets `includeArchived` + `includeDeleted`; `update`/`delete` set `includeArchived`; bulk `delete` sets `enforce: 'creator_or_admin'`. (2) Extract `programs-service.ts` + `schemas/programs.ts`; mutating `programs.ts` routes delegate to the service (guards inside service). (3) `requireWeekLifecycleAuthority` takes `Principal`, loads sprint by id without `VISIBILITY_FILTER_SQL`, then `guardDocumentMutation` write before role checks (`start_week` / `carryover`).
+
+**Consequence:** Bulk restore can target archived/deleted issues when the principal can write them. Non-creator members cannot bulk-delete others' issues. Program merge/create/update/delete stay capability-correct if route guards regress. Week lifecycle no longer conflates "invisible in list" with "cannot start week." Tests: `issue-bulk-mutation-guard.test.ts`, extended `governance-auth.test.ts`; service guards covered by existing `projects-mutation-guard` / token-scope suites.
+
+## D070 - Post-Review Hardening For Service-Layer Guards
+
+**Date:** 2026-05-29
+
+**Decision:** After parallel correctness review: bulk all-guard-fail returns **403** when every failure is `Forbidden` / `token_scope_denied` (parity with single DELETE). Bulk sprint/project assignment uses `requireReferenceableDocument` (no silent association clear). `mergePrograms` runs final SELECT on transaction `client` before `COMMIT`; guards use same `client`; route skips `ROLLBACK` on pre-transaction validation failures. `requireWeekLifecycleAuthority` surfaces guard `body.error` verbatim. `authorizeDocumentMutation` forwards `includeDeleted` and `expectedType`.
+
+**Consequence:** Fixes SS-FIND-007-class bulk reference visibility gap and merge post-commit orphan risk without unifying the full auth stack (double route+service guards remain intentional defense-in-depth).
+
+## D071 - Galaxy-Brain Auth Consolidation (High Utility)
+
+**Date:** 2026-05-29
+
+**Decision:** (1) Shared `legacyMutationErrorMessage` in `legacy-mutation-error.ts`; `document-mutations` uses `guardDocumentMutation` with legacy wire errors. (2) `guardDocumentMutationsBatch` + `getReadableDocumentsBatch` for bulk issue guards. (3) Service-only write guards on program/project mutating routes (UUID param check at route). (4) Single/bulk issue delete parity via `includeArchived` on `requireIssueWrite`. (5) Bulk state updates use `getTimestampUpdates` + `incomplete_children` per issue. (6) SS-FIND-003: remove `status` from week PATCH schema; lifecycle via `POST /start`. (7) `takeSprintSnapshot` filters issues with `VISIBILITY_FILTER_SQL`. (8) Merge preview uses write guards like merge execute (no read/visibility mismatch).
+
+**Consequence:** One fewer auth error dialect in HTTP responses; bulk guards scale better; week status cannot be patched around lifecycle; snapshots match visible issue lists.

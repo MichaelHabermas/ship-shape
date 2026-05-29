@@ -32,13 +32,9 @@ import {
 } from '../utils/document-governance.js';
 import { asApprovalRecord } from '../utils/approval-workflow.js';
 import { getDocumentAccessContext, getReadableDocument, type DocumentActor } from './document-access.js';
-import {
-  authorize,
-  authorizeDocumentMutation,
-  capabilityDenialStatus,
-  type DocumentMutationCapability,
-} from '../security/capabilities.js';
+import { authorize, authorizeDocumentMutation, type DocumentMutationCapability } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
+import { guardDocumentMutation, mutationGuardDenial } from './mutation-capability-guard.js';
 import { enqueueFleetGraphIssueAttentionEvents } from '../fleetgraph/events.js';
 
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
@@ -176,15 +172,12 @@ function asDocumentProperties(value: unknown): DocumentProperties {
 async function guardMutationCapability(
   db: QueryRunner,
   principal: Principal,
-  spec: DocumentMutationCapability
+  spec: DocumentMutationCapability,
+  notFoundMessage = 'Document not found'
 ): Promise<MutationResult<never> | null> {
-  const decision = await authorizeDocumentMutation(db, principal, spec);
-  if (decision.allowed) return null;
-  return {
-    ok: false,
-    status: capabilityDenialStatus(decision.reason),
-    body: { error: decision.reason },
-  };
+  const guard = await guardDocumentMutation(db, principal, spec, { notFoundMessage });
+  if (guard.ok) return null;
+  return mutationGuardDenial(guard);
 }
 
 function defaultWriteCapability(documentId: string): DocumentMutationCapability {
@@ -201,12 +194,12 @@ async function loadAccessibleDocument(
   documentId: string,
   options: { includeArchived?: boolean } = {}
 ): Promise<DocumentAccessRow | null> {
-  const decision = await authorizeDocumentMutation(db, principal, {
+  const guard = await guardDocumentMutation(db, principal, {
     action: 'write',
     documentId,
     includeArchived: options.includeArchived,
   });
-  if (!decision.allowed || !decision.document || principal.kind === 'setup') {
+  if (!guard.ok || principal.kind === 'setup') {
     return null;
   }
 
