@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+// My Week renders the personal weekly work surface and publishes FleetGraph page context.
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useMyWeekQuery } from '@/hooks/useMyWeekQuery';
 import type { StandupSlot } from '@/hooks/useMyWeekQuery';
 import { apiPost, readJson } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { buildMyWeekPageContext } from '@/fleetgraph/page-context';
+import { useFleetGraphPageContextRegistration } from '@/contexts/FleetGraphPageContext';
 
 interface CreatedDocumentResponse {
   id: string;
@@ -33,11 +36,18 @@ function isDateToday(dateStr: string): boolean {
 export function MyWeekPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const weekNumberParam = searchParams.get('week_number');
   const weekNumber = weekNumberParam ? parseInt(weekNumberParam, 10) : undefined;
 
   const { data, isLoading, error } = useMyWeekQuery(weekNumber);
   const [creating, setCreating] = useState<string | null>(null);
+  const fleetGraphPageContext = useMemo(
+    () => (data ? buildMyWeekPageContext({ location, data }) : null),
+    [data, location]
+  );
+
+  useFleetGraphPageContextRegistration(fleetGraphPageContext);
 
   const navigateToWeek = (wn: number) => {
     if (data && wn === data.week.current_week_number) {

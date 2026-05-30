@@ -6,7 +6,7 @@ import type { Principal } from '../../security/principal.js';
 import { visibleOutputForFinding } from '../evidence.js';
 import type { FleetGraphFinding } from '../persistence.js';
 import type { FleetGraphInput, FleetGraphVisibleOutput } from '../types.js';
-import type { FleetGraphChatHistoryEntry, FleetGraphEvidenceItem } from '@ship/shared';
+import type { FleetGraphChatHistoryEntry, FleetGraphEvidenceItem, FleetGraphPageContext } from '@ship/shared';
 import {
   unsupportedChatAnswer,
   type FleetGraphChatAnswerPayload,
@@ -34,6 +34,7 @@ export type ContextChatSignal = {
 export type ContextChatBundle = {
   documents: ContextChatDocument[];
   signals: ContextChatSignal[];
+  pages: FleetGraphPageContext[];
   visibleOutput?: FleetGraphVisibleOutput;
   evidence: FleetGraphEvidenceItem[];
 };
@@ -60,39 +61,25 @@ export async function resolveContextChatBundle(
   const contexts = uniqueChatContexts([input.trigger.context, ...(input.trigger.context.attachedContexts ?? [])]);
   const documents: ContextChatDocument[] = [];
   const signals: ContextChatSignal[] = [];
+  const pages: FleetGraphPageContext[] = [];
   const evidence: FleetGraphEvidenceItem[] = [];
 
   const documentIds = new Set<string>();
   const documentLoads: Array<Promise<ContextChatDocument | null>> = [];
+  const findingLookups = contexts.map((context) => resolveFindingForChatContext(input, persistence, context));
+  const findings = await Promise.all(findingLookups);
+  const visibleLookups = findings.map((finding) => finding
+    ? visibleOutputForFinding({
+      principal: input.principal,
+      workspaceId: input.workspaceId,
+      finding,
+      db: options.db,
+    })
+    : Promise.resolve(null));
+  const visibles = await Promise.all(visibleLookups);
 
-  for (const context of contexts) {
-    const finding = await resolveFindingForChatContext(input, persistence, context);
-    if (finding) {
-      const visible = await visibleOutputForFinding({
-        principal: input.principal,
-        workspaceId: input.workspaceId,
-        finding,
-        db: options.db,
-      });
-      if (!visible.output.noSafeOutput) {
-        signals.push({ finding, output: visible.output, evidence: visible.evidence });
-        evidence.push(...visible.evidence);
-      }
-      for (const documentId of [finding.source_issue_id, finding.source_sprint_id]) {
-        if (!documentId || documentIds.has(documentId)) continue;
-        documentIds.add(documentId);
-        documentLoads.push(loadContextChatDocument({
-          db: options.db,
-          principal: input.principal,
-          workspaceId: input.workspaceId,
-          documentId,
-        }));
-      }
-      continue;
-    }
-
-    const documentId = context.documentId ?? documentIdFromSourcePath(context.sourcePath);
-    if (!documentId || documentIds.has(documentId)) continue;
+  const queueDocumentLoad = (documentId: string | null | undefined) => {
+    if (!documentId || documentIds.has(documentId)) return;
     documentIds.add(documentId);
     documentLoads.push(loadContextChatDocument({
       db: options.db,
@@ -100,6 +87,32 @@ export async function resolveContextChatBundle(
       workspaceId: input.workspaceId,
       documentId,
     }));
+  };
+
+  for (let index = 0; index < contexts.length; index += 1) {
+    const context = contexts[index];
+    if (!context) continue;
+
+    if (context.pageContext) {
+      pages.push(context.pageContext);
+      for (const documentId of documentIdsFromPageContext(context.pageContext)) {
+        queueDocumentLoad(documentId);
+      }
+    }
+
+    const finding = findings[index];
+    const visible = visibles[index];
+    if (finding && visible) {
+      if (!visible.output.noSafeOutput) {
+        signals.push({ finding, output: visible.output, evidence: visible.evidence });
+        evidence.push(...visible.evidence);
+      }
+      queueDocumentLoad(finding.source_issue_id);
+      queueDocumentLoad(finding.source_sprint_id);
+      continue;
+    }
+
+    queueDocumentLoad(context.documentId ?? documentIdFromSourcePath(context.sourcePath));
   }
 
   const loadedDocuments = await Promise.all(documentLoads);
@@ -110,6 +123,7 @@ export async function resolveContextChatBundle(
   return {
     documents: uniqueDocuments(documents),
     signals,
+    pages: uniquePages(pages),
     visibleOutput: signals[0]?.output,
     evidence,
   };
@@ -129,12 +143,24 @@ export function contextTextForModel(bundle: ContextChatBundle): string {
     `Reason: ${signalReason(signal.output) ?? ''}`,
     `Recommended action: ${recommendedActionFromOutput(signal.output) ?? ''}`,
   ].filter(Boolean).join('\n')).join('\n\n');
+  const pageText = bundle.pages.map((page) => [
+    `Page: ${page.title}`,
+    `Surface: ${page.surface}`,
+    `Route: ${page.route}`,
+    page.sort ? `Sort: ${page.sort}` : '',
+    page.viewMode ? `View: ${page.viewMode}` : '',
+    page.filters ? `Filters: ${Object.entries(page.filters).map(([key, value]) => `${key}=${String(value)}`).join(', ')}` : '',
+    page.counts ? `Counts: ${Object.entries(page.counts).map(([key, value]) => `${key}=${value}`).join(', ')}` : '',
+    `Visible: ${page.visibleItems.slice(0, 25).map(pageItemLabel).join('; ')}`,
+    page.selectedItemIds?.length ? `Selected IDs: ${page.selectedItemIds.slice(0, 8).join(', ')}` : '',
+  ].filter(Boolean).join('\n')).join('\n\n');
 
-  return [documentText, signalText].filter(Boolean).join('\n\n---\n\n');
+  return [pageText, documentText, signalText].filter(Boolean).join('\n\n---\n\n');
 }
 
 export function sourcesFromContextBundle(bundle: ContextChatBundle): Array<{ label: string; kind: string }> {
   return [
+    ...bundle.pages.map((page) => ({ label: page.title, kind: page.surface })),
     ...bundle.documents.map((document) => ({ label: document.title, kind: document.document_type })),
     ...bundle.signals.map((signal) => ({ label: signal.output.title, kind: 'finding' })),
   ].filter((source, index, items) => items.findIndex((item) => item.label === source.label) === index);
@@ -147,6 +173,7 @@ export function deterministicContextChatAnswer(
 ): FleetGraphChatAnswerPayload {
   const primaryDocument = bundle.documents[0];
   const primarySignal = bundle.signals[0];
+  const primaryPage = bundle.pages[0];
   const sources = sourcesFromContextBundle(bundle);
   const normalized = prompt.trim().toLowerCase();
 
@@ -194,7 +221,33 @@ export function deterministicContextChatAnswer(
     };
   }
 
+  if (primaryPage) {
+    return pageAnswer(prompt, primaryPage, sources);
+  }
+
   return unsupportedChatAnswer('I do not have visible context for that yet.');
+}
+
+function pageAnswer(
+  prompt: string,
+  page: FleetGraphPageContext,
+  sources: Array<{ label: string; kind: string }>
+): FleetGraphChatAnswerPayload {
+  const selected = page.selectedItemIds?.length ? `${page.selectedItemIds.length} selected.` : 'Nothing selected.';
+  const visible = page.visibleItems.slice(0, 5).map(pageItemLabel).join('; ');
+  const filters = page.filters ? Object.entries(page.filters).map(([key, value]) => `${key}: ${String(value)}`).join(', ') : null;
+  const asksForActionPlan = asksForAction(prompt.toLowerCase());
+  return {
+    title: page.title,
+    body: [
+      `${page.title} is showing ${page.visibleItems.length} visible item${page.visibleItems.length === 1 ? '' : 's'}. ${selected}`,
+      filters ? `Filters: ${filters}.` : null,
+      visible ? `Visible items: ${visible}.` : null,
+      asksForActionPlan ? 'Pick the item you want to change; FleetGraph can explain evidence, but mutation/contact still needs human approval.' : null,
+    ].filter(Boolean).join('\n\n'),
+    sources,
+    humanGate: { required: false },
+  };
 }
 
 function signalSpecificPrompt(normalizedPrompt: string): boolean {
@@ -519,7 +572,9 @@ function indefiniteArticle(label: string): 'a' | 'an' {
 function uniqueChatContexts(contexts: ContextChatContext[]): ContextChatContext[] {
   const seen = new Set<string>();
   return contexts.filter((context) => {
-    const key = context.findingId ? `finding:${context.findingId}` : `document:${context.documentId ?? documentIdFromSourcePath(context.sourcePath) ?? context.kind}`;
+    const key = context.findingId
+      ? `finding:${context.findingId}`
+      : `document:${context.documentId ?? documentIdFromSourcePath(context.sourcePath) ?? context.pageContext?.route ?? context.kind}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -533,4 +588,32 @@ function uniqueDocuments(documents: ContextChatDocument[]): ContextChatDocument[
     seen.add(document.id);
     return true;
   });
+}
+
+function uniquePages(pages: FleetGraphPageContext[]): FleetGraphPageContext[] {
+  const seen = new Set<string>();
+  return pages.filter((page) => {
+    const key = `${page.surface}:${page.route}:${page.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function documentIdsFromPageContext(page: FleetGraphPageContext): string[] {
+  const ids = new Set<string>();
+  for (const id of page.selectedItemIds ?? []) ids.add(id);
+  for (const item of page.visibleItems.slice(0, 8)) {
+    if (item.id) ids.add(item.id);
+  }
+  return [...ids].slice(0, 12);
+}
+
+function pageItemLabel(item: FleetGraphPageContext['visibleItems'][number]): string {
+  return [
+    item.title,
+    item.state ? `state ${item.state}` : null,
+    item.priority ? `priority ${item.priority}` : null,
+    item.owner ? `owner ${item.owner}` : null,
+  ].filter(Boolean).join(' · ');
 }

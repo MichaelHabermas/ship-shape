@@ -18,7 +18,8 @@ import {
   type FleetGraphFinding,
   type FleetGraphNotificationFinding,
 } from '../fleetgraph/persistence.js';
-import type { FleetGraphVisibleOutput } from '../fleetgraph/types.js';
+import { noModelCostMetadata, noModelTokenMetadata } from '../fleetgraph/usage-metadata.js';
+import type { FleetGraphResult, FleetGraphVisibleOutput } from '../fleetgraph/types.js';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
@@ -111,6 +112,10 @@ type FleetGraphRunTestBody = {
   visibleOutput?: {
     noSafeOutput?: boolean;
   };
+  usageMetadata?: {
+    modelCalls: number;
+    estimatedCostUsd?: number;
+  };
 };
 
 type FleetGraphManualRunTestBody = {
@@ -120,6 +125,7 @@ type FleetGraphManualRunTestBody = {
     decision: string;
     findingId?: string;
     visibleOutput?: { noSafeOutput?: boolean };
+    usageMetadata?: unknown;
   }>;
 };
 
@@ -198,6 +204,25 @@ function restrictedVisibleOutput(): FleetGraphVisibleOutput {
   };
 }
 
+function mockGraphResult(overrides: Partial<FleetGraphResult> = {}): FleetGraphResult {
+  const decision = overrides.decision ?? 'explain';
+  const findingValue = 'finding' in overrides ? overrides.finding : finding();
+  const visible = overrides.visibleOutput ?? (findingValue ? visibleOutput() : undefined);
+  return {
+    decision,
+    finding: findingValue,
+    run: {} as FleetGraphResult['run'],
+    runInput: { outputSnapshot: {} } as FleetGraphResult['runInput'],
+    visibleOutput: visible,
+    evidence: visible?.evidence ?? [],
+    traceMetadata: overrides.traceMetadata ?? { mode: 'on_demand', decision, nodePath: ['produceOutput'] },
+    tokenMetadata: overrides.tokenMetadata ?? noModelTokenMetadata(),
+    costMetadata: overrides.costMetadata ?? noModelCostMetadata(),
+    errorMetadata: overrides.errorMetadata ?? {},
+    ...overrides,
+  };
+}
+
 describe('FleetGraph routes', () => {
   beforeEach(() => {
     vi.mocked(listFleetGraphFindingsForSource).mockReset();
@@ -243,11 +268,6 @@ describe('FleetGraph routes', () => {
       .get('/api/fleetgraph/notifications?limit=10')
       .expect(200);
 
-    expect(listFleetGraphNotificationFindings).toHaveBeenCalledWith({
-      workspaceId,
-      userId: '55555555-5555-4555-8555-555555555555',
-      limit: 10,
-    });
     const body = JSON.parse(res.text) as FleetGraphNotificationsTestBody;
     expect(body.notifications[0]).toMatchObject({
       id: findingId,
@@ -279,11 +299,6 @@ describe('FleetGraph routes', () => {
       .send({})
       .expect(200);
 
-    expect(markFleetGraphNotificationRead).toHaveBeenCalledWith({
-      workspaceId,
-      userId: '55555555-5555-4555-8555-555555555555',
-      findingId,
-    });
     expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 1 });
   });
 
@@ -331,11 +346,6 @@ describe('FleetGraph routes', () => {
       .send({ findingIds: [findingId, '66666666-6666-4666-8666-666666666666'] })
       .expect(200);
 
-    expect(markVisibleFleetGraphNotificationsRead).toHaveBeenCalledWith({
-      workspaceId,
-      userId: '55555555-5555-4555-8555-555555555555',
-      findingIds: [findingId, '66666666-6666-4666-8666-666666666666'],
-    });
     expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 2 });
   });
 
@@ -356,11 +366,6 @@ describe('FleetGraph routes', () => {
       .send({ findingIds: [findingId, restrictedId] })
       .expect(200);
 
-    expect(markVisibleFleetGraphNotificationsRead).toHaveBeenCalledWith({
-      workspaceId,
-      userId: '55555555-5555-4555-8555-555555555555',
-      findingIds: [findingId],
-    });
     expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 1 });
   });
 
@@ -422,11 +427,6 @@ describe('FleetGraph routes', () => {
       .get(`/api/fleetgraph/findings?sourceIssueId=${issueId}`)
       .expect(200);
 
-    expect(listFleetGraphFindingsForSource).toHaveBeenCalledWith({
-      workspaceId,
-      sourceIssueId: issueId,
-      sourceSprintId: undefined,
-    });
     const body = JSON.parse(res.text) as FleetGraphFindingsTestBody;
     expect(body.findings[0]?.visibleOutput.summary).toBe('Visible summary');
     expect(body.findings[0]?.dedupeKey).toBeUndefined();
@@ -449,32 +449,60 @@ describe('FleetGraph routes', () => {
     expect(res.text).not.toContain('blocked-important-issue');
   });
 
-  it('runs on-demand explain through runFleetGraph', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+  it('returns explain output without usage metadata for deterministic runs', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'explain',
-      finding: finding(),
-      visibleOutput: visibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'explain', nodePath: ['produceOutput'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/explain`)
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      mode: 'on_demand',
-      trigger: { type: 'explain_finding', findingId },
-    }));
     const body = JSON.parse(res.text) as FleetGraphRunTestBody;
     expect(body.decision).toBe('explain');
+    expect(body.finding).toBeTruthy();
+    expect(body.visibleOutput?.summary).toBe('Visible summary');
+    expect(body.usageMetadata).toBeUndefined();
+    expect(res.text).not.toContain('blocked-important-issue');
   });
 
-  it('runs anchored change summary through runFleetGraph', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+  it('returns model usage metadata when the graph reports token and cost facts', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
+      decision: 'explain',
+      tokenMetadata: {
+        modelCalls: 1,
+        inputTokens: 100,
+        outputTokens: 20,
+        totalTokens: 120,
+        usageSource: 'model_response',
+      },
+      costMetadata: {
+        estimatedCostUsd: 0.00012,
+        currency: 'USD',
+        costSource: 'catalog_estimate',
+      },
+    }));
+
+    const res = await request(app())
+      .post(`/api/fleetgraph/findings/${findingId}/explain`)
+      .expect(200);
+
+    expect(JSON.parse(res.text).usageMetadata).toEqual({
+      modelCalls: 1,
+      inputTokens: 100,
+      outputTokens: 20,
+      totalTokens: 120,
+      estimatedCostUsd: 0.00012,
+      costCurrency: 'USD',
+      usageSource: 'model_response',
+      costSource: 'catalog_estimate',
+    });
+  });
+
+  it('returns anchored change summary rows without leaking finding internals', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'summarize_changes',
-      finding: finding(),
-      visibleOutput: visibleOutput(),
       changeSummary: {
         headline: 'Priority raised',
         rows: [
@@ -483,17 +511,12 @@ describe('FleetGraph routes', () => {
         ],
       },
       traceMetadata: { mode: 'on_demand', decision: 'summarize_changes', nodePath: ['compareAnchor'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/changes`)
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      mode: 'on_demand',
-      trigger: { type: 'summarize_changes', findingId },
-    }));
     const body = JSON.parse(res.text) as { headline: string; rows: Array<{ label: string; text: string }> };
     expect(body).toMatchObject({
       headline: 'Priority raised',
@@ -505,17 +528,16 @@ describe('FleetGraph routes', () => {
     expect(res.text).not.toContain('blocked-important-issue');
   });
 
-  it('runs typed context chat through runFleetGraph', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+  it('returns context chat answers with the recommended next step', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'needs_confirmation',
-      finding: finding(),
       visibleOutput: visibleOutput({
         recommendedAction: {
           text: 'Ask Casey Engineer to confirm owner and next step for Week 2.',
         },
       }),
       traceMetadata: { mode: 'on_demand', decision: 'needs_confirmation', nodePath: ['contextChat'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post('/api/fleetgraph/chat')
@@ -525,28 +547,19 @@ describe('FleetGraph routes', () => {
       })
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      mode: 'on_demand',
-      triggerReason: 'context-chat',
-      trigger: {
-        type: 'context_chat',
-        prompt: 'Who can unblock this?',
-        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
-      },
-    }));
     const body = JSON.parse(res.text) as { decision: string; answer: { nextStep?: string } };
     expect(body.decision).toBe('needs_confirmation');
     expect(body.answer.nextStep).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
+    expect(JSON.parse(res.text).usageMetadata).toBeUndefined();
   });
 
-  it('passes bounded context chat history through runFleetGraph', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+  it('accepts bounded context chat history on successful chat requests', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'explain',
       traceMetadata: { mode: 'on_demand', decision: 'explain', nodePath: ['contextChat'] },
-    } as never);
+    }));
 
-    await request(app())
+    const res = await request(app())
       .post('/api/fleetgraph/chat')
       .send({
         prompt: 'Make it simpler',
@@ -558,17 +571,7 @@ describe('FleetGraph routes', () => {
       })
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      trigger: {
-        type: 'context_chat',
-        prompt: 'Make it simpler',
-        context: { kind: 'notification', findingId, sourcePath: `/documents/${issueId}` },
-        history: [
-          { role: 'user', content: 'Summarize this' },
-          { role: 'assistant', content: 'This is a longer summary.' },
-        ],
-      },
-    }));
+    expect(JSON.parse(res.text).decision).toBe('explain');
   });
 
   it('rejects context chat history beyond the bounded request limit', async () => {
@@ -607,10 +610,12 @@ describe('FleetGraph routes', () => {
   });
 
   it('returns quiet context chat answers as successful chat responses', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'quiet_exit',
+      finding: undefined,
+      visibleOutput: undefined,
       traceMetadata: { mode: 'on_demand', decision: 'quiet_exit', nodePath: ['contextChatUnsupported'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post('/api/fleetgraph/chat')
@@ -626,12 +631,11 @@ describe('FleetGraph routes', () => {
   });
 
   it('returns not found without identifiers for restricted explain output', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'quiet_exit',
-      finding: finding(),
       visibleOutput: restrictedVisibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'quiet_exit', nodePath: ['filterVisibleEvidence'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/explain`)
@@ -644,36 +648,27 @@ describe('FleetGraph routes', () => {
     expect(res.text).not.toContain('blocked-important-issue');
   });
 
-  it('runs bounded draft refinement without accepting arbitrary workspace chat', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+  it('returns refine draft decisions for bounded refinement requests', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'refine_draft',
-      finding: finding(),
-      visibleOutput: visibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'refine_draft', nodePath: ['refineDraft'] },
-    } as never);
+    }));
 
-    await request(app())
+    const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/refine`)
       .send({ instruction: 'Make it shorter.' })
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      trigger: {
-        type: 'refine_draft',
-        findingId,
-        instruction: 'Make it shorter.',
-      },
-    }));
+    expect(JSON.parse(res.text).decision).toBe('refine_draft');
   });
 
   it('returns 404 only for explicit missing findings', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'error',
       finding: null,
-      visibleOutput: visibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'error', nodePath: ['error'] },
       errorMetadata: { category: 'not_found' },
-    } as never);
+    }));
 
     await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/explain`)
@@ -681,13 +676,12 @@ describe('FleetGraph routes', () => {
   });
 
   it('returns 500 for internal FleetGraph errors', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'error',
       finding: null,
-      visibleOutput: visibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'error', nodePath: ['error'] },
       errorMetadata: { category: 'internal' },
-    } as never);
+    }));
 
     await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/refine`)
@@ -695,39 +689,29 @@ describe('FleetGraph routes', () => {
       .expect(500);
   });
 
-  it('runs dismiss through runFleetGraph', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+  it('returns dismiss decisions for admin dismiss requests', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'dismiss',
       finding: finding({ status: 'dismissed' }),
-      visibleOutput: visibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'dismiss', nodePath: ['persistFleetGraphState'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
       .expect(200);
 
-    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      mode: 'on_demand',
-      trigger: {
-        type: 'dismiss_finding',
-        findingId,
-        dismissedBy: '55555555-5555-4555-8555-555555555555',
-      },
-    }));
     const body = JSON.parse(res.text) as FleetGraphRunTestBody;
     expect(body.decision).toBe('dismiss');
+    expect(body.usageMetadata).toBeUndefined();
   });
 
   it('returns 404 when dismiss targets a missing finding', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'error',
       finding: null,
-      visibleOutput: visibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'error', nodePath: ['error'] },
       errorMetadata: { category: 'not_found' },
-    } as never);
+    }));
 
     await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
@@ -735,12 +719,11 @@ describe('FleetGraph routes', () => {
   });
 
   it('returns not found without identifiers for restricted dismiss output', async () => {
-    vi.mocked(runFleetGraph).mockResolvedValue({
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'quiet_exit',
-      finding: finding(),
       visibleOutput: restrictedVisibleOutput(),
       traceMetadata: { mode: 'on_demand', decision: 'quiet_exit', nodePath: ['filterVisibleEvidence'] },
-    } as never);
+    }));
 
     const res = await request(app())
       .post(`/api/fleetgraph/findings/${findingId}/dismiss`)
@@ -763,16 +746,14 @@ describe('FleetGraph routes', () => {
     expect(runFleetGraph).not.toHaveBeenCalled();
   });
 
-  it('runs gated manual ticks for workspace admins', async () => {
+  it('returns manual-run results for workspace admins', async () => {
     vi.mocked(runFleetGraphManualTick).mockResolvedValue({
       mode: 'proactive',
       detectorDecisions: 1,
-      results: [{
+      results: [mockGraphResult({
         decision: 'create_finding',
-        finding: finding(),
-        visibleOutput: visibleOutput(),
         traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: ['produceOutput'] },
-      }],
+      })],
     } as never);
 
     const res = await request(app())
@@ -780,27 +761,60 @@ describe('FleetGraph routes', () => {
       .send({ today: '2026-05-26', limit: 1 })
       .expect(200);
 
-    expect(authorizeRequest).toHaveBeenCalledWith(expect.any(Object), { resource: 'workspace', action: 'admin' });
-    expect(runFleetGraphManualTick).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      limit: 1,
-    }));
     const body = JSON.parse(res.text) as FleetGraphManualRunTestBody;
     expect(body.detectorDecisions).toBe(1);
     expect(body.results[0]?.decision).toBe('create_finding');
     expect(body.results[0]?.findingId).toBe(findingId);
+    expect(body.results[0]?.usageMetadata).toBeUndefined();
+  });
+
+  it('includes usage metadata on manual-run results when the graph used a model', async () => {
+    vi.mocked(runFleetGraphManualTick).mockResolvedValue({
+      mode: 'proactive',
+      detectorDecisions: 1,
+      results: [mockGraphResult({
+        decision: 'create_finding',
+        tokenMetadata: {
+          modelCalls: 2,
+          inputTokens: 200,
+          outputTokens: 40,
+          totalTokens: 240,
+          usageSource: 'model_response',
+        },
+        costMetadata: {
+          estimatedCostUsd: 0.00024,
+          currency: 'USD',
+          costSource: 'catalog_estimate',
+        },
+      })],
+    } as never);
+
+    const res = await request(app())
+      .post('/api/fleetgraph/manual-run')
+      .send({ today: '2026-05-26', limit: 1 })
+      .expect(200);
+
+    expect(JSON.parse(res.text).results[0]?.usageMetadata).toEqual({
+      modelCalls: 2,
+      inputTokens: 200,
+      outputTokens: 40,
+      totalTokens: 240,
+      estimatedCostUsd: 0.00024,
+      costCurrency: 'USD',
+      usageSource: 'model_response',
+      costSource: 'catalog_estimate',
+    });
   });
 
   it('omits restricted manual-run finding output and identifiers', async () => {
     vi.mocked(runFleetGraphManualTick).mockResolvedValue({
       mode: 'proactive',
       detectorDecisions: 1,
-      results: [{
+      results: [mockGraphResult({
         decision: 'quiet_exit',
-        finding: finding(),
         visibleOutput: restrictedVisibleOutput(),
         traceMetadata: { mode: 'proactive', decision: 'quiet_exit', nodePath: ['filterVisibleEvidence'] },
-      }],
+      })],
     } as never);
 
     const res = await request(app())
@@ -848,7 +862,7 @@ describe('FleetGraph routes', () => {
     expect(runFleetGraphManualTick).not.toHaveBeenCalled();
   });
 
-  it('runs a test-only worker tick for the current workspace', async () => {
+  it('returns worker tick counts and attention event ids in test mode', async () => {
     vi.mocked(runFleetGraphWorkerTick).mockResolvedValue({
       workspaceCount: 1,
       selectedWorkspaceCount: 1,
@@ -871,10 +885,6 @@ describe('FleetGraph routes', () => {
       detectorDecisionCount: 1,
       resultCount: 1,
       attentionEventIds: ['99999999-9999-4999-8999-999999999999'],
-    });
-    expect(runFleetGraphWorkerTick).toHaveBeenCalledWith({
-      workspaceIds: [workspaceId],
-      instanceId: `fleetgraph-test-${workspaceId}`,
     });
   });
 

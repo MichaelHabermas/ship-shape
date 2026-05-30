@@ -1,3 +1,4 @@
+// App layout composes shell chrome, global modals, and FleetGraph assistant surfaces.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -22,11 +23,9 @@ import { AccountabilityBanner } from '@/components/AccountabilityBanner';
 import { useAppMode } from '@/hooks/useAppMode';
 import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
-import { FleetGraphChatProbe, type FleetGraphChatProbeRequest } from '@/components/FleetGraphChatProbe';
-import {
-  FleetGraphNotificationsProbe,
-  type FleetGraphNotificationProbeItem,
-} from '@/components/FleetGraphNotificationsProbe';
+import type { FleetGraphChatProbeRequest } from '@/components/FleetGraphChatProbe';
+import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
+import { FleetGraphAssistantShell } from '@/components/FleetGraphAssistantShell';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -157,6 +156,10 @@ export function AppLayout() {
   return (
     <TooltipProvider delayDuration={300}>
       <SelectionPersistenceProvider>
+        <FleetGraphAssistantShell
+          chatDiscussRequest={chatDiscussRequest}
+          onDiscussNotification={handleDiscussNotification}
+        >
         <div className="flex h-screen flex-col overflow-hidden bg-background">
           <a
             href="#main-content"
@@ -227,9 +230,8 @@ export function AppLayout() {
             onClose={() => setActionItemsModalOpen(false)}
           />
 
-          <FleetGraphChatProbe discussRequest={chatDiscussRequest} />
-          <FleetGraphNotificationsProbe onDiscuss={handleDiscussNotification} />
         </div>
+        </FleetGraphAssistantShell>
       </SelectionPersistenceProvider>
     </TooltipProvider>
   );

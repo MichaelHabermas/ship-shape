@@ -576,6 +576,45 @@ describe('FleetGraph shared core', () => {
     });
   });
 
+  it('enriches page context through authorized visible item ids only', async () => {
+    const port = persistence();
+    vi.mocked(port.listFindingsForSource).mockResolvedValue([]);
+
+    await runFleetGraph({
+      workspaceId,
+      principal,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'What am I looking at?',
+        context: {
+          kind: 'workspace',
+          sourcePath: '/issues',
+          pageContext: {
+            route: '/issues',
+            surface: 'issues_list',
+            title: 'Issues',
+            visibleItems: [
+              { kind: 'issue', id: issueId, title: 'Blocked issue' },
+              { kind: 'issue', id: '77777777-7777-4777-8777-777777777777', title: 'Hidden issue' },
+            ],
+            selectedItemIds: [issueId],
+          },
+        },
+      },
+    }, { persistence: port, db: contextChatDb() });
+
+    const runInput = requireMockInput(vi.mocked(port.recordRun));
+    expect(runInput.outputSnapshot).toMatchObject({
+      answer: {
+        title: 'Blocked issue',
+      },
+    });
+    expect(JSON.stringify(runInput.outputSnapshot)).toContain('"label":"Issues","kind":"issues_list"');
+    expect(JSON.stringify(runInput.outputSnapshot)).toContain('"label":"Blocked issue","kind":"issue"');
+    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('Hidden issue');
+  });
+
   it('preserves process-level LangSmith env flags during graph runs', async () => {
     const port = persistence();
     const previousLangSmithTracing = process.env.LANGSMITH_TRACING;

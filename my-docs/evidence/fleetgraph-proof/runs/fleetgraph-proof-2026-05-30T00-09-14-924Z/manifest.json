@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-30T00:34:04.699Z",
-  "runId": "fleetgraph-proof-2026-05-30T00-34-04-699Z",
+  "generatedAt": "2026-05-30T00:09:14.924Z",
+  "runId": "fleetgraph-proof-2026-05-30T00-09-14-924Z",
   "target": "local",
   "git": {
     "branch": "tighten-the-screws-1",
@@ -493,7 +493,7 @@
   ],
   "costs": {
     "runCount": 3,
-    "measuredCommandMs": 2445,
+    "measuredCommandMs": 2578,
     "graphInvocationCount": 0,
     "modelCallCount": 0,
     "inputTokens": 0,
@@ -517,7 +517,7 @@
       "name": "shared package build",
       "command": "pnpm build:shared",
       "status": "pass",
-      "durationMs": 661,
+      "durationMs": 665,
       "stdoutTail": "> ship@0.0.0 build:shared /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/shared build\n\n\n> @ship/shared@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/shared\n> tsc",
       "stderrTail": ""
     },
@@ -525,8 +525,8 @@
       "name": "FleetGraph proof tests",
       "command": "pnpm --filter @ship/api test src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts",
       "status": "pass",
-      "durationMs": 1784,
-      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  29 passed (29)\n   Start at  19:34:05\n   Duration  1.40s (transform 169ms, setup 82ms, import 594ms, tests 364ms, environment 0ms)",
+      "durationMs": 1913,
+      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  28 passed (28)\n   Start at  19:09:15\n   Duration  1.52s (transform 168ms, setup 85ms, import 711ms, tests 367ms, environment 0ms)",
       "stderrTail": ""
     },
     {
@@ -554,8 +554,18 @@
       "kind": "markdown"
     },
     {
+      "label": "Public proof dashboard",
+      "path": "web/public/fleetgraph-observability/proof/latest.html",
+      "kind": "html"
+    },
+    {
+      "label": "Public proof JSON",
+      "path": "web/public/fleetgraph-observability/proof/latest.json",
+      "kind": "json"
+    },
+    {
       "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T00-34-04-699Z/proof.html",
+      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T00-09-14-924Z/proof.html",
       "kind": "html"
     },
     {

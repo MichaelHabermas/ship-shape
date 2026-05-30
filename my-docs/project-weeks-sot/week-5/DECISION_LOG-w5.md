@@ -589,3 +589,35 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Week 5 final FleetGraph proof now treats deployed worker evidence as mandatory for final claims. Render enables `FLEETGRAPH_WORKER_ENABLED=true`; final proof must show recent worker ticks plus deployed findings/runs for `blocked`, `stale`, and `at_risk`. The proof packet must fail closed when deployed API/web/DB evidence is missing, and skipped attention-loop steps are not acceptable final-submission proof.
 
 **Consequence:** D005 remains true for local/default safety, but final deployed Render is an explicit exception with reviewer proof obligations. Local E2E test hooks prove deterministic event handling only; they cannot be described as deployed no-user-present proof. Future final-submission docs must map every claimed use case to either deployed evidence, public trace evidence, or executable golden cases without implying that health checks alone prove FleetGraph availability.
+
+## D074 - FleetGraph Proof Packet Owns Cost, Trace, And Public Evidence
+
+**Date:** 2026-05-29
+
+**Decision:** Make `pnpm fleetgraph:proof` the authoritative Week 5 evidence packet for cost and traces. It reads `fleetgraph_runs` token/cost/trace metadata, reports graph invocation count, model call count, input/output/total tokens, deterministic versus real-model run counts, estimated FleetGraph runtime cost, and 100/1,000/10,000-user projections. It publishes `latest.html/json/md` both under `my-docs/evidence/fleetgraph-proof/` and `web/public/fleetgraph-observability/proof/`.
+
+**Consequence:** Placeholder trace claims are no longer acceptable. Missing public trace links for blocked, stale, at-risk, or on-demand proof keep the deployed packet blocked/risk. Development-wide Claude/API/coding-assistant spend remains explicitly excluded unless a separate instrumentation path is added.
+
+## D075 - FleetGraph Chat Uses Bounded Page Context
+
+**Date:** 2026-05-29
+
+**Decision:** Add `FleetGraphPageContext` as a capped chat capsule for issues lists, My Week, and embedded project/program/week issue tabs via the reusable `IssuesList`. It includes route, surface, title, filters, sort/view mode, counts, up to 25 visible item summaries, and up to 8 selected IDs.
+
+**Consequence:** Chat can answer from what the user is looking at without becoming a raw DOM scraper or broad workspace assistant. Client labels are hints; the API reloads IDs through existing authorization before enriching context. Mutation/contact remains human-gated.
+
+## D076 - FleetGraph Public Proof Publishes Only Passing Deployed Evidence
+
+**Date:** 2026-05-29
+
+**Decision:** Local-only proof runs write local `my-docs/evidence/fleetgraph-proof/latest.*` only. Public artifacts under `web/public/fleetgraph-observability/proof/` are written only when a non-local deployed/both proof packet passes. Non-local proof is blocked if the focused attention-loop E2E is skipped, and required trace links must be valid public HTTP(S) URLs.
+
+**Consequence:** The public reviewer URL cannot be accidentally overwritten by a local deterministic packet. Final submission still requires a deployed proof run with DB evidence, focused E2E, and public trace links.
+
+## D077 - FleetGraph Page Context And Usage Wire Refactor
+
+**Date:** 2026-05-29
+
+**Decision:** Stabilize FleetGraph page-context registration with fingerprint guards so selection/filter churn does not republish the app shell context. Add `scoped_issues_list` as the surface for project/program/week-scoped issue lists. Centralize page-context builders in `web/src/fleetgraph/page-context.ts`, chat turn state in `useFleetGraphChatTurns`, and assistant wiring in `FleetGraphAssistantShell` (provider + probes). API `usageMetadata` is built only through `usageMetadataFromResult` in `api/src/fleetgraph/usage-metadata.ts` and is omitted when `modelCalls === 0`. Split `scripts/fleetgraph-proof/run.mjs` into command, git, and deployed-evidence modules.
+
+**Consequence:** Feature work should not reintroduce pass-through assistant layers, duplicate usage mappers, or raw page-context objects in list pages. Regenerated proof/eval JSON belongs in chore/CI commits, not mixed with product refactors. Context-chat finding resolution may run in parallel; behavior must stay aligned with existing golden cases.

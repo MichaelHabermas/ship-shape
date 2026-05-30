@@ -4,6 +4,8 @@
 
 The final Week 5 proof posture is all-signal and deployed: `blocked`, `stale`, and `at_risk` are not merely design discovery items. Each final claimed signal must be backed by executable golden cases and deployed proof data from real Ship tables: worker ticks, attention events or repair-scan output, FleetGraph findings/runs, and reviewer-visible notifications. Local E2E remains deterministic proof of the loop mechanics; deployed proof is what supports deployed no-user-present claims.
 
+The proof packet is the source of truth for grading claims. It must publish under `/fleetgraph-observability/proof/latest.html`, include graph invocation count, model call count, input/output token totals, deterministic versus real-model run counts, estimated FleetGraph runtime cost, and trace links for blocked/stale/at-risk/on-demand. Missing trace links or missing deployed signal evidence is a blocked/risk proof state, not a pass with placeholder text.
+
 ## Phase 1: Define Your Agent
 
 ### 1. Agent Responsibility Scoping
@@ -73,6 +75,8 @@ The final Week 5 proof posture is all-signal and deployed: `blocked`, `stale`, a
 
 #### Use Cases
 
+Final Week 5 proof claims only the blocked, stale, at-risk, and bounded on-demand/page-context paths mapped in `FLEETGRAPH.md`. The broader discovery cases below are product-direction notes unless explicitly called out as implemented proof.
+
 **FleetGraph should focus on project drift that Ship can prove from its own documents, issues, weeks/sprints, standups, plans, reviews, associations, and activity history.**
 
 ##### **PM** - visible issue is marked blocked
@@ -81,25 +85,25 @@ The final Week 5 proof posture is all-signal and deployed: `blocked`, `stale`, a
    **Agent detects or produces:** blocked-work finding, issue owner/assignee when known, affected sprint/project when associated, linked dependency context, latest blocker text when present, severity/confidence, smallest useful audience, and next unblock step.
    **Human decides:** send/edit the message, escalate, move the work, accept the carryover risk, or snooze.
 
-##### **PM** - sprint commitment is silently turning into carryover
+##### **PM** - sprint commitment is silently turning into carryover (future direction)
 
    **Trigger:** active sprint/week is near its end and important active issues remain open, especially if they are blocked, unowned, or missing recent updates.
    **Agent detects or produces:** likely carryover list, owners, repeated blockers, missing-update evidence, suggested re-scope options, and a recovery note.
    **Human decides:** re-scope, reassign, defer, notify owners, escalate, or accept carryover.
 
-##### **Engineer** - assigned issue lacks enough context to execute
+##### **Engineer** - assigned issue lacks enough context to execute (future direction)
 
    **Trigger:** an engineer opens an assigned issue with sparse description, missing acceptance criteria, missing project/program association, or conflicting linked context.
    **Agent detects or produces:** relevant linked docs/issues, recent decisions, missing acceptance criteria, likely accountable person, and clarification questions.
    **Human decides:** ask the PM, update the issue, link missing context, or proceed with known constraints.
 
-##### **Director** - repeated drift across a program indicates management attention is needed
+##### **Director** - repeated drift across a program indicates management attention is needed (future direction)
 
    **Trigger:** multiple projects under one program show stale blockers, missing updates, high carryover, or repeated ownership gaps.
    **Agent detects or produces:** program-level drift pattern, affected projects, repeated accountable people or dependencies, trend evidence, and recommended escalation target.
    **Human decides:** request a recovery plan, intervene with a PM, reassign attention, or dismiss the pattern.
 
-##### **PM/Director** - accountable owner has gone silent
+##### **PM/Director** - accountable owner has gone silent (future direction)
 
    **Trigger:** planned or important active work has an accountable person but no standup, issue update, review, or progress signal during the expected cadence.
    **Agent detects or produces:** missing-progress finding, last known activity, expected cadence, affected work, accountable person, and a drafted nudge.
@@ -111,7 +115,7 @@ The final Week 5 proof posture is all-signal and deployed: `blocked`, `stale`, a
    **Agent detects or produces:** concise change summary, new risks, resolved blockers, new ownership/scope changes, open findings, and suggested next actions.
    **Human decides:** follow up, approve a prepared action, ask a deeper question, dismiss, or update the plan.
 
-##### **PM** - high-priority work exists outside the planning graph
+##### **PM** - high-priority work exists outside the planning graph (future direction)
 
    **Trigger:** a high-priority issue is created or updated without an owner, project/program association, or active sprint/week context.
    **Agent detects or produces:** orphaned-priority finding, missing relationship, likely project/program candidates, likely accountable person, and a proposed linking/ownership action.
@@ -311,11 +315,11 @@ The final Week 5 proof posture is all-signal and deployed: `blocked`, `stale`, a
   **LLM tokens are spent only after deterministic filters identify a candidate.**
   Eligibility scans use zero LLM tokens. A normal proactive finding should target roughly 2,000-4,000 input tokens and 500-1,000 output tokens by sending summarized issue/project/sprint context, not raw workspace data. A heavier program rollup can use roughly 6,000-10,000 input tokens and 1,000-2,000 output tokens, but that is not the MVP path. On-demand chat starts from current-view context and expands only when needed.
 
-  Final cost analysis should use one explicit formula:
+  Final cost analysis uses one explicit measured-projection formula:
 
-  `monthly cost = proactive runs/month + on-demand runs/month, priced by average input/output tokens and selected model rates`
+  `monthly model cost = measured cost per graph invocation * assumed monthly graph invocations`
 
-  The 100/1,000/10,000 user projections must state assumptions for projects, active issues, eligible candidates/day, recheck cadence, and on-demand invocations/user/day.
+  The current proof generator uses 30 graph invocations per user per month for the 100/1,000/10,000-user projections. Richer project/issue/candidate/recheck assumptions remain useful for future capacity planning, but they are not the Week 5 proof formula unless the script is changed to compute them.
 
   Any prompt likely to exceed budget should summarize first, narrow scope, or ask the user to choose a smaller scope.
 

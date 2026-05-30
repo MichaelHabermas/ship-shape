@@ -1,6 +1,7 @@
 // Verifies FleetGraph API contract serialization does not leak restricted output.
 import { describe, expect, it } from 'vitest';
 import {
+  FleetGraphChatContextSchema,
   fleetGraphManualRunResultResponse,
   fleetGraphRunResponse,
   sendFleetGraphChangeSummaryResponse,
@@ -108,6 +109,57 @@ describe('FleetGraph API contract', () => {
     expect(JSON.stringify(response)).not.toContain('hidden-user');
   });
 
+  it('omits usage metadata when no model calls were recorded', () => {
+    const response = fleetGraphRunResponse(result());
+    expect(response.usageMetadata).toBeUndefined();
+    expect('usageMetadata' in response).toBe(false);
+  });
+
+  it('omits usage metadata when graph result metadata fields are absent', () => {
+    const partial = result();
+    const response = fleetGraphRunResponse({
+      ...partial,
+      tokenMetadata: undefined as never,
+      costMetadata: undefined as never,
+    });
+    expect(response.usageMetadata).toBeUndefined();
+  });
+
+  it('serializes safe usage metadata on run responses', () => {
+    const response = fleetGraphRunResponse({
+      ...result(),
+      tokenMetadata: {
+        modelCalls: 1,
+        inputTokens: 100,
+        cachedInputTokens: 10,
+        billableInputTokens: 90,
+        outputTokens: 20,
+        totalTokens: 120,
+        usageSource: 'model_response',
+      },
+      costMetadata: {
+        estimatedCostUsd: 0.00012,
+        inputCostUsd: 0.00009,
+        outputCostUsd: 0.00003,
+        currency: 'USD',
+        costSource: 'catalog_estimate',
+      },
+    });
+
+    expect(response.usageMetadata).toEqual({
+      modelCalls: 1,
+      inputTokens: 100,
+      cachedInputTokens: 10,
+      billableInputTokens: 90,
+      outputTokens: 20,
+      totalTokens: 120,
+      estimatedCostUsd: 0.00012,
+      costCurrency: 'USD',
+      usageSource: 'model_response',
+      costSource: 'catalog_estimate',
+    });
+  });
+
   it('treats no-safe-output findings as unsafe to serialize', () => {
     const restricted = result(visibleOutput({ noSafeOutput: true, evidence: [] }));
 
@@ -140,6 +192,37 @@ describe('FleetGraph API contract', () => {
       traceMetadata: { decision: 'summarize_changes' },
     });
     expect(JSON.stringify(json.body)).not.toContain('blocked-important-issue');
+  });
+
+  it('accepts bounded page context without a document id', () => {
+    const parsed = FleetGraphChatContextSchema.parse({
+      kind: 'workspace',
+      sourcePath: '/issues?state=blocked',
+      pageContext: {
+        route: '/issues?state=blocked',
+        surface: 'issues_list',
+        title: 'Issues',
+        filters: { state: 'blocked' },
+        counts: { total: 30, filtered: 12, selected: 2 },
+        visibleItems: Array.from({ length: 25 }, (_, index) => ({
+          kind: 'issue',
+          id: index < 2 ? [issueId, sprintId][index] : undefined,
+          title: `Issue ${index + 1}`,
+        })),
+        selectedItemIds: [issueId, sprintId],
+      },
+    });
+
+    expect(parsed.pageContext?.visibleItems).toHaveLength(25);
+    expect(() => FleetGraphChatContextSchema.parse({
+      kind: 'workspace',
+      pageContext: {
+        route: '/issues',
+        surface: 'issues_list',
+        title: 'Issues',
+        visibleItems: Array.from({ length: 26 }, (_, index) => ({ kind: 'issue', title: `Issue ${index}` })),
+      },
+    })).toThrow();
   });
 });
 

@@ -1,7 +1,7 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-30T00:34:04.699Z
-Run: fleetgraph-proof-2026-05-30T00-34-04-699Z
+Generated: 2026-05-30T00:09:14.924Z
+Run: fleetgraph-proof-2026-05-30T00-09-14-924Z
 Target: local
 Verdict: pass
 Git: tighten-the-screws-1 @ b35d2b954b5425a1c6a5e851cd5a66190978a22b
@@ -90,7 +90,9 @@ No trace evidence was configured.
 - Static dashboard: my-docs/evidence/fleetgraph-proof/latest.html
 - Proof JSON: my-docs/evidence/fleetgraph-proof/latest.json
 - Proof Markdown: my-docs/evidence/fleetgraph-proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T00-34-04-699Z/proof.html
+- Public proof dashboard: web/public/fleetgraph-observability/proof/latest.html
+- Public proof JSON: web/public/fleetgraph-observability/proof/latest.json
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T00-09-14-924Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

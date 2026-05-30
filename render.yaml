@@ -33,9 +33,9 @@ services:
         value: "120000"
       - key: FLEETGRAPH_MANUAL_RUN_API_ENABLED
         value: "true"
-      # Real LLM calls are opt-in: set OPENAI_API_KEY in Render, then flip REAL_MODEL_ENABLED.
+      # Controlled proof path only; graph policy remains deterministic unless model-backed copy is needed.
       - key: FLEETGRAPH_REAL_MODEL_ENABLED
-        value: "false"
+        value: "true"
       - key: FLEETGRAPH_MODEL
         value: gpt-4.1-mini
       - key: OPENAI_API_KEY

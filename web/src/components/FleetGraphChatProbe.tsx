@@ -1,16 +1,16 @@
 // Renders contextual FleetGraph chat for source-aware page and notification discussion.
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react';
+import { useFleetGraphChatTurns, type FleetGraphChatTurn } from '@/hooks/useFleetGraphChatTurns';
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   FleetGraphChatContext,
-  FleetGraphChatHistoryEntry,
   FleetGraphChatResponse,
   FleetGraphEvidence,
+  FleetGraphPageContext,
   FleetGraphRunResponse,
   FleetGraphVisibleOutput,
 } from '@ship/shared';
-import { FLEETGRAPH_CHAT_HISTORY_LIMIT } from '@ship/shared';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
 import { NotificationLabelChip } from '@/components/NotificationLabelChip';
 import { apiGetJson, apiPostJson } from '@/lib/api';
@@ -34,14 +34,6 @@ type ExplanationState =
   | { status: 'loading'; findingId: string }
   | { status: 'ready'; findingId: string; output: FleetGraphVisibleOutput }
   | { status: 'error'; findingId?: string };
-
-interface ChatTurn {
-  id: number;
-  prompt: string;
-  status: 'loading' | 'ready' | 'error';
-  response?: Pick<FleetGraphChatResponse, 'decision' | 'answer'>;
-  errorMessage?: string;
-}
 
 export interface FleetGraphChatProbeRequest {
   id: number;
@@ -103,7 +95,13 @@ function compactBlockerText(value: string): string {
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 
-export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetGraphChatProbeRequest | null }) {
+export function FleetGraphChatProbe({
+  discussRequest,
+  pageContext,
+}: {
+  discussRequest: FleetGraphChatProbeRequest | null;
+  pageContext?: FleetGraphPageContext | null;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -116,9 +114,15 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   const [contextItems, setContextItems] = useState<ChatContextItem[]>([]);
   const [activeNotification, setActiveNotification] = useState<FleetGraphNotificationProbeItem | null>(null);
   const [explanation, setExplanation] = useState<ExplanationState>({ status: 'idle' });
-  const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
-  const [nextTurnId, setNextTurnId] = useState(1);
   const [expanded, setExpanded] = useState(false);
+  const {
+    chatTurns,
+    clearTurns,
+    beginTurn,
+    resolveTurn,
+    failTurn,
+    setTurnReady,
+  } = useFleetGraphChatTurns();
 
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
@@ -176,7 +180,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     setOpen(true);
     setActiveNotification(notification);
     setExplanation(notification.findingId ? { status: 'loading', findingId: notification.findingId } : { status: 'idle' });
-    setChatTurns([]);
+    clearTurns();
     setDraft('');
     setContextItems((items) => {
       const contextItem: ChatContextItem = {
@@ -268,7 +272,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     setContextItems([]);
     setActiveNotification(null);
     setExplanation({ status: 'idle' });
-    setChatTurns([]);
+    clearTurns();
     setDraft('');
     setContextOpen(false);
   };
@@ -314,6 +318,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         kind: 'notification',
         findingId: activeNotification.findingId,
         sourcePath: activeNotification.sourcePath,
+        ...(pageContext ? { pageContext } : {}),
         ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
       };
     }
@@ -322,6 +327,15 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         kind: currentContextKind,
         documentId: currentDocumentId,
         sourcePath: currentSourcePath,
+        ...(pageContext ? { pageContext } : {}),
+        ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
+      };
+    }
+    if (pageContext) {
+      return {
+        kind: 'workspace',
+        sourcePath: pageContext.route,
+        pageContext,
         ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
       };
     }
@@ -334,51 +348,32 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     if (!prompt) return;
 
     const context = chatContext();
-    const turnId = nextTurnId;
-    setNextTurnId((value) => value + 1);
+    const { turnId, history } = beginTurn(prompt);
     setDraft('');
-    setChatTurns((turns) => [...turns, { id: turnId, prompt, status: 'loading' }]);
 
     if (!context) {
-      setChatTurns((turns) => turns.map((turn) => turn.id === turnId
-        ? {
-            ...turn,
-            status: 'ready',
-            response: {
-              decision: 'quiet_exit',
-              answer: {
-                title: 'Open a source first',
-                body: 'Open an issue, week, project, program, document, or notification before asking.',
-                sources: [],
-                humanGate: { required: false },
-              },
-            },
-          }
-        : turn));
+      setTurnReady(turnId, {
+        decision: 'quiet_exit',
+        answer: {
+          title: 'Open a source first',
+          body: 'Open an issue, scoped list, week, project, program, document, or notification before asking.',
+          sources: [],
+          humanGate: { required: false },
+        },
+      });
       return;
     }
 
     try {
-      const history = chatTurns.flatMap<FleetGraphChatHistoryEntry>((turn) => {
-        const entries: FleetGraphChatHistoryEntry[] = [{ role: 'user', content: turn.prompt }];
-        if (turn.status === 'ready' && turn.response?.answer.body) {
-          entries.push({ role: 'assistant', content: turn.response.answer.body });
-        }
-        return entries;
-      }).slice(-FLEETGRAPH_CHAT_HISTORY_LIMIT);
       const response = await apiPostJson<FleetGraphChatResponse>(
         '/api/fleetgraph/chat',
         { prompt, context, ...(history.length > 0 ? { history } : {}) },
         'Failed to ask Ship'
       );
-      setChatTurns((turns) => turns.map((turn) => turn.id === turnId
-        ? { ...turn, status: 'ready', response }
-        : turn));
+      resolveTurn(turnId, response);
     } catch (error) {
       const status = getApiErrorStatus(error);
-      setChatTurns((turns) => turns.map((turn) => turn.id === turnId
-        ? { ...turn, status: 'error', errorMessage: chatErrorMessage(status) }
-        : turn));
+      failTurn(turnId, chatErrorMessage(status));
     }
   };
 
@@ -663,7 +658,7 @@ function NotificationConversation({
   );
 }
 
-function ChatTurnList({ turns }: { turns: ChatTurn[] }) {
+function ChatTurnList({ turns }: { turns: FleetGraphChatTurn[] }) {
   return (
     <>
       {turns.map((turn) => {

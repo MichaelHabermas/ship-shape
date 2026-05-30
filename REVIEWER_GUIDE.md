@@ -8,7 +8,8 @@ Start here for Week 5 FleetGraph review.
 | --- | --- |
 | Final FleetGraph submission | [`FLEETGRAPH.md`](./FLEETGRAPH.md) |
 | Pre-search checklist | [`PRESEARCH.md`](./PRESEARCH.md) |
-| Latest proof packet | [`my-docs/evidence/fleetgraph-proof/latest.md`](./my-docs/evidence/fleetgraph-proof/latest.md) |
+| Latest local proof packet | [`my-docs/evidence/fleetgraph-proof/latest.md`](./my-docs/evidence/fleetgraph-proof/latest.md) |
+| Public proof packet after final deployed proof | [`/fleetgraph-observability/proof/latest.html`](https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html) |
 | Product-surface eval | [`my-docs/evals/fleetgraph-product-surface/latest.md`](./my-docs/evals/fleetgraph-product-surface/latest.md) |
 | Observability dashboard artifact | [`web/public/fleetgraph-observability/index.html`](./web/public/fleetgraph-observability/index.html) |
 
@@ -19,6 +20,7 @@ Public demo URLs:
 | Web app | https://ship-shape-web.onrender.com/ |
 | API health | https://ship-shape-api.onrender.com/health |
 | Static observability dashboard | https://ship-shape-web.onrender.com/fleetgraph-observability/ |
+| Static proof packet after final deployed proof | https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html |
 
 Reviewer login:
 
@@ -34,7 +36,9 @@ Reviewer login:
 | No skipped attention-loop proof | `pnpm fleetgraph:proof -- --mode both --with-e2e` and `pnpm fleetgraph:proof:check` pass without `--allow-blocked` or `--allow-risk` |
 | Same graph architecture | `api/src/fleetgraph/core.ts` shared `runFleetGraph` runtime handles proactive and on-demand triggers |
 | Embedded context chat | `web/src/components/FleetGraphChatProbe.tsx` and `POST /api/fleetgraph/chat` |
+| Page-aware context chat | `FleetGraphPageContext` caps route/filter/count/visible/selected context; server enriches IDs through authorization |
 | Human-in-the-loop gate | Focused E2E and chat response show approval required before mutation/contact; source issue remains unchanged |
+| Cost proof | Proof packet reports graph invocation count, model call count, input/output/total tokens, deterministic/real-model run counts, estimated model cost, and 100/1,000/10,000-user projections |
 | Real Ship data | Demo/proof uses Ship documents, issue iterations, associations, FleetGraph events/findings/runs, and worker tick tables |
 
 ## 5-Minute Walkthrough
@@ -47,8 +51,9 @@ Reviewer login:
 6. Open the source issue from the notification.
 7. Open contextual chat from the notification/source.
 8. Ask `What should I do?`.
-9. Confirm chat explains the current finding from attached context and shows human approval is required before mutation/contact.
-10. Confirm the source issue state remains unchanged unless the user explicitly edits it.
+9. Confirm chat explains the current finding from attached context, names visible page/source evidence, and shows human approval is required before mutation/contact.
+10. Open an issues/My Week/project issue-tab surface and ask about the visible list; confirm the answer reflects the current filters/counts/visible or selected items without exposing hidden fields.
+11. Confirm the source issue state remains unchanged unless the user explicitly edits it.
 
 Expected loop:
 
@@ -108,6 +113,11 @@ FROM fleetgraph_findings
 WHERE status IN ('open', 'needs_confirmation', 'error')
 GROUP BY COALESCE(run_metadata->>'signalType', 'blocked')
 ORDER BY signal_type;
+
+SELECT decision, trigger_reason, token_metadata, cost_metadata, trace_metadata
+FROM fleetgraph_runs
+ORDER BY created_at DESC
+LIMIT 20;
 ```
 
 ## Rollback
