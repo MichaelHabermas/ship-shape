@@ -78,6 +78,19 @@ export type FleetGraphTrace = {
   failureCategory?: string;
 };
 
+export type FleetGraphUsage = {
+  modelCalls: number;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  billableInputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  estimatedCostUsd?: number;
+  costCurrency?: 'USD';
+  usageSource?: 'none' | 'model_response' | 'partial_model_response' | 'synthetic_calibration';
+  costSource?: 'none' | 'model_response' | 'catalog_estimate' | 'env_estimate' | 'synthetic_calibration';
+};
+
 export type FleetGraphChangeSummaryRowLabel =
   | 'Now'
   | 'Changed'
@@ -110,16 +123,47 @@ export type FleetGraphChatContextKind =
   | 'notification'
   | 'finding';
 
+export type FleetGraphPageContextSurface =
+  | 'issues_list'
+  | 'my_week'
+  | 'document_issue_tab'
+  | 'dashboard'
+  | 'workspace';
+
+export type FleetGraphPageContextItem = {
+  kind: FleetGraphChatContextKind;
+  id?: string;
+  title: string;
+  state?: string;
+  priority?: string;
+  owner?: string;
+  summary?: string;
+};
+
+export type FleetGraphPageContext = {
+  route: string;
+  surface: FleetGraphPageContextSurface;
+  title: string;
+  filters?: Record<string, string | number | boolean | null>;
+  sort?: string;
+  viewMode?: string;
+  counts?: Record<string, number>;
+  visibleItems: FleetGraphPageContextItem[];
+  selectedItemIds?: string[];
+};
+
 export type FleetGraphChatContext = {
   kind: FleetGraphChatContextKind;
   documentId?: string;
   findingId?: string;
   sourcePath?: string;
+  pageContext?: FleetGraphPageContext;
   attachedContexts?: Array<{
     kind: FleetGraphChatContextKind;
     documentId?: string;
     findingId?: string;
     sourcePath?: string;
+    pageContext?: FleetGraphPageContext;
   }>;
 };
 
@@ -155,6 +199,7 @@ export type FleetGraphChatResponse = {
   visibleOutput?: FleetGraphVisibleOutput;
   changeSummary?: FleetGraphChangeSummary;
   traceMetadata: FleetGraphTrace;
+  usageMetadata?: FleetGraphUsage;
 };
 
 export type FleetGraphAttentionSignalFields = {
@@ -217,6 +262,7 @@ export type FleetGraphRunResponse = {
   finding?: FleetGraphFindingResponse;
   visibleOutput?: FleetGraphVisibleOutput;
   traceMetadata: FleetGraphTrace;
+  usageMetadata?: FleetGraphUsage;
 };
 
 export type FleetGraphManualRunResult = {
@@ -224,6 +270,7 @@ export type FleetGraphManualRunResult = {
   findingId?: string;
   visibleOutput?: FleetGraphVisibleOutput;
   traceMetadata: FleetGraphTrace;
+  usageMetadata?: FleetGraphUsage;
 };
 
 export type FleetGraphManualRunResponse = {

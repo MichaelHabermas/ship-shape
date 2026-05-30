@@ -333,6 +333,7 @@ function html(model) {
       <button type="button" class="tab" data-view="engineer" aria-pressed="false">Engineer</button>
       <button type="button" class="tab" data-view="bakeoff" aria-pressed="false">Provider Bake-Off</button>
       <button type="button" class="tab" data-view="learning" aria-pressed="false">Learning Loop</button>
+      <a class="chip" href="./proof/latest.html">Proof packet</a>
       <button type="button" id="allRunsButton" aria-pressed="false">All runs</button>
       <select id="runSelect" title="Select run"></select>
     </div>

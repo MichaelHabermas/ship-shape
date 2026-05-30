@@ -2,11 +2,17 @@
 
 FleetGraph is Ship's project intelligence and attention engine. It watches real Ship work state, decides when a condition deserves attention, routes the finding to the smallest useful audience, and gives users a context-aware explanation path.
 
+## Final Claim Boundary
+
+FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, bounded page-aware context chat, public reviewer proof, and measured FleetGraph graph-runtime token/cost metadata. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or development-wide coding-assistant spend instrumentation.
+
+Public proof packet after final deployed proof: `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html`. Local-only proof packets intentionally do not publish to that URL.
+
 What it monitors proactively:
 
 | Signal | Source state | Surfaced when |
 | --- | --- | --- |
-| Blocked | Issue `state = blocked` | Any visible active issue is blocked, including missing blocker text |
+| Blocked | Issue `state = blocked` with the source association required by the current FleetGraph finding model | A visible active associated issue is blocked, including missing blocker text |
 | Stale | Issue `state = in_progress` or `in_review` | No meaningful issue update for 180+ days |
 | At risk | High/urgent current-week work | The issue has no assignee or is within 3 days of sprint end |
 
@@ -33,8 +39,8 @@ Who it notifies:
 
 How on-demand mode uses current view:
 
-- The chat request carries a bounded context capsule: issue/document/sprint/project/program/workspace identifiers plus any selected notification/finding.
-- The active page context is the anchor; notification context can add source evidence.
+- The chat request carries a bounded context capsule: route, surface, title, filters, sort/view mode, counts, up to 25 visible item summaries, up to 8 selected IDs, issue/document/sprint/project/program/workspace identifiers, and any selected notification/finding.
+- The server treats client labels as hints only; selected/visible IDs are enriched through existing document authorization.
 - The same `runFleetGraph` graph boundary handles proactive and on-demand paths. The trigger differs; the graph runtime does not fork into separate products.
 
 # Graph Diagram
@@ -76,7 +82,7 @@ Primary runtime boundary: `api/src/fleetgraph/core.ts`. Proactive execution ente
 | 2 | Engineer | Opens contextual chat from a finding/source issue | Explanation of why it was flagged, visible evidence, and next step | Follow up, ask deeper question, or update the issue manually |
 | 3 | PM | Active work has no meaningful update for 180+ days | Stale-work attention signal with source and suggested review action | Revive, close, reassign, or defer the work |
 | 4 | PM/Director | High/urgent current-week issue lacks owner or nears sprint end | At-risk signal with sprint context and likely accountable audience | Assign owner, re-scope, escalate, or accept carryover |
-| 5 | Director | Multiple attention findings exist under a project/program | Compact set of blocked/stale/at-risk items with source links and human-gated next actions | Ask for recovery plan, reassign attention, or accept risk |
+| 5 | PM/Director | Multiple attention findings are visible in a scoped issue/project/program tab | Page-aware chat can summarize the visible bounded list and selected sources | Ask for a human-owned recovery plan, reassign attention, or accept risk |
 
 # Trigger Model
 
@@ -104,10 +110,10 @@ Final submission proof is all-signal: every claimed signal must have executable 
 
 | # | Ship state | Expected output | Evidence |
 | ---: | --- | --- | --- |
-| 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Golden case `fg-create-blocked-visible-issue`; deployed proof packet signal `blocked`; LangSmith proactive create: https://smith.langchain.com/public/ad258212-2b31-4c36-88f2-ad91401a7d86/r |
-| 2 | Visible active issue has no meaningful update for 180+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; deployed proof packet signal `stale`; demo trace `fleetgraph.proactive_stale` when tracing is configured |
-| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Golden case `fg-create-at-risk-visible-issue`; deployed proof packet signal `at_risk`; demo trace `fleetgraph.proactive_at_risk` when tracing is configured |
-| 4 | User asks from existing finding context | On-demand `explain` path returns visible evidence and next action | Golden case `fg-explain-existing-finding`; LangSmith explain: https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
+| 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Golden case `fg-create-blocked-visible-issue`; deployed proof packet signal `blocked`; trace link must appear in public proof packet |
+| 2 | Visible active issue has no meaningful update for 180+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; deployed proof packet signal `stale`; trace link must appear in public proof packet |
+| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Golden case `fg-create-at-risk-visible-issue`; deployed proof packet signal `at_risk`; trace link must appear in public proof packet |
+| 4 | User asks from existing finding or page context | On-demand `explain`/chat path returns visible evidence, page context, and next action | Golden case `fg-explain-existing-finding`; public proof packet must include on-demand trace link |
 | 5 | Chat asks for next action on a source/finding | Human gate required; source issue remains unchanged after chat | `e2e/fleetgraph-attention-loop.spec.ts`; proof packet attention loop has no skipped steps when run with `--with-e2e` |
 | 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | Golden cases `fg-resolve-condition-gone`, `fg-restricted-source-hidden`, and `fg-quiet-done-cancelled` |
 
@@ -132,6 +138,7 @@ pnpm fleetgraph:proof:check
 | FleetGraph owns diagnosis state only | Findings, runs, attention events, worker ticks, and read state are FleetGraph-owned tables | Ship issues/weeks/projects remain source of truth |
 | Human gate before consequences | Chat/action output marks approval required for mutation/contact-like work | Prevents fake autonomy and source-record changes without approval |
 | Context chat is bounded | `/api/fleetgraph/chat` supports context-attached prompts, not a standalone workspace chatbot | Satisfies embedded-context requirement without turning into generic chat |
+| Page context is capped | `FleetGraphPageContext` carries route/surface/filter/count/visible/selected hints with strict caps | Improves page awareness without raw DOM snapshots or hidden fields |
 | Observability is provider-neutral | `api/src/fleetgraph/observability-trace.ts` emits sanitized LangSmith/Langfuse evidence | Advisor clarification allows equivalent trace links; public traces stay reviewer-safe |
 | Reviewer proof stays out of product UI | Trace links, run metadata, worker DB evidence, and eval scores live in docs/reports | UI stays focused on user decisions |
 
@@ -152,38 +159,27 @@ Shared wire types live in `shared/src/types/fleetgraph.ts`: findings, notificati
 
 # Cost Analysis
 
-Measured FleetGraph observability spend is from generated FleetGraph graph runs, not total Claude development spend. Development-wide Claude/API spend was not fully instrumented in this repo.
+Measured FleetGraph spend is graph-runtime spend from `fleetgraph_runs.token_metadata` and `fleetgraph_runs.cost_metadata`, plus any controlled production model proof sample. Development-wide Claude/API/coding-assistant spend was not instrumented and is explicitly excluded.
 
-Latest measured observability trial:
+Required proof fields:
 
 | Item | Amount |
 | --- | ---: |
-| Model calls | 1 |
-| Total tokens | 180 |
-| Estimated spend | `$0.0000675` |
-| Score pass/fail | 32/0 |
+| Graph invocations | From `fleetgraph_runs` in the proof window |
+| Model calls | Sum of `token_metadata.modelCalls` |
+| Input/output/total tokens | Sum of `token_metadata.inputTokens`, `outputTokens`, and `totalTokens` |
+| Estimated model spend | Sum of `cost_metadata.estimatedCostUsd` |
+| Deterministic runs | Runs with zero model calls |
+| Real-model proof runs | Runs with nonzero model calls |
 
-Pricing assumption used by the current FleetGraph scripts:
+Pricing assumption used by the current FleetGraph scripts when provider cost is estimated:
 
 - Input: `$0.15 / 1M tokens`.
 - Output: `$0.60 / 1M tokens`.
-- Blocked proactive create can call the model only when explicitly enabled.
-- Stale, at-risk, quiet, explain, refine, dismiss, and resolve paths are deterministic/zero-token by default.
+- Blocked proactive create can call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL` is configured, and `OPENAI_API_KEY` exists.
+- Stale, at-risk, quiet, explain, refine, dismiss, and resolve paths remain deterministic/zero-token by default unless a future proof explicitly changes that boundary.
 
-Production projection assumptions:
-
-- 10 users per active project.
-- 2 proactive model-backed findings per project per day.
-- 1 on-demand model-backed invocation per user per day.
-- Average model-backed invocation: 3,000 input tokens + 750 output tokens.
-- Cost per average model-backed invocation: `$0.0009`.
-- SQL-only worker ticks and deterministic quiet exits are treated as zero model cost.
-
-| Scale | Projects | Proactive runs/month | On-demand runs/month | Estimated monthly model cost |
-| ---: | ---: | ---: | ---: | ---: |
-| 100 users | 10 | 600 | 3,000 | `$3.24` |
-| 1,000 users | 100 | 6,000 | 30,000 | `$32.40` |
-| 10,000 users | 1,000 | 60,000 | 300,000 | `$324.00` |
+Production projections are generated into the proof packet for 100, 1,000, and 10,000 users using the measured cost-per-graph-invocation in the current proof window and an explicit assumption of 30 graph invocations per user per month. If the proof window has no real-model runs, projected model spend correctly remains `$0` and the proof must say deterministic-first rather than imply measured model use.
 
 Cost cliffs and controls:
 

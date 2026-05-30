@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildProofPacket } from './proof-model.mjs';
 import { renderHtml } from './render-html.mjs';
 import { renderMarkdown } from './render-markdown.mjs';
@@ -18,97 +18,114 @@ const { config: loadEnv } = apiRequire('dotenv');
 const pg = apiRequire('pg');
 const outputRoot = path.join(repoRoot, 'my-docs/evidence/fleetgraph-proof');
 const runsRoot = path.join(outputRoot, 'runs');
+const publicProofRoot = path.join(repoRoot, 'web/public/fleetgraph-observability/proof');
 const defaultDeployedApiUrl = 'https://ship-shape-api.onrender.com';
 const defaultDeployedWebUrl = 'https://ship-shape-web.onrender.com';
 
 loadEnv({ path: path.join(repoRoot, 'api/.env.local') });
 loadEnv({ path: path.join(repoRoot, 'api/.env') });
 
-const options = parseArgs(process.argv.slice(2));
-const generatedAt = new Date();
-const runId = `fleetgraph-proof-${timestampForPath(generatedAt)}`;
-const runDir = path.join(runsRoot, runId);
-
-await mkdir(runDir, { recursive: true });
-
-const commandResults = [];
-if (!options.noRefreshEvals) {
-  commandResults.push(runCommand('product surface eval', ['pnpm', 'fleetgraph:eval:surface']));
+if (isMainModule()) {
+  await main();
 }
-if (!options.skipTests) {
-  commandResults.push(runCommand('shared package build', ['pnpm', 'build:shared']));
-  commandResults.push(runCommand('FleetGraph proof tests', [
-    'pnpm',
-    '--filter',
-    '@ship/api',
-    'test',
-    'src/fleetgraph/eval/eval.test.ts',
-    'src/fleetgraph/eval/executable-golden-cases.test.ts',
-    'src/fleetgraph/eval/product-surface.test.ts',
-    'src/fleetgraph/api-contract.test.ts',
-  ], {
-    DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit',
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const generatedAt = new Date();
+  const runId = `fleetgraph-proof-${timestampForPath(generatedAt)}`;
+  const runDir = path.join(runsRoot, runId);
+
+  await mkdir(runDir, { recursive: true });
+
+  const commandResults = [];
+  if (!options.noRefreshEvals) {
+    commandResults.push(runCommand('product surface eval', ['pnpm', 'fleetgraph:eval:surface']));
+  }
+  if (!options.skipTests) {
+    commandResults.push(runCommand('shared package build', ['pnpm', 'build:shared']));
+    commandResults.push(runCommand('FleetGraph proof tests', [
+      'pnpm',
+      '--filter',
+      '@ship/api',
+      'test',
+      'src/fleetgraph/eval/eval.test.ts',
+      'src/fleetgraph/eval/executable-golden-cases.test.ts',
+      'src/fleetgraph/eval/product-surface.test.ts',
+      'src/fleetgraph/api-contract.test.ts',
+    ], {
+      DATABASE_URL: proofTestDatabaseUrl(),
+    }));
+  }
+  if (options.withE2e) {
+    commandResults.push(runCommand('FleetGraph attention loop E2E', [
+      'pnpm',
+      'test:e2e:run',
+      'e2e/fleetgraph-attention-loop.spec.ts',
+    ]));
+  } else {
+    commandResults.push({
+      name: 'FleetGraph attention loop E2E',
+      command: 'pnpm test:e2e:run e2e/fleetgraph-attention-loop.spec.ts',
+      status: 'skipped',
+      durationMs: 0,
+      note: 'Skipped by default; pass --with-e2e to run the focused browser proof.',
+    });
+  }
+
+  const proofTestsPassed = commandResults.some((result) =>
+    result.name === 'FleetGraph proof tests' && result.status === 'pass'
+  );
+  const e2ePassed = commandResults.some((result) =>
+    result.name === 'FleetGraph attention loop E2E' && result.status === 'pass'
+  );
+  const environments = await environmentChecks(options);
+  const deployedEvidence = await deployedDatabaseEvidence(options);
+
+  const packet = redactProofValue(buildProofPacket({
+    generatedAt: generatedAt.toISOString(),
+    runId,
+    target: options.mode,
+    git: gitInfo(),
+    goldenCaseIndex: await readGoldenCaseIndex(),
+    executedCaseIds: proofTestsPassed ? await readExecutableGoldenCaseIds() : new Set(),
+    executedScenarioIds: e2ePassed ? new Set(['context-chat-human-gate', 'source-condition-resolved']) : new Set(),
+    productSurface: await readJsonIfExists(path.join(repoRoot, 'my-docs/evals/fleetgraph-product-surface/latest.json')),
+    environments,
+    deployedEvidence,
+    commandResults,
+    artifacts: artifactPlan(runId, options.mode),
   }));
+
+  const json = `${JSON.stringify(packet, null, 2)}\n`;
+  const latestHtml = renderHtml(packet, { artifactBase: '../../../' });
+  const runHtml = renderHtml(packet, { artifactBase: '../../../../../' });
+  const markdown = renderMarkdown(packet);
+
+  await writeFile(path.join(runDir, 'proof.json'), json);
+  await writeFile(path.join(runDir, 'proof.html'), runHtml);
+  await writeFile(path.join(runDir, 'proof.md'), markdown);
+  await writeFile(path.join(outputRoot, 'latest.json'), json);
+  await writeFile(path.join(outputRoot, 'latest.html'), latestHtml);
+  await writeFile(path.join(outputRoot, 'latest.md'), markdown);
+  if (shouldPublishPublicProof(packet)) {
+    await mkdir(publicProofRoot, { recursive: true });
+    await writeFile(path.join(publicProofRoot, 'latest.json'), json);
+    await writeFile(path.join(publicProofRoot, 'latest.html'), latestHtml);
+    await writeFile(path.join(publicProofRoot, 'latest.md'), markdown);
+  }
+  await copyFile(path.join(runDir, 'proof.json'), path.join(runDir, 'manifest.json'));
+
+  console.log(`FleetGraph proof ${packet.verdict}: ${path.relative(repoRoot, path.join(outputRoot, 'latest.html'))}`);
+  if (packet.risks.length) {
+    console.log('Risks:');
+    for (const risk of packet.risks) console.log(`- ${risk}`);
+  }
+  process.exitCode = packet.verdict === 'pass' ? 0 : 1;
 }
-if (options.withE2e) {
-  commandResults.push(runCommand('FleetGraph attention loop E2E', [
-    'pnpm',
-    'test:e2e:run',
-    'e2e/fleetgraph-attention-loop.spec.ts',
-  ]));
-} else {
-  commandResults.push({
-    name: 'FleetGraph attention loop E2E',
-    command: 'pnpm test:e2e:run e2e/fleetgraph-attention-loop.spec.ts',
-    status: 'skipped',
-    durationMs: 0,
-    note: 'Skipped by default; pass --with-e2e to run the focused browser proof.',
-  });
+
+function isMainModule() {
+  return process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 }
-
-const proofTestsPassed = commandResults.some((result) =>
-  result.name === 'FleetGraph proof tests' && result.status === 'pass'
-);
-const e2ePassed = commandResults.some((result) =>
-  result.name === 'FleetGraph attention loop E2E' && result.status === 'pass'
-);
-const environments = await environmentChecks(options);
-const deployedEvidence = await deployedDatabaseEvidence(options);
-
-const packet = redactProofValue(buildProofPacket({
-  generatedAt: generatedAt.toISOString(),
-  runId,
-  target: options.mode,
-  git: gitInfo(),
-  goldenCaseIndex: await readGoldenCaseIndex(),
-  executedCaseIds: proofTestsPassed ? await readExecutableGoldenCaseIds() : new Set(),
-  executedScenarioIds: e2ePassed ? new Set(['context-chat-human-gate', 'source-condition-resolved']) : new Set(),
-  productSurface: await readJsonIfExists(path.join(repoRoot, 'my-docs/evals/fleetgraph-product-surface/latest.json')),
-  environments,
-  deployedEvidence,
-  commandResults,
-  artifacts: artifactPlan(runId),
-}));
-
-const json = `${JSON.stringify(packet, null, 2)}\n`;
-const latestHtml = renderHtml(packet, { artifactBase: '../../../' });
-const runHtml = renderHtml(packet, { artifactBase: '../../../../../' });
-const markdown = renderMarkdown(packet);
-
-await writeFile(path.join(runDir, 'proof.json'), json);
-await writeFile(path.join(runDir, 'proof.html'), runHtml);
-await writeFile(path.join(runDir, 'proof.md'), markdown);
-await writeFile(path.join(outputRoot, 'latest.json'), json);
-await writeFile(path.join(outputRoot, 'latest.html'), latestHtml);
-await writeFile(path.join(outputRoot, 'latest.md'), markdown);
-await copyFile(path.join(runDir, 'proof.json'), path.join(runDir, 'manifest.json'));
-
-console.log(`FleetGraph proof ${packet.verdict}: ${path.relative(repoRoot, path.join(outputRoot, 'latest.html'))}`);
-if (packet.risks.length) {
-  console.log('Risks:');
-  for (const risk of packet.risks) console.log(`- ${risk}`);
-}
-process.exitCode = packet.verdict === 'pass' ? 0 : 1;
 
 function parseArgs(args) {
   const parsed = {
@@ -148,6 +165,11 @@ Options:
   --skip-tests                 Render packet without running focused FleetGraph API tests.
   --with-e2e                   Run the focused Playwright FleetGraph loop spec.
 `);
+}
+
+function proofTestDatabaseUrl() {
+  if (process.env.FLEETGRAPH_PROOF_TEST_DATABASE_URL) return process.env.FLEETGRAPH_PROOF_TEST_DATABASE_URL;
+  return 'postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit';
 }
 
 function runCommand(name, command, envExtra = {}) {
@@ -245,7 +267,7 @@ async function deployedDatabaseEvidence({ mode }) {
     statement_timeout: 15_000,
   });
   try {
-    const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows] = await Promise.all([
+    const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows, runEvidenceRows] = await Promise.all([
       pool.query(
         `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
            FROM fleetgraph_worker_ticks
@@ -298,6 +320,7 @@ async function deployedDatabaseEvidence({ mode }) {
           GROUP BY trigger_reason, signal_type
           ORDER BY trigger_reason, signal_type`
       ),
+      pool.query(deployedRunEvidenceSql()),
     ]);
     return summarizeDeployedEvidence({
       evidenceSource: 'database-url',
@@ -307,6 +330,7 @@ async function deployedDatabaseEvidence({ mode }) {
       eventCounts: eventCounts.rows,
       signalRows: signalRows.rows,
       runRows: runRows.rows,
+      runEvidenceRows: runEvidenceRows.rows,
     });
   } finally {
     await pool.end();
@@ -314,7 +338,7 @@ async function deployedDatabaseEvidence({ mode }) {
 }
 
 function deployedDatabaseEvidenceFromRender(postgresIdOrName) {
-  const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows] = [
+  const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows, runEvidenceRows] = [
     renderPsql(postgresIdOrName, `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
        FROM fleetgraph_worker_ticks
       WHERE started_at >= now() - interval '24 hours'
@@ -355,6 +379,7 @@ function deployedDatabaseEvidenceFromRender(postgresIdOrName) {
         AND decision IN ('create_finding', 'update_finding', 'resolve', 'suppress')
       GROUP BY trigger_reason, signal_type
       ORDER BY trigger_reason, signal_type`),
+    renderPsql(postgresIdOrName, deployedRunEvidenceSql()),
   ];
   return summarizeDeployedEvidence({
     evidenceSource: 'render-postgres',
@@ -364,10 +389,11 @@ function deployedDatabaseEvidenceFromRender(postgresIdOrName) {
     eventCounts,
     signalRows,
     runRows,
+    runEvidenceRows,
   });
 }
 
-function summarizeDeployedEvidence({
+export function summarizeDeployedEvidence({
   evidenceSource,
   workerTicks,
   completedWorkerTicks,
@@ -375,12 +401,15 @@ function summarizeDeployedEvidence({
   eventCounts,
   signalRows,
   runRows,
+  runEvidenceRows = [],
 }) {
   const activeRunningTickCount = workerTicks.filter((row) => row.status === 'running').length;
   const signalCounts = countSignals([...signalRows, ...runRows]);
   const scheduledWorkerSignalCounts = countSignals(
     runRows.filter((row) => row.trigger_reason === 'scheduled-worker')
   );
+  const usageSummary = summarizeRunUsage(runEvidenceRows);
+  const traceEvidence = summarizeTraceEvidence(runEvidenceRows);
   return {
     checkedAt: new Date().toISOString(),
     evidenceSource,
@@ -394,7 +423,148 @@ function summarizeDeployedEvidence({
     signalCounts,
     scheduledWorkerSignalTypes: deployedSignalTypes(scheduledWorkerSignalCounts),
     scheduledWorkerSignalCounts,
+    graphInvocationCount: usageSummary.graphInvocationCount,
+    usageSummary,
+    traceEvidence,
+    recentRuns: runEvidenceRows.slice(0, 25).map(safeRunEvidenceRow),
   };
+}
+
+function deployedRunEvidenceSql() {
+  return `SELECT id, decision, trigger_reason,
+            CASE
+              WHEN run_metadata->>'signalType' IN ('blocked', 'stale', 'at_risk') THEN run_metadata->>'signalType'
+              WHEN dedupe_key LIKE 'stale-issue:%' THEN 'stale'
+              WHEN dedupe_key LIKE 'at-risk-issue:%' THEN 'at_risk'
+              ELSE 'blocked'
+            END AS signal_type,
+            created_at,
+            trace_metadata::text AS trace_metadata,
+            token_metadata::text AS token_metadata,
+            cost_metadata::text AS cost_metadata
+       FROM fleetgraph_runs
+      WHERE created_at >= now() - interval '24 hours'
+      ORDER BY created_at DESC
+      LIMIT 100`;
+}
+
+function summarizeRunUsage(rows) {
+  const summary = {
+    graphInvocationCount: rows.length,
+    modelCallCount: 0,
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    billableInputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    estimatedCostUsd: 0,
+    deterministicRunCount: 0,
+    realModelRunCount: 0,
+    costCurrency: 'USD',
+    projections: {},
+  };
+  for (const row of rows) {
+    const token = parseJsonRecord(row.token_metadata);
+    const cost = parseJsonRecord(row.cost_metadata);
+    const modelCalls = numberValue(token.modelCalls);
+    summary.modelCallCount += modelCalls;
+    summary.inputTokens += numberValue(token.inputTokens);
+    summary.cachedInputTokens += numberValue(token.cachedInputTokens);
+    summary.billableInputTokens += numberValue(token.billableInputTokens);
+    summary.outputTokens += numberValue(token.outputTokens);
+    summary.totalTokens += numberValue(token.totalTokens);
+    summary.estimatedCostUsd += numberValue(cost.estimatedCostUsd ?? cost.modelCostUsd);
+    if (modelCalls > 0) summary.realModelRunCount += 1;
+    else summary.deterministicRunCount += 1;
+  }
+  summary.estimatedCostUsd = roundUsd(summary.estimatedCostUsd);
+  summary.projections = usageProjections(summary);
+  return summary;
+}
+
+export function summarizeTraceEvidence(rows) {
+  const required = ['blocked', 'stale', 'at_risk', 'on_demand'];
+  const bySignal = {};
+  for (const row of rows) {
+    const signal = onDemandTraceReason(row) ? 'on_demand' : row.signal_type;
+    if (!required.includes(signal)) continue;
+    const trace = parseJsonRecord(row.trace_metadata);
+    const link = traceUrlFromMetadata(trace);
+    if (bySignal[signal]?.traceUrl) continue;
+    if (bySignal[signal] && !link) continue;
+    bySignal[signal] = {
+      signal,
+      runId: row.id,
+      decision: row.decision,
+      triggerReason: row.trigger_reason,
+      traceUrl: link || null,
+      traceId: stringValue(trace.traceId) || null,
+      createdAt: row.created_at,
+    };
+  }
+  return {
+    requiredSignals: required,
+    bySignal,
+    missingRequired: required.filter((signal) => !bySignal[signal]?.traceUrl),
+  };
+}
+
+function safeRunEvidenceRow(row) {
+  const token = parseJsonRecord(row.token_metadata);
+  const cost = parseJsonRecord(row.cost_metadata);
+  const trace = parseJsonRecord(row.trace_metadata);
+  return {
+    id: row.id,
+    decision: row.decision,
+    triggerReason: row.trigger_reason,
+    signalType: row.signal_type,
+    createdAt: row.created_at,
+    modelCalls: numberValue(token.modelCalls),
+    inputTokens: numberValue(token.inputTokens),
+    outputTokens: numberValue(token.outputTokens),
+    totalTokens: numberValue(token.totalTokens),
+    estimatedCostUsd: roundUsd(numberValue(cost.estimatedCostUsd ?? cost.modelCostUsd)),
+    traceUrl: traceUrlFromMetadata(trace),
+    traceId: stringValue(trace.traceId) || null,
+  };
+}
+
+function onDemandTraceReason(row) {
+  const value = `${row.trigger_reason ?? ''} ${row.decision ?? ''}`.toLowerCase().replace(/-/g, '_');
+  return [
+    'manual_run',
+    'context_chat',
+    'explain_finding',
+    'explain',
+    'refine_draft',
+    'summarize_changes',
+  ].some((needle) => value.includes(needle));
+}
+
+export function traceUrlFromMetadata(trace) {
+  const candidate = stringValue(trace.traceUrl)
+    || stringValue(trace.url)
+    || stringValue(trace.observability?.url)
+    || stringValue(trace.observability?.traceUrl)
+    || stringValue(trace.observability?.langSmithUrl)
+    || stringValue(trace.observability?.langfuseUrl)
+    || stringValue(trace.langSmithUrl)
+    || stringValue(trace.langfuseUrl)
+    || null;
+  return publicTraceUrl(candidate);
+}
+
+function publicTraceUrl(candidate) {
+  if (!candidate) return null;
+  try {
+    const url = new URL(candidate);
+    if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (['localhost', '127.0.0.1', '0.0.0.0'].includes(url.hostname)) return null;
+    if (url.hostname.endsWith('.local')) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 function hasWorkerOutput(row) {
@@ -416,6 +586,42 @@ function countBy(rows, key) {
   const counts = {};
   for (const row of rows) counts[row[key]] = Number(row.count ?? 0);
   return counts;
+}
+
+function parseJsonRecord(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function numberValue(value) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function stringValue(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function roundUsd(value) {
+  return Math.round(numberValue(value) * 1_000_000) / 1_000_000;
+}
+
+function usageProjections(summary) {
+  const divisor = Math.max(1, summary.graphInvocationCount);
+  const costPerInvocation = summary.estimatedCostUsd / divisor;
+  const tokensPerInvocation = summary.totalTokens / divisor;
+  return Object.fromEntries([100, 1000, 10000].map((users) => [users, {
+    assumedInvocationsPerUserPerMonth: 30,
+    monthlyInvocations: users * 30,
+    estimatedMonthlyCostUsd: roundUsd(costPerInvocation * users * 30),
+    estimatedMonthlyTokens: Math.round(tokensPerInvocation * users * 30),
+  }]));
 }
 
 function deployedSignalTypes(signalCounts) {
@@ -496,8 +702,8 @@ async function fetchUrl(url) {
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
 }
 
-function artifactPlan(runId) {
-  return [
+export function artifactPlan(runId, mode) {
+  const artifacts = [
     { label: 'Static dashboard', path: 'my-docs/evidence/fleetgraph-proof/latest.html', kind: 'html' },
     { label: 'Proof JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json', kind: 'json' },
     { label: 'Proof Markdown', path: 'my-docs/evidence/fleetgraph-proof/latest.md', kind: 'markdown' },
@@ -507,6 +713,18 @@ function artifactPlan(runId) {
     { label: 'Product-surface eval', path: 'my-docs/evals/fleetgraph-product-surface/latest.html', kind: 'html' },
     { label: 'Focused E2E spec', path: 'e2e/fleetgraph-attention-loop.spec.ts', kind: 'test' },
   ];
+  if (mode !== 'local') {
+    artifacts.splice(3, 0,
+      { label: 'Public proof dashboard', path: 'web/public/fleetgraph-observability/proof/latest.html', kind: 'html' },
+      { label: 'Public proof JSON', path: 'web/public/fleetgraph-observability/proof/latest.json', kind: 'json' },
+      { label: 'Public proof Markdown', path: 'web/public/fleetgraph-observability/proof/latest.md', kind: 'markdown' }
+    );
+  }
+  return artifacts;
+}
+
+export function shouldPublishPublicProof(packet) {
+  return packet.target !== 'local' && packet.verdict === 'pass';
 }
 
 function gitInfo() {

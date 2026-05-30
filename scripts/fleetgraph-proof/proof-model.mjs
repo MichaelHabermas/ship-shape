@@ -121,6 +121,9 @@ export function buildProofPacket(input) {
       deployedSignals: input.deployedEvidence?.signalTypes ?? [],
       deployedCompletedWorkerTicks: input.deployedEvidence?.completedWorkerTickCount ?? 0,
       deployedScheduledWorkerSignals: input.deployedEvidence?.scheduledWorkerSignalTypes ?? [],
+      graphInvocationCount: input.deployedEvidence?.usageSummary?.graphInvocationCount ?? 0,
+      modelCallCount: input.deployedEvidence?.usageSummary?.modelCallCount ?? 0,
+      realModelRunCount: input.deployedEvidence?.usageSummary?.realModelRunCount ?? 0,
     },
     environments,
     deployedEvidence: input.deployedEvidence ?? null,
@@ -130,9 +133,10 @@ export function buildProofPacket(input) {
     currentFindings: currentFindingsFromSurface(currentSurface),
     safety: safetyChecks(scenarios, productSurface),
     costs: costSummary(input),
+    traceEvidence: input.deployedEvidence?.traceEvidence ?? null,
     commandResults,
     artifacts: artifactIndex(input.artifacts ?? []),
-    risks: riskList(scenarios, environments, commandResults),
+    risks: riskList(scenarios, environments, commandResults, input.target),
     nonClaims: NON_CLAIMS,
   };
 
@@ -157,6 +161,17 @@ export function validateProofPacket(packet) {
       issues.push(`missing artifact ${artifact}`);
     }
   }
+  if (packet.target !== 'local') {
+    for (const artifact of [
+      'web/public/fleetgraph-observability/proof/latest.html',
+      'web/public/fleetgraph-observability/proof/latest.json',
+      'web/public/fleetgraph-observability/proof/latest.md',
+    ]) {
+      if (!packet.artifacts.some((item) => item.path === artifact)) {
+        issues.push(`missing public artifact ${artifact}`);
+      }
+    }
+  }
   if (packet.safety.some((check) => check.status === 'fail')) {
     issues.push('one or more safety checks failed');
   }
@@ -168,9 +183,11 @@ export function deriveVerdict(packet) {
   if (packet.scenarios.some((scenario) => scenario.status === 'missing' || scenario.status === 'mismatch')) return 'fail';
   if (packet.environments.some((environment) => environment.required && environment.status === 'blocked')) return 'blocked';
   if (packet.scenarios.some((scenario) => scenario.status === 'blocked')) return 'blocked';
+  if (packet.target !== 'local' && packet.commandResults.some((result) => result.status === 'skipped')) return 'blocked';
   if (packet.target !== 'local' && !hasAllDeployedSignals(packet.deployedEvidence)) return 'blocked';
   if (packet.target !== 'local' && !packet.deployedEvidence?.hasRecentCompletedWorkerOutput) return 'blocked';
   if (packet.target !== 'local' && Number(packet.deployedEvidence?.stuckRunningTickCount ?? 0) > 0) return 'blocked';
+  if (packet.target !== 'local' && packet.traceEvidence?.missingRequired?.length > 0) return 'blocked';
   if (packet.risks.length > 0) return 'risk';
   return 'pass';
 }
@@ -266,14 +283,35 @@ function safetyChecks(scenarios, productSurface) {
 
 function costSummary(input) {
   const commandMs = (input.commandResults ?? []).reduce((sum, result) => sum + (result.durationMs ?? 0), 0);
+  const usage = input.deployedEvidence?.usageSummary;
+  const projections = usage?.projections ?? {};
   return {
     runCount: input.commandResults?.length ?? 0,
     measuredCommandMs: commandMs,
-    modelCost: 'bounded / not measured in this proof packet',
+    graphInvocationCount: usage?.graphInvocationCount ?? 0,
+    modelCallCount: usage?.modelCallCount ?? 0,
+    inputTokens: usage?.inputTokens ?? 0,
+    cachedInputTokens: usage?.cachedInputTokens ?? 0,
+    billableInputTokens: usage?.billableInputTokens ?? 0,
+    outputTokens: usage?.outputTokens ?? 0,
+    totalTokens: usage?.totalTokens ?? 0,
+    deterministicRunCount: usage?.deterministicRunCount ?? 0,
+    realModelRunCount: usage?.realModelRunCount ?? 0,
+    estimatedModelCostUsd: usage?.estimatedCostUsd ?? 0,
+    modelCost: usage
+      ? `$${Number(usage.estimatedCostUsd ?? 0).toFixed(6)} measured FleetGraph graph-runtime estimate`
+      : 'not measured; no deployed run metadata was available',
     p95Latency: input.latency?.p95 ?? 'not measured',
-    projected100Projects: 'requires deployed telemetry',
-    projected1000Projects: 'requires deployed telemetry',
+    projected100Projects: projectionLabel(projections[100]),
+    projected1000Projects: projectionLabel(projections[1000]),
+    projected10000Projects: projectionLabel(projections[10000]),
+    excludes: 'Out-of-band coding assistant and development-wide Claude/API spend were not instrumented and are excluded.',
   };
+}
+
+function projectionLabel(projection) {
+  if (!projection) return 'requires deployed telemetry';
+  return `$${Number(projection.estimatedMonthlyCostUsd ?? 0).toFixed(6)} / month at ${projection.monthlyInvocations} graph invocations`;
 }
 
 function artifactIndex(artifacts) {
@@ -284,7 +322,7 @@ function artifactIndex(artifacts) {
   }));
 }
 
-function riskList(scenarios, environments, commandResults) {
+function riskList(scenarios, environments, commandResults, target) {
   const risks = [];
   if (scenarios.some((scenario) => scenario.status === 'defined')) {
     risks.push('One or more required graph paths is defined by golden cases but not executed by the focused proof tests yet.');
@@ -294,12 +332,7 @@ function riskList(scenarios, environments, commandResults) {
   }
   if (commandResults.some((result) => result.status === 'blocked')) risks.push('One or more verification commands was blocked.');
   const skippedCommands = commandResults.filter((result) => result.status === 'skipped');
-  const skippedBeyondDefaultE2e = skippedCommands.filter(
-    (result) => result.name !== 'FleetGraph attention loop E2E'
-  );
-  if (skippedBeyondDefaultE2e.length > 0) {
-    risks.push('One or more optional verification commands was skipped.');
-  }
+  if (target !== 'local' && skippedCommands.length > 0) risks.push('One or more verification commands was skipped.');
   return risks;
 }
 

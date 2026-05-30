@@ -1,5 +1,6 @@
+// IssuesList renders filtered issue work queues and publishes bounded FleetGraph page context.
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BulkActionBar } from '@/components/BulkActionBar';
 import type { Issue, IssueListItem } from '@/contexts/IssuesContext';
 import {
@@ -8,7 +9,7 @@ import {
   useUpdateIssue,
   issueKeys,
 } from '@/hooks/useIssuesQuery';
-import type { BelongsTo, IssueState } from '@ship/shared';
+import type { BelongsTo, FleetGraphPageContext, IssueState } from '@ship/shared';
 import { projectKeys, useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
@@ -33,6 +34,7 @@ import { IssuesListContextMenu } from '@/components/issues/IssuesListContextMenu
 import { IssuesListFilterCombobox, IssuesListHeader } from '@/components/issues/IssuesListHeader';
 import { useIssuesListFilters } from '@/hooks/useIssuesListFilters';
 import { useIssuesBulkActions } from '@/hooks/useIssuesBulkActions';
+import { useFleetGraphPageContextRegistration } from '@/contexts/FleetGraphPageContext';
 
 export type { IssueListItem, Issue } from '@/contexts/IssuesContext';
 export { StatusBadge, PriorityBadge } from '@/components/issues/issue-badges';
@@ -117,6 +119,7 @@ export function IssuesList({
   allowShowAllIssues = false,
 }: IssuesListProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const updateIssueMutation = useUpdateIssue();
   const { data: teamMembers = [] } = useAssignableMembersQuery();
   const { data: projects = [] } = useProjectsQuery();
@@ -253,6 +256,55 @@ export function IssuesList({
       });
     }
   }, [selectedIds, selectionPersistenceKey, selectionPersistence]);
+
+  const fleetGraphPageContext = useMemo<FleetGraphPageContext>(() => ({
+    route: `${location.pathname}${location.search}${location.hash}`,
+    surface: lockedProjectId || lockedProgramId || lockedSprintId ? 'document_issue_tab' : 'issues_list',
+    title: lockedProjectId || lockedProgramId || lockedSprintId ? 'Scoped issues' : 'Issues',
+    filters: {
+      state: stateFilter || null,
+      programId: programFilter || effectiveContext.programId || null,
+      projectId: projectFilter || effectiveContext.projectId || null,
+      sprintId: sprintFilter || effectiveContext.sprintId || null,
+      showAllIssues,
+    },
+    sort: sortBy,
+    viewMode,
+    counts: {
+      total: issues.length,
+      filtered: filteredIssues.length,
+      selected: selectedIds.size,
+    },
+    visibleItems: filteredIssues.slice(0, 25).map((issue) => ({
+      kind: 'issue',
+      id: issue.id,
+      title: issue.title || 'Untitled',
+      state: issue.state,
+      priority: issue.priority,
+      owner: issue.assignee_name ?? undefined,
+    })),
+    selectedItemIds: [...selectedIds].slice(0, 8),
+  }), [
+    effectiveContext,
+    filteredIssues,
+    issues.length,
+    location.hash,
+    location.pathname,
+    location.search,
+    lockedProgramId,
+    lockedProjectId,
+    lockedSprintId,
+    programFilter,
+    projectFilter,
+    selectedIds,
+    showAllIssues,
+    sortBy,
+    sprintFilter,
+    stateFilter,
+    viewMode,
+  ]);
+
+  useFleetGraphPageContextRegistration(fleetGraphPageContext);
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());

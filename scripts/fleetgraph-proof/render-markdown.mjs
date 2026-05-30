@@ -43,6 +43,27 @@ export function renderMarkdown(packet) {
       ? `Worker ticks: ${packet.deployedEvidence.workerTickCount}; completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}; stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}; signals: ${packet.deployedEvidence.signalTypes.join(', ') || '-'}; scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).join(', ') || '-'}`
       : 'No deployed database evidence was configured.',
     '',
+    '## Cost And Usage',
+    '',
+    `Graph invocations: ${packet.costs.graphInvocationCount}`,
+    `Model calls: ${packet.costs.modelCallCount}`,
+    `Tokens: ${packet.costs.inputTokens} input / ${packet.costs.outputTokens} output / ${packet.costs.totalTokens} total`,
+    `Deterministic runs: ${packet.costs.deterministicRunCount}; real-model runs: ${packet.costs.realModelRunCount}`,
+    `Estimated FleetGraph model cost: ${packet.costs.modelCost}`,
+    `Projection, 100 users: ${packet.costs.projected100Projects}`,
+    `Projection, 1,000 users: ${packet.costs.projected1000Projects}`,
+    `Projection, 10,000 users: ${packet.costs.projected10000Projects}`,
+    `Excluded: ${packet.costs.excludes}`,
+    '',
+    '## Trace Evidence',
+    '',
+    ...(packet.traceEvidence
+      ? [
+          `Missing required trace links: ${packet.traceEvidence.missingRequired.join(', ') || 'none'}`,
+          ...Object.values(packet.traceEvidence.bySignal ?? {}).map((item) => `- ${item.signal}: ${item.traceUrl || item.traceId || 'missing link'} (${item.decision}, ${item.triggerReason})`),
+        ]
+      : ['No trace evidence was configured.']),
+    '',
     '## Safety',
     '',
     ...packet.safety.map((check) => `- ${check.status}: ${check.name} (${check.evidence})`),

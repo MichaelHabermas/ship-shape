@@ -101,9 +101,23 @@ export function renderHtml(packet, options = {}) {
   <h2>Deployed Evidence</h2>
   <div class="panel small">
     ${packet.deployedEvidence
-      ? `<p>Worker ticks: ${packet.deployedEvidence.workerTickCount}</p><p>Completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}</p><p>Stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}</p><p>Signals: ${(packet.deployedEvidence.signalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p><p>Scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p>`
+      ? `<p>Worker ticks: ${packet.deployedEvidence.workerTickCount}</p><p>Completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}</p><p>Stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}</p><p>Signals: ${(packet.deployedEvidence.signalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p><p>Scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p><p>Graph invocations: ${packet.deployedEvidence.usageSummary?.graphInvocationCount ?? 0}</p><p>Model calls: ${packet.deployedEvidence.usageSummary?.modelCallCount ?? 0}</p>`
       : '<p>No deployed database evidence was configured.</p>'}
   </div>
+
+  <h2>Trace Evidence</h2>
+  <table>
+    <thead><tr><th>Signal</th><th>Status</th><th>Run</th><th>Trace</th></tr></thead>
+    <tbody>
+      ${packet.traceEvidence
+        ? packet.traceEvidence.requiredSignals.map((signal) => {
+            const item = packet.traceEvidence.bySignal?.[signal];
+            const status = item?.traceUrl ? 'pass' : 'blocked';
+            return `<tr><td>${escapeHtml(signal)}</td><td>${chip(status)}</td><td>${escapeHtml(item?.runId ?? '-')}</td><td>${item?.traceUrl ? `<a href="${escapeHtml(item.traceUrl)}">${escapeHtml(item.traceUrl)}</a>` : escapeHtml(item?.traceId ?? 'missing public trace link')}</td></tr>`;
+          }).join('')
+        : '<tr><td colspan="4" class="muted">No trace evidence was configured.</td></tr>'}
+    </tbody>
+  </table>
 
   <div class="grid">
     <section>
@@ -117,11 +131,17 @@ export function renderHtml(packet, options = {}) {
       <h2>Cost And Ops</h2>
       <div class="panel small">
         <p>Runs: ${packet.costs.runCount}</p>
+        <p>Graph invocations: ${packet.costs.graphInvocationCount}</p>
+        <p>Model calls: ${packet.costs.modelCallCount}</p>
+        <p>Tokens: ${packet.costs.inputTokens} input / ${packet.costs.outputTokens} output / ${packet.costs.totalTokens} total</p>
+        <p>Deterministic / real-model: ${packet.costs.deterministicRunCount} / ${packet.costs.realModelRunCount}</p>
         <p>Command time: ${packet.costs.measuredCommandMs} ms</p>
         <p>Model cost: ${escapeHtml(packet.costs.modelCost)}</p>
         <p>p95 latency: ${escapeHtml(packet.costs.p95Latency)}</p>
         <p>100 projects: ${escapeHtml(packet.costs.projected100Projects)}</p>
         <p>1,000 projects: ${escapeHtml(packet.costs.projected1000Projects)}</p>
+        <p>10,000 projects: ${escapeHtml(packet.costs.projected10000Projects)}</p>
+        <p>${escapeHtml(packet.costs.excludes)}</p>
       </div>
     </section>
   </div>

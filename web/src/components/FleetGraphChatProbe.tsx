@@ -7,6 +7,7 @@ import type {
   FleetGraphChatHistoryEntry,
   FleetGraphChatResponse,
   FleetGraphEvidence,
+  FleetGraphPageContext,
   FleetGraphRunResponse,
   FleetGraphVisibleOutput,
 } from '@ship/shared';
@@ -103,7 +104,13 @@ function compactBlockerText(value: string): string {
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 
-export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetGraphChatProbeRequest | null }) {
+export function FleetGraphChatProbe({
+  discussRequest,
+  pageContext,
+}: {
+  discussRequest: FleetGraphChatProbeRequest | null;
+  pageContext?: FleetGraphPageContext | null;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -117,8 +124,9 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   const [activeNotification, setActiveNotification] = useState<FleetGraphNotificationProbeItem | null>(null);
   const [explanation, setExplanation] = useState<ExplanationState>({ status: 'idle' });
   const [chatTurns, setChatTurns] = useState<ChatTurn[]>([]);
-  const [nextTurnId, setNextTurnId] = useState(1);
   const [expanded, setExpanded] = useState(false);
+  const nextTurnIdRef = useRef(1);
+  const chatTurnsRef = useRef<ChatTurn[]>([]);
 
   const surfaceLabel = useMemo(() => getSurfaceLabel(location.pathname), [location.pathname]);
   const currentDocumentId = useMemo(() => getCurrentDocumentId(location.pathname), [location.pathname]);
@@ -135,6 +143,10 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
   const visibleContextItems = extraContextItems.slice(0, 3);
   const overflowContextItems = extraContextItems.slice(3);
   const hasClearableContext = contextItems.length > 0;
+
+  useEffect(() => {
+    chatTurnsRef.current = chatTurns;
+  }, [chatTurns]);
 
   useEffect(() => {
     if (!currentDocumentId) {
@@ -314,6 +326,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         kind: 'notification',
         findingId: activeNotification.findingId,
         sourcePath: activeNotification.sourcePath,
+        ...(pageContext ? { pageContext } : {}),
         ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
       };
     }
@@ -322,6 +335,15 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
         kind: currentContextKind,
         documentId: currentDocumentId,
         sourcePath: currentSourcePath,
+        ...(pageContext ? { pageContext } : {}),
+        ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
+      };
+    }
+    if (pageContext) {
+      return {
+        kind: 'workspace',
+        sourcePath: pageContext.route,
+        pageContext,
         ...(attachedContexts.length > 0 ? { attachedContexts } : {}),
       };
     }
@@ -334,10 +356,15 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     if (!prompt) return;
 
     const context = chatContext();
-    const turnId = nextTurnId;
-    setNextTurnId((value) => value + 1);
+    const turnId = nextTurnIdRef.current;
+    nextTurnIdRef.current += 1;
+    const historySource = chatTurnsRef.current;
     setDraft('');
-    setChatTurns((turns) => [...turns, { id: turnId, prompt, status: 'loading' }]);
+    setChatTurns((turns) => {
+      const nextTurns = [...turns, { id: turnId, prompt, status: 'loading' } satisfies ChatTurn];
+      chatTurnsRef.current = nextTurns;
+      return nextTurns;
+    });
 
     if (!context) {
       setChatTurns((turns) => turns.map((turn) => turn.id === turnId
@@ -348,7 +375,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
               decision: 'quiet_exit',
               answer: {
                 title: 'Open a source first',
-                body: 'Open an issue, week, project, program, document, or notification before asking.',
+                body: 'Open an issue, scoped list, week, project, program, document, or notification before asking.',
                 sources: [],
                 humanGate: { required: false },
               },
@@ -359,7 +386,7 @@ export function FleetGraphChatProbe({ discussRequest }: { discussRequest: FleetG
     }
 
     try {
-      const history = chatTurns.flatMap<FleetGraphChatHistoryEntry>((turn) => {
+      const history = historySource.flatMap<FleetGraphChatHistoryEntry>((turn) => {
         const entries: FleetGraphChatHistoryEntry[] = [{ role: 'user', content: turn.prompt }];
         if (turn.status === 'ready' && turn.response?.answer.body) {
           entries.push({ role: 'assistant', content: turn.response.answer.body });

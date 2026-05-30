@@ -58,6 +58,19 @@ export const FleetGraphTraceSchema = z.object({
   failureCategory: z.string().optional(),
 }).openapi('FleetGraphTrace');
 
+export const FleetGraphUsageSchema = z.object({
+  modelCalls: z.number().int().nonnegative(),
+  inputTokens: z.number().int().nonnegative().optional(),
+  cachedInputTokens: z.number().int().nonnegative().optional(),
+  billableInputTokens: z.number().int().nonnegative().optional(),
+  outputTokens: z.number().int().nonnegative().optional(),
+  totalTokens: z.number().int().nonnegative().optional(),
+  estimatedCostUsd: z.number().nonnegative().optional(),
+  costCurrency: z.literal('USD').optional(),
+  usageSource: z.enum(['none', 'model_response', 'partial_model_response', 'synthetic_calibration']).optional(),
+  costSource: z.enum(['none', 'model_response', 'catalog_estimate', 'env_estimate', 'synthetic_calibration']).optional(),
+}).openapi('FleetGraphUsage');
+
 const FleetGraphAttentionSignalFieldsSchema = z.object({
   signalType: z.enum(['blocked', 'stale', 'at_risk']),
   signalLabel: z.string(),
@@ -118,6 +131,7 @@ export const FleetGraphRunResponseSchema = z.object({
   finding: FleetGraphFindingResponseSchema.optional(),
   visibleOutput: FleetGraphVisibleOutputSchema.optional(),
   traceMetadata: FleetGraphTraceSchema,
+  usageMetadata: FleetGraphUsageSchema.optional(),
 }).openapi('FleetGraphRunResponse');
 
 export const FleetGraphChangeSummaryRowSchema = z.object({
@@ -136,6 +150,7 @@ export const FleetGraphManualRunResultSchema = z.object({
   findingId: UuidSchema.optional(),
   visibleOutput: FleetGraphVisibleOutputSchema.optional(),
   traceMetadata: FleetGraphTraceSchema,
+  usageMetadata: FleetGraphUsageSchema.optional(),
 }).openapi('FleetGraphManualRunResult');
 
 export const FleetGraphManualRunResponseSchema = z.object({
@@ -148,15 +163,38 @@ const fleetGraphChatContextKind = z.enum([
   'issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding',
 ]);
 
+const FleetGraphPageContextItemSchema = z.object({
+  kind: fleetGraphChatContextKind,
+  id: UuidSchema.optional(),
+  title: z.string().trim().min(1).max(160),
+  state: z.string().trim().max(80).optional(),
+  priority: z.string().trim().max(80).optional(),
+  owner: z.string().trim().max(120).optional(),
+  summary: z.string().trim().max(280).optional(),
+}).openapi('FleetGraphPageContextItem');
+
+const FleetGraphPageContextSchema = z.object({
+  route: z.string().trim().min(1).max(512),
+  surface: z.enum(['issues_list', 'my_week', 'document_issue_tab', 'dashboard', 'workspace']),
+  title: z.string().trim().min(1).max(160),
+  filters: z.record(z.union([z.string().max(128), z.number(), z.boolean(), z.null()])).optional(),
+  sort: z.string().trim().max(80).optional(),
+  viewMode: z.string().trim().max(80).optional(),
+  counts: z.record(z.number().int().nonnegative()).optional(),
+  visibleItems: z.array(FleetGraphPageContextItemSchema).max(25),
+  selectedItemIds: z.array(UuidSchema).max(8).optional(),
+}).openapi('FleetGraphPageContext');
+
 const FleetGraphChatContextFieldsSchema = z.object({
   kind: fleetGraphChatContextKind,
   documentId: UuidSchema.optional(),
   findingId: UuidSchema.optional(),
   sourcePath: z.string().max(512).optional(),
+  pageContext: FleetGraphPageContextSchema.optional(),
 });
 
 function fleetGraphChatContextRefine(context: z.infer<typeof FleetGraphChatContextFieldsSchema>): boolean {
-  return Boolean(context.findingId || context.documentId || context.kind === 'workspace');
+  return Boolean(context.findingId || context.documentId || context.kind === 'workspace' || context.pageContext);
 }
 
 const FleetGraphAttachedChatContextSchema = FleetGraphChatContextFieldsSchema.refine(
@@ -201,6 +239,7 @@ export const FleetGraphChatResponseSchema = z.object({
   visibleOutput: FleetGraphVisibleOutputSchema.optional(),
   changeSummary: FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true }).optional(),
   traceMetadata: FleetGraphTraceSchema,
+  usageMetadata: FleetGraphUsageSchema.optional(),
 }).openapi('FleetGraphChatResponse');
 
 type FleetGraphRecommendedActionWire = z.infer<typeof FleetGraphRecommendedActionSchema>;
@@ -213,6 +252,7 @@ type FleetGraphChatAnswerWire = z.infer<typeof FleetGraphChatAnswerSchema>;
 type FleetGraphChatContextWire = z.infer<typeof FleetGraphChatContextSchema>;
 type FleetGraphChatResponseWire = z.infer<typeof FleetGraphChatResponseSchema>;
 type FleetGraphManualRunResultWire = z.infer<typeof FleetGraphManualRunResultSchema>;
+type FleetGraphUsageWire = z.infer<typeof FleetGraphUsageSchema>;
 
 const fleetGraphSeveritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 const fleetGraphChangeSummaryBodySchema = FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true });
@@ -259,6 +299,24 @@ function severityForResponse(value: unknown): FleetGraphVisibleOutputWire['sever
 function changeSummaryForResponse(value: unknown): FleetGraphChangeSummaryBodyWire | undefined {
   const parsed = fleetGraphChangeSummaryBodySchema.safeParse(value);
   return parsed.success ? parsed.data : undefined;
+}
+
+function usageMetadataForResponse(result: FleetGraphResult): FleetGraphUsageWire | undefined {
+  const token = result.tokenMetadata ?? { modelCalls: 0 };
+  const cost = result.costMetadata ?? {};
+  const usage: FleetGraphUsageWire = {
+    modelCalls: Number(token.modelCalls ?? 0),
+    inputTokens: token.inputTokens,
+    cachedInputTokens: token.cachedInputTokens,
+    billableInputTokens: token.billableInputTokens,
+    outputTokens: token.outputTokens,
+    totalTokens: token.totalTokens,
+    estimatedCostUsd: cost.estimatedCostUsd,
+    costCurrency: cost.currency,
+    usageSource: token.usageSource,
+    costSource: cost.costSource,
+  };
+  return FleetGraphUsageSchema.parse(usage);
 }
 
 function chatAnswerForResponse(result: FleetGraphResult): FleetGraphChatAnswerWire {
@@ -404,6 +462,7 @@ export function fleetGraphRunResponse(result: FleetGraphResult): FleetGraphRunRe
       mode: 'on_demand',
       decision: result.decision,
     }),
+    usageMetadata: usageMetadataForResponse(result),
   };
 }
 
@@ -423,6 +482,7 @@ export function fleetGraphChatResponse(input: {
       mode: 'on_demand',
       decision: input.result.decision,
     }),
+    usageMetadata: usageMetadataForResponse(input.result),
   };
 }
 
@@ -475,5 +535,6 @@ export function fleetGraphManualRunResultResponse(
       mode: 'proactive',
       decision: result.decision,
     }),
+    usageMetadata: usageMetadataForResponse(result),
   };
 }
