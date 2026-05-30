@@ -96,9 +96,9 @@ test.describe('Project Weeks Tab', () => {
       'E2E Test Project'
     );
 
-    // Create allocations for weeks 10 and 11
-    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 10);
-    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 11);
+    // Create allocations for weeks unique to this scenario
+    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 20);
+    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 21);
 
     // Navigate to project's Weeks tab
     await page.goto(`/documents/${projectId}/weeks`);
@@ -126,8 +126,8 @@ test.describe('Project Weeks Tab', () => {
       'Click Test Project'
     );
 
-    // Create allocation for week 10
-    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 10);
+    // Create allocation for a week unique to this scenario
+    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 22);
 
     // Navigate to project's Weeks tab
     await page.goto(`/documents/${projectId}/weeks`);
@@ -170,8 +170,8 @@ test.describe('Project Weeks Tab', () => {
       'Navigation Test Project'
     );
 
-    // Create allocation
-    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 10);
+    // Create allocation for a week unique to this scenario
+    await createAllocation(page, apiServer.url, csrfToken, projectId, personId, 23);
 
     // Navigate to project's Weeks tab and click to open weekly plan
     await page.goto(`/documents/${projectId}/weeks`);

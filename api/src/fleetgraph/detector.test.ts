@@ -504,7 +504,9 @@ describe('FleetGraph detector', () => {
       db,
       today: new Date('2026-05-26T12:00:00Z'),
     });
+    const staleSql = db.query.mock.calls[2]?.[0] as string;
 
+    expect(staleSql).toContain("COALESCE((run_metadata->>'demo_fixture')::boolean, false) = false");
     expect(staleFindings.map((finding) => finding.dedupeKey)).toEqual([staleDedupeKey]);
   });
 

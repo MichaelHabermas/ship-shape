@@ -1035,14 +1035,14 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
       }
     }
 
-    // Get all weekly plans for this project (include content to check if "done")
+    // Get weekly plans for allocated people (include content to check if "done")
     const plansResult = await pool.query<WeeklyDocStatusRow>(
-      `SELECT (d.properties->>'person_id') as person_id, (d.properties->>'week_number')::int as week_number, d.id, d.content
+      `SELECT DISTINCT ON ((d.properties->>'person_id'), (d.properties->>'week_number')::int)
+              (d.properties->>'person_id') as person_id, (d.properties->>'week_number')::int as week_number, d.id, d.content
        FROM documents d
        JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
        WHERE d.workspace_id = $1
          AND d.document_type = 'weekly_plan'
-         AND (d.properties->>'project_id')::uuid = $2
          AND d.deleted_at IS NULL
          AND d.archived_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}
@@ -1051,18 +1051,22 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
          AND p.deleted_at IS NULL
          AND p.archived_at IS NULL
          AND ${visibilityPredicate('p', '$3', '$4')}
-         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)
+       ORDER BY (d.properties->>'person_id'),
+                (d.properties->>'week_number')::int,
+                ((d.properties->>'project_id')::uuid = $2) DESC,
+                d.updated_at DESC`,
       [workspaceId, projectId, actor.userId, isAdmin]
     );
 
-    // Get all weekly retros for this project (include content to check if "done")
+    // Get weekly retros for allocated people (include content to check if "done")
     const retrosResult = await pool.query<WeeklyDocStatusRow>(
-      `SELECT (d.properties->>'person_id') as person_id, (d.properties->>'week_number')::int as week_number, d.id, d.content
+      `SELECT DISTINCT ON ((d.properties->>'person_id'), (d.properties->>'week_number')::int)
+              (d.properties->>'person_id') as person_id, (d.properties->>'week_number')::int as week_number, d.id, d.content
        FROM documents d
        JOIN documents p ON (d.properties->>'person_id')::uuid = p.id
        WHERE d.workspace_id = $1
          AND d.document_type = 'weekly_retro'
-         AND (d.properties->>'project_id')::uuid = $2
          AND d.deleted_at IS NULL
          AND d.archived_at IS NULL
          AND ${visibilityPredicate('d', '$3', '$4')}
@@ -1071,7 +1075,11 @@ async function getProjectAllocationGrid(req: Request, res: Response) {
          AND p.deleted_at IS NULL
          AND p.archived_at IS NULL
          AND ${visibilityPredicate('p', '$3', '$4')}
-         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)`,
+         AND ((p.properties->>'user_id')::uuid = $3::uuid OR $4 = TRUE)
+       ORDER BY (d.properties->>'person_id'),
+                (d.properties->>'week_number')::int,
+                ((d.properties->>'project_id')::uuid = $2) DESC,
+                d.updated_at DESC`,
       [workspaceId, projectId, actor.userId, isAdmin]
     );
 

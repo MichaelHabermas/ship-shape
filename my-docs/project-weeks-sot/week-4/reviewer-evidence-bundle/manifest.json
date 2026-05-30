@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "bundleGeneratedAt": "2026-05-24T20:46:29.901Z",
+  "bundleGeneratedAt": "2026-05-30T01:15:43.457Z",
   "generator": "scripts/submission/evidence-bundle-utils.mjs",
   "generatorCommand": "pnpm submission:render-bundle",
   "git": {
     "branch": "master",
-    "commit": "1b837c69475105e31771ca446df2e412f3b19587",
+    "commit": "72df89d5f0bcbdd8d26b3401a38d89d1b7a6b340",
     "dirtyWorktree": true
   },
   "security": {
-    "runId": "security-probe-ci-20260524-154623",
+    "runId": "security-probe-ci-20260529-201536",
     "mode": "local-active",
     "apiUrl": "http://127.0.0.1:3099",
     "webUrl": "http://localhost:5199",
@@ -29,8 +29,8 @@
     "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
     "my-docs/evidence/security-audit/security-findings.json",
     "my-docs/evidence/security-audit/security-findings-ledger.md",
-    "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
-    "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt",
+    "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
+    "my-docs/project-weeks-sot/week-4/w4-specs/GFA-Week-4-ShipShape.txt",
     "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
     "my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md",
     "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md"
@@ -43,8 +43,8 @@
     "my-docs/evidence/security-audit/cat8-audit-deliverable.json",
     "my-docs/evidence/security-audit/security-findings.json",
     "my-docs/evidence/security-audit/security-findings-ledger.md",
-    "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
-    "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt",
+    "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
+    "my-docs/project-weeks-sot/week-4/w4-specs/GFA-Week-4-ShipShape.txt",
     "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
     "my-docs/project-weeks-sot/week-4/SUBMISSION_CHECKLIST.md",
     "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",

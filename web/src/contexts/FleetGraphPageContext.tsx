@@ -58,11 +58,13 @@ export function useFleetGraphPageContext() {
 export function useFleetGraphPageContextRegistration(context: FleetGraphPageContext | null) {
   const { registerPageContext, unregisterPageContext } = useContextValue();
   const registrationId = useRef(Symbol('fleetgraph-page-context'));
+  const contextRef = useRef(context);
+  contextRef.current = context;
   const fingerprint = useMemo(() => fingerprintPageContext(context), [context]);
   useLayoutEffect(() => {
-    registerPageContext(registrationId.current, context);
+    registerPageContext(registrationId.current, contextRef.current);
     return () => unregisterPageContext(registrationId.current);
-  }, [fingerprint, registerPageContext, unregisterPageContext, context]);
+  }, [fingerprint, registerPageContext, unregisterPageContext]);
 }
 
 function useContextValue(): FleetGraphPageContextValue {
