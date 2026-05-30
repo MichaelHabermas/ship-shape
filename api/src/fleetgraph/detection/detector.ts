@@ -447,6 +447,7 @@ export async function findStaleBlockedImportantIssueFindings(input: {
             OR dedupe_key LIKE '${STALE_ISSUE_DEDUPE_PREFIX}:%'
             OR dedupe_key LIKE '${AT_RISK_ISSUE_DEDUPE_PREFIX}:%'
           )
+          AND COALESCE((run_metadata->>'demo_fixture')::boolean, false) = false
           AND status IN ('open', 'needs_confirmation', 'error')
         ORDER BY updated_at ASC
         LIMIT $2

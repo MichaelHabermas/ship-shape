@@ -4,8 +4,8 @@ export const week4Root = 'my-docs/project-weeks-sot/week-4';
 
 export const week4 = {
   root: week4Root,
-  gfaBrief: `${week4Root}/GFA-Week-4-ShipShape.txt`,
-  securityBrief: `${week4Root}/Shipshape-Security-Audit.txt`,
+  gfaBrief: `${week4Root}/w4-specs/GFA-Week-4-ShipShape.txt`,
+  securityBrief: `${week4Root}/w4-specs/Shipshape-Security-Audit.txt`,
   improvementReport: `${week4Root}/IMPROVEMENT_REPORT.md`,
   submissionChecklist: `${week4Root}/SUBMISSION_CHECKLIST.md`,
   auditReport: `${week4Root}/AUDIT_REPORT.md`,

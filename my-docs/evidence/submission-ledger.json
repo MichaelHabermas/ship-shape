@@ -3208,10 +3208,10 @@
       "status": "proven",
       "source_requirement": {
         "statement": "Build a runnable security probe tool that actively tests the live app across auth/session, WebSocket validation, input sanitization, and dependency CVEs; conduct manual CORS/CSP/secrets/rate-limit/error review; fix at least 2 verified vulnerabilities with before/after proof.",
-        "source": "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt"
+        "source": "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt"
       },
       "audit_deliverable": {
-        "source": "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
+        "source": "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
         "probe_tool": {
           "command": "pnpm exec shipshape-security run",
           "fresh_instance_runbook": "Run pnpm exec shipshape-security ci for a fresh-instance gate, or pnpm dev then pnpm exec shipshape-security run. Optional: --quick, --probe <id>, --cat8-perimeter (4 surfaces).",
@@ -3858,7 +3858,7 @@
         {
           "id": "cat8-security-brief",
           "type": "source_doc",
-          "path": "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
+          "path": "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
           "description": "Category 8 source brief defining required probe/manual review/fix proof."
         },
         {
@@ -4052,7 +4052,7 @@
         "Does not claim future dependency advisories will remain zero without rerunning pnpm security:probe."
       ],
       "sources": [
-        "my-docs/project-weeks-sot/week-4/Shipshape-Security-Audit.txt",
+        "my-docs/project-weeks-sot/week-4/w4-specs/Shipshape-Security-Audit.txt",
         "my-docs/project-weeks-sot/week-4/GFA-Week-4-ShipShape.txt",
         "my-docs/evidence/security-audit/latest.json",
         "my-docs/project-weeks-sot/week-4/Cat-8-Sec-Audit-and-Tool-plan.md",

@@ -56,10 +56,104 @@ EOF
     cd "$ROOT_DIR/api"
     DATABASE_URL="postgresql://localhost/$DB_NAME" npx tsx src/db/migrate.ts
     DATABASE_URL="postgresql://localhost/$DB_NAME" npx tsx src/db/seed.ts
+    DATABASE_URL="postgresql://localhost/$DB_NAME" npx tsx src/scripts/fleetgraph-demo.ts
     cd "$ROOT_DIR"
     echo "Database setup complete!"
   fi
 fi
+
+read_database_url() {
+  if [ -n "${DATABASE_URL:-}" ]; then
+    echo "$DATABASE_URL"
+    return 0
+  fi
+
+  if [ -f "$ROOT_DIR/api/.env.local" ]; then
+    grep -E '^DATABASE_URL=' "$ROOT_DIR/api/.env.local" | tail -n 1 | cut -d= -f2-
+  fi
+}
+
+database_is_ready() {
+  local database_url="$1"
+
+  if [ -z "$database_url" ]; then
+    return 1
+  fi
+
+  if command -v pg_isready >/dev/null 2>&1; then
+    pg_isready -d "$database_url" >/dev/null 2>&1
+    return $?
+  fi
+
+  psql "$database_url" -c 'select 1' >/dev/null 2>&1
+}
+
+database_url_with_port() {
+  local database_url="$1"
+  local port="$2"
+
+  node -e '
+    const url = new URL(process.argv[1]);
+    url.hostname = "localhost";
+    url.port = process.argv[2];
+    console.log(url.toString());
+  ' "$database_url" "$port"
+}
+
+detect_docker_postgres_port() {
+  if ! command -v docker >/dev/null 2>&1; then
+    return 1
+  fi
+
+  local port
+  port="$(docker port ship-shape-postgres-1 5432/tcp 2>/dev/null | sed -E 's/.*:([0-9]+)$/\1/' | head -n 1)"
+  if [ -n "$port" ]; then
+    echo "$port"
+    return 0
+  fi
+
+  port="$(docker compose -f "$ROOT_DIR/docker-compose.yml" port postgres 5432 2>/dev/null | sed -E 's/.*:([0-9]+)$/\1/' | head -n 1)"
+  if [ -n "$port" ]; then
+    echo "$port"
+    return 0
+  fi
+
+  return 1
+}
+
+configure_database_url() {
+  local configured_url
+  configured_url="$(read_database_url)"
+
+  if database_is_ready "$configured_url"; then
+    export DATABASE_URL="$configured_url"
+    echo "Database ready: $DATABASE_URL"
+    return 0
+  fi
+
+  local docker_port
+  docker_port="$(detect_docker_postgres_port || true)"
+  if [ -n "$docker_port" ]; then
+    local docker_url
+    docker_url="$(database_url_with_port "$configured_url" "$docker_port")"
+
+    if database_is_ready "$docker_url"; then
+      export DATABASE_URL="$docker_url"
+      echo "Database ready via Docker port $docker_port: $DATABASE_URL"
+      return 0
+    fi
+  fi
+
+  echo "Database unavailable. PostgreSQL is not reachable from DATABASE_URL."
+  echo "Checked: ${configured_url:-<unset>}"
+  if [ -n "${docker_port:-}" ]; then
+    echo "Also checked Docker Postgres port: $docker_port"
+  fi
+  echo "Start local Postgres or run pnpm docker:up."
+  return 1
+}
+
+configure_database_url
 
 # Base ports
 API_BASE=3000

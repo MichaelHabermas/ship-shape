@@ -150,9 +150,8 @@ test.describe('Week Accountability Flow', () => {
     expect(startItems1.length).toBe(1);
 
     // Step 2: Start the sprint
-    const startSprintResponse = await page.request.patch(`${apiServer.url}/api/weeks/${sprintId}`, {
+    const startSprintResponse = await page.request.post(`${apiServer.url}/api/weeks/${sprintId}/start`, {
       headers: { 'x-csrf-token': csrfToken },
-      data: { status: 'active' },
     });
     expect(startSprintResponse.ok()).toBe(true);
 
