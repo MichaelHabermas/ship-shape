@@ -1,6 +1,6 @@
 # FleetGraph Product Surface Eval
 
-Generated: 2026-05-30T04:25:46.335Z
+Generated: 2026-05-30T04:21:55.336Z
 
 ## Current Surface Summary
 
@@ -285,316 +285,6 @@ Older fleetgraph_runs.output_snapshot rows for trend review only. These do not a
 - Pass: 0
 - Fail: 20
 
-### fg-surface-persisted-update_finding-bfe085fd
-
-Persisted proactive/update_finding output from 2026-05-30T04:25:46.791Z
-
-Visible copy:
-
-> At risk: FG-STALE-04 API pagination cleanup stopped after route inventory · FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end. · Ask Riley Builder to confirm scope, owner, and whether this can still land this week.
-
-Status: fail (groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 2 |
-| specificity | 2 |
-| brevity | 3 |
-| repetitionBudget | 1 |
-| informationDensity | 2 |
-| cavemanCopy | 3 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 2 |
-| missingDataUsefulness | 2 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-47e17fa0
-
-Persisted proactive/update_finding output from 2026-05-30T04:25:41.782Z
-
-Visible copy:
-
-> Blocked: FG-MULTI-03 Compliance export masking is blocked near demo · FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-1fa63dcb
-
-Persisted proactive/update_finding output from 2026-05-30T04:25:36.771Z
-
-Visible copy:
-
-> Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot · FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-9fd282af
-
-Persisted proactive/update_finding output from 2026-05-30T04:25:31.659Z
-
-Visible copy:
-
-> Blocked: FG Demo - Blocked without blocker explanation · FG Demo - Blocked without blocker explanation still needs an unblock decision. · Ask Morgan Project Owner to add the blocker reason.
-
-Status: fail (groundedness, specificity, repetitionBudget, cavemanCopy)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 2 |
-| specificity | 2 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 3 |
-| cavemanCopy | 2 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-5979e7e6
-
-Persisted proactive/update_finding output from 2026-05-30T04:25:26.632Z
-
-Visible copy:
-
-> Blocked: FG Demo - Inactive week blocked control · FG Demo - Inactive week blocked control still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 6.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-746027d2
-
-Persisted proactive/update_finding output from 2026-05-30T04:23:21.560Z
-
-Visible copy:
-
-> At risk: FG-STALE-04 API pagination cleanup stopped after route inventory · FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end. · Ask Riley Builder to confirm scope, owner, and whether this can still land this week.
-
-Status: fail (groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 2 |
-| specificity | 2 |
-| brevity | 3 |
-| repetitionBudget | 1 |
-| informationDensity | 2 |
-| cavemanCopy | 3 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 2 |
-| missingDataUsefulness | 2 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-1088b62e
-
-Persisted proactive/update_finding output from 2026-05-30T04:23:16.543Z
-
-Visible copy:
-
-> Blocked: FG-MULTI-03 Compliance export masking is blocked near demo · FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-cc77f490
-
-Persisted proactive/update_finding output from 2026-05-30T04:23:11.527Z
-
-Visible copy:
-
-> Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot · FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-98de24a3
-
-Persisted proactive/update_finding output from 2026-05-30T04:23:06.428Z
-
-Visible copy:
-
-> Blocked: FG Demo - Blocked without blocker explanation · FG Demo - Blocked without blocker explanation still needs an unblock decision. · Ask Morgan Project Owner to add the blocker reason.
-
-Status: fail (groundedness, specificity, repetitionBudget, cavemanCopy)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 2 |
-| specificity | 2 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 3 |
-| cavemanCopy | 2 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
-### fg-surface-persisted-update_finding-b6a44b76
-
-Persisted proactive/update_finding output from 2026-05-30T04:23:01.411Z
-
-Visible copy:
-
-> Blocked: FG Demo - Inactive week blocked control · FG Demo - Inactive week blocked control still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 6.
-
-Status: fail (repetitionBudget)
-
-| Dimension | Score |
-| --- | ---: |
-| actionability | 4 |
-| groundedness | 3 |
-| specificity | 3 |
-| brevity | 4 |
-| repetitionBudget | 1 |
-| informationDensity | 4 |
-| cavemanCopy | 4 |
-| duplicateFactControl | 4 |
-| uncertaintyHonesty | 4 |
-| missingDataUsefulness | 4 |
-| uiProofSeparation | 4 |
-
-Notes:
-- Loaded from fleetgraph_runs.output_snapshot.
-- This is the report path that tracks real persisted FleetGraph outputs over time.
-
-Human review:
-- TBD
-
 ### fg-surface-persisted-update_finding-faea45d6
 
 Persisted proactive/update_finding output from 2026-05-30T04:20:56.359Z
@@ -877,6 +567,316 @@ Human review:
 ### fg-surface-persisted-update_finding-9235b537
 
 Persisted proactive/update_finding output from 2026-05-30T04:18:10.915Z
+
+Visible copy:
+
+> Blocked: FG Demo - Inactive week blocked control · FG Demo - Inactive week blocked control still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 6.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-7383a685
+
+Persisted proactive/update_finding output from 2026-05-30T04:16:05.840Z
+
+Visible copy:
+
+> At risk: FG-STALE-04 API pagination cleanup stopped after route inventory · FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end. · Ask Riley Builder to confirm scope, owner, and whether this can still land this week.
+
+Status: fail (groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 3 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 3 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 2 |
+| missingDataUsefulness | 2 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-21ea656d
+
+Persisted proactive/update_finding output from 2026-05-30T04:16:00.819Z
+
+Visible copy:
+
+> Blocked: FG-MULTI-03 Compliance export masking is blocked near demo · FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-c22fad28
+
+Persisted proactive/update_finding output from 2026-05-30T04:15:55.795Z
+
+Visible copy:
+
+> Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot · FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-5534747e
+
+Persisted proactive/update_finding output from 2026-05-30T04:15:50.691Z
+
+Visible copy:
+
+> Blocked: FG Demo - Blocked without blocker explanation · FG Demo - Blocked without blocker explanation still needs an unblock decision. · Ask Morgan Project Owner to add the blocker reason.
+
+Status: fail (groundedness, specificity, repetitionBudget, cavemanCopy)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 3 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-105feef9
+
+Persisted proactive/update_finding output from 2026-05-30T04:15:45.673Z
+
+Visible copy:
+
+> Blocked: FG Demo - Inactive week blocked control · FG Demo - Inactive week blocked control still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 6.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-e06cc316
+
+Persisted proactive/update_finding output from 2026-05-30T04:13:40.608Z
+
+Visible copy:
+
+> At risk: FG-STALE-04 API pagination cleanup stopped after route inventory · FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end. · Ask Riley Builder to confirm scope, owner, and whether this can still land this week.
+
+Status: fail (groundedness, specificity, repetitionBudget, informationDensity, uncertaintyHonesty, missingDataUsefulness)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 3 |
+| repetitionBudget | 1 |
+| informationDensity | 2 |
+| cavemanCopy | 3 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 2 |
+| missingDataUsefulness | 2 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-53cdbbdc
+
+Persisted proactive/update_finding output from 2026-05-30T04:13:35.591Z
+
+Visible copy:
+
+> Blocked: FG-MULTI-03 Compliance export masking is blocked near demo · FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-e7a929d9
+
+Persisted proactive/update_finding output from 2026-05-30T04:13:30.567Z
+
+Visible copy:
+
+> Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot · FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision. · Ask Riley Builder to confirm owner and next step for Week 7.
+
+Status: fail (repetitionBudget)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 3 |
+| specificity | 3 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 4 |
+| cavemanCopy | 4 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-5c8a1234
+
+Persisted proactive/update_finding output from 2026-05-30T04:13:25.470Z
+
+Visible copy:
+
+> Blocked: FG Demo - Blocked without blocker explanation · FG Demo - Blocked without blocker explanation still needs an unblock decision. · Ask Morgan Project Owner to add the blocker reason.
+
+Status: fail (groundedness, specificity, repetitionBudget, cavemanCopy)
+
+| Dimension | Score |
+| --- | ---: |
+| actionability | 4 |
+| groundedness | 2 |
+| specificity | 2 |
+| brevity | 4 |
+| repetitionBudget | 1 |
+| informationDensity | 3 |
+| cavemanCopy | 2 |
+| duplicateFactControl | 4 |
+| uncertaintyHonesty | 4 |
+| missingDataUsefulness | 4 |
+| uiProofSeparation | 4 |
+
+Notes:
+- Loaded from fleetgraph_runs.output_snapshot.
+- This is the report path that tracks real persisted FleetGraph outputs over time.
+
+Human review:
+- TBD
+
+### fg-surface-persisted-update_finding-2effc3c4
+
+Persisted proactive/update_finding output from 2026-05-30T04:13:20.444Z
 
 Visible copy:
 

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-30T03:55:59.252Z",
-  "runId": "fleetgraph-proof-2026-05-30T03-55-59-252Z",
+  "generatedAt": "2026-05-30T03:51:58.214Z",
+  "runId": "fleetgraph-proof-2026-05-30T03-51-58-214Z",
   "target": "both",
   "git": {
     "branch": "master",
     "sha": "8305e0c80a30b898f7aeb0ab5376f55df3195ff7",
     "dirty": true
   },
-  "verdict": "pass",
+  "verdict": "blocked",
   "summary": {
     "requiredScenarioCount": 9,
     "provenScenarioCount": 9,
@@ -47,13 +47,13 @@
     }
   ],
   "deployedEvidence": {
-    "checkedAt": "2026-05-30T03:57:22.448Z",
+    "checkedAt": "2026-05-30T03:53:12.567Z",
     "evidenceSource": "render-postgres",
     "workerTickCount": 5,
     "completedWorkerTickCount": 5,
     "hasRecentCompletedWorkerOutput": true,
     "activeRunningTickCount": 0,
-    "stuckRunningTickCount": 0,
+    "stuckRunningTickCount": 2,
     "eventCounts": {},
     "signalTypes": [
       "at_risk",
@@ -61,9 +61,9 @@
       "stale"
     ],
     "signalCounts": {
-      "at_risk": 285,
-      "blocked": 659,
-      "stale": 156
+      "at_risk": 283,
+      "blocked": 651,
+      "stale": 154
     },
     "scheduledWorkerSignalTypes": [
       "at_risk",
@@ -71,9 +71,9 @@
       "stale"
     ],
     "scheduledWorkerSignalCounts": {
-      "at_risk": 264,
-      "blocked": 544,
-      "stale": 138
+      "at_risk": 262,
+      "blocked": 536,
+      "stale": 136
     },
     "graphInvocationCount": 100,
     "usageSummary": {
@@ -119,254 +119,37 @@
       "bySignal": {
         "blocked": {
           "signal": "blocked",
-          "runId": "949c6177-ef28-48ca-a272-0bfa474f0a6c",
+          "runId": "cdec3ec0-b708-4fd9-b0aa-f1369daa6544",
           "decision": "quiet_exit",
           "triggerReason": "scheduled-worker",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc",
-          "traceId": "2a02f39d8be1abcaa7ea91937d8a20bc",
-          "createdAt": "2026-05-30 03:56:21.609937+00"
+          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/926221de05200d77a86e818d00d972a4",
+          "traceId": "926221de05200d77a86e818d00d972a4",
+          "createdAt": "2026-05-30 03:51:09.602952+00"
         },
         "stale": {
           "signal": "stale",
-          "runId": "aea9ea25-ae8a-481e-a6c4-d05363654d26",
+          "runId": "9120993a-4b0e-4bea-9e23-42caa5f32c6c",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787",
-          "traceId": "9e0cf9adf415069052a1bdf739f53787",
-          "createdAt": "2026-05-30 03:56:16.556181+00"
+          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4c0e1b474d4402acc8bb936dc463024e",
+          "traceId": "4c0e1b474d4402acc8bb936dc463024e",
+          "createdAt": "2026-05-30 03:51:04.543845+00"
         },
         "at_risk": {
           "signal": "at_risk",
-          "runId": "8521e5a4-c625-4632-8572-04f5fe4292b7",
+          "runId": "8e418e62-ffd2-48c1-9597-8932706d6885",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed",
-          "traceId": "b98b8ce0bc232770312a10a3ec0482ed",
-          "createdAt": "2026-05-30 03:55:55.914922+00"
-        },
-        "on_demand": {
-          "signal": "on_demand",
-          "runId": "ee63615d-7c21-4576-a01e-4652d6437ec0",
-          "decision": "quiet_exit",
-          "triggerReason": "context-chat",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762",
-          "traceId": "87f8505441dd74c4458576d9bd57d762",
-          "createdAt": "2026-05-30 03:55:36.812699+00"
+          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/85527b640a60ee5096d095e5715b17b9",
+          "traceId": "85527b640a60ee5096d095e5715b17b9",
+          "createdAt": "2026-05-30 03:50:43.736851+00"
         }
       },
-      "missingRequired": []
+      "missingRequired": [
+        "on_demand"
+      ]
     },
     "recentRuns": [
-      {
-        "id": "949c6177-ef28-48ca-a272-0bfa474f0a6c",
-        "decision": "quiet_exit",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:21.609937+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc",
-        "traceId": "2a02f39d8be1abcaa7ea91937d8a20bc"
-      },
-      {
-        "id": "aea9ea25-ae8a-481e-a6c4-d05363654d26",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "stale",
-        "createdAt": "2026-05-30 03:56:16.556181+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787",
-        "traceId": "9e0cf9adf415069052a1bdf739f53787"
-      },
-      {
-        "id": "2da73313-94c5-498c-a7f7-69b93b50f844",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:11.542043+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/173ef261240f6df9b9e5c095e4fc449a",
-        "traceId": "173ef261240f6df9b9e5c095e4fc449a"
-      },
-      {
-        "id": "55e12ebe-103c-432b-af21-4a2f66e50486",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:06.511722+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/77d800853ae1a1cd2dec5ec9a19d215b",
-        "traceId": "77d800853ae1a1cd2dec5ec9a19d215b"
-      },
-      {
-        "id": "7d6b6893-ccf2-48b0-a94c-a89eda6f98ab",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:00.94356+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b5c4f374004c73abc020fb149235ec5a",
-        "traceId": "b5c4f374004c73abc020fb149235ec5a"
-      },
-      {
-        "id": "8521e5a4-c625-4632-8572-04f5fe4292b7",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "at_risk",
-        "createdAt": "2026-05-30 03:55:55.914922+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed",
-        "traceId": "b98b8ce0bc232770312a10a3ec0482ed"
-      },
-      {
-        "id": "5a9896c8-39c9-4a1c-8178-b5a7876e7b02",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:55:50.797967+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/fc2a1f67aa9b79248559467220938b7b",
-        "traceId": "fc2a1f67aa9b79248559467220938b7b"
-      },
-      {
-        "id": "ee63615d-7c21-4576-a01e-4652d6437ec0",
-        "decision": "quiet_exit",
-        "triggerReason": "context-chat",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:55:36.812699+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762",
-        "traceId": "87f8505441dd74c4458576d9bd57d762"
-      },
-      {
-        "id": "69e78ca2-434a-4278-ae76-f07051a58aa2",
-        "decision": "quiet_exit",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:45.602526+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/92c7624b01a3877d0576972d4fea6fa8",
-        "traceId": "92c7624b01a3877d0576972d4fea6fa8"
-      },
-      {
-        "id": "704b85b1-8504-48c3-a55b-fa24327cc6a5",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "stale",
-        "createdAt": "2026-05-30 03:53:40.545593+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/e01f8c4202256db63e9199b67b46c67e",
-        "traceId": "e01f8c4202256db63e9199b67b46c67e"
-      },
-      {
-        "id": "d41b734c-c491-41fc-b6ff-81f7919c80ba",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:35.525832+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/5943f1e2ca2f84f96a08ebeeabeabe18",
-        "traceId": "5943f1e2ca2f84f96a08ebeeabeabe18"
-      },
-      {
-        "id": "e9f80d30-1b16-4368-807e-19e5a27f29ec",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:30.491904+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b0290fa34379c41e9bf5c7d0df03e4e3",
-        "traceId": "b0290fa34379c41e9bf5c7d0df03e4e3"
-      },
-      {
-        "id": "c6143dfd-81d6-462f-881f-62a991857007",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:24.961695+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/dc33140618959ed97df532798a09e786",
-        "traceId": "dc33140618959ed97df532798a09e786"
-      },
-      {
-        "id": "90e2d944-0104-428e-8fc5-66f49ad78fa0",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "at_risk",
-        "createdAt": "2026-05-30 03:53:19.944923+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4ac07d87771785b95314d9920b58dc9d",
-        "traceId": "4ac07d87771785b95314d9920b58dc9d"
-      },
-      {
-        "id": "1e4f9d3a-de31-4573-b9cc-68b9fa3c8d1f",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:14.898422+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b0571d4a42793c93357ae7b7ea2e3069",
-        "traceId": "b0571d4a42793c93357ae7b7ea2e3069"
-      },
       {
         "id": "cdec3ec0-b708-4fd9-b0aa-f1369daa6544",
         "decision": "quiet_exit",
@@ -506,6 +289,216 @@
         "estimatedCostUsd": 0,
         "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/d849be8c3a466c6888bac48eaf285d43",
         "traceId": "d849be8c3a466c6888bac48eaf285d43"
+      },
+      {
+        "id": "3ca1da91-31d1-4dcd-bdcf-452f0ea00045",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:48:18.322508+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/ad5226bcbb1f14c7b68d8c9b3ecd6476",
+        "traceId": "ad5226bcbb1f14c7b68d8c9b3ecd6476"
+      },
+      {
+        "id": "7307f90e-ff01-4399-b771-8a691dbc9dcc",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:48:12.765102+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2e12de8c4f0cec8a9cf108f8ee40633e",
+        "traceId": "2e12de8c4f0cec8a9cf108f8ee40633e"
+      },
+      {
+        "id": "85b59533-c876-4dd4-8f29-e9431bd9ad00",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "at_risk",
+        "createdAt": "2026-05-30 03:48:07.745239+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/132b6e345738f7fc1842e1b8b3db7ffa",
+        "traceId": "132b6e345738f7fc1842e1b8b3db7ffa"
+      },
+      {
+        "id": "0a1cc3df-bcb1-4698-8149-a5ffa75950ce",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:48:02.699834+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/8d8d7b37aaaed6aad4fb20501523535e",
+        "traceId": "8d8d7b37aaaed6aad4fb20501523535e"
+      },
+      {
+        "id": "fa64bd3d-fdcf-4c57-91eb-5ac591d8c225",
+        "decision": "quiet_exit",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:45:57.496832+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/5f78e4160952b1e4d67e99795f78b8f3",
+        "traceId": "5f78e4160952b1e4d67e99795f78b8f3"
+      },
+      {
+        "id": "e5189046-d831-428a-8cfa-b14d1043c293",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "stale",
+        "createdAt": "2026-05-30 03:45:52.455553+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/acdf10b027bd10e2dc5fdd3c2076a317",
+        "traceId": "acdf10b027bd10e2dc5fdd3c2076a317"
+      },
+      {
+        "id": "ba067b8b-a076-4045-9fde-31d17457794c",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:45:47.439929+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/45ad158b838cec613c0997fc0f960152",
+        "traceId": "45ad158b838cec613c0997fc0f960152"
+      },
+      {
+        "id": "f7aebd68-76b8-493a-98e6-f38451f88abb",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:45:42.402251+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/78382aeb6ffc46ecbd2c5375c8831400",
+        "traceId": "78382aeb6ffc46ecbd2c5375c8831400"
+      },
+      {
+        "id": "af7a06bb-e6e7-427e-b4b5-881466a8eb68",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:45:36.855176+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/1725c274ed16062a882ab16cd800f786",
+        "traceId": "1725c274ed16062a882ab16cd800f786"
+      },
+      {
+        "id": "860724bd-c375-438c-b08e-6c64f289eac4",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "at_risk",
+        "createdAt": "2026-05-30 03:45:31.84008+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/35db02df8410ab1e071ed67ea08cc9c4",
+        "traceId": "35db02df8410ab1e071ed67ea08cc9c4"
+      },
+      {
+        "id": "caed1ffc-f83f-4b2b-92c9-d33e13ad01f5",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:45:26.803442+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/d999aad0a3c7153319cfe65f4e3a4a30",
+        "traceId": "d999aad0a3c7153319cfe65f4e3a4a30"
+      },
+      {
+        "id": "7ed023a0-5f96-4560-9bd2-a339a9bbffc2",
+        "decision": "quiet_exit",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:43:21.694761+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/36f475176eccfa0e26ebb5de09718f19",
+        "traceId": "36f475176eccfa0e26ebb5de09718f19"
+      },
+      {
+        "id": "a95d4e55-eef1-4cee-b46d-4c90e04012a6",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "stale",
+        "createdAt": "2026-05-30 03:43:16.624064+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/e3da99f6b773754e63041fe383b56a33",
+        "traceId": "e3da99f6b773754e63041fe383b56a33"
+      },
+      {
+        "id": "da8b6678-208a-443f-a787-368d63f89e35",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:43:11.598667+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9090fe138e2d17d8de364cbf970d20f2",
+        "traceId": "9090fe138e2d17d8de364cbf970d20f2"
+      },
+      {
+        "id": "bc11e04f-097d-467a-bc89-528d09cf20d1",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-30 03:43:06.50839+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/a28578f5d8f8cc819e7368d0395e1518",
+        "traceId": "a28578f5d8f8cc819e7368d0395e1518"
       }
     ]
   },
@@ -970,7 +963,7 @@
   ],
   "costs": {
     "runCount": 4,
-    "measuredCommandMs": 76129,
+    "measuredCommandMs": 67330,
     "graphInvocationCount": 100,
     "modelCallCount": 0,
     "inputTokens": 0,
@@ -998,57 +991,50 @@
     "bySignal": {
       "blocked": {
         "signal": "blocked",
-        "runId": "949c6177-ef28-48ca-a272-0bfa474f0a6c",
+        "runId": "cdec3ec0-b708-4fd9-b0aa-f1369daa6544",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc",
-        "traceId": "2a02f39d8be1abcaa7ea91937d8a20bc",
-        "createdAt": "2026-05-30 03:56:21.609937+00"
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/926221de05200d77a86e818d00d972a4",
+        "traceId": "926221de05200d77a86e818d00d972a4",
+        "createdAt": "2026-05-30 03:51:09.602952+00"
       },
       "stale": {
         "signal": "stale",
-        "runId": "aea9ea25-ae8a-481e-a6c4-d05363654d26",
+        "runId": "9120993a-4b0e-4bea-9e23-42caa5f32c6c",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787",
-        "traceId": "9e0cf9adf415069052a1bdf739f53787",
-        "createdAt": "2026-05-30 03:56:16.556181+00"
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4c0e1b474d4402acc8bb936dc463024e",
+        "traceId": "4c0e1b474d4402acc8bb936dc463024e",
+        "createdAt": "2026-05-30 03:51:04.543845+00"
       },
       "at_risk": {
         "signal": "at_risk",
-        "runId": "8521e5a4-c625-4632-8572-04f5fe4292b7",
+        "runId": "8e418e62-ffd2-48c1-9597-8932706d6885",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed",
-        "traceId": "b98b8ce0bc232770312a10a3ec0482ed",
-        "createdAt": "2026-05-30 03:55:55.914922+00"
-      },
-      "on_demand": {
-        "signal": "on_demand",
-        "runId": "ee63615d-7c21-4576-a01e-4652d6437ec0",
-        "decision": "quiet_exit",
-        "triggerReason": "context-chat",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762",
-        "traceId": "87f8505441dd74c4458576d9bd57d762",
-        "createdAt": "2026-05-30 03:55:36.812699+00"
+        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/85527b640a60ee5096d095e5715b17b9",
+        "traceId": "85527b640a60ee5096d095e5715b17b9",
+        "createdAt": "2026-05-30 03:50:43.736851+00"
       }
     },
-    "missingRequired": []
+    "missingRequired": [
+      "on_demand"
+    ]
   },
   "commandResults": [
     {
       "name": "product surface eval",
       "command": "pnpm fleetgraph:eval:surface",
       "status": "pass",
-      "durationMs": 41645,
-      "stdoutTail": "> ship@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/api fleetgraph:eval:surface\n\n\n> @ship/api@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/scripts/fleetgraph-product-surface-eval.ts\n\n◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]\n◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]\nFleetGraph product-surface eval current: 8 pass, 0 fail\nFleetGraph product-surface eval historical: 0 pass, 20 fail (trend only)\nMarkdown: my-docs/evals/fleetgraph-product-surface/latest.md\nJSON: my-docs/evals/fleetgraph-product-surface/latest.json\nReview board: my-docs/evals/fleetgraph-product-surface/latest.html\nRun: my-docs/evals/fleetgraph-product-surface/runs/2026-05-30T03-56-00-460Z",
-      "stderrTail": "atus [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ecd-705f-8231-65fc10408faa; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ecf-77e4-9de6-7d53c918960a; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ed0-75fe-b0f9-19bf3e460fbb; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ed2-735d-8734-e4e544c1d399; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ed3-709f-9a75-451e4c746e6d\nFailed to Failed to send multipart request. Received status [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8261-75d8-9b07-74a19e0a7f9f; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8263-74c5-b226-76ac168e5dc3; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8264-720c-9bde-934ef808bd10; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8266-772c-bbfc-c8748dd6cdb0; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8267-7462-8373-4b310611a687"
+      "durationMs": 38001,
+      "stdoutTail": "> ship@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/api fleetgraph:eval:surface\n\n\n> @ship/api@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/scripts/fleetgraph-product-surface-eval.ts\n\n◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }\n◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }\nFleetGraph product-surface eval current: 8 pass, 0 fail\nFleetGraph product-surface eval historical: 0 pass, 20 fail (trend only)\nMarkdown: my-docs/evals/fleetgraph-product-surface/latest.md\nJSON: my-docs/evals/fleetgraph-product-surface/latest.json\nReview board: my-docs/evals/fleetgraph-product-surface/latest.html\nRun: my-docs/evals/fleetgraph-product-surface/runs/2026-05-30T03-51-59-549Z",
+      "stderrTail": "atus [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7702-d58d-761f-bae3-2433c84fca30,id=019e7702-d58d-761f-bae3-2433c84fca30; trace=019e7702-d58d-761f-bae3-2433c84fca30,id=019e7702-d58f-70e0-8bac-d3700e4ea7cf; trace=019e7702-d58d-761f-bae3-2433c84fca30,id=019e7702-d590-74a8-be82-d7285ca9dbc7; trace=019e7702-d58d-761f-bae3-2433c84fca30,id=019e7702-d592-77a7-afd8-70d430843e11; trace=019e7702-d58d-761f-bae3-2433c84fca30,id=019e7702-d593-74dd-b9bf-fb27c450a5e1\nFailed to Failed to send multipart request. Received status [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7702-c1fb-779d-ba93-18b14b13665e,id=019e7702-c1fb-779d-ba93-18b14b13665e; trace=019e7702-c1fb-779d-ba93-18b14b13665e,id=019e7702-c1fc-7239-b7a1-962b4bccfb02; trace=019e7702-c1fb-779d-ba93-18b14b13665e,id=019e7702-c1fd-719e-8e30-fbaad82f3030; trace=019e7702-c1fb-779d-ba93-18b14b13665e,id=019e7702-c1ff-7112-a96b-125856b67b35; trace=019e7702-c1fb-779d-ba93-18b14b13665e,id=019e7702-c200-7498-ad78-d1846f34bd72"
     },
     {
       "name": "shared package build",
       "command": "pnpm build:shared",
       "status": "pass",
-      "durationMs": 808,
+      "durationMs": 811,
       "stdoutTail": "> ship@0.0.0 build:shared /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/shared build\n\n\n> @ship/shared@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/shared\n> tsc",
       "stderrTail": ""
     },
@@ -1056,16 +1042,16 @@
       "name": "FleetGraph proof tests",
       "command": "pnpm --filter @ship/api test src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts",
       "status": "pass",
-      "durationMs": 2381,
-      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  31 passed (31)\n   Start at  22:56:42\n   Duration  1.87s (transform 223ms, setup 110ms, import 824ms, tests 454ms, environment 0ms)",
+      "durationMs": 2409,
+      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  31 passed (31)\n   Start at  22:52:37\n   Duration  1.88s (transform 228ms, setup 115ms, import 845ms, tests 437ms, environment 0ms)",
       "stderrTail": ""
     },
     {
       "name": "FleetGraph attention loop E2E",
       "command": "pnpm test:e2e:run e2e/fleetgraph-attention-loop.spec.ts",
       "status": "pass",
-      "durationMs": 31295,
-      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 0s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 6s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 5s ago\n\nPlaywright exited with status 0.",
+      "durationMs": 26109,
+      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 3s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 2s ago\n\nPlaywright exited with status 0.",
       "stderrTail": ""
     }
   ],
@@ -1102,7 +1088,7 @@
     },
     {
       "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-55-59-252Z/proof.html",
+      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-51-58-214Z/proof.html",
       "kind": "html"
     },
     {

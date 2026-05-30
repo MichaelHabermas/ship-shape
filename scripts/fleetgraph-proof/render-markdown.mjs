@@ -37,7 +37,7 @@ export function renderMarkdown(packet) {
       `| ${finding.signal} | ${finding.source} | ${finding.visibleCopy} | ${finding.nextAction} | ${finding.status} |`
     ),
     '',
-    '## Deployed Evidence',
+    '## Deployed Runtime Evidence',
     '',
     packet.deployedEvidence
       ? `Worker ticks: ${packet.deployedEvidence.workerTickCount}; completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}; stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}; signals: ${packet.deployedEvidence.signalTypes.join(', ') || '-'}; scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).join(', ') || '-'}`
@@ -55,12 +55,12 @@ export function renderMarkdown(packet) {
     `Projection, 10,000 users: ${packet.costs.projected10000Projects}`,
     `Excluded: ${packet.costs.excludes}`,
     '',
-    '## Trace Evidence',
+    '## Deployed Runtime Trace Evidence',
     '',
     ...(packet.traceEvidence
       ? [
           `Missing required trace links: ${packet.traceEvidence.missingRequired.join(', ') || 'none'}`,
-          ...Object.values(packet.traceEvidence.bySignal ?? {}).map((item) => `- ${item.signal}: ${item.traceUrl || item.traceId || 'missing link'} (${item.decision}, ${item.triggerReason})`),
+          ...Object.values(packet.traceEvidence.bySignal ?? {}).map((item) => `- ${item.signal}: ${item.traceUrl || item.traceId || 'missing link'} (${item.decision}, deployed ${runtimeLabel(item.triggerReason)})`),
         ]
       : ['No trace evidence was configured.']),
     '',
@@ -81,4 +81,10 @@ export function renderMarkdown(packet) {
     ...packet.artifacts.map((artifact) => `- ${artifact.label}: ${artifact.path}`),
     '',
   ].join('\n');
+}
+
+function runtimeLabel(triggerReason) {
+  return triggerReason === 'scheduled-worker'
+    ? 'scheduled-worker runtime'
+    : `${triggerReason} runtime`;
 }

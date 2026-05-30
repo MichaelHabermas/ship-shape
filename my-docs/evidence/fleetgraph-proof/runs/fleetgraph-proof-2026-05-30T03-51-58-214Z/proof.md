@@ -1,9 +1,9 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-30T03:55:59.252Z
-Run: fleetgraph-proof-2026-05-30T03-55-59-252Z
+Generated: 2026-05-30T03:51:58.214Z
+Run: fleetgraph-proof-2026-05-30T03-51-58-214Z
 Target: both
-Verdict: pass
+Verdict: blocked
 Git: master @ 8305e0c80a30b898f7aeb0ab5376f55df3195ff7
 
 ## Verdict
@@ -48,9 +48,9 @@ Deployed signals: at_risk, blocked, stale
 | At risk | Rollout checklist | At risk · Rollout checklist · Owner missing · High-priority current-week work | Confirm owner. | pass |
 | Blocked: Runtime issue clear blocker | Waiting on API credentials · Week 11 | Blocked: Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11. | Ask Audit Load User 029 to confirm owner and next step for Week 11. | pass |
 
-## Deployed Runtime Evidence
+## Deployed Evidence
 
-Worker ticks: 5; completed output ticks: 5; stuck running ticks: 0; signals: at_risk, blocked, stale; scheduled-worker signals: at_risk, blocked, stale
+Worker ticks: 5; completed output ticks: 5; stuck running ticks: 2; signals: at_risk, blocked, stale; scheduled-worker signals: at_risk, blocked, stale
 
 ## Cost And Usage
 
@@ -64,13 +64,12 @@ Projection, 1,000 users: $0.000000 / month at 30000 graph invocations
 Projection, 10,000 users: $0.000000 / month at 300000 graph invocations
 Excluded: Out-of-band coding assistant and development-wide Claude/API spend were not instrumented and are excluded.
 
-## Deployed Runtime Trace Evidence
+## Trace Evidence
 
-Missing required trace links: none
-- blocked: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc (quiet_exit, deployed scheduled-worker runtime)
-- stale: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787 (update_finding, deployed scheduled-worker runtime)
-- at_risk: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed (update_finding, deployed scheduled-worker runtime)
-- on_demand: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762 (quiet_exit, deployed context-chat runtime)
+Missing required trace links: on_demand
+- blocked: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/926221de05200d77a86e818d00d972a4 (quiet_exit, scheduled-worker)
+- stale: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4c0e1b474d4402acc8bb936dc463024e (update_finding, scheduled-worker)
+- at_risk: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/85527b640a60ee5096d095e5715b17b9 (update_finding, scheduled-worker)
 
 ## Safety
 
@@ -97,7 +96,7 @@ Missing required trace links: none
 - Public proof dashboard: web/public/fleetgraph-observability/proof/latest.html
 - Public proof JSON: web/public/fleetgraph-observability/proof/latest.json
 - Public proof Markdown: web/public/fleetgraph-observability/proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-55-59-252Z/proof.html
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-51-58-214Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

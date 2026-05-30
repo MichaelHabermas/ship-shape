@@ -48,7 +48,7 @@ Deployed signals: at_risk, blocked, stale
 | At risk | Rollout checklist | At risk · Rollout checklist · Owner missing · High-priority current-week work | Confirm owner. | pass |
 | Blocked: Runtime issue clear blocker | Waiting on API credentials · Week 11 | Blocked: Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11. | Ask Audit Load User 029 to confirm owner and next step for Week 11. | pass |
 
-## Deployed Runtime Evidence
+## Deployed Evidence
 
 Worker ticks: 5; completed output ticks: 5; stuck running ticks: 0; signals: at_risk, blocked, stale; scheduled-worker signals: at_risk, blocked, stale
 
@@ -64,13 +64,13 @@ Projection, 1,000 users: $0.000000 / month at 30000 graph invocations
 Projection, 10,000 users: $0.000000 / month at 300000 graph invocations
 Excluded: Out-of-band coding assistant and development-wide Claude/API spend were not instrumented and are excluded.
 
-## Deployed Runtime Trace Evidence
+## Trace Evidence
 
 Missing required trace links: none
-- blocked: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc (quiet_exit, deployed scheduled-worker runtime)
-- stale: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787 (update_finding, deployed scheduled-worker runtime)
-- at_risk: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed (update_finding, deployed scheduled-worker runtime)
-- on_demand: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762 (quiet_exit, deployed context-chat runtime)
+- blocked: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc (quiet_exit, scheduled-worker)
+- stale: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787 (update_finding, scheduled-worker)
+- at_risk: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed (update_finding, scheduled-worker)
+- on_demand: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762 (quiet_exit, context-chat)
 
 ## Safety
 

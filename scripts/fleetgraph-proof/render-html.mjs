@@ -98,14 +98,14 @@ export function renderHtml(packet, options = {}) {
     </tbody>
   </table>
 
-  <h2>Deployed Evidence</h2>
+  <h2>Deployed Runtime Evidence</h2>
   <div class="panel small">
     ${packet.deployedEvidence
       ? `<p>Worker ticks: ${packet.deployedEvidence.workerTickCount}</p><p>Completed output ticks: ${packet.deployedEvidence.completedWorkerTickCount}</p><p>Stuck running ticks: ${packet.deployedEvidence.stuckRunningTickCount}</p><p>Signals: ${(packet.deployedEvidence.signalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p><p>Scheduled-worker signals: ${(packet.deployedEvidence.scheduledWorkerSignalTypes ?? []).map(escapeHtml).join(', ') || '-'}</p><p>Graph invocations: ${packet.deployedEvidence.usageSummary?.graphInvocationCount ?? 0}</p><p>Model calls: ${packet.deployedEvidence.usageSummary?.modelCallCount ?? 0}</p>`
       : '<p>No deployed database evidence was configured.</p>'}
   </div>
 
-  <h2>Trace Evidence</h2>
+  <h2>Deployed Runtime Trace Evidence</h2>
   <table>
     <thead><tr><th>Signal</th><th>Status</th><th>Run</th><th>Trace</th></tr></thead>
     <tbody>
@@ -113,7 +113,7 @@ export function renderHtml(packet, options = {}) {
         ? packet.traceEvidence.requiredSignals.map((signal) => {
             const item = packet.traceEvidence.bySignal?.[signal];
             const status = item?.traceUrl ? 'pass' : 'blocked';
-            return `<tr><td>${escapeHtml(signal)}</td><td>${chip(status)}</td><td>${escapeHtml(item?.runId ?? '-')}</td><td>${item?.traceUrl ? `<a href="${escapeHtml(item.traceUrl)}">${escapeHtml(item.traceUrl)}</a>` : escapeHtml(item?.traceId ?? 'missing public trace link')}</td></tr>`;
+            return `<tr><td>${escapeHtml(signal)}</td><td>${chip(status)}</td><td>${escapeHtml(item?.runId ?? '-')}<div class="meta">${escapeHtml(item ? `deployed ${runtimeLabel(item.triggerReason)}` : 'missing deployed runtime trace')}</div></td><td>${item?.traceUrl ? `<a href="${escapeHtml(item.traceUrl)}">${escapeHtml(item.traceUrl)}</a>` : escapeHtml(item?.traceId ?? 'missing public trace link')}</td></tr>`;
           }).join('')
         : '<tr><td colspan="4" class="muted">No trace evidence was configured.</td></tr>'}
     </tbody>
@@ -172,4 +172,10 @@ function artifactLink(path, label = path, base = '../../../') {
 
 function list(items) {
   return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+}
+
+function runtimeLabel(triggerReason) {
+  return triggerReason === 'scheduled-worker'
+    ? 'scheduled-worker runtime'
+    : `${triggerReason} runtime`;
 }

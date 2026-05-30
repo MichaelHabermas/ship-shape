@@ -222,7 +222,6 @@ export function summarizeDeployedEvidence({
 function deployedRunEvidenceSql() {
   return `SELECT id, decision, trigger_reason,
             CASE
-              WHEN run_metadata->>'signalType' IN ('blocked', 'stale', 'at_risk') THEN run_metadata->>'signalType'
               WHEN dedupe_key LIKE 'stale-issue:%' THEN 'stale'
               WHEN dedupe_key LIKE 'at-risk-issue:%' THEN 'at_risk'
               ELSE 'blocked'
@@ -434,7 +433,7 @@ function renderPsql(postgresIdOrName, sql) {
     cwd: repoRoot,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 20_000,
+    timeout: 60_000,
   });
   if (result.error) {
     throw new Error(`render psql failed: ${result.error.message}`);
@@ -539,4 +538,3 @@ function timestampForPath(date) {
 function match(text, pattern) {
   return pattern.exec(text)?.[1] ?? null;
 }
-

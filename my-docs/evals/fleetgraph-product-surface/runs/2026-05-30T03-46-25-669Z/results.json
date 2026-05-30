@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-30T04:25:46.335Z",
+  "generatedAt": "2026-05-30T03:46:25.669Z",
   "summary": {
     "average": {
       "actionability": 4,
@@ -313,7 +313,7 @@
       },
       "results": [
         {
-          "caseId": "fg-surface-persisted-update_finding-bfe085fd",
+          "caseId": "fg-surface-persisted-update_finding-9a4e8238",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -336,7 +336,7 @@
             "uncertaintyHonesty",
             "missingDataUsefulness"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:46.791Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:44:37.736Z",
           "visibleCopy": [
             "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
             "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -349,7 +349,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-47e17fa0",
+          "caseId": "fg-surface-persisted-update_finding-1b41bb49",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -367,7 +367,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:41.782Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:55.120Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
             "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -380,7 +380,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-1fa63dcb",
+          "caseId": "fg-surface-persisted-update_finding-be7822d0",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -398,7 +398,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:36.771Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:50.095Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
             "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -411,7 +411,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-9fd282af",
+          "caseId": "fg-surface-persisted-update_finding-77c6bbe2",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -432,7 +432,7 @@
             "repetitionBudget",
             "cavemanCopy"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:31.659Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:44.982Z",
           "visibleCopy": [
             "Blocked: FG Demo - Blocked without blocker explanation",
             "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -445,7 +445,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-5979e7e6",
+          "caseId": "fg-surface-persisted-update_finding-b78457e8",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -463,7 +463,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:26.632Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:39.947Z",
           "visibleCopy": [
             "Blocked: FG Demo - Inactive week blocked control",
             "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -476,7 +476,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-746027d2",
+          "caseId": "fg-surface-persisted-update_finding-0adb7e71",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -499,7 +499,7 @@
             "uncertaintyHonesty",
             "missingDataUsefulness"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:21.560Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:48.327Z",
           "visibleCopy": [
             "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
             "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -512,7 +512,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-1088b62e",
+          "caseId": "fg-surface-persisted-update_finding-4d343725",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -530,7 +530,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:16.543Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:43.304Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
             "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -543,7 +543,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-cc77f490",
+          "caseId": "fg-surface-persisted-update_finding-f1f4b2cb",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -561,7 +561,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:11.527Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:38.284Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
             "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -574,7 +574,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-98de24a3",
+          "caseId": "fg-surface-persisted-update_finding-e0253ab2",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -595,7 +595,7 @@
             "repetitionBudget",
             "cavemanCopy"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:06.428Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:33.168Z",
           "visibleCopy": [
             "Blocked: FG Demo - Blocked without blocker explanation",
             "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -608,7 +608,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-b6a44b76",
+          "caseId": "fg-surface-persisted-update_finding-50300248",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -626,7 +626,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:01.411Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:28.138Z",
           "visibleCopy": [
             "Blocked: FG Demo - Inactive week blocked control",
             "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -639,7 +639,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-faea45d6",
+          "caseId": "fg-surface-persisted-update_finding-a1d02606",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -662,7 +662,7 @@
             "uncertaintyHonesty",
             "missingDataUsefulness"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:56.359Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:23.077Z",
           "visibleCopy": [
             "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
             "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -675,7 +675,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-89df3f4f",
+          "caseId": "fg-surface-persisted-update_finding-55c44d8d",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -693,7 +693,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:51.340Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:18.048Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
             "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -706,7 +706,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-e6a90ead",
+          "caseId": "fg-surface-persisted-update_finding-7f96707c",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -724,7 +724,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:46.325Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:13.026Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
             "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -737,7 +737,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-ac13de1d",
+          "caseId": "fg-surface-persisted-update_finding-32835f9b",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -758,7 +758,7 @@
             "repetitionBudget",
             "cavemanCopy"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:41.212Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:07.931Z",
           "visibleCopy": [
             "Blocked: FG Demo - Blocked without blocker explanation",
             "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -771,7 +771,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-3cd0a481",
+          "caseId": "fg-surface-persisted-update_finding-c59e2d9e",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -789,7 +789,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:36.175Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:02.901Z",
           "visibleCopy": [
             "Blocked: FG Demo - Inactive week blocked control",
             "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -802,7 +802,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-74e75733",
+          "caseId": "fg-surface-persisted-update_finding-b6fc009f",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -825,7 +825,7 @@
             "uncertaintyHonesty",
             "missingDataUsefulness"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:31.099Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:57.857Z",
           "visibleCopy": [
             "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
             "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -838,7 +838,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-df8bc3af",
+          "caseId": "fg-surface-persisted-update_finding-2b0680af",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -856,7 +856,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:26.078Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:52.831Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
             "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -869,7 +869,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-6043e52d",
+          "caseId": "fg-surface-persisted-update_finding-9a99a879",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -887,7 +887,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:21.054Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:47.813Z",
           "visibleCopy": [
             "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
             "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -900,7 +900,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-df9fec39",
+          "caseId": "fg-surface-persisted-update_finding-5a5c2475",
           "scores": {
             "actionability": 4,
             "groundedness": 2,
@@ -921,7 +921,7 @@
             "repetitionBudget",
             "cavemanCopy"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:15.942Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:42.702Z",
           "visibleCopy": [
             "Blocked: FG Demo - Blocked without blocker explanation",
             "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -934,7 +934,7 @@
           "section": "historical"
         },
         {
-          "caseId": "fg-surface-persisted-update_finding-9235b537",
+          "caseId": "fg-surface-persisted-update_finding-b5971059",
           "scores": {
             "actionability": 4,
             "groundedness": 3,
@@ -952,7 +952,7 @@
           "failedDimensions": [
             "repetitionBudget"
           ],
-          "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:10.915Z",
+          "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:37.680Z",
           "visibleCopy": [
             "Blocked: FG Demo - Inactive week blocked control",
             "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -1217,7 +1217,7 @@
       "section": "current"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-bfe085fd",
+      "caseId": "fg-surface-persisted-update_finding-9a4e8238",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1240,7 +1240,7 @@
         "uncertaintyHonesty",
         "missingDataUsefulness"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:46.791Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:44:37.736Z",
       "visibleCopy": [
         "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
         "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -1253,7 +1253,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-47e17fa0",
+      "caseId": "fg-surface-persisted-update_finding-1b41bb49",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1271,7 +1271,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:41.782Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:55.120Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
         "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -1284,7 +1284,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-1fa63dcb",
+      "caseId": "fg-surface-persisted-update_finding-be7822d0",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1302,7 +1302,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:36.771Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:50.095Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
         "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -1315,7 +1315,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-9fd282af",
+      "caseId": "fg-surface-persisted-update_finding-77c6bbe2",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1336,7 +1336,7 @@
         "repetitionBudget",
         "cavemanCopy"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:31.659Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:44.982Z",
       "visibleCopy": [
         "Blocked: FG Demo - Blocked without blocker explanation",
         "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -1349,7 +1349,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-5979e7e6",
+      "caseId": "fg-surface-persisted-update_finding-b78457e8",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1367,7 +1367,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:25:26.632Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:43:39.947Z",
       "visibleCopy": [
         "Blocked: FG Demo - Inactive week blocked control",
         "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -1380,7 +1380,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-746027d2",
+      "caseId": "fg-surface-persisted-update_finding-0adb7e71",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1403,7 +1403,7 @@
         "uncertaintyHonesty",
         "missingDataUsefulness"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:21.560Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:48.327Z",
       "visibleCopy": [
         "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
         "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -1416,7 +1416,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-1088b62e",
+      "caseId": "fg-surface-persisted-update_finding-4d343725",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1434,7 +1434,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:16.543Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:43.304Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
         "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -1447,7 +1447,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-cc77f490",
+      "caseId": "fg-surface-persisted-update_finding-f1f4b2cb",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1465,7 +1465,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:11.527Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:38.284Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
         "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -1478,7 +1478,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-98de24a3",
+      "caseId": "fg-surface-persisted-update_finding-e0253ab2",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1499,7 +1499,7 @@
         "repetitionBudget",
         "cavemanCopy"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:06.428Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:33.168Z",
       "visibleCopy": [
         "Blocked: FG Demo - Blocked without blocker explanation",
         "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -1512,7 +1512,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-b6a44b76",
+      "caseId": "fg-surface-persisted-update_finding-50300248",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1530,7 +1530,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:23:01.411Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:41:28.138Z",
       "visibleCopy": [
         "Blocked: FG Demo - Inactive week blocked control",
         "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -1543,7 +1543,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-faea45d6",
+      "caseId": "fg-surface-persisted-update_finding-a1d02606",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1566,7 +1566,7 @@
         "uncertaintyHonesty",
         "missingDataUsefulness"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:56.359Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:23.077Z",
       "visibleCopy": [
         "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
         "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -1579,7 +1579,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-89df3f4f",
+      "caseId": "fg-surface-persisted-update_finding-55c44d8d",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1597,7 +1597,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:51.340Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:18.048Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
         "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -1610,7 +1610,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-e6a90ead",
+      "caseId": "fg-surface-persisted-update_finding-7f96707c",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1628,7 +1628,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:46.325Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:13.026Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
         "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -1641,7 +1641,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-ac13de1d",
+      "caseId": "fg-surface-persisted-update_finding-32835f9b",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1662,7 +1662,7 @@
         "repetitionBudget",
         "cavemanCopy"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:41.212Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:07.931Z",
       "visibleCopy": [
         "Blocked: FG Demo - Blocked without blocker explanation",
         "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -1675,7 +1675,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-3cd0a481",
+      "caseId": "fg-surface-persisted-update_finding-c59e2d9e",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1693,7 +1693,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:20:36.175Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:39:02.901Z",
       "visibleCopy": [
         "Blocked: FG Demo - Inactive week blocked control",
         "FG Demo - Inactive week blocked control still needs an unblock decision.",
@@ -1706,7 +1706,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-74e75733",
+      "caseId": "fg-surface-persisted-update_finding-b6fc009f",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1729,7 +1729,7 @@
         "uncertaintyHonesty",
         "missingDataUsefulness"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:31.099Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:57.857Z",
       "visibleCopy": [
         "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
         "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
@@ -1742,7 +1742,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-df8bc3af",
+      "caseId": "fg-surface-persisted-update_finding-2b0680af",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1760,7 +1760,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:26.078Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:52.831Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
         "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
@@ -1773,7 +1773,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-6043e52d",
+      "caseId": "fg-surface-persisted-update_finding-9a99a879",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1791,7 +1791,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:21.054Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:47.813Z",
       "visibleCopy": [
         "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
         "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
@@ -1804,7 +1804,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-df9fec39",
+      "caseId": "fg-surface-persisted-update_finding-5a5c2475",
       "scores": {
         "actionability": 4,
         "groundedness": 2,
@@ -1825,7 +1825,7 @@
         "repetitionBudget",
         "cavemanCopy"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:15.942Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:42.702Z",
       "visibleCopy": [
         "Blocked: FG Demo - Blocked without blocker explanation",
         "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
@@ -1838,7 +1838,7 @@
       "section": "historical"
     },
     {
-      "caseId": "fg-surface-persisted-update_finding-9235b537",
+      "caseId": "fg-surface-persisted-update_finding-b5971059",
       "scores": {
         "actionability": 4,
         "groundedness": 3,
@@ -1856,7 +1856,7 @@
       "failedDimensions": [
         "repetitionBudget"
       ],
-      "title": "Persisted proactive/update_finding output from 2026-05-30T04:18:10.915Z",
+      "title": "Persisted proactive/update_finding output from 2026-05-30T03:36:37.680Z",
       "visibleCopy": [
         "Blocked: FG Demo - Inactive week blocked control",
         "FG Demo - Inactive week blocked control still needs an unblock decision.",
