@@ -125,6 +125,7 @@ export type FleetGraphChatContextKind =
 
 export type FleetGraphPageContextSurface =
   | 'issues_list'
+  | 'scoped_issues_list'
   | 'my_week'
   | 'document_issue_tab'
   | 'dashboard'

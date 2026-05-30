@@ -25,8 +25,7 @@ import { AppHeader, AppImpersonationBanner } from '@/components/app/AppHeader';
 import { AppSidebar } from '@/components/app/AppSidebar';
 import type { FleetGraphChatProbeRequest } from '@/components/FleetGraphChatProbe';
 import type { FleetGraphNotificationProbeItem } from '@/components/FleetGraphNotificationsProbe';
-import { FleetGraphAssistantLayer } from '@/components/FleetGraphAssistantLayer';
-import { FleetGraphPageContextProvider } from '@/contexts/FleetGraphPageContext';
+import { FleetGraphAssistantShell } from '@/components/FleetGraphAssistantShell';
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -157,7 +156,10 @@ export function AppLayout() {
   return (
     <TooltipProvider delayDuration={300}>
       <SelectionPersistenceProvider>
-        <FleetGraphPageContextProvider>
+        <FleetGraphAssistantShell
+          chatDiscussRequest={chatDiscussRequest}
+          onDiscussNotification={handleDiscussNotification}
+        >
         <div className="flex h-screen flex-col overflow-hidden bg-background">
           <a
             href="#main-content"
@@ -228,12 +230,8 @@ export function AppLayout() {
             onClose={() => setActionItemsModalOpen(false)}
           />
 
-          <FleetGraphAssistantLayer
-            chatDiscussRequest={chatDiscussRequest}
-            onDiscussNotification={handleDiscussNotification}
-          />
         </div>
-        </FleetGraphPageContextProvider>
+        </FleetGraphAssistantShell>
       </SelectionPersistenceProvider>
     </TooltipProvider>
   );

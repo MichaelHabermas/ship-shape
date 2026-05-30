@@ -2,6 +2,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { FleetGraphPageContext } from '@ship/shared';
+import { fingerprintPageContext } from '@/fleetgraph/page-context';
 import {
   FleetGraphPageContextProvider,
   useFleetGraphPageContext,
@@ -83,5 +84,14 @@ describe('FleetGraphPageContextProvider', () => {
       </FleetGraphPageContextProvider>
     );
     expect(observed.at(-1)).toBeNull();
+  });
+
+});
+
+describe('fingerprintPageContext', () => {
+  it('treats equivalent page capsules as the same fingerprint', () => {
+    const left = context('Issues');
+    const right = { ...context('Issues') };
+    expect(fingerprintPageContext(left)).toBe(fingerprintPageContext(right));
   });
 });

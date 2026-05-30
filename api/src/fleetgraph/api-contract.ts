@@ -9,6 +9,7 @@ import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
 import type { FleetGraphFinding, FleetGraphNotificationFinding } from './persistence.js';
 import { signalLabelForType, signalTypeFromDedupeKey } from './persistence.js';
 import { chatAnswerFromChangeSummary, chatAnswerFromVisibleOutput, unsupportedChatAnswer } from './runtime/chat.js';
+import { usageMetadataFromResult } from './usage-metadata.js';
 
 export const FleetGraphEvidenceSchema = z.object({
   kind: z.enum(FLEETGRAPH_EVIDENCE_KIND_VALUES),
@@ -175,7 +176,7 @@ const FleetGraphPageContextItemSchema = z.object({
 
 const FleetGraphPageContextSchema = z.object({
   route: z.string().trim().min(1).max(512),
-  surface: z.enum(['issues_list', 'my_week', 'document_issue_tab', 'dashboard', 'workspace']),
+  surface: z.enum(['issues_list', 'scoped_issues_list', 'my_week', 'document_issue_tab', 'dashboard', 'workspace']),
   title: z.string().trim().min(1).max(160),
   filters: z.record(z.union([z.string().max(128), z.number(), z.boolean(), z.null()])).optional(),
   sort: z.string().trim().max(80).optional(),
@@ -301,22 +302,14 @@ function changeSummaryForResponse(value: unknown): FleetGraphChangeSummaryBodyWi
   return parsed.success ? parsed.data : undefined;
 }
 
-function usageMetadataForResponse(result: FleetGraphResult): FleetGraphUsageWire | undefined {
-  const token = result.tokenMetadata ?? { modelCalls: 0 };
-  const cost = result.costMetadata ?? {};
-  const usage: FleetGraphUsageWire = {
-    modelCalls: Number(token.modelCalls ?? 0),
-    inputTokens: token.inputTokens,
-    cachedInputTokens: token.cachedInputTokens,
-    billableInputTokens: token.billableInputTokens,
-    outputTokens: token.outputTokens,
-    totalTokens: token.totalTokens,
-    estimatedCostUsd: cost.estimatedCostUsd,
-    costCurrency: cost.currency,
-    usageSource: token.usageSource,
-    costSource: cost.costSource,
-  };
-  return FleetGraphUsageSchema.parse(usage);
+function usageMetadataFieldForResult(
+  result: FleetGraphResult
+): { usageMetadata?: FleetGraphUsageWire } {
+  const usage = usageMetadataFromResult({
+    tokenMetadata: result.tokenMetadata,
+    costMetadata: result.costMetadata,
+  });
+  return usage ? { usageMetadata: FleetGraphUsageSchema.parse(usage) } : {};
 }
 
 function chatAnswerForResponse(result: FleetGraphResult): FleetGraphChatAnswerWire {
@@ -462,7 +455,7 @@ export function fleetGraphRunResponse(result: FleetGraphResult): FleetGraphRunRe
       mode: 'on_demand',
       decision: result.decision,
     }),
-    usageMetadata: usageMetadataForResponse(result),
+    ...usageMetadataFieldForResult(result),
   };
 }
 
@@ -482,7 +475,7 @@ export function fleetGraphChatResponse(input: {
       mode: 'on_demand',
       decision: input.result.decision,
     }),
-    usageMetadata: usageMetadataForResponse(input.result),
+    ...usageMetadataFieldForResult(input.result),
   };
 }
 
@@ -535,6 +528,6 @@ export function fleetGraphManualRunResultResponse(
       mode: 'proactive',
       decision: result.decision,
     }),
-    usageMetadata: usageMetadataForResponse(result),
+    ...usageMetadataFieldForResult(result),
   };
 }

@@ -613,3 +613,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Local-only proof runs write local `my-docs/evidence/fleetgraph-proof/latest.*` only. Public artifacts under `web/public/fleetgraph-observability/proof/` are written only when a non-local deployed/both proof packet passes. Non-local proof is blocked if the focused attention-loop E2E is skipped, and required trace links must be valid public HTTP(S) URLs.
 
 **Consequence:** The public reviewer URL cannot be accidentally overwritten by a local deterministic packet. Final submission still requires a deployed proof run with DB evidence, focused E2E, and public trace links.
+
+## D077 - FleetGraph Page Context And Usage Wire Refactor
+
+**Date:** 2026-05-29
+
+**Decision:** Stabilize FleetGraph page-context registration with fingerprint guards so selection/filter churn does not republish the app shell context. Add `scoped_issues_list` as the surface for project/program/week-scoped issue lists. Centralize page-context builders in `web/src/fleetgraph/page-context.ts`, chat turn state in `useFleetGraphChatTurns`, and assistant wiring in `FleetGraphAssistantShell` (provider + probes). API `usageMetadata` is built only through `usageMetadataFromResult` in `api/src/fleetgraph/usage-metadata.ts` and is omitted when `modelCalls === 0`. Split `scripts/fleetgraph-proof/run.mjs` into command, git, and deployed-evidence modules.
+
+**Consequence:** Feature work should not reintroduce pass-through assistant layers, duplicate usage mappers, or raw page-context objects in list pages. Regenerated proof/eval JSON belongs in chore/CI commits, not mixed with product refactors. Context-chat finding resolution may run in parallel; behavior must stay aligned with existing golden cases.

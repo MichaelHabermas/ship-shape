@@ -109,6 +109,22 @@ describe('FleetGraph API contract', () => {
     expect(JSON.stringify(response)).not.toContain('hidden-user');
   });
 
+  it('omits usage metadata when no model calls were recorded', () => {
+    const response = fleetGraphRunResponse(result());
+    expect(response.usageMetadata).toBeUndefined();
+    expect('usageMetadata' in response).toBe(false);
+  });
+
+  it('omits usage metadata when graph result metadata fields are absent', () => {
+    const partial = result();
+    const response = fleetGraphRunResponse({
+      ...partial,
+      tokenMetadata: undefined as never,
+      costMetadata: undefined as never,
+    });
+    expect(response.usageMetadata).toBeUndefined();
+  });
+
   it('serializes safe usage metadata on run responses', () => {
     const response = fleetGraphRunResponse({
       ...result(),

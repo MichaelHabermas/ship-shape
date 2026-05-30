@@ -5,7 +5,7 @@ import { useMyWeekQuery } from '@/hooks/useMyWeekQuery';
 import type { StandupSlot } from '@/hooks/useMyWeekQuery';
 import { apiPost, readJson } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import type { FleetGraphPageContext } from '@ship/shared';
+import { buildMyWeekPageContext } from '@/fleetgraph/page-context';
 import { useFleetGraphPageContextRegistration } from '@/contexts/FleetGraphPageContext';
 
 interface CreatedDocumentResponse {
@@ -42,47 +42,10 @@ export function MyWeekPage() {
 
   const { data, isLoading, error } = useMyWeekQuery(weekNumber);
   const [creating, setCreating] = useState<string | null>(null);
-  const fleetGraphPageContext = useMemo<FleetGraphPageContext | null>(() => {
-    if (!data) return null;
-    const visibleItems = [
-      ...data.projects.slice(0, 10).map((project) => ({
-        kind: 'project' as const,
-        id: project.id,
-        title: project.title,
-        summary: project.program_name ?? undefined,
-      })),
-      ...(data.plan?.id ? [{
-        kind: 'document' as const,
-        id: data.plan.id,
-        title: `Week ${data.week.week_number} plan`,
-        state: data.plan.submitted_at ? 'submitted' : 'open',
-      }] : []),
-      ...(data.retro?.id ? [{
-        kind: 'document' as const,
-        id: data.retro.id,
-        title: `Week ${data.week.week_number} retro`,
-        state: data.retro.submitted_at ? 'submitted' : 'open',
-      }] : []),
-      ...data.standups.slice(0, 10).map((slot: StandupSlot) => ({
-        kind: 'document' as const,
-        id: slot.standup?.id,
-        title: `Standup ${slot.date}`,
-        state: slot.standup ? 'present' : 'missing',
-      })),
-    ].slice(0, 25);
-    return {
-      route: `${location.pathname}${location.search}${location.hash}`,
-      surface: 'my_week',
-      title: `My Week ${data.week.week_number}`,
-      filters: { weekNumber: data.week.week_number, current: data.week.is_current },
-      counts: {
-        projects: data.projects.length,
-        standups: data.standups.length,
-        visible: visibleItems.length,
-      },
-      visibleItems,
-    };
-  }, [data, location.hash, location.pathname, location.search]);
+  const fleetGraphPageContext = useMemo(
+    () => (data ? buildMyWeekPageContext({ location, data }) : null),
+    [data, location]
+  );
 
   useFleetGraphPageContextRegistration(fleetGraphPageContext);
 

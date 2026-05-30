@@ -39,7 +39,7 @@ Who it notifies:
 
 How on-demand mode uses current view:
 
-- The chat request carries a bounded context capsule: route, surface, title, filters, sort/view mode, counts, up to 25 visible item summaries, up to 8 selected IDs, issue/document/sprint/project/program/workspace identifiers, and any selected notification/finding.
+- The chat request carries a bounded context capsule: route, surface (`issues_list`, `scoped_issues_list`, `my_week`, `document_issue_tab`, `dashboard`, `workspace`), title, filters, sort/view mode, counts, up to 25 visible item summaries, up to 8 selected IDs, issue/document/sprint/project/program/workspace identifiers, and any selected notification/finding.
 - The server treats client labels as hints only; selected/visible IDs are enriched through existing document authorization.
 - The same `runFleetGraph` graph boundary handles proactive and on-demand paths. The trigger differs; the graph runtime does not fork into separate products.
 

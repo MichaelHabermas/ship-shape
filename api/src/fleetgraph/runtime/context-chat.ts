@@ -31,12 +31,10 @@ export type ContextChatSignal = {
   evidence: FleetGraphEvidenceItem[];
 };
 
-export type ContextChatPage = FleetGraphPageContext;
-
 export type ContextChatBundle = {
   documents: ContextChatDocument[];
   signals: ContextChatSignal[];
-  pages: ContextChatPage[];
+  pages: FleetGraphPageContext[];
   visibleOutput?: FleetGraphVisibleOutput;
   evidence: FleetGraphEvidenceItem[];
 };
@@ -63,54 +61,25 @@ export async function resolveContextChatBundle(
   const contexts = uniqueChatContexts([input.trigger.context, ...(input.trigger.context.attachedContexts ?? [])]);
   const documents: ContextChatDocument[] = [];
   const signals: ContextChatSignal[] = [];
-  const pages: ContextChatPage[] = [];
+  const pages: FleetGraphPageContext[] = [];
   const evidence: FleetGraphEvidenceItem[] = [];
 
   const documentIds = new Set<string>();
   const documentLoads: Array<Promise<ContextChatDocument | null>> = [];
+  const findingLookups = contexts.map((context) => resolveFindingForChatContext(input, persistence, context));
+  const findings = await Promise.all(findingLookups);
+  const visibleLookups = findings.map((finding) => finding
+    ? visibleOutputForFinding({
+      principal: input.principal,
+      workspaceId: input.workspaceId,
+      finding,
+      db: options.db,
+    })
+    : Promise.resolve(null));
+  const visibles = await Promise.all(visibleLookups);
 
-  for (const context of contexts) {
-    if (context.pageContext) {
-      pages.push(context.pageContext);
-      for (const documentId of documentIdsFromPageContext(context.pageContext)) {
-        if (documentIds.has(documentId)) continue;
-        documentIds.add(documentId);
-        documentLoads.push(loadContextChatDocument({
-          db: options.db,
-          principal: input.principal,
-          workspaceId: input.workspaceId,
-          documentId,
-        }));
-      }
-    }
-
-    const finding = await resolveFindingForChatContext(input, persistence, context);
-    if (finding) {
-      const visible = await visibleOutputForFinding({
-        principal: input.principal,
-        workspaceId: input.workspaceId,
-        finding,
-        db: options.db,
-      });
-      if (!visible.output.noSafeOutput) {
-        signals.push({ finding, output: visible.output, evidence: visible.evidence });
-        evidence.push(...visible.evidence);
-      }
-      for (const documentId of [finding.source_issue_id, finding.source_sprint_id]) {
-        if (!documentId || documentIds.has(documentId)) continue;
-        documentIds.add(documentId);
-        documentLoads.push(loadContextChatDocument({
-          db: options.db,
-          principal: input.principal,
-          workspaceId: input.workspaceId,
-          documentId,
-        }));
-      }
-      continue;
-    }
-
-    const documentId = context.documentId ?? documentIdFromSourcePath(context.sourcePath);
-    if (!documentId || documentIds.has(documentId)) continue;
+  const queueDocumentLoad = (documentId: string | null | undefined) => {
+    if (!documentId || documentIds.has(documentId)) return;
     documentIds.add(documentId);
     documentLoads.push(loadContextChatDocument({
       db: options.db,
@@ -118,6 +87,32 @@ export async function resolveContextChatBundle(
       workspaceId: input.workspaceId,
       documentId,
     }));
+  };
+
+  for (let index = 0; index < contexts.length; index += 1) {
+    const context = contexts[index];
+    if (!context) continue;
+
+    if (context.pageContext) {
+      pages.push(context.pageContext);
+      for (const documentId of documentIdsFromPageContext(context.pageContext)) {
+        queueDocumentLoad(documentId);
+      }
+    }
+
+    const finding = findings[index];
+    const visible = visibles[index];
+    if (finding && visible) {
+      if (!visible.output.noSafeOutput) {
+        signals.push({ finding, output: visible.output, evidence: visible.evidence });
+        evidence.push(...visible.evidence);
+      }
+      queueDocumentLoad(finding.source_issue_id);
+      queueDocumentLoad(finding.source_sprint_id);
+      continue;
+    }
+
+    queueDocumentLoad(context.documentId ?? documentIdFromSourcePath(context.sourcePath));
   }
 
   const loadedDocuments = await Promise.all(documentLoads);
@@ -235,7 +230,7 @@ export function deterministicContextChatAnswer(
 
 function pageAnswer(
   prompt: string,
-  page: ContextChatPage,
+  page: FleetGraphPageContext,
   sources: Array<{ label: string; kind: string }>
 ): FleetGraphChatAnswerPayload {
   const selected = page.selectedItemIds?.length ? `${page.selectedItemIds.length} selected.` : 'Nothing selected.';
@@ -595,7 +590,7 @@ function uniqueDocuments(documents: ContextChatDocument[]): ContextChatDocument[
   });
 }
 
-function uniquePages(pages: ContextChatPage[]): ContextChatPage[] {
+function uniquePages(pages: FleetGraphPageContext[]): FleetGraphPageContext[] {
   const seen = new Set<string>();
   return pages.filter((page) => {
     const key = `${page.surface}:${page.route}:${page.title}`;
@@ -605,7 +600,7 @@ function uniquePages(pages: ContextChatPage[]): ContextChatPage[] {
   });
 }
 
-function documentIdsFromPageContext(page: ContextChatPage): string[] {
+function documentIdsFromPageContext(page: FleetGraphPageContext): string[] {
   const ids = new Set<string>();
   for (const id of page.selectedItemIds ?? []) ids.add(id);
   for (const item of page.visibleItems.slice(0, 8)) {
@@ -614,7 +609,7 @@ function documentIdsFromPageContext(page: ContextChatPage): string[] {
   return [...ids].slice(0, 12);
 }
 
-function pageItemLabel(item: ContextChatPage['visibleItems'][number]): string {
+function pageItemLabel(item: FleetGraphPageContext['visibleItems'][number]): string {
   return [
     item.title,
     item.state ? `state ${item.state}` : null,

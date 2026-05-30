@@ -9,7 +9,8 @@ import {
   useUpdateIssue,
   issueKeys,
 } from '@/hooks/useIssuesQuery';
-import type { BelongsTo, FleetGraphPageContext, IssueState } from '@ship/shared';
+import type { BelongsTo, IssueState } from '@ship/shared';
+import { buildIssuesListPageContext } from '@/fleetgraph/page-context';
 import { projectKeys, useProjectsQuery } from '@/hooks/useProjectsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
@@ -257,45 +258,36 @@ export function IssuesList({
     }
   }, [selectedIds, selectionPersistenceKey, selectionPersistence]);
 
-  const fleetGraphPageContext = useMemo<FleetGraphPageContext>(() => ({
-    route: `${location.pathname}${location.search}${location.hash}`,
-    surface: lockedProjectId || lockedProgramId || lockedSprintId ? 'document_issue_tab' : 'issues_list',
-    title: lockedProjectId || lockedProgramId || lockedSprintId ? 'Scoped issues' : 'Issues',
-    filters: {
-      state: stateFilter || null,
-      programId: programFilter || effectiveContext.programId || null,
-      projectId: projectFilter || effectiveContext.projectId || null,
-      sprintId: sprintFilter || effectiveContext.sprintId || null,
-      showAllIssues,
-    },
-    sort: sortBy,
+  const scopedIssuesList = Boolean(lockedProjectId || lockedProgramId || lockedSprintId);
+  const fleetGraphPageContext = useMemo(() => buildIssuesListPageContext({
+    location,
+    scoped: scopedIssuesList,
+    stateFilter,
+    programFilter,
+    projectFilter,
+    sprintFilter,
+    effectiveProgramId: effectiveContext.programId,
+    effectiveProjectId: effectiveContext.projectId,
+    showAllIssues,
+    sortBy,
     viewMode,
-    counts: {
-      total: issues.length,
-      filtered: filteredIssues.length,
-      selected: selectedIds.size,
-    },
-    visibleItems: filteredIssues.slice(0, 25).map((issue) => ({
-      kind: 'issue',
-      id: issue.id,
-      title: issue.title || 'Untitled',
-      state: issue.state,
-      priority: issue.priority,
-      owner: issue.assignee_name ?? undefined,
-    })),
-    selectedItemIds: [...selectedIds].slice(0, 8),
+    totalCount: issues.length,
+    filteredCount: filteredIssues.length,
+    selectedCount: selectedIds.size,
+    visibleIssues: filteredIssues,
+    selectedIds,
   }), [
-    effectiveContext,
+    effectiveContext.programId,
+    effectiveContext.projectId,
     filteredIssues,
     issues.length,
-    location.hash,
-    location.pathname,
-    location.search,
+    location,
     lockedProgramId,
     lockedProjectId,
     lockedSprintId,
     programFilter,
     projectFilter,
+    scopedIssuesList,
     selectedIds,
     showAllIssues,
     sortBy,
