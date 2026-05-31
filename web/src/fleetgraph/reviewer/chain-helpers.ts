@@ -3,11 +3,13 @@ import type { FleetGraphReviewerChain, FleetGraphReviewerRepairResponse } from '
 import { proofGapLabel } from '@ship/shared';
 import { statusHelp } from './constants';
 
-export { preferredReviewerProofChain, proofGapLabel } from '@ship/shared';
+export function chainMissingLabels(chain: FleetGraphReviewerChain): string[] {
+  return chain.missingLabels;
+}
 
 export function chainTooltip(chain: FleetGraphReviewerChain): string {
   const missing = chain.missing.length
-    ? ` Missing gates: ${(chain.missingLabels.length ? chain.missingLabels : chain.missing.map(proofGapLabel)).join(', ')}.`
+    ? ` Missing gates: ${chainMissingLabels(chain).join(', ')}.`
     : '';
   const scenario = chain.scenario === 'week-blocker'
     ? 'Canonical week-blocker proof scenario.'
@@ -26,15 +28,6 @@ export function chooseReviewerChain(
 ) {
   setSelectedId(chain.chainId);
   syncSearchParams(chain.links.findingId ? { findingId: chain.links.findingId } : {});
-}
-
-export function productPathStatus(chain: FleetGraphReviewerChain): string {
-  return chain.productPath === 'working' ? 'working' : 'partial';
-}
-
-export function productPathTone(chain: FleetGraphReviewerChain | null): string | undefined {
-  if (!chain) return undefined;
-  return chain.productPath === 'working' ? 'complete' : 'in_progress';
 }
 
 export function sourceMutationLabel(chain: FleetGraphReviewerChain): string {
@@ -63,7 +56,7 @@ export function metricHelp(label: string, value: string): string {
   }
   if (label === 'Canonical chain') return 'The live reviewer chain that represents the current submission proof story.';
   if (label === 'Last packet') return 'Most recent static proof packet generated from live verifier evidence in this session.';
-  return 'Reviewer proof metric.';
+  return '';
 }
 
 export function keyValueHelp(label: string): string | null {

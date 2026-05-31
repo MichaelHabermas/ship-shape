@@ -10,29 +10,9 @@ export * from './collab-protocol.js';
 export * from './fleetgraph/reviewer-verifier.js';
 export {
   buildFleetGraphCoreWireSchemas,
+  buildFleetGraphRouteWireSchemas,
   buildReviewerWireSchemas,
   fleetGraphCoreWireSchemas,
   fleetGraphReviewerWireSchemas,
-} from './fleetgraph/wire-schema-factory.js';
-export type {
-  FleetGraphReviewerChain,
-  FleetGraphReviewerChainResponse,
-  FleetGraphReviewerChainsResponse,
-  FleetGraphReviewerChainStatus,
-  FleetGraphReviewerHumanGate,
-  FleetGraphReviewerLatency,
-  FleetGraphReviewerLinks,
-  FleetGraphReviewerNotificationProjection,
-  FleetGraphReviewerProductPath,
-  FleetGraphReviewerProofRequest,
-  FleetGraphReviewerProofResponse,
-  FleetGraphReviewerProofVerdict,
-  FleetGraphReviewerRepairResponse,
-  FleetGraphReviewerScenarioResponse,
-  FleetGraphReviewerSourceMutationCheck,
-  FleetGraphReviewerStep,
-  FleetGraphReviewerStepStatus,
-  FleetGraphReviewerSummary,
-  FleetGraphReviewerTraceQuality,
-  FleetGraphReviewerTraceScore,
+  fleetGraphRouteWireSchemas,
 } from './fleetgraph/wire-schema-factory.js';

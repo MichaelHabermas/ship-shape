@@ -1,7 +1,7 @@
-// Verifies FleetGraph reviewer chain selection prefers complete week-blocker proof chains.
+// Verifies FleetGraph reviewer chain display helpers use server missingLabels.
 import { describe, expect, it } from 'vitest';
 import type { FleetGraphReviewerChain } from '@ship/shared';
-import { preferredReviewerProofChain } from '@ship/shared';
+import { chainMissingLabels, chainTooltip } from './chain-helpers';
 
 function chain(overrides: Partial<FleetGraphReviewerChain>): FleetGraphReviewerChain {
   return {
@@ -40,12 +40,24 @@ function chain(overrides: Partial<FleetGraphReviewerChain>): FleetGraphReviewerC
   };
 }
 
-describe('preferredReviewerProofChain', () => {
-  it('prefers complete week-blocker chains', () => {
-    const chains = [
-      chain({ chainId: 'historical', scenario: 'existing', status: 'complete' }),
-      chain({ chainId: 'canonical', scenario: 'week-blocker', status: 'complete' }),
-    ];
-    expect(preferredReviewerProofChain(chains)?.chainId).toBe('canonical');
+describe('chainMissingLabels', () => {
+  it('returns server missingLabels', () => {
+    const labels = chainMissingLabels(chain({
+      missing: ['chat_human_gate'],
+      missingLabels: ['Human gate missing'],
+    }));
+    expect(labels).toEqual(['Human gate missing']);
+  });
+});
+
+describe('chainTooltip', () => {
+  it('includes missingLabels in tooltip text', () => {
+    const text = chainTooltip(chain({
+      missing: ['source'],
+      missingLabels: ['Ship source'],
+      scenario: 'week-blocker',
+      status: 'broken',
+    }));
+    expect(text).toContain('Ship source');
   });
 });

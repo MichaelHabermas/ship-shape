@@ -4,7 +4,6 @@ import path from 'path';
 import {
   CAUSAL_TIMESTAMP_SKEW_MS,
   normalizeCausalDiffMs,
-  preferredReviewerProofChain,
   proofCommandEnv,
   publicReviewerChainProof,
   recordFleetGraphReviewerChatMutationProof,
@@ -12,6 +11,7 @@ import {
   reviewerProofRepoRoot,
 } from './reviewer-proof/index.js';
 import type { FleetGraphReviewerChain } from '@ship/shared';
+import { preferredReviewerProofChain } from '@ship/shared';
 
 describe('reviewerProofRepoRoot', () => {
   const originalCwd = process.cwd;

@@ -726,4 +726,6 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** Extend non-reviewer FleetGraph Zod into the shared factory before adding more hand types. Reviewer imports use `reviewer-proof/index.js` explicitly (NodeNext). Operation UI must not reintroduce catalog-only progress that ignores chain steps.
 
-**Audit (2026-05-31, `/are-you-sure`):** OpenAPI wrappers must reference `wire-schema-factory` schemas (no parallel finding/notification Zod). Live drawer uses `chainStepsForOperation` on refreshed chains while `running`; `activeChainStepIndex` treats all-pass mid-run as last step. Route/test fixtures include `productPath`, `missingLabels`, `preferredChainId`. Optional follow-ups: Zod `.parse()` on reviewer route responses; retire unused `operationSteps()` in catalog.
+**Audit (2026-05-31, `/are-you-sure`):** OpenAPI wrappers must reference `wire-schema-factory` schemas (no parallel finding/notification Zod). Live drawer uses `chainStepsForOperation` on refreshed chains while `running`; `activeChainStepIndex` treats all-pass mid-run as last step. Route/test fixtures include `productPath`, `missingLabels`, `preferredChainId`.
+
+**Follow-through (2026-05-31):** `buildFleetGraphRouteWireSchemas` covers blast radius, chat, run/manual, and list wrappers; reviewer routes use `reviewer-wire-response.ts` `.parse()` before `res.json`; dead `operationSteps()` removed; UI gap copy uses `chainMissingLabels` (server `missingLabels` first).

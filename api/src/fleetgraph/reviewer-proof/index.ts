@@ -22,4 +22,3 @@ export {
   proofCommandEnv,
   reviewerProofRepoRoot,
 } from './proof-command.js';
-export { preferredReviewerProofChain } from '@ship/shared';

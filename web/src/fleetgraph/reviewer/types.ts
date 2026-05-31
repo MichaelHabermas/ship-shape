@@ -3,11 +3,6 @@ import type { FleetGraphReviewerStep } from '@ship/shared';
 
 export type OperationKind = 'scenario' | 'worker' | 'repair' | 'proof';
 export type OperationStatus = 'running' | 'passed' | 'failed';
-export type OperationStep = {
-  key: string;
-  label: string;
-  detail: string;
-};
 export type LiveOperation = {
   kind: OperationKind;
   title: string;

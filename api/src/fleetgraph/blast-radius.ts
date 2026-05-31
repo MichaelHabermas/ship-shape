@@ -87,8 +87,6 @@ export async function getFleetGraphBlastRadius(input: {
   };
 }
 
-export { getFleetGraphBlastRadius as blastRadiusMapForFinding };
-
 function buildBlastRadiusGraph(
   finding: FleetGraphFinding,
   documents: DocumentNodeRow[],

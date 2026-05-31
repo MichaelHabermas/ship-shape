@@ -1,6 +1,6 @@
 // FleetGraph Zod wire factories: single schema source for shared types and API OpenAPI registration.
 import { z } from 'zod';
-import { FLEETGRAPH_EVIDENCE_KIND_VALUES } from '../types/fleetgraph.js';
+import { FLEETGRAPH_CHAT_HISTORY_LIMIT, FLEETGRAPH_EVIDENCE_KIND_VALUES } from '../types/fleetgraph.js';
 
 type Zod = typeof z;
 
@@ -262,6 +262,10 @@ export function buildReviewerWireSchemas(zod: Zod, core: FleetGraphCoreWireSchem
     }),
   });
 
+  const FleetGraphReviewerWorkerTickResponseSchema = z.object({
+    triggered: z.literal(true),
+  });
+
   return {
     FleetGraphReviewerStepSchema,
     FleetGraphReviewerTraceScoreSchema,
@@ -273,14 +277,192 @@ export function buildReviewerWireSchemas(zod: Zod, core: FleetGraphCoreWireSchem
     FleetGraphReviewerRepairResponseSchema,
     FleetGraphReviewerProofRequestSchema,
     FleetGraphReviewerProofResponseSchema,
+    FleetGraphReviewerWorkerTickResponseSchema,
+  };
+}
+
+export function buildFleetGraphRouteWireSchemas(zod: Zod, core: FleetGraphCoreWireSchemas) {
+  const z = zod;
+
+  const FleetGraphFindingsListResponseSchema = z.object({
+    findings: z.array(core.FleetGraphFindingResponseSchema),
+  });
+
+  const FleetGraphBlastRadiusNodeSchema = z.object({
+    id: z.string(),
+    kind: z.enum(['finding', 'issue', 'sprint', 'project', 'program', 'person']),
+    title: z.string(),
+    subtitle: z.string().optional(),
+    status: z.string().optional(),
+    severity: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  });
+
+  const FleetGraphBlastRadiusEdgeSchema = z.object({
+    from: z.string(),
+    to: z.string(),
+    kind: z.enum(['source_issue', 'source_sprint', 'project', 'program', 'assignee', 'owner', 'related_finding']),
+    label: z.string(),
+  });
+
+  const FleetGraphBlastRadiusResponseSchema = z.object({
+    finding: core.FleetGraphFindingResponseSchema,
+    summary: z.string(),
+    nodes: z.array(FleetGraphBlastRadiusNodeSchema),
+    edges: z.array(FleetGraphBlastRadiusEdgeSchema),
+  });
+
+  const FleetGraphNotificationsListResponseSchema = z.object({
+    notifications: z.array(core.FleetGraphNotificationResponseSchema),
+  });
+
+  const FleetGraphRunResponseSchema = z.object({
+    decision: z.string(),
+    finding: core.FleetGraphFindingResponseSchema.optional(),
+    visibleOutput: core.FleetGraphVisibleOutputSchema.optional(),
+    traceMetadata: core.FleetGraphTraceSchema,
+    usageMetadata: core.FleetGraphUsageSchema.optional(),
+  });
+
+  const FleetGraphChangeSummaryRowSchema = z.object({
+    label: z.enum(['Now', 'Changed', 'Cleared', 'Next', 'Unknown', 'Not done']),
+    text: z.string(),
+  });
+
+  const FleetGraphChangeSummaryBodySchema = z.object({
+    headline: z.string(),
+    rows: z.array(FleetGraphChangeSummaryRowSchema),
+  });
+
+  const FleetGraphChangeSummaryResponseSchema = FleetGraphChangeSummaryBodySchema.extend({
+    traceMetadata: core.FleetGraphTraceSchema,
+  });
+
+  const FleetGraphManualRunResultSchema = z.object({
+    decision: z.string(),
+    findingId: uuidSchema(z).optional(),
+    visibleOutput: core.FleetGraphVisibleOutputSchema.optional(),
+    traceMetadata: core.FleetGraphTraceSchema,
+    usageMetadata: core.FleetGraphUsageSchema.optional(),
+  });
+
+  const FleetGraphManualRunResponseSchema = z.object({
+    mode: z.literal('proactive'),
+    detectorDecisions: z.number().int().nonnegative(),
+    results: z.array(FleetGraphManualRunResultSchema),
+  });
+
+  const fleetGraphChatContextKind = z.enum([
+    'issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding',
+  ]);
+
+  const FleetGraphPageContextItemSchema = z.object({
+    kind: fleetGraphChatContextKind,
+    id: uuidSchema(z).optional(),
+    title: z.string().trim().min(1).max(160),
+    state: z.string().trim().max(80).optional(),
+    priority: z.string().trim().max(80).optional(),
+    owner: z.string().trim().max(120).optional(),
+    summary: z.string().trim().max(280).optional(),
+  });
+
+  const FleetGraphPageContextSchema = z.object({
+    route: z.string().trim().min(1).max(512),
+    surface: z.enum(['issues_list', 'scoped_issues_list', 'my_week', 'document_issue_tab', 'dashboard', 'workspace']),
+    title: z.string().trim().min(1).max(160),
+    filters: z.record(z.union([z.string().max(128), z.number(), z.boolean(), z.null()])).optional(),
+    sort: z.string().trim().max(80).optional(),
+    viewMode: z.string().trim().max(80).optional(),
+    counts: z.record(z.number().int().nonnegative()).optional(),
+    visibleItems: z.array(FleetGraphPageContextItemSchema).max(25),
+    selectedItemIds: z.array(uuidSchema(z)).max(8).optional(),
+  });
+
+  const FleetGraphChatContextFieldsSchema = z.object({
+    kind: fleetGraphChatContextKind,
+    documentId: uuidSchema(z).optional(),
+    findingId: uuidSchema(z).optional(),
+    sourcePath: z.string().max(512).optional(),
+    pageContext: FleetGraphPageContextSchema.optional(),
+  });
+
+  function fleetGraphChatContextRefine(context: z.infer<typeof FleetGraphChatContextFieldsSchema>): boolean {
+    return Boolean(context.findingId || context.documentId || context.kind === 'workspace' || context.pageContext);
+  }
+
+  const FleetGraphAttachedChatContextSchema = FleetGraphChatContextFieldsSchema.refine(
+    fleetGraphChatContextRefine,
+    { message: 'attached context requires findingId, documentId, or workspace kind' },
+  );
+
+  const FleetGraphChatContextSchema = FleetGraphChatContextFieldsSchema.extend({
+    attachedContexts: z.array(FleetGraphAttachedChatContextSchema).max(8).optional(),
+  }).refine(
+    fleetGraphChatContextRefine,
+    { message: 'context requires findingId, documentId, or workspace kind' },
+  );
+
+  const FleetGraphChatHistoryEntrySchema = z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().trim().min(1).max(4_000),
+  });
+
+  const FleetGraphChatRequestSchema = z.object({
+    prompt: z.string().trim().min(1).max(2_000),
+    context: FleetGraphChatContextSchema,
+    history: z.array(FleetGraphChatHistoryEntrySchema).max(FLEETGRAPH_CHAT_HISTORY_LIMIT).optional(),
+    clientMessageId: z.string().max(128).optional(),
+  });
+
+  const FleetGraphChatAnswerSchema = z.object({
+    title: z.string(),
+    body: z.string(),
+    nextStep: z.string().optional(),
+    sources: z.array(z.object({
+      label: z.string(),
+      kind: z.string(),
+    })),
+    humanGate: z.record(z.unknown()),
+  });
+
+  const FleetGraphChatResponseSchema = z.object({
+    decision: z.string(),
+    answer: FleetGraphChatAnswerSchema,
+    context: FleetGraphChatContextSchema,
+    visibleOutput: core.FleetGraphVisibleOutputSchema.optional(),
+    changeSummary: FleetGraphChangeSummaryBodySchema.optional(),
+    traceMetadata: core.FleetGraphTraceSchema,
+    usageMetadata: core.FleetGraphUsageSchema.optional(),
+  });
+
+  return {
+    FleetGraphFindingsListResponseSchema,
+    FleetGraphBlastRadiusNodeSchema,
+    FleetGraphBlastRadiusEdgeSchema,
+    FleetGraphBlastRadiusResponseSchema,
+    FleetGraphNotificationsListResponseSchema,
+    FleetGraphRunResponseSchema,
+    FleetGraphChangeSummaryRowSchema,
+    FleetGraphChangeSummaryBodySchema,
+    FleetGraphChangeSummaryResponseSchema,
+    FleetGraphManualRunResultSchema,
+    FleetGraphManualRunResponseSchema,
+    FleetGraphPageContextItemSchema,
+    FleetGraphPageContextSchema,
+    FleetGraphChatContextSchema,
+    FleetGraphChatHistoryEntrySchema,
+    FleetGraphChatRequestSchema,
+    FleetGraphChatAnswerSchema,
+    FleetGraphChatResponseSchema,
   };
 }
 
 const coreWire = buildFleetGraphCoreWireSchemas(z);
 const reviewerWire = buildReviewerWireSchemas(z, coreWire);
+const routeWire = buildFleetGraphRouteWireSchemas(z, coreWire);
 
 export const fleetGraphCoreWireSchemas = coreWire;
 export const fleetGraphReviewerWireSchemas = reviewerWire;
+export const fleetGraphRouteWireSchemas = routeWire;
 
 export type FleetGraphReviewerChainStatus = z.infer<typeof reviewerWire.FleetGraphReviewerChainSchema>['status'];
 export type FleetGraphReviewerProductPath = z.infer<typeof reviewerWire.FleetGraphReviewerChainSchema>['productPath'];
@@ -302,3 +484,22 @@ export type FleetGraphReviewerProofRequest = z.infer<typeof reviewerWire.FleetGr
 export type FleetGraphReviewerProofVerdict = z.infer<typeof reviewerWire.FleetGraphReviewerProofResponseSchema>['verdict'];
 export type FleetGraphReviewerProofResponse = z.infer<typeof reviewerWire.FleetGraphReviewerProofResponseSchema>;
 export type FleetGraphReviewerNotificationProjection = z.infer<typeof coreWire.FleetGraphNotificationResponseSchema>;
+export type FleetGraphReviewerWorkerTickResponse = z.infer<typeof reviewerWire.FleetGraphReviewerWorkerTickResponseSchema>;
+export type FleetGraphFindingsListResponse = z.infer<typeof routeWire.FleetGraphFindingsListResponseSchema>;
+export type FleetGraphBlastRadiusNode = z.infer<typeof routeWire.FleetGraphBlastRadiusNodeSchema>;
+export type FleetGraphBlastRadiusEdge = z.infer<typeof routeWire.FleetGraphBlastRadiusEdgeSchema>;
+export type FleetGraphBlastRadiusResponse = z.infer<typeof routeWire.FleetGraphBlastRadiusResponseSchema>;
+export type FleetGraphNotificationsListResponse = z.infer<typeof routeWire.FleetGraphNotificationsListResponseSchema>;
+export type FleetGraphRunResponse = z.infer<typeof routeWire.FleetGraphRunResponseSchema>;
+export type FleetGraphChangeSummaryRow = z.infer<typeof routeWire.FleetGraphChangeSummaryRowSchema>;
+export type FleetGraphChangeSummary = z.infer<typeof routeWire.FleetGraphChangeSummaryBodySchema>;
+export type FleetGraphChangeSummaryResponse = z.infer<typeof routeWire.FleetGraphChangeSummaryResponseSchema>;
+export type FleetGraphManualRunResult = z.infer<typeof routeWire.FleetGraphManualRunResultSchema>;
+export type FleetGraphManualRunResponse = z.infer<typeof routeWire.FleetGraphManualRunResponseSchema>;
+export type FleetGraphPageContextItem = z.infer<typeof routeWire.FleetGraphPageContextItemSchema>;
+export type FleetGraphPageContext = z.infer<typeof routeWire.FleetGraphPageContextSchema>;
+export type FleetGraphChatContext = z.infer<typeof routeWire.FleetGraphChatContextSchema>;
+export type FleetGraphChatHistoryEntry = z.infer<typeof routeWire.FleetGraphChatHistoryEntrySchema>;
+export type FleetGraphChatRequest = z.infer<typeof routeWire.FleetGraphChatRequestSchema>;
+export type FleetGraphChatAnswer = z.infer<typeof routeWire.FleetGraphChatAnswerSchema>;
+export type FleetGraphChatResponse = z.infer<typeof routeWire.FleetGraphChatResponseSchema>;

@@ -21,6 +21,7 @@ import {
   FleetGraphReviewerProofResponseSchema,
   FleetGraphReviewerRepairResponseSchema,
   FleetGraphReviewerScenarioResponseSchema,
+  FleetGraphReviewerWorkerTickResponseSchema,
   FleetGraphRunResponseSchema,
   FleetGraphChatRequestSchema,
   FleetGraphChatResponseSchema,
@@ -56,6 +57,14 @@ import {
   runFleetGraphReviewerWorkerTick,
   sourceSnapshotForReviewerChat,
 } from '../fleetgraph/reviewer-proof/index.js';
+import {
+  jsonReviewerChain,
+  jsonReviewerChains,
+  jsonReviewerProof,
+  jsonReviewerRepair,
+  jsonReviewerScenario,
+  jsonReviewerWorkerTick,
+} from '../fleetgraph/reviewer-wire-response.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
 const router: ExpressRouter = Router();
@@ -590,7 +599,7 @@ router.get('/reviewer/chains', authMiddleware, defineRoute({
 
       const { workspaceId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
-      res.json(await listFleetGraphReviewerChains({
+      jsonReviewerChains(res, await listFleetGraphReviewerChains({
         workspaceId,
         principal,
         limit: parsed.query.limit,
@@ -630,7 +639,7 @@ router.get('/reviewer/chains/:chainId', authMiddleware, defineRoute({
         sendLegacyError(res, 404, 'FleetGraph reviewer chain not found');
         return;
       }
-      res.json({ chain });
+      jsonReviewerChain(res, { chain });
     } catch (err) {
       sendInternalError(res, err, 'Get FleetGraph reviewer chain error');
     }
@@ -657,7 +666,7 @@ router.post('/reviewer/scenarios/week-blocker', authMiddleware, defineRoute({
 
       const { workspaceId, userId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
-      res.json(await runFleetGraphReviewerWeekBlockerScenario({
+      jsonReviewerScenario(res, await runFleetGraphReviewerWeekBlockerScenario({
         workspaceId,
         userId,
         principal,
@@ -677,7 +686,7 @@ router.post('/reviewer/worker-tick', authMiddleware, defineRoute({
   summary: 'Trigger one deployed-safe FleetGraph reviewer worker tick',
   security: [{ bearerAuth: [] }, { cookieAuth: [] }],
   responses: {
-    200: { schema: z.object({ triggered: z.literal(true) }) },
+    200: { schema: FleetGraphReviewerWorkerTickResponseSchema },
     403: { schema: ErrorResponseSchema },
     500: { schema: ErrorResponseSchema },
   },
@@ -687,7 +696,7 @@ router.post('/reviewer/worker-tick', authMiddleware, defineRoute({
       if (!(await requireInteractiveReviewerAdmin(req, res))) return;
 
       const { workspaceId } = getAuthenticatedRouteContext(req);
-      res.json(await runFleetGraphReviewerWorkerTick({ workspaceId }));
+      jsonReviewerWorkerTick(res, await runFleetGraphReviewerWorkerTick({ workspaceId }));
     } catch (err) {
       sendInternalError(res, err, 'Trigger FleetGraph reviewer worker tick error');
     }
@@ -714,7 +723,7 @@ router.post('/reviewer/repair', authMiddleware, defineRoute({
 
       const { workspaceId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
-      res.json(await repairFleetGraphReviewerProof({
+      jsonReviewerRepair(res, await repairFleetGraphReviewerProof({
         workspaceId,
         principal,
         chainId: parsed.body.chainId,
@@ -744,7 +753,7 @@ router.post('/reviewer/proof', authMiddleware, defineRoute({
 
       const { workspaceId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
-      res.json(await generateFleetGraphReviewerProof({
+      jsonReviewerProof(res, await generateFleetGraphReviewerProof({
         workspaceId,
         principal,
         chainId: parsed.body.chainId,

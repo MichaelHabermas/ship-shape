@@ -1,8 +1,7 @@
 // FleetGraph API contract owns schemas and safe response serialization.
 import type { Response } from 'express';
-import { FLEETGRAPH_CHAT_HISTORY_LIMIT } from '@ship/shared';
 import { z } from '../openapi/registry.js';
-import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
+import { ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 import { traceMetadataForResponse } from './trace.js';
 import type { FleetGraphSignalType } from '@ship/shared';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from './types.js';
@@ -11,9 +10,26 @@ import { signalLabelForType, signalTypeFromDedupeKey } from './persistence.js';
 import { chatAnswerFromChangeSummary, chatAnswerFromVisibleOutput, unsupportedChatAnswer } from './runtime/chat.js';
 import { usageMetadataFromResult } from './usage-metadata.js';
 import {
+  FleetGraphBlastRadiusEdgeSchema,
+  FleetGraphBlastRadiusNodeSchema,
+  FleetGraphBlastRadiusResponseSchema,
+  FleetGraphChangeSummaryBodySchema,
+  FleetGraphChangeSummaryResponseSchema,
+  FleetGraphChangeSummaryRowSchema,
+  FleetGraphChatAnswerSchema,
+  FleetGraphChatContextSchema,
+  FleetGraphChatHistoryEntrySchema,
+  FleetGraphChatRequestSchema,
+  FleetGraphChatResponseSchema,
   FleetGraphEvidenceSchema,
   FleetGraphFindingResponseSchema,
+  FleetGraphFindingsListResponseSchema,
+  FleetGraphManualRunResponseSchema,
+  FleetGraphManualRunResultSchema,
   FleetGraphNotificationResponseSchema,
+  FleetGraphNotificationsListResponseSchema,
+  FleetGraphPageContextItemSchema,
+  FleetGraphPageContextSchema,
   FleetGraphProposedRecipientSchema,
   FleetGraphRecommendedActionSchema,
   FleetGraphReviewerChainResponseSchema,
@@ -25,15 +41,34 @@ import {
   FleetGraphReviewerScenarioResponseSchema,
   FleetGraphReviewerStepSchema,
   FleetGraphReviewerTraceScoreSchema,
+  FleetGraphReviewerWorkerTickResponseSchema,
+  FleetGraphRunResponseSchema,
   FleetGraphTraceSchema,
   FleetGraphUsageSchema,
   FleetGraphVisibleOutputSchema,
 } from './openapi-wire-schemas.js';
 
 export {
+  FleetGraphBlastRadiusEdgeSchema,
+  FleetGraphBlastRadiusNodeSchema,
+  FleetGraphBlastRadiusResponseSchema,
+  FleetGraphChangeSummaryBodySchema,
+  FleetGraphChangeSummaryResponseSchema,
+  FleetGraphChangeSummaryRowSchema,
+  FleetGraphChatAnswerSchema,
+  FleetGraphChatContextSchema,
+  FleetGraphChatHistoryEntrySchema,
+  FleetGraphChatRequestSchema,
+  FleetGraphChatResponseSchema,
   FleetGraphEvidenceSchema,
   FleetGraphFindingResponseSchema,
+  FleetGraphFindingsListResponseSchema,
+  FleetGraphManualRunResponseSchema,
+  FleetGraphManualRunResultSchema,
   FleetGraphNotificationResponseSchema,
+  FleetGraphNotificationsListResponseSchema,
+  FleetGraphPageContextItemSchema,
+  FleetGraphPageContextSchema,
   FleetGraphProposedRecipientSchema,
   FleetGraphRecommendedActionSchema,
   FleetGraphReviewerChainResponseSchema,
@@ -45,157 +80,12 @@ export {
   FleetGraphReviewerScenarioResponseSchema,
   FleetGraphReviewerStepSchema,
   FleetGraphReviewerTraceScoreSchema,
+  FleetGraphReviewerWorkerTickResponseSchema,
+  FleetGraphRunResponseSchema,
   FleetGraphTraceSchema,
   FleetGraphUsageSchema,
   FleetGraphVisibleOutputSchema,
 };
-
-export const FleetGraphFindingsListResponseSchema = z.object({
-  findings: z.array(FleetGraphFindingResponseSchema),
-}).openapi('FleetGraphFindingsListResponse');
-
-export const FleetGraphBlastRadiusNodeSchema = z.object({
-  id: z.string(),
-  kind: z.enum(['finding', 'issue', 'sprint', 'project', 'program', 'person']),
-  title: z.string(),
-  subtitle: z.string().optional(),
-  status: z.string().optional(),
-  severity: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
-}).openapi('FleetGraphBlastRadiusNode');
-
-export const FleetGraphBlastRadiusEdgeSchema = z.object({
-  from: z.string(),
-  to: z.string(),
-  kind: z.enum(['source_issue', 'source_sprint', 'project', 'program', 'assignee', 'owner', 'related_finding']),
-  label: z.string(),
-}).openapi('FleetGraphBlastRadiusEdge');
-
-export const FleetGraphBlastRadiusResponseSchema = z.object({
-  finding: FleetGraphFindingResponseSchema,
-  summary: z.string(),
-  nodes: z.array(FleetGraphBlastRadiusNodeSchema),
-  edges: z.array(FleetGraphBlastRadiusEdgeSchema),
-}).openapi('FleetGraphBlastRadiusResponse');
-
-export const FleetGraphNotificationsListResponseSchema = z.object({
-  notifications: z.array(FleetGraphNotificationResponseSchema),
-}).openapi('FleetGraphNotificationsListResponse');
-
-export const FleetGraphRunResponseSchema = z.object({
-  decision: z.string(),
-  finding: FleetGraphFindingResponseSchema.optional(),
-  visibleOutput: FleetGraphVisibleOutputSchema.optional(),
-  traceMetadata: FleetGraphTraceSchema,
-  usageMetadata: FleetGraphUsageSchema.optional(),
-}).openapi('FleetGraphRunResponse');
-
-export const FleetGraphChangeSummaryRowSchema = z.object({
-  label: z.enum(['Now', 'Changed', 'Cleared', 'Next', 'Unknown', 'Not done']),
-  text: z.string(),
-}).openapi('FleetGraphChangeSummaryRow');
-
-export const FleetGraphChangeSummaryResponseSchema = z.object({
-  headline: z.string(),
-  rows: z.array(FleetGraphChangeSummaryRowSchema),
-  traceMetadata: FleetGraphTraceSchema,
-}).openapi('FleetGraphChangeSummaryResponse');
-
-export const FleetGraphManualRunResultSchema = z.object({
-  decision: z.string(),
-  findingId: UuidSchema.optional(),
-  visibleOutput: FleetGraphVisibleOutputSchema.optional(),
-  traceMetadata: FleetGraphTraceSchema,
-  usageMetadata: FleetGraphUsageSchema.optional(),
-}).openapi('FleetGraphManualRunResult');
-
-export const FleetGraphManualRunResponseSchema = z.object({
-  mode: z.literal('proactive'),
-  detectorDecisions: z.number().int().nonnegative(),
-  results: z.array(FleetGraphManualRunResultSchema),
-}).openapi('FleetGraphManualRunResponse');
-
-const fleetGraphChatContextKind = z.enum([
-  'issue', 'sprint', 'project', 'program', 'document', 'workspace', 'notification', 'finding',
-]);
-
-const FleetGraphPageContextItemSchema = z.object({
-  kind: fleetGraphChatContextKind,
-  id: UuidSchema.optional(),
-  title: z.string().trim().min(1).max(160),
-  state: z.string().trim().max(80).optional(),
-  priority: z.string().trim().max(80).optional(),
-  owner: z.string().trim().max(120).optional(),
-  summary: z.string().trim().max(280).optional(),
-}).openapi('FleetGraphPageContextItem');
-
-const FleetGraphPageContextSchema = z.object({
-  route: z.string().trim().min(1).max(512),
-  surface: z.enum(['issues_list', 'scoped_issues_list', 'my_week', 'document_issue_tab', 'dashboard', 'workspace']),
-  title: z.string().trim().min(1).max(160),
-  filters: z.record(z.union([z.string().max(128), z.number(), z.boolean(), z.null()])).optional(),
-  sort: z.string().trim().max(80).optional(),
-  viewMode: z.string().trim().max(80).optional(),
-  counts: z.record(z.number().int().nonnegative()).optional(),
-  visibleItems: z.array(FleetGraphPageContextItemSchema).max(25),
-  selectedItemIds: z.array(UuidSchema).max(8).optional(),
-}).openapi('FleetGraphPageContext');
-
-const FleetGraphChatContextFieldsSchema = z.object({
-  kind: fleetGraphChatContextKind,
-  documentId: UuidSchema.optional(),
-  findingId: UuidSchema.optional(),
-  sourcePath: z.string().max(512).optional(),
-  pageContext: FleetGraphPageContextSchema.optional(),
-});
-
-function fleetGraphChatContextRefine(context: z.infer<typeof FleetGraphChatContextFieldsSchema>): boolean {
-  return Boolean(context.findingId || context.documentId || context.kind === 'workspace' || context.pageContext);
-}
-
-const FleetGraphAttachedChatContextSchema = FleetGraphChatContextFieldsSchema.refine(
-  fleetGraphChatContextRefine,
-  { message: 'attached context requires findingId, documentId, or workspace kind' }
-);
-
-export const FleetGraphChatContextSchema = FleetGraphChatContextFieldsSchema.extend({
-  attachedContexts: z.array(FleetGraphAttachedChatContextSchema).max(8).optional(),
-}).refine(
-  fleetGraphChatContextRefine,
-  { message: 'context requires findingId, documentId, or workspace kind' }
-).openapi('FleetGraphChatContext');
-
-export const FleetGraphChatHistoryEntrySchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.string().trim().min(1).max(4_000),
-}).openapi('FleetGraphChatHistoryEntry');
-
-export const FleetGraphChatRequestSchema = z.object({
-  prompt: z.string().trim().min(1).max(2_000),
-  context: FleetGraphChatContextSchema,
-  history: z.array(FleetGraphChatHistoryEntrySchema).max(FLEETGRAPH_CHAT_HISTORY_LIMIT).optional(),
-  clientMessageId: z.string().max(128).optional(),
-}).openapi('FleetGraphChatRequest');
-
-export const FleetGraphChatAnswerSchema = z.object({
-  title: z.string(),
-  body: z.string(),
-  nextStep: z.string().optional(),
-  sources: z.array(z.object({
-    label: z.string(),
-    kind: z.string(),
-  })),
-  humanGate: z.record(z.unknown()),
-}).openapi('FleetGraphChatAnswer');
-
-export const FleetGraphChatResponseSchema = z.object({
-  decision: z.string(),
-  answer: FleetGraphChatAnswerSchema,
-  context: FleetGraphChatContextSchema,
-  visibleOutput: FleetGraphVisibleOutputSchema.optional(),
-  changeSummary: FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true }).optional(),
-  traceMetadata: FleetGraphTraceSchema,
-  usageMetadata: FleetGraphUsageSchema.optional(),
-}).openapi('FleetGraphChatResponse');
 
 type FleetGraphRecommendedActionWire = z.infer<typeof FleetGraphRecommendedActionSchema>;
 type FleetGraphProposedRecipientWire = z.infer<typeof FleetGraphProposedRecipientSchema>;
@@ -210,7 +100,7 @@ type FleetGraphManualRunResultWire = z.infer<typeof FleetGraphManualRunResultSch
 type FleetGraphUsageWire = z.infer<typeof FleetGraphUsageSchema>;
 
 const fleetGraphSeveritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
-const fleetGraphChangeSummaryBodySchema = FleetGraphChangeSummaryResponseSchema.omit({ traceMetadata: true });
+const fleetGraphChangeSummaryBodySchema = FleetGraphChangeSummaryBodySchema;
 type FleetGraphChangeSummaryRowWire = z.infer<typeof FleetGraphChangeSummaryRowSchema>;
 type FleetGraphChangeSummaryBodyWire = {
   headline: string;

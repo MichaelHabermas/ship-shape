@@ -1,7 +1,7 @@
 // FleetGraph reviewer chain workspace renders the causal proof path for the selected chain.
 import type { FleetGraphReviewerChain } from '@ship/shared';
 import { formatCompactDate, formatDateText, formatMs } from '@/fleetgraph/reviewer/formatters';
-import { proofGapLabel, scenarioLabel } from '@/fleetgraph/reviewer/chain-helpers';
+import { chainMissingLabels, scenarioLabel } from '@/fleetgraph/reviewer/chain-helpers';
 import { Panel, StatusPill, Tooltip } from './primitives';
 
 export function ChainWorkspace({ chain }: { chain: FleetGraphReviewerChain }) {
@@ -27,7 +27,7 @@ export function ChainWorkspace({ chain }: { chain: FleetGraphReviewerChain }) {
       {chain.missing.length > 0 && (
         <Tooltip text="These are the proof gates preventing this chain from being complete. Missing does not always mean the product failed; it means final-review evidence is incomplete.">
           <div className="rounded-md border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
-            Missing: {chain.missing.map(proofGapLabel).join(', ')}
+            Missing: {chainMissingLabels(chain).join(', ')}
           </div>
         </Tooltip>
       )}

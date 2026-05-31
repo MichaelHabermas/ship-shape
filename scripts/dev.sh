@@ -177,6 +177,19 @@ port_listeners() {
   lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | tr '\n' ' '
 }
 
+pid_cwd() {
+  local pid="$1"
+  lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1
+}
+
+pid_belongs_to_root() {
+  local pid="$1"
+  local cwd
+  cwd="$(pid_cwd "$pid")"
+
+  [ "$cwd" = "$ROOT_DIR" ] || [[ "$cwd" == "$ROOT_DIR/"* ]]
+}
+
 session_value() {
   local key="$1"
 
@@ -208,7 +221,11 @@ kill_port_listeners() {
   pids="$(port_listeners "$port")"
 
   for pid in $pids; do
-    kill_pid_if_live "$pid"
+    if pid_belongs_to_root "$pid"; then
+      kill_pid_if_live "$pid"
+    else
+      echo "Leaving port $port listener $pid alone; it is not owned by $ROOT_DIR."
+    fi
   done
 }
 

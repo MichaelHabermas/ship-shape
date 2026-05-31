@@ -1,6 +1,6 @@
 // FleetGraph reviewer summary bands show product path, proof status, and historical audit context.
 import type { FleetGraphReviewerChain, FleetGraphReviewerChainsResponse, FleetGraphReviewerProofResponse } from '@ship/shared';
-import { productPathStatus, productPathTone, proofGapLabel } from '@/fleetgraph/reviewer/chain-helpers';
+import { chainMissingLabels } from '@/fleetgraph/reviewer/chain-helpers';
 import { CopyableUuid, Metric, MetricMini } from './primitives';
 
 export function StatusStrip({
@@ -17,7 +17,11 @@ export function StatusStrip({
   const summary = data?.summary;
   return (
     <section className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-4">
-      <Metric label="Product path" value={selected ? productPathStatus(selected) : loading ? 'Loading' : 'No data'} tone={productPathTone(selected)} />
+      <Metric
+        label="Product path"
+        value={selected ? (selected.productPath === 'working' ? 'working' : 'partial') : loading ? 'Loading' : 'No data'}
+        tone={selected ? (selected.productPath === 'working' ? 'complete' : 'in_progress') : undefined}
+      />
       <Metric label="Submission proof" value={loading && !summary ? 'Loading' : summary?.status ?? 'No data'} tone={summary?.status} />
       <Metric label="Canonical chain" value={selected ? `${selected.scenario} / ${selected.status}` : loading ? 'Loading' : 'No data'} tone={selected?.status} />
       <Metric label="Last packet" value={proof ? proof.verdict : 'Not generated'} tone={proof?.verdict} />
@@ -57,7 +61,7 @@ export function ProofExplanation({
 }) {
   if (!data) return null;
   const failedGates = data.summary.requiredGates.filter((gate) => !gate.passed);
-  const selectedGaps = selected?.missing ?? [];
+  const selectedGapLabels = selected ? chainMissingLabels(selected) : [];
   const details = [
     proof ? <span>Last packet used chain <CopyableUuid value={proof.chainId} /> and returned {proof.verdict}.</span> : 'No packet has been generated in this session.',
     selected ? `Selected chain is ${selected.scenario} / ${selected.status}.` : 'No chain is selected.',
@@ -65,8 +69,8 @@ export function ProofExplanation({
     failedGates.length > 0
       ? `Submission gates still failing: ${failedGates.map((gate) => gate.name).join(', ')}.`
       : 'Submission gates pass for the canonical proof set.',
-    selectedGaps.length > 0
-      ? `Selected-chain gaps: ${selectedGaps.map(proofGapLabel).join(', ')}.`
+    selectedGapLabels.length > 0
+      ? `Selected-chain gaps: ${selectedGapLabels.join(', ')}.`
       : 'Selected chain has no missing gates.',
   ];
 

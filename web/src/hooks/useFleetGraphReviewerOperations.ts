@@ -8,15 +8,15 @@ import type { LiveOperation, OperationKind } from '@/fleetgraph/reviewer/types';
 export function useFleetGraphReviewerOperations(
   refresh: () => Promise<void>,
   setError: (message: string | null) => void,
-  getSelectedChain: () => FleetGraphReviewerChain | null,
+  selected: FleetGraphReviewerChain | null,
 ) {
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [operation, setOperation] = useState<LiveOperation | null>(null);
 
   const syncOperationChainSteps = useCallback((kind: OperationKind) => {
-    const chainSteps = chainStepsForOperation(kind, getSelectedChain());
+    const chainSteps = chainStepsForOperation(kind, selected);
     setOperation((current) => current?.kind === kind ? { ...current, chainSteps } : current);
-  }, [getSelectedChain]);
+  }, [selected]);
 
   const runAction = useCallback(async <T>(
     kind: OperationKind,
@@ -66,7 +66,7 @@ export function useFleetGraphReviewerOperations(
     } finally {
       setBusyAction(null);
     }
-  }, [busyAction, getSelectedChain, refresh, setError, syncOperationChainSteps]);
+  }, [busyAction, refresh, selected, setError, syncOperationChainSteps]);
 
   return {
     busyAction,
