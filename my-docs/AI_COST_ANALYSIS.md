@@ -44,8 +44,10 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 
 | Cost basis | Value |
 | --- | --- |
-| Cash spend basis | $100/month Codex subscription |
-| Subscription allocation | Up to $100 if the full monthly subscription is allocated to ShipShape; otherwise prorate outside this report |
+| Cash spend basis | $200/month Codex plan |
+| Render hosting tier | $7/month |
+| OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
+| Total development/platform cash committed | $217 |
 | Exact token-metered bill | Not available from local Codex records |
 | Claude/API billable split | Not available from local records |
 | Local Codex evidence source | `/Users/michaelhabermas/.codex/state_5.sqlite`, `threads` table |
@@ -95,7 +97,7 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 
 The high token count came from evidence-heavy work: reading the Week 5 source of truth, mapping existing ShipShape architecture, building reviewer proof surfaces, running code reviews, tracing FleetGraph execution, and repeatedly scanning changed files. Subagent and auto-review threads increased coverage but also multiplied context.
 
-The cash-cost conclusion is narrower than the token total: local Codex records show scale of AI use, not marginal invoice cost. The defensible project spend statement is that the work was covered by a $100/month Codex subscription unless the user allocates only a prorated share to ShipShape.
+The cash-cost conclusion is narrower than the token total: local Codex records show scale of AI use, not marginal invoice cost. The defensible project spend statement is $217 committed: $200 Codex plan, $7 Render tier, and $10 OpenAI API credits purchased. The OpenAI credits are prepaid capacity, not proof that $10 of FleetGraph runtime tokens were consumed.
 
 ## FleetGraph Runtime Costs
 

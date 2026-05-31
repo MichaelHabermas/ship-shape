@@ -182,8 +182,10 @@ Codex Desktop/local records show the development-token footprint for ShipShape. 
 | Codex local project tokens | 3,858,049,072 |
 | Measurement window | 2026-05-18 14:51:52 to 2026-05-31 09:31:03 America/Chicago |
 | High-water mark | `1780237863533` |
-| Cash spend basis | $100/month Codex subscription |
-| Total development spend claimed | Up to $100 if the full monthly subscription is allocated to ShipShape |
+| Cash spend basis | $200/month Codex plan |
+| Render hosting tier | $7/month |
+| OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
+| Total development/platform cash committed | $217 |
 | Claude/API input/output split | Not available from local Codex records |
 
 Codex usage by model:
