@@ -10,12 +10,14 @@ This is the Week 5 FleetGraph cost report. It separates development AI usage fro
 
 | Metric | Value |
 | --- | ---: |
-| Codex local project threads | 787 |
-| Codex local project tokens | 3,674,047,029 |
-| Codex measurement window | 2026-05-18 14:51:52 to 2026-05-30 19:07:28 America/Chicago |
-| Codex high-water mark | `1780186048932` |
-| Latest FleetGraph proof packet | 2026-05-31T00:07:11.336Z |
-| Latest reviewer chain latency | 5,354 ms |
+| Codex local project threads | 806 |
+| Codex local project tokens | 3,858,049,072 |
+| Codex measurement window | 2026-05-18 14:51:52 to 2026-05-31 09:31:03 America/Chicago |
+| Codex high-water mark | `1780237863533` |
+| Latest deployed FleetGraph proof packet | 2026-05-31T01:25:14.492Z |
+| Latest deployed proof graph invocations | 100 |
+| Latest deployed reviewer chain latency | 5,060 ms |
+| Refreshed local reviewer chain latency | 763 ms |
 | Latest reviewer proof model calls | 0 |
 | Latest reviewer proof runtime model spend | $0.00 |
 | Local FleetGraph run ledger | 1,701 runs; 12 model calls; 2,655 model tokens; $0.031541 corrected estimated model spend |
@@ -53,21 +55,21 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 
 | Metric | Value |
 | --- | ---: |
-| Threads | 787 |
-| Tokens | 3,674,047,029 |
+| Threads | 806 |
+| Tokens | 3,858,049,072 |
 | First recorded thread | 2026-05-18 14:51:52 America/Chicago |
-| Last recorded update | 2026-05-30 19:07:28 America/Chicago |
-| Next high-water mark | `1780186048932` |
+| Last recorded update | 2026-05-31 09:31:03 America/Chicago |
+| Next high-water mark | `1780237863533` |
 
 ### Codex Usage By Model
 
 | Model | Reasoning effort | Threads | Tokens |
 | --- | --- | ---: | ---: |
-| `gpt-5.5` | low | 487 | 3,134,549,503 |
+| `gpt-5.5` | low | 505 | 3,301,594,728 |
 | `gpt-5.5` | medium | 118 | 202,899,698 |
 | `codex-auto-review` | low | 115 | 178,703,854 |
 | `gpt-5.5` | high | 64 | 153,394,436 |
-| `gpt-5.5` | xhigh | 1 | 4,499,538 |
+| `gpt-5.5` | xhigh | 2 | 21,456,356 |
 | unknown | unknown | 2 | 0 |
 
 ### Codex Usage By Day
@@ -86,7 +88,8 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 | 2026-05-27 | 19 | 159,891,043 | 8,415,318 | 29,469,982 |
 | 2026-05-28 | 67 | 405,583,625 | 6,053,487 | 109,914,248 |
 | 2026-05-29 | 45 | 389,868,900 | 8,663,753 | 151,671,960 |
-| 2026-05-30 | 29 | 54,672,215 | 1,885,249 | 22,800,339 |
+| 2026-05-30 | 37 | 188,930,049 | 5,106,218 | 47,194,196 |
+| 2026-05-31 | 11 | 50,033,565 | 4,548,506 | 17,532,230 |
 
 ### What Drove Development Usage
 
@@ -105,6 +108,8 @@ Current runtime evidence comes from:
 - `my-docs/evidence/fleetgraph-proof/latest.json`.
 - FleetGraph proof-run JSON files under `my-docs/evidence/fleetgraph-proof/runs/`.
 - Local Postgres `fleetgraph_runs` rows in `ship_dev`.
+
+Live refresh note: on 2026-05-31 09:31 America/Chicago, local Postgres on `localhost:5433` was not running, so the `fleetgraph_runs` ledger below remains the last measured ledger captured in this report rather than a fresh DB query.
 
 ### Local Run Ledger
 
@@ -151,12 +156,12 @@ Corrections:
 
 | Metric | Value |
 | --- | ---: |
-| Generated at | 2026-05-31T00:07:11.336Z |
+| Generated at | 2026-05-31T01:25:14.492Z |
 | Required scenarios | 9 |
 | Proven scenarios | 9 |
 | Current surface pass/fail | 8 / 0 |
-| Deployed configured | false |
-| Proof summary graph invocations | 0 |
+| Deployed configured | true |
+| Proof summary graph invocations | 100 |
 | Proof summary model calls | 0 |
 | Proof summary real-model runs | 0 |
 
@@ -164,12 +169,12 @@ Corrections:
 
 | Step | Latency |
 | --- | ---: |
-| Ship source to attention event | 7 ms |
+| Ship source to attention event | 6 ms |
 | Attention event to worker tick | 2 ms |
-| Worker tick to graph run | 5,347 ms |
+| Worker tick to graph run | 5,055 ms |
 | Graph run to finding | 0 ms |
 | Finding to notification projection | 0 ms |
-| Total | 5,354 ms |
+| Total | 5,060 ms |
 
 | Usage field | Value |
 | --- | --- |
