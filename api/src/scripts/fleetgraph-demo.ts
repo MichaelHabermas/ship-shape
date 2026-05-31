@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import { pool } from '../db/client.js';
 import { detectFleetGraphAttentionDecisions, findBlockedImportantIssueQuietExits } from '../fleetgraph/detection/detector.js';
+import { STALE_ISSUE_DAYS } from '../fleetgraph/detection/attention-policy.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { scoreFleetGraphObservabilityResult } from '../fleetgraph/observability-scores.js';
 import { postFleetGraphTraceScores, shutdownFleetGraphTracing, withFleetGraphTrace } from '../fleetgraph/observability-trace.js';
@@ -17,6 +18,7 @@ const FALLBACK_WORKSPACE_NAME = 'FleetGraph Demo Workspace';
 const SEEDED_APP_WORKSPACE_NAME = 'Ship Workspace';
 const BASE_URL = process.env.FLEETGRAPH_DEMO_WEB_URL ?? 'http://localhost:5173';
 const DEMO_FIXTURE_VERSION = 1;
+const STALE_DEMO_ISSUE_DAYS = STALE_ISSUE_DAYS + 1;
 
 type IdRow = { id: string };
 type UserRow = { id: string; email: string; name: string };
@@ -486,11 +488,11 @@ async function seedStableAttentionFixtures(input: {
       state: 'in_progress',
       prefix: 'FG-STALE',
       summaries: [
-        ['Search relevance tuning has not moved since kickoff', 'No implementation update has landed for more than 180 days.'],
+        ['Search relevance tuning has not moved since kickoff', `No implementation update has landed for more than ${STALE_ISSUE_DAYS} days.`],
         ['Project health rollup stalled after initial schema notes', 'The issue has old design notes but no recent code, comment, or status movement.'],
         ['Attachment preview accessibility follow-up is idle', 'The accessibility finding remains open and predates the current review cycle.'],
         ['API pagination cleanup stopped after route inventory', 'The route inventory was captured but endpoints were not converted.'],
-        ['Week dashboard empty-state copy is aging out', 'The copy decision has been unchanged for more than 180 days.'],
+        ['Week dashboard empty-state copy is aging out', `The copy decision has been unchanged for more than ${STALE_ISSUE_DAYS} days.`],
         ['Document conversion audit has no recent evidence', 'The checklist has not been updated since the first test pass.'],
         ['Resource allocation export has gone quiet', 'The issue has an owner and estimate but no recent movement.'],
         ['Keyboard navigation polish is still open after review', 'The keyboard review notes are still unresolved.'],
@@ -517,13 +519,13 @@ async function seedStableAttentionFixtures(input: {
     },
   ];
   const multiSignalIssues: StableSignalScenario[] = [
-    { signals: ['blocked', 'stale'], title: 'Agency SSO redirect has stalled behind certificate approval', reasons: ['Certificate approval is blocking redirect validation.', 'The redirect issue has had no meaningful update for 181 days.'] },
+    { signals: ['blocked', 'stale'], title: 'Agency SSO redirect has stalled behind certificate approval', reasons: ['Certificate approval is blocking redirect validation.', `The redirect issue has had no meaningful update for ${STALE_DEMO_ISSUE_DAYS} days.`] },
     { signals: ['blocked', 'stale'], title: 'Reviewer evidence import waits on sample archive', reasons: ['The reviewer sample archive has not been delivered.', 'The import plan has not changed since the first spike.'] },
     { signals: ['blocked', 'at_risk'], title: 'Compliance export masking is blocked near demo', reasons: ['Data classification is missing for two export fields.', 'The compliance demo is inside the current delivery window.'] },
     { signals: ['blocked', 'at_risk'], title: 'Workspace invite recovery is blocked before pilot', reasons: ['SMTP alignment remains unresolved for pilot domains.', 'Pilot onboarding depends on this path this week.'] },
     { signals: ['stale', 'at_risk'], title: 'Program health rollup has old precedence assumptions', reasons: ['The rollup logic has not been refreshed after FleetGraph labels shipped.', 'Mixed-status programs may show the wrong executive summary.'] },
     { signals: ['stale', 'at_risk'], title: 'My Week plan gaps are aging into accountability noise', reasons: ['The missing-plan cases have not been revisited since last week.', 'Managers will see noisy action items during planning.'] },
-    { signals: ['blocked', 'stale', 'at_risk'], title: 'Security console deploy readiness is blocked and aging', reasons: ['AWS environment approval is still pending.', 'The deployment checklist has not moved in 181 days.', 'Reviewer access depends on this before the next evidence package.'] },
+    { signals: ['blocked', 'stale', 'at_risk'], title: 'Security console deploy readiness is blocked and aging', reasons: ['AWS environment approval is still pending.', `The deployment checklist has not moved in ${STALE_DEMO_ISSUE_DAYS} days.`, 'Reviewer access depends on this before the next evidence package.'] },
     { signals: ['blocked', 'stale', 'at_risk'], title: 'External feedback triage migration needs owner decision', reasons: ['Product has not approved the migration mapping.', 'The migration issue has stale acceptance criteria.', 'Untriaged feedback will leak into the pilot dashboard.'] },
   ];
   let issueCount = 0;
@@ -562,10 +564,10 @@ async function seedStableAttentionFixtures(input: {
         authorId: input.assignee.id,
         whatAttempted: `Stable FleetGraph demo ${group.signalType}: ${title}`,
         blockerText: group.signalType === 'blocked' ? summary : null,
-        createdAt: new Date(now.getTime() - (group.signalType === 'stale' ? 181 : 5 + index) * 86_400_000),
+        createdAt: new Date(now.getTime() - (group.signalType === 'stale' ? STALE_DEMO_ISSUE_DAYS : 5 + index) * 86_400_000),
       });
       if (group.signalType === 'stale') {
-        await setDocumentUpdatedAt(issueId, new Date(now.getTime() - 181 * 86_400_000));
+        await setDocumentUpdatedAt(issueId, new Date(now.getTime() - STALE_DEMO_ISSUE_DAYS * 86_400_000));
       }
       await upsertStableDemoFinding({
         workspaceId: input.workspaceId,
@@ -613,10 +615,10 @@ async function seedStableAttentionFixtures(input: {
       authorId: input.assignee.id,
       whatAttempted: `Stable FleetGraph multi-signal demo: ${scenario.title}`,
       blockerText: scenario.signals.includes('blocked') ? scenario.reasons[0]! : null,
-      createdAt: new Date(now.getTime() - 181 * 86_400_000),
+      createdAt: new Date(now.getTime() - STALE_DEMO_ISSUE_DAYS * 86_400_000),
     });
     if (scenario.signals.includes('stale')) {
-      await setDocumentUpdatedAt(issueId, new Date(now.getTime() - 181 * 86_400_000));
+      await setDocumentUpdatedAt(issueId, new Date(now.getTime() - STALE_DEMO_ISSUE_DAYS * 86_400_000));
     }
     for (let signalIndex = 0; signalIndex < scenario.signals.length; signalIndex++) {
       const signalType = scenario.signals[signalIndex]!;

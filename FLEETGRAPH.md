@@ -4,16 +4,18 @@ FleetGraph is Ship's project intelligence and attention engine. It watches real 
 
 ## Final Claim Boundary
 
-FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, bounded page-aware context chat, public reviewer proof, and measured FleetGraph graph-runtime token/cost metadata. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or development-wide coding-assistant spend instrumentation.
+FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, bounded page-aware context chat, authenticated live reviewer proof, public static proof snapshots, and measured FleetGraph graph-runtime token/cost metadata. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or development-wide coding-assistant spend instrumentation.
 
-Public proof packet after final deployed proof: `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html`. Local-only proof packets intentionally do not publish to that URL.
+Live reviewer control room: `/fleetgraph/reviewer` in the authenticated app. Mutating controls require workspace admin plus `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`.
+
+Public proof packet after final deployed proof: `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html`. Local-only proof packets intentionally do not publish to that URL. Static proof is a snapshot of the live verifier chain, not the authority.
 
 What it monitors proactively:
 
 | Signal | Source state | Surfaced when |
 | --- | --- | --- |
 | Blocked | Issue `state = blocked` with the source association required by the current FleetGraph finding model | A visible active associated issue is blocked, including missing blocker text |
-| Stale | Issue `state = in_progress` or `in_review` | No meaningful issue update for 180+ days |
+| Stale | Issue `state = in_progress` or `in_review` | No meaningful issue update for 30+ days |
 | At risk | High/urgent current-week work | The issue has no assignee or is within 3 days of sprint end |
 
 What it can do autonomously:
@@ -80,7 +82,7 @@ Primary runtime boundary: `api/src/fleetgraph/core.ts`. Proactive execution ente
 | ---: | --- | --- | --- | --- |
 | 1 | PM | Issue becomes blocked | Notification, source issue, blocker reason or missing-reason gap, owner/assignee, next unblock step | Ask owner, edit/send message, move work, or accept risk |
 | 2 | Engineer | Opens contextual chat from a finding/source issue | Explanation of why it was flagged, visible evidence, and next step | Follow up, ask deeper question, or update the issue manually |
-| 3 | PM | Active work has no meaningful update for 180+ days | Stale-work attention signal with source and suggested review action | Revive, close, reassign, or defer the work |
+| 3 | PM | Active work has no meaningful update for 30+ days | Stale-work attention signal with source and suggested review action | Revive, close, reassign, or defer the work |
 | 4 | PM/Director | High/urgent current-week issue lacks owner or nears sprint end | At-risk signal with sprint context and likely accountable audience | Assign owner, re-scope, escalate, or accept carryover |
 | 5 | PM/Director | Multiple attention findings are visible in a scoped issue/project/program tab | Page-aware chat can summarize the visible bounded list and selected sources | Ask for a human-owned recovery plan, reassign attention, or accept risk |
 
@@ -91,6 +93,7 @@ FleetGraph uses a hybrid trigger model:
 - Event path: issue mutations enqueue durable `fleetgraph_attention_events`; the worker claims pending events and evaluates changed sources.
 - Repair path: a 2-minute server-side worker scan catches missed events and revalidates open findings.
 - Test path: `POST /api/fleetgraph/test/worker-tick` is available only in `NODE_ENV=test` and admin-gated for deterministic local E2E proof.
+- Reviewer path: `POST /api/fleetgraph/reviewer/scenarios/week-blocker` creates/reuses the canonical current-week blocked issue proof chain and can trigger a deployed-safe worker tick when the reviewer env gate is enabled.
 
 Deployment stance:
 
@@ -111,11 +114,12 @@ Final submission proof is all-signal: every claimed signal must have executable 
 | # | Ship state | Expected output | Evidence |
 | ---: | --- | --- | --- |
 | 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Golden case `fg-create-blocked-visible-issue`; deployed proof packet signal `blocked`; trace link must appear in public proof packet |
-| 2 | Visible active issue has no meaningful update for 180+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; deployed proof packet signal `stale`; trace link must appear in public proof packet |
+| 2 | Visible active issue has no meaningful update for 30+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; deployed proof packet signal `stale`; trace link must appear in public proof packet |
 | 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Golden case `fg-create-at-risk-visible-issue`; deployed proof packet signal `at_risk`; trace link must appear in public proof packet |
 | 4 | User asks from existing finding or page context | On-demand `explain`/chat path returns visible evidence, page context, and next action | Golden case `fg-explain-existing-finding`; public proof packet must include on-demand trace link |
 | 5 | Chat asks for next action on a source/finding | Human gate required; source issue remains unchanged after chat | `e2e/fleetgraph-attention-loop.spec.ts`; proof packet attention loop has no skipped steps when run with `--with-e2e` |
 | 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | Golden cases `fg-resolve-condition-gone`, `fg-restricted-source-hidden`, and `fg-quiet-done-cancelled` |
+| 7 | Reviewer runs current-week blocker scenario in `/fleetgraph/reviewer` | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | `GET /api/fleetgraph/reviewer/chains`; static proof packet `reviewerChain`; `/fleetgraph/reviewer` UI |
 
 Required proof command:
 
@@ -140,7 +144,7 @@ pnpm fleetgraph:proof:check
 | Context chat is bounded | `/api/fleetgraph/chat` supports context-attached prompts, not a standalone workspace chatbot | Satisfies embedded-context requirement without turning into generic chat |
 | Page context is capped | `FleetGraphPageContext` carries route/surface/filter/count/visible/selected hints with strict caps | Improves page awareness without raw DOM snapshots or hidden fields |
 | Observability is provider-neutral | `api/src/fleetgraph/observability-trace.ts` emits sanitized LangSmith/Langfuse evidence | Advisor clarification allows equivalent trace links; public traces stay reviewer-safe |
-| Reviewer proof stays out of product UI | Trace links, run metadata, worker DB evidence, and eval scores live in docs/reports | UI stays focused on user decisions |
+| Live proof is an authenticated product surface | `/fleetgraph/reviewer` assembles deployed proof chains from durable FleetGraph ledgers | Reviewers inspect moving parts directly; static proof becomes a generated snapshot |
 
 Public API/interface additions:
 
@@ -153,9 +157,14 @@ Public API/interface additions:
 - `POST /api/fleetgraph/findings/{findingId}/dismiss` when admin-authorized
 - `POST /api/fleetgraph/chat`
 - `POST /api/fleetgraph/manual-run` when explicitly enabled
+- `GET /api/fleetgraph/reviewer/chains`
+- `GET /api/fleetgraph/reviewer/chains/{chainId}`
+- `POST /api/fleetgraph/reviewer/scenarios/week-blocker` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
+- `POST /api/fleetgraph/reviewer/worker-tick` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
+- `POST /api/fleetgraph/reviewer/proof` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/test/worker-tick` only in test mode
 
-Shared wire types live in `shared/src/types/fleetgraph.ts`: findings, notifications, visible output, trace metadata, chat request/response, signal types, evidence, and manual-run response.
+Shared wire types live in `shared/src/types/fleetgraph.ts`: findings, notifications, visible output, trace metadata, chat request/response, signal types, evidence, manual-run response, and reviewer proof chains.
 
 # Cost Analysis
 

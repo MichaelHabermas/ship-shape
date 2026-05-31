@@ -40,6 +40,7 @@ type ActiveSprintStandupRow = {
   title: string | null;
   properties: {
     sprint_number?: number | string | null;
+    reviewer_proof?: boolean | string | null;
   } | null;
   issue_count: string | number;
 };
@@ -58,6 +59,7 @@ type SprintAccountabilityRow = {
   properties: {
     sprint_number?: number | string | null;
     status?: string | null;
+    reviewer_proof?: boolean | string | null;
   } | null;
   project_id: string | null;
 };
@@ -221,6 +223,8 @@ async function checkMissingStandups(
        AND i.document_type = 'issue'
        AND (i.properties->>'assignee_id')::uuid = $2
        AND (s.properties->>'sprint_number')::int = $3
+       AND COALESCE(i.properties->>'reviewer_proof', 'false') <> 'true'
+       AND COALESCE(s.properties->>'reviewer_proof', 'false') <> 'true'
        AND i.deleted_at IS NULL
        AND i.archived_at IS NULL
        AND s.deleted_at IS NULL
@@ -233,6 +237,8 @@ async function checkMissingStandups(
 
   // Check each sprint for missing standup today
   for (const sprint of activeSprintsResult.rows) {
+    if (isReviewerProofProperties(sprint.properties)) continue;
+
     const standupResult = await pool.query<StandupIdRow>(
       `SELECT id FROM documents
        WHERE workspace_id = $1
@@ -315,6 +321,7 @@ async function checkSprintAccountability(
      WHERE s.workspace_id = $1
        AND s.document_type = 'sprint'
        AND (s.properties->>'owner_id')::uuid = $2
+       AND COALESCE(s.properties->>'reviewer_proof', 'false') <> 'true'
        AND s.deleted_at IS NULL
        AND s.archived_at IS NULL
        AND ${VISIBILITY_FILTER_SQL('s', '$2', '$3')}`,
@@ -323,6 +330,8 @@ async function checkSprintAccountability(
 
   for (const sprint of sprintsResult.rows) {
     const props = sprint.properties || {};
+    if (isReviewerProofProperties(props)) continue;
+
     const sprintNumber = Number(props.sprint_number) || 1;
     // Calculate sprint start date
     const sprintStartDate = new Date(workspaceStartDate);
@@ -362,6 +371,7 @@ async function checkSprintAccountability(
          AND da.relationship_type = 'sprint'
          AND d.workspace_id = $4
          AND d.document_type = 'issue'
+         AND COALESCE(d.properties->>'reviewer_proof', 'false') <> 'true'
          AND d.deleted_at IS NULL
          AND d.archived_at IS NULL
          AND ${VISIBILITY_FILTER_SQL('d', '$2', '$3')}`,
@@ -507,6 +517,10 @@ async function checkWeeklyPersonAccountability(
 // The old system checked properties.plan on project docs, but that field was never
 // exposed in the UI and has been superseded by checkWeeklyPersonAccountability().
 
+function isReviewerProofProperties(properties: { reviewer_proof?: boolean | string | null } | null): boolean {
+  return properties?.reviewer_proof === true || properties?.reviewer_proof === 'true';
+}
+
 /**
  * Check for plans/retros where manager requested changes.
  * Looks at sprint documents where the person is allocated and
@@ -533,6 +547,7 @@ async function checkChangesRequested(
      LEFT JOIN document_associations da ON da.document_id = s.id AND da.relationship_type = 'project'
      WHERE s.workspace_id = $1
        AND s.document_type = 'sprint'
+       AND COALESCE(s.properties->>'reviewer_proof', 'false') <> 'true'
        AND s.deleted_at IS NULL
        AND s.archived_at IS NULL
        AND ${VISIBILITY_FILTER_SQL('s', '$3', '$4')}

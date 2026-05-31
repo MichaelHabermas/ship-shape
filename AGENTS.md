@@ -14,7 +14,7 @@ Use multiple profiles only when the task clearly crosses boundaries. If no profi
 - Read the manifest profile before task-specific docs.
 - Change only what the task requires; do not reformat, rename, or refactor unrelated code.
 - Never use `git commit --no-verify`.
-- Never modify `api/src/db/schema.sql` for existing tables; use numbered migrations.
+- Never hand-edit `api/src/db/schema.sql` to change existing tables. Use numbered migrations for all schema changes. `schema.sql` may be updated only as the generated/current schema snapshot, and the matching migration must exist in `api/src/db/migrations/`.
 - PostgreSQL is local, not Docker.
 - For E2E, run `pnpm test:e2e:setup` once (or after Playwright bumps), then use `/e2e-test-runner` or `pnpm test:e2e:run` with full permissions — agent sandboxes lack Playwright browsers and report false 100% launch failures. `scripts/run-e2e.sh` preflights browsers and aborts early when failures share an infrastructure error (e.g. missing Chromium). After the first failure, read the log; if 2–3 failures share the same message, stop and fix the root cause before running the full suite. API unit tests need `DATABASE_URL=…/ship_test_audit` (never truncate `ship_dev`).
 - For `gh` (PRs, issues): default repo is **origin** (`MichaelHabermas/ship-shape`). Run `./scripts/setup-gh-default.sh` after clone; never use `US-Department-of-the-Treasury/ship` as the gh target. Treasury is remote `treasury` (fetch-only).

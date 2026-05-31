@@ -243,6 +243,114 @@ export const FleetGraphChatResponseSchema = z.object({
   usageMetadata: FleetGraphUsageSchema.optional(),
 }).openapi('FleetGraphChatResponse');
 
+const FleetGraphReviewerStepSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(['pass', 'pending', 'broken', 'failed']),
+  at: z.string().nullable(),
+  durationMs: z.number().nonnegative().optional(),
+  evidence: z.string(),
+}).openapi('FleetGraphReviewerStep');
+
+const FleetGraphReviewerTraceScoreSchema = z.object({
+  name: z.string(),
+  passed: z.boolean(),
+  value: z.union([z.string(), z.number(), z.boolean(), z.literal(null)]).openapi({
+    anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
+    nullable: true,
+  } as never),
+  comment: z.string(),
+}).openapi('FleetGraphReviewerTraceScore');
+
+const FleetGraphReviewerChainSchema = z.object({
+  chainId: z.string(),
+  scenario: z.string(),
+  status: z.enum(['complete', 'in_progress', 'broken', 'failed']),
+  missing: z.array(z.string()),
+  generatedAt: z.string(),
+  freshness: z.object({
+    generatedAt: z.string(),
+    newestRunAt: z.string().nullable(),
+    newestWorkerTickAt: z.string().nullable(),
+    proofAgeMs: z.number().nullable(),
+    workerAgeMs: z.number().nullable(),
+  }),
+  latencyMs: z.object({
+    shipToAttention: z.number().optional(),
+    attentionToWorker: z.number().optional(),
+    workerToRun: z.number().optional(),
+    runToFinding: z.number().optional(),
+    findingToNotification: z.number().optional(),
+    total: z.number().optional(),
+  }),
+  links: z.record(z.string()),
+  steps: z.array(FleetGraphReviewerStepSchema),
+  visibleOutput: FleetGraphVisibleOutputSchema.optional(),
+  notificationProjection: FleetGraphNotificationResponseSchema.optional(),
+  humanGate: z.object({
+    required: z.boolean(),
+    state: z.string(),
+    allowedActions: z.array(z.string()),
+  }),
+  traceQuality: z.object({
+    passed: z.boolean(),
+    requiredDecisions: z.array(z.string()),
+    observedDecisions: z.array(z.string()),
+    scores: z.array(FleetGraphReviewerTraceScoreSchema),
+  }),
+  sourceMutationCheck: z.object({
+    passed: z.boolean(),
+    before: z.record(z.unknown()),
+    after: z.record(z.unknown()),
+    changedFields: z.array(z.string()),
+  }),
+  usageSummary: FleetGraphUsageSchema,
+}).openapi('FleetGraphReviewerChain');
+
+export const FleetGraphReviewerChainsResponseSchema = z.object({
+  summary: z.object({
+    generatedAt: z.string(),
+    status: z.enum(['complete', 'in_progress', 'broken', 'failed']),
+    chainCount: z.number().int().nonnegative(),
+    completeCount: z.number().int().nonnegative(),
+    brokenCount: z.number().int().nonnegative(),
+    requiredGates: z.array(FleetGraphReviewerTraceScoreSchema),
+    costSummary: FleetGraphUsageSchema,
+  }),
+  chains: z.array(FleetGraphReviewerChainSchema),
+}).openapi('FleetGraphReviewerChainsResponse');
+
+export const FleetGraphReviewerChainResponseSchema = z.object({
+  chain: FleetGraphReviewerChainSchema,
+}).openapi('FleetGraphReviewerChainResponse');
+
+export const FleetGraphReviewerScenarioResponseSchema = z.object({
+  chainId: z.string(),
+  sourceIssueId: UuidSchema,
+  sourceSprintId: UuidSchema,
+  attentionEventId: UuidSchema.optional(),
+  workerTickTriggered: z.boolean(),
+  chain: FleetGraphReviewerChainSchema,
+}).openapi('FleetGraphReviewerScenarioResponse');
+
+export const FleetGraphReviewerRepairResponseSchema = z.object({
+  chainId: z.string(),
+  repaired: z.array(z.string()),
+  unsupported: z.array(z.string()),
+  chain: FleetGraphReviewerChainSchema,
+}).openapi('FleetGraphReviewerRepairResponse');
+
+export const FleetGraphReviewerProofRequestSchema = z.object({
+  chainId: UuidSchema.optional(),
+}).default({}).openapi('FleetGraphReviewerProofRequest');
+
+export const FleetGraphReviewerProofResponseSchema = z.object({
+  verdict: z.enum(['pass', 'blocked', 'fail', 'risk']),
+  generatedAt: z.string(),
+  chainId: z.string(),
+  artifactPaths: z.record(z.string()),
+}).openapi('FleetGraphReviewerProofResponse');
+
 type FleetGraphRecommendedActionWire = z.infer<typeof FleetGraphRecommendedActionSchema>;
 type FleetGraphProposedRecipientWire = z.infer<typeof FleetGraphProposedRecipientSchema>;
 type FleetGraphVisibleOutputWire = z.infer<typeof FleetGraphVisibleOutputSchema>;
