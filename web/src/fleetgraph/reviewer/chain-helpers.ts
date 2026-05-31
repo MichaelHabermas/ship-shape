@@ -14,6 +14,15 @@ export function scenarioLabel(chain: FleetGraphReviewerChain): string {
   return chain.scenario === 'existing' ? 'historical run' : chain.scenario;
 }
 
+export function chooseReviewerChain(
+  chain: FleetGraphReviewerChain,
+  setSelectedId: (id: string) => void,
+  syncSearchParams: (params: Record<string, string>) => void,
+) {
+  setSelectedId(chain.chainId);
+  syncSearchParams(chain.links.findingId ? { findingId: chain.links.findingId } : {});
+}
+
 export function preferredReviewerProofChain(chains: FleetGraphReviewerChain[]): FleetGraphReviewerChain | null {
   return chains.find((chain) => chain.scenario === 'week-blocker' && chain.status === 'complete')
     ?? chains.find((chain) => chain.status === 'complete')

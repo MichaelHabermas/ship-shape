@@ -6,8 +6,9 @@ import {
   operationStepState,
   operationSteps,
 } from '@/fleetgraph/reviewer/operation-catalog';
+import { formatMs } from '@/fleetgraph/reviewer/formatters';
 import type { LiveOperation } from '@/fleetgraph/reviewer/types';
-import { CopyableUuid, formatMs, useNow } from './primitives';
+import { CopyableUuid, useNow } from './primitives';
 
 export function LiveOperationDrawer({
   operation,

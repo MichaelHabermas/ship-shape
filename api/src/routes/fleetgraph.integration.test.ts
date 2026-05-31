@@ -252,7 +252,7 @@ describe('FleetGraph route security', () => {
       .set('Cookie', adminCookie)
       .set('x-csrf-token', adminCsrf)
       .send({
-        prompt: "What's happening here?",
+        prompt: 'Summarize this issue',
         context: {
           kind: 'document',
           documentId: issueId,

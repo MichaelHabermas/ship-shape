@@ -14,8 +14,10 @@ export function useFleetGraphReviewerChains(findingId: string | null) {
   const refresh = useCallback(async (options: { showLoading?: boolean } = {}) => {
     const requestId = refreshIdRef.current + 1;
     refreshIdRef.current = requestId;
-    if (options.showLoading !== false) setLoading(true);
-    if (options.showLoading !== false) setError(null);
+    if (options.showLoading !== false) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const response = await apiGetJson<FleetGraphReviewerChainsResponse>(
         '/api/fleetgraph/reviewer/chains?limit=25',
@@ -76,13 +78,4 @@ export function useFleetGraphReviewerChains(findingId: string | null) {
     setError,
     refresh,
   };
-}
-
-export function chooseReviewerChain(
-  chain: FleetGraphReviewerChain,
-  setSelectedId: (id: string) => void,
-  syncSearchParams: (params: Record<string, string>) => void,
-) {
-  setSelectedId(chain.chainId);
-  syncSearchParams(chain.links.findingId ? { findingId: chain.links.findingId } : {});
 }

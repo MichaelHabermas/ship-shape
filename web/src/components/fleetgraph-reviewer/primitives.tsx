@@ -181,5 +181,3 @@ export function useNow(enabled: boolean): number {
   }, [enabled]);
   return now;
 }
-
-export { formatMs };

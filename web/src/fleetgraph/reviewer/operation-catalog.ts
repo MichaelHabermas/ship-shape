@@ -1,6 +1,5 @@
 // FleetGraph reviewer operation catalog defines live drawer steps and failure parsing.
 import type { OperationKind, OperationStatus, OperationStep } from './types';
-import { proofGapLabel } from './chain-helpers';
 
 export function operationTitle(kind: OperationKind): string {
   if (kind === 'scenario') return 'Running reviewer scenario';
@@ -97,5 +96,3 @@ export function operationStepLabel(state: ReturnType<typeof operationStepState>)
   if (state === 'failed') return 'failed';
   return 'waiting';
 }
-
-export { proofGapLabel };

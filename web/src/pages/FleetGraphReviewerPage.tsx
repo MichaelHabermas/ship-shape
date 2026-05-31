@@ -7,8 +7,7 @@ import type {
   FleetGraphReviewerScenarioResponse,
 } from '@ship/shared';
 import { apiPostJson } from '@/lib/api';
-import { repairResultText } from '@/fleetgraph/reviewer/chain-helpers';
-import { chooseReviewerChain } from '@/hooks/useFleetGraphReviewerChains';
+import { chooseReviewerChain, repairResultText } from '@/fleetgraph/reviewer/chain-helpers';
 import { useFleetGraphBlastRadius } from '@/hooks/useFleetGraphBlastRadius';
 import { useFleetGraphReviewerChains } from '@/hooks/useFleetGraphReviewerChains';
 import { useFleetGraphReviewerOperations } from '@/hooks/useFleetGraphReviewerOperations';
@@ -38,10 +37,6 @@ export function FleetGraphReviewerPage() {
 
   const { blastRadius, error: blastRadiusError } = useFleetGraphBlastRadius(selected?.links.findingId);
   const { busyAction, operation, setOperation, runAction } = useFleetGraphReviewerOperations(refresh, setError);
-
-  function chooseChain(chain: Parameters<typeof chooseReviewerChain>[0]) {
-    chooseReviewerChain(chain, setSelectedId, (params) => setSearchParams(params));
-  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#080b12] text-slate-100">
@@ -130,7 +125,7 @@ export function FleetGraphReviewerPage() {
             chains={chains}
             loading={loading}
             selectedChainId={selected?.chainId}
-            onChooseChain={chooseChain}
+            onChooseChain={(chain) => chooseReviewerChain(chain, setSelectedId, setSearchParams)}
           />
         </aside>
 

@@ -17,8 +17,6 @@ import {
   listFleetGraphFindingsForSource,
   type FleetGraphFinding,
 } from './persistence.js';
-import type { FleetGraphVisibleOutput } from './types.js';
-
 type QueryRunner = Pick<Pool | PoolClient, 'query'>;
 
 type DocumentNodeRow = {
@@ -80,7 +78,7 @@ export async function getFleetGraphBlastRadius(input: {
     }),
   ]);
 
-  const graph = buildBlastRadiusGraph(finding, output, documents, people, relatedFindings);
+  const graph = buildBlastRadiusGraph(finding, documents, people, relatedFindings);
   return {
     finding: fleetGraphFindingResponse({ ...finding, visibleOutput: output }),
     summary: blastRadiusSummary(graph.nodes, relatedFindings.length),
@@ -91,7 +89,6 @@ export async function getFleetGraphBlastRadius(input: {
 
 function buildBlastRadiusGraph(
   finding: FleetGraphFinding,
-  _output: FleetGraphVisibleOutput,
   documents: DocumentNodeRow[],
   people: PersonNodeRow[],
   relatedFindings: FleetGraphFinding[],
