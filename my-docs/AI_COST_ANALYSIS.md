@@ -18,8 +18,9 @@ This is the Week 5 FleetGraph cost report. It separates development AI usage fro
 | Latest reviewer chain latency | 5,354 ms |
 | Latest reviewer proof model calls | 0 |
 | Latest reviewer proof runtime model spend | $0.00 |
+| Local FleetGraph run ledger | 1,701 runs; 12 model calls; 2,655 model tokens; $0.020901 estimated model spend |
 
-Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The measured FleetGraph runtime proof is deterministic-first and shows zero model calls in the latest proof packet.
+Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The latest reviewer proof packet is deterministic and shows zero model calls, but the broader local FleetGraph run ledger includes real model calls and nonzero estimated model spend.
 
 ## Assignment Criteria
 
@@ -101,6 +102,40 @@ Current runtime evidence comes from:
 - `shared/src/types/fleetgraph.ts` usage/cost fields.
 - `my-docs/evidence/fleetgraph-proof/latest.json`.
 - FleetGraph proof-run JSON files under `my-docs/evidence/fleetgraph-proof/runs/`.
+- Local Postgres `fleetgraph_runs` rows in `ship_dev`.
+
+### Local Run Ledger
+
+The latest proof packet alone is not enough for cost analysis because it can be generated from deterministic reviewer proof paths. The full local `fleetgraph_runs` ledger captures the development and testing runs that did use a model.
+
+| Metric | Value |
+| --- | ---: |
+| Local run window | 2026-05-26 20:44:43 UTC to 2026-05-31 00:19:50 UTC |
+| Total FleetGraph runs | 1,701 |
+| Deterministic runs | 1,689 |
+| Real-model runs | 12 |
+| Model calls | 12 |
+| Input tokens | 1,074 |
+| Output tokens | 1,581 |
+| Total model tokens | 2,655 |
+| Estimated model spend | $0.020901 |
+| Blended cost per FleetGraph run | $0.0000123 |
+| Average cost per real-model run | $0.002090 |
+| Average tokens per real-model run | 221.25 |
+
+| Model | Runs | Model calls | Input tokens | Output tokens | Total tokens | Estimated spend |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpt-4.1-mini` | 6 | 6 | 540 | 634 | 1,174 | $0.000461 |
+| `gpt-5.5` | 6 | 6 | 534 | 947 | 1,481 | $0.020440 |
+| deterministic / none | 1,689 | 0 | 0 | 0 | 0 | $0.000000 |
+
+| Local day | Runs | Model calls | Total tokens | Estimated spend |
+| --- | ---: | ---: | ---: | ---: |
+| 2026-05-26 | 108 | 0 | 0 | $0.000000 |
+| 2026-05-27 | 56 | 0 | 0 | $0.000000 |
+| 2026-05-28 | 77 | 6 | 1,174 | $0.000461 |
+| 2026-05-29 | 776 | 6 | 1,481 | $0.020440 |
+| 2026-05-30 | 684 | 0 | 0 | $0.000000 |
 
 ### Latest Proof Packet
 
@@ -136,7 +171,7 @@ Current runtime evidence comes from:
 | Usage source | `none` |
 | Cost source | `none` |
 
-The trace-quality proof passed and required the `create_finding` decision path. This proves graph execution and reviewer-safe usage metadata, but the latest packet does not prove a real-model call. That is acceptable only if the report is explicit: current FleetGraph is deterministic-first.
+The trace-quality proof passed and required the `create_finding` decision path. This proves graph execution and reviewer-safe usage metadata, but the latest packet does not prove a real-model call. The full run ledger above is the better source for development/testing model spend.
 
 ### Runtime Cost Controls
 
@@ -167,15 +202,25 @@ For projection purposes, this report interprets that as:
 | Proactive graph invocations | 0.8 per project per day |
 | On-demand graph invocations | 0.2 per user per day |
 | Total normalized invocations | 30 per user per 30-day month |
-| Average measured model tokens per latest proof invocation | 0 input / 0 output |
+| Average measured tokens per real-model invocation | 89.5 input / 131.75 output |
+| Average measured model cost per real-model invocation | $0.002090 |
+| Blended measured model cost per FleetGraph run | $0.0000123 |
 
-The latest measured proof window has zero real-model runs, so measured runtime model cost per invocation is $0.00. These projections are therefore model-spend projections only. They exclude hosting, database, observability, storage, staff time, and the Codex development subscription.
+The latest reviewer proof packet has zero real-model runs, but the local development/testing ledger does not. The primary projection below uses the blended measured model cost across all 1,701 local FleetGraph runs. This is still model-spend only; it excludes hosting, database, observability, storage, staff time, and the Codex development subscription.
 
-| Scale | Assumed graph invocations/month | Measured model cost/invocation | Projected monthly model spend |
+| Scale | Assumed graph invocations/month | Blended measured model cost/invocation | Projected monthly model spend |
 | --- | ---: | ---: | ---: |
-| 100 users | 3,000 | $0.00 | $0.00 |
-| 1,000 users | 30,000 | $0.00 | $0.00 |
-| 10,000 users | 300,000 | $0.00 | $0.00 |
+| 100 users | 3,000 | $0.0000123 | $0.04 |
+| 1,000 users | 30,000 | $0.0000123 | $0.37 |
+| 10,000 users | 300,000 | $0.0000123 | $3.69 |
+
+Worst-case sensitivity if every graph invocation crossed the same model boundary as the 12 measured real-model runs:
+
+| Scale | Assumed graph invocations/month | Real-model cost/invocation | Projected monthly model spend |
+| --- | ---: | ---: | ---: |
+| 100 users | 3,000 | $0.002090 | $6.27 |
+| 1,000 users | 30,000 | $0.002090 | $62.70 |
+| 10,000 users | 300,000 | $0.002090 | $627.04 |
 
 If real-model mode is enabled later, use this formula:
 
@@ -187,7 +232,7 @@ monthly model cost =
      + (average output tokens / 1,000,000) * 0.60)
 ```
 
-Example sensitivity, clearly hypothetical: if an average real-model invocation used 1,000 input tokens and 200 output tokens, cost would be $0.00027 per invocation. At 30 invocations per user per month, that would be $0.0081 per user per month, or about $0.81 / $8.10 / $81.00 at 100 / 1,000 / 10,000 users.
+The blended projection is lower because most FleetGraph paths are deterministic. The worst-case sensitivity is the more conservative budget number if production policy changed so every invocation used a model.
 
 ## Evidence And Methodology
 
@@ -238,6 +283,37 @@ jq '.generatedAt,
     .reviewerChain.usageSummary,
     .reviewerChain.traceQuality' \
   /Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evidence/fleetgraph-proof/latest.json
+```
+
+### FleetGraph Run Ledger Query
+
+```bash
+psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off \
+  -c "select count(*) as runs,
+             min(created_at) as first_run,
+             max(created_at) as last_run,
+             sum(coalesce((token_metadata->>'modelCalls')::int,0)) as model_calls,
+             sum(coalesce((token_metadata->>'inputTokens')::int,0)) as input_tokens,
+             sum(coalesce((token_metadata->>'outputTokens')::int,0)) as output_tokens,
+             sum(coalesce((token_metadata->>'totalTokens')::int,0)) as total_tokens,
+             sum(coalesce((cost_metadata->>'estimatedCostUsd')::numeric,
+                          coalesce((cost_metadata->>'modelCostUsd')::numeric,0))) as estimated_cost_usd
+      from fleetgraph_runs;"
+```
+
+```bash
+psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off \
+  -c "select coalesce(token_metadata->>'model','none') as model,
+             count(*) as runs,
+             sum(coalesce((token_metadata->>'modelCalls')::int,0)) as model_calls,
+             sum(coalesce((token_metadata->>'inputTokens')::int,0)) as input_tokens,
+             sum(coalesce((token_metadata->>'outputTokens')::int,0)) as output_tokens,
+             sum(coalesce((token_metadata->>'totalTokens')::int,0)) as total_tokens,
+             sum(coalesce((cost_metadata->>'estimatedCostUsd')::numeric,
+                          coalesce((cost_metadata->>'modelCostUsd')::numeric,0))) as estimated_cost_usd
+      from fleetgraph_runs
+      group by coalesce(token_metadata->>'model','none')
+      order by model_calls desc, runs desc;"
 ```
 
 ### Cost Field Search
