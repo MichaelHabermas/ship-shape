@@ -51,6 +51,7 @@ export async function getAllocations(
          AND s.document_type = 'sprint'
          AND (s.properties->>'sprint_number')::int = $3
          AND s.properties->'assignee_ids' @> to_jsonb($2::text)
+         AND COALESCE(s.properties->>'reviewer_proof', 'false') <> 'true'
          AND s.deleted_at IS NULL
          AND s.archived_at IS NULL
          AND proj.deleted_at IS NULL
@@ -69,6 +70,8 @@ export async function getAllocations(
          AND i.document_type = 'issue'
          AND (i.properties->>'assignee_id')::uuid = $4
          AND (s.properties->>'sprint_number')::int = $3
+         AND COALESCE(i.properties->>'reviewer_proof', 'false') <> 'true'
+         AND COALESCE(s.properties->>'reviewer_proof', 'false') <> 'true'
          AND i.deleted_at IS NULL
          AND s.deleted_at IS NULL
          AND proj.deleted_at IS NULL

@@ -14,6 +14,12 @@ import {
   FleetGraphNotificationsListResponseSchema,
   FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
+  FleetGraphReviewerChainResponseSchema,
+  FleetGraphReviewerChainsResponseSchema,
+  FleetGraphReviewerProofRequestSchema,
+  FleetGraphReviewerProofResponseSchema,
+  FleetGraphReviewerRepairResponseSchema,
+  FleetGraphReviewerScenarioResponseSchema,
   FleetGraphRunResponseSchema,
   FleetGraphChatRequestSchema,
   FleetGraphChatResponseSchema,
@@ -36,6 +42,18 @@ import {
   markFleetGraphNotificationRead,
   markVisibleFleetGraphNotificationsRead,
 } from '../fleetgraph/persistence.js';
+import {
+  fleetGraphReviewerProofEnabled,
+  generateFleetGraphReviewerProof,
+  getFleetGraphReviewerChain,
+  listFleetGraphReviewerChains,
+  recordFleetGraphReviewerChatMutationProof,
+  repairFleetGraphReviewerProof,
+  ReviewerProofCommandError,
+  runFleetGraphReviewerWeekBlockerScenario,
+  runFleetGraphReviewerWorkerTick,
+  sourceSnapshotForReviewerChat,
+} from '../fleetgraph/reviewer-proof.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
 const router: ExpressRouter = Router();
@@ -72,6 +90,23 @@ const manualRunBodySchema = z.object({
   limit: z.number().int().min(1).max(25).optional(),
 });
 
+const reviewerChainsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(25).optional(),
+});
+
+const reviewerChainParamsSchema = z.object({
+  chainId: UuidSchema,
+});
+
+const reviewerScenarioBodySchema = z.object({
+  triggerWorker: z.boolean().optional(),
+  freshRun: z.boolean().optional(),
+});
+
+const reviewerRepairBodySchema = z.object({
+  chainId: UuidSchema,
+});
+
 function testFleetGraphTriggerEnabled(): boolean {
   return process.env.NODE_ENV === 'test';
 }
@@ -81,6 +116,21 @@ async function requireWorkspaceAdminForFleetGraph(req: Request, res: Response): 
   if (adminDecision.allowed) return true;
 
   sendLegacyError(res, 403, 'Workspace admin access required');
+  return false;
+}
+
+async function requireInteractiveReviewerAdmin(req: Request, res: Response): Promise<boolean> {
+  const principal = principalFromRequest(req);
+  if (principal.kind !== 'session') {
+    sendLegacyError(res, 403, 'Interactive reviewer session required');
+    return false;
+  }
+  return requireWorkspaceAdminForFleetGraph(req, res);
+}
+
+function requireReviewerProofEnabled(res: Response): boolean {
+  if (fleetGraphReviewerProofEnabled()) return true;
+  sendLegacyError(res, 403, 'FleetGraph reviewer proof controls are disabled');
   return false;
 }
 
@@ -393,6 +443,11 @@ router.post('/chat', authMiddleware, defineRoute({
     try {
       const { workspaceId } = getAuthenticatedRouteContext(req);
       const principal = principalFromRequest(req);
+      const beforeMutation = await sourceSnapshotForReviewerChat({
+        workspaceId,
+        findingId: parsed.body.context.findingId,
+        documentId: parsed.body.context.documentId,
+      });
       const result = await runFleetGraph({
         workspaceId,
         principal,
@@ -413,6 +468,19 @@ router.post('/chat', authMiddleware, defineRoute({
       if (result.decision === 'error') {
         sendLegacyError(res, 500, 'FleetGraph chat failed');
         return;
+      }
+      if (result.run.trigger_reason === 'reviewer-source-mutation-proof') {
+        const afterMutation = await sourceSnapshotForReviewerChat({
+          workspaceId,
+          findingId: parsed.body.context.findingId,
+          documentId: parsed.body.context.documentId,
+        });
+        await recordFleetGraphReviewerChatMutationProof({
+          workspaceId,
+          before: beforeMutation,
+          after: afterMutation,
+          chatRunId: result.run.id,
+        });
       }
 
       res.json(fleetGraphChatResponse({ result, context: parsed.body.context }));
@@ -464,6 +532,199 @@ router.post('/manual-run', authMiddleware, defineRoute({
       });
     } catch (err) {
       sendInternalError(res, err, 'FleetGraph manual run error');
+    }
+  },
+}));
+
+router.get('/reviewer/chains', authMiddleware, defineRoute({
+  method: 'get',
+  path: '/fleetgraph/reviewer/chains',
+  tags: ['FleetGraph'],
+  summary: 'List live FleetGraph reviewer proof chains',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { query: reviewerChainsQuerySchema },
+  responses: {
+    200: { schema: FleetGraphReviewerChainsResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      if (!requireReviewerProofEnabled(res)) return;
+      if (!(await requireInteractiveReviewerAdmin(req, res))) return;
+
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      res.json(await listFleetGraphReviewerChains({
+        workspaceId,
+        principal,
+        limit: parsed.query.limit,
+      }));
+    } catch (err) {
+      sendInternalError(res, err, 'List FleetGraph reviewer chains error');
+    }
+  },
+}));
+
+router.get('/reviewer/chains/:chainId', authMiddleware, defineRoute({
+  method: 'get',
+  path: '/fleetgraph/reviewer/chains/{chainId}',
+  tags: ['FleetGraph'],
+  summary: 'Get one live FleetGraph reviewer proof chain',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { params: reviewerChainParamsSchema },
+  responses: {
+    200: { schema: FleetGraphReviewerChainResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    404: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      if (!requireReviewerProofEnabled(res)) return;
+      if (!(await requireInteractiveReviewerAdmin(req, res))) return;
+
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const chain = await getFleetGraphReviewerChain({
+        workspaceId,
+        principal,
+        chainId: parsed.params.chainId,
+      });
+      if (!chain) {
+        sendLegacyError(res, 404, 'FleetGraph reviewer chain not found');
+        return;
+      }
+      res.json({ chain });
+    } catch (err) {
+      sendInternalError(res, err, 'Get FleetGraph reviewer chain error');
+    }
+  },
+}));
+
+router.post('/reviewer/scenarios/week-blocker', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/reviewer/scenarios/week-blocker',
+  tags: ['FleetGraph'],
+  summary: 'Create or reset the live week-blocker reviewer scenario',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { body: reviewerScenarioBodySchema },
+  responses: {
+    200: { schema: FleetGraphReviewerScenarioResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    403: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      if (!requireReviewerProofEnabled(res)) return;
+      if (!(await requireInteractiveReviewerAdmin(req, res))) return;
+
+      const { workspaceId, userId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      res.json(await runFleetGraphReviewerWeekBlockerScenario({
+        workspaceId,
+        userId,
+        principal,
+        triggerWorker: parsed.body.triggerWorker,
+        freshRun: parsed.body.freshRun,
+      }));
+    } catch (err) {
+      sendInternalError(res, err, 'Run FleetGraph reviewer week-blocker scenario error');
+    }
+  },
+}));
+
+router.post('/reviewer/worker-tick', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/reviewer/worker-tick',
+  tags: ['FleetGraph'],
+  summary: 'Trigger one deployed-safe FleetGraph reviewer worker tick',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  responses: {
+    200: { schema: z.object({ triggered: z.literal(true) }) },
+    403: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response) {
+    try {
+      if (!requireReviewerProofEnabled(res)) return;
+      if (!(await requireInteractiveReviewerAdmin(req, res))) return;
+
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      res.json(await runFleetGraphReviewerWorkerTick({ workspaceId }));
+    } catch (err) {
+      sendInternalError(res, err, 'Trigger FleetGraph reviewer worker tick error');
+    }
+  },
+}));
+
+router.post('/reviewer/repair', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/reviewer/repair',
+  tags: ['FleetGraph'],
+  summary: 'Repair safe missing FleetGraph reviewer proof gates',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { body: reviewerRepairBodySchema },
+  responses: {
+    200: { schema: FleetGraphReviewerRepairResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    403: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      if (!requireReviewerProofEnabled(res)) return;
+      if (!(await requireInteractiveReviewerAdmin(req, res))) return;
+
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      res.json(await repairFleetGraphReviewerProof({
+        workspaceId,
+        principal,
+        chainId: parsed.body.chainId,
+      }));
+    } catch (err) {
+      sendInternalError(res, err, 'Repair FleetGraph reviewer proof error');
+    }
+  },
+}));
+
+router.post('/reviewer/proof', authMiddleware, defineRoute({
+  method: 'post',
+  path: '/fleetgraph/reviewer/proof',
+  tags: ['FleetGraph'],
+  summary: 'Generate the static FleetGraph proof packet from the live verifier',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { body: FleetGraphReviewerProofRequestSchema },
+  responses: {
+    200: { schema: FleetGraphReviewerProofResponseSchema },
+    403: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      if (!requireReviewerProofEnabled(res)) return;
+      if (!(await requireInteractiveReviewerAdmin(req, res))) return;
+
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      res.json(await generateFleetGraphReviewerProof({
+        workspaceId,
+        principal,
+        chainId: parsed.body.chainId,
+      }));
+    } catch (err) {
+      if (err instanceof ReviewerProofCommandError) {
+        res.status(500).json({
+          error: 'Failed to generate proof packet',
+          detail: err.message,
+          command: err.command,
+          outputTail: err.outputTail,
+        });
+        return;
+      }
+      sendInternalError(res, err, 'Generate FleetGraph reviewer proof error');
     }
   },
 }));

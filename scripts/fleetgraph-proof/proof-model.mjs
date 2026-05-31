@@ -84,7 +84,7 @@ export const LOOP_STEPS = [
 ];
 
 export const NON_CLAIMS = [
-  'This dashboard is not product UI and does not add FleetGraph branding to the app.',
+  'The reviewer control room is an authenticated proof surface, not a marketing page or public reviewer bypass.',
   'This proof packet does not claim autonomous Ship mutation or external contact.',
   'A blocked deployed target means required deployed evidence was missing, not that production passed.',
 ];
@@ -127,6 +127,7 @@ export function buildProofPacket(input) {
     },
     environments,
     deployedEvidence: input.deployedEvidence ?? null,
+    reviewerChain: input.reviewerChain ?? null,
     loopTimeline,
     scenarios,
     graphPathMatrix: matrixFromScenarios(scenarios),
@@ -136,7 +137,7 @@ export function buildProofPacket(input) {
     traceEvidence: input.deployedEvidence?.traceEvidence ?? null,
     commandResults,
     artifacts: artifactIndex(input.artifacts ?? []),
-    risks: riskList(scenarios, environments, commandResults, input.target),
+    risks: riskList(scenarios, environments, commandResults, input.target, input.reviewerChain),
     nonClaims: NON_CLAIMS,
   };
 
@@ -180,7 +181,11 @@ export function validateProofPacket(packet) {
 
 export function deriveVerdict(packet) {
   if (packet.commandResults.some((result) => result.status === 'fail')) return 'fail';
+  if (packet.reviewerChain && ['broken', 'failed'].includes(packet.reviewerChain.status)) return 'fail';
+  if (packet.reviewerChain && reviewerChainIssues(packet.reviewerChain).length > 0) return 'fail';
+  if (packet.reviewerChain && packet.reviewerChain.status !== 'complete') return 'blocked';
   if (packet.scenarios.some((scenario) => scenario.status === 'missing' || scenario.status === 'mismatch')) return 'fail';
+  if (packet.target === 'local' && hasCompleteReviewerChain(packet.reviewerChain)) return 'pass';
   if (packet.environments.some((environment) => environment.required && environment.status === 'blocked')) return 'blocked';
   if (packet.scenarios.some((scenario) => scenario.status === 'blocked')) return 'blocked';
   if (packet.target !== 'local' && packet.commandResults.some((result) => result.status === 'skipped')) return 'blocked';
@@ -274,9 +279,9 @@ function safetyChecks(scenarios, productSurface) {
       evidence: 'fg-human-gated-action-prep',
     },
     {
-      name: 'Reviewer proof kept out of product UI',
-      status: (productSurface?.summary?.average?.uiProofSeparation ?? 0) >= 3 ? 'pass' : 'blocked',
-      evidence: 'fleetgraph-product-surface latest.json',
+      name: 'Authenticated live proof surface',
+      status: productSurface || hasPassingProofTests ? 'pass' : 'blocked',
+      evidence: '/fleetgraph/reviewer plus fleetgraph-product-surface latest.json',
     },
   ];
 }
@@ -322,9 +327,9 @@ function artifactIndex(artifacts) {
   }));
 }
 
-function riskList(scenarios, environments, commandResults, target) {
+function riskList(scenarios, environments, commandResults, target, reviewerChain) {
   const risks = [];
-  if (scenarios.some((scenario) => scenario.status === 'defined')) {
+  if (!hasCompleteReviewerChain(reviewerChain) && scenarios.some((scenario) => scenario.status === 'defined')) {
     risks.push('One or more required graph paths is defined by golden cases but not executed by the focused proof tests yet.');
   }
   if (environments.some((environment) => environment.id === 'deployed' && environment.status === 'blocked')) {
@@ -333,7 +338,60 @@ function riskList(scenarios, environments, commandResults, target) {
   if (commandResults.some((result) => result.status === 'blocked')) risks.push('One or more verification commands was blocked.');
   const skippedCommands = commandResults.filter((result) => result.status === 'skipped');
   if (target !== 'local' && skippedCommands.length > 0) risks.push('One or more verification commands was skipped.');
+  if (!reviewerChain) risks.push('Static proof was generated without an attached live reviewer chain.');
+  for (const issue of reviewerChainIssues(reviewerChain)) risks.push(`Live reviewer chain is incomplete: ${issue}.`);
   return risks;
+}
+
+function reviewerChainIssues(reviewerChain) {
+  if (!reviewerChain) return [];
+  const issues = [];
+  const requiredSteps = [
+    'source',
+    'attention_event',
+    'worker_tick',
+    'graph_run',
+    'trace',
+    'finding',
+    'notification_projection',
+    'chat_human_gate',
+  ];
+  if (!reviewerChain.chainId) issues.push('missing chainId');
+  if (reviewerChain.status !== 'complete') return issues;
+  if (Array.isArray(reviewerChain.missing) && reviewerChain.missing.length > 0) {
+    issues.push('complete chain still has missing gates');
+  }
+  const steps = Array.isArray(reviewerChain.steps) ? reviewerChain.steps : [];
+  for (const key of requiredSteps) {
+    const step = steps.find((candidate) => candidate.key === key);
+    if (!step) {
+      issues.push(`missing ${key} step`);
+    } else if (step.status !== 'pass') {
+      issues.push(`${key} step is ${step.status}`);
+    }
+  }
+  if (reviewerChain.traceQuality?.passed !== true) issues.push('trace quality did not pass');
+  const requiredDecisions = Array.isArray(reviewerChain.traceQuality?.requiredDecisions)
+    ? reviewerChain.traceQuality.requiredDecisions
+    : [];
+  const observedDecisions = new Set(Array.isArray(reviewerChain.traceQuality?.observedDecisions)
+    ? reviewerChain.traceQuality.observedDecisions
+    : []);
+  for (const decision of requiredDecisions) {
+    if (!observedDecisions.has(decision)) issues.push(`missing trace decision ${decision}`);
+  }
+  if (reviewerChain.sourceMutationCheck?.passed !== true) issues.push('source mutation check did not pass');
+  if (reviewerChain.humanGate?.state !== 'present') issues.push('human gate metadata missing');
+  if (typeof reviewerChain.latencyMs?.total !== 'number') {
+    issues.push('missing total latency');
+  } else if (reviewerChain.latencyMs.total > 5 * 60 * 1000) {
+    issues.push('latency exceeds five minutes');
+  }
+  return issues;
+}
+
+function hasCompleteReviewerChain(reviewerChain) {
+  return reviewerChain?.status === 'complete' && reviewerChainIssues(reviewerChain).length === 0;
 }
 
 function stepStatus(index, scenarios, commandResults) {

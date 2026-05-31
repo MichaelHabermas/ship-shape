@@ -1,4 +1,4 @@
-// In development, Vite proxy handles /api routes (see vite.config.ts)
+// Provides shared API fetch helpers with CSRF handling, JSON validation, and request timeouts.
 // In production, use VITE_API_URL or relative URLs
 import { clearTypedApiCsrfToken } from '@/api/client';
 import { readJson } from '@/api/read-json';
@@ -8,7 +8,7 @@ import { clearQuietCsrfToken } from '@/lib/quiet-fetch';
 import { createApiStatusError } from '@/lib/api-error';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
-const API_TIMEOUT_MS = 15_000;
+const API_TIMEOUT_MS = 30_000;
 
 export { readJson } from '@/api/read-json';
 
@@ -26,6 +26,11 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promi
   const timeout = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
     return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Request timed out after ${API_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
   } finally {
     window.clearTimeout(timeout);
   }
@@ -174,7 +179,7 @@ export async function apiDelete(endpoint: string, body?: object): Promise<Respon
 export async function apiGetJson<T>(endpoint: string, message = 'Request failed'): Promise<T> {
   const res = await apiGet(endpoint);
   if (!res.ok) {
-    throw createApiStatusError(message, res.status);
+    throw createApiStatusError(message, res.status, await errorDetails(res));
   }
   return readJson<T>(res);
 }
@@ -182,7 +187,7 @@ export async function apiGetJson<T>(endpoint: string, message = 'Request failed'
 export async function apiPostJson<T>(endpoint: string, body?: object, message = 'Request failed'): Promise<T> {
   const res = await apiPost(endpoint, body);
   if (!res.ok) {
-    throw createApiStatusError(message, res.status);
+    throw createApiStatusError(message, res.status, await errorDetails(res));
   }
   return readJson<T>(res);
 }
@@ -190,7 +195,7 @@ export async function apiPostJson<T>(endpoint: string, body?: object, message = 
 export async function apiPatchJson<T>(endpoint: string, body: object, message = 'Request failed'): Promise<T> {
   const res = await apiPatch(endpoint, body);
   if (!res.ok) {
-    throw createApiStatusError(message, res.status);
+    throw createApiStatusError(message, res.status, await errorDetails(res));
   }
   return readJson<T>(res);
 }
@@ -198,9 +203,18 @@ export async function apiPatchJson<T>(endpoint: string, body: object, message = 
 export async function apiDeleteJson<T>(endpoint: string, body?: object, message = 'Request failed'): Promise<T> {
   const res = await apiDelete(endpoint, body);
   if (!res.ok) {
-    throw createApiStatusError(message, res.status);
+    throw createApiStatusError(message, res.status, await errorDetails(res));
   }
   return readJson<T>(res);
+}
+
+async function errorDetails(response: Response): Promise<unknown> {
+  if (!isJsonResponse(response)) return undefined;
+  try {
+    return await readJson<unknown>(response.clone());
+  } catch {
+    return undefined;
+  }
 }
 
 async function request<T>(

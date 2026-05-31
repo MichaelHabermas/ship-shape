@@ -2,7 +2,7 @@
 import type { FleetGraphSignalType } from '@ship/shared';
 import type { FleetGraphIssueAttentionContext } from './attention-context.js';
 
-export const STALE_ISSUE_DAYS = 180;
+export const STALE_ISSUE_DAYS = 30;
 export const AT_RISK_SPRINT_END_DAYS = 3;
 
 export type FleetGraphAttentionPolicyDecision = {

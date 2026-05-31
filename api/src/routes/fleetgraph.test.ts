@@ -18,27 +18,56 @@ import {
   type FleetGraphFinding,
   type FleetGraphNotificationFinding,
 } from '../fleetgraph/persistence.js';
+import {
+  fleetGraphReviewerProofEnabled,
+  generateFleetGraphReviewerProof,
+  getFleetGraphReviewerChain,
+  listFleetGraphReviewerChains,
+  recordFleetGraphReviewerChatMutationProof,
+  repairFleetGraphReviewerProof,
+  ReviewerProofCommandError,
+  runFleetGraphReviewerWeekBlockerScenario,
+  runFleetGraphReviewerWorkerTick,
+  sourceSnapshotForReviewerChat,
+} from '../fleetgraph/reviewer-proof.js';
 import { noModelCostMetadata, noModelTokenMetadata } from '../fleetgraph/usage-metadata.js';
 import type { FleetGraphResult, FleetGraphVisibleOutput } from '../fleetgraph/types.js';
+import type { FleetGraphReviewerChain, FleetGraphReviewerProofVerdict } from '@ship/shared';
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
 const sprintId = '33333333-3333-4333-8333-333333333333';
 const findingId = '44444444-4444-4444-8444-444444444444';
+const USER_ID = '55555555-5555-4555-8555-555555555555';
+const CHAT_RUN_ID = '66666666-6666-4666-8666-666666666666';
+const attentionEventId = '77777777-7777-4777-8777-777777777777';
+const authMock = vi.hoisted(() => ({ useApiToken: false }));
 
 vi.mock('../middleware/auth.js', () => ({
   authMiddleware: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    req.userId = '55555555-5555-4555-8555-555555555555';
+    req.userId = USER_ID;
     req.workspaceId = workspaceId;
-    req.sessionId = 'session-1';
+    req.sessionId = authMock.useApiToken ? undefined : 'session-1';
+    req.apiTokenId = authMock.useApiToken ? 'api-token-1' : undefined;
+    req.apiTokenScopes = authMock.useApiToken ? ['admin:workspace'] : undefined;
+    req.isApiToken = authMock.useApiToken;
     req.isSuperAdmin = false;
-    req.principal = {
-      kind: 'session',
-      sessionId: 'session-1',
-      userId: req.userId,
-      workspaceId: req.workspaceId,
-      isSuperAdmin: false,
-    };
+    req.principal = authMock.useApiToken
+      ? {
+          kind: 'api_token',
+          tokenId: 'api-token-1',
+          userId: req.userId,
+          workspaceId: req.workspaceId,
+          isSuperAdmin: false,
+          scopes: ['admin:workspace'],
+        }
+      : {
+          kind: 'session',
+          sessionId: 'session-1',
+          userId: req.userId,
+          workspaceId: req.workspaceId,
+          isSuperAdmin: false,
+        };
     next();
   },
 }));
@@ -81,6 +110,25 @@ vi.mock('../fleetgraph/persistence.js', () => ({
   signalLabelForType: (signalType: string) => signalType === 'stale' ? 'Stale' : signalType === 'at_risk' ? 'At risk' : 'Blocked',
 }));
 
+vi.mock('../fleetgraph/reviewer-proof.js', () => ({
+  fleetGraphReviewerProofEnabled: vi.fn(() => false),
+  generateFleetGraphReviewerProof: vi.fn(),
+  getFleetGraphReviewerChain: vi.fn(),
+  listFleetGraphReviewerChains: vi.fn(),
+  recordFleetGraphReviewerChatMutationProof: vi.fn(),
+  repairFleetGraphReviewerProof: vi.fn(),
+  ReviewerProofCommandError: class ReviewerProofCommandError extends Error {
+    readonly command = 'pnpm fleetgraph:proof -- --mode local --no-refresh-evals';
+    constructor(message: string, readonly outputTail: string[]) {
+      super(message);
+      this.name = 'ReviewerProofCommandError';
+    }
+  },
+  runFleetGraphReviewerWeekBlockerScenario: vi.fn(),
+  runFleetGraphReviewerWorkerTick: vi.fn(),
+  sourceSnapshotForReviewerChat: vi.fn(),
+}));
+
 type FleetGraphFindingsTestBody = {
   findings: Array<{
     dedupeKey?: string;
@@ -119,10 +167,6 @@ type FleetGraphRunTestBody = {
   };
 };
 
-type FleetGraphUsageTestBody = {
-  usageMetadata?: FleetGraphRunTestBody['usageMetadata'];
-};
-
 type FleetGraphManualRunTestBody = {
   mode: 'proactive';
   detectorDecisions: number;
@@ -139,6 +183,73 @@ type FleetGraphManualRunUsageTestBody = {
     usageMetadata?: FleetGraphRunTestBody['usageMetadata'];
   }>;
 };
+
+type FleetGraphReviewerChainsTestBody = {
+  chains: FleetGraphReviewerChain[];
+};
+
+type FleetGraphReviewerScenarioTestBody = {
+  chain: FleetGraphReviewerChain;
+};
+
+type FleetGraphReviewerRepairTestBody = {
+  repaired: string[];
+  unsupported: string[];
+  chain: FleetGraphReviewerChain;
+};
+
+type FleetGraphReviewerProofTestBody = {
+  verdict: FleetGraphReviewerProofVerdict;
+  chainId: string;
+};
+
+function reviewerChain(overrides: Partial<FleetGraphReviewerChain> = {}): FleetGraphReviewerChain {
+  return {
+    chainId: findingId,
+    scenario: 'week-blocker',
+    status: 'complete',
+    missing: [],
+    generatedAt: '2026-05-29T00:00:00.000Z',
+    freshness: {
+      generatedAt: '2026-05-29T00:00:00.000Z',
+      newestRunAt: '2026-05-29T00:00:00.000Z',
+      newestWorkerTickAt: '2026-05-29T00:00:00.000Z',
+      proofAgeMs: 1000,
+      workerAgeMs: 1000,
+    },
+    latencyMs: { total: 1000 },
+    links: {
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      workerTickId: attentionEventId,
+      runId: CHAT_RUN_ID,
+      traceId: 'trace-1',
+      traceUrl: 'https://trace.example',
+      findingId,
+      notificationProjectionId: findingId,
+    },
+    steps: [
+      { key: 'source', label: 'Ship source', status: 'pass', at: '2026-05-29T00:00:00.000Z', evidence: 'Issue is blocked.' },
+      { key: 'attention_event', label: 'Attention event', status: 'pass', at: '2026-05-29T00:00:01.000Z', evidence: 'reviewer-week-blocker-scenario' },
+      { key: 'worker_tick', label: 'Worker tick', status: 'pass', at: '2026-05-29T00:00:02.000Z', evidence: 'completed' },
+      { key: 'graph_run', label: 'Graph run', status: 'pass', at: '2026-05-29T00:00:03.000Z', evidence: 'create_finding via reviewer-week-blocker-scenario' },
+      { key: 'trace', label: 'Trace', status: 'pass', at: '2026-05-29T00:00:03.000Z', evidence: 'Safe trace URL captured' },
+      { key: 'finding', label: 'Finding', status: 'pass', at: '2026-05-29T00:00:04.000Z', evidence: 'needs_confirmation' },
+      { key: 'notification_projection', label: 'Notification projection', status: 'pass', at: '2026-05-29T00:00:04.000Z', evidence: 'Derived from visible finding' },
+      { key: 'chat_human_gate', label: 'Chat and human gate', status: 'pass', at: '2026-05-29T00:00:05.000Z', evidence: 'Visible output contains human gate metadata' },
+    ],
+    humanGate: { required: true, state: 'present', allowedActions: ['inspect evidence'] },
+    traceQuality: {
+      passed: true,
+      requiredDecisions: ['create_finding'],
+      observedDecisions: ['create_finding'],
+      scores: [{ name: 'traceUrl', passed: true, value: 'https://trace.example', comment: 'Trace URL captured.' }],
+    },
+    sourceMutationCheck: { passed: true, before: {}, after: {}, changedFields: [] },
+    usageSummary: { modelCalls: 1, costCurrency: 'USD' },
+    ...overrides,
+  };
+}
 
 function app() {
   const testApp = express();
@@ -245,8 +356,20 @@ describe('FleetGraph routes', () => {
     vi.mocked(runFleetGraph).mockReset();
     vi.mocked(runFleetGraphManualTick).mockReset();
     vi.mocked(runFleetGraphWorkerTick).mockReset();
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReset();
+    vi.mocked(generateFleetGraphReviewerProof).mockReset();
+    vi.mocked(getFleetGraphReviewerChain).mockReset();
+    vi.mocked(listFleetGraphReviewerChains).mockReset();
+    vi.mocked(recordFleetGraphReviewerChatMutationProof).mockReset();
+    vi.mocked(repairFleetGraphReviewerProof).mockReset();
+    vi.mocked(runFleetGraphReviewerWeekBlockerScenario).mockReset();
+    vi.mocked(runFleetGraphReviewerWorkerTick).mockReset();
+    vi.mocked(sourceSnapshotForReviewerChat).mockReset();
+    authMock.useApiToken = false;
     process.env.NODE_ENV = 'test';
     vi.mocked(fleetGraphConfig).mockReturnValue({ manualRunApiEnabled: true } as never);
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(false);
+    vi.mocked(sourceSnapshotForReviewerChat).mockResolvedValue({ sourceIssueId: null, findingId: null, state: {} });
     vi.mocked(authorizeRequest).mockResolvedValue({ allowed: true, reason: 'allowed' } as never);
   });
 
@@ -344,7 +467,7 @@ describe('FleetGraph routes', () => {
   it('marks provided visible notifications read for the current user', async () => {
     vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([
       finding(),
-      finding({ id: '66666666-6666-4666-8666-666666666666' }),
+      finding({ id: CHAT_RUN_ID }),
     ]);
     vi.mocked(visibleOutputForFinding).mockImplementation(async ({ finding: candidate }) => ({
       evidence: [],
@@ -354,14 +477,14 @@ describe('FleetGraph routes', () => {
 
     const res = await request(app())
       .post('/api/fleetgraph/notifications/read')
-      .send({ findingIds: [findingId, '66666666-6666-4666-8666-666666666666'] })
+      .send({ findingIds: [findingId, CHAT_RUN_ID] })
       .expect(200);
 
     expect(JSON.parse(res.text)).toEqual({ success: true, markedRead: 2 });
   });
 
   it('marks only actor-visible notification ids in bulk read requests', async () => {
-    const restrictedId = '66666666-6666-4666-8666-666666666666';
+    const restrictedId = CHAT_RUN_ID;
     vi.mocked(listFleetGraphFindingsByIds).mockResolvedValue([
       finding(),
       finding({ id: restrictedId }),
@@ -384,13 +507,13 @@ describe('FleetGraph routes', () => {
     vi.mocked(listFleetGraphNotificationFindings).mockResolvedValue([
       notificationFinding(),
       notificationFinding({
-        id: '66666666-6666-4666-8666-666666666666',
+        id: CHAT_RUN_ID,
         dedupe_key: `stale-issue:${workspaceId}:${issueId}:${sprintId}`,
-        run_metadata: { signalType: 'stale', reason: 'No meaningful update for 180+ days.' },
-        summary: 'No meaningful update for 180+ days.',
+        run_metadata: { signalType: 'stale', reason: 'No meaningful update for 30+ days.' },
+        summary: 'No meaningful update for 30+ days.',
       }),
       notificationFinding({
-        id: '77777777-7777-4777-8777-777777777777',
+        id: attentionEventId,
         dedupe_key: `at-risk-issue:${workspaceId}:${issueId}:${sprintId}`,
         run_metadata: { signalType: 'at_risk', reason: 'High-priority current-week work has no owner.' },
         summary: 'High-priority current-week work has no owner.',
@@ -408,7 +531,7 @@ describe('FleetGraph routes', () => {
     const body = JSON.parse(res.text) as FleetGraphNotificationsTestBody;
     expect(body.notifications.map((notification) => notification.signalType)).toEqual(['blocked', 'stale', 'at_risk']);
     expect(body.notifications.map((notification) => notification.signalLabel)).toEqual(['Blocked', 'Stale', 'At risk']);
-    expect(body.notifications[1]?.notificationText).toBe('No meaningful update for 180+ days.');
+    expect(body.notifications[1]?.notificationText).toBe('No meaningful update for 30+ days.');
   });
 
   it('omits notifications without safe actor-visible output', async () => {
@@ -499,7 +622,7 @@ describe('FleetGraph routes', () => {
       .post(`/api/fleetgraph/findings/${findingId}/explain`)
       .expect(200);
 
-    const body = JSON.parse(res.text) as FleetGraphUsageTestBody;
+    const body = JSON.parse(res.text) as FleetGraphRunTestBody;
     expect(body.usageMetadata).toEqual({
       modelCalls: 1,
       inputTokens: 100,
@@ -541,8 +664,12 @@ describe('FleetGraph routes', () => {
   });
 
   it('returns context chat answers with the recommended next step', async () => {
+    const beforeMutation = { sourceIssueId: issueId, findingId, state: { state: 'blocked', priority: 'high' } };
+    vi.mocked(sourceSnapshotForReviewerChat)
+      .mockResolvedValueOnce(beforeMutation);
     vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
       decision: 'needs_confirmation',
+      run: { id: CHAT_RUN_ID } as FleetGraphResult['run'],
       visibleOutput: visibleOutput({
         recommendedAction: {
           text: 'Ask Casey Engineer to confirm owner and next step for Week 2.',
@@ -559,11 +686,11 @@ describe('FleetGraph routes', () => {
       })
       .expect(200);
 
-    const body = JSON.parse(res.text) as { decision: string; answer: { nextStep?: string } };
+    const body = JSON.parse(res.text) as { decision: string; answer: { nextStep?: string }; usageMetadata?: unknown };
     expect(body.decision).toBe('needs_confirmation');
     expect(body.answer.nextStep).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
-    const usageBody = JSON.parse(res.text) as FleetGraphUsageTestBody;
-    expect(usageBody.usageMetadata).toBeUndefined();
+    expect(body.usageMetadata).toBeUndefined();
+    expect(recordFleetGraphReviewerChatMutationProof).not.toHaveBeenCalled();
   });
 
   it('accepts bounded context chat history on successful chat requests', async () => {
@@ -584,7 +711,7 @@ describe('FleetGraph routes', () => {
       })
       .expect(200);
 
-    const body = JSON.parse(res.text) as { decision: string };
+    const body = JSON.parse(res.text) as FleetGraphRunTestBody;
     expect(body.decision).toBe('explain');
   });
 
@@ -731,7 +858,7 @@ describe('FleetGraph routes', () => {
       .send({ instruction: 'Make it shorter.' })
       .expect(200);
 
-    const body = JSON.parse(res.text) as { decision: string };
+    const body = JSON.parse(res.text) as FleetGraphRunTestBody;
     expect(body.decision).toBe('refine_draft');
   });
 
@@ -986,5 +1113,249 @@ describe('FleetGraph routes', () => {
       .expect(400);
 
     expect(runFleetGraphManualTick).not.toHaveBeenCalled();
+  });
+
+  it('requires reviewer env gate before listing reviewer proof chains', async () => {
+    await request(app())
+      .get('/api/fleetgraph/reviewer/chains?limit=1')
+      .expect(403);
+
+    expect(listFleetGraphReviewerChains).not.toHaveBeenCalled();
+  });
+
+  it('lists reviewer proof chains for enabled workspace admins', async () => {
+    const chain = reviewerChain();
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(listFleetGraphReviewerChains).mockResolvedValue({
+      summary: {
+        generatedAt: '2026-05-29T00:00:00.000Z',
+        status: 'complete',
+        chainCount: 1,
+        completeCount: 1,
+        brokenCount: 0,
+        requiredGates: [],
+        costSummary: { modelCalls: 1, costCurrency: 'USD' },
+      },
+      chains: [chain],
+    });
+
+    const res = await request(app())
+      .get('/api/fleetgraph/reviewer/chains?limit=1')
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphReviewerChainsTestBody;
+    expect(body.chains[0]?.chainId).toBe(findingId);
+    expect(listFleetGraphReviewerChains).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      limit: 1,
+    }));
+  });
+
+  it('returns reviewer proof chain detail for enabled workspace admins', async () => {
+    const chain = reviewerChain();
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(getFleetGraphReviewerChain).mockResolvedValue(chain);
+
+    const res = await request(app())
+      .get(`/api/fleetgraph/reviewer/chains/${chain.chainId}`)
+      .expect(200);
+
+    const body = JSON.parse(res.text) as { chain: FleetGraphReviewerChain };
+    expect(body.chain.chainId).toBe(chain.chainId);
+    expect(getFleetGraphReviewerChain).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      chainId: chain.chainId,
+    }));
+  });
+
+  it('returns 404 for missing reviewer proof chain detail', async () => {
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(getFleetGraphReviewerChain).mockResolvedValue(null);
+
+    await request(app())
+      .get(`/api/fleetgraph/reviewer/chains/${findingId}`)
+      .expect(404);
+  });
+
+  it('blocks reviewer scenario controls when the env gate is disabled', async () => {
+    await request(app())
+      .post('/api/fleetgraph/reviewer/scenarios/week-blocker')
+      .send({})
+      .expect(403);
+
+    expect(runFleetGraphReviewerWeekBlockerScenario).not.toHaveBeenCalled();
+  });
+
+  it('requires workspace admin for enabled reviewer scenario controls', async () => {
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(authorizeRequest).mockResolvedValue({ allowed: false, reason: 'not_admin' } as never);
+
+    await request(app())
+      .post('/api/fleetgraph/reviewer/scenarios/week-blocker')
+      .send({})
+      .expect(403);
+
+    expect(runFleetGraphReviewerWeekBlockerScenario).not.toHaveBeenCalled();
+  });
+
+  it('runs enabled reviewer scenario controls for workspace admins', async () => {
+    const chain = reviewerChain();
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(runFleetGraphReviewerWeekBlockerScenario).mockResolvedValue({
+      chainId: chain.chainId,
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      workerTickTriggered: true,
+      chain,
+    });
+
+    const res = await request(app())
+      .post('/api/fleetgraph/reviewer/scenarios/week-blocker')
+      .send({ triggerWorker: true, freshRun: true })
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphReviewerScenarioTestBody;
+    expect(body.chain.status).toBe('complete');
+    expect(body.chain.chainId).toBe(chain.chainId);
+    expect(body.chain.links).toMatchObject({
+      sourceIssueId: issueId,
+      sourceSprintId: sprintId,
+      runId: CHAT_RUN_ID,
+      findingId,
+      notificationProjectionId: findingId,
+    });
+    expect(body.chain.steps.map((step) => step.key)).toEqual([
+      'source',
+      'attention_event',
+      'worker_tick',
+      'graph_run',
+      'trace',
+      'finding',
+      'notification_projection',
+      'chat_human_gate',
+    ]);
+    expect(body.chain.steps.every((step) => step.status === 'pass')).toBe(true);
+    expect(body.chain.humanGate.state).toBe('present');
+    expect(runFleetGraphReviewerWeekBlockerScenario).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      triggerWorker: true,
+      freshRun: true,
+    }));
+  });
+
+  it('requires the reviewer env gate for worker ticks and proof generation', async () => {
+    await request(app())
+      .post('/api/fleetgraph/reviewer/worker-tick')
+      .expect(403);
+    await request(app())
+      .post('/api/fleetgraph/reviewer/repair')
+      .send({ chainId: findingId })
+      .expect(403);
+    await request(app())
+      .post('/api/fleetgraph/reviewer/proof')
+      .expect(403);
+
+    expect(runFleetGraphReviewerWorkerTick).not.toHaveBeenCalled();
+    expect(repairFleetGraphReviewerProof).not.toHaveBeenCalled();
+    expect(generateFleetGraphReviewerProof).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['chain list', 'get', '/api/fleetgraph/reviewer/chains?limit=1', undefined, listFleetGraphReviewerChains],
+    ['chain detail', 'get', `/api/fleetgraph/reviewer/chains/${findingId}`, undefined, getFleetGraphReviewerChain],
+    ['scenario', 'post', '/api/fleetgraph/reviewer/scenarios/week-blocker', {}, runFleetGraphReviewerWeekBlockerScenario],
+    ['worker tick', 'post', '/api/fleetgraph/reviewer/worker-tick', undefined, runFleetGraphReviewerWorkerTick],
+    ['repair', 'post', '/api/fleetgraph/reviewer/repair', { chainId: findingId }, repairFleetGraphReviewerProof],
+    ['proof generation', 'post', '/api/fleetgraph/reviewer/proof', { chainId: findingId }, generateFleetGraphReviewerProof],
+  ] as const)('requires an interactive reviewer session for enabled reviewer %s controls', async (_label, method, route, body, handler) => {
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    authMock.useApiToken = true;
+
+    const requestBuilder = method === 'get' ? request(app()).get(route) : request(app()).post(route);
+    if (body === undefined || method === 'get') {
+      await requestBuilder.expect(403);
+    } else {
+      await requestBuilder.send(body).expect(403);
+    }
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('repairs enabled reviewer proof controls for workspace admins', async () => {
+    const repairedChain = reviewerChain({
+      missing: [],
+      sourceMutationCheck: {
+        passed: true,
+        before: { state: 'blocked' },
+        after: { state: 'blocked' },
+        changedFields: [],
+      },
+    });
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(repairFleetGraphReviewerProof).mockResolvedValue({
+      chainId: repairedChain.chainId,
+      repaired: ['source_mutation_check'],
+      unsupported: [],
+      chain: repairedChain,
+    });
+
+    const res = await request(app())
+      .post('/api/fleetgraph/reviewer/repair')
+      .send({ chainId: repairedChain.chainId })
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphReviewerRepairTestBody;
+    expect(body.repaired).toEqual(['source_mutation_check']);
+    expect(body.chain.sourceMutationCheck.passed).toBe(true);
+    expect(repairFleetGraphReviewerProof).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      chainId: repairedChain.chainId,
+    }));
+  });
+
+  it('generates reviewer proof for the requested chain', async () => {
+    const chain = reviewerChain();
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(generateFleetGraphReviewerProof).mockResolvedValue({
+      verdict: 'pass',
+      generatedAt: '2026-05-29T00:00:00.000Z',
+      chainId: chain.chainId,
+      artifactPaths: {
+        json: 'my-docs/evidence/fleetgraph-proof/latest.json',
+        markdown: 'my-docs/evidence/fleetgraph-proof/latest.md',
+        html: 'my-docs/evidence/fleetgraph-proof/latest.html',
+      },
+    });
+
+    const res = await request(app())
+      .post('/api/fleetgraph/reviewer/proof')
+      .send({ chainId: chain.chainId })
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphReviewerProofTestBody;
+    expect(body.verdict).toBe('pass');
+    expect(body.chainId).toBe(chain.chainId);
+    expect(generateFleetGraphReviewerProof).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      chainId: chain.chainId,
+    }));
+  });
+
+  it('returns reviewer proof command diagnostics without running the generic error path', async () => {
+    const chain = reviewerChain();
+    vi.mocked(fleetGraphReviewerProofEnabled).mockReturnValue(true);
+    vi.mocked(generateFleetGraphReviewerProof).mockRejectedValue(
+      new ReviewerProofCommandError('Proof packet verdict fail', ['FleetGraph proof fail: latest.html'])
+    );
+
+    const res = await request(app())
+      .post('/api/fleetgraph/reviewer/proof')
+      .send({ chainId: chain.chainId })
+      .expect(500);
+
+    const body = JSON.parse(res.text) as { error: string; detail: string; outputTail: string[] };
+    expect(body.error).toBe('Failed to generate proof packet');
+    expect(body.detail).toBe('Proof packet verdict fail');
+    expect(body.outputTail).toEqual(['FleetGraph proof fail: latest.html']);
   });
 });

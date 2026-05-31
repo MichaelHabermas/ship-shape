@@ -9408,6 +9408,468 @@
           "detectorDecisions",
           "results"
         ]
+      },
+      "FleetGraphReviewerTraceScore": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "nullable": true
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "passed",
+          "value",
+          "comment"
+        ]
+      },
+      "FleetGraphReviewerStep": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "pending",
+              "broken",
+              "failed"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "status",
+          "at",
+          "evidence"
+        ]
+      },
+      "FleetGraphReviewerChain": {
+        "type": "object",
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "scenario": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "in_progress",
+              "broken",
+              "failed"
+            ]
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "freshness": {
+            "type": "object",
+            "properties": {
+              "generatedAt": {
+                "type": "string"
+              },
+              "newestRunAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "newestWorkerTickAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "proofAgeMs": {
+                "type": "number",
+                "nullable": true
+              },
+              "workerAgeMs": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "required": [
+              "generatedAt",
+              "newestRunAt",
+              "newestWorkerTickAt",
+              "proofAgeMs",
+              "workerAgeMs"
+            ]
+          },
+          "latencyMs": {
+            "type": "object",
+            "properties": {
+              "shipToAttention": {
+                "type": "number"
+              },
+              "attentionToWorker": {
+                "type": "number"
+              },
+              "workerToRun": {
+                "type": "number"
+              },
+              "runToFinding": {
+                "type": "number"
+              },
+              "findingToNotification": {
+                "type": "number"
+              },
+              "total": {
+                "type": "number"
+              }
+            }
+          },
+          "links": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetGraphReviewerStep"
+            }
+          },
+          "visibleOutput": {
+            "$ref": "#/components/schemas/FleetGraphVisibleOutput"
+          },
+          "notificationProjection": {
+            "$ref": "#/components/schemas/FleetGraphNotificationResponse"
+          },
+          "humanGate": {
+            "type": "object",
+            "properties": {
+              "required": {
+                "type": "boolean"
+              },
+              "state": {
+                "type": "string"
+              },
+              "allowedActions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "required",
+              "state",
+              "allowedActions"
+            ]
+          },
+          "traceQuality": {
+            "type": "object",
+            "properties": {
+              "passed": {
+                "type": "boolean"
+              },
+              "requiredDecisions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "observedDecisions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "scores": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerTraceScore"
+                }
+              }
+            },
+            "required": [
+              "passed",
+              "requiredDecisions",
+              "observedDecisions",
+              "scores"
+            ]
+          },
+          "sourceMutationCheck": {
+            "type": "object",
+            "properties": {
+              "passed": {
+                "type": "boolean"
+              },
+              "before": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              },
+              "after": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              },
+              "changedFields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "passed",
+              "before",
+              "after",
+              "changedFields"
+            ]
+          },
+          "usageSummary": {
+            "$ref": "#/components/schemas/FleetGraphUsage"
+          }
+        },
+        "required": [
+          "chainId",
+          "scenario",
+          "status",
+          "missing",
+          "generatedAt",
+          "freshness",
+          "latencyMs",
+          "links",
+          "steps",
+          "humanGate",
+          "traceQuality",
+          "sourceMutationCheck",
+          "usageSummary"
+        ]
+      },
+      "FleetGraphReviewerChainsResponse": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "generatedAt": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "complete",
+                  "in_progress",
+                  "broken",
+                  "failed"
+                ]
+              },
+              "chainCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completeCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "brokenCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "requiredGates": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerTraceScore"
+                }
+              },
+              "costSummary": {
+                "$ref": "#/components/schemas/FleetGraphUsage"
+              }
+            },
+            "required": [
+              "generatedAt",
+              "status",
+              "chainCount",
+              "completeCount",
+              "brokenCount",
+              "requiredGates",
+              "costSummary"
+            ]
+          },
+          "chains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetGraphReviewerChain"
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "chains"
+        ]
+      },
+      "FleetGraphReviewerChainResponse": {
+        "type": "object",
+        "properties": {
+          "chain": {
+            "$ref": "#/components/schemas/FleetGraphReviewerChain"
+          }
+        },
+        "required": [
+          "chain"
+        ]
+      },
+      "FleetGraphReviewerScenarioResponse": {
+        "type": "object",
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "sourceIssueId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "sourceSprintId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "attentionEventId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "workerTickTriggered": {
+            "type": "boolean"
+          },
+          "chain": {
+            "$ref": "#/components/schemas/FleetGraphReviewerChain"
+          }
+        },
+        "required": [
+          "chainId",
+          "sourceIssueId",
+          "sourceSprintId",
+          "workerTickTriggered",
+          "chain"
+        ]
+      },
+      "FleetGraphReviewerRepairResponse": {
+        "type": "object",
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "repaired": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unsupported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "chain": {
+            "$ref": "#/components/schemas/FleetGraphReviewerChain"
+          }
+        },
+        "required": [
+          "chainId",
+          "repaired",
+          "unsupported",
+          "chain"
+        ]
+      },
+      "FleetGraphReviewerProofResponse": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "blocked",
+              "fail",
+              "risk"
+            ]
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "chainId": {
+            "type": "string"
+          },
+          "artifactPaths": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "verdict",
+          "generatedAt",
+          "chainId",
+          "artifactPaths"
+        ]
+      },
+      "FleetGraphReviewerProofRequest": {
+        "type": "object",
+        "properties": {
+          "chainId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "default": {}
       }
     },
     "parameters": {}
@@ -18997,6 +19459,409 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/reviewer/chains": {
+      "get": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "List live FleetGraph reviewer proof chains",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerChainsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/reviewer/chains/{chainId}": {
+      "get": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Get one live FleetGraph reviewer proof chain",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "chainId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerChainResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/reviewer/scenarios/week-blocker": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Create or reset the live week-blocker reviewer scenario",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "triggerWorker": {
+                    "type": "boolean"
+                  },
+                  "freshRun": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerScenarioResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/reviewer/worker-tick": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Trigger one deployed-safe FleetGraph reviewer worker tick",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "triggered": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "triggered"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/reviewer/repair": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Repair safe missing FleetGraph reviewer proof gates",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chainId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID identifier",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                },
+                "required": [
+                  "chainId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerRepairResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Response 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/reviewer/proof": {
+      "post": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Generate the static FleetGraph proof packet from the live verifier",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetGraphReviewerProofRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphReviewerProofResponse"
                 }
               }
             }

@@ -153,7 +153,7 @@ export const fleetGraphGoldenCases = [
       trigger: 'detector decision create_finding',
       shipState: [
         'issue is active non-blocked work',
-        'issue has no meaningful update for 180+ days',
+        'issue has no meaningful update for 30+ days',
         'issue belongs to the current visible week',
         'no open FleetGraph finding shares the stale dedupe key',
       ],

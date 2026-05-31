@@ -1,141 +1,197 @@
 # AI Cost Analysis
 
-## Purpose
+## Reviewer Summary
 
-The Week 4 source of truth requires "Dev spend + reflection on AI tool effectiveness for codebase comprehension." This report records the best available local Codex usage evidence for the ShipShape improvement/audit work.
+This is the Week 5 FleetGraph cost report. It separates development AI usage from FleetGraph runtime usage because they answer different questions:
 
-ShipShape was received already built. The AI work measured here was mostly audit, comprehension, verification, and targeted improvement work, not greenfield product buildout.
-
-## Summary
+- Development usage shows how much coding-agent work went into understanding, auditing, and building the submission.
+- FleetGraph runtime usage shows what the agent itself costs when it runs.
+- Production projections estimate monthly FleetGraph model spend at reviewer-requested scale points.
 
 | Metric | Value |
+| --- | ---: |
+| Codex local project threads | 787 |
+| Codex local project tokens | 3,674,047,029 |
+| Codex measurement window | 2026-05-18 14:51:52 to 2026-05-30 19:07:28 America/Chicago |
+| Codex high-water mark | `1780186048932` |
+| Latest FleetGraph proof packet | 2026-05-31T00:07:11.336Z |
+| Latest reviewer chain latency | 5,354 ms |
+| Latest reviewer proof model calls | 0 |
+| Latest reviewer proof runtime model spend | $0.00 |
+
+Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The measured FleetGraph runtime proof is deterministic-first and shows zero model calls in the latest proof packet.
+
+## Assignment Criteria
+
+Week 5 asks for:
+
+- Claude/API costs with input and output token breakdown where available.
+- Number of graph-agent invocations during development.
+- Total development spend.
+- Production monthly cost projections at 100, 1,000, and 10,000 users.
+- Assumptions: proactive runs per project per day, on-demand invocations per user per day, and average tokens per invocation.
+
+This report uses the best available local evidence. When exact billing fields are unavailable, it says so instead of inventing numbers.
+
+## Development And Testing Costs
+
+Development was performed mostly through Codex Desktop/local coding-agent sessions, with additional Cursor session history visible locally. Codex local records include model labels and aggregate local token accounting. Cursor transcripts are useful qualitative evidence of related work, but the local Cursor records inspected here do not expose reliable billable token or cost fields.
+
+| Cost basis | Value |
 | --- | --- |
 | Cash spend basis | $100/month Codex subscription |
-| Subscription status | Active as of 2026-05-21 |
-| Measured project usage | 228 Codex threads; 840,789,734 aggregate local tokens |
-| Measurement window | 2026-05-18 14:51:52 to 2026-05-21 19:06:22 America/Chicago |
-| Scope | Local Codex records for `/Users/michaelhabermas/repos/GAI/ship-shape` |
+| Subscription allocation | Up to $100 if the full monthly subscription is allocated to ShipShape; otherwise prorate outside this report |
 | Exact token-metered bill | Not available from local Codex records |
+| Claude/API billable split | Not available from local records |
+| Local Codex evidence source | `/Users/michaelhabermas/.codex/state_5.sqlite`, `threads` table |
+| Cursor evidence treatment | Qualitative session-history evidence only |
 
-This ShipShape work was performed almost entirely in Codex under a $100/month subscription. The marginal cash cost for this measured project window is therefore subscription-covered, not separately token-metered. If the full monthly subscription is allocated to ShipShape, the project allocation is up to $100 for the month; if the subscription also covered other work, the project allocation should be prorated outside this report.
-
-## Usage Baseline
-
-Inclusive measurement window:
+### Codex Local Usage
 
 | Metric | Value |
-| --- | --- |
+| --- | ---: |
+| Threads | 787 |
+| Tokens | 3,674,047,029 |
 | First recorded thread | 2026-05-18 14:51:52 America/Chicago |
-| First recorded thread UTC | 2026-05-18 19:51:52 UTC |
-| Last recorded update | 2026-05-21 19:06:22 America/Chicago |
-| Last recorded update UTC | 2026-05-22 00:06:22 UTC |
-| Resume high-water mark | `created_at_ms > 1779408382796` |
+| Last recorded update | 2026-05-30 19:07:28 America/Chicago |
+| Next high-water mark | `1780186048932` |
 
-Next time, measure only threads for this repo with `created_at_ms > 1779408382796`, then update the high-water mark again. That avoids double-counting this window.
+### Codex Usage By Model
 
-| Usage bucket | Threads | Tokens |
-| --- | ---: | ---: |
-| User/root Codex threads | 36 | 527,526,150 |
-| Spawned subagent threads | 175 | 252,346,173 |
-| Total local Codex usage | 228 | 840,789,734 |
+| Model | Reasoning effort | Threads | Tokens |
+| --- | --- | ---: | ---: |
+| `gpt-5.5` | low | 487 | 3,134,549,503 |
+| `gpt-5.5` | medium | 118 | 202,899,698 |
+| `codex-auto-review` | low | 115 | 178,703,854 |
+| `gpt-5.5` | high | 64 | 153,394,436 |
+| `gpt-5.5` | xhigh | 1 | 4,499,538 |
+| unknown | unknown | 2 | 0 |
 
-The unusually high usage is explained by the work shape: repeated source-of-truth review, repo-wide audits, large diffs, command output, and parallel subagents. That is the right shape for an evidence-heavy audit, but it is also context-expensive.
-
-## Scope Notes
-
-Included:
-
-- Codex Desktop/local thread metadata for this repository path.
-- User/root threads, spawned subagents, and Codex auto-review/guardian threads recorded under this repo.
-- Aggregate local `tokens_used` accounting from Codex.
-
-Not included:
-
-- Exact OpenAI/Codex billing data.
-- ChatGPT web, Claude, GitHub Copilot, or other AI tools unless their work was routed through local Codex records.
-- API usage generated by the ShipShape app itself.
-- A billable split between uncached input, cached input, output, and reasoning tokens.
-
-The token count should not be multiplied blindly by public API prices. Codex local accounting is useful for audit scale and reproducibility, but it is not a provider invoice.
-
-## By Day
+### Codex Usage By Day
 
 | Local day | Threads | Tokens | Avg tokens/thread | Largest thread |
 | --- | ---: | ---: | ---: | ---: |
 | 2026-05-18 | 3 | 87,774,273 | 29,258,091 | 79,977,259 |
 | 2026-05-19 | 13 | 121,710,812 | 9,362,370 | 47,210,903 |
 | 2026-05-20 | 110 | 280,127,893 | 2,546,617 | 34,717,810 |
-| 2026-05-21 | 102 | 351,176,756 | 3,442,909 | 51,217,042 |
+| 2026-05-21 | 108 | 422,017,196 | 3,907,567 | 56,228,429 |
+| 2026-05-22 | 108 | 513,263,594 | 4,752,441 | 65,017,167 |
+| 2026-05-23 | 19 | 135,862,413 | 7,150,653 | 74,886,277 |
+| 2026-05-24 | 91 | 298,121,577 | 3,276,061 | 114,089,897 |
+| 2026-05-25 | 64 | 130,832,441 | 2,044,257 | 42,453,782 |
+| 2026-05-26 | 111 | 674,321,047 | 6,074,964 | 63,462,258 |
+| 2026-05-27 | 19 | 159,891,043 | 8,415,318 | 29,469,982 |
+| 2026-05-28 | 67 | 405,583,625 | 6,053,487 | 109,914,248 |
+| 2026-05-29 | 45 | 389,868,900 | 8,663,753 | 151,671,960 |
+| 2026-05-30 | 29 | 54,672,215 | 1,885,249 | 22,800,339 |
 
-## By Model
+### What Drove Development Usage
 
-| Model | Reasoning effort | Threads | Tokens |
-| --- | --- | ---: | ---: |
-| `gpt-5.5` | low | 80 | 604,633,708 |
-| `gpt-5.5` | medium | 76 | 123,142,457 |
-| `gpt-5.5` | high | 30 | 67,205,779 |
-| `codex-auto-review` | low | 40 | 41,308,252 |
-| `gpt-5.5` | xhigh | 1 | 4,499,538 |
-| unknown | unknown | 1 | 0 |
+The high token count came from evidence-heavy work: reading the Week 5 source of truth, mapping existing ShipShape architecture, building reviewer proof surfaces, running code reviews, tracing FleetGraph execution, and repeatedly scanning changed files. Subagent and auto-review threads increased coverage but also multiplied context.
 
-Most usage was `gpt-5.5` with low reasoning effort. `codex-auto-review` usage reflects approval/safety review threads, not directly requested implementation or analysis work.
+The cash-cost conclusion is narrower than the token total: local Codex records show scale of AI use, not marginal invoice cost. The defensible project spend statement is that the work was covered by a $100/month Codex subscription unless the user allocates only a prorated share to ShipShape.
 
-## By Branch
+## FleetGraph Runtime Costs
 
-| Branch | Threads | Tokens |
-| --- | ---: | ---: |
-| `master` | 146 | 543,503,263 |
-| `improvements-1` | 30 | 137,359,562 |
-| `openapi-typed-client` | 31 | 94,685,650 |
-| `audit-fail-open-paths` | 9 | 44,563,127 |
-| `improve-arch-1` | 9 | 16,082,555 |
-| `simple-packages-upgrade` | 3 | 5,240,858 |
+FleetGraph runtime cost is the cost of the agent running inside Ship, not the cost of the coding assistant used to build it.
 
-## Largest Threads
+Current runtime evidence comes from:
 
-| Tokens | Started | Topic |
-| ---: | --- | --- |
-| 79,977,259 | 2026-05-18 18:56:15 | Audit report familiarization and Category 1/2 baseline work |
-| 51,217,042 | 2026-05-21 10:59:01 | Category 1 type-safety pass with parallel subagents |
-| 47,210,903 | 2026-05-19 21:15:21 | Assessment-shaped hidden findings audit |
-| 37,589,912 | 2026-05-21 11:12:45 | Dependency modernization review |
-| 34,717,810 | 2026-05-20 16:43:11 | Next improvement approaches review |
-| 33,934,496 | 2026-05-21 08:50:43 | Improvement priority and quick-safe matrix |
-| 33,431,451 | 2026-05-20 14:42:42 | Structural sequencing review |
-| 28,432,363 | 2026-05-20 20:51:02 | Next approaches review |
-| 28,307,377 | 2026-05-21 14:17:08 | Fail-closed exploratory pass |
-| 27,182,718 | 2026-05-19 23:29:28 | Easy wins across audit categories |
+- `FLEETGRAPH.md` cost section.
+- `shared/src/types/fleetgraph.ts` usage/cost fields.
+- `my-docs/evidence/fleetgraph-proof/latest.json`.
+- FleetGraph proof-run JSON files under `my-docs/evidence/fleetgraph-proof/runs/`.
 
-## Update Procedure
+### Latest Proof Packet
 
-Do not overwrite this window when adding future work. Add a new window row or section, then update the cumulative total separately.
+| Metric | Value |
+| --- | ---: |
+| Generated at | 2026-05-31T00:07:11.336Z |
+| Required scenarios | 9 |
+| Proven scenarios | 9 |
+| Current surface pass/fail | 8 / 0 |
+| Deployed configured | false |
+| Proof summary graph invocations | 0 |
+| Proof summary model calls | 0 |
+| Proof summary real-model runs | 0 |
 
-For the next report:
+### Latest Reviewer Chain
 
-1. Run the incremental query using `created_at_ms > 1779408382796`.
-2. Record the new first/last timestamps and token total.
-3. Set the next high-water mark to the new `max(updated_at_ms)`.
-4. Keep cash spend separate from local token usage.
+| Step | Latency |
+| --- | ---: |
+| Ship source to attention event | 7 ms |
+| Attention event to worker tick | 2 ms |
+| Worker tick to graph run | 5,347 ms |
+| Graph run to finding | 0 ms |
+| Finding to notification projection | 0 ms |
+| Total | 5,354 ms |
+
+| Usage field | Value |
+| --- | --- |
+| Model calls | 0 |
+| Input tokens | Not present because no model call ran |
+| Output tokens | Not present because no model call ran |
+| Estimated cost | $0.00 |
+| Currency | USD |
+| Usage source | `none` |
+| Cost source | `none` |
+
+The trace-quality proof passed and required the `create_finding` decision path. This proves graph execution and reviewer-safe usage metadata, but the latest packet does not prove a real-model call. That is acceptable only if the report is explicit: current FleetGraph is deterministic-first.
+
+### Runtime Cost Controls
+
+FleetGraph avoids model spend by design:
+
+- SQL and deterministic candidate policy select candidates before any model boundary.
+- No-candidate worker ticks spend zero model tokens.
+- Open findings use dedupe/update/quiet paths instead of repeated model-backed creation.
+- Context chat is scoped to the current page or finding, not the full workspace.
+- Real-model blocked-create behavior is gated behind `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL`, and `OPENAI_API_KEY`.
+
+Configured estimate rates from `FLEETGRAPH.md`:
+
+| Token class | Rate |
+| --- | ---: |
+| Input | $0.15 / 1M tokens |
+| Output | $0.60 / 1M tokens |
+
+## Production Cost Projections
+
+Projection assumption from `FLEETGRAPH.md`: 30 graph invocations per user per month.
+
+For projection purposes, this report interprets that as:
+
+| Assumption | Value |
+| --- | ---: |
+| Average projects per active user | 1 |
+| Proactive graph invocations | 0.8 per project per day |
+| On-demand graph invocations | 0.2 per user per day |
+| Total normalized invocations | 30 per user per 30-day month |
+| Average measured model tokens per latest proof invocation | 0 input / 0 output |
+
+The latest measured proof window has zero real-model runs, so measured runtime model cost per invocation is $0.00. These projections are therefore model-spend projections only. They exclude hosting, database, observability, storage, staff time, and the Codex development subscription.
+
+| Scale | Assumed graph invocations/month | Measured model cost/invocation | Projected monthly model spend |
+| --- | ---: | ---: | ---: |
+| 100 users | 3,000 | $0.00 | $0.00 |
+| 1,000 users | 30,000 | $0.00 | $0.00 |
+| 10,000 users | 300,000 | $0.00 | $0.00 |
+
+If real-model mode is enabled later, use this formula:
+
+```text
+monthly model cost =
+  users
+  * 30 graph invocations per user per month
+  * ((average input tokens / 1,000,000) * 0.15
+     + (average output tokens / 1,000,000) * 0.60)
+```
+
+Example sensitivity, clearly hypothetical: if an average real-model invocation used 1,000 input tokens and 200 output tokens, cost would be $0.00027 per invocation. At 30 invocations per user per month, that would be $0.0081 per user per month, or about $0.81 / $8.10 / $81.00 at 100 / 1,000 / 10,000 users.
 
 ## Evidence And Methodology
 
-Evidence source:
-
-`/Users/michaelhabermas/.codex/state_5.sqlite`, table `threads`, filtered by `cwd = '/Users/michaelhabermas/repos/GAI/ship-shape'`.
-
-Primary query:
-
-```bash
-sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
-  "select count(*) as threads,
-          sum(tokens_used) as tokens,
-          min(datetime(created_at_ms/1000,'unixepoch','localtime')) as first_local,
-          max(datetime(updated_at_ms/1000,'unixepoch','localtime')) as last_local
-   from threads
-   where cwd='/Users/michaelhabermas/repos/GAI/ship-shape';"
-```
-
-Next incremental query:
+### Codex Usage Query
 
 ```bash
 sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
@@ -143,18 +199,15 @@ sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
           sum(tokens_used) as tokens,
           min(datetime(created_at_ms/1000,'unixepoch','localtime')) as first_local,
           max(datetime(updated_at_ms/1000,'unixepoch','localtime')) as last_local,
-          max(updated_at_ms) as next_high_water_mark
+          max(updated_at_ms) as high_water
    from threads
-   where cwd='/Users/michaelhabermas/repos/GAI/ship-shape'
-     and created_at_ms > 1779408382796;"
+   where cwd='/Users/michaelhabermas/repos/GAI/ship-shape';"
 ```
-
-Useful breakdowns:
 
 ```bash
 sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
   "select coalesce(model,'unknown') as model,
-          coalesce(reasoning_effort,'unknown') as reasoning_effort,
+          coalesce(reasoning_effort,'unknown') as effort,
           count(*) as threads,
           sum(tokens_used) as tokens
    from threads
@@ -169,19 +222,42 @@ sqlite3 -header -csv /Users/michaelhabermas/.codex/state_5.sqlite \
           count(*) as threads,
           sum(tokens_used) as tokens,
           round(avg(tokens_used),0) as avg_tokens,
-          max(tokens_used) as max_thread_tokens
+          max(tokens_used) as max_tokens
    from threads
    where cwd='/Users/michaelhabermas/repos/GAI/ship-shape'
    group by local_day
    order by local_day;"
 ```
 
-## Reflection On AI Tool Effectiveness For Codebase Comprehension
+### FleetGraph Proof Query
 
-Codex was most effective when used as an audit accelerator over an existing codebase. The source-of-truth materials emphasize reading, mapping, baseline measurement, methodology, raw data, and targeted improvements. That matches where the tool helped most: scanning many files, comparing docs to implementation, running repeatable commands, summarizing risk, and keeping multiple investigation threads active.
+```bash
+jq '.generatedAt,
+    .summary,
+    .reviewerChain.latencyMs,
+    .reviewerChain.usageSummary,
+    .reviewerChain.traceQuality' \
+  /Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evidence/fleetgraph-proof/latest.json
+```
 
-The strongest use case was not "write the app." ShipShape was already built. The value was compressing several days of orientation and audit work into a dense investigation loop: understand the unified document model, measure type-safety and bundle baselines, inspect test and deployment workflows, find hidden assessment-shaped risks, and turn those findings into specific improvement candidates.
+### Cost Field Search
 
-The main cost driver was context volume. Large source documents, audit reports, diffs, command outputs, and subagent fan-out created very high input-token usage. That is a real tradeoff: broad context made the audit better, but repeated broad context made it expensive. Future passes should start from this report's high-water mark and use narrower prompts tied to one deliverable or one category at a time.
+```bash
+rg -n "FLEETGRAPH_MODEL|FLEETGRAPH_REAL_MODEL|modelCalls|estimatedCostUsd|inputTokens|outputTokens|usageSource|costSource|0\\.15|0\\.60|30 graph invocations" \
+  /Users/michaelhabermas/repos/GAI/ship-shape/FLEETGRAPH.md \
+  /Users/michaelhabermas/repos/GAI/ship-shape/shared/src/types/fleetgraph.ts \
+  /Users/michaelhabermas/repos/GAI/ship-shape/api/src/fleetgraph \
+  /Users/michaelhabermas/repos/GAI/ship-shape/scripts/fleetgraph-proof
+```
 
-The best pattern was: source-of-truth first, smallest relevant docs next, then code and commands. The weakest pattern was reloading the same broad context across many similar planning chats. For this project, Codex was worth using because the assignment rewards codebase comprehension, methodology, and evidence. It should still be treated like a measurement instrument: record the window, record the commands, avoid double-counting, and separate local usage estimates from actual billing.
+### Session History Discovery
+
+Session history was inspected with the `ce-sessions` discovery scripts, using keyword filtering for FleetGraph, cost, tokens, traces, and model usage. Raw transcript contents were not copied into this report. The useful conclusion is qualitative: Cursor and prior agent transcripts show related FleetGraph work, but the reliable numeric token totals came from Codex local SQLite records.
+
+## Reflection On AI Tool Effectiveness
+
+AI was most useful as a codebase-comprehension and reviewer-evidence accelerator. The valuable work was not generic code generation; it was fast orientation across ShipShape, repeated audit passes, proof-surface construction, trace instrumentation, cost metadata verification, and compression of many repository facts into reviewer-readable evidence.
+
+The main development cost driver was broad repeated context. Large source-of-truth documents, generated OpenAPI files, proof packets, diffs, test output, and subagent fan-out all increase local token usage. That was useful for coverage, but expensive. Future work should start from the high-water mark above and narrow each AI session to one deliverable or one proof gap.
+
+The main runtime cost control is simpler: do not ask a model to discover what SQL and deterministic policy can already detect. FleetGraph's current cost posture is deterministic-first, then optionally model-backed only at explicit boundaries. That is the right shape for this assignment because the reviewer needs proof that the graph works, not a large model bill.

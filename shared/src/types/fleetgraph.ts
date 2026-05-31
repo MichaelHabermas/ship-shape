@@ -258,6 +258,150 @@ export type FleetGraphNotificationsListResponse = {
   notifications: FleetGraphNotificationResponse[];
 };
 
+export type FleetGraphReviewerChainStatus = 'complete' | 'in_progress' | 'broken' | 'failed';
+
+export type FleetGraphReviewerStepStatus = 'pass' | 'pending' | 'broken' | 'failed';
+
+export type FleetGraphReviewerStep = {
+  key: string;
+  label: string;
+  status: FleetGraphReviewerStepStatus;
+  at: string | null;
+  durationMs?: number;
+  evidence: string;
+};
+
+export type FleetGraphReviewerLatency = {
+  shipToAttention?: number;
+  attentionToWorker?: number;
+  workerToRun?: number;
+  runToFinding?: number;
+  findingToNotification?: number;
+  notificationToChat?: number;
+  total?: number;
+};
+
+export type FleetGraphReviewerLinks = {
+  sourceIssueId?: string;
+  sourceSprintId?: string;
+  attentionEventId?: string;
+  workerTickId?: string;
+  runId?: string;
+  traceId?: string;
+  traceUrl?: string;
+  findingId?: string;
+  notificationProjectionId?: string;
+  chatRunId?: string;
+};
+
+export type FleetGraphReviewerTraceScore = {
+  name: string;
+  passed: boolean;
+  value: string | number | boolean | null;
+  comment: string;
+};
+
+export type FleetGraphReviewerTraceQuality = {
+  passed: boolean;
+  requiredDecisions: string[];
+  observedDecisions: string[];
+  scores: FleetGraphReviewerTraceScore[];
+};
+
+export type FleetGraphReviewerHumanGate = {
+  required: boolean;
+  state: 'present' | 'missing' | 'not_applicable';
+  allowedActions: string[];
+};
+
+export type FleetGraphReviewerSourceMutationCheck = {
+  passed: boolean;
+  before: Record<string, string | number | boolean | null>;
+  after: Record<string, string | number | boolean | null>;
+  changedFields: string[];
+};
+
+export type FleetGraphReviewerNotificationProjection = FleetGraphNotificationResponse;
+
+export type FleetGraphReviewerChain = {
+  chainId: string;
+  scenario: 'week-blocker' | 'existing';
+  status: FleetGraphReviewerChainStatus;
+  missing: string[];
+  generatedAt: string;
+  freshness: {
+    generatedAt: string;
+    newestRunAt: string | null;
+    newestWorkerTickAt: string | null;
+    proofAgeMs: number | null;
+    workerAgeMs: number | null;
+  };
+  latencyMs: FleetGraphReviewerLatency;
+  links: FleetGraphReviewerLinks;
+  steps: FleetGraphReviewerStep[];
+  visibleOutput?: FleetGraphVisibleOutput;
+  notificationProjection?: FleetGraphReviewerNotificationProjection;
+  humanGate: FleetGraphReviewerHumanGate;
+  traceQuality: FleetGraphReviewerTraceQuality;
+  sourceMutationCheck: FleetGraphReviewerSourceMutationCheck;
+  usageSummary: FleetGraphUsage;
+};
+
+export type FleetGraphReviewerSummary = {
+  generatedAt: string;
+  status: FleetGraphReviewerChainStatus;
+  chainCount: number;
+  completeCount: number;
+  brokenCount: number;
+  requiredGates: FleetGraphReviewerTraceScore[];
+  costSummary: FleetGraphUsage;
+};
+
+export type FleetGraphReviewerChainsResponse = {
+  summary: FleetGraphReviewerSummary;
+  chains: FleetGraphReviewerChain[];
+};
+
+export type FleetGraphReviewerChainResponse = {
+  chain: FleetGraphReviewerChain;
+};
+
+export type FleetGraphReviewerScenarioResponse = {
+  chainId: string;
+  sourceIssueId: string;
+  sourceSprintId: string;
+  attentionEventId?: string;
+  workerTickTriggered: boolean;
+  chain: FleetGraphReviewerChain;
+};
+
+export type FleetGraphReviewerRepairResponse = {
+  chainId: string;
+  repaired: string[];
+  unsupported: string[];
+  chain: FleetGraphReviewerChain;
+};
+
+export type FleetGraphReviewerProofRequest = {
+  chainId?: string;
+};
+
+export type FleetGraphReviewerProofVerdict = 'pass' | 'blocked' | 'fail' | 'risk';
+
+export type FleetGraphReviewerProofResponse = {
+  verdict: FleetGraphReviewerProofVerdict;
+  generatedAt: string;
+  chainId: string;
+  artifactPaths: {
+    json: string;
+    markdown: string;
+    html: string;
+    publicJson?: string;
+    publicMarkdown?: string;
+    publicHtml?: string;
+  };
+};
+
 export type FleetGraphRunResponse = {
   decision: string;
   finding?: FleetGraphFindingResponse;

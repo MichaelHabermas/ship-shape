@@ -622,7 +622,71 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** Feature work should not reintroduce pass-through assistant layers, duplicate usage mappers, or raw page-context objects in list pages. Regenerated proof/eval JSON belongs in chore/CI commits, not mixed with product refactors. Context-chat finding resolution may run in parallel; behavior must stay aligned with existing golden cases.
 
-## D078 - FleetGraph Contextual Chat Is The Product Surface
+## D078 - FleetGraph Live Reviewer Proof Is The Authority
+
+**Date:** 2026-05-29
+
+**Decision:** Add authenticated `/fleetgraph/reviewer` as the Week 5 reviewer control room. It assembles live proof chains from Ship/FleetGraph durable ledgers and gates mutating controls behind workspace admin plus `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`. Static proof packets now carry the live reviewer chain and fail/block when the live chain is not complete.
+
+**Consequence:** Reviewer proof is no longer just generated HTML. The reviewer can run a current-week blocked scenario, watch source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate, and generate the static packet from that result. Documentation must describe notifications as derived projections and avoid claiming static artifacts are fresher or more authoritative than the live verifier.
+
+## D079 - Reviewer Mutation Proof Is Durable Evidence, Not Copy
+
+**Date:** 2026-05-30
+
+**Decision:** Add `fleetgraph_reviewer_chat_proofs` as the minimal reviewer-only ledger for chat before/after source snapshots. The live reviewer chain reads this table for the mutation gate and labels missing evidence as `not_measured` / proof incomplete instead of implying source damage.
+
+**Consequence:** Reviewer chat can prove "no Ship source mutation" from persisted evidence instead of UI copy or inference. The product path and submission proof are separate statuses: the product can work while submission proof remains incomplete until the reviewer-specific gate is measured.
+
+## D080 - Reviewer Repair Owns Safe Proof Healing
+
+**Date:** 2026-05-30
+
+**Decision:** Keep `Generate packet` read-only. The week-blocker scenario now records source-mutation proof automatically after the live finding exists, and `/api/fleetgraph/reviewer/repair` is the explicit admin/env-gated path for safe missing gates such as `source_mutation_check`.
+
+**Consequence:** Packet generation cannot mask missing evidence by mutating state. Reviewers get a visible “Repair proof” action when the product path works but submission proof is incomplete, and unsupported gaps remain named instead of silently patched.
+
+## D081 - Reviewer Packet Uses Canonical Selected Proof
+
+**Date:** 2026-05-30
+
+**Decision:** The reviewer dashboard and static packet generator prefer complete `week-blocker` chains over broken historical chains. Explicit reviewer selection wins; otherwise the server chooses the best complete canonical chain before falling back to historical evidence.
+
+**Consequence:** A valid current-week proof no longer gets hidden behind older broken rows. `Generate packet` packages the selected/canonical live verifier result instead of blindly using the newest FleetGraph run.
+
+## D082 - Local Reviewer Packet Trusts The Live Chain
+
+**Date:** 2026-05-30
+
+**Decision:** For local reviewer-control-room packets, a complete live reviewer chain is the submission authority. The older golden-case matrix remains diagnostic and deployed proof remains stricter, but skipped local proof tests or missing historical trace-decision coverage do not fail a packet whose live chain has source, event, worker, graph, trace, finding, notification projection, mutation, and human-gate proof.
+
+**Consequence:** The dashboard no longer reports contradictory states where the canonical live proof is complete but the static packet fails because supplemental historical evidence was not refreshed. Deployed/final public proof still keeps its deployed evidence, public trace, and focused E2E requirements.
+
+## D083 - Reviewer Scenario Runs Create Fresh Evidence
+
+**Date:** 2026-05-30
+
+**Decision:** The reviewer dashboard's `Run scenario` action requests a fresh week-blocker source issue by default. Reusing one deterministic reviewer issue made repeated scenario runs look active while the 25-row historical sample barely moved and could leave stale/broken rows dominating the reviewer view.
+
+**Consequence:** The canonical submission proof remains the latest complete week-blocker chain, while the 25-row historical audit is explicitly background evidence. To raise historical completeness, run fresh reviewer scenarios or a future dedicated scenario suite; do not expect worker ticks or packet generation to repair unrelated historical rows.
+
+## D084 - Reviewer Proof Fails Closed On Packet And Mutation Integrity
+
+**Date:** 2026-05-30
+
+**Decision:** Harden reviewer proof around causal integrity. Source-mutation proof now snapshots the protected issue surface, compares nested state structurally, and only satisfies a finding-specific chain when it comes from the reviewer source-mutation proof run for the same workspace/source/finding after the certified run. Static packet generation returns the packet verdict (`pass`, `blocked`, `fail`, `risk`) and treats non-passing packets as command failures instead of translating them into chain status.
+
+**Consequence:** A complete-looking chain cannot borrow unrelated chat proof, hide source changes outside three scalar fields, or report a failed static packet as complete. Reviewer controls require an interactive admin session, not an admin-scoped API token, and proof command diagnostics are redacted before returning to the UI.
+
+## D085 - Reviewer Chain Decision Coverage Is Scenario-Local
+
+**Date:** 2026-05-30
+
+**Decision:** A live reviewer chain proves the graph decision for its own causal story. Global graph decision coverage (`create_finding`, `update_finding`, `quiet_exit`, `explain`, and newer scenario decisions) remains in the proof scenario matrix, not in each selected chain's trace-quality gate.
+
+**Consequence:** `Generate packet` no longer fails a complete current-week chain because unrelated global decisions were not observed inside that one chain. The static packet and dashboard now use the same boundary for chain completeness while still allowing scenario tests to prove broader FleetGraph behavior.
+
+## D086 - FleetGraph Contextual Chat Is The Product Surface
 
 **Date:** 2026-05-30
 

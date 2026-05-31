@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   FleetGraphChatContextSchema,
+  FleetGraphReviewerChainsResponseSchema,
   fleetGraphManualRunResultResponse,
   fleetGraphRunResponse,
   sendFleetGraphChangeSummaryResponse,
@@ -223,6 +224,56 @@ describe('FleetGraph API contract', () => {
         visibleItems: Array.from({ length: 26 }, (_, index) => ({ kind: 'issue', title: `Issue ${index}` })),
       },
     })).toThrow();
+  });
+
+  it('accepts reviewer chains while preserving safe visible output only', () => {
+    const parsed = FleetGraphReviewerChainsResponseSchema.parse({
+      summary: {
+        generatedAt: '2026-05-29T00:00:00.000Z',
+        status: 'broken',
+        chainCount: 1,
+        completeCount: 0,
+        brokenCount: 1,
+        requiredGates: [{ name: 'traceUrl', passed: false, value: null, comment: 'Trace URL missing.' }],
+        costSummary: { modelCalls: 0, costCurrency: 'USD' },
+      },
+      chains: [{
+        chainId: findingId,
+        scenario: 'week-blocker',
+        status: 'broken',
+        missing: ['trace_quality'],
+        generatedAt: '2026-05-29T00:00:00.000Z',
+        freshness: {
+          generatedAt: '2026-05-29T00:00:00.000Z',
+          newestRunAt: null,
+          newestWorkerTickAt: null,
+          proofAgeMs: null,
+          workerAgeMs: null,
+        },
+        latencyMs: {},
+        links: { runId: issueId },
+        steps: [{
+          key: 'trace',
+          label: 'Trace',
+          status: 'broken',
+          at: null,
+          evidence: 'Trace URL missing',
+        }],
+        humanGate: { required: false, state: 'missing', allowedActions: [] },
+        traceQuality: {
+          passed: false,
+          requiredDecisions: ['create_finding'],
+          observedDecisions: ['quiet_exit'],
+          scores: [{ name: 'createTraceNotQuiet', passed: false, value: 'quiet_exit', comment: 'Quiet exit cannot prove create.' }],
+        },
+        sourceMutationCheck: { passed: true, before: {}, after: {}, changedFields: [] },
+        usageSummary: { modelCalls: 0, costCurrency: 'USD' },
+      }],
+    });
+
+    expect(parsed.chains[0]?.status).toBe('broken');
+    expect(JSON.stringify(parsed)).not.toContain('dedupe');
+    expect(JSON.stringify(parsed)).not.toContain('rawPrompt');
   });
 });
 
