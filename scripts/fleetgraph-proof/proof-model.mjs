@@ -83,6 +83,65 @@ export const LOOP_STEPS = [
   { name: 'Human gate', evidence: 'my-docs/evidence/fleetgraph-proof/latest.md' },
 ];
 
+export const REVIEWER_TEST_CASES = [
+  {
+    id: 1,
+    scenarioId: 'proactive-blocked-create',
+    signal: 'blocked',
+    requiredDecision: 'create_finding',
+    shipState: 'Visible issue has state = blocked and blocker text',
+    expectedOutput: 'Proactive create_finding, notification visible, no Ship mutation claim',
+  },
+  {
+    id: 2,
+    scenarioId: 'proactive-stale-create',
+    signal: 'stale',
+    requiredDecision: 'create_finding',
+    shipState: 'Visible active issue has no meaningful update for 30+ days',
+    expectedOutput: 'Proactive create_finding, stale notification, human-gated review/close action',
+  },
+  {
+    id: 3,
+    scenarioId: 'proactive-at-risk-create',
+    signal: 'at_risk',
+    requiredDecision: 'create_finding',
+    shipState: 'Visible high/urgent current-week issue is unowned or near sprint end',
+    expectedOutput: 'Proactive create_finding, at-risk notification, human-gated owner/scope action',
+  },
+  {
+    id: 4,
+    scenarioId: 'on-demand-explain',
+    signal: 'on_demand',
+    requiredDecision: 'explain',
+    shipState: 'User asks from existing finding or page context',
+    expectedOutput: 'On-demand explain/chat path returns visible evidence, page context, and next action',
+  },
+  {
+    id: 5,
+    scenarioId: 'context-chat-human-gate',
+    signal: 'on_demand',
+    requiredDecision: 'explain',
+    shipState: 'Chat asks for next action on a source/finding',
+    expectedOutput: 'On-demand answer preserves human gate; source issue remains unchanged after chat',
+  },
+  {
+    id: 6,
+    scenarioId: 'source-condition-resolved',
+    signal: 'blocked',
+    requiredDecision: 'quiet_exit',
+    shipState: 'Source condition disappears or evidence becomes unsafe',
+    expectedOutput: 'Finding resolves/suppresses or quiet-exits without model cost',
+  },
+  {
+    id: 7,
+    scenarioId: 'proactive-blocked-create',
+    signal: 'blocked',
+    requiredDecision: 'create_finding',
+    shipState: 'Reviewer runs current-week blocker scenario in /fleetgraph/reviewer',
+    expectedOutput: 'Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes',
+  },
+];
+
 export const NON_CLAIMS = [
   'The reviewer control room is an authenticated proof surface, not a marketing page or public reviewer bypass.',
   'This proof packet does not claim autonomous Ship mutation or external contact.',
@@ -131,6 +190,7 @@ export function buildProofPacket(input) {
     loopTimeline,
     scenarios,
     graphPathMatrix: matrixFromScenarios(scenarios),
+    reviewerTestCases: reviewerTestCases(input.deployedEvidence?.traceEvidence ?? null),
     currentFindings: currentFindingsFromSurface(currentSurface),
     safety: safetyChecks(scenarios, productSurface),
     costs: costSummary(input),
@@ -173,6 +233,16 @@ export function validateProofPacket(packet) {
       }
     }
   }
+  if (packet.target !== 'local') {
+    for (const item of packet.reviewerTestCases ?? []) {
+      if (!isPublicLangSmithTraceUrl(item.traceUrl)) {
+        issues.push(`reviewer test case ${item.id} is missing a public LangSmith trace link for ${item.requiredDecision}`);
+      }
+      if (item.decision !== item.requiredDecision) {
+        issues.push(`reviewer test case ${item.id} expected trace decision ${item.requiredDecision} but found ${item.decision ?? 'missing'}`);
+      }
+    }
+  }
   if (packet.safety.some((check) => check.status === 'fail')) {
     issues.push('one or more safety checks failed');
   }
@@ -191,10 +261,58 @@ export function deriveVerdict(packet) {
   if (packet.target !== 'local' && packet.commandResults.some((result) => result.status === 'skipped')) return 'blocked';
   if (packet.target !== 'local' && !hasAllDeployedSignals(packet.deployedEvidence)) return 'blocked';
   if (packet.target !== 'local' && !packet.deployedEvidence?.hasRecentCompletedWorkerOutput) return 'blocked';
-  if (packet.target !== 'local' && Number(packet.deployedEvidence?.stuckRunningTickCount ?? 0) > 0) return 'blocked';
+  if (
+    packet.target !== 'local'
+    && Number(packet.deployedEvidence?.stuckRunningTickCount ?? 0) > 0
+    && !hasCompleteReviewerChain(packet.reviewerChain)
+  ) return 'blocked';
   if (packet.target !== 'local' && packet.traceEvidence?.missingRequired?.length > 0) return 'blocked';
+  if (packet.target !== 'local' && !reviewerTestCaseDecisionsMatch(packet.reviewerTestCases)) return 'fail';
+  if (packet.target !== 'local' && !hasPublicLangSmithReviewerLinks(packet.reviewerTestCases)) return 'blocked';
   if (packet.risks.length > 0) return 'risk';
   return 'pass';
+}
+
+function reviewerTestCases(traceEvidence) {
+  return REVIEWER_TEST_CASES.map((testCase) => {
+    const trace = traceForReviewerTestCase(traceEvidence, testCase);
+    return {
+      ...testCase,
+      traceUrl: trace?.traceUrl ?? null,
+      runId: trace?.runId ?? null,
+      decision: trace?.decision ?? null,
+      triggerReason: trace?.triggerReason ?? null,
+    };
+  });
+}
+
+function traceForReviewerTestCase(traceEvidence, testCase) {
+  const scenarioTrace = traceEvidence?.byScenario?.[testCase.scenarioId];
+  if (scenarioTrace?.decision === testCase.requiredDecision) return scenarioTrace;
+
+  const decisionTrace = traceEvidence?.bySignalDecision?.[`${testCase.signal}:${testCase.requiredDecision}`];
+  if (decisionTrace) return decisionTrace;
+
+  const signalTrace = traceEvidence?.bySignal?.[testCase.signal];
+  return signalTrace?.decision === testCase.requiredDecision ? signalTrace : null;
+}
+
+function hasPublicLangSmithReviewerLinks(testCases) {
+  return Array.isArray(testCases) && testCases.every((item) => isPublicLangSmithTraceUrl(item.traceUrl));
+}
+
+function reviewerTestCaseDecisionsMatch(testCases) {
+  return Array.isArray(testCases) && testCases.every((item) => item.decision === item.requiredDecision);
+}
+
+function isPublicLangSmithTraceUrl(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'smith.langchain.com' && url.pathname.startsWith('/public/');
+  } catch {
+    return false;
+  }
 }
 
 function hasAllDeployedSignals(deployedEvidence) {

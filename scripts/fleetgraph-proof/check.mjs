@@ -8,10 +8,12 @@ import { REQUIRED_SCENARIOS, validateProofPacket } from './proof-model.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const outputRoot = path.join(repoRoot, 'my-docs/evidence/fleetgraph-proof');
+const publicRoot = path.join(repoRoot, 'web/public/fleetgraph-observability/proof');
 
 const packet = JSON.parse(await readFile(path.join(outputRoot, 'latest.json'), 'utf8'));
 const html = await readFile(path.join(outputRoot, 'latest.html'), 'utf8');
 const markdown = await readFile(path.join(outputRoot, 'latest.md'), 'utf8');
+const fleetGraphMarkdown = await readFile(path.join(repoRoot, 'FLEETGRAPH.md'), 'utf8');
 const issues = validateProofPacket(packet);
 const options = new Set(process.argv.slice(2));
 const allowedVerdicts = new Set(['pass']);
@@ -40,6 +42,21 @@ if (!html.includes('<script type="application/json" id="proof-data">')) {
 if (/Bearer\s+[A-Za-z0-9._~+/=-]+|postgres(?:ql)?:\/\/[^@\s]+@|PASSWORD=/.test(JSON.stringify(packet))) {
   issues.push('latest.json appears to contain an unredacted secret-like value');
 }
+const staleThresholdDays = await readStaleIssueDays();
+if (staleThresholdDays !== null) {
+  const stalePattern = /No meaningful update for (\d+)\+ days/g;
+  for (const [label, text] of [['latest.json', JSON.stringify(packet)], ['latest.html', html], ['latest.md', markdown]]) {
+    for (const match of text.matchAll(stalePattern)) {
+      if (Number(match[1]) !== staleThresholdDays) {
+        issues.push(`${label} contains stale threshold ${match[1]}+ days but code uses ${staleThresholdDays}+ days`);
+      }
+    }
+  }
+}
+if (packet.target !== 'local') {
+  await checkPublicArtifacts(packet, issues);
+  checkRootFleetGraphTraceTable(packet, fleetGraphMarkdown, issues);
+}
 
 if (issues.length) {
   console.error('FleetGraph proof check failed:');
@@ -48,3 +65,50 @@ if (issues.length) {
 }
 
 console.log('FleetGraph proof artifacts are internally consistent.');
+
+async function readStaleIssueDays() {
+  const source = await readFile(path.join(repoRoot, 'api/src/fleetgraph/detection/attention-policy.ts'), 'utf8');
+  const match = source.match(/export const STALE_ISSUE_DAYS = (\d+);/);
+  return match ? Number(match[1]) : null;
+}
+
+async function checkPublicArtifacts(localPacket, issues) {
+  let publicPacket;
+  let publicMarkdown;
+  try {
+    publicPacket = JSON.parse(await readFile(path.join(publicRoot, 'latest.json'), 'utf8'));
+    publicMarkdown = await readFile(path.join(publicRoot, 'latest.md'), 'utf8');
+  } catch (error) {
+    issues.push(`public proof artifacts are missing or unreadable: ${error.message}`);
+    return;
+  }
+  for (const key of ['generatedAt', 'runId', 'target', 'verdict']) {
+    if (publicPacket[key] !== localPacket[key]) {
+      issues.push(`public latest.json ${key} disagrees with local latest.json`);
+    }
+  }
+  if (JSON.stringify(publicPacket.summary?.deployedSignals ?? []) !== JSON.stringify(localPacket.summary?.deployedSignals ?? [])) {
+    issues.push('public latest.json deployed signals disagree with local latest.json');
+  }
+  if (JSON.stringify(publicPacket.traceEvidence?.bySignal ?? {}) !== JSON.stringify(localPacket.traceEvidence?.bySignal ?? {})) {
+    issues.push('public latest.json trace evidence disagrees with local latest.json');
+  }
+  if (!publicMarkdown.includes('## Reviewer Test Cases')) {
+    issues.push('public latest.md is missing Reviewer Test Cases');
+  }
+}
+
+function checkRootFleetGraphTraceTable(packet, text, issues) {
+  if (!text.includes('| # | Ship state | Expected output | Public trace evidence |')) {
+    issues.push('FLEETGRAPH.md Test Cases table must expose public trace evidence directly');
+  }
+  for (const item of packet.reviewerTestCases ?? []) {
+    if (item.traceUrl && !text.includes(item.traceUrl)) {
+      issues.push(`FLEETGRAPH.md is missing reviewer test case ${item.id} trace URL`);
+    }
+    const decisionLabel = `Required decision \`${item.requiredDecision}\`; observed \`${item.decision}\``;
+    if (!text.includes(decisionLabel)) {
+      issues.push(`FLEETGRAPH.md is missing reviewer test case ${item.id} decision label`);
+    }
+  }
+}

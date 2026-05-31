@@ -1,10 +1,10 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-30T03:55:59.252Z
-Run: fleetgraph-proof-2026-05-30T03-55-59-252Z
+Generated: 2026-05-31T01:25:14.492Z
+Run: fleetgraph-proof-2026-05-31T01-25-14-492Z
 Target: both
 Verdict: pass
-Git: master @ 8305e0c80a30b898f7aeb0ab5376f55df3195ff7
+Git: final-reviewer-submission-1 @ d1028356668fd9b6e550704728f3748c2258c8da
 
 ## Verdict
 
@@ -22,6 +22,18 @@ Deployed signals: at_risk, blocked, stale
 | Notification state | pass | e2e/fleetgraph-attention-loop.spec.ts |
 | Source and chat | pass | my-docs/evidence/fleetgraph-proof/latest.html |
 | Human gate | pass | my-docs/evidence/fleetgraph-proof/latest.md |
+
+## Reviewer Test Cases
+
+| # | Ship state | Expected output | Required decision | Public LangSmith trace |
+| ---: | --- | --- | --- | --- |
+| 1 | Visible issue has state = blocked and blocker text | Proactive create_finding, notification visible, no Ship mutation claim | create_finding | https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r |
+| 2 | Visible active issue has no meaningful update for 30+ days | Proactive create_finding, stale notification, human-gated review/close action | create_finding | https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r |
+| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive create_finding, at-risk notification, human-gated owner/scope action | create_finding | https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r |
+| 4 | User asks from existing finding or page context | On-demand explain/chat path returns visible evidence, page context, and next action | explain | https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
+| 5 | Chat asks for next action on a source/finding | On-demand answer preserves human gate; source issue remains unchanged after chat | explain | https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
+| 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | quiet_exit | https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r |
+| 7 | Reviewer runs current-week blocker scenario in /fleetgraph/reviewer | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | create_finding | https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r |
 
 ## Graph Path Matrix
 
@@ -44,13 +56,13 @@ Deployed signals: at_risk, blocked, stale
 | Blocked | Audit issue 110 | Blocked · Audit issue 110 · Missing API credentials · Audit Load User 029 | Confirm credential owner. | pass |
 | Blocked | Audit issue 110 | Blocked · Audit issue 110 · Blocker missing · Audit Load User 029 | Add reason. | pass |
 | Blocked | Audit issue 110 | Blocked · Audit issue 110 · Owner missing · Waiting on review | Find approver. | pass |
-| Stale | Integration cleanup | Stale · Integration cleanup · No meaningful update for 180+ days · Riley Builder | Review or close. | pass |
+| Stale | Integration cleanup | Stale · Integration cleanup · No meaningful update for 30+ days · Riley Builder | Review or close. | pass |
 | At risk | Rollout checklist | At risk · Rollout checklist · Owner missing · High-priority current-week work | Confirm owner. | pass |
 | Blocked: Runtime issue clear blocker | Waiting on API credentials · Week 11 | Blocked: Runtime issue clear blocker · Waiting on API credentials · Week 11 · Ask Audit Load User 029 to confirm owner and next step for Week 11. | Ask Audit Load User 029 to confirm owner and next step for Week 11. | pass |
 
 ## Deployed Runtime Evidence
 
-Worker ticks: 5; completed output ticks: 5; stuck running ticks: 0; signals: at_risk, blocked, stale; scheduled-worker signals: at_risk, blocked, stale
+Worker ticks: 5; completed output ticks: 5; stuck running ticks: 4; signals: at_risk, blocked, stale; scheduled-worker signals: at_risk, blocked, stale
 
 ## Cost And Usage
 
@@ -67,17 +79,17 @@ Excluded: Out-of-band coding assistant and development-wide Claude/API spend wer
 ## Deployed Runtime Trace Evidence
 
 Missing required trace links: none
-- blocked: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc (quiet_exit, deployed scheduled-worker runtime)
-- stale: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787 (update_finding, deployed scheduled-worker runtime)
-- at_risk: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed (update_finding, deployed scheduled-worker runtime)
-- on_demand: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762 (quiet_exit, deployed context-chat runtime)
+- blocked: https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r (create_finding, deployed manual-langsmith-share runtime)
+- stale: https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r (create_finding, deployed manual-langsmith-share runtime)
+- at_risk: https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r (create_finding, deployed manual-langsmith-share runtime)
+- on_demand: https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r (explain, deployed manual-langsmith-share runtime)
 
 ## Safety
 
 - pass: Permission-filtered evidence (fg-restricted-source-hidden)
 - pass: No autonomous Ship mutation/contact (FleetGraph golden-case mutation boundaries)
 - pass: Human gate before next action (fg-human-gated-action-prep)
-- pass: Reviewer proof kept out of product UI (fleetgraph-product-surface latest.json)
+- pass: Authenticated live proof surface (/fleetgraph/reviewer plus fleetgraph-product-surface latest.json)
 
 ## Risks
 
@@ -85,7 +97,7 @@ Missing required trace links: none
 
 ## Non-Claims
 
-- This dashboard is not product UI and does not add FleetGraph branding to the app.
+- The reviewer control room is an authenticated proof surface, not a marketing page or public reviewer bypass.
 - This proof packet does not claim autonomous Ship mutation or external contact.
 - A blocked deployed target means required deployed evidence was missing, not that production passed.
 
@@ -97,7 +109,7 @@ Missing required trace links: none
 - Public proof dashboard: web/public/fleetgraph-observability/proof/latest.html
 - Public proof JSON: web/public/fleetgraph-observability/proof/latest.json
 - Public proof Markdown: web/public/fleetgraph-observability/proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-55-59-252Z/proof.html
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T01-25-14-492Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

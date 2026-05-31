@@ -9,8 +9,9 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "./scripts/dev.sh",
-    "docker:up": "docker compose -f docker-compose.local.yml up --build",
+  "dev": "./scripts/dev.sh",
+  "dev:where": "node ./scripts/dev-where.mjs",
+  "docker:up": "docker compose -f docker-compose.local.yml up --build",
     "docker:down": "docker compose -f docker-compose.local.yml down",
     "docker:clean": "docker compose -f docker-compose.local.yml down -v",
     "dev:raw": "pnpm --parallel --recursive run dev",
@@ -104,6 +105,7 @@
     "fleetgraph:proof": "node ./scripts/fleetgraph-proof/run.mjs",
     "fleetgraph:proof:check": "node ./scripts/fleetgraph-proof/check.mjs",
     "fleetgraph:proof:check:blocked": "node ./scripts/fleetgraph-proof/check.mjs --allow-blocked",
+    "fleetgraph:proof:verify-traces": "node ./scripts/fleetgraph-proof/verify-public-traces.mjs",
     "fleetgraph:proof:ci": "pnpm fleetgraph:proof:test && pnpm fleetgraph:proof -- --mode local --with-e2e && pnpm fleetgraph:proof:check",
     "fleetgraph:proof:test": "node --test ./scripts/fleetgraph-proof/*.test.mjs",
     "trace:smoke": "pnpm --filter @ship/api trace:smoke",

@@ -649,7 +649,7 @@ async function runContextChat(
   options: FleetGraphCoreOptions
 ): Promise<FleetGraphResult> {
   const bundle = await resolveContextChatBundle(input, persistence, options);
-  if (bundle.documents.length === 0 && bundle.signals.length === 0) {
+  if (bundle.documents.length === 0 && bundle.signals.length === 0 && bundle.pages.length === 0) {
     return runContextChatQuietExit(
       input,
       persistence,

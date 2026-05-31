@@ -111,15 +111,15 @@ Latency defense:
 
 Final submission proof is all-signal: every claimed signal must have executable proof and deployed evidence.
 
-| # | Ship state | Expected output | Evidence |
+| # | Ship state | Expected output | Public trace evidence |
 | ---: | --- | --- | --- |
-| 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Golden case `fg-create-blocked-visible-issue`; deployed proof packet signal `blocked`; trace link must appear in public proof packet |
-| 2 | Visible active issue has no meaningful update for 30+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; deployed proof packet signal `stale`; trace link must appear in public proof packet |
-| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Golden case `fg-create-at-risk-visible-issue`; deployed proof packet signal `at_risk`; trace link must appear in public proof packet |
-| 4 | User asks from existing finding or page context | On-demand `explain`/chat path returns visible evidence, page context, and next action | Golden case `fg-explain-existing-finding`; public proof packet must include on-demand trace link |
-| 5 | Chat asks for next action on a source/finding | Human gate required; source issue remains unchanged after chat | `e2e/fleetgraph-attention-loop.spec.ts`; proof packet attention loop has no skipped steps when run with `--with-e2e` |
-| 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | Golden cases `fg-resolve-condition-gone`, `fg-restricted-source-hidden`, and `fg-quiet-done-cancelled` |
-| 7 | Reviewer runs current-week blocker scenario in `/fleetgraph/reviewer` | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | `GET /api/fleetgraph/reviewer/chains`; static proof packet `reviewerChain`; `/fleetgraph/reviewer` UI |
+| 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Required decision `create_finding`; observed `create_finding`; https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r |
+| 2 | Visible active issue has no meaningful update for 30+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Required decision `create_finding`; observed `create_finding`; https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r |
+| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Required decision `create_finding`; observed `create_finding`; https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r |
+| 4 | User asks from existing finding or page context | On-demand `explain`/chat path returns visible evidence, page context, and next action | Required decision `explain`; observed `explain`; https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
+| 5 | Chat asks for next action on a source/finding | On-demand answer preserves human gate; source issue remains unchanged after chat | Required decision `explain`; observed `explain`; https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r; source-unchanged proof: `e2e/fleetgraph-attention-loop.spec.ts` |
+| 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | Required decision `quiet_exit`; observed `quiet_exit`; https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r |
+| 7 | Reviewer runs current-week blocker scenario in `/fleetgraph/reviewer` | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | Required decision `create_finding`; observed `create_finding`; https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r; live chain `e6ba6f41-01c2-43fc-a286-f9d8da6328b8` |
 
 Required proof command:
 
@@ -131,6 +131,7 @@ E2E_RESULTS_DIR=test-results/fleetgraph-proof \
 pnpm fleetgraph:proof -- --mode both --with-e2e
 
 pnpm fleetgraph:proof:check
+pnpm fleetgraph:proof:verify-traces
 ```
 
 # Architecture Decisions

@@ -1,0 +1,1872 @@
+{
+  "generatedAt": "2026-05-31T00:50:39.702Z",
+  "summary": {
+    "average": {
+      "actionability": 4,
+      "groundedness": 3.25,
+      "specificity": 3.5,
+      "brevity": 4,
+      "repetitionBudget": 3.88,
+      "informationDensity": 4,
+      "cavemanCopy": 4,
+      "duplicateFactControl": 3.75,
+      "uncertaintyHonesty": 4,
+      "missingDataUsefulness": 4,
+      "uiProofSeparation": 4
+    },
+    "passCount": 8,
+    "failCount": 0
+  },
+  "sections": [
+    {
+      "id": "current",
+      "title": "Current Surface",
+      "description": "Fresh authored and runFleetGraph cases. This is the present-tense pass/fail signal.",
+      "summary": {
+        "average": {
+          "actionability": 4,
+          "groundedness": 3.25,
+          "specificity": 3.5,
+          "brevity": 4,
+          "repetitionBudget": 3.88,
+          "informationDensity": 4,
+          "cavemanCopy": 4,
+          "duplicateFactControl": 3.75,
+          "uncertaintyHonesty": 4,
+          "missingDataUsefulness": 4,
+          "uiProofSeparation": 4
+        },
+        "passCount": 8,
+        "failCount": 0
+      },
+      "results": [
+        {
+          "caseId": "fg-surface-clear-blocker",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 4,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Blocked issue copy names the concrete blocker and next move once",
+          "visibleCopy": [
+            "Blocked",
+            "Audit issue 110",
+            "Missing API credentials",
+            "Audit Load User 029",
+            "Week 11",
+            "Confirm credential owner."
+          ],
+          "notes": [
+            "User can see the blocker and next move without reading architecture proof.",
+            "Blocked appears as useful state, not repeated filler."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-missing-blocker-text",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Missing blocker text is explained as a useful data gap",
+          "visibleCopy": [
+            "Blocked",
+            "Audit issue 110",
+            "Blocker missing",
+            "Audit Load User 029",
+            "Week 11",
+            "Add reason."
+          ],
+          "notes": [
+            "Missing evidence should become a concrete next step.",
+            "The copy should not pretend the blocker is known."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-ui-proof-boundary",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "User copy stays free of reviewer-proof scaffolding",
+          "visibleCopy": [
+            "Blocked",
+            "Audit issue 110",
+            "Owner missing",
+            "Waiting on review",
+            "-",
+            "Audit Project",
+            "Find approver."
+          ],
+          "notes": [
+            "Reviewer evidence belongs in traces, logs, tests, and docs.",
+            "User copy can show missing owner compactly without exposing graph/debug fields."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-stale-active-work",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 4,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Stale work copy names inactivity and the review move",
+          "visibleCopy": [
+            "Stale",
+            "Integration cleanup",
+            "No meaningful update for 30+ days",
+            "Riley Builder",
+            "Week 11",
+            "Review or close."
+          ],
+          "notes": [
+            "Stale copy should explain the time-based evidence.",
+            "The next step stays human-owned instead of pretending FleetGraph closed work."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-at-risk-current-week",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 3,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "At-risk work copy names current-week risk and owner decision",
+          "visibleCopy": [
+            "At risk",
+            "Rollout checklist",
+            "Owner missing",
+            "High-priority current-week work",
+            "Week 11",
+            "Confirm owner."
+          ],
+          "notes": [
+            "At-risk copy should identify the planning risk, not only urgency.",
+            "Missing owner becomes a decision prompt for the PM."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-runtime-proactive-clear-blocker",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 3,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Runtime proactive clear-blocker output from runFleetGraph",
+          "visibleCopy": [
+            "Blocked: Runtime issue clear blocker",
+            "Waiting on API credentials · Week 11",
+            "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+          ],
+          "notes": [
+            "Generated through runFleetGraph, not a hand-authored product-surface example.",
+            "Failures here identify current runtime copy that needs product wording work."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-runtime-proactive-missing-blocker",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 4,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Runtime proactive missing-blocker output from runFleetGraph",
+          "visibleCopy": [
+            "Blocked: Runtime issue needs reason",
+            "Reason missing · Week 11",
+            "Ask Audit Load User 029 to add the blocker reason."
+          ],
+          "notes": [
+            "Generated through runFleetGraph, not a hand-authored product-surface example.",
+            "Failures here identify current runtime copy that needs product wording work."
+          ],
+          "section": "current"
+        },
+        {
+          "caseId": "fg-surface-runtime-explain-existing-finding",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 4,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 3,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": true,
+          "failedDimensions": [],
+          "title": "Runtime explain output from runFleetGraph",
+          "visibleCopy": [
+            "Runtime existing finding",
+            "Waiting on review · Week 11",
+            "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+          ],
+          "notes": [
+            "Generated through runFleetGraph, not a hand-authored product-surface example.",
+            "Failures here identify current runtime copy that needs product wording work."
+          ],
+          "section": "current"
+        }
+      ]
+    },
+    {
+      "id": "historical",
+      "title": "Historical Persisted Samples",
+      "description": "Older fleetgraph_runs.output_snapshot rows for trend review only. These do not affect the current headline.",
+      "summary": {
+        "average": {
+          "actionability": 4,
+          "groundedness": 2.6,
+          "specificity": 2.6,
+          "brevity": 3.8,
+          "repetitionBudget": 1,
+          "informationDensity": 3.4,
+          "cavemanCopy": 3.4,
+          "duplicateFactControl": 4,
+          "uncertaintyHonesty": 3.6,
+          "missingDataUsefulness": 3.6,
+          "uiProofSeparation": 4
+        },
+        "passCount": 0,
+        "failCount": 20
+      },
+      "results": [
+        {
+          "caseId": "fg-surface-persisted-update_finding-ed0b104e",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 2,
+            "missingDataUsefulness": 2,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity",
+            "uncertaintyHonesty",
+            "missingDataUsefulness"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:47.838Z",
+          "visibleCopy": [
+            "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+            "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+            "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-0d7b7356",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:42.825Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+            "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-c2056096",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:37.811Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+            "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-6e996e4e",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 3,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "cavemanCopy"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:32.727Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Blocked without blocker explanation",
+            "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+            "Ask Morgan Project Owner to add the blocker reason."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-88fda444",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:27.713Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Inactive week blocked control",
+            "FG Demo - Inactive week blocked control still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 6."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-e17e9c8b",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 2,
+            "missingDataUsefulness": 2,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity",
+            "uncertaintyHonesty",
+            "missingDataUsefulness"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:22.668Z",
+          "visibleCopy": [
+            "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+            "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+            "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-cad925b8",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:17.658Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+            "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-f536b0e0",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:12.646Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+            "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-d0cd979f",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 3,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "cavemanCopy"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:07.554Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Blocked without blocker explanation",
+            "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+            "Ask Morgan Project Owner to add the blocker reason."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-12330f94",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:02.538Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Inactive week blocked control",
+            "FG Demo - Inactive week blocked control still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 6."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-ae630a63",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 2,
+            "missingDataUsefulness": 2,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity",
+            "uncertaintyHonesty",
+            "missingDataUsefulness"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:57.492Z",
+          "visibleCopy": [
+            "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+            "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+            "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-87fd46f2",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:52.480Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+            "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-ee5165a9",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:47.461Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+            "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-9c8c8dbc",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 3,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "cavemanCopy"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:42.377Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Blocked without blocker explanation",
+            "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+            "Ask Morgan Project Owner to add the blocker reason."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-5fb672bc",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:37.360Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Inactive week blocked control",
+            "FG Demo - Inactive week blocked control still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 6."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-7659497e",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 3,
+            "repetitionBudget": 1,
+            "informationDensity": 2,
+            "cavemanCopy": 3,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 2,
+            "missingDataUsefulness": 2,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "informationDensity",
+            "uncertaintyHonesty",
+            "missingDataUsefulness"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:32.318Z",
+          "visibleCopy": [
+            "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+            "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+            "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-27cd9484",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:27.307Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+            "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-6587427e",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:22.293Z",
+          "visibleCopy": [
+            "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+            "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 7."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-5468528f",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 2,
+            "specificity": 2,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 3,
+            "cavemanCopy": 2,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "groundedness",
+            "specificity",
+            "repetitionBudget",
+            "cavemanCopy"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:17.213Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Blocked without blocker explanation",
+            "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+            "Ask Morgan Project Owner to add the blocker reason."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        },
+        {
+          "caseId": "fg-surface-persisted-update_finding-04beeb33",
+          "scores": {
+            "actionability": 4,
+            "groundedness": 3,
+            "specificity": 3,
+            "brevity": 4,
+            "repetitionBudget": 1,
+            "informationDensity": 4,
+            "cavemanCopy": 4,
+            "duplicateFactControl": 4,
+            "uncertaintyHonesty": 4,
+            "missingDataUsefulness": 4,
+            "uiProofSeparation": 4
+          },
+          "pass": false,
+          "failedDimensions": [
+            "repetitionBudget"
+          ],
+          "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:12.190Z",
+          "visibleCopy": [
+            "Blocked: FG Demo - Inactive week blocked control",
+            "FG Demo - Inactive week blocked control still needs an unblock decision.",
+            "Ask Riley Builder to confirm owner and next step for Week 6."
+          ],
+          "notes": [
+            "Loaded from fleetgraph_runs.output_snapshot.",
+            "This is the report path that tracks real persisted FleetGraph outputs over time."
+          ],
+          "section": "historical"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "caseId": "fg-surface-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 4,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Blocked issue copy names the concrete blocker and next move once",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Missing API credentials",
+        "Audit Load User 029",
+        "Week 11",
+        "Confirm credential owner."
+      ],
+      "notes": [
+        "User can see the blocker and next move without reading architecture proof.",
+        "Blocked appears as useful state, not repeated filler."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-missing-blocker-text",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Missing blocker text is explained as a useful data gap",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Blocker missing",
+        "Audit Load User 029",
+        "Week 11",
+        "Add reason."
+      ],
+      "notes": [
+        "Missing evidence should become a concrete next step.",
+        "The copy should not pretend the blocker is known."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-ui-proof-boundary",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "User copy stays free of reviewer-proof scaffolding",
+      "visibleCopy": [
+        "Blocked",
+        "Audit issue 110",
+        "Owner missing",
+        "Waiting on review",
+        "-",
+        "Audit Project",
+        "Find approver."
+      ],
+      "notes": [
+        "Reviewer evidence belongs in traces, logs, tests, and docs.",
+        "User copy can show missing owner compactly without exposing graph/debug fields."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-stale-active-work",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 4,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Stale work copy names inactivity and the review move",
+      "visibleCopy": [
+        "Stale",
+        "Integration cleanup",
+        "No meaningful update for 30+ days",
+        "Riley Builder",
+        "Week 11",
+        "Review or close."
+      ],
+      "notes": [
+        "Stale copy should explain the time-based evidence.",
+        "The next step stays human-owned instead of pretending FleetGraph closed work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-at-risk-current-week",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 3,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "At-risk work copy names current-week risk and owner decision",
+      "visibleCopy": [
+        "At risk",
+        "Rollout checklist",
+        "Owner missing",
+        "High-priority current-week work",
+        "Week 11",
+        "Confirm owner."
+      ],
+      "notes": [
+        "At-risk copy should identify the planning risk, not only urgency.",
+        "Missing owner becomes a decision prompt for the PM."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-runtime-proactive-clear-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Runtime proactive clear-blocker output from runFleetGraph",
+      "visibleCopy": [
+        "Blocked: Runtime issue clear blocker",
+        "Waiting on API credentials · Week 11",
+        "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-runtime-proactive-missing-blocker",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 4,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Runtime proactive missing-blocker output from runFleetGraph",
+      "visibleCopy": [
+        "Blocked: Runtime issue needs reason",
+        "Reason missing · Week 11",
+        "Ask Audit Load User 029 to add the blocker reason."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-runtime-explain-existing-finding",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 4,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 3,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": true,
+      "failedDimensions": [],
+      "title": "Runtime explain output from runFleetGraph",
+      "visibleCopy": [
+        "Runtime existing finding",
+        "Waiting on review · Week 11",
+        "Ask Audit Load User 029 to confirm owner and next step for Week 11."
+      ],
+      "notes": [
+        "Generated through runFleetGraph, not a hand-authored product-surface example.",
+        "Failures here identify current runtime copy that needs product wording work."
+      ],
+      "section": "current"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-ed0b104e",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 2,
+        "missingDataUsefulness": 2,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity",
+        "uncertaintyHonesty",
+        "missingDataUsefulness"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:47.838Z",
+      "visibleCopy": [
+        "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+        "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+        "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-0d7b7356",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:42.825Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+        "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-c2056096",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:37.811Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+        "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-6e996e4e",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 3,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "cavemanCopy"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:32.727Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Blocked without blocker explanation",
+        "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+        "Ask Morgan Project Owner to add the blocker reason."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-88fda444",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:50:27.713Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Inactive week blocked control",
+        "FG Demo - Inactive week blocked control still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 6."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-e17e9c8b",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 2,
+        "missingDataUsefulness": 2,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity",
+        "uncertaintyHonesty",
+        "missingDataUsefulness"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:22.668Z",
+      "visibleCopy": [
+        "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+        "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+        "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-cad925b8",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:17.658Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+        "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-f536b0e0",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:12.646Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+        "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-d0cd979f",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 3,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "cavemanCopy"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:07.554Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Blocked without blocker explanation",
+        "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+        "Ask Morgan Project Owner to add the blocker reason."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-12330f94",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:48:02.538Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Inactive week blocked control",
+        "FG Demo - Inactive week blocked control still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 6."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-ae630a63",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 2,
+        "missingDataUsefulness": 2,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity",
+        "uncertaintyHonesty",
+        "missingDataUsefulness"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:57.492Z",
+      "visibleCopy": [
+        "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+        "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+        "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-87fd46f2",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:52.480Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+        "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-ee5165a9",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:47.461Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+        "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-9c8c8dbc",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 3,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "cavemanCopy"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:42.377Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Blocked without blocker explanation",
+        "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+        "Ask Morgan Project Owner to add the blocker reason."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-5fb672bc",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:45:37.360Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Inactive week blocked control",
+        "FG Demo - Inactive week blocked control still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 6."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-7659497e",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 3,
+        "repetitionBudget": 1,
+        "informationDensity": 2,
+        "cavemanCopy": 3,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 2,
+        "missingDataUsefulness": 2,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "informationDensity",
+        "uncertaintyHonesty",
+        "missingDataUsefulness"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:32.318Z",
+      "visibleCopy": [
+        "At risk: FG-STALE-04 API pagination cleanup stopped after route inventory",
+        "FG-STALE-04 API pagination cleanup stopped after route inventory is at risk. High-priority current-week work is within 3 days of sprint end.",
+        "Ask Riley Builder to confirm scope, owner, and whether this can still land this week."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-27cd9484",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:27.307Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-03 Compliance export masking is blocked near demo",
+        "FG-MULTI-03 Compliance export masking is blocked near demo still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-6587427e",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:22.293Z",
+      "visibleCopy": [
+        "Blocked: FG-MULTI-04 Workspace invite recovery is blocked before pilot",
+        "FG-MULTI-04 Workspace invite recovery is blocked before pilot still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 7."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-5468528f",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 2,
+        "specificity": 2,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 3,
+        "cavemanCopy": 2,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "groundedness",
+        "specificity",
+        "repetitionBudget",
+        "cavemanCopy"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:17.213Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Blocked without blocker explanation",
+        "FG Demo - Blocked without blocker explanation still needs an unblock decision.",
+        "Ask Morgan Project Owner to add the blocker reason."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    },
+    {
+      "caseId": "fg-surface-persisted-update_finding-04beeb33",
+      "scores": {
+        "actionability": 4,
+        "groundedness": 3,
+        "specificity": 3,
+        "brevity": 4,
+        "repetitionBudget": 1,
+        "informationDensity": 4,
+        "cavemanCopy": 4,
+        "duplicateFactControl": 4,
+        "uncertaintyHonesty": 4,
+        "missingDataUsefulness": 4,
+        "uiProofSeparation": 4
+      },
+      "pass": false,
+      "failedDimensions": [
+        "repetitionBudget"
+      ],
+      "title": "Persisted proactive/update_finding output from 2026-05-31T00:43:12.190Z",
+      "visibleCopy": [
+        "Blocked: FG Demo - Inactive week blocked control",
+        "FG Demo - Inactive week blocked control still needs an unblock decision.",
+        "Ask Riley Builder to confirm owner and next step for Week 6."
+      ],
+      "notes": [
+        "Loaded from fleetgraph_runs.output_snapshot.",
+        "This is the report path that tracks real persisted FleetGraph outputs over time."
+      ],
+      "section": "historical"
+    }
+  ]
+}

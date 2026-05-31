@@ -21,6 +21,14 @@ export function renderMarkdown(packet) {
     '| --- | --- | --- |',
     ...packet.loopTimeline.map((step) => `| ${step.name} | ${step.status} | ${step.evidence} |`),
     '',
+    '## Reviewer Test Cases',
+    '',
+    '| # | Ship state | Expected output | Required decision | Public LangSmith trace |',
+    '| ---: | --- | --- | --- | --- |',
+    ...(packet.reviewerTestCases ?? []).map((item) =>
+      `| ${item.id} | ${markdownCell(item.shipState)} | ${markdownCell(item.expectedOutput)} | ${markdownCell(item.requiredDecision)} | ${item.traceUrl || 'missing public LangSmith trace'} |`
+    ),
+    '',
     '## Graph Path Matrix',
     '',
     '| Scenario | Proactive | On-demand | Update | Quiet | Human gate |',
@@ -81,6 +89,10 @@ export function renderMarkdown(packet) {
     ...packet.artifacts.map((artifact) => `- ${artifact.label}: ${artifact.path}`),
     '',
   ].join('\n');
+}
+
+function markdownCell(value) {
+  return String(value ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
 function runtimeLabel(triggerReason) {

@@ -566,7 +566,7 @@ describe('FleetGraph shared core', () => {
       },
     }, { persistence: port, db: contextChatDb() });
 
-    expect(result.decision).toBe('explain');
+    expect(result.decision).toBe('needs_confirmation');
     expect(result.visibleOutput).toBeUndefined();
     const runInput = requireMockInput(vi.mocked(port.recordRun));
     expect(runInput.outputSnapshot).toMatchObject({
@@ -610,7 +610,7 @@ describe('FleetGraph shared core', () => {
         title: 'Blocked issue',
       },
     });
-    expect(JSON.stringify(runInput.outputSnapshot)).toContain('"label":"Issues","kind":"issues_list"');
+    expect(JSON.stringify(runInput.outputSnapshot)).toContain('"label":"Current issues list page","kind":"issues_list"');
     expect(JSON.stringify(runInput.outputSnapshot)).toContain('"label":"Blocked issue","kind":"issue"');
     expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('Hidden issue');
   });
