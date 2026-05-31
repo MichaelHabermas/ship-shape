@@ -1,6 +1,5 @@
 // FleetGraph observability scores turn trace results into provider-neutral eval evidence.
-import type { JsonRecord } from './persistence.js';
-import type { FleetGraphRunDecision } from './persistence.js';
+import type { FleetGraphRunDecision, JsonRecord } from './persistence.js';
 import type { FleetGraphResult } from './types.js';
 
 export const FLEETGRAPH_OBSERVABILITY_SCORE_NAMES = [

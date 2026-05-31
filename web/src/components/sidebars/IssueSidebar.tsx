@@ -5,12 +5,11 @@ import { MultiAssociationChips } from '@/components/ui/MultiAssociationChips';
 import { PropertyRow } from '@/components/ui/PropertyRow';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { isCascadeWarningError } from '@/hooks/useIssuesQuery';
-import type { IncompleteChild } from '@ship/shared';
+import type { IncompleteChild, ISSUE_STATE_OPTIONS, ISSUE_PRIORITY_OPTIONS_FULL, type BelongsTo, type BelongsToType  } from '@ship/shared';
 import { apiPost, apiDelete } from '@/lib/api';
 import { readJson } from '@/api/read-json';
 import type { SprintsResponse } from '@/hooks/useWeeksQuery';
 import { formatDateRange } from '@/lib/date-utils';
-import { ISSUE_STATE_OPTIONS, ISSUE_PRIORITY_OPTIONS_FULL, type BelongsTo, type BelongsToType } from '@ship/shared';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 

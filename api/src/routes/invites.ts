@@ -1,15 +1,18 @@
 // Workspace invite validation and password-based acceptance.
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
+import { PASSWORD_BCRYPT_ROUNDS, ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS  } from '@ship/shared';
 import crypto from 'crypto';
 import { pool } from '../db/client.js';
-import { ERROR_CODES, HTTP_STATUS, SESSION_TIMEOUT_MS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { linkUserToWorkspaceViaInvite } from '../services/invite-acceptance.js';
 import { sessionCookieOptions } from '../config/session-cookies.js';
 
 const router = Router();
+
+interface InviteUserIdRow {
+  id: string;
+}
 
 interface InviteValidationRow {
   id: string;
@@ -97,7 +100,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Check if user already exists
-    const existingUserResult = await pool.query(
+    const existingUserResult = await pool.query<InviteUserIdRow>(
       'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
       [invite.email]
     );
@@ -107,7 +110,7 @@ router.get('/:token', async (req: Request, res: Response): Promise<void> => {
     // Check if user is already a member of this workspace
     let alreadyMember = false;
     if (existingUser) {
-      const membershipResult = await pool.query(
+      const membershipResult = await pool.query<InviteUserIdRow>(
         'SELECT id FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
         [invite.workspace_id, existingUser.id]
       );

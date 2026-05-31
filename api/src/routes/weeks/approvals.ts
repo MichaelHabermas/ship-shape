@@ -1,5 +1,6 @@
 // Sprint plan/review approval routes (supervisor auth, accountability broadcasts).
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
@@ -44,6 +45,15 @@ interface SprintUnapproveQueryRow {
 interface WeeklyReviewIdRow {
   id: string;
 }
+
+const requestChangesBodySchema = z.object({
+  feedback: z.string().min(1).max(2000),
+});
+
+const approveReviewBodySchema = z.object({
+  rating: z.unknown(),
+  comment: z.string().optional(),
+});
 
 // POST /api/weeks/:id/approve-plan - Approve sprint plan
 router.post('/:id/approve-plan', authMiddleware, async (req: Request, res: Response) => {
@@ -201,7 +211,12 @@ router.post('/:id/approve-review', authMiddleware, async (req: Request, res: Res
     if (!id) {
       return;
     }
-    const { rating } = req.body || {};
+    const parsedBody = approveReviewBodySchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+    const { rating } = parsedBody.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
     const parsedComment = parseApprovalComment(req.body);
     if (parsedComment.error) {
@@ -313,11 +328,16 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
     if (!id) {
       return;
     }
-    const { feedback } = req.body || {};
+    const parsedChanges = requestChangesBodySchema.safeParse(req.body ?? {});
+    if (!parsedChanges.success) {
+      res.status(400).json({ error: 'Feedback is required when requesting changes' });
+      return;
+    }
+    const { feedback } = parsedChanges.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
-    if (!feedback || typeof feedback !== 'string' || feedback.trim().length === 0) {
+    if (feedback.trim().length === 0) {
       res.status(400).json({ error: 'Feedback is required when requesting changes' });
       return;
     }
@@ -394,11 +414,16 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
     if (!id) {
       return;
     }
-    const { feedback } = req.body || {};
+    const parsedChanges = requestChangesBodySchema.safeParse(req.body ?? {});
+    if (!parsedChanges.success) {
+      res.status(400).json({ error: 'Feedback is required when requesting changes' });
+      return;
+    }
+    const { feedback } = parsedChanges.data;
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
-    if (!feedback || typeof feedback !== 'string' || feedback.trim().length === 0) {
+    if (feedback.trim().length === 0) {
       res.status(400).json({ error: 'Feedback is required when requesting changes' });
       return;
     }

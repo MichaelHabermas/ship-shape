@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../../services/audit.js';
@@ -10,6 +11,10 @@ import {
   mapUserListItem,
   mapUserBasic,
 } from './types.js';
+
+const toggleSuperAdminBodySchema = z.object({
+  isSuperAdmin: z.boolean(),
+});
 
 const router = Router();
 
@@ -120,9 +125,8 @@ router.get('/users/search', async (req: Request, res: Response): Promise<void> =
 router.patch('/users/:id/super-admin', async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
   const id = String(req.params.id);
-  const { isSuperAdmin } = req.body;
-
-  if (typeof isSuperAdmin !== 'boolean') {
+  const parsedBody = toggleSuperAdminBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
@@ -132,6 +136,7 @@ router.patch('/users/:id/super-admin', async (req: Request, res: Response): Prom
     });
     return;
   }
+  const { isSuperAdmin } = parsedBody.data;
 
   // Prevent removing your own super-admin status
   if (id === actorUserId && !isSuperAdmin) {

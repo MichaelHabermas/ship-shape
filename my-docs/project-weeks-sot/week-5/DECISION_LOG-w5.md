@@ -749,3 +749,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** API route integration tests must assert HTTP JSON through registered OpenAPI Zod schemas (`expectOpenApiResponse`), not raw `res.body`. Shared helpers: `getCsrfTokenFromApp`, `expectApiErrorResponse`, `expectJsonBody` under `api/src/test/`. When tests fail schema validation, fix the API/OpenAPI registration (e.g. bulk issue responses use `mapIssueListItem`; `assignee_name` nullable on `extractIssueFromRow`) instead of weakening tests.
 
 **Consequence:** New route tests copy the helper pattern; paths in assertions omit the `/api` prefix. Legacy shapes without OpenAPI JSON use `expectJsonBody` only. Tier 2 is production route JSONB narrowing; Tier 3 is E2E `readJsonAs`.
+
+## D093 - Tier 2 Production Route SQL + JSONB Boundaries
+
+**Date:** 2026-05-31
+
+**Decision:** Production API route handlers under `api/src/routes/**` (excluding `*.test.ts`) must type every `pool.query` row projection and narrow persisted `documents.properties` JSONB at named boundaries — not inline dot-access on `Record<string, unknown>`. Shared helpers: `api/src/routes/route-query-rows.ts` (comment/standup/iteration row types + response mappers + `requireFirstRow` re-export), `api/src/utils/document-properties.ts` (read-only property flatteners for list/GET/bootstrap/restore). `pickBootstrapDocumentProperties` lives in `document-properties.ts` and is re-exported from `constants/bootstrap-document.ts`.
+
+**Consequence:** Production route `no-unsafe-assignment` + `no-unsafe-member-access` at zero (~389 cleared). When typing exposes an OpenAPI/runtime mismatch, fix the mapper or handler — do not eslint-disable. Tier 3 is E2E typed JSON; `max-lines` route splits remain a separate pass.

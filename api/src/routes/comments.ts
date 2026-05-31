@@ -1,3 +1,4 @@
+// Inline document comments with threading, resolve, and document-scoped routes.
 import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
@@ -5,9 +6,15 @@ import { authMiddleware } from '../middleware/auth.js';
 import { guardDocumentIdParam, requireDocumentCapability } from '../security/route-capability.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
-import { requireFirstRow } from '../utils/query-rows.js';
-
-// ============== Document-scoped routes (/api/documents/:id/comments) ==============
+import {
+  type CommentRow,
+  type CommentWithAuthorRow,
+  type IdRow,
+  type UserReferenceRow,
+  mapCommentResponse,
+  mapCommentWithAuthor,
+  requireFirstRow,
+} from './route-query-rows.js';
 
 export const documentCommentsRouter: ExpressRouter = Router();
 
@@ -33,14 +40,13 @@ async function guardDocumentCommentRead(
   return decision ? documentId : null;
 }
 
-// GET /api/documents/:id/comments
 documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request, res: Response) => {
   try {
     const documentId = await guardDocumentCommentRead(req, res, req.params.id);
     if (!documentId) return;
     const { workspaceId } = getAuthenticatedRouteContext(req);
 
-    const result = await pool.query(
+    const result = await pool.query<CommentWithAuthorRow>(
       `SELECT c.*, u.name as author_name, u.email as author_email
        FROM comments c
        JOIN users u ON c.author_id = u.id
@@ -49,29 +55,12 @@ documentCommentsRouter.get('/:id/comments', authMiddleware, async (req: Request,
       [documentId, workspaceId]
     );
 
-    const comments = result.rows.map(row => ({
-      id: row.id,
-      document_id: row.document_id,
-      comment_id: row.comment_id,
-      parent_id: row.parent_id,
-      content: row.content,
-      resolved_at: row.resolved_at,
-      author: {
-        id: row.author_id,
-        name: row.author_name,
-        email: row.author_email,
-      },
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    }));
-
-    res.json(comments);
+    res.json(result.rows.map(mapCommentResponse));
   } catch (err) {
     sendInternalError(res, err, 'List comments error:');
   }
 });
 
-// POST /api/documents/:id/comments
 documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request, res: Response) => {
   try {
     const documentId = await guardDocumentCommentRead(req, res, req.params.id);
@@ -87,7 +76,7 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
     const { comment_id, content, parent_id } = parsed.data;
 
     if (parent_id) {
-      const parentCheck = await pool.query(
+      const parentCheck = await pool.query<IdRow>(
         'SELECT id FROM comments WHERE id = $1 AND document_id = $2',
         [parent_id, documentId]
       );
@@ -97,42 +86,26 @@ documentCommentsRouter.post('/:id/comments', authMiddleware, async (req: Request
       }
     }
 
-    const result = await pool.query(
+    const result = await pool.query<CommentRow>(
       `INSERT INTO comments (document_id, comment_id, parent_id, author_id, workspace_id, content)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [documentId, comment_id, parent_id || null, userId, workspaceId, content]
     );
 
-    const comment = result.rows[0];
+    const comment = requireFirstRow(result.rows);
 
-    const authorResult = await pool.query(
+    const authorResult = await pool.query<UserReferenceRow>(
       'SELECT id, name, email FROM users WHERE id = $1',
       [userId]
     );
-    const author = authorResult.rows[0];
+    const author = requireFirstRow(authorResult.rows);
 
-    res.status(201).json({
-      id: comment.id,
-      document_id: comment.document_id,
-      comment_id: comment.comment_id,
-      parent_id: comment.parent_id,
-      content: comment.content,
-      resolved_at: comment.resolved_at,
-      author: {
-        id: author.id,
-        name: author.name,
-        email: author.email,
-      },
-      created_at: comment.created_at,
-      updated_at: comment.updated_at,
-    });
+    res.status(201).json(mapCommentWithAuthor(comment, author));
   } catch (err) {
     sendInternalError(res, err, 'Create comment error:');
   }
 });
-
-// ============== Comment-scoped routes (/api/comments/:id) ==============
 
 export const commentsRouter: ExpressRouter = Router();
 
@@ -141,7 +114,6 @@ const updateCommentSchema = z.object({
   resolved_at: z.union([z.string().datetime(), z.null()]).optional(),
 });
 
-// PATCH /api/comments/:id
 commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const commentId = req.params.id;
@@ -205,42 +177,27 @@ commentsRouter.patch('/:id', authMiddleware, async (req: Request, res: Response)
     updates.push(`updated_at = NOW()`);
     values.push(commentId, workspaceId);
 
-    const result = await pool.query(
+    const result = await pool.query<CommentRow>(
       `UPDATE comments SET ${updates.join(', ')}
        WHERE id = $${paramIndex++} AND workspace_id = $${paramIndex}
        RETURNING *`,
       values
     );
 
-    const comment = result.rows[0];
+    const comment = requireFirstRow(result.rows);
 
-    const authorResult = await pool.query(
+    const authorResult = await pool.query<UserReferenceRow>(
       'SELECT id, name, email FROM users WHERE id = $1',
       [comment.author_id]
     );
-    const author = authorResult.rows[0];
+    const author = requireFirstRow(authorResult.rows);
 
-    res.json({
-      id: comment.id,
-      document_id: comment.document_id,
-      comment_id: comment.comment_id,
-      parent_id: comment.parent_id,
-      content: comment.content,
-      resolved_at: comment.resolved_at,
-      author: {
-        id: author.id,
-        name: author.name,
-        email: author.email,
-      },
-      created_at: comment.created_at,
-      updated_at: comment.updated_at,
-    });
+    res.json(mapCommentWithAuthor(comment, author));
   } catch (err) {
     sendInternalError(res, err, 'Update comment error:');
   }
 });
 
-// DELETE /api/comments/:id
 commentsRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const commentId = req.params.id;

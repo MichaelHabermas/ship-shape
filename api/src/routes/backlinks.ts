@@ -1,3 +1,4 @@
+// Document backlink listing and outbound link updates.
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/client.js';
 import { z } from 'zod';
@@ -5,6 +6,17 @@ import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visib
 import { authMiddleware } from '../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+import { type IdRow } from './route-query-rows.js';
+
+type BacklinkRow = {
+  id: string;
+  document_type: string;
+  title: string;
+  ticket_number: number | null;
+  program_id: string | null;
+  properties: unknown;
+  program_prefix: string | null;
+};
 
 const router = Router();
 
@@ -23,7 +35,7 @@ router.get('/:id/backlinks', authMiddleware, async (req: Request, res: Response)
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify the document exists and user can access it
-    const docResult = await pool.query(
+    const docResult = await pool.query<IdRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -36,7 +48,7 @@ router.get('/:id/backlinks', authMiddleware, async (req: Request, res: Response)
     }
 
     // Get all documents that link to this document (only visible ones)
-    const result = await pool.query(
+    const result = await pool.query<BacklinkRow>(
       `SELECT d.id, d.document_type, d.title, d.ticket_number, prog_da.related_id as program_id, d.properties,
               p.properties->>'prefix' as program_prefix
        FROM document_links dl
@@ -83,7 +95,7 @@ router.post('/:id/links', authMiddleware, async (req: Request, res: Response) =>
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Verify the source document exists and user can access it
-    const docResult = await pool.query(
+    const docResult = await pool.query<IdRow>(
       `SELECT id FROM documents
        WHERE id = $1 AND workspace_id = $2
          AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,
@@ -97,7 +109,7 @@ router.post('/:id/links', authMiddleware, async (req: Request, res: Response) =>
 
     // Verify all target documents exist and user can access them
     if (target_ids.length > 0) {
-      const targetResult = await pool.query(
+      const targetResult = await pool.query<IdRow>(
         `SELECT id FROM documents
          WHERE id = ANY($1) AND workspace_id = $2
            AND ${VISIBILITY_FILTER_SQL('documents', '$3', '$4')}`,

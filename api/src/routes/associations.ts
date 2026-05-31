@@ -51,6 +51,22 @@ type ReverseAssociationRow = {
   document_document_type?: string | null;
 };
 
+type AncestorContextRow = {
+  id: string;
+  title: string | null;
+  document_type: string;
+  ticket_number: number | null;
+  depth: number;
+};
+
+type BelongsToContextRow = {
+  type: RelationshipType;
+  id: string;
+  title: string;
+  document_type: string;
+  color: string | null;
+};
+
 function toAssociationResponse(row: AssociationRow) {
   return {
     id: row.id,
@@ -206,7 +222,7 @@ router.delete('/:id/associations/:relatedId', authMiddleware, async (req: Reques
 
     query += ` RETURNING id, document_id, related_id, relationship_type, created_at`;
 
-    const result = await pool.query(query, params);
+    const result = await pool.query<AssociationRow>(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Association not found' });
@@ -324,7 +340,7 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
     const current = requireFirstRow(currentDoc.rows, 'Document not found');
 
     // Recursive CTE to get all ancestors (parent chain)
-    const ancestorsQuery = await pool.query(
+    const ancestorsQuery = await pool.query<AncestorContextRow>(
       `WITH RECURSIVE ancestors AS (
         -- Base case: direct parent of current document
         SELECT
@@ -402,7 +418,7 @@ router.get('/:id/context', authMiddleware, async (req: Request, res: Response) =
 
     // Get belongs_to associations (project, sprint, program)
     // Both programs and projects are documents, so color is in properties JSONB
-    const belongsToQuery = await pool.query(
+    const belongsToQuery = await pool.query<BelongsToContextRow>(
       `SELECT
         da.relationship_type as type,
         d.id,

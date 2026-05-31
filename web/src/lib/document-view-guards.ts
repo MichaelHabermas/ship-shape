@@ -1,10 +1,8 @@
-import type { BelongsTo, BelongsToType } from '@ship/shared';
-import {
+import type { BelongsTo, BelongsToType,
   type CurrentDocumentType,
   type EditorDocumentType,
   isCurrentDocumentType as isSharedCurrentDocumentType,
-  isEditorDocumentType as isSharedEditorDocumentType,
-} from '@ship/shared';
+  isEditorDocumentType as isSharedEditorDocumentType } from '@ship/shared';
 
 export type { CurrentDocumentType, EditorDocumentType };
 

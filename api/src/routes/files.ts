@@ -61,6 +61,20 @@ interface FileRecordRow {
   status: string;
 }
 
+type FileIdRow = { id: string };
+
+type FileMetadataRow = {
+  id: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | string;
+  cdn_url: string | null;
+  status: string;
+  created_at: Date | string;
+  document_id: string | null;
+  uploaded_by: string;
+};
+
 export const filesRouter: ExpressRouter = Router();
 
 // Validation schemas
@@ -148,12 +162,13 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
     const s3Key = `${workspaceId}/${fileId}${ext}`;
 
     // Create file record with 'pending' status
-    const result = await pool.query(
+    const result = await pool.query<FileIdRow>(
       `INSERT INTO files (id, workspace_id, uploaded_by, filename, mime_type, size_bytes, s3_key, status, document_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
        RETURNING id`,
       [fileId, workspaceId, userId, filename, mimeType, sizeBytes, s3Key, documentId ?? null]
     );
+    const createdFileId = requireFirstRow(result.rows).id;
 
     // Use S3 when configured; otherwise use local storage for lightweight deployments.
     const uploadUrl = useS3Uploads()
@@ -161,7 +176,7 @@ filesRouter.post('/upload', authMiddleware, async (req: Request, res: Response) 
       : `/api/files/${fileId}/local-upload`;
 
     res.json({
-      fileId: result.rows[0].id,
+      fileId: createdFileId,
       uploadUrl,
       s3Key,
     });
@@ -229,7 +244,9 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
       buffer = Buffer.from(req.body);
     } else if (typeof req.body === 'object' && req.body !== null) {
       // Handle ArrayBuffer or typed array wrapped in object
-      const data = req.body.data || req.body;
+      const bodyRecord = req.body as Record<string, unknown>;
+      const nestedData: unknown = bodyRecord.data;
+      const data: unknown = nestedData !== undefined ? nestedData : req.body;
       if (Array.isArray(data)) {
         buffer = Buffer.from(data);
       } else {
@@ -434,7 +451,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const workspaceId = req.workspaceId;
 
-    const result = await pool.query(
+    const result = await pool.query<FileMetadataRow>(
       `SELECT id, filename, mime_type, size_bytes, cdn_url, status, created_at, document_id, uploaded_by
        FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]

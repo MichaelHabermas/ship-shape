@@ -1,3 +1,4 @@
+// Workspace-scoped API token create, list, and revoke routes.
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/client.js';
@@ -5,9 +6,24 @@ import { authMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../services/audit.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 import { authorize } from '../security/capabilities.js';
 import { DEFAULT_API_TOKEN_SCOPES, generateApiToken, hashToken } from '../security/tokens.js';
 import { principalFromRequest, type ApiTokenScope } from '../security/principal.js';
+import { type IdRow } from './route-query-rows.js';
+
+type ApiTokenCreatedRow = {
+  id: string;
+  name: string;
+  token_prefix: string;
+  expires_at: Date | string;
+  created_at: Date | string;
+};
+
+type ApiTokenNameRow = {
+  id: string;
+  name: string;
+};
 
 const router = Router();
 export { hashToken };
@@ -64,7 +80,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const existingResult = await pool.query(
+    const existingResult = await pool.query<IdRow>(
       `SELECT id FROM api_tokens
        WHERE user_id = $1 AND workspace_id = $2 AND name = $3 AND revoked_at IS NULL`,
       [userId, workspaceId, name]
@@ -84,19 +100,20 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
     const { token, hash, prefix } = generateApiToken();
     const expiresAt = new Date(Date.now() + (expires_in_days ?? 30) * 24 * 60 * 60 * 1000);
 
-    const result = await pool.query(
+    const result = await pool.query<ApiTokenCreatedRow>(
       `INSERT INTO api_tokens (user_id, workspace_id, name, token_hash, token_prefix, expires_at, scopes)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, name, token_prefix, expires_at, created_at`,
       [userId, workspaceId, name, hash, prefix, expiresAt, scopes]
     );
+    const createdToken = requireFirstRow(result.rows);
 
     await logAuditEvent({
       workspaceId,
       actorUserId: userId,
       action: 'api_token.created',
       resourceType: 'api_token',
-      resourceId: result.rows[0].id,
+      resourceId: createdToken.id,
       details: { name, expires_at: expiresAt, scopes },
       req,
     });
@@ -105,13 +122,13 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       data: {
-        id: result.rows[0].id,
-        name: result.rows[0].name,
+        id: createdToken.id,
+        name: createdToken.name,
         token: token, // ONLY returned here - user must save it
-        token_prefix: result.rows[0].token_prefix,
+        token_prefix: createdToken.token_prefix,
         scopes,
-        expires_at: result.rows[0].expires_at,
-        created_at: result.rows[0].created_at,
+        expires_at: createdToken.expires_at,
+        created_at: createdToken.created_at,
         warning: 'Save this token now. It will not be shown again.',
       },
     });
@@ -186,7 +203,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
       return;
     }
 
-    const tokenResult = await pool.query(
+    const tokenResult = await pool.query<ApiTokenNameRow>(
       `SELECT id, name FROM api_tokens
        WHERE id = $1 AND user_id = $2 AND workspace_id = $3`,
       [id, userId, workspaceId]
@@ -214,7 +231,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
       action: 'api_token.revoked',
       resourceType: 'api_token',
       resourceId: id,
-      details: { name: tokenResult.rows[0].name },
+      details: { name: requireFirstRow(tokenResult.rows).name },
       req,
     });
 

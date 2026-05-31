@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../db/client.js';
 import { authMiddleware, workspaceAdminMiddleware } from '../middleware/auth.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
@@ -274,12 +275,18 @@ function mapAuditLog(row: AuditLogRow) {
 
 function getQueryString(value: unknown, fallback: string): string {
   if (Array.isArray(value)) {
-    const firstValue = value[0];
+    const firstValue: unknown = value[0];
     return typeof firstValue === 'string' ? firstValue : fallback;
   }
 
   return typeof value === 'string' ? value : fallback;
 }
+
+const createInviteBodySchema = z.object({
+  email: z.string().min(1),
+  x509SubjectDn: z.string().optional(),
+  role: z.enum(['admin', 'member']).optional(),
+});
 
 // GET /api/workspaces - List user's workspaces
 router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
@@ -962,11 +969,18 @@ router.get('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req:
 // x509SubjectDn is optional - for PIV certificate matching when cert doesn't contain email
 router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
   const workspaceId = String(req.params.id);
-  const { email, x509SubjectDn, role = 'member' } = req.body as {
-    email?: string;
-    x509SubjectDn?: string;
-    role?: string;
-  };
+  const parsedBody = createInviteBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Email is required',
+      },
+    });
+    return;
+  }
+  const { email, x509SubjectDn, role = 'member' } = parsedBody.data;
 
   // Email is always required
   if (!email || typeof email !== 'string') {

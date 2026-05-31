@@ -1,7 +1,6 @@
 // Bulk issue archive/delete/restore/update with capability guards and domain validation.
 import type { PoolClient } from 'pg';
-import type { IssueProperties } from '@ship/shared';
-import type { DocumentType } from '@ship/shared';
+import type { IssueProperties, DocumentType  } from '@ship/shared';
 import { type IssueDocumentRow, type IssueMetadataRow } from '../db/documents-repository.js';
 import { mapIssueListItem } from '../utils/issue-response.js';
 import type { DocumentMutationCapability } from '../security/capabilities.js';

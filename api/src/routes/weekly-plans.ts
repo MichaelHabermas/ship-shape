@@ -11,6 +11,7 @@ import {
   getReadableDocument,
   requireSelfOrAdminPerson,
   visibilityPredicate,
+  type AccessibleDocument,
 } from '../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../utils/route-http.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
@@ -136,8 +137,8 @@ function mapWeeklyRetroListItem(row: WeeklyPlanListRow) {
 function mapContentHistoryRow(row: ContentHistoryRow) {
   return {
     id: row.id,
-    old_content: row.old_value ? JSON.parse(row.old_value) : null,
-    new_content: row.new_value ? JSON.parse(row.new_value) : null,
+    old_content: row.old_value ? (JSON.parse(row.old_value) as unknown) : null,
+    new_content: row.new_value ? (JSON.parse(row.new_value) as unknown) : null,
     created_at: row.created_at,
     changed_by: row.changed_by_id ? {
       id: row.changed_by_id,
@@ -290,7 +291,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor, client);
 
-    let person;
+    let person: AccessibleDocument;
     try {
       person = await requireSelfOrAdminPerson(client, actor, person_id);
     } catch {
@@ -638,7 +639,7 @@ weeklyRetrosRouter.post('/', authMiddleware, async (req: Request, res: Response)
     const actor = getActor(req);
     const { isAdmin } = await getDocumentAccessContext(actor, client);
 
-    let person;
+    let person: AccessibleDocument;
     try {
       person = await requireSelfOrAdminPerson(client, actor, person_id);
     } catch {

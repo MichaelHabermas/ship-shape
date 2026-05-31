@@ -24,7 +24,17 @@ import {
 import { authorize, capabilityDenialStatus, documentCommandCapability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
 import { guardDocumentIdParam } from '../security/route-capability.js';
+import {
+  readAssigneeIdsFromProperties,
+  readDocumentDetailFields,
+  readIssueListFields,
+  readOwnerIdFromProperties,
+  readPersonIdFromProperties,
+  readRestoredDocumentFields,
+} from '../utils/document-properties.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 
+/** Document CRUD, content, conversion undo, and list endpoints. */
 const router = Router();
 
 type DocumentProperties = Record<string, unknown> & {
@@ -110,6 +120,22 @@ type DocumentContentAccessRow = {
   can_access: boolean;
 };
 
+type DocumentSnapshotRow = {
+  id: string;
+  document_id: string;
+  document_type: string;
+  title: string;
+  properties: DocumentProperties | null;
+  ticket_number: number | null;
+  snapshot_reason: string;
+  created_at: Date;
+  created_by: string;
+};
+
+type NextTicketNumberRow = {
+  next_number: number;
+};
+
 function extractBelongsToAssocFromRow(row: BelongsToAssocRow) {
   return {
     id: row.id,
@@ -155,7 +181,6 @@ async function canReadDocumentWithAccountability(
   });
 }
 
-// Validation schemas
 const createDocumentSchema = z.object({
   title: z.string().min(1).max(255).optional().default('Untitled'),
   document_type: documentTypeSchema.optional().default('wiki'),
@@ -166,6 +191,15 @@ const createDocumentSchema = z.object({
   visibility: documentVisibilitySchema.optional(),
   content: z.unknown().optional(),
   belongs_to: z.array(belongsToSchema).optional(),
+});
+
+const updateContentSchema = z.object({
+  content: z
+    .object({
+      type: z.unknown().optional(),
+      content: z.unknown().optional(),
+    })
+    .passthrough(),
 });
 
 const updateDocumentSchema = z.object({
@@ -246,21 +280,10 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     const result = await pool.query<DocumentListRow>(query, params);
 
-    // Extract properties into flat fields for backwards compatibility
-    const documents = result.rows.map(row => {
-      const props = row.properties || {};
-      return {
-        ...row,
-        // Flatten common properties for backwards compatibility
-        state: props.state,
-        priority: props.priority,
-        estimate: props.estimate,
-        assignee_id: props.assignee_id,
-        source: props.source,
-        prefix: props.prefix,
-        color: props.color,
-      };
-    });
+    const documents = result.rows.map((row) => ({
+      ...row,
+      ...readIssueListFields(row.properties),
+    }));
 
     res.json(documents);
   } catch (err) {
@@ -376,18 +399,21 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
-    const props = doc.properties || {};
+    const detailFields = readDocumentDetailFields(doc.properties, doc.document_type);
+    const ownerId = readOwnerIdFromProperties(doc.properties);
+    const assigneeIds = readAssigneeIdsFromProperties(doc.properties);
+    const personId = readPersonIdFromProperties(doc.properties);
 
     // Get owner details for projects (owner_id is a user_id, lookup person document by user_id)
     // Return user_id as id so PersonCombobox can match correctly
     let owner: { id: string; name: string; email: string } | null = null;
-    if (doc.document_type === 'project' && props.owner_id) {
+    if (doc.document_type === 'project' && ownerId) {
       const ownerResult = await pool.query<PersonOwnerRow>(
         `SELECT (d.properties->>'user_id')::text as id, d.title as name, COALESCE(d.properties->>'email', u.email) as email
          FROM documents d
          LEFT JOIN users u ON u.id = (d.properties->>'user_id')::uuid
          WHERE (d.properties->>'user_id')::uuid = $1 AND d.workspace_id = $2 AND d.document_type = 'person'`,
-        [props.owner_id, workspaceId]
+        [ownerId, workspaceId]
       );
       if (ownerResult.rows.length > 0) {
         owner = ownerResult.rows[0] ?? null;
@@ -396,13 +422,13 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Get owner details for sprints (owner stored in assignee_ids[0], consistent with sprints API)
     // Return user_id as id so Combobox can match correctly
-    if (doc.document_type === 'sprint' && Array.isArray(props.assignee_ids) && props.assignee_ids[0]) {
+    if (doc.document_type === 'sprint' && assigneeIds[0]) {
       const ownerResult = await pool.query<PersonOwnerRow>(
         `SELECT u.id::text as id, d.title as name, COALESCE(d.properties->>'email', u.email) as email
          FROM users u
          LEFT JOIN documents d ON (d.properties->>'user_id')::uuid = u.id AND d.document_type = 'person' AND d.workspace_id = $2
          WHERE u.id = $1`,
-        [props.assignee_ids[0], workspaceId]
+        [assigneeIds[0], workspaceId]
       );
       if (ownerResult.rows.length > 0) {
         owner = ownerResult.rows[0] ?? null;
@@ -411,10 +437,10 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Compute title for weekly_plan/weekly_retro documents (includes person name for entity reference)
     let computedTitle = doc.title;
-    if ((doc.document_type === 'weekly_plan' || doc.document_type === 'weekly_retro') && props.person_id) {
+    if ((doc.document_type === 'weekly_plan' || doc.document_type === 'weekly_retro') && personId) {
       const personResult = await pool.query<PersonTitleRow>(
         `SELECT title FROM documents WHERE id = $1 AND workspace_id = $2 AND document_type = 'person'`,
-        [props.person_id, workspaceId]
+        [personId, workspaceId]
       );
       if (personResult.rows.length > 0) {
         const personName = personResult.rows[0]?.title;
@@ -442,43 +468,22 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       belongs_to = assocResult.rows.map(extractBelongsToAssocFromRow);
     }
 
-    // Return with flattened properties for backwards compatibility
     res.json({
       ...doc,
-      // Use computed title for weekly_plan/weekly_retro (includes person name)
       title: computedTitle,
-      // Issue properties
-      state: props.state,
-      priority: props.priority,
-      estimate: props.estimate,
-      assignee_id: props.assignee_id,
-      source: props.source,
-      // Project properties
-      impact: props.impact,
-      confidence: props.confidence,
-      ease: props.ease,
-      // For sprints, owner is stored in assignee_ids[0] (consistent with sprints API)
-      owner_id: doc.document_type === 'sprint' && Array.isArray(props.assignee_ids)
-        ? props.assignee_ids[0] || null
-        : props.owner_id,
+      ...detailFields,
+      owner_id:
+        doc.document_type === 'sprint' && detailFields.assignee_ids?.[0]
+          ? detailFields.assignee_ids[0]
+          : detailFields.owner_id ?? null,
       owner,
-      // RACI properties (for projects and programs)
-      accountable_id: props.accountable_id || null,
-      consulted_ids: props.consulted_ids || [],
-      informed_ids: props.informed_ids || [],
-      // Design review (for projects)
-      has_design_review: props.has_design_review ?? null,
-      design_review_notes: props.design_review_notes || null,
-      // Generic properties
-      prefix: props.prefix,
-      color: props.color,
-      // Sprint properties (dates computed from sprint_number + workspace.sprint_start_date)
-      status: props.status,
-      plan: props.plan,
-      plan_approval: props.plan_approval,
-      review_approval: props.review_approval,
-      review_rating: props.review_rating,
-      // Include belongs_to for issue, wiki, sprint, and project documents
+      accountable_id: detailFields.accountable_id ?? null,
+      consulted_ids: detailFields.consulted_ids ?? [],
+      informed_ids: detailFields.informed_ids ?? [],
+      has_design_review: detailFields.has_design_review ?? null,
+      design_review_notes: detailFields.design_review_notes ?? null,
+      plan_approval: detailFields.plan_approval ?? null,
+      review_approval: detailFields.review_approval ?? null,
       ...((doc.document_type === 'issue' || doc.document_type === 'wiki' || doc.document_type === 'sprint' || doc.document_type === 'project') && { belongs_to }),
     });
   } catch (err) {
@@ -556,12 +561,17 @@ router.get('/:id/content', authMiddleware, async (req: Request, res: Response) =
 router.patch('/:id/content', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
+    const parsed = updateContentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error);
+      return;
+    }
     const actor = getActor(req);
     const result = await updateDocumentContentMutation({
       actor,
       principal: principalFromRequest(req),
       documentId: id,
-      content: req.body.content,
+      content: parsed.data.content,
       source: 'rest',
     });
     res.status(result.status).json(result.body);
@@ -825,7 +835,7 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
     await client.query('BEGIN');
 
     // Get the most recent snapshot for this document
-    const snapshotResult = await client.query(
+    const snapshotResult = await client.query<DocumentSnapshotRow>(
       `SELECT * FROM document_snapshots
        WHERE document_id = $1
        ORDER BY created_at DESC
@@ -839,7 +849,7 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
       return;
     }
 
-    const snapshot = snapshotResult.rows[0];
+    const snapshot = requireFirstRow(snapshotResult.rows);
     const currentProps = currentDoc.properties || {};
     const restoredType = snapshot.document_type;
 
@@ -872,13 +882,13 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
       const lockKey = parseInt(workspaceIdHex, 16);
       await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
 
-      const ticketResult = await client.query(
+      const ticketResult = await client.query<NextTicketNumberRow>(
         `SELECT COALESCE(MAX(ticket_number), 0) + 1 as next_number
          FROM documents
          WHERE workspace_id = $1 AND document_type = 'issue'`,
         [workspaceId]
       );
-      restoredTicketNumber = ticketResult.rows[0].next_number;
+      restoredTicketNumber = requireFirstRow(ticketResult.rows).next_number;
     }
 
     // If restoring to a project, clear ticket number
@@ -886,7 +896,7 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
       restoredTicketNumber = null;
     }
 
-    const updateResult = await client.query(
+    const updateResult = await client.query<DocumentAccessRow>(
       `UPDATE documents
        SET document_type = $1,
            properties = $2,
@@ -906,7 +916,7 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
       ]
     );
 
-    const restoredDoc = updateResult.rows[0];
+    const restoredDoc = requireFirstRow(updateResult.rows);
 
     // 3. Delete the snapshot we just restored from (keep the undo snapshot)
     await client.query(
@@ -927,25 +937,23 @@ router.post('/:id/undo-conversion', authMiddleware, async (req: Request, res: Re
 
     await client.query('COMMIT');
 
-    // Return the restored document (same ID!)
-    const props = restoredDoc.properties || {};
+    const restoredFields = readRestoredDocumentFields(restoredDoc.properties, restoredType);
     res.status(200).json({
       ...restoredDoc,
-      // Flatten properties for frontend
       ...(restoredType === 'issue' && {
-        state: props.state,
-        priority: props.priority,
-        assignee_id: props.assignee_id,
-        source: props.source,
+        state: restoredFields.state,
+        priority: restoredFields.priority,
+        assignee_id: restoredFields.assignee_id,
+        source: restoredFields.source,
       }),
       ...(restoredType === 'project' && {
-        impact: props.impact,
-        confidence: props.confidence,
-        ease: props.ease,
-        color: props.color,
-        owner_id: props.owner_id,
+        impact: restoredFields.impact,
+        confidence: restoredFields.confidence,
+        ease: restoredFields.ease,
+        color: restoredFields.color,
+        owner_id: restoredFields.owner_id,
       }),
-      program_id: props.program_id,
+      program_id: restoredFields.program_id,
       restored_from_type: currentDoc.document_type,
       message: `Conversion undone. Document restored to ${restoredType}.`,
     });

@@ -7,19 +7,17 @@ import { WeeklyReviewSubNav } from '@/components/review/WeeklyReviewSubNav';
 import { useWeeklyReviewActions } from '@/hooks/useWeeklyReviewActions';
 import type { PanelDocument } from '@/components/sidebars/PropertiesPanel';
 import { DocumentTypeSelector, getMissingRequiredFields } from '@/components/sidebars/DocumentTypeSelector';
-import type { SelectableDocumentType, ConversionDocumentType } from '@ship/shared';
+import type { SelectableDocumentType, ConversionDocumentType,
+  EditorDocumentType,
+  UnifiedDocumentView,
+  IssueDocumentView,
+  ProjectDocumentView,
+  SprintDocumentView } from '@ship/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { PlanQualityBanner, RetroQualityBanner } from '@/components/PlanQualityBanner';
 import { ResilientSection } from '@/components/ui/ResilientSection';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { Person } from '@/components/PersonCombobox';
-import type {
-  EditorDocumentType,
-  UnifiedDocumentView,
-  IssueDocumentView,
-  ProjectDocumentView,
-  SprintDocumentView,
-} from '@ship/shared';
 
 export type UnifiedDocument = UnifiedDocumentView;
 

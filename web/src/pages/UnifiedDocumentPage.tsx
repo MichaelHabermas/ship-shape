@@ -6,7 +6,7 @@ import type { UnifiedDocument, SidebarData } from '@/components/UnifiedEditor';
 import { useAuth } from '@/hooks/useAuth';
 import { useAssignableMembersQuery } from '@/hooks/useTeamMembersQuery';
 import { useProgramsQuery } from '@/hooks/useProgramsQuery';
-import { useProjectsQuery } from '@/hooks/useProjectsQuery';
+import { useProjectsQuery, projectKeys, useProjectWeeksQuery  } from '@/hooks/useProjectsQuery';
 import { useDocumentConversion } from '@/hooks/useDocumentConversion';
 import { apiGetJson, apiPatchJson, apiDelete, apiPostJson } from '@/lib/api';
 import { getApiErrorStatus } from '@/lib/api-error';
@@ -14,7 +14,6 @@ import type { Document } from '@/api/schemas';
 import type { ConversionDocumentType } from '@ship/shared';
 import { useToast } from '@/components/ui/Toast';
 import { issueKeys } from '@/hooks/useIssuesQuery';
-import { projectKeys, useProjectWeeksQuery } from '@/hooks/useProjectsQuery';
 import { TabBar } from '@/components/ui/TabBar';
 import { useCurrentDocument } from '@/contexts/CurrentDocumentContext';
 import {

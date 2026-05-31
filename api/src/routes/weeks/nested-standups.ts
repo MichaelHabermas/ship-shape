@@ -12,8 +12,18 @@ import {
 } from '../../utils/transformIssueLinks.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
-import type { StandupRow } from './types.js';
+import type { StandupRow, UserNameEmailRow } from './types.js';
+import { requireFirstRow } from '../../utils/query-rows.js';
 import { requireWeekRead, requireWeekWrite } from './week-access.js';
+
+type StandupInsertRow = {
+  id: string;
+  parent_id: string;
+  title: string;
+  content: unknown;
+  created_at: Date;
+  updated_at: Date;
+};
 
 const router = Router();
 
@@ -173,23 +183,21 @@ router.post('/:id/standups', authMiddleware, async (req: Request, res: Response)
     // parent_id = sprint.id, properties.author_id = current user
     const properties = { author_id: userId };
 
-    const result = await pool.query(
+    const result = await pool.query<StandupInsertRow>(
       `INSERT INTO documents (workspace_id, document_type, title, content, parent_id, properties, created_by, visibility)
        VALUES ($1, 'standup', $2, $3, $4, $5, $6, 'workspace')
-       RETURNING id, parent_id, title, content, properties, created_at, updated_at`,
+       RETURNING id, parent_id, title, content, created_at, updated_at`,
       [workspaceId, title, JSON.stringify(content), id, JSON.stringify(properties), userId]
     );
 
-    // Get author info
-    const authorResult = await pool.query(
+    const authorResult = await pool.query<UserNameEmailRow>(
       `SELECT name, email FROM users WHERE id = $1`,
       [userId]
     );
 
-    const standup = result.rows[0];
-    const author = authorResult.rows[0];
+    const standup = requireFirstRow(result.rows);
+    const author = requireFirstRow(authorResult.rows);
 
-    // Broadcast celebration when standup is created
     broadcastToUser(userId, 'accountability:updated', { type: 'standup', targetId: id });
 
     res.status(201).json({
@@ -198,8 +206,8 @@ router.post('/:id/standups', authMiddleware, async (req: Request, res: Response)
       title: standup.title,
       content: standup.content,
       author_id: userId,
-      author_name: author?.name || null,
-      author_email: author?.email || null,
+      author_name: author.name,
+      author_email: author.email,
       created_at: standup.created_at,
       updated_at: standup.updated_at,
     });

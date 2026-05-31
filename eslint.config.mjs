@@ -1,4 +1,5 @@
 import globals from 'globals';
+import importX from 'eslint-plugin-import-x';
 import tseslint from 'typescript-eslint';
 
 const typedFileGlobs = [
@@ -41,6 +42,7 @@ const typeSafetyRules = {
     },
   ],
   'max-lines': maxLinesRule,
+  'import-x/no-duplicates': 'error',
 };
 
 const typedTypeSafetyRules = {
@@ -52,7 +54,7 @@ const typedTypeSafetyRules = {
   '@typescript-eslint/no-unsafe-call': 'error',
   '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
   '@typescript-eslint/no-unnecessary-condition': 'off',
-  '@typescript-eslint/no-redundant-type-constituents': 'warn',
+  '@typescript-eslint/no-redundant-type-constituents': 'error',
   '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
   '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'warn',
   '@typescript-eslint/no-floating-promises': 'off',
@@ -89,6 +91,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+      'import-x': importX,
     },
     rules: typeSafetyRules,
   },

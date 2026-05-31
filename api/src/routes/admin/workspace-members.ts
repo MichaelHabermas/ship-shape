@@ -1,4 +1,6 @@
+// Admin workspace member and invite management routes.
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../../services/audit.js';
@@ -22,6 +24,21 @@ import {
   mapWorkspaceInvite,
   mapWorkspaceInviteCreated,
 } from './types.js';
+
+const createInviteBodySchema = z.object({
+  email: z.string().email(),
+  x509SubjectDn: z.string().optional(),
+  role: z.enum(['admin', 'member']).optional(),
+});
+
+const addMemberBodySchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(['admin', 'member']).optional(),
+});
+
+const updateMemberRoleBodySchema = z.object({
+  role: z.enum(['admin', 'member']),
+});
 
 const router = Router();
 
@@ -119,7 +136,18 @@ router.get('/workspaces/:id/invites', async (req: Request, res: Response): Promi
 router.post('/workspaces/:id/invites', async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
   const id = String(req.params.id);
-  const { email, x509SubjectDn, role = 'member' } = req.body;
+  const parsedBody = createInviteBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Email is required',
+      },
+    });
+    return;
+  }
+  const { email, x509SubjectDn, role = 'member' } = parsedBody.data;
 
   // Email is always required
   if (!email) {
@@ -340,7 +368,18 @@ router.delete('/workspaces/:workspaceId/invites/:inviteId', async (req: Request,
 router.post('/workspaces/:id/members', async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
   const id = String(req.params.id);
-  const { userId, role = 'member' } = req.body;
+  const parsedBody = addMemberBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'userId is required',
+      },
+    });
+    return;
+  }
+  const { userId, role = 'member' } = parsedBody.data;
 
   try {
     // Validate role
@@ -469,7 +508,18 @@ router.patch('/workspaces/:workspaceId/members/:userId', async (req: Request, re
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
   const workspaceId = String(req.params.workspaceId);
   const userId = String(req.params.userId);
-  const { role } = req.body;
+  const parsedBody = updateMemberRoleBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'Role must be admin or member',
+      },
+    });
+    return;
+  }
+  const { role } = parsedBody.data;
 
   if (role !== 'admin' && role !== 'member') {
     res.status(HTTP_STATUS.BAD_REQUEST).json({

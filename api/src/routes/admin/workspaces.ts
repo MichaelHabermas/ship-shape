@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../../db/client.js';
 import { ERROR_CODES, HTTP_STATUS } from '@ship/shared';
 import { logAuditEvent } from '../../services/audit.js';
@@ -12,6 +13,17 @@ import {
   mapWorkspace,
   mapWorkspaceListItem,
 } from './types.js';
+
+const createWorkspaceBodySchema = z.object({
+  name: z.string().trim().min(1),
+});
+
+const updateWorkspaceBodySchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  sprintStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+}).refine((body) => body.name !== undefined || body.sprintStartDate !== undefined, {
+  message: 'At least one field (name or sprintStartDate) is required',
+});
 
 const router = Router();
 
@@ -53,9 +65,8 @@ router.get('/workspaces', async (req: Request, res: Response): Promise<void> => 
 // POST /api/admin/workspaces - Create workspace
 router.post('/workspaces', async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
-  const { name } = req.body;
-
-  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+  const parsedBody = createWorkspaceBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
@@ -65,6 +76,7 @@ router.post('/workspaces', async (req: Request, res: Response): Promise<void> =>
     });
     return;
   }
+  const { name } = parsedBody.data;
 
   try {
     const result = await pool.query<WorkspaceRow>(
@@ -157,22 +169,21 @@ router.post('/workspaces', async (req: Request, res: Response): Promise<void> =>
 router.patch('/workspaces/:id', async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
   const workspaceId = String(req.params.id); // Always defined from route
-  const { name, sprintStartDate } = req.body as { name?: string; sprintStartDate?: string };
-
-  // At least one field must be provided
-  if (!name && !sprintStartDate) {
+  const parsedBody = updateWorkspaceBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
         code: ERROR_CODES.VALIDATION_ERROR,
-        message: 'At least one field (name or sprintStartDate) is required',
+        message: parsedBody.error.issues[0]?.message ?? 'Invalid request body',
       },
     });
     return;
   }
+  const { name, sprintStartDate } = parsedBody.data;
 
   // Validate name if provided
-  if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
+  if (name !== undefined && name.trim().length === 0) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
@@ -184,18 +195,15 @@ router.patch('/workspaces/:id', async (req: Request, res: Response): Promise<voi
   }
 
   // Validate sprintStartDate if provided (should be YYYY-MM-DD format)
-  if (sprintStartDate !== undefined) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(sprintStartDate)) {
-      res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: {
-          code: ERROR_CODES.VALIDATION_ERROR,
-          message: 'sprintStartDate must be in YYYY-MM-DD format',
-        },
-      });
-      return;
-    }
+  if (sprintStartDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(sprintStartDate)) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.VALIDATION_ERROR,
+        message: 'sprintStartDate must be in YYYY-MM-DD format',
+      },
+    });
+    return;
   }
 
   try {

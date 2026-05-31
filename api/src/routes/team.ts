@@ -1,4 +1,6 @@
+// Team grid, assignments, accountability, and review routes.
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { pool } from '../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -49,6 +51,20 @@ import {
   type TeamProjectRow,
   type WorkspaceSprintStartRow,
 } from './team/types.js';
+
+const assignBodySchema = z.object({
+  personId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
+  programId: z.string().uuid().optional(),
+  sprintNumber: z.number().int(),
+});
+
+const unassignBodySchema = z.object({
+  personId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
+  sprintNumber: z.number().int(),
+});
 
 const router = Router();
 
@@ -470,7 +486,12 @@ router.post('/assign', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { workspaceId } = getAuthenticatedRouteContext(req);
-    const { personId, userId, projectId, programId, sprintNumber } = req.body;
+    const parsed = assignBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+    const { personId, userId, projectId, programId, sprintNumber } = parsed.data;
 
     const result = await assignTeamMember({
       workspaceId,
@@ -505,7 +526,12 @@ router.delete('/assign', authMiddleware, async (req: Request, res: Response) => 
     }
 
     const { userId: currentUserId, workspaceId } = getAuthenticatedRouteContext(req);
-    const { personId, userId, sprintNumber } = req.body;
+    const parsed = unassignBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid request body' });
+      return;
+    }
+    const { personId, userId, sprintNumber } = parsed.data;
 
     // Get visibility context for filtering
     const { isAdmin } = await getVisibilityContext(currentUserId, workspaceId);
@@ -726,7 +752,8 @@ router.get('/people/:personId/sprint-metrics', authMiddleware, async (req: Reque
       return;
     }
 
-    const targetUserId = personDoc.properties?.user_id as string | undefined;
+    const userIdProp = personDoc.properties?.user_id;
+    const targetUserId = typeof userIdProp === 'string' ? userIdProp : undefined;
     if (!targetUserId) {
       res.status(404).json({ error: 'Person not found' });
       return;

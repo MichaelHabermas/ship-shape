@@ -32,6 +32,19 @@ interface SessionInfoRow {
   last_activity: string | Date;
 }
 
+interface UserMeRow {
+  id: string;
+  email: string;
+  name: string;
+  is_super_admin: boolean;
+}
+
+interface CurrentWorkspaceRow {
+  id: string;
+  name: string;
+  role: string | null;
+}
+
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -195,7 +208,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Session fixation prevention: Delete any existing session from this request
-    const oldSessionId = req.cookies.session_id;
+    const oldSessionId = typeof req.cookies.session_id === 'string' ? req.cookies.session_id : undefined;
     if (oldSessionId) {
       await pool.query('DELETE FROM sessions WHERE id = $1', [oldSessionId]);
     }
@@ -306,7 +319,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const result = await pool.query<UserMeRow>(
       `SELECT id, email, name, is_super_admin FROM users WHERE id = $1`,
       [req.userId]
     );
@@ -337,18 +350,19 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     // Get current workspace info
     let currentWorkspace = null;
     if (req.workspaceId) {
-      const currentResult = await pool.query(
+      const currentResult = await pool.query<CurrentWorkspaceRow>(
         `SELECT w.id, w.name, wm.role
          FROM workspaces w
          LEFT JOIN workspace_memberships wm ON w.id = wm.workspace_id AND wm.user_id = $2
          WHERE w.id = $1`,
         [req.workspaceId, req.userId]
       );
-      if (currentResult.rows[0]) {
+      const currentRow = currentResult.rows[0];
+      if (currentRow) {
         currentWorkspace = {
-          id: currentResult.rows[0].id,
-          name: currentResult.rows[0].name,
-          role: currentResult.rows[0].role || 'admin', // Super-admin without membership
+          id: currentRow.id,
+          name: currentRow.name,
+          role: currentRow.role || 'admin', // Super-admin without membership
         };
       }
     }

@@ -1,3 +1,4 @@
+// First-run setup: create super admin, workspace, and seed documents.
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/client.js';
@@ -13,6 +14,14 @@ import {
 import { authorize } from '../security/capabilities.js';
 import { setupPrincipalFromRequest } from '../security/setup-access.js';
 import { requireFirstRow } from '../utils/query-rows.js';
+import { type IdRow } from './route-query-rows.js';
+
+type SetupUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  is_super_admin: boolean;
+};
 
 const router = Router();
 
@@ -136,21 +145,21 @@ router.post(
           return;
         }
 
-        const workspaceResult = await client.query(
+        const workspaceResult = await client.query<IdRow>(
           `INSERT INTO workspaces (name)
            VALUES ($1)
            RETURNING id`,
           [`${name}'s Workspace`]
         );
-        const workspaceId = workspaceResult.rows[0].id;
+        const workspaceId = requireFirstRow(workspaceResult.rows).id;
 
-        const userResult = await client.query(
+        const userResult = await client.query<SetupUserRow>(
           `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
            VALUES ($1, $2, $3, true, $4)
            RETURNING id, email, name, is_super_admin`,
           [email.toLowerCase(), passwordHash, name, workspaceId]
         );
-        const user = userResult.rows[0];
+        const user = requireFirstRow(userResult.rows);
 
         await client.query(
           `INSERT INTO workspace_memberships (workspace_id, user_id, role)

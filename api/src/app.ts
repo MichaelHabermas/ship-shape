@@ -1,5 +1,5 @@
 // Express app assembly wires middleware, security policy, and API route modules.
-import express from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -54,7 +54,6 @@ function getHeaderValue(value: string | string[] | undefined): string | undefine
 }
 
 // Conditional CSRF middleware - skip for API token auth (Bearer tokens are not vulnerable to CSRF)
-import { Request, Response, NextFunction } from 'express';
 const CSRF_COOKIE_NAME = 'csrf_token';
 
 function generateCsrfToken(): string {

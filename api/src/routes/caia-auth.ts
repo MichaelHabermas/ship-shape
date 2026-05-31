@@ -219,13 +219,13 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
     );
 
     // Session fixation prevention: delete any existing session
-    const oldSessionId = req.cookies.session_id;
+    const oldSessionId = typeof req.cookies.session_id === 'string' ? req.cookies.session_id : undefined;
     if (oldSessionId) {
       await pool.query('DELETE FROM sessions WHERE id = $1', [oldSessionId]);
     }
 
     // Get user's workspaces
-    const workspacesResult = await pool.query(
+    const workspacesResult = await pool.query<WorkspaceMembershipRow>(
       `SELECT w.id, w.name, wm.role
        FROM workspaces w
        JOIN workspace_memberships wm ON w.id = wm.workspace_id
@@ -238,11 +238,11 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
     let workspaceId = user.last_workspace_id;
 
     // Validate workspace access
-    if (workspaceId && !workspaces.some((w: { id: string }) => w.id === workspaceId)) {
+    if (workspaceId && !workspaces.some((w) => w.id === workspaceId)) {
       workspaceId = null;
     }
     if (!workspaceId && workspaces.length > 0) {
-      workspaceId = workspaces[0].id;
+      workspaceId = workspaces[0]?.id ?? null;
     }
 
     // Super-admins can log in without workspace membership
@@ -396,6 +396,12 @@ interface PendingInvite {
   email: string | null;
   role: 'admin' | 'member';
 }
+
+type WorkspaceMembershipRow = {
+  id: string;
+  name: string;
+  role: string;
+};
 
 /**
  * Find a pending invite matching email (returns first/most recent)
