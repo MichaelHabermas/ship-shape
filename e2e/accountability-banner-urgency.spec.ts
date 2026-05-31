@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { ActionItemsResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -19,7 +21,7 @@ test.describe('Accountability Banner Urgency', () => {
     // The seed data creates sprints 3 months ago - items will be overdue
     const response = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(response.ok()).toBe(true);
-    const data = await response.json();
+    const data = await readJsonAs<ActionItemsResponse>(response);
 
     // Verify the response shape includes urgency flags
     expect(data).toHaveProperty('has_overdue');
@@ -34,7 +36,7 @@ test.describe('Accountability Banner Urgency', () => {
     // Seed data has sprints from 3 months ago - items will be overdue
     const actionItemsResponse = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse.ok()).toBe(true);
-    const actionItems = await actionItemsResponse.json();
+    const actionItems = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
 
     // Verify we actually have overdue items from seed data
     expect(actionItems.items.length).toBeGreaterThan(0);
@@ -58,13 +60,13 @@ test.describe('Accountability Banner Urgency', () => {
 
     const response = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(response.ok()).toBe(true);
-    const data = await response.json();
+    const data = await readJsonAs<ActionItemsResponse>(response);
 
     // Seed data creates sprints from 3 months ago, so items should be overdue
     expect(data.items.length).toBeGreaterThan(0);
 
-    const overdueItems = data.items.filter((item: { days_overdue: number }) => item.days_overdue > 0);
-    const dueTodayItems = data.items.filter((item: { days_overdue: number }) => item.days_overdue === 0);
+    const overdueItems = data.items.filter((item) => (item.days_overdue ?? 0) > 0);
+    const dueTodayItems = data.items.filter((item) => item.days_overdue === 0);
 
     // Verify has_overdue flag matches actual items
     expect(data.has_overdue).toBe(overdueItems.length > 0);

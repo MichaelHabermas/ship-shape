@@ -647,7 +647,12 @@ describe('Invite Validation API', () => {
       const csrf = await agent.get('/api/csrf-token')
       const response = await agent
         .post(`/api/invites/${acceptToken}/accept`)
-        .set('X-CSRF-Token', csrf.body.token)
+        .set(
+          'X-CSRF-Token',
+          typeof (csrf.body as { token?: unknown }).token === 'string'
+            ? (csrf.body as { token: string }).token
+            : '',
+        )
         .send({ name: 'Invite Accept', password: 'correct-horse-battery' })
 
       expect(response.status).toBe(201)

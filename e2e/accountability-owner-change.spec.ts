@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/isolated-env';
 import { loginViaApi } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { ActionItemsResponse, ApiId, AuthMeResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -23,7 +25,7 @@ test.describe('Accountability Owner Change', () => {
     // Get user ID
     const meResponse = await page.request.get(`${apiServer.url}/api/auth/me`);
     expect(meResponse.ok()).toBe(true);
-    const meData = await meResponse.json();
+    const meData = await readJsonAs<AuthMeResponse>(meResponse);
     const userId = meData.data.user.id;
 
     // Create a program via documents API
@@ -35,7 +37,7 @@ test.describe('Accountability Owner Change', () => {
       },
     });
     expect(programResponse.ok()).toBe(true);
-    const program = await programResponse.json();
+    const program = await readJsonAs<ApiId>(programResponse);
     const programId = program.id;
 
     // Create a sprint via sprints API (requires sprint_number for accountability to work)
@@ -50,16 +52,16 @@ test.describe('Accountability Owner Change', () => {
       },
     });
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<ApiId>(sprintResponse);
     const sprintId = sprint.id;
 
     // Step 2: Check action items - should include sprint items for this sprint
     const actionItemsResponse = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse.ok()).toBe(true);
-    const actionItems = await actionItemsResponse.json();
+    const actionItems = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
 
     const sprintItems = actionItems.items.filter(
-      (item: { accountability_target_id: string }) => item.accountability_target_id === sprintId
+      (item) => item.accountability_target_id === sprintId
     );
 
     // Should have at least weekly_plan action item (new sprint without plan)
@@ -75,10 +77,10 @@ test.describe('Accountability Owner Change', () => {
     // Step 4: Check action items again - should have NO items for this sprint
     const actionItemsResponse2 = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse2.ok()).toBe(true);
-    const actionItems2 = await actionItemsResponse2.json();
+    const actionItems2 = await readJsonAs<ActionItemsResponse>(actionItemsResponse2);
 
     const sprintItems2 = actionItems2.items.filter(
-      (item: { accountability_target_id: string }) => item.accountability_target_id === sprintId
+      (item) => item.accountability_target_id === sprintId
     );
 
     // Key assertion: After removing owner, no action items should exist for this sprint

@@ -1,6 +1,15 @@
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
 
+interface PersonDocument {
+  id: string;
+  properties?: { user_id?: string };
+}
+
+interface ApiDocument {
+  id: string;
+}
 
 /**
  * E2E tests for Project Weeks tab feature.
@@ -21,11 +30,14 @@ async function getPersonIdForUser(
 ): Promise<string> {
   const response = await page.request.get(`${apiUrl}/api/documents?document_type=person`);
   expect(response.ok()).toBe(true);
-  const docs = await response.json();
+  const docs = await readJsonAs<PersonDocument[]>(response);
   const person = docs.find(
-    (d: { properties?: { user_id?: string } }) => d.properties?.user_id === userId
+    (d) => d.properties?.user_id === userId
   );
   expect(person, 'User should have an associated person document').toBeTruthy();
+  if (!person) {
+    throw new Error('User should have an associated person document');
+  }
   return person.id;
 }
 
@@ -44,7 +56,7 @@ async function createTestProject(
     },
   });
   expect(response.ok()).toBe(true);
-  const project = await response.json();
+  const project = await readJsonAs<ApiDocument>(response);
 
   const renameResponse = await page.request.patch(`${apiUrl}/api/documents/${project.id}`, {
     headers: { 'x-csrf-token': csrfToken },
@@ -79,7 +91,7 @@ async function createAllocation(
     },
   });
   expect(response.ok()).toBe(true);
-  const sprint = await response.json();
+  const sprint = await readJsonAs<ApiDocument>(response);
   return sprint.id;
 }
 

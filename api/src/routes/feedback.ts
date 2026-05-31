@@ -15,6 +15,7 @@ import {
 } from '../openapi/schemas/feedback.js';
 import { getActor, getDocumentAccessContext, visibilityPredicate } from '../services/document-access.js';
 import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 
 // Public routes - no auth/CSRF required
 export const publicFeedbackRouter: ExpressRouter = Router();
@@ -97,7 +98,11 @@ publicFeedbackRouter.post(
         const { title, program_id, submitter_email, content } = body;
 
         // Verify public feedback is enabled for this workspace-visible program.
-        const programResult = await pool.query(
+        const programResult = await pool.query<{
+          id: string;
+          workspace_id: string;
+          prefix: string | null;
+        }>(
           `SELECT id, workspace_id, properties->>'prefix' as prefix
            FROM documents
            WHERE id = $1
@@ -114,17 +119,18 @@ publicFeedbackRouter.post(
           return;
         }
 
-        const workspaceId = programResult.rows[0].workspace_id;
-        const programPrefix = programResult.rows[0].prefix;
+        const programRow = requireFirstRow(programResult.rows, 'Program not found');
+        const workspaceId = programRow.workspace_id;
+        const programPrefix = programRow.prefix;
 
         // Get next ticket number for workspace
-        const ticketResult = await pool.query(
+        const ticketResult = await pool.query<{ next_number: number }>(
           `SELECT COALESCE(MAX(ticket_number), 0) + 1 as next_number
            FROM documents
            WHERE workspace_id = $1 AND document_type = 'issue'`,
           [workspaceId]
         );
-        const ticketNumber = ticketResult.rows[0].next_number;
+        const ticketNumber = requireFirstRow(ticketResult.rows).next_number;
 
         // Build properties JSONB - external feedback goes directly to triage
         const properties = {
@@ -137,14 +143,15 @@ publicFeedbackRouter.post(
         };
 
         // Create the feedback issue (no created_by for public submissions)
-        const result = await pool.query(
+        const result = await pool.query<FeedbackRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, content)
            VALUES ($1, 'issue', $2, $3, $4, $5)
            RETURNING *`,
           [workspaceId, title, JSON.stringify(properties), ticketNumber, content ? JSON.stringify(content) : null]
         );
 
-        const feedbackId = result.rows[0].id;
+        const created = requireFirstRow(result.rows);
+        const feedbackId = created.id;
 
         // Create program association via document_associations
         await pool.query(
@@ -153,7 +160,7 @@ publicFeedbackRouter.post(
           [feedbackId, program_id]
         );
 
-        res.status(201).json({ ...extractFeedbackFromRow(result.rows[0], programPrefix), program_id });
+        res.status(201).json({ ...extractFeedbackFromRow(created, programPrefix), program_id });
       } catch (err) {
         sendInternalError(res, err, 'Create feedback error');
       }
@@ -260,7 +267,7 @@ router.get(
           return;
         }
 
-        res.json(extractFeedbackFromRow(result.rows[0]));
+        res.json(extractFeedbackFromRow(result.rows[0] as FeedbackRow));
       } catch (err) {
         sendInternalError(res, err, 'Get feedback error');
       }

@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env'
+import { readJsonAs } from './fixtures/typed-json'
+import type { AccountabilityGridV3Response } from './fixtures/e2e-api-types'
 
 test.describe('Status Overview Heatmap', () => {
   test.beforeEach(async ({ page }) => {
@@ -158,7 +160,7 @@ test.describe('Status Overview Heatmap', () => {
       { timeout: 10000 }
     )
 
-    const data = await response.json()
+    const data = await readJsonAs<AccountabilityGridV3Response>(response)
 
     // Verify data structure
     expect(data).toHaveProperty('programs')
@@ -182,7 +184,7 @@ test.describe('Status Overview Heatmap', () => {
     expect(data.weeks[0]).toHaveProperty('isCurrent')
 
     // Verify at least one week is marked as current
-    const currentWeeks = data.weeks.filter((w: { isCurrent: boolean }) => w.isCurrent)
+    const currentWeeks = data.weeks.filter((w) => w.isCurrent)
     expect(currentWeeks.length).toBe(1)
   })
 

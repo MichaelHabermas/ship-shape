@@ -307,7 +307,7 @@ describe('Collaboration Server', () => {
       )
 
       // Retrieve and verify
-      const result = await pool.query(
+      const result = await pool.query<{ yjs_state: Buffer }>(
         'SELECT yjs_state FROM documents WHERE id = $1',
         [testDocId]
       )
@@ -497,7 +497,7 @@ describe('Collaboration Server', () => {
 
       // Check inactivity timeout (15 minutes)
       const SESSION_TIMEOUT_MS = 15 * 60 * 1000
-      const result = await pool.query(
+      const result = await pool.query<{ last_activity: string | Date }>(
         `SELECT user_id, last_activity FROM sessions WHERE id = $1`,
         [sessionId]
       )
@@ -523,7 +523,7 @@ describe('Collaboration Server', () => {
 
       // Check absolute timeout (12 hours)
       const ABSOLUTE_SESSION_TIMEOUT_MS = 12 * 60 * 60 * 1000
-      const result = await pool.query(
+      const result = await pool.query<{ created_at: string | Date }>(
         `SELECT created_at FROM sessions WHERE id = $1`,
         [sessionId]
       )
@@ -698,7 +698,7 @@ describe('Collaboration Server', () => {
       )
 
       // Now load it back
-      const result = await pool.query(
+      const result = await pool.query<{ yjs_state: Buffer }>(
         `SELECT yjs_state FROM documents WHERE id = $1`,
         [testDocId]
       )
@@ -734,7 +734,7 @@ describe('Collaboration Server', () => {
       const jsonDocId = jsonDocResult.rows[0].id
 
       // Verify content is stored
-      const result = await pool.query(
+      const result = await pool.query<{ content: string | Record<string, unknown>; yjs_state: Buffer | null }>(
         `SELECT content, yjs_state FROM documents WHERE id = $1`,
         [jsonDocId]
       )
@@ -743,9 +743,10 @@ describe('Collaboration Server', () => {
       expect(result.rows[0].content).toBeDefined()
 
       // Parse content
-      const content = typeof result.rows[0].content === 'string'
-        ? JSON.parse(result.rows[0].content)
-        : result.rows[0].content
+      const rawContent = result.rows[0].content;
+      const content = typeof rawContent === 'string'
+        ? JSON.parse(rawContent) as { type: string; content: Array<{ type: string }> }
+        : rawContent
 
       expect(content.type).toBe('doc')
       expect(content.content[0].type).toBe('paragraph')
@@ -907,7 +908,7 @@ describe('Collaboration Server', () => {
       )
       const docId = docResult.rows[0].id
 
-      const result = await pool.query(
+      const result = await pool.query<{ yjs_state: Buffer | null; content: unknown }>(
         `SELECT yjs_state, content FROM documents WHERE id = $1`,
         [docId]
       )

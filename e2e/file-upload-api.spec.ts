@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, loginAndGetSessionCookieHeader } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { FileUploadInitResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -88,7 +90,7 @@ test.describe('File Upload API', () => {
       },
     });
     expect(uploadResponse.ok()).toBeTruthy();
-    const uploadData = await uploadResponse.json();
+    const uploadData = await readJsonAs<FileUploadInitResponse>(uploadResponse);
     const { fileId, uploadUrl } = uploadData;
 
     // Step 2: Upload file data (to local endpoint in dev)

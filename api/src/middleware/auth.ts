@@ -90,9 +90,7 @@ export async function authMiddleware(
   }
 
   // Fall back to session cookie auth
-  const sessionId = req.cookies?.session_id;
-
-  if (!sessionId) {
+  if (typeof req.cookies?.session_id !== 'string') {
     res.status(HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
       error: {
@@ -103,11 +101,17 @@ export async function authMiddleware(
     return;
   }
 
+  const sessionId = req.cookies.session_id;
+
   try {
     const userAgentHeader = req.headers?.['user-agent'];
     const validation = await validateAuthenticatedSession(sessionId, {
       updateActivity: true,
-      userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader || null,
+      userAgent: Array.isArray(userAgentHeader)
+        ? String(userAgentHeader[0])
+        : typeof userAgentHeader === 'string'
+          ? userAgentHeader
+          : null,
       ipAddress: req.ip || req.socket?.remoteAddress || null,
     });
 

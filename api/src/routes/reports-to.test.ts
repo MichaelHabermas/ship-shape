@@ -274,14 +274,14 @@ describe('Reports-To Features', () => {
       let randomCookie = `session_id=${sessionId}`
 
       const csrfRes = await request(app).get('/api/csrf-token').set('Cookie', randomCookie)
-      const randomCsrf = csrfRes.body.token
+      const randomCsrf = typeof csrfRes.body?.token === 'string' ? csrfRes.body.token : ''
       const connectSid = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
       if (connectSid) randomCookie = `${randomCookie}; ${connectSid}`
 
       const res = await request(app)
         .post(`/api/weeks/${testSprintId}/approve-plan`)
         .set('Cookie', randomCookie)
-        .set('X-CSRF-Token', randomCsrf)
+        .set('X-CSRF-Token', String(randomCsrf))
 
       expect(res.status).toBe(403)
 
@@ -299,11 +299,12 @@ describe('Reports-To Features', () => {
         .set('Cookie', adminCookie)
 
       expect(res.status).toBe(200)
-      expect(res.body).toBeInstanceOf(Array)
-      expect(res.body.length).toBeGreaterThanOrEqual(2)
+      const people = res.body as Array<{ id: string; reportsTo?: string; role?: string }>
+      expect(people).toBeInstanceOf(Array)
+      expect(people.length).toBeGreaterThanOrEqual(2)
 
       // Find the member person doc
-      const member = res.body.find((p: { id: string }) => p.id === memberPersonDocId)
+      const member = people.find((p) => p.id === memberPersonDocId)
       expect(member).toBeDefined()
       expect(member).toHaveProperty('reportsTo')
       expect(member).toHaveProperty('role')
@@ -321,8 +322,9 @@ describe('Reports-To Features', () => {
         .get('/api/team/people')
         .set('Cookie', adminCookie)
 
-      const member = res.body.find((p: { id: string }) => p.id === memberPersonDocId)
-      expect(member.reportsTo).toBe(adminUserId)
+      const people = res.body as Array<{ id: string; reportsTo?: string }>
+      const member = people.find((p) => p.id === memberPersonDocId)
+      expect(member?.reportsTo).toBe(adminUserId)
     })
   })
 })

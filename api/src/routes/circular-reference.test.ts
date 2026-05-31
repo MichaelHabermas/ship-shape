@@ -77,15 +77,15 @@ describe('Circular Reference Protection', () => {
       await pool.query(`UPDATE documents SET parent_id = $1 WHERE id = $2`, [testDocBId, testDocCId])
 
       // Verify the chain
-      const result = await pool.query(
+      const result = await pool.query<{ id: string; parent_id: string | null }>(
         `SELECT id, parent_id FROM documents WHERE id IN ($1, $2, $3)`,
         [testDocAId, testDocBId, testDocCId]
       )
 
-      const docs = result.rows.reduce((acc, row) => {
+      const docs = result.rows.reduce<Record<string, string | null>>((acc, row) => {
         acc[row.id] = row.parent_id
         return acc
-      }, {} as Record<string, string | null>)
+      }, {})
 
       expect(docs[testDocAId]).toBeNull()
       expect(docs[testDocBId]).toBe(testDocAId)

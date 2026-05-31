@@ -1,3 +1,4 @@
+/** First-run setup API tests (token gate and concurrent initialization). */
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 
@@ -7,13 +8,17 @@ import { SetupInitializeResponseSchema } from '../openapi/schemas/setup.js';
 import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 function cookieHeader(response: request.Response): string {
-  return response.headers['set-cookie']?.map((cookie: string) => cookie.split(';')[0]).join('; ') ?? '';
+  const cookies = response.headers['set-cookie'];
+  if (!cookies) return '';
+  const cookieList: string[] = Array.isArray(cookies) ? cookies : [cookies];
+  return cookieList.map((cookie) => cookie.split(';')[0]).join('; ');
 }
 
 async function csrf(agent: request.SuperAgentTest) {
   const response = await agent.get('/api/csrf-token');
+  const token = typeof response.body?.token === 'string' ? response.body.token : '';
   return {
-    token: response.body.token,
+    token,
     cookie: cookieHeader(response),
   };
 }
@@ -31,7 +36,7 @@ describe('Setup API', () => {
       const response = await agent
         .post('/api/setup/initialize')
         .set('Cookie', csrfToken.cookie)
-        .set('x-csrf-token', csrfToken.token)
+        .set('x-csrf-token', String(csrfToken.token))
         .send({
           email: 'setup-token-denied@ship.local',
           password: 'setup-password',
@@ -60,7 +65,7 @@ describe('Setup API', () => {
       agentA
         .post('/api/setup/initialize')
         .set('Cookie', csrfA.cookie)
-        .set('x-csrf-token', csrfA.token)
+        .set('x-csrf-token', String(csrfA.token))
         .send({
           email: 'setup-race-a@ship.local',
           password: 'setup-password-a',
@@ -69,7 +74,7 @@ describe('Setup API', () => {
       agentB
         .post('/api/setup/initialize')
         .set('Cookie', csrfB.cookie)
-        .set('x-csrf-token', csrfB.token)
+        .set('x-csrf-token', String(csrfB.token))
         .send({
           email: 'setup-race-b@ship.local',
           password: 'setup-password-b',

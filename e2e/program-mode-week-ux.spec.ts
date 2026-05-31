@@ -13,6 +13,8 @@
 
 import { test, expect, Page, type APIRequestContext } from './fixtures/isolated-env'
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { WeeksListResponse } from './fixtures/e2e-api-types';
 
 
 // Make tests run serially to prevent race conditions with sprint creation
@@ -162,8 +164,8 @@ test.describe('Phase 1: Data Model & Status Computation', () => {
       clickSprintsTab(page)
     ])
 
-    const data = await response.json()
-    const sprintNumbers = data.weeks.map((s: { sprint_number: number }) => s.sprint_number)
+    const data = await readJsonAs<WeeksListResponse>(response)
+    const sprintNumbers = data.weeks.map((s) => s.sprint_number)
 
     // Should have multiple sprints with different sprint_numbers
     expect(sprintNumbers.length).toBeGreaterThan(1)

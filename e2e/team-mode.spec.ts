@@ -1,4 +1,6 @@
 import { test, expect } from './fixtures/isolated-env'
+import { readJsonAs } from './fixtures/typed-json'
+import type { TeamGridFullResponse } from './fixtures/e2e-api-types'
 
 test.describe('Team Mode (Phase 7)', () => {
   test.beforeEach(async ({ page }) => {
@@ -98,7 +100,7 @@ test.describe('Team Mode (Phase 7)', () => {
       resp => resp.url().includes('/api/team/grid') && resp.status() === 200
     )
 
-    const data = await response.json()
+    const data = await readJsonAs<TeamGridFullResponse>(response)
 
     // Verify data structure
     expect(data).toHaveProperty('users')
@@ -122,7 +124,7 @@ test.describe('Team Mode (Phase 7)', () => {
     expect(data.weeks[0]).toHaveProperty('isCurrent')
 
     // Verify at least one week is marked as current
-    const currentWeeks = data.weeks.filter((s: { isCurrent: boolean }) => s.isCurrent)
+    const currentWeeks = data.weeks.filter((s) => s.isCurrent)
     expect(currentWeeks.length).toBe(1)
   })
 

@@ -131,7 +131,16 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
   const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<{
+      id: string;
+      name: string;
+      token_prefix: string;
+      scopes: ApiTokenScope[] | null;
+      last_used_at: string | Date | null;
+      expires_at: string | Date | null;
+      revoked_at: string | Date | null;
+      created_at: string | Date;
+    }>(
       `SELECT id, name, token_prefix, scopes, last_used_at, expires_at, revoked_at, created_at
        FROM api_tokens
        WHERE user_id = $1 AND workspace_id = $2
@@ -145,7 +154,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
         id: row.id,
         name: row.name,
         token_prefix: row.token_prefix,
-        scopes: (row.scopes ?? ['legacy:full']) as ApiTokenScope[],
+        scopes: row.scopes ?? ['legacy:full'],
         last_used_at: row.last_used_at,
         expires_at: row.expires_at,
         is_active: !row.revoked_at && (!row.expires_at || new Date(row.expires_at) > new Date()),

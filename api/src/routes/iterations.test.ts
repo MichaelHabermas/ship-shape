@@ -16,7 +16,7 @@ vi.mock('../middleware/visibility.js', () => ({
 
 // Mock auth middleware
 vi.mock('../middleware/auth.js', () => ({
-  authMiddleware: vi.fn((req, res, next) => {
+  authMiddleware: vi.fn((req: { userId?: string; workspaceId?: string }, _res: unknown, next: () => void) => {
     req.userId = 'user-123';
     req.workspaceId = 'ws-123';
     next();

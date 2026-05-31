@@ -1,6 +1,16 @@
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { ProjectAllocationGridResponse } from './fixtures/e2e-api-types';
 
+interface PersonDocument {
+  id: string;
+  properties?: { user_id?: string };
+}
+
+interface ApiDocument {
+  id: string;
+}
 
 /**
  * E2E tests for Weekly Accountability Documents feature.
@@ -23,11 +33,14 @@ async function getPersonIdForUser(
 ): Promise<string> {
   const response = await page.request.get(`${apiUrl}/api/documents?document_type=person`);
   expect(response.ok()).toBe(true);
-  const docs = await response.json();
+  const docs = await readJsonAs<PersonDocument[]>(response);
   const person = docs.find(
-    (d: { properties?: { user_id?: string } }) => d.properties?.user_id === userId
+    (d) => d.properties?.user_id === userId
   );
   expect(person, 'User should have an associated person document').toBeTruthy();
+  if (!person) {
+    throw new Error('User should have an associated person document');
+  }
   return person.id;
 }
 
@@ -46,7 +59,7 @@ async function createTestProject(
     },
   });
   expect(response.ok()).toBe(true);
-  const project = await response.json();
+  const project = await readJsonAs<ApiDocument>(response);
 
   const renameResponse = await page.request.patch(`${apiUrl}/api/documents/${project.id}`, {
     headers: { 'x-csrf-token': csrfToken },
@@ -439,11 +452,14 @@ test.describe('Project Allocation Grid API', () => {
     );
 
     expect(gridResponse.ok(), `Expected 200 OK but got ${gridResponse.status()}`).toBe(true);
-    const grid = await gridResponse.json();
+    const grid = await readJsonAs<ProjectAllocationGridResponse>(gridResponse);
 
     // Find person in grid
-    const personInGrid = grid.people.find((p: { id: string }) => p.id === personId);
+    const personInGrid = grid.people.find((p) => p.id === personId);
     expect(personInGrid, 'Person should appear in allocation grid').toBeTruthy();
+    if (!personInGrid) {
+      throw new Error('Person should appear in allocation grid');
+    }
 
     // Person should have week 1 data
     const week1Data = personInGrid.weeks[1];

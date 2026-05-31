@@ -25,7 +25,7 @@ vi.mock('../middleware/visibility.js', () => ({
 
 // Mock auth middleware
 vi.mock('../middleware/auth.js', () => ({
-  authMiddleware: vi.fn((req, res, next) => {
+  authMiddleware: vi.fn((req: { userId?: string; workspaceId?: string }, _res: unknown, next: () => void) => {
     req.userId = '11111111-1111-4111-8111-111111111111';
     req.workspaceId = '22222222-2222-4222-8222-222222222222';
     next();
@@ -36,7 +36,11 @@ vi.mock('../security/route-capability.js', () => {
   const documentIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   return {
-    guardDocumentIdParam: vi.fn((res, rawId, notFoundMessage) => {
+    guardDocumentIdParam: vi.fn((
+      res: { status: (code: number) => { json: (body: unknown) => void } },
+      rawId: unknown,
+      notFoundMessage: string,
+    ) => {
       if (typeof rawId !== 'string' || !documentIdPattern.test(rawId)) {
         res.status(404).json({ error: notFoundMessage });
         return null;

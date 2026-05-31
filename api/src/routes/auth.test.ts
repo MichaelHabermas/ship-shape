@@ -26,7 +26,7 @@ describe('Auth API', () => {
   // Helper to get CSRF token and session cookie for requests
   async function getCsrfTokenAndCookie(): Promise<{ csrfToken: string; cookie: string }> {
     const csrfRes = await request(app).get('/api/csrf-token')
-    const csrfToken = csrfRes.body.token
+    const csrfToken = typeof csrfRes.body?.token === 'string' ? csrfRes.body.token : ''
     const cookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
     return { csrfToken, cookie }
   }
@@ -203,22 +203,24 @@ describe('Auth API', () => {
 
       expect(loginRes.status).toBe(200)
       const cookies = getCookiesArray(loginRes.headers['set-cookie'])
-      const sessionCookie = cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0]
+      const sessionCookie =
+        cookies.find((c: string) => c.startsWith('session_id='))?.split(';')[0] ?? ''
 
       // Get CSRF token with session
       const csrfRes = await request(app)
         .get('/api/csrf-token')
-        .set('Cookie', sessionCookie || '')
+        .set('Cookie', sessionCookie)
 
-      const csrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
+      const csrfBody = csrfRes.body as { token?: unknown }
+      const csrfToken = typeof csrfBody.token === 'string' ? csrfBody.token : ''
+      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] ?? ''
       const fullCookie = connectSidCookie ? `${sessionCookie}; ${connectSidCookie}` : sessionCookie
 
       // Now logout
       const logoutRes = await request(app)
         .post('/api/auth/logout')
-        .set('Cookie', fullCookie || '')
-        .set('x-csrf-token', csrfToken || '')
+        .set('Cookie', String(fullCookie ?? ''))
+        .set('x-csrf-token', csrfToken)
 
       expect(logoutRes.status).toBe(200)
       expect(logoutRes.body.success).toBe(true)
@@ -307,8 +309,9 @@ describe('Auth API', () => {
         .get('/api/csrf-token')
         .set('Cookie', sessionCookie)
 
-      const csrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
+      const csrfBody = csrfRes.body as { token?: unknown }
+      const csrfToken = typeof csrfBody.token === 'string' ? csrfBody.token : ''
+      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] ?? ''
       if (connectSidCookie) {
         sessionCookie = `${sessionCookie}; ${connectSidCookie}`
       }
@@ -317,7 +320,7 @@ describe('Auth API', () => {
       const res = await request(app)
         .post('/api/auth/extend-session')
         .set('Cookie', sessionCookie)
-        .set('x-csrf-token', csrfToken || '')
+        .set('x-csrf-token', csrfToken)
 
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)
@@ -325,7 +328,7 @@ describe('Auth API', () => {
       expect(res.body.data.lastActivity).toBeDefined()
 
       // Verify expiry is in the future
-      const expiresAt = new Date(res.body.data.expiresAt)
+      const expiresAt = new Date(String(res.body.data.expiresAt))
       expect(expiresAt.getTime()).toBeGreaterThan(Date.now())
     })
   })
@@ -390,8 +393,9 @@ describe('Auth API', () => {
         .get('/api/csrf-token')
         .set('Cookie', session1Cookie)
 
-      const csrfToken = csrfRes.body.token
-      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
+      const csrfBody = csrfRes.body as { token?: unknown }
+      const csrfToken = typeof csrfBody.token === 'string' ? csrfBody.token : ''
+      const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] ?? ''
       if (connectSidCookie) {
         session1Cookie = `${session1Cookie}; ${connectSidCookie}`
       }

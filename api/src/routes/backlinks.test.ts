@@ -1,3 +1,4 @@
+/** API tests for document backlink creation, listing, and replacement. */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
@@ -133,7 +134,8 @@ describe('Backlinks API', () => {
       expect(backlink).toHaveProperty('title');
 
       // Verify we got the correct documents
-      const ids = response.body.map((b: { id: string }) => b.id);
+      const backlinks = response.body as Array<{ id: string }>;
+      const ids = backlinks.map((b) => b.id);
       expect(ids).toContain(testDoc2Id);
       expect(ids).toContain(testDoc3Id);
     });
@@ -284,7 +286,7 @@ describe('Backlinks API', () => {
       expect(response.body.success).toBe(true);
 
       // Verify links were created
-      const result = await pool.query(
+      const result = await pool.query<{ target_id: string }>(
         'SELECT target_id FROM document_links WHERE source_id = $1',
         [testDocId]
       );
@@ -493,7 +495,8 @@ describe('Backlinks API', () => {
         .set('Cookie', sessionCookie);
       expect(getRes.status).toBe(200);
       expect(Array.isArray(getRes.body)).toBe(true);
-      expect(getRes.body.some((b: { id: string }) => b.id === testDocId)).toBe(true);
+      const mentionBacklinks = getRes.body as Array<{ id: string }>;
+      expect(mentionBacklinks.some((b) => b.id === testDocId)).toBe(true);
     });
   });
 });

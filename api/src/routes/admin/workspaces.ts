@@ -157,7 +157,7 @@ router.post('/workspaces', async (req: Request, res: Response): Promise<void> =>
 router.patch('/workspaces/:id', async (req: Request, res: Response): Promise<void> => {
   const { userId: actorUserId } = getAuthenticatedUserContext(req);
   const workspaceId = String(req.params.id); // Always defined from route
-  const { name, sprintStartDate } = req.body;
+  const { name, sprintStartDate } = req.body as { name?: string; sprintStartDate?: string };
 
   // At least one field must be provided
   if (!name && !sprintStartDate) {

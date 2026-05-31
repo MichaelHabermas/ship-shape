@@ -74,10 +74,12 @@ test.describe('Syntax Highlighting - Code Blocks', () => {
     await expect(codeBlock).toBeVisible()
 
     // Check if language class is applied (Prism.js adds language-javascript)
-    const hasLanguageClass = await codeBlock.evaluate(el => {
-      return el.className.includes('language-javascript') ||
-             el.className.includes('javascript') ||
-             el.parentElement?.getAttribute('data-language') === 'javascript'
+    const hasLanguageClass = await codeBlock.evaluate((el: HTMLElement) => {
+      return (
+        el.className.includes('language-javascript') ||
+        el.className.includes('javascript') ||
+        el.parentElement?.getAttribute('data-language') === 'javascript'
+      );
     })
     expect(hasLanguageClass).toBeTruthy()
   })

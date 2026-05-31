@@ -366,7 +366,15 @@ async function findUserByEmail(email: string): Promise<{
   is_super_admin: boolean;
   last_workspace_id: string | null;
 } | null> {
-  const result = await pool.query(
+  type UserLookupRow = {
+    id: string;
+    email: string;
+    name: string;
+    is_super_admin: boolean;
+    last_workspace_id: string | null;
+  };
+
+  const result = await pool.query<UserLookupRow>(
     `SELECT u.id, u.email, u.name, u.is_super_admin, u.last_workspace_id,
             EXISTS(SELECT 1 FROM workspace_memberships wm WHERE wm.user_id = u.id) as has_membership
      FROM users u
@@ -375,7 +383,7 @@ async function findUserByEmail(email: string): Promise<{
      LIMIT 1`,
     [email]
   );
-  return result.rows[0] || null;
+  return result.rows[0] ?? null;
 }
 
 /**
@@ -393,7 +401,7 @@ interface PendingInvite {
  * Find a pending invite matching email (returns first/most recent)
  */
 async function findPendingInviteByEmail(email: string): Promise<PendingInvite | null> {
-  const result = await pool.query(
+  const result = await pool.query<PendingInvite>(
     `SELECT wi.id, wi.workspace_id, w.name as workspace_name, wi.email, wi.role
      FROM workspace_invites wi
      JOIN workspaces w ON wi.workspace_id = w.id
@@ -404,7 +412,7 @@ async function findPendingInviteByEmail(email: string): Promise<PendingInvite | 
      LIMIT 1`,
     [email]
   );
-  return result.rows[0] || null;
+  return result.rows[0] ?? null;
 }
 
 /**
@@ -412,7 +420,7 @@ async function findPendingInviteByEmail(email: string): Promise<PendingInvite | 
  * Issue #349: Existing users may have pending invites to other workspaces
  */
 async function findAllPendingInvitesByEmail(email: string): Promise<PendingInvite[]> {
-  const result = await pool.query(
+  const result = await pool.query<PendingInvite>(
     `SELECT wi.id, wi.workspace_id, w.name as workspace_name, wi.email, wi.role
      FROM workspace_invites wi
      JOIN workspaces w ON wi.workspace_id = w.id
@@ -441,13 +449,24 @@ async function createUserFromInvite(
   last_workspace_id: string | null;
 }> {
   // Create user (no password - CAIA/PIV only, no x509_subject_dn for CAIA)
-  const userResult = await pool.query(
+  type CreatedUserRow = {
+    id: string;
+    email: string;
+    name: string;
+    is_super_admin: boolean;
+    last_workspace_id: string | null;
+  };
+
+  const userResult = await pool.query<CreatedUserRow>(
     `INSERT INTO users (email, name, password_hash, last_workspace_id, last_auth_provider)
      VALUES ($1, $2, NULL, $3, 'caia')
      RETURNING id, email, name, is_super_admin, last_workspace_id`,
     [email, name, invite.workspace_id]
   );
   const user = userResult.rows[0];
+  if (!user) {
+    throw new Error(`Failed to create CAIA user for ${email}`);
+  }
 
   // Use shared service for membership + person doc + invite marking
   await linkUserToWorkspaceViaInvite(user, invite);

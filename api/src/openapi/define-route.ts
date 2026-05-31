@@ -118,7 +118,7 @@ function parsePart<T extends z.ZodTypeAny | undefined>(
     const message = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
     throw new RouteValidationError(`${label} validation failed: ${message}`, parsed.error);
   }
-  return parsed.data;
+  return parsed.data as T extends z.ZodTypeAny ? z.infer<T> : undefined;
 }
 
 export class RouteValidationError extends Error {

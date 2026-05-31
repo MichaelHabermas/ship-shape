@@ -1,6 +1,13 @@
+/** E2E tests for private document visibility, sidebar sections, and access control. */
 import { test, expect, Page } from './fixtures/isolated-env';
 import { loginAsAdmin, loginAsMember, getCsrfToken } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
 
+interface ApiDocument {
+  id: string;
+  title?: string;
+  visibility?: string;
+}
 
 // Helper to clear TanStack Query's IndexedDB cache
 // This is needed because TanStack Query persists to IndexedDB and won't refetch
@@ -40,13 +47,13 @@ async function createDocument(page: Page, options: { title?: string; visibility?
     throw new Error(`Failed to create document: ${response.status()}`);
   }
 
-  const document = await response.json();
+  const document = await readJsonAs<ApiDocument>(response);
   if (options.title && options.title !== 'Untitled') {
     const updateResponse = await updateDocument(page, document.id, { title: options.title });
     if (!updateResponse.ok()) {
       throw new Error(`Failed to title document: ${updateResponse.status()}`);
     }
-    return updateResponse.json();
+    return readJsonAs<ApiDocument>(updateResponse);
   }
 
   return document;
@@ -56,7 +63,18 @@ async function createDocument(page: Page, options: { title?: string; visibility?
 async function getDocument(page: Page, docId: string) {
   const response = await page.request.get(`/api/documents/${docId}`);
 
-  return { status: response.status(), data: response.ok() ? await response.json() : null };
+  return {
+    status: response.status(),
+    data: response.ok() ? await readJsonAs<ApiDocument>(response) : null,
+  };
+}
+
+function expectDocument(data: ApiDocument | null): ApiDocument {
+  expect(data).toBeTruthy();
+  if (!data) {
+    throw new Error('Expected document payload');
+  }
+  return data;
 }
 
 // Helper to update document via API - uses relative URLs for proxy
@@ -210,7 +228,7 @@ test.describe('Private Documents', () => {
     await expect(propertiesSidebar.getByRole('button', { name: /Private/i })).toBeVisible();
 
     // Verify the document is private via API
-    const { data } = await getDocument(page, doc.id);
+    const data = expectDocument((await getDocument(page, doc.id)).data);
     expect(data.visibility).toBe('private');
 
     // Cleanup
@@ -227,7 +245,7 @@ test.describe('Private Documents', () => {
     const childDoc = await createDocument(page, { title: 'Child Doc', parent_id: parentDoc.id });
 
     // Verify the child inherited private visibility
-    const { data } = await getDocument(page, childDoc.id);
+    const data = expectDocument((await getDocument(page, childDoc.id)).data);
     expect(data.visibility).toBe('private');
 
     // Cleanup
@@ -284,7 +302,7 @@ test.describe('Private Documents', () => {
     await expect(propertiesSidebar.getByRole('button', { name: /Private/i })).toBeVisible();
 
     // Verify via API
-    const { data } = await getDocument(page, doc.id);
+    const data = expectDocument((await getDocument(page, doc.id)).data);
     expect(data.visibility).toBe('private');
 
     // Cleanup
@@ -320,7 +338,7 @@ test.describe('Private Documents', () => {
     await expect(propertiesSidebar.getByRole('button', { name: /Workspace/i })).toBeVisible();
 
     // Verify via API
-    const { data } = await getDocument(page, doc.id);
+    const data = expectDocument((await getDocument(page, doc.id)).data);
     expect(data.visibility).toBe('workspace');
 
     // Cleanup
@@ -335,8 +353,8 @@ test.describe('Private Documents', () => {
     const childDoc = await createDocument(page, { title: 'Child Doc', parent_id: parentDoc.id, visibility: 'workspace' });
 
     // Verify both start as workspace
-    const { data: parentBefore } = await getDocument(page, parentDoc.id);
-    const { data: childBefore } = await getDocument(page, childDoc.id);
+    const parentBefore = expectDocument((await getDocument(page, parentDoc.id)).data);
+    const childBefore = expectDocument((await getDocument(page, childDoc.id)).data);
     expect(parentBefore.visibility).toBe('workspace');
     expect(childBefore.visibility).toBe('workspace');
 
@@ -347,11 +365,13 @@ test.describe('Private Documents', () => {
     await page.waitForTimeout(500);
 
     // Verify parent is now private
-    const { data: parentAfter } = await getDocument(page, parentDoc.id);
+    const parentAfter = expectDocument((await getDocument(page, parentDoc.id)).data);
     expect(parentAfter.visibility).toBe('private');
 
     // Verify child also became private (cascade behavior)
     const { data: childAfter } = await getDocument(page, childDoc.id);
+    expect(childAfter).toBeTruthy();
+    if (!childAfter) throw new Error('Expected child document after cascade');
     expect(childAfter.visibility).toBe('private');
 
     // Cleanup
@@ -407,6 +427,7 @@ test.describe('Private Documents', () => {
       const { status, data } = await getDocument(adminPage, privateDoc.id);
 
       expect(status).toBe(200);
+      if (!data) throw new Error('Expected member private document');
       expect(data.title).toBe('Member Private Doc');
 
       // Cleanup
@@ -620,7 +641,7 @@ test.describe('Private Documents', () => {
     await page.waitForTimeout(500);
 
     // Verify the doc became workspace visible
-    const { data } = await getDocument(page, privateDoc.id);
+    const data = expectDocument((await getDocument(page, privateDoc.id)).data);
     expect(data.visibility).toBe('workspace');
 
     // Cleanup

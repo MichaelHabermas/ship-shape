@@ -124,11 +124,12 @@ describe('Sprints API', () => {
         .set('Cookie', sessionCookie)
 
       expect(res.status).toBe(200)
-      expect(res.body.weeks).toBeInstanceOf(Array)
-      expect(res.body.weeks.length).toBeGreaterThan(0)
+      const weeksBody = res.body as { weeks: Array<{ id: string; name: string }> }
+      expect(weeksBody.weeks).toBeInstanceOf(Array)
+      expect(weeksBody.weeks.length).toBeGreaterThan(0)
 
       // Find our test sprint
-      const testSprint = res.body.weeks.find((s: { id: string }) => s.id === testSprintId)
+      const testSprint = weeksBody.weeks.find((s) => s.id === testSprintId)
       expect(testSprint).toBeDefined()
       expect(testSprint.name).toBe('Test Sprint for List')
     })
@@ -165,8 +166,9 @@ describe('Sprints API', () => {
         .set('Cookie', sessionCookie)
 
       expect(res.status).toBe(200)
-      expect(res.body.weeks).toBeInstanceOf(Array)
-      const allMatchProgram = res.body.weeks.every((s: { program_id: string }) => s.program_id === testProgramId)
+      const filteredWeeks = res.body as { weeks: Array<{ program_id: string }> }
+      expect(filteredWeeks.weeks).toBeInstanceOf(Array)
+      const allMatchProgram = filteredWeeks.weeks.every((s) => s.program_id === testProgramId)
       expect(allMatchProgram).toBe(true)
     })
 

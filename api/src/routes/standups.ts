@@ -1,3 +1,4 @@
+/** Standup document routes (create, list, due-status checks). */
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '../db/client.js';
@@ -221,7 +222,7 @@ router.get(
         );
         const currentSprintNumber = Math.floor(daysSinceStart / sprintDuration) + 1;
 
-        const activeSprintsResult = await pool.query(
+        const activeSprintsResult = await pool.query<{ sprint_id: string }>(
           `SELECT DISTINCT s.id as sprint_id
        FROM documents i
        JOIN document_associations da ON da.document_id = i.id AND da.relationship_type = 'sprint'

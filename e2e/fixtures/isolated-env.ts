@@ -174,12 +174,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
       try {
         // Log server output for debugging
-        proc.stdout?.on('data', (data) => {
+        proc.stdout?.on('data', (data: Buffer | string) => {
           if (process.env.DEBUG) {
             console.log(`${workerTag} API: ${data.toString().trim()}`);
           }
         });
-        proc.stderr?.on('data', (data) => {
+        proc.stderr?.on('data', (data: Buffer | string) => {
           console.error(`${workerTag} API ERROR: ${data.toString().trim()}`);
         });
 
@@ -240,12 +240,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
       try {
         // Log output for debugging
-        proc.stdout?.on('data', (data) => {
+        proc.stdout?.on('data', (data: Buffer | string) => {
           if (process.env.DEBUG) {
             console.log(`${workerTag} Preview: ${data.toString().trim()}`);
           }
         });
-        proc.stderr?.on('data', (data) => {
+        proc.stderr?.on('data', (data: Buffer | string) => {
           // Vite uses stderr for some normal output
           if (process.env.DEBUG) {
             console.log(`${workerTag} Preview: ${data.toString().trim()}`);

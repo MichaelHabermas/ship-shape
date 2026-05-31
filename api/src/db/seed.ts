@@ -148,7 +148,7 @@ async function seed() {
     // Note: These are independent - no coupling via person_document_id
     let membershipsCreated = 0;
     let personDocsCreated = 0;
-    const allUsersForMembership = await pool.query(
+    const allUsersForMembership = await pool.query<{ id: string; email: string; name: string }>(
       'SELECT id, email, name FROM users'
     );
 

@@ -1,3 +1,4 @@
+/** Shared week/sprint helpers (supervisor lookup, accountability broadcasts). */
 import { pool } from '../../db/client.js';
 import { broadcastToUser } from '../../collaboration/index.js';
 
@@ -9,7 +10,7 @@ export async function getSprintOwnerReportsTo(
   sprintId: string,
   workspaceId: string,
 ): Promise<string | null> {
-  const result = await pool.query(
+  const result = await pool.query<{ reports_to: string | null }>(
     `SELECT owner_person.properties->>'reports_to' as reports_to
      FROM documents d
      LEFT JOIN documents owner_person
@@ -20,7 +21,7 @@ export async function getSprintOwnerReportsTo(
      WHERE d.id = $1 AND d.workspace_id = $2 AND d.document_type = 'sprint'`,
     [sprintId, workspaceId],
   );
-  return result.rows[0]?.reports_to || null;
+  return result.rows[0]?.reports_to ?? null;
 }
 
 /**
@@ -33,7 +34,7 @@ export async function broadcastAccountabilityUpdateToSprintOwner(
 ): Promise<void> {
   if (!sprintOwnerId) return;
 
-  const ownerUserResult = await pool.query(
+  const ownerUserResult = await pool.query<{ user_id: string | null }>(
     `SELECT properties->>'user_id' as user_id FROM documents WHERE id = $1`,
     [sprintOwnerId],
   );

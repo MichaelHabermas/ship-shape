@@ -307,7 +307,7 @@ function buildInputSchema(
       }
     }
     if (Array.isArray(bodySchema.required)) {
-      required.push(...bodySchema.required);
+      required.push(...(bodySchema.required as string[]));
     }
   }
 

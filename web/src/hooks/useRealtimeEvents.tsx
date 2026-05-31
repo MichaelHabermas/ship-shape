@@ -84,7 +84,7 @@ export function RealtimeEventsProvider({ children }: { children: ReactNode }) {
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as RealtimeEvent;
+        const data = JSON.parse(String(event.data)) as RealtimeEvent;
         console.log('[RealtimeEvents] Received:', data.type);
 
         // Notify subscribers

@@ -1,6 +1,10 @@
 import { test, expect } from './fixtures/isolated-env';
 import { loginViaApi, loginMemberViaApi } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
 
+interface WeeksResponse {
+  weeks: Array<{ id: string }>;
+}
 
 /**
  * E2E tests for Request Changes API endpoints.
@@ -16,7 +20,7 @@ import { loginViaApi, loginMemberViaApi } from './fixtures/api-auth';
 async function getSprintId(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
   const response = await page.request.get(`${apiUrl}/api/weeks`);
   expect(response.ok(), 'GET /api/weeks should succeed').toBe(true);
-  const data = await response.json();
+  const data = await readJsonAs<WeeksResponse>(response);
   expect(data.weeks.length, 'Need at least one sprint for request-changes tests').toBeGreaterThan(0);
   return data.weeks[0].id;
 }

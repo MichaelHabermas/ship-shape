@@ -132,11 +132,12 @@ describe('Issues API', () => {
         .set('Cookie', sessionCookie)
 
       expect(res.status).toBe(200)
-      expect(res.body).toBeInstanceOf(Array)
-      expect(res.body.length).toBeGreaterThan(0)
+      const issues = res.body as Array<{ id: string; title: string }>
+      expect(issues).toBeInstanceOf(Array)
+      expect(issues.length).toBeGreaterThan(0)
 
       // Find our test issue
-      const testIssue = res.body.find((i: { id: string }) => i.id === testIssueId)
+      const testIssue = issues.find((i) => i.id === testIssueId)
       expect(testIssue).toBeDefined()
       expect(testIssue.title).toBe('Test Issue for List')
       expect(testIssue).not.toHaveProperty('content')
@@ -164,8 +165,9 @@ describe('Issues API', () => {
         .set('Cookie', sessionCookie)
 
       expect(res.status).toBe(200)
-      expect(res.body).toBeInstanceOf(Array)
-      const hasSprintIssue = res.body.some((i: { id: string }) => i.id === sprintIssueId)
+      const sprintIssues = res.body as Array<{ id: string }>
+      expect(sprintIssues).toBeInstanceOf(Array)
+      const hasSprintIssue = sprintIssues.some((i) => i.id === sprintIssueId)
       expect(hasSprintIssue).toBe(true)
     })
 
@@ -184,8 +186,9 @@ describe('Issues API', () => {
         .set('Cookie', sessionCookie)
 
       expect(res.status).toBe(200)
-      expect(res.body).toBeInstanceOf(Array)
-      const issueIds = res.body.map((i: { id: string }) => i.id)
+      const projectIssues = res.body as Array<{ id: string }>
+      expect(projectIssues).toBeInstanceOf(Array)
+      const issueIds = projectIssues.map((i) => i.id)
       expect(issueIds).toContain(testIssueId)
       expect(issueIds).not.toContain(unrelatedIssueId)
     })
@@ -383,8 +386,9 @@ describe('Issues API', () => {
         })
 
       expect(res.status).toBe(200)
-      expect(res.body.belongs_to).toBeInstanceOf(Array)
-      expect(res.body.belongs_to.some((bt: { id: string; type: string }) => bt.id === testProjectId && bt.type === 'project')).toBe(true)
+      const updated = res.body as { belongs_to: Array<{ id: string; type: string }> }
+      expect(updated.belongs_to).toBeInstanceOf(Array)
+      expect(updated.belongs_to.some((bt) => bt.id === testProjectId && bt.type === 'project')).toBe(true)
     })
 
     it('should return 404 for non-existent issue', async () => {
@@ -628,11 +632,15 @@ describe('Issues API', () => {
         })
 
       expect(res.status).toBe(200)
-      expect(res.body.updated.map((issue: { id: string }) => issue.id)).toEqual([estimatedIssueId])
-      expect(res.body.updated[0].belongs_to).toEqual(expect.arrayContaining([
+      const bulkSprintResult = res.body as {
+        updated: Array<{ id: string; belongs_to: Array<{ id: string; type: string }> }>
+        failed: unknown[]
+      }
+      expect(bulkSprintResult.updated.map((issue) => issue.id)).toEqual([estimatedIssueId])
+      expect(bulkSprintResult.updated[0].belongs_to).toEqual(expect.arrayContaining([
         expect.objectContaining({ id: testSprintId, type: 'sprint' }),
       ]))
-      expect(res.body.failed).toEqual([
+      expect(bulkSprintResult.failed).toEqual([
         { id: unestimatedIssueId, error: 'estimate_required_for_sprint_assignment' },
       ])
 
@@ -710,8 +718,12 @@ describe('Issues API', () => {
         })
 
       expect(res.status).toBe(200)
-      expect(res.body.updated.map((issue: { id: string }) => issue.id)).toEqual([ordinaryIssueId])
-      expect(res.body.failed).toEqual([
+      const bulkDeleteResult = res.body as {
+        updated: Array<{ id: string }>
+        failed: Array<{ id: string; error: string }>
+      }
+      expect(bulkDeleteResult.updated.map((issue) => issue.id)).toEqual([ordinaryIssueId])
+      expect(bulkDeleteResult.failed).toEqual([
         { id: systemIssueId, error: 'Cannot delete system-generated accountability issues' },
       ])
     })

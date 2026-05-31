@@ -555,7 +555,9 @@ router.get('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req:
 // POST /api/workspaces/:id/members - Add member to workspace (admin only)
 router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
   const workspaceId = String(req.params.id);
-  const { userId, role = 'member' } = req.body;
+  const body = req.body as { userId?: unknown; role?: unknown };
+  const userId = typeof body.userId === 'string' ? body.userId : '';
+  const role: 'admin' | 'member' = body.role === 'admin' ? 'admin' : 'member';
 
   if (!userId) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -655,9 +657,10 @@ router.post('/:id/members', authMiddleware, workspaceAdminMiddleware, async (req
 router.patch('/:id/members/:userId', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
   const workspaceId = String(req.params.id);
   const userId = String(req.params.userId);
-  const { role } = req.body;
+  const patchBody = req.body as { role?: unknown };
+  const role = patchBody.role;
 
-  if (!role || !['admin', 'member'].includes(role)) {
+  if (typeof role !== 'string' || !['admin', 'member'].includes(role)) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
@@ -959,10 +962,14 @@ router.get('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req:
 // x509SubjectDn is optional - for PIV certificate matching when cert doesn't contain email
 router.post('/:id/invites', authMiddleware, workspaceAdminMiddleware, async (req: Request, res: Response): Promise<void> => {
   const workspaceId = String(req.params.id);
-  const { email, x509SubjectDn, role = 'member' } = req.body;
+  const { email, x509SubjectDn, role = 'member' } = req.body as {
+    email?: string;
+    x509SubjectDn?: string;
+    role?: string;
+  };
 
   // Email is always required
-  if (!email) {
+  if (!email || typeof email !== 'string') {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {

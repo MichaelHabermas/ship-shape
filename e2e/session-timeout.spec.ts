@@ -1103,7 +1103,7 @@ test.describe('Session Info API', () => {
     // Get session info
     const response = await page.evaluate(async () => {
       const res = await fetch('/api/auth/session');
-      return res.json();
+      return (await res.json()) as { success: boolean; data: { expiresAt: string } };
     });
 
     expect(response.success).toBe(true);

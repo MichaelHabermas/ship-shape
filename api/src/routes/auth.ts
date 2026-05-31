@@ -1,3 +1,4 @@
+// Password login, session lifecycle, and /me for authenticated users.
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -15,6 +16,22 @@ interface WorkspaceMembershipRow {
   role: string;
 }
 
+interface LoginUserRow {
+  id: string;
+  email: string;
+  password_hash: string | null;
+  name: string;
+  is_super_admin: boolean;
+  last_workspace_id: string | null;
+}
+
+interface SessionInfoRow {
+  id: string;
+  created_at: string | Date;
+  expires_at: string | Date;
+  last_activity: string | Date;
+}
+
 // Generate cryptographically secure session ID (256 bits of entropy)
 function generateSecureSessionId(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -22,9 +39,14 @@ function generateSecureSessionId(): string {
 
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  const body = req.body as { email?: unknown; password?: unknown };
 
-  if (!email || !password) {
+  if (
+    typeof body.email !== 'string'
+    || typeof body.password !== 'string'
+    || !body.email
+    || !body.password
+  ) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       error: {
@@ -35,9 +57,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  const email = body.email;
+  const password = body.password;
+
   try {
     // Find user with their workspace memberships (case-insensitive email lookup)
-    const userResult = await pool.query(
+    const userResult = await pool.query<LoginUserRow>(
       `SELECT u.id, u.email, u.password_hash, u.name, u.is_super_admin, u.last_workspace_id
        FROM users u
        WHERE LOWER(u.email) = LOWER($1)`,
@@ -405,7 +430,7 @@ router.post('/extend-session', authMiddleware, async (req: Request, res: Respons
 // GET /api/auth/session - Get session info for timeout tracking
 router.get('/session', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await pool.query(
+    const result = await pool.query<SessionInfoRow>(
       `SELECT id, created_at, expires_at, last_activity FROM sessions WHERE id = $1`,
       [req.sessionId]
     );

@@ -13,6 +13,8 @@
 
 import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, getCsrfToken } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { TeamPerson } from './fixtures/e2e-api-types';
 
 
 test.describe('Existing User Invite Flow', () => {
@@ -177,12 +179,14 @@ test.describe('Existing User Invite Flow', () => {
     // For now, just verify that the existing seeded users have valid user_ids
     // by checking the team/people endpoint
     const peopleResponse = await page.request.get('/api/team/people')
-    const people = await peopleResponse.json()
+    const people = await readJsonAs<TeamPerson[]>(peopleResponse)
 
     // Bob Martinez should be in the list (seeded in isolated-env)
-    const bob = people.find((p: { email: string }) => p.email === 'bob.martinez@ship.local')
+    const bob = people.find((p) => p.email === 'bob.martinez@ship.local')
     expect(bob).toBeDefined()
-    expect(bob.user_id).not.toBeNull()
+    if (!bob?.user_id) {
+      throw new Error('Expected Bob Martinez with user_id in team people list');
+    }
     expect(bob.user_id.length).toBeGreaterThan(0)
   })
 

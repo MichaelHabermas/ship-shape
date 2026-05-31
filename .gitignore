@@ -20,6 +20,8 @@ coverage/
 # Tool caches
 .eslintcache
 **/.eslintcache
+.eslint-*.json
+.tmp-eslint-*.json
 
 # Logs
 logs

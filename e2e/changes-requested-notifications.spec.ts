@@ -1,6 +1,12 @@
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdminWithUser, loginViaApi } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { AccountabilityActionItem, ActionItemsResponse } from './fixtures/e2e-api-types';
 
+interface PersonDocument {
+  id: string;
+  properties?: { user_id?: string };
+}
 
 /**
  * E2E tests for Changes Requested Notifications.
@@ -21,11 +27,14 @@ async function getPersonIdForUser(
 ): Promise<string> {
   const response = await page.request.get(`${apiUrl}/api/documents?document_type=person`);
   expect(response.ok()).toBe(true);
-  const docs = await response.json();
+  const docs = await readJsonAs<PersonDocument[]>(response);
   const person = docs.find(
-    (d: { properties?: { user_id?: string } }) => d.properties?.user_id === userId
+    (d) => d.properties?.user_id === userId
   );
   expect(person, 'User should have an associated person document').toBeTruthy();
+  if (!person) {
+    throw new Error('User should have an associated person document');
+  }
   return person.id;
 }
 
@@ -59,15 +68,15 @@ test.describe('Changes Requested Notifications', () => {
     );
     expect(actionItemsResponse.ok(), 'Action items endpoint should return 200').toBe(true);
 
-    const actionItemsData = await actionItemsResponse.json();
-    const actionItems = actionItemsData.items || actionItemsData;
+    const actionItemsData = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
+    const actionItems: AccountabilityActionItem[] = actionItemsData.items;
     expect(Array.isArray(actionItems), 'Action items should be an array').toBe(true);
 
     // Look for a changes_requested_plan item
     const changesRequestedItem = actionItems.find(
-      (item: { accountability_type?: string; id?: string }) =>
+      (item) =>
         item.accountability_type === 'changes_requested_plan' ||
-        (item.id && item.id.startsWith('changes_requested_plan-'))
+        (item.id?.startsWith('changes_requested_plan-') ?? false)
     );
 
     // The item may not appear if the current user is not the sprint assignee.
@@ -110,15 +119,15 @@ test.describe('Changes Requested Notifications', () => {
     );
     expect(actionItemsResponse.ok(), 'Action items endpoint should return 200').toBe(true);
 
-    const actionItemsData = await actionItemsResponse.json();
-    const actionItems = actionItemsData.items || actionItemsData;
+    const actionItemsData = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
+    const actionItems: AccountabilityActionItem[] = actionItemsData.items;
     expect(Array.isArray(actionItems), 'Action items should be an array').toBe(true);
 
     // Look for a changes_requested_retro item
     const changesRequestedItem = actionItems.find(
-      (item: { accountability_type?: string; id?: string }) =>
+      (item) =>
         item.accountability_type === 'changes_requested_retro' ||
-        (item.id && item.id.startsWith('changes_requested_retro-'))
+        (item.id?.startsWith('changes_requested_retro-') ?? false)
     );
 
     // Same note as above: item only appears if current user is the assignee

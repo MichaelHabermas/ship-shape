@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
 
 import type { Page } from '@playwright/test';
 
@@ -32,7 +33,7 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
 
     const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
     expect(csrfResponse.ok()).toBeTruthy();
-    const { token: csrfToken } = await csrfResponse.json();
+    const { token: csrfToken } = await readJsonAs<{ token: string }>(csrfResponse);
 
     // Create 10 issues concurrently and verify all have unique ticket numbers
     const promises = Array.from({ length: 10 }, (_, i) =>
@@ -49,7 +50,7 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
 
     for (const response of responses) {
       expect(response.ok()).toBeTruthy();
-      const data = await response.json();
+      const data = await readJsonAs<{ ticket_number: number }>(response);
       expect(data.ticket_number).toBeDefined();
       expect(ticketNumbers.has(data.ticket_number)).toBeFalsy();
       ticketNumbers.add(data.ticket_number);
@@ -68,7 +69,7 @@ test.describe('Critical Blocker: Ticket Number Uniqueness', () => {
 
     const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
     expect(csrfResponse.ok()).toBeTruthy();
-    const { token: csrfToken } = await csrfResponse.json();
+    const { token: csrfToken } = await readJsonAs<{ token: string }>(csrfResponse);
 
     const issues = [];
     for (let i = 0; i < 5; i++) {

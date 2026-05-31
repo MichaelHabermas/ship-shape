@@ -166,14 +166,20 @@ async function persistDocumentStrict(docName: string, doc: Y.Doc, principal?: Pr
   const goals = extractGoalsFromContent(content);
 
   // Get existing properties, document_type, and content to check for changes
-  const existingResult = await pool.query(
+  const existingResult = await pool.query<{
+    properties: Record<string, unknown> | null;
+    document_type: string;
+    content: unknown;
+    created_by: string;
+  }>(
     'SELECT properties, document_type, content, created_by FROM documents WHERE id = $1',
     [docId]
   );
-  const existingProps = existingResult.rows[0]?.properties || {};
-  const documentType = existingResult.rows[0]?.document_type;
-  const existingContent = existingResult.rows[0]?.content;
-  const createdBy = existingResult.rows[0]?.created_by;
+  const existingRow = existingResult.rows[0];
+  const existingProps = existingRow?.properties ?? {};
+  const documentType = existingRow?.document_type;
+  const existingContent = existingRow?.content;
+  const createdBy = existingRow?.created_by;
 
   // For weekly_plan and weekly_retro documents, log content history when content changes
   // This provides full version history for accountability audit trails
@@ -277,7 +283,7 @@ async function getOrCreateDoc(docName: string, principal?: Principal): Promise<Y
   const docId = parseDocId(docName);
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<{ yjs_state: Buffer | null; content: unknown }>(
       'SELECT yjs_state, content FROM documents WHERE id = $1',
       [docId]
     );
@@ -290,7 +296,7 @@ async function getOrCreateDoc(docName: string, principal?: Principal): Promise<Y
 
     if (resolved.useYjsState && row?.yjs_state) {
       console.log(`[Collaboration] Loading ${docName} from yjs_state`);
-      Y.applyUpdate(doc, row.yjs_state);
+      Y.applyUpdate(doc, new Uint8Array(row.yjs_state));
     } else if (resolved.docJson != null && Array.isArray(resolved.docJson.content)) {
       console.log(`[Collaboration] Converting JSON content to Yjs for ${docName}`);
       const fragment = doc.getXmlFragment('default');

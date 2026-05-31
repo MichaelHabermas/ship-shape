@@ -1,5 +1,7 @@
 import { test, expect, Page } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { MentionSearchResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -65,11 +67,11 @@ test.describe('Real Integration - @Mentions', () => {
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=dev`);
     expect(response.ok()).toBe(true);
 
-    const data = await response.json();
+    const data = await readJsonAs<MentionSearchResponse>(response);
 
     // REAL VERIFICATION: Should find the dev user
     expect(data.people.length).toBeGreaterThan(0);
-    expect(data.people.some((p: { name: string }) => p.name.toLowerCase().includes('dev'))).toBe(true);
+    expect(data.people.some((p) => p.name.toLowerCase().includes('dev'))).toBe(true);
   });
 
   test('typing @ in editor triggers mention suggestion', async ({ page }) => {

@@ -1,3 +1,4 @@
+/** Lists documents converted between issue and project types. */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -52,7 +53,7 @@ export function ConvertedDocumentsPage() {
 
       const res = await apiGet(url);
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as ConvertedDocument[];
         setConversions(data);
       }
     } catch (err) {

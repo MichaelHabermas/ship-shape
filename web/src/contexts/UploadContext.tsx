@@ -31,9 +31,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      // Modern browsers ignore custom messages but still show a generic warning
-      e.returnValue = `You have ${uploadCount} upload(s) in progress. Leaving will cancel them.`;
-      return e.returnValue;
+      const message = `You have ${uploadCount} upload(s) in progress. Leaving will cancel them.`;
+      e.returnValue = message;
+      return message;
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);

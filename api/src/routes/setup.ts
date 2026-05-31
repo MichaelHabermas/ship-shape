@@ -12,6 +12,7 @@ import {
 } from '../openapi/schemas/setup.js';
 import { authorize } from '../security/capabilities.js';
 import { setupPrincipalFromRequest } from '../security/setup-access.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 
 const router = Router();
 
@@ -45,8 +46,8 @@ router.get(
     },
     handler: async (req, res) => {
       try {
-        const result = await pool.query('SELECT COUNT(*) as count FROM users');
-        const userCount = parseInt(result.rows[0].count);
+        const result = await pool.query<{ count: string }>('SELECT COUNT(*) as count FROM users');
+        const userCount = parseInt(requireFirstRow(result.rows).count, 10);
         const needsSetup = userCount === 0;
         const auth = await ensureSetupAuthorized(req);
 
@@ -120,8 +121,8 @@ router.post(
         await client.query('BEGIN');
         await client.query(`SELECT pg_advisory_xact_lock(hashtext('ship_setup_initialize'))`);
 
-        const countResult = await client.query('SELECT COUNT(*) as count FROM users');
-        const userCount = parseInt(countResult.rows[0].count);
+        const countResult = await client.query<{ count: string }>('SELECT COUNT(*) as count FROM users');
+        const userCount = parseInt(requireFirstRow(countResult.rows).count, 10);
 
         if (userCount > 0) {
           await client.query('ROLLBACK');

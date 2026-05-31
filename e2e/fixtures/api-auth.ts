@@ -3,6 +3,8 @@
  */
 import { expect, type Page } from '@playwright/test';
 
+import { readJsonAs } from './typed-json';
+
 export const E2E_LOGIN_EMAIL = 'dev@ship.local';
 export const E2E_LOGIN_PASSWORD = 'admin123';
 export const E2E_MEMBER_EMAIL = 'bob.martinez@ship.local';
@@ -34,7 +36,7 @@ export async function getCsrfToken(page: Page, apiUrl?: string): Promise<string>
   const base = apiUrl ?? '';
   const response = await page.request.get(`${base}/api/csrf-token`);
   expect(response.ok()).toBeTruthy();
-  const { token } = await response.json();
+  const { token } = await readJsonAs<{ token: string }>(response);
   return token;
 }
 

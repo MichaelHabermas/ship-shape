@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { IssueListItem } from './fixtures/e2e-api-types';
 
 
 // Force serial execution — tests in this file mutate shared state (accept/reject triage issues)
@@ -303,11 +305,11 @@ test.describe('API Changes', () => {
     const response = await page.request.get(`${apiServer.url}/api/issues`);
     expect(response.ok()).toBeTruthy();
 
-    const issues = await response.json();
+    const issues = await readJsonAs<IssueListItem[]>(response);
     expect(Array.isArray(issues)).toBeTruthy();
 
     // Should have both internal and external
-    const sources = issues.map((i: { source?: string }) => i.source);
+    const sources = issues.map((i) => i.source);
     expect(sources).toContain('internal');
     expect(sources).toContain('external');
   });

@@ -139,7 +139,10 @@ describe('security graph visibility regressions', () => {
 
     const response = await request(app).get('/api/bootstrap').set('Cookie', memberCookie);
     expect(response.status).toBe(200);
-    const found = response.body.data.programs.find((item: { id: string }) => item.id === program);
+    const bootstrap = response.body as {
+      data: { programs: Array<{ id: string; issue_count: number }> };
+    };
+    const found = bootstrap.data.programs.find((item) => item.id === program);
     expect(Number(found.issue_count)).toBe(1);
     expect(JSON.stringify(found)).not.toContain('Hidden Count Issue');
   });
@@ -156,9 +159,12 @@ describe('security graph visibility regressions', () => {
     const response = await request(app).get('/api/bootstrap').set('Cookie', memberCookie);
 
     expect(response.status).toBe(200);
-    const found = response.body.data.projects.find((item: { id: string }) => item.id === project);
+    const bootstrapProjects = response.body as {
+      data: { projects: Array<{ id: string; program_id: string | null }> };
+    };
+    const found = bootstrapProjects.data.projects.find((item) => item.id === project);
     expect(found).toBeTruthy();
-    expect(found.program_id).toBeNull();
+    expect(found?.program_id).toBeNull();
     expect(JSON.stringify(response.body)).not.toContain(privateProgram);
     expect(JSON.stringify(response.body)).not.toContain('Hidden Bootstrap Program');
   });
@@ -178,9 +184,10 @@ describe('security graph visibility regressions', () => {
     const response = await request(app).get('/api/team/projects').set('Cookie', memberCookie);
 
     expect(response.status).toBe(200);
-    const found = response.body.find((item: { id: string }) => item.id === project);
+    const teamProjects = response.body as Array<{ id: string; programId: string | null }>;
+    const found = teamProjects.find((item) => item.id === project);
     expect(found).toBeTruthy();
-    expect(found.programId).toBeNull();
+    expect(found?.programId).toBeNull();
     expect(JSON.stringify(response.body)).not.toContain(privateProgram);
     expect(JSON.stringify(response.body)).not.toContain('Hidden Team Project Program');
     expect(JSON.stringify(response.body)).not.toContain('HIDDEN');

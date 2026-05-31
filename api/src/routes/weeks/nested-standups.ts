@@ -1,3 +1,4 @@
+/** Nested standup routes under sprint/week documents. */
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
 import { z } from 'zod';
@@ -71,7 +72,7 @@ router.get('/:id/standups', authMiddleware, async (req: Request, res: Response) 
     const { isAdmin } = await getVisibilityContext(userId, workspaceId);
 
     // Get all standups for this sprint (parent_id = sprint.id)
-    const result = await pool.query(
+    const result = await pool.query<StandupRow>(
       `SELECT d.id, d.parent_id, d.title, d.content, d.created_at, d.updated_at,
               d.properties->>'author_id' as author_id,
               u.name as author_name, u.email as author_email

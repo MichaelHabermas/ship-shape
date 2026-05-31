@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/isolated-env'
 import { loginAsSuperAdmin, loginAsMember, getCsrfToken, login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { BulkIssueUpdateResponse } from './fixtures/e2e-api-types';
 
 import type { Pool } from 'pg'
 import { randomUUID } from 'crypto'
@@ -255,8 +257,8 @@ test.describe('Authorization - Cross-Workspace Isolation', () => {
     })
 
     expect(response.status()).toBe(200)
-    const data = await response.json()
-    expect(data.updated.map((issue: { id: string }) => issue.id)).toEqual([boundary.ownedIssueId])
+    const data = await readJsonAs<BulkIssueUpdateResponse>(response)
+    expect(data.updated.map((issue) => issue.id)).toEqual([boundary.ownedIssueId])
     expect(data.failed).toContainEqual({ id: boundary.foreignIssueId, error: 'Issue not found' })
 
     const states = await dbPool.query(
@@ -279,9 +281,9 @@ test.describe('Authorization - Cross-Workspace Isolation', () => {
     const response = await page.request.get('/api/documents')
     expect(response.status()).toBe(200)
 
-    const data = await response.json()
+    const data = await readJsonAs<Array<{ id: string }>>(response)
     expect(Array.isArray(data)).toBe(true)
-    expect(data.some((doc: { id: string }) => doc.id === boundary.foreignDocId)).toBe(false)
+    expect(data.some((doc) => doc.id === boundary.foreignDocId)).toBe(false)
   })
 })
 
@@ -345,9 +347,12 @@ test.describe('Authorization - Impersonation Controls', () => {
     // First get a valid user ID
     const usersResponse = await page.request.get('/api/admin/users')
     expect(usersResponse.status()).toBe(200)
-    const usersData = await usersResponse.json()
-    const targetUser = usersData.data?.users?.find((u: { email: string }) => u.email !== 'dev@ship.local')
+    const usersData = await readJsonAs<{ data?: { users?: Array<{ id: string; email: string }> } }>(usersResponse)
+    const targetUser = usersData.data?.users?.find((u) => u.email !== 'dev@ship.local')
     expect(targetUser).toBeTruthy()
+    if (!targetUser) {
+      throw new Error('Expected a non-dev user for impersonation test');
+    }
     const csrfToken = await getCsrfToken(page)
 
     // Impersonate endpoint is POST /api/admin/impersonate/:userId

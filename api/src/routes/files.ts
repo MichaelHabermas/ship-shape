@@ -13,6 +13,7 @@ import { authorize, type Capability } from '../security/capabilities.js';
 import { principalFromRequest } from '../security/principal.js';
 import { useS3Uploads } from '../config/runtime.js';
 import { sendInternalError, sendLegacyError, sendValidationError } from '../utils/route-http.js';
+import { requireFirstRow } from '../utils/query-rows.js';
 import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -47,6 +48,17 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 function isValidUUID(id: string | string[] | undefined): id is string {
   if (!id || Array.isArray(id)) return false;
   return UUID_REGEX.test(id);
+}
+
+interface FileRecordRow {
+  id: string;
+  s3_key: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | string;
+  document_id: string | null;
+  uploaded_by: string;
+  status: string;
 }
 
 export const filesRouter: ExpressRouter = Router();
@@ -180,7 +192,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
     const workspaceId = req.workspaceId;
 
     // Verify file record exists and belongs to user's workspace
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2 AND status = 'pending'`,
       [fileId, workspaceId]
     );
@@ -190,7 +202,7 @@ filesRouter.post('/:id/local-upload', rawBodyParser, authMiddleware, async (req:
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
 
     if (file.uploaded_by !== req.userId) {
       res.status(403).json({ error: 'Only the uploader can complete this upload' });
@@ -275,7 +287,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
     const workspaceId = req.workspaceId;
 
     // Verify file record exists and belongs to user's workspace
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]
     );
@@ -285,7 +297,7 @@ filesRouter.post('/:id/confirm', authMiddleware, async (req: Request, res: Respo
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
 
     if (file.uploaded_by !== req.userId) {
       res.status(403).json({ error: 'Only the uploader can confirm this upload' });
@@ -366,7 +378,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
     const workspaceId = req.workspaceId;
 
     // Get file record - SECURITY: Verify file belongs to user's workspace
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2 AND status = 'uploaded'`,
       [fileId, workspaceId]
     );
@@ -376,7 +388,7 @@ filesRouter.get('/:id/serve', authMiddleware, async (req: Request, res: Response
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
     if (file.document_id) {
       const decision = await authorizeRequest(req, {
         resource: 'file',
@@ -433,7 +445,7 @@ filesRouter.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const file = result.rows[0];
+    const file = requireFirstRow(result.rows, 'File not found');
     if (file.document_id) {
       const decision = await authorizeRequest(req, {
         resource: 'file',
@@ -475,7 +487,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
     const workspaceId = req.workspaceId;
 
     // Get file record
-    const fileResult = await pool.query(
+    const fileResult = await pool.query<FileRecordRow>(
       `SELECT * FROM files WHERE id = $1 AND workspace_id = $2`,
       [fileId, workspaceId]
     );
@@ -485,7 +497,7 @@ filesRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =
       return;
     }
 
-    const file = fileResult.rows[0];
+    const file = requireFirstRow(fileResult.rows, 'File not found');
 
     if (file.document_id) {
       const decision = await authorizeRequest(req, {

@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { ActionItemsResponse, ApiId, TeamGridWithSprint } from './fixtures/e2e-api-types';
 
 
 /**
@@ -36,13 +38,13 @@ test.describe('Standup Accountability Flow', () => {
       },
     });
     expect(programResponse.ok()).toBe(true);
-    const program = await programResponse.json();
+    const program = await readJsonAs<ApiId>(programResponse);
     const programId = program.id;
 
     // Get current sprint number from server
     const gridResponse = await page.request.get(`${apiServer.url}/api/team/grid`);
     expect(gridResponse.ok()).toBe(true);
-    const gridData = await gridResponse.json();
+    const gridData = await readJsonAs<TeamGridWithSprint>(gridResponse);
     const currentSprintNumber = gridData.currentSprintNumber;
 
     // Create a sprint that's current
@@ -56,7 +58,7 @@ test.describe('Standup Accountability Flow', () => {
       },
     });
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<ApiId>(sprintResponse);
     const sprintId = sprint.id;
 
     // Create an issue assigned to current user in this sprint
@@ -73,10 +75,10 @@ test.describe('Standup Accountability Flow', () => {
     // Check action items
     const actionItemsResponse = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse.ok()).toBe(true);
-    const actionItems = await actionItemsResponse.json();
+    const actionItems = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
 
     const standupItems = actionItems.items.filter(
-      (item: { accountability_target_id: string; accountability_type: string }) =>
+      (item) =>
         item.accountability_target_id === sprintId && item.accountability_type === 'standup'
     );
 
@@ -105,13 +107,13 @@ test.describe('Standup Accountability Flow', () => {
       },
     });
     expect(programResponse.ok()).toBe(true);
-    const program = await programResponse.json();
+    const program = await readJsonAs<ApiId>(programResponse);
     const programId = program.id;
 
     // Get current sprint number from server
     const gridResponse = await page.request.get(`${apiServer.url}/api/team/grid`);
     expect(gridResponse.ok()).toBe(true);
-    const gridData = await gridResponse.json();
+    const gridData = await readJsonAs<TeamGridWithSprint>(gridResponse);
     const currentSprintNumber = gridData.currentSprintNumber;
 
     // Create current sprint
@@ -125,7 +127,7 @@ test.describe('Standup Accountability Flow', () => {
       },
     });
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<ApiId>(sprintResponse);
     const sprintId = sprint.id;
 
     // Create an issue assigned to current user in this sprint
@@ -141,10 +143,10 @@ test.describe('Standup Accountability Flow', () => {
     // Step 1: Check initial standup items
     const actionItemsResponse1 = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse1.ok()).toBe(true);
-    const actionItems1 = await actionItemsResponse1.json();
+    const actionItems1 = await readJsonAs<ActionItemsResponse>(actionItemsResponse1);
 
     const standupItems1 = actionItems1.items.filter(
-      (item: { accountability_target_id: string; accountability_type: string }) =>
+      (item) =>
         item.accountability_target_id === sprintId && item.accountability_type === 'standup'
     );
 
@@ -170,10 +172,10 @@ test.describe('Standup Accountability Flow', () => {
     // Step 3: Verify standup item is now GONE
     const actionItemsResponse2 = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse2.ok()).toBe(true);
-    const actionItems2 = await actionItemsResponse2.json();
+    const actionItems2 = await readJsonAs<ActionItemsResponse>(actionItemsResponse2);
 
     const standupItems2 = actionItems2.items.filter(
-      (item: { accountability_target_id: string; accountability_type: string }) =>
+      (item) =>
         item.accountability_target_id === sprintId && item.accountability_type === 'standup'
     );
 
@@ -193,13 +195,13 @@ test.describe('Standup Accountability Flow', () => {
       },
     });
     expect(programResponse.ok()).toBe(true);
-    const program = await programResponse.json();
+    const program = await readJsonAs<ApiId>(programResponse);
     const programId = program.id;
 
     // Get current sprint number from server
     const gridResponse = await page.request.get(`${apiServer.url}/api/team/grid`);
     expect(gridResponse.ok()).toBe(true);
-    const gridData = await gridResponse.json();
+    const gridData = await readJsonAs<TeamGridWithSprint>(gridResponse);
     const currentSprintNumber = gridData.currentSprintNumber;
 
     // Create current sprint with user as owner
@@ -213,7 +215,7 @@ test.describe('Standup Accountability Flow', () => {
       },
     });
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<ApiId>(sprintResponse);
     const sprintId = sprint.id;
 
     // DON'T create any issues assigned to this user
@@ -221,10 +223,10 @@ test.describe('Standup Accountability Flow', () => {
     // Check action items - should NOT have standup item (no assigned issues)
     const actionItemsResponse = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
     expect(actionItemsResponse.ok()).toBe(true);
-    const actionItems = await actionItemsResponse.json();
+    const actionItems = await readJsonAs<ActionItemsResponse>(actionItemsResponse);
 
     const standupItems = actionItems.items.filter(
-      (item: { accountability_target_id: string; accountability_type: string }) =>
+      (item) =>
         item.accountability_target_id === sprintId && item.accountability_type === 'standup'
     );
 
