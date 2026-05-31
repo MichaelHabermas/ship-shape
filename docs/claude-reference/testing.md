@@ -113,6 +113,13 @@ Default sharding uses Playwright's test-level `--shard`. `--balanced` instead bu
 
 Use `pnpm test:e2e:inventory` to inspect suite shape without executing tests. It reports approximate test declarations, fixed waits, login/setup signals, API request signals, large files, and duplicate umbrella coverage candidates.
 
+Use the artifact pruner to remove stale archived Playwright traces without touching current final-run folders. It is dry-run by default.
+
+```bash
+pnpm test:e2e:prune-artifacts -- --older-than-days 7
+pnpm test:e2e:prune-artifacts -- --older-than-days 7 --apply
+```
+
 ## Database Isolation
 
 ### E2E Tests (Testcontainers)
