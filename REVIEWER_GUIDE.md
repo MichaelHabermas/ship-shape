@@ -1,79 +1,64 @@
 # Reviewer Guide
 
-Start here for Week 5 FleetGraph review.
+Start here: https://ship-shape-web.onrender.com/fleetgraph/reviewer
 
-## Start Here
+Use the authenticated FleetGraph reviewer dashboard first. It is the live proof surface. The static proof packet is a generated snapshot.
 
-| Need | Go here |
+## Primary Links
+
+| Need | Link |
 | --- | --- |
-| Final FleetGraph submission | [`FLEETGRAPH.md`](./FLEETGRAPH.md) |
+| Live reviewer dashboard | https://ship-shape-web.onrender.com/fleetgraph/reviewer |
+| Public proof packet | https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html |
+| Final submission doc | [`FLEETGRAPH.md`](./FLEETGRAPH.md) |
 | Pre-search checklist | [`PRESEARCH.md`](./PRESEARCH.md) |
-| Latest local proof packet | [`my-docs/evidence/fleetgraph-proof/latest.md`](./my-docs/evidence/fleetgraph-proof/latest.md) |
-| Public proof packet after final deployed proof | [`/fleetgraph-observability/proof/latest.html`](https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html) |
-| Product-surface eval | [`my-docs/evals/fleetgraph-product-surface/latest.md`](./my-docs/evals/fleetgraph-product-surface/latest.md) |
-| Observability dashboard artifact | [`web/public/fleetgraph-observability/index.html`](./web/public/fleetgraph-observability/index.html) |
-
-Public demo URLs:
-
-| Surface | URL |
-| --- | --- |
+| Machine-readable proof | [`web/public/fleetgraph-observability/proof/latest.json`](./web/public/fleetgraph-observability/proof/latest.json) |
 | Web app | https://ship-shape-web.onrender.com/ |
 | API health | https://ship-shape-api.onrender.com/health |
-| Static observability dashboard | https://ship-shape-web.onrender.com/fleetgraph-observability/ |
-| Static proof packet after final deployed proof | https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html |
 
-Reviewer login:
+Reviewer login: use the deployed reviewer credentials supplied out of band. No deployed password is published in this repo.
 
-- Deployed: use reviewer credentials supplied out of band. Do not publish a static deployed password in the submission.
-- Local demo seed: use `fleetgraph.reviewer@ship.local`; the local-only default password is intentionally not a deployed credential.
+## What To Verify
 
-## Claims Matrix
-
-| Claim | Required proof |
+| Requirement | Pass condition |
 | --- | --- |
-| Deployed proactive worker runs without a user | `render.yaml` has `FLEETGRAPH_WORKER_ENABLED=true`, and proof packet shows recent completed `fleetgraph_worker_ticks` |
-| Blocked, stale, and at-risk are all deployed signals | Proof packet deployed evidence lists `blocked`, `stale`, and `at_risk` |
-| No skipped attention-loop proof | `pnpm fleetgraph:proof -- --mode both --with-e2e` and `pnpm fleetgraph:proof:check` pass without `--allow-blocked` or `--allow-risk` |
-| Same graph architecture | `api/src/fleetgraph/core.ts` shared `runFleetGraph` runtime handles proactive and on-demand triggers |
-| Embedded context chat | `web/src/components/FleetGraphChatProbe.tsx` and `POST /api/fleetgraph/chat` |
-| Page-aware context chat | `FleetGraphPageContext` caps route/filter/count/visible/selected context; server enriches IDs through authorization |
-| Human-in-the-loop gate | Focused E2E and chat response show approval required before mutation/contact; source issue remains unchanged |
-| Cost proof | Proof packet reports graph invocation count, model call count, input/output/total tokens, deterministic/real-model run counts, estimated model cost, and 100/1,000/10,000-user projections |
-| Real Ship data | Demo/proof uses Ship documents, issue iterations, associations, FleetGraph events/findings/runs, and worker tick tables |
+| Live proof | Dashboard selected chain is `complete` |
+| Proactive agent | Chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection |
+| On-demand agent | Dashboard chat proof shows page/finding context and a human gate |
+| Same graph | `FLEETGRAPH.md` and traces show proactive and on-demand paths through `runFleetGraph` |
+| Public traces | Public proof packet has reachable `smith.langchain.com/public/...` links for every Reviewer Test Cases row |
+| Quiet/create separation | Required decision equals observed decision; quiet exits do not satisfy create rows |
+| Signals | Blocked, stale, and at-risk all appear in deployed proof |
+| Stale threshold | Stale proof says `30+ days`, not `180+ days` |
+| Latency | Live source-to-notification proof is under 5 minutes |
+| Human approval | Chat/next action requires approval before Ship mutation or external contact |
+| No source mutation | Mutation proof/source-unchanged proof is present |
+| Cost | Proof packet includes graph invocations, model calls, tokens, deterministic/real-model counts, estimated cost, and 100/1,000/10,000-user projections |
 
-## 5-Minute Walkthrough
+## Fast Review Path
 
-1. Open Ship and log in as the reviewer.
-2. Open the left rail notifications.
-3. Confirm blocked, stale, and at-risk signals are present when deployed proof data has been seeded and the worker has run.
-4. Select a FleetGraph attention notification.
-5. Confirm the card shows a compact signal, source issue, reason, owner/context when known, and useful next step.
-6. Open the source issue from the notification.
-7. Open contextual chat from the notification/source.
-8. Ask `What should I do?`.
-9. Confirm chat explains the current finding from attached context, names visible page/source evidence, and shows human approval is required before mutation/contact.
-10. Open an issues/My Week/project issue-tab surface and ask about the visible list; confirm the answer reflects the current filters/counts/visible or selected items without exposing hidden fields.
-11. Confirm the source issue state remains unchanged unless the user explicitly edits it.
+1. Sign in to Ship with the reviewer account.
+2. Open https://ship-shape-web.onrender.com/fleetgraph/reviewer.
+3. Confirm the selected chain is `complete`.
+4. If needed, run `Run scenario`; wait for the chain to complete.
+5. Inspect the chain steps: source, event, worker, graph run, trace, finding, notification projection, chat, human gate.
+6. Open the public proof packet.
+7. Confirm `Verdict: pass`.
+8. Open each public LangSmith trace link in the Reviewer Test Cases table.
+9. Check `FLEETGRAPH.md` for the same direct trace links and required/observed decision labels.
 
 Expected loop:
 
-`Ship issue state -> attention event/worker or repair scan -> FleetGraph finding -> left-rail notification -> source issue -> context chat -> human gate`
+`Ship issue state -> attention event/worker -> FleetGraph finding -> notification projection -> source issue -> context chat -> human gate`
 
-## Primary Proof Commands
-
-Run local deterministic gates:
+## Verification Commands
 
 ```bash
-pnpm fleetgraph:proof:test
-DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit \
-pnpm --filter @ship/api test \
-  src/fleetgraph/eval/eval.test.ts \
-  src/fleetgraph/eval/executable-golden-cases.test.ts \
-  src/fleetgraph/eval/product-surface.test.ts \
-  src/fleetgraph/api-contract.test.ts
+pnpm fleetgraph:proof:check
+pnpm fleetgraph:proof:verify-traces
 ```
 
-Run final proof packet with deployed DB evidence and focused E2E:
+Final proof generation command:
 
 ```bash
 FLEETGRAPH_PROOF_API_URL=https://ship-shape-api.onrender.com \
@@ -81,56 +66,24 @@ FLEETGRAPH_PROOF_WEB_URL=https://ship-shape-web.onrender.com \
 FLEETGRAPH_PROOF_RENDER_POSTGRES=ship-shape-db \
 E2E_RESULTS_DIR=test-results/fleetgraph-proof \
 pnpm fleetgraph:proof -- --mode both --with-e2e
-
-pnpm fleetgraph:proof:check
 ```
 
 Do not use `--skip-tests`, omit `--with-e2e`, or pass `--allow-blocked` / `--allow-risk` for final submission.
 
-## Deployed SQL Checks
+## Non-Claims
 
-```sql
-SELECT id, instance_id, status, started_at, completed_at,
-       workspace_count, detector_decision_count, result_count, model_call_count,
-       error_metadata, audit_metadata
-FROM fleetgraph_worker_ticks
-ORDER BY started_at DESC
-LIMIT 10;
-
-SELECT COUNT(*) AS stuck_running_ticks
-FROM fleetgraph_worker_ticks
-WHERE status = 'running'
-  AND deadline_at < now();
-
-SELECT status, COUNT(*), MIN(created_at), MAX(created_at)
-FROM fleetgraph_attention_events
-GROUP BY status
-ORDER BY status;
-
-SELECT COALESCE(run_metadata->>'signalType', 'blocked') AS signal_type,
-       COUNT(*), MAX(updated_at)
-FROM fleetgraph_findings
-WHERE status IN ('open', 'needs_confirmation', 'error')
-GROUP BY COALESCE(run_metadata->>'signalType', 'blocked')
-ORDER BY signal_type;
-
-SELECT decision, trigger_reason, token_metadata, cost_metadata, trace_metadata
-FROM fleetgraph_runs
-ORDER BY created_at DESC
-LIMIT 20;
-```
-
-## Rollback
-
-Fast rollback is setting `FLEETGRAPH_WORKER_ENABLED=false` and redeploying/restarting the API. That stops future proactive ticks. Existing FleetGraph-owned findings/runs/ticks remain audit evidence and should be dismissed or suppressed only through FleetGraph-owned paths; do not mutate Ship source records as rollback cleanup.
+- FleetGraph does not mutate Ship source records without human approval.
+- FleetGraph does not send external messages.
+- The reviewer dashboard requires authenticated access; it is not a public bypass.
+- Static proof is a snapshot. The live dashboard is the authority.
 
 ## Implementation Anchors
 
 | Boundary | File |
 | --- | --- |
 | Shared graph runtime | [`api/src/fleetgraph/core.ts`](./api/src/fleetgraph/core.ts) |
-| API routes | [`api/src/routes/fleetgraph.ts`](./api/src/routes/fleetgraph.ts) |
+| FleetGraph routes | [`api/src/routes/fleetgraph.ts`](./api/src/routes/fleetgraph.ts) |
 | Worker execution | [`api/src/fleetgraph/execution/worker.ts`](./api/src/fleetgraph/execution/worker.ts) |
+| Reviewer dashboard | [`web/src/pages/FleetGraphReviewerPage.tsx`](./web/src/pages/FleetGraphReviewerPage.tsx) |
+| Notifications entrypoint | [`web/src/components/FleetGraphNotificationsProbe.tsx`](./web/src/components/FleetGraphNotificationsProbe.tsx) |
 | Shared wire types | [`shared/src/types/fleetgraph.ts`](./shared/src/types/fleetgraph.ts) |
-| Notifications UI | [`web/src/components/FleetGraphNotificationsProbe.tsx`](./web/src/components/FleetGraphNotificationsProbe.tsx) |
-| Context chat UI | [`web/src/components/FleetGraphChatProbe.tsx`](./web/src/components/FleetGraphChatProbe.tsx) |

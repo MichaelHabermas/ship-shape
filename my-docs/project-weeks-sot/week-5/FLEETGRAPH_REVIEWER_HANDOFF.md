@@ -1,20 +1,49 @@
-# FleetGraph Reviewer Evidence Handoff
+# FleetGraph Reviewer Handoff
 
-Final reviewer evidence is the public proof packet:
+Start here: authenticated reviewer dashboard `/fleetgraph/reviewer`.
 
-- Public proof: `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html`
-- Generated source of truth: `web/public/fleetgraph-observability/proof/latest.json`
-- Required verifier: `pnpm fleetgraph:proof:verify-traces`
+The dashboard is the live proof surface. It shows the deployed source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate chain. Use it before the static packet.
 
-What changed:
+## Reviewer Links
 
-- The proof packet now renders a Reviewer Test Cases table with one direct public LangSmith trace URL per reviewer-facing case.
-- Submission proof requires `https://smith.langchain.com/public/...` links. Langfuse links are no longer accepted for final reviewer evidence.
-- Proof checks reject stale evidence text when it disagrees with `api/src/fleetgraph/detection/attention-policy.ts`.
-- Public and local proof artifacts must agree for deployed submission proof.
+- Live dashboard: `https://ship-shape-web.onrender.com/fleetgraph/reviewer`
+- Public proof packet: `https://ship-shape-web.onrender.com/fleetgraph-observability/proof/latest.html`
+- Root submission doc: `FLEETGRAPH.md`
+- Public proof JSON: `web/public/fleetgraph-observability/proof/latest.json`
 
-Manual checks still required:
+## What To Check
 
-- Open each LangSmith link in an incognito browser and confirm the trace content is readable.
-- Confirm the deployed proof was generated from Render Postgres evidence, not local-only proof.
-- Confirm the proof packet shows `Verdict: pass`, `30+ days`, and no `180+ days` stale text.
+1. Sign in with the reviewer/admin account.
+2. Open `/fleetgraph/reviewer`.
+3. Confirm the selected chain is `complete`.
+4. Confirm the chain includes source, event, worker, graph run, public trace, finding, notification projection, chat, and human gate.
+5. Open the public proof packet and confirm `Verdict: pass`.
+6. Open each `smith.langchain.com/public/...` trace link from the Reviewer Test Cases table.
+
+## Required Evidence
+
+| Requirement | Where it is shown |
+| --- | --- |
+| Proactive path | Dashboard chain plus `FLEETGRAPH.md` test cases 1-3 and 7 |
+| On-demand path | Dashboard chat/human-gate panel plus `FLEETGRAPH.md` test cases 4-5 |
+| Public traces | Public proof packet Reviewer Test Cases table |
+| Quiet/create separation | Required decision equals observed decision in `FLEETGRAPH.md` and public packet |
+| Stale threshold | `30+ days`; no `180+ days` proof text |
+| No autonomous Ship mutation | Dashboard mutation proof and `e2e/fleetgraph-attention-loop.spec.ts` |
+| Cost evidence | Public proof packet Cost And Usage section |
+
+## Verification Commands
+
+```bash
+pnpm fleetgraph:proof:check
+pnpm fleetgraph:proof:verify-traces
+```
+
+Current expected result: both pass.
+
+## Non-Claims
+
+- FleetGraph does not mutate Ship source records without human approval.
+- FleetGraph does not send external messages.
+- The dashboard requires authenticated access; it is not a public bypass.
+- Static proof is a snapshot. The dashboard is the live authority.
