@@ -128,6 +128,7 @@ const PROOF_COMMAND_ENV_ALLOWLIST = new Set([
   'PNPM_HOME',
   'COREPACK_HOME',
   'FLEETGRAPH_PROOF_TEST_DATABASE_URL',
+  'FLEETGRAPH_PROOF_TRACE_URLS_JSON',
 ]);
 
 type ReviewerProofArtifact = {
@@ -1285,7 +1286,7 @@ function reviewerSummary(chains: FleetGraphReviewerChain[]): FleetGraphReviewerC
   };
 }
 
-function proofCommandEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function proofCommandEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const childEnv = Object.fromEntries(
     Object.entries(env).filter(([key]) => PROOF_COMMAND_ENV_ALLOWLIST.has(key))
   );

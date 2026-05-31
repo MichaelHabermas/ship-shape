@@ -5,6 +5,7 @@ import {
   CAUSAL_TIMESTAMP_SKEW_MS,
   normalizeCausalDiffMs,
   preferredReviewerProofChain,
+  proofCommandEnv,
   publicReviewerChainProof,
   recordFleetGraphReviewerChatMutationProof,
   REVIEWER_PROOF_BLOCKER_TEXT,
@@ -53,6 +54,20 @@ describe('reviewer proof scenario copy', () => {
     expect(REVIEWER_PROOF_BLOCKER_TEXT).toBe('Waiting on reviewer proof unblock decision');
     expect(REVIEWER_PROOF_BLOCKER_TEXT).not.toContain('API credentials');
     expect(REVIEWER_PROOF_BLOCKER_TEXT).not.toContain('platform owner');
+  });
+});
+
+describe('proofCommandEnv', () => {
+  it('passes trace URL overrides into the proof subprocess', () => {
+    const env = proofCommandEnv({
+      DATABASE_URL: 'postgres://ship:ship@localhost:5432/ship_dev',
+      FLEETGRAPH_PROOF_TRACE_URLS_JSON: '{"blocked":"https://smith.langchain.com/public/example/r"}',
+      SESSION_SECRET: 'do-not-forward',
+    });
+
+    expect(env.FLEETGRAPH_PROOF_TRACE_URLS_JSON).toBe('{"blocked":"https://smith.langchain.com/public/example/r"}');
+    expect(env.FLEETGRAPH_PROOF_TEST_DATABASE_URL).toBe('postgres://ship:ship@localhost:5432/ship_test_audit');
+    expect(env.SESSION_SECRET).toBeUndefined();
   });
 });
 
