@@ -146,15 +146,15 @@ export const fleetGraphProductSurfaceCases = [
     title: 'Stale work copy names inactivity and the review move',
     input: {
       cardTitle: 'Integration cleanup',
-      cardSummary: 'Integration cleanup looks stale. No meaningful update for 180+ days.',
-      blockerText: 'No meaningful update for 180+ days',
+      cardSummary: 'Integration cleanup looks stale. No meaningful update for 30+ days.',
+      blockerText: 'No meaningful update for 30+ days',
       owner: 'Riley Builder',
       context: 'Week 11',
       nextAction: 'Review or close.',
       visibleCopy: [
         'Stale',
         'Integration cleanup',
-        'No meaningful update for 180+ days',
+        'No meaningful update for 30+ days',
         'Riley Builder',
         'Week 11',
         'Review or close.',

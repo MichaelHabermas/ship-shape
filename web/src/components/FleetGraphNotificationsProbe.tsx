@@ -216,6 +216,16 @@ export function FleetGraphNotificationsProbe({
 
       <button
         type="button"
+        onClick={() => navigate('/fleetgraph/reviewer')}
+        aria-label="Open reviewer proof"
+        title="Reviewer proof"
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-border/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+      >
+        <ReviewerProofIcon />
+      </button>
+
+      <button
+        type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label={open ? 'Hide notifications' : 'Open notifications'}
         aria-expanded={open}
@@ -225,6 +235,26 @@ export function FleetGraphNotificationsProbe({
         <NotificationBadge count={notificationCount} />
       </button>
     </div>
+  );
+}
+
+function ReviewerProofIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+      <path
+        d="M12 3.75 18.25 6v5.35c0 3.78-2.47 7.12-6.25 8.9-3.78-1.78-6.25-5.12-6.25-8.9V6L12 3.75Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m9.2 12.15 1.85 1.85 3.9-4.15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

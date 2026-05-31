@@ -1,16 +1,16 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-30T03:55:59.252Z
-Run: fleetgraph-proof-2026-05-30T03-55-59-252Z
-Target: both
+Generated: 2026-05-31T00:13:47.785Z
+Run: fleetgraph-proof-2026-05-31T00-13-47-785Z
+Target: local
 Verdict: pass
-Git: master @ 8305e0c80a30b898f7aeb0ab5376f55df3195ff7
+Git: reviewer-dash-2 @ e242fbe54a78ae88c2f4c0a5be29c1d81355a9ae
 
 ## Verdict
 
 Required scenarios: 9/9
 Current product surface: 8 pass / 0 fail
-Deployed signals: at_risk, blocked, stale
+Deployed signals: -
 
 ## Attention Loop
 
@@ -19,9 +19,9 @@ Deployed signals: at_risk, blocked, stale
 | Ship signal | pass | api/src/fleetgraph/eval/golden-cases.ts |
 | Detector policy | pass | api/src/fleetgraph/eval/executable-golden-cases.test.ts |
 | Finding lifecycle | pass | my-docs/evals/fleetgraph-product-surface/latest.json |
-| Notification state | pass | e2e/fleetgraph-attention-loop.spec.ts |
-| Source and chat | pass | my-docs/evidence/fleetgraph-proof/latest.html |
-| Human gate | pass | my-docs/evidence/fleetgraph-proof/latest.md |
+| Notification state | skipped | e2e/fleetgraph-attention-loop.spec.ts |
+| Source and chat | skipped | my-docs/evidence/fleetgraph-proof/latest.html |
+| Human gate | skipped | my-docs/evidence/fleetgraph-proof/latest.md |
 
 ## Graph Path Matrix
 
@@ -50,34 +50,30 @@ Deployed signals: at_risk, blocked, stale
 
 ## Deployed Runtime Evidence
 
-Worker ticks: 5; completed output ticks: 5; stuck running ticks: 0; signals: at_risk, blocked, stale; scheduled-worker signals: at_risk, blocked, stale
+No deployed database evidence was configured.
 
 ## Cost And Usage
 
-Graph invocations: 100
+Graph invocations: 0
 Model calls: 0
 Tokens: 0 input / 0 output / 0 total
-Deterministic runs: 100; real-model runs: 0
-Estimated FleetGraph model cost: $0.000000 measured FleetGraph graph-runtime estimate
-Projection, 100 users: $0.000000 / month at 3000 graph invocations
-Projection, 1,000 users: $0.000000 / month at 30000 graph invocations
-Projection, 10,000 users: $0.000000 / month at 300000 graph invocations
+Deterministic runs: 0; real-model runs: 0
+Estimated FleetGraph model cost: not measured; no deployed run metadata was available
+Projection, 100 users: requires deployed telemetry
+Projection, 1,000 users: requires deployed telemetry
+Projection, 10,000 users: requires deployed telemetry
 Excluded: Out-of-band coding assistant and development-wide Claude/API spend were not instrumented and are excluded.
 
 ## Deployed Runtime Trace Evidence
 
-Missing required trace links: none
-- blocked: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc (quiet_exit, deployed scheduled-worker runtime)
-- stale: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787 (update_finding, deployed scheduled-worker runtime)
-- at_risk: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed (update_finding, deployed scheduled-worker runtime)
-- on_demand: https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762 (quiet_exit, deployed context-chat runtime)
+No trace evidence was configured.
 
 ## Safety
 
 - pass: Permission-filtered evidence (fg-restricted-source-hidden)
 - pass: No autonomous Ship mutation/contact (FleetGraph golden-case mutation boundaries)
 - pass: Human gate before next action (fg-human-gated-action-prep)
-- pass: Reviewer proof kept out of product UI (fleetgraph-product-surface latest.json)
+- pass: Authenticated live proof surface (/fleetgraph/reviewer plus fleetgraph-product-surface latest.json)
 
 ## Risks
 
@@ -85,7 +81,7 @@ Missing required trace links: none
 
 ## Non-Claims
 
-- This dashboard is not product UI and does not add FleetGraph branding to the app.
+- The reviewer control room is an authenticated proof surface, not a marketing page or public reviewer bypass.
 - This proof packet does not claim autonomous Ship mutation or external contact.
 - A blocked deployed target means required deployed evidence was missing, not that production passed.
 
@@ -94,10 +90,7 @@ Missing required trace links: none
 - Static dashboard: my-docs/evidence/fleetgraph-proof/latest.html
 - Proof JSON: my-docs/evidence/fleetgraph-proof/latest.json
 - Proof Markdown: my-docs/evidence/fleetgraph-proof/latest.md
-- Public proof dashboard: web/public/fleetgraph-observability/proof/latest.html
-- Public proof JSON: web/public/fleetgraph-observability/proof/latest.json
-- Public proof Markdown: web/public/fleetgraph-observability/proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-55-59-252Z/proof.html
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T00-13-47-785Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

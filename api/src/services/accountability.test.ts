@@ -100,6 +100,30 @@ describe('Accountability Service', () => {
       expect(types).not.toContain('week_issues');
       expect(types).not.toContain('project_retro');
     });
+
+    it('does not turn FleetGraph reviewer proof fixtures into accountability items', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-08T12:00:00Z'));
+      vi.mocked(isBusinessDay).mockReturnValue(false);
+
+      mockSetupQueries('2024-01-01')
+        .mockResolvedValueOnce(pgResult([{
+          id: 'reviewer-sprint',
+          title: '[FleetGraph Reviewer] Live Week',
+          properties: {
+            sprint_number: 2,
+            owner_id: userId,
+            reviewer_proof: true,
+          },
+          project_id: null,
+        }]))
+        .mockResolvedValueOnce(pgResult([]));
+
+      const result = await checkMissingAccountability(userId, workspaceId);
+
+      expect(result).toEqual([]);
+      expect(getAllocations).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('date calculations', () => {

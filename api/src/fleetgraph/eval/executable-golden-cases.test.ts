@@ -66,7 +66,7 @@ function candidateForSignal(
     blocker_text: signalType === 'blocked' ? candidate.blocker_text : '',
     signalType,
     attentionReason: signalType === 'stale'
-      ? 'No meaningful update for 180+ days.'
+      ? 'No meaningful update for 30+ days.'
       : signalType === 'at_risk'
         ? 'High-priority current-week work has no owner.'
         : 'Issue state is blocked.',
@@ -241,7 +241,7 @@ describe('FleetGraph executable golden cases', () => {
 
     expect(result.decision).toBe(testCase.expectedDecision);
     expect(result.findingInput?.runMetadata).toMatchObject({ signalType: 'stale' });
-    expect(result.visibleOutput?.summary).toMatch(/stale|180/i);
+    expect(result.visibleOutput?.summary).toMatch(/stale|30/i);
     expect(port.recordRun).toHaveBeenCalledWith(expect.objectContaining({ decision: 'create_finding' }));
   });
 

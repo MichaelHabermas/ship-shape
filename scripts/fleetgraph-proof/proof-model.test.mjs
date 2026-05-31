@@ -10,6 +10,32 @@ import {
   traceUrlFromMetadata,
 } from './run.mjs';
 
+function validReviewerChain() {
+  return {
+    chainId: 'chain-1',
+    status: 'complete',
+    missing: [],
+    latencyMs: { total: 42_000 },
+    steps: [
+      { key: 'source', status: 'pass' },
+      { key: 'attention_event', status: 'pass' },
+      { key: 'worker_tick', status: 'pass' },
+      { key: 'graph_run', status: 'pass' },
+      { key: 'trace', status: 'pass' },
+      { key: 'finding', status: 'pass' },
+      { key: 'notification_projection', status: 'pass' },
+      { key: 'chat_human_gate', status: 'pass' },
+    ],
+    traceQuality: {
+      passed: true,
+      requiredDecisions: ['create_finding'],
+      observedDecisions: ['create_finding'],
+    },
+    humanGate: { state: 'present' },
+    sourceMutationCheck: { passed: true },
+  };
+}
+
 test('buildProofPacket maps required scenarios to a reviewer matrix', () => {
   const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
     id: scenario.goldenCaseId,
@@ -140,6 +166,174 @@ test('deployed proof blocks without a completed worker output tick', () => {
   assert.equal(packet.verdict, 'blocked');
 });
 
+test('live reviewer chain failure fails the static proof packet', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'local',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(REQUIRED_SCENARIOS.map((scenario) => scenario.goldenCaseId)),
+    executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [],
+    reviewerChain: {
+      chainId: 'chain-1',
+      status: 'broken',
+      missing: ['trace_quality'],
+    },
+    commandResults: [],
+    artifacts: [
+      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
+      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
+      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
+    ],
+  });
+
+  assert.equal(packet.verdict, 'fail');
+  assert.equal(packet.reviewerChain.status, 'broken');
+});
+
+test('complete live reviewer chain clears the missing-live-chain risk', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'local',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(REQUIRED_SCENARIOS.map((scenario) => scenario.goldenCaseId)),
+    executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [],
+    reviewerChain: validReviewerChain(),
+    commandResults: [],
+    artifacts: [
+      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
+      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
+      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
+    ],
+  });
+
+  assert.equal(packet.risks.some((risk) => risk.includes('live reviewer chain')), false);
+});
+
+test('complete live reviewer chain is enough for a local control-room packet', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'local',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(),
+    executedScenarioIds: new Set(),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [{ id: 'local', required: true, status: 'configured' }],
+    reviewerChain: validReviewerChain(),
+    commandResults: [{ name: 'FleetGraph attention loop E2E', status: 'skipped' }],
+    artifacts: [
+      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
+      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
+      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
+    ],
+  });
+
+  assert.equal(packet.verdict, 'pass');
+  assert.equal(packet.risks.some((risk) => risk.includes('defined by golden cases')), false);
+});
+
+test('complete live reviewer chain without its required trace decision fails proof', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+  const chain = validReviewerChain();
+  chain.traceQuality.observedDecisions = ['update_finding'];
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'local',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(),
+    executedScenarioIds: new Set(),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [{ id: 'local', required: true, status: 'configured' }],
+    reviewerChain: chain,
+    commandResults: [],
+    artifacts: [
+      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
+      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
+      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
+    ],
+  });
+
+  assert.equal(packet.verdict, 'fail');
+  assert(packet.risks.some((risk) => risk.includes('missing trace decision create_finding')));
+});
+
+test('complete live reviewer chain without required gates fails proof', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'local',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(REQUIRED_SCENARIOS.map((scenario) => scenario.goldenCaseId)),
+    executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [],
+    reviewerChain: {
+      chainId: 'chain-1',
+      status: 'complete',
+      missing: [],
+    },
+    commandResults: [],
+    artifacts: [
+      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
+      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
+      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
+    ],
+  });
+
+  assert.equal(packet.verdict, 'fail');
+  assert.equal(packet.risks.some((risk) => risk.includes('missing source step')), true);
+});
+
 test('deployed proof summarizes usage and blocks missing trace links', () => {
   const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
     id: scenario.goldenCaseId,
@@ -189,6 +383,7 @@ test('deployed proof summarizes usage and blocks missing trace links', () => {
         missingRequired: ['on_demand'],
       },
     },
+    reviewerChain: validReviewerChain(),
     commandResults: [],
     artifacts: [
       { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
@@ -246,6 +441,7 @@ test('deployed proof accepts required public trace links for all claimed signals
         missingRequired: [],
       },
     },
+    reviewerChain: validReviewerChain(),
     commandResults: [],
     artifacts: [
       { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },

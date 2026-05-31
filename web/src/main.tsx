@@ -1,3 +1,4 @@
+// Bootstraps Ship's authenticated React app, route tree, and global providers.
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
@@ -43,6 +44,7 @@ const ReviewsPage = React.lazy(() => import('@/pages/ReviewsPage').then((module)
 const OrgChartPage = React.lazy(() => import('@/pages/OrgChartPage').then((module) => ({ default: module.OrgChartPage })));
 const InviteAcceptPage = React.lazy(() => import('@/pages/InviteAccept').then((module) => ({ default: module.InviteAcceptPage })));
 const SetupPage = React.lazy(() => import('@/pages/Setup').then((module) => ({ default: module.SetupPage })));
+const FleetGraphReviewerPage = React.lazy(() => import('@/pages/FleetGraphReviewerPage').then((module) => ({ default: module.FleetGraphReviewerPage })));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={null}>{children}</Suspense>;
@@ -246,6 +248,7 @@ function AppRoutes() {
         <Route path="team/status" element={<LazyRoute><StatusOverviewPage /></LazyRoute>} />
         <Route path="team/reviews" element={<LazyRoute><ReviewsPage /></LazyRoute>} />
         <Route path="team/org-chart" element={<LazyRoute><OrgChartPage /></LazyRoute>} />
+        <Route path="fleetgraph/reviewer" element={<LazyRoute><FleetGraphReviewerPage /></LazyRoute>} />
         {/* Person profile stays in Teams context - no redirect to /documents */}
         <Route path="team/:id" element={<LazyRoute><PersonEditorPage /></LazyRoute>} />
         <Route path="feedback/:id" element={<LazyRoute><FeedbackEditorPage /></LazyRoute>} />

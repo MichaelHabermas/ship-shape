@@ -105,6 +105,7 @@ async function main() {
     productSurface: await readJsonIfExists(path.join(repoRoot, 'my-docs/evals/fleetgraph-product-surface/latest.json')),
     environments,
     deployedEvidence,
+    reviewerChain: await readReviewerChain(),
     commandResults,
     artifacts: artifactPlan(runId, options.mode),
   }));
@@ -138,4 +139,84 @@ async function main() {
 
 function isMainModule() {
   return process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+}
+
+async function readReviewerChain() {
+  let chain = null;
+  if (process.env.FLEETGRAPH_REVIEWER_CHAIN_JSON) {
+    chain = JSON.parse(process.env.FLEETGRAPH_REVIEWER_CHAIN_JSON);
+  } else if (process.env.FLEETGRAPH_REVIEWER_CHAIN_PATH) {
+    chain = await readJsonIfExists(path.resolve(repoRoot, process.env.FLEETGRAPH_REVIEWER_CHAIN_PATH));
+  }
+  return chain ? publicReviewerChainProof(chain) : null;
+}
+
+function publicReviewerChainProof(chain) {
+  return {
+    chainId: stringValue(chain.chainId),
+    scenario: stringValue(chain.scenario),
+    status: stringValue(chain.status),
+    missing: Array.isArray(chain.missing) ? chain.missing.map(stringValue) : [],
+    generatedAt: stringValue(chain.generatedAt),
+    freshness: safeObject(chain.freshness),
+    latencyMs: safeObject(chain.latencyMs),
+    steps: Array.isArray(chain.steps)
+      ? chain.steps.map((step) => ({
+        key: stringValue(step.key),
+        label: stringValue(step.label),
+        status: stringValue(step.status),
+        at: step.at === null ? null : stringValue(step.at),
+        durationMs: numberValue(step.durationMs),
+        evidence: step.status === 'pass' ? 'Reviewer-safe evidence present.' : stringValue(step.evidence),
+      }))
+      : [],
+    humanGate: {
+      required: chain.humanGate?.required === true,
+      state: stringValue(chain.humanGate?.state),
+      allowedActions: Array.isArray(chain.humanGate?.allowedActions)
+        ? chain.humanGate.allowedActions.map(stringValue)
+        : [],
+    },
+    traceQuality: {
+      passed: chain.traceQuality?.passed === true,
+      requiredDecisions: Array.isArray(chain.traceQuality?.requiredDecisions)
+        ? chain.traceQuality.requiredDecisions.map(stringValue)
+        : [],
+      observedDecisions: Array.isArray(chain.traceQuality?.observedDecisions)
+        ? chain.traceQuality.observedDecisions.map(stringValue)
+        : [],
+      scores: Array.isArray(chain.traceQuality?.scores)
+        ? chain.traceQuality.scores.map((score) => ({
+          name: stringValue(score.name),
+          passed: score.passed === true,
+          value: ['boolean', 'number'].includes(typeof score.value) ? score.value : null,
+          comment: stringValue(score.comment),
+        }))
+        : [],
+    },
+    sourceMutationCheck: {
+      passed: chain.sourceMutationCheck?.passed === true,
+      before: {},
+      after: {},
+      changedFields: Array.isArray(chain.sourceMutationCheck?.changedFields)
+        ? chain.sourceMutationCheck.changedFields.map(stringValue)
+        : [],
+    },
+    usageSummary: safeObject(chain.usageSummary),
+  };
+}
+
+function stringValue(value) {
+  return typeof value === 'string' ? value : '';
+}
+
+function numberValue(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function safeObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([, item]) =>
+    item === null || ['string', 'number', 'boolean'].includes(typeof item)
+  ));
 }

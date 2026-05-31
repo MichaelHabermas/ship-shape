@@ -176,11 +176,23 @@ export function deterministicContextChatAnswer(
   const primaryPage = bundle.pages[0];
   const sources = sourcesFromContextBundle(bundle);
   const normalized = prompt.trim().toLowerCase();
+  const conversation = conversationFromHistory(history);
+  const asksForShipAction = asksForAction(normalized);
 
   if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
     return {
       title: 'Chat',
       body: 'Hi. What would you like to look at?',
+      sources,
+      humanGate: { required: false },
+    };
+  }
+
+  const [firstDocument, ...otherDocuments] = bundle.documents;
+  if (asksForComparison(normalized) && firstDocument && otherDocuments.length > 0) {
+    return {
+      title: 'Context comparison',
+      body: compareDocumentsAnswer(firstDocument, otherDocuments, primarySignal),
       sources,
       humanGate: { required: false },
     };
@@ -194,21 +206,23 @@ export function deterministicContextChatAnswer(
     if (asksForFormatChange(normalized)) {
       return {
         title: primaryDocument.title,
-        body: bulletAnswerFromDocument(primaryDocument, bundle.documents.slice(1), primarySignal),
+        body: bulletAnswerFromDocument(primaryDocument, bundle.documents.slice(1), primarySignal, conversation.previousAssistantAnswer),
         sources,
-        humanGate: { required: false },
+        humanGate: asksForShipAction && primarySignal ? primarySignal.output.humanGate : { required: false },
       };
     }
 
-    const asksForShipAction = asksForAction(normalized);
     return {
       title: primaryDocument.title,
-      body: fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal, history),
+      body: withActionBoundary(
+        fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal, conversation),
+        asksForShipAction
+      ),
       ...(asksForShipAction && primarySignal && recommendedActionFromOutput(primarySignal.output)
         ? { nextStep: recommendedActionFromOutput(primarySignal.output) }
         : {}),
       sources,
-      humanGate: asksForShipAction ? primarySignal?.output.humanGate ?? { required: false } : { required: false },
+      humanGate: asksForShipAction && primarySignal ? primarySignal.output.humanGate : { required: false },
     };
   }
 
@@ -243,10 +257,10 @@ function pageAnswer(
       `${page.title} is showing ${page.visibleItems.length} visible item${page.visibleItems.length === 1 ? '' : 's'}. ${selected}`,
       filters ? `Filters: ${filters}.` : null,
       visible ? `Visible items: ${visible}.` : null,
-      asksForActionPlan ? 'Pick the item you want to change; FleetGraph can explain evidence, but mutation/contact still needs human approval.' : null,
+      asksForActionPlan ? 'I can reason from this context, but changing Ship records or contacting people still needs human approval.' : null,
     ].filter(Boolean).join('\n\n'),
     sources,
-    humanGate: { required: false },
+    humanGate: asksForActionPlan ? humanGateRequired() : { required: false },
   };
 }
 
@@ -280,11 +294,15 @@ function signalAnswer(
 }
 
 function asksForAction(normalizedPrompt: string): boolean {
-  return /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item)\b/.test(normalizedPrompt);
+  return /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item|assign|change|update|send|message|contact|notify|resolve|close|move|fix this|go fix)\b/.test(normalizedPrompt);
 }
 
 function asksForFormatChange(normalizedPrompt: string): boolean {
   return /\b(bullet|bullets|bullet points|format as|make (that|it) (a )?list)\b/.test(normalizedPrompt);
+}
+
+function asksForComparison(normalizedPrompt: string): boolean {
+  return /\b(compare|versus| vs |both|attached|other context|other doc|other document|what else is attached)\b/.test(normalizedPrompt);
 }
 
 export function chatModelAnswerFromContext(body: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
@@ -389,10 +407,14 @@ function fallbackAnswer(
   document: ContextChatDocument,
   attachedDocuments: ContextChatDocument[],
   signal: ContextChatSignal | undefined,
-  history: FleetGraphChatHistoryEntry[]
+  conversation: ContextChatConversation
 ): string {
   if (/\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(prompt)) {
-    return simpleDocumentAnswer(document, signal, history);
+    return simpleDocumentAnswer(document, signal, conversation);
+  }
+
+  if (/\b(why|how come|reason)\b/i.test(prompt) && conversation.previousAssistantAnswer) {
+    return whyAnswer(document, attachedDocuments, signal);
   }
 
   if (/\bpython\b/i.test(prompt) && /\blinked list\b/i.test(prompt)) {
@@ -421,9 +443,9 @@ function fallbackAnswer(
 function simpleDocumentAnswer(
   document: ContextChatDocument,
   signal: ContextChatSignal | undefined,
-  history: FleetGraphChatHistoryEntry[]
+  conversation: ContextChatConversation
 ): string {
-  if (lastHistoryContent(history, 'assistant') && /\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(lastHistoryContent(history, 'user') ?? '')) {
+  if (conversation.previousAssistantAnswer && /\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(conversation.previousUserPrompt ?? '')) {
     return shortestDocumentAnswer(document, signal);
   }
 
@@ -470,7 +492,7 @@ function documentAnswer(
     if (reason) lines.push(`Current signal: ${reason}`);
   }
   if (attachedDocuments.length > 0) {
-    lines.push(`Also in context: ${attachedDocuments.map((item) => item.title).join(', ')}.`);
+    lines.push(attachedContextAnswer(attachedDocuments));
   }
 
   return lines.join('\n\n');
@@ -479,15 +501,28 @@ function documentAnswer(
 function bulletAnswerFromDocument(
   document: ContextChatDocument,
   attachedDocuments: ContextChatDocument[],
-  signal: ContextChatSignal | undefined
+  signal: ContextChatSignal | undefined,
+  previousAnswer?: string
 ): string {
-  const text = documentAnswer(document, attachedDocuments, signal);
+  const text = previousAnswer?.trim() || documentAnswer(document, attachedDocuments, signal);
   const sentences = text
     .split(/(?<=[.!?])\s+/)
     .map((sentence) => sentence.trim())
     .filter(Boolean)
     .slice(0, 4);
   return sentences.map((sentence) => `- ${sentence.replace(/\s+/g, ' ')}`).join('\n');
+}
+
+type ContextChatConversation = {
+  previousUserPrompt?: string;
+  previousAssistantAnswer?: string;
+};
+
+function conversationFromHistory(history: FleetGraphChatHistoryEntry[]): ContextChatConversation {
+  return {
+    previousUserPrompt: lastHistoryContent(history, 'user') ?? undefined,
+    previousAssistantAnswer: lastHistoryContent(history, 'assistant') ?? undefined,
+  };
 }
 
 function lastHistoryContent(history: FleetGraphChatHistoryEntry[], role: FleetGraphChatHistoryEntry['role']): string | null {
@@ -514,6 +549,55 @@ function compactDocumentProperties(properties: Record<string, unknown>): string[
       return typeof value === 'string' && value.trim() ? `${label}: ${value.trim()}.` : null;
     })
     .filter((line): line is string => Boolean(line));
+}
+
+function attachedContextAnswer(attachedDocuments: ContextChatDocument[]): string {
+  const facts = attachedDocuments.map((document) => {
+    const fact = conciseFact(strongestDocumentSentence(document));
+    return fact ? `${document.title}: ${fact}` : document.title;
+  });
+  return `Also in context: ${facts.join('; ')}.`;
+}
+
+function compareDocumentsAnswer(
+  primaryDocument: ContextChatDocument,
+  attachedDocuments: ContextChatDocument[],
+  signal: ContextChatSignal | undefined
+): string {
+  const primaryFact = conciseFact(signal ? signalReason(signal.output) : strongestDocumentSentence(primaryDocument));
+  const attachedFacts = attachedDocuments.map((document) => {
+    const fact = conciseFact(strongestDocumentSentence(document)) ?? 'No extra detail visible.';
+    return `- ${document.title}: ${fact}`;
+  });
+  return [
+    `- ${primaryDocument.title}: ${primaryFact ?? 'No extra detail visible.'}`,
+    ...attachedFacts,
+  ].join('\n\n');
+}
+
+function whyAnswer(
+  document: ContextChatDocument,
+  attachedDocuments: ContextChatDocument[],
+  signal: ContextChatSignal | undefined
+): string {
+  const reason = signal ? signalReason(signal.output) : strongestDocumentSentence(document);
+  const attached = attachedDocuments.length > 0 ? ` ${attachedContextAnswer(attachedDocuments)}` : '';
+  return [
+    reason ? `Because ${lowercaseFirst(reason)}` : `${document.title} has limited visible context, so I can only explain from its current fields.`,
+    attached.trim(),
+  ].filter(Boolean).join('\n\n');
+}
+
+function lowercaseFirst(value: string): string {
+  return value.replace(/^./, (letter) => letter.toLowerCase());
+}
+
+function withActionBoundary(body: string, required: boolean): string {
+  if (!required) return body;
+  return [
+    body,
+    'Human approval is required before Ship changes records or contacts anyone.',
+  ].join('\n\n');
 }
 
 function textFromTipTap(value: unknown): string {
@@ -554,6 +638,10 @@ function recommendedActionFromOutput(output: FleetGraphVisibleOutput): string | 
     || stringFromUnknown(output.recommendedAction?.summary)
     || stringFromUnknown(output.recommendedAction?.label)
     || undefined;
+}
+
+function humanGateRequired(): Record<string, unknown> {
+  return { required: true, reason: 'human_must_approve_before_ship_or_external_action' };
 }
 
 function stringFromUnknown(value: unknown): string | null {
