@@ -1,9 +1,9 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-31T01:25:14.492Z
-Run: fleetgraph-proof-2026-05-31T01-25-14-492Z
+Generated: 2026-05-31T01:21:32.185Z
+Run: fleetgraph-proof-2026-05-31T01-21-32-185Z
 Target: both
-Verdict: pass
+Verdict: fail
 Git: final-reviewer-submission-1 @ d1028356668fd9b6e550704728f3748c2258c8da
 
 ## Verdict
@@ -27,13 +27,13 @@ Deployed signals: at_risk, blocked, stale
 
 | # | Ship state | Expected output | Required decision | Public LangSmith trace |
 | ---: | --- | --- | --- | --- |
-| 1 | Visible issue has state = blocked and blocker text | Proactive create_finding, notification visible, no Ship mutation claim | create_finding | https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r |
-| 2 | Visible active issue has no meaningful update for 30+ days | Proactive create_finding, stale notification, human-gated review/close action | create_finding | https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r |
-| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive create_finding, at-risk notification, human-gated owner/scope action | create_finding | https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r |
-| 4 | User asks from existing finding or page context | On-demand explain/chat path returns visible evidence, page context, and next action | explain | https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
-| 5 | Chat asks for next action on a source/finding | On-demand answer preserves human gate; source issue remains unchanged after chat | explain | https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r |
-| 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | quiet_exit | https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r |
-| 7 | Reviewer runs current-week blocker scenario in /fleetgraph/reviewer | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | create_finding | https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r |
+| 1 | Visible issue has state = blocked and blocker text | Proactive create_finding, notification visible, no Ship mutation claim | create_finding | missing public LangSmith trace |
+| 2 | Visible active issue has no meaningful update for 30+ days | Proactive create_finding, stale notification, human-gated review/close action | create_finding | missing public LangSmith trace |
+| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive create_finding, at-risk notification, human-gated owner/scope action | create_finding | missing public LangSmith trace |
+| 4 | User asks from existing finding or page context | On-demand explain/chat path returns visible evidence, page context, and next action | explain | missing public LangSmith trace |
+| 5 | Chat asks for next action on a source/finding | Human gate required; source issue remains unchanged after chat | needs_confirmation | missing public LangSmith trace |
+| 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | resolve | missing public LangSmith trace |
+| 7 | Reviewer runs current-week blocker scenario in /fleetgraph/reviewer | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | create_finding | missing public LangSmith trace |
 
 ## Graph Path Matrix
 
@@ -79,10 +79,10 @@ Excluded: Out-of-band coding assistant and development-wide Claude/API spend wer
 ## Deployed Runtime Trace Evidence
 
 Missing required trace links: none
-- blocked: https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r (create_finding, deployed manual-langsmith-share runtime)
-- stale: https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r (create_finding, deployed manual-langsmith-share runtime)
-- at_risk: https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r (create_finding, deployed manual-langsmith-share runtime)
-- on_demand: https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r (explain, deployed manual-langsmith-share runtime)
+- blocked: https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r (update_finding, deployed scheduled-worker runtime)
+- stale: https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r (update_finding, deployed scheduled-worker runtime)
+- at_risk: https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r (update_finding, deployed scheduled-worker runtime)
+- on_demand: https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r (manual_trace_override, deployed manual-langsmith-share runtime)
 
 ## Safety
 
@@ -109,7 +109,7 @@ Missing required trace links: none
 - Public proof dashboard: web/public/fleetgraph-observability/proof/latest.html
 - Public proof JSON: web/public/fleetgraph-observability/proof/latest.json
 - Public proof Markdown: web/public/fleetgraph-observability/proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T01-25-14-492Z/proof.html
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T01-21-32-185Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

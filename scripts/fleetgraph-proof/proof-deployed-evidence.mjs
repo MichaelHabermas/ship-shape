@@ -231,27 +231,56 @@ export function applyTraceUrlOverrides(deployedEvidence, overrides) {
     missingRequired: ['blocked', 'stale', 'at_risk', 'on_demand'],
   };
   const bySignal = { ...(traceEvidence.bySignal ?? {}) };
+  const bySignalDecision = { ...(traceEvidence.bySignalDecision ?? {}) };
   for (const signal of traceEvidence.requiredSignals ?? []) {
     const override = traceOverrideValue(overrides[signal]);
+    if (override) {
+      const evidence = traceOverrideEvidence({
+        signal,
+        override,
+        fallback: bySignal[signal],
+      });
+      bySignal[signal] = evidence;
+      bySignalDecision[`${signal}:${evidence.decision}`] = evidence;
+    }
+  }
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key.includes(':')) continue;
+    const [signal, decision] = key.split(':');
+    if (!signal || !decision) continue;
+    const override = traceOverrideValue(value);
     if (!override) continue;
-    bySignal[signal] = {
-      ...(bySignal[signal] ?? {}),
+    const evidence = traceOverrideEvidence({
       signal,
-      runId: stringValue(override.runId) ?? stringValue(override.id) ?? bySignal[signal]?.runId ?? `manual-${signal}`,
-      decision: stringValue(override.decision) ?? bySignal[signal]?.decision ?? 'manual_trace_override',
-      triggerReason: stringValue(override.triggerReason) ?? bySignal[signal]?.triggerReason ?? 'manual-langsmith-share',
-      traceUrl: publicLangSmithTraceUrl(override.traceUrl ?? override.url),
-      traceId: stringValue(override.traceId) ?? bySignal[signal]?.traceId ?? null,
-      createdAt: stringValue(override.createdAt) ?? bySignal[signal]?.createdAt ?? null,
-    };
+      override: { ...override, decision },
+      fallback: bySignalDecision[key],
+    });
+    bySignalDecision[key] = evidence;
+    if (betterSignalTrace(evidence, bySignal[signal])) {
+      bySignal[signal] = evidence;
+    }
   }
   return {
     ...deployedEvidence,
     traceEvidence: {
       ...traceEvidence,
       bySignal,
+      bySignalDecision,
       missingRequired: (traceEvidence.requiredSignals ?? []).filter((signal) => !bySignal[signal]?.traceUrl),
     },
+  };
+}
+
+function traceOverrideEvidence({ signal, override, fallback }) {
+  return {
+    ...(fallback ?? {}),
+    signal,
+    runId: stringValue(override.runId) ?? stringValue(override.id) ?? fallback?.runId ?? `manual-${signal}`,
+    decision: stringValue(override.decision) ?? fallback?.decision ?? 'manual_trace_override',
+    triggerReason: stringValue(override.triggerReason) ?? fallback?.triggerReason ?? 'manual-langsmith-share',
+    traceUrl: publicLangSmithTraceUrl(override.traceUrl ?? override.url),
+    traceId: stringValue(override.traceId) ?? fallback?.traceId ?? null,
+    createdAt: stringValue(override.createdAt) ?? fallback?.createdAt ?? null,
   };
 }
 

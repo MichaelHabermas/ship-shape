@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-31T01:15:06.522Z",
-  "runId": "fleetgraph-proof-2026-05-31T01-15-06-522Z",
+  "generatedAt": "2026-05-31T01:25:14.492Z",
+  "runId": "fleetgraph-proof-2026-05-31T01-25-14-492Z",
   "target": "both",
   "git": {
-    "branch": "master",
-    "sha": "4e893615528991939ddf7fc3a052b1c5f7ef6247",
+    "branch": "final-reviewer-submission-1",
+    "sha": "d1028356668fd9b6e550704728f3748c2258c8da",
     "dirty": true
   },
   "verdict": "pass",
@@ -47,7 +47,7 @@
     }
   ],
   "deployedEvidence": {
-    "checkedAt": "2026-05-31T01:15:47.005Z",
+    "checkedAt": "2026-05-31T01:26:32.511Z",
     "evidenceSource": "render-postgres",
     "workerTickCount": 5,
     "completedWorkerTickCount": 5,
@@ -61,9 +61,9 @@
       "stale"
     ],
     "signalCounts": {
-      "at_risk": 577,
-      "blocked": 2257,
-      "stale": 520
+      "at_risk": 576,
+      "blocked": 2253,
+      "stale": 524
     },
     "scheduledWorkerSignalTypes": [
       "at_risk",
@@ -71,9 +71,9 @@
       "stale"
     ],
     "scheduledWorkerSignalCounts": {
-      "at_risk": 560,
-      "blocked": 2234,
-      "stale": 503
+      "at_risk": 559,
+      "blocked": 2230,
+      "stale": 507
     },
     "graphInvocationCount": 100,
     "usageSummary": {
@@ -119,37 +119,111 @@
       "bySignal": {
         "blocked": {
           "signal": "blocked",
-          "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
-          "decision": "quiet_exit",
-          "triggerReason": "scheduled-worker",
-          "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
-          "traceId": "39943d204413d63cfc4ec42cc38159f6",
-          "createdAt": "2026-05-31 01:14:08.29571+00"
+          "runId": "manual-blocked",
+          "decision": "create_finding",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r",
+          "traceId": null,
+          "createdAt": null
         },
         "stale": {
           "signal": "stale",
-          "runId": "aafd9841-69a5-456b-a4b8-1c834233e92a",
-          "decision": "update_finding",
-          "triggerReason": "scheduled-worker",
-          "traceUrl": "https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r",
-          "traceId": "3cee164a11ba59bb4a5e9ecb5f8b0192",
-          "createdAt": "2026-05-31 01:14:03.227752+00"
+          "runId": "manual-stale",
+          "decision": "create_finding",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r",
+          "traceId": null,
+          "createdAt": null
         },
         "at_risk": {
           "signal": "at_risk",
-          "runId": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
-          "decision": "update_finding",
-          "triggerReason": "scheduled-worker",
-          "traceUrl": "https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r",
-          "traceId": "e1de5b27cbbdafef9e5316696f0cf347",
-          "createdAt": "2026-05-31 01:13:42.622216+00"
+          "runId": "manual-at_risk",
+          "decision": "create_finding",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r",
+          "traceId": null,
+          "createdAt": null
         },
         "on_demand": {
           "signal": "on_demand",
           "runId": "manual-on_demand",
-          "decision": "manual_trace_override",
+          "decision": "explain",
           "triggerReason": "manual-langsmith-share",
-          "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+          "traceUrl": "https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r",
+          "traceId": null,
+          "createdAt": null
+        }
+      },
+      "bySignalDecision": {
+        "blocked:quiet_exit": {
+          "signal": "blocked",
+          "runId": "977880a6-63bb-48f4-8ab8-4eac33187993",
+          "decision": "quiet_exit",
+          "triggerReason": "scheduled-worker",
+          "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+          "traceId": "3c088efc365895caf886efec963db857",
+          "createdAt": "2026-05-31 01:24:32.397453+00"
+        },
+        "stale:update_finding": {
+          "signal": "stale",
+          "runId": "c6bc1611-55fa-4ce1-9330-f852e515e296",
+          "decision": "update_finding",
+          "triggerReason": "scheduled-worker",
+          "traceUrl": null,
+          "traceId": "1068552520dfe797844d3717fee1ff36",
+          "createdAt": "2026-05-31 01:24:27.334786+00"
+        },
+        "blocked:update_finding": {
+          "signal": "blocked",
+          "runId": "79f78b7d-3e17-4279-ae87-cfa1be2ade36",
+          "decision": "update_finding",
+          "triggerReason": "scheduled-worker",
+          "traceUrl": null,
+          "traceId": "54b0d68b990594737bf0b90cd554fa0a",
+          "createdAt": "2026-05-31 01:24:22.318961+00"
+        },
+        "at_risk:update_finding": {
+          "signal": "at_risk",
+          "runId": "cce8fdd7-18de-468f-a1a8-7c43d54ee9f1",
+          "decision": "update_finding",
+          "triggerReason": "scheduled-worker",
+          "traceUrl": null,
+          "traceId": "98e21241a7fa6e089598cc2b24761087",
+          "createdAt": "2026-05-31 01:24:06.618475+00"
+        },
+        "blocked:create_finding": {
+          "signal": "blocked",
+          "runId": "manual-blocked",
+          "decision": "create_finding",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r",
+          "traceId": null,
+          "createdAt": null
+        },
+        "stale:create_finding": {
+          "signal": "stale",
+          "runId": "manual-stale",
+          "decision": "create_finding",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r",
+          "traceId": null,
+          "createdAt": null
+        },
+        "at_risk:create_finding": {
+          "signal": "at_risk",
+          "runId": "manual-at_risk",
+          "decision": "create_finding",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r",
+          "traceId": null,
+          "createdAt": null
+        },
+        "on_demand:explain": {
+          "signal": "on_demand",
+          "runId": "manual-on_demand",
+          "decision": "explain",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r",
           "traceId": null,
           "createdAt": null
         }
@@ -158,354 +232,354 @@
     },
     "recentRuns": [
       {
-        "id": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
+        "id": "977880a6-63bb-48f4-8ab8-4eac33187993",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:14:08.29571+00",
+        "createdAt": "2026-05-31 01:24:32.397453+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "39943d204413d63cfc4ec42cc38159f6"
+        "traceId": "3c088efc365895caf886efec963db857"
       },
       {
-        "id": "aafd9841-69a5-456b-a4b8-1c834233e92a",
+        "id": "c6bc1611-55fa-4ce1-9330-f852e515e296",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-31 01:14:03.227752+00",
+        "createdAt": "2026-05-31 01:24:27.334786+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "3cee164a11ba59bb4a5e9ecb5f8b0192"
+        "traceId": "1068552520dfe797844d3717fee1ff36"
       },
       {
-        "id": "c613aa8f-fde7-4fed-b595-5e402e7dca28",
+        "id": "79f78b7d-3e17-4279-ae87-cfa1be2ade36",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:13:58.210599+00",
+        "createdAt": "2026-05-31 01:24:22.318961+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "bf71c560e1b40146793d8dd2f8bae342"
+        "traceId": "54b0d68b990594737bf0b90cd554fa0a"
       },
       {
-        "id": "9bd62ff3-32d3-4f25-a8b8-ec83a352abbd",
+        "id": "e25e2cd9-db1c-424e-a751-eda54d646e4c",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:13:53.194078+00",
+        "createdAt": "2026-05-31 01:24:17.302891+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "6dfdb3f04ec2ae01c149263f5e3ec857"
+        "traceId": "2369c61c00399a43f131c5d9fd8aa7e9"
       },
       {
-        "id": "d1e39379-8772-419c-82b5-a93a5f7da029",
+        "id": "28f9cf3d-7e0f-43cf-8414-e0cbfd1f9538",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:13:47.641515+00",
+        "createdAt": "2026-05-31 01:24:11.833802+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "e8d09f7877de3cc97f7405de56571562"
+        "traceId": "a3742e26d11dad946f1b4870db45fd81"
       },
       {
-        "id": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
+        "id": "cce8fdd7-18de-468f-a1a8-7c43d54ee9f1",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "at_risk",
-        "createdAt": "2026-05-31 01:13:42.622216+00",
+        "createdAt": "2026-05-31 01:24:06.618475+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "e1de5b27cbbdafef9e5316696f0cf347"
+        "traceId": "98e21241a7fa6e089598cc2b24761087"
       },
       {
-        "id": "28667a60-5458-49bc-9108-dbc3577a390a",
+        "id": "dc3b6058-af57-4fea-acbd-b87fee401997",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:13:37.595668+00",
+        "createdAt": "2026-05-31 01:24:01.592065+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "959894ba4ae5bc6fb08ed7e8cf5f48e1"
+        "traceId": "000b3a93939040ddfd6f36e3f5d6e8d8"
       },
       {
-        "id": "b6e8f939-594a-420f-8eda-ffd3b3653a82",
+        "id": "312ca67b-831b-4980-b204-60182a28d351",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:11:32.298214+00",
+        "createdAt": "2026-05-31 01:21:56.197466+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "c51eb98ac8142ba305c5cffa4e719de1"
+        "traceId": "ec1ebac8da76c87c982efc3403fe4892"
       },
       {
-        "id": "f3765846-542e-4dbf-a886-4f9a52dd005f",
+        "id": "1b657a40-0b90-4a6f-9a39-2e66c87a5153",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-31 01:11:27.242496+00",
+        "createdAt": "2026-05-31 01:21:51.126734+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "faf7c1c740a16fc5c52c02fcbe014272"
+        "traceId": "54bd969519f7df860aeae9933992d171"
       },
       {
-        "id": "2b3a2def-6cae-47cb-aa69-f1e1310f8a99",
+        "id": "ca541883-7453-4f4a-81bf-079d95d9e329",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:11:22.223967+00",
+        "createdAt": "2026-05-31 01:21:46.111954+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "fd7b65a53103ff00ec6d74b86e668c55"
+        "traceId": "597e1bb08d68dec98a05696cad8138a6"
       },
       {
-        "id": "29ab5d1d-d0a9-40e5-87b4-e6837e195327",
+        "id": "7a1887ac-5018-41ee-aea4-fc2f9744432a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:11:17.205749+00",
+        "createdAt": "2026-05-31 01:21:41.097792+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "a3cdef225a741669840d459bcf1548c4"
+        "traceId": "1fd9defcbc40b0a1c632aebb0a85bdfe"
       },
       {
-        "id": "2e2662ef-30a2-4eb8-9baa-1b30155bd59d",
+        "id": "6bc2c4e5-dd0f-490f-a84f-98547551ed03",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:11:11.735968+00",
+        "createdAt": "2026-05-31 01:21:35.543132+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "c1a60a459a4d5a4230e75ed1742aff3c"
+        "traceId": "446b05238b6193b0a9634535b34cf6da"
       },
       {
-        "id": "7f9aa52c-eb8d-4d21-ac90-383af71b0a7d",
+        "id": "424298e9-d9aa-4562-8567-036edc8984c3",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "at_risk",
-        "createdAt": "2026-05-31 01:11:06.717315+00",
+        "createdAt": "2026-05-31 01:21:30.524765+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "87a01c35c2740672431cfdecce44325b"
+        "traceId": "319783cb743530a1c8e3eb045f557009"
       },
       {
-        "id": "973f7b5b-158e-4b69-931b-bd56ea53b7aa",
+        "id": "ffaa283e-6442-4c23-886b-ca1432bdc99a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:11:01.691877+00",
+        "createdAt": "2026-05-31 01:21:25.505027+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "e41a52c122b7ab0e3c19e7fd43e3529d"
+        "traceId": "2ecc5c9491a8ef31089126ac30a2f46f"
       },
       {
-        "id": "7ee8978d-22a2-4c87-a009-674b63cf558f",
+        "id": "e9683461-f0cd-44dd-a040-317598432f19",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:08:56.398414+00",
+        "createdAt": "2026-05-31 01:19:20.294925+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "3ee882e554b764d3c7480364749f3a1b"
+        "traceId": "0792be6bbd6f01c40ba9145b973e5359"
       },
       {
-        "id": "092f3341-c027-47a4-87f3-ec59cdbbf3aa",
+        "id": "ae72a573-c460-4e31-8ffe-18a180c37dfd",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-31 01:08:51.342924+00",
+        "createdAt": "2026-05-31 01:19:15.240746+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "667b923c90a8da940ef625b6e2cf40b7"
+        "traceId": "d8f361595a593bc4c389f67b704d4df1"
       },
       {
-        "id": "ff42f605-5985-4851-9696-d5cf720291a8",
+        "id": "1172fe15-37e0-413f-822b-7465fd31b685",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:08:46.320465+00",
+        "createdAt": "2026-05-31 01:19:10.223163+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "6cdb9117c8dc30d01f8b277b92673976"
+        "traceId": "4ec214e5db1be1092fc87349c8f5e518"
       },
       {
-        "id": "aa26e24a-6caf-4233-8bfc-ebca7ef30ee1",
+        "id": "7b0d76a5-2505-4a4a-9f4c-631c678d46fb",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:08:41.301605+00",
+        "createdAt": "2026-05-31 01:19:05.204158+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "aeea8b06c84d43f5e01511516905105d"
+        "traceId": "71fd8d35e671992361c0dd9b60f15fbc"
       },
       {
-        "id": "1404a12d-3c0f-47fb-8e1b-23341295b66a",
+        "id": "552abf27-c5ed-4482-b27b-53cfb4da515d",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:08:35.634151+00",
+        "createdAt": "2026-05-31 01:18:59.621919+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "11234188464c287478290982d01e44c2"
+        "traceId": "e40b8afa8794d18e6dd23c8c11f6f258"
       },
       {
-        "id": "63041ec8-0a2d-4f36-a889-844afdc3bc0c",
+        "id": "31b7b096-b50c-46b6-9cb8-4861c1399a90",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "at_risk",
-        "createdAt": "2026-05-31 01:08:30.618659+00",
+        "createdAt": "2026-05-31 01:18:54.601775+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "ae87bd1ffa8c3e758effad05e5820ca1"
+        "traceId": "25717a716f9be40803c61c8d81574824"
       },
       {
-        "id": "15ca416f-74de-4e90-bb1e-5fab4226c726",
+        "id": "a4439761-a398-4f7b-b158-a559a93e481f",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:08:25.593056+00",
+        "createdAt": "2026-05-31 01:18:49.494151+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "999cb96e420e21884605d63d51aa429c"
+        "traceId": "25fe63c94a5b019fad567af19ae94c50"
       },
       {
-        "id": "8ab5b78a-2453-42c2-b61b-33f0fab02359",
+        "id": "170dffe1-4186-44a4-b520-87f9a2e480e4",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:06:20.298717+00",
+        "createdAt": "2026-05-31 01:16:44.19572+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "8ee831feb2c668bb44064abfa5f31e26"
+        "traceId": "af88eade267dc2f6b04c0fee34921fe9"
       },
       {
-        "id": "85265793-19ce-4fc6-977e-f36a41b29169",
+        "id": "5b2690da-b55b-44a1-9b5e-e3ceab36f345",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-31 01:06:15.23359+00",
+        "createdAt": "2026-05-31 01:16:39.14081+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "1707ed96ffe1a4fa3cd37b584e43c5da"
+        "traceId": "06295b4240613d40d9ea01c01bda2793"
       },
       {
-        "id": "6ad28a77-122a-474c-b65e-9b359914b692",
+        "id": "9e39ae3b-8f8a-405d-bfd5-17a00f9fa3aa",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:06:10.218285+00",
+        "createdAt": "2026-05-31 01:16:34.122821+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "bf6f69039e6ee2f75a7d55078858cdf1"
+        "traceId": "7a555da1b4555cb0d2881d2fbe9a99bf"
       },
       {
-        "id": "9b2af25c-1800-4c53-966a-4167d83d1248",
+        "id": "9efef908-7a8f-4b05-8b2d-e4144c680108",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-31 01:06:05.199747+00",
+        "createdAt": "2026-05-31 01:16:29.107199+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
         "traceUrl": null,
-        "traceId": "d104b64839e0a800671cea0ccb881f7b"
+        "traceId": "903344662ecfa5df36f8dd5112312204"
       }
     ]
   },
@@ -1050,65 +1124,71 @@
       "id": 1,
       "scenarioId": "proactive-blocked-create",
       "signal": "blocked",
+      "requiredDecision": "create_finding",
       "shipState": "Visible issue has state = blocked and blocker text",
       "expectedOutput": "Proactive create_finding, notification visible, no Ship mutation claim",
-      "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
-      "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
-      "decision": "quiet_exit",
-      "triggerReason": "scheduled-worker"
+      "traceUrl": "https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r",
+      "runId": "manual-blocked",
+      "decision": "create_finding",
+      "triggerReason": "manual-langsmith-share"
     },
     {
       "id": 2,
       "scenarioId": "proactive-stale-create",
       "signal": "stale",
+      "requiredDecision": "create_finding",
       "shipState": "Visible active issue has no meaningful update for 30+ days",
       "expectedOutput": "Proactive create_finding, stale notification, human-gated review/close action",
-      "traceUrl": "https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r",
-      "runId": "aafd9841-69a5-456b-a4b8-1c834233e92a",
-      "decision": "update_finding",
-      "triggerReason": "scheduled-worker"
+      "traceUrl": "https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r",
+      "runId": "manual-stale",
+      "decision": "create_finding",
+      "triggerReason": "manual-langsmith-share"
     },
     {
       "id": 3,
       "scenarioId": "proactive-at-risk-create",
       "signal": "at_risk",
+      "requiredDecision": "create_finding",
       "shipState": "Visible high/urgent current-week issue is unowned or near sprint end",
       "expectedOutput": "Proactive create_finding, at-risk notification, human-gated owner/scope action",
-      "traceUrl": "https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r",
-      "runId": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
-      "decision": "update_finding",
-      "triggerReason": "scheduled-worker"
+      "traceUrl": "https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r",
+      "runId": "manual-at_risk",
+      "decision": "create_finding",
+      "triggerReason": "manual-langsmith-share"
     },
     {
       "id": 4,
       "scenarioId": "on-demand-explain",
       "signal": "on_demand",
+      "requiredDecision": "explain",
       "shipState": "User asks from existing finding or page context",
       "expectedOutput": "On-demand explain/chat path returns visible evidence, page context, and next action",
-      "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+      "traceUrl": "https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r",
       "runId": "manual-on_demand",
-      "decision": "manual_trace_override",
+      "decision": "explain",
       "triggerReason": "manual-langsmith-share"
     },
     {
       "id": 5,
       "scenarioId": "context-chat-human-gate",
       "signal": "on_demand",
+      "requiredDecision": "explain",
       "shipState": "Chat asks for next action on a source/finding",
-      "expectedOutput": "Human gate required; source issue remains unchanged after chat",
-      "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+      "expectedOutput": "On-demand answer preserves human gate; source issue remains unchanged after chat",
+      "traceUrl": "https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r",
       "runId": "manual-on_demand",
-      "decision": "manual_trace_override",
+      "decision": "explain",
       "triggerReason": "manual-langsmith-share"
     },
     {
       "id": 6,
       "scenarioId": "source-condition-resolved",
       "signal": "blocked",
+      "requiredDecision": "quiet_exit",
       "shipState": "Source condition disappears or evidence becomes unsafe",
       "expectedOutput": "Finding resolves/suppresses or quiet-exits without model cost",
       "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
-      "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
+      "runId": "977880a6-63bb-48f4-8ab8-4eac33187993",
       "decision": "quiet_exit",
       "triggerReason": "scheduled-worker"
     },
@@ -1116,12 +1196,13 @@
       "id": 7,
       "scenarioId": "proactive-blocked-create",
       "signal": "blocked",
+      "requiredDecision": "create_finding",
       "shipState": "Reviewer runs current-week blocker scenario in /fleetgraph/reviewer",
       "expectedOutput": "Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes",
-      "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
-      "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
-      "decision": "quiet_exit",
-      "triggerReason": "scheduled-worker"
+      "traceUrl": "https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r",
+      "runId": "manual-blocked",
+      "decision": "create_finding",
+      "triggerReason": "manual-langsmith-share"
     }
   ],
   "currentFindings": [
@@ -1197,8 +1278,8 @@
     }
   ],
   "costs": {
-    "runCount": 4,
-    "measuredCommandMs": 33196,
+    "runCount": 5,
+    "measuredCommandMs": 71012,
     "graphInvocationCount": 100,
     "modelCallCount": 0,
     "inputTokens": 0,
@@ -1226,37 +1307,111 @@
     "bySignal": {
       "blocked": {
         "signal": "blocked",
-        "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
-        "decision": "quiet_exit",
-        "triggerReason": "scheduled-worker",
-        "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
-        "traceId": "39943d204413d63cfc4ec42cc38159f6",
-        "createdAt": "2026-05-31 01:14:08.29571+00"
+        "runId": "manual-blocked",
+        "decision": "create_finding",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r",
+        "traceId": null,
+        "createdAt": null
       },
       "stale": {
         "signal": "stale",
-        "runId": "aafd9841-69a5-456b-a4b8-1c834233e92a",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "traceUrl": "https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r",
-        "traceId": "3cee164a11ba59bb4a5e9ecb5f8b0192",
-        "createdAt": "2026-05-31 01:14:03.227752+00"
+        "runId": "manual-stale",
+        "decision": "create_finding",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r",
+        "traceId": null,
+        "createdAt": null
       },
       "at_risk": {
         "signal": "at_risk",
-        "runId": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
-        "decision": "update_finding",
-        "triggerReason": "scheduled-worker",
-        "traceUrl": "https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r",
-        "traceId": "e1de5b27cbbdafef9e5316696f0cf347",
-        "createdAt": "2026-05-31 01:13:42.622216+00"
+        "runId": "manual-at_risk",
+        "decision": "create_finding",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r",
+        "traceId": null,
+        "createdAt": null
       },
       "on_demand": {
         "signal": "on_demand",
         "runId": "manual-on_demand",
-        "decision": "manual_trace_override",
+        "decision": "explain",
         "triggerReason": "manual-langsmith-share",
-        "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+        "traceUrl": "https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r",
+        "traceId": null,
+        "createdAt": null
+      }
+    },
+    "bySignalDecision": {
+      "blocked:quiet_exit": {
+        "signal": "blocked",
+        "runId": "977880a6-63bb-48f4-8ab8-4eac33187993",
+        "decision": "quiet_exit",
+        "triggerReason": "scheduled-worker",
+        "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+        "traceId": "3c088efc365895caf886efec963db857",
+        "createdAt": "2026-05-31 01:24:32.397453+00"
+      },
+      "stale:update_finding": {
+        "signal": "stale",
+        "runId": "c6bc1611-55fa-4ce1-9330-f852e515e296",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "traceUrl": null,
+        "traceId": "1068552520dfe797844d3717fee1ff36",
+        "createdAt": "2026-05-31 01:24:27.334786+00"
+      },
+      "blocked:update_finding": {
+        "signal": "blocked",
+        "runId": "79f78b7d-3e17-4279-ae87-cfa1be2ade36",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "traceUrl": null,
+        "traceId": "54b0d68b990594737bf0b90cd554fa0a",
+        "createdAt": "2026-05-31 01:24:22.318961+00"
+      },
+      "at_risk:update_finding": {
+        "signal": "at_risk",
+        "runId": "cce8fdd7-18de-468f-a1a8-7c43d54ee9f1",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "traceUrl": null,
+        "traceId": "98e21241a7fa6e089598cc2b24761087",
+        "createdAt": "2026-05-31 01:24:06.618475+00"
+      },
+      "blocked:create_finding": {
+        "signal": "blocked",
+        "runId": "manual-blocked",
+        "decision": "create_finding",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/b10f640b-5e14-4ab0-9d10-f8e3156a96ae/r",
+        "traceId": null,
+        "createdAt": null
+      },
+      "stale:create_finding": {
+        "signal": "stale",
+        "runId": "manual-stale",
+        "decision": "create_finding",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/f031eb34-de29-4d61-91f2-7dc2752d45c8/r",
+        "traceId": null,
+        "createdAt": null
+      },
+      "at_risk:create_finding": {
+        "signal": "at_risk",
+        "runId": "manual-at_risk",
+        "decision": "create_finding",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/cbddd03f-bbe0-47b9-b4ac-f1144a95042d/r",
+        "traceId": null,
+        "createdAt": null
+      },
+      "on_demand:explain": {
+        "signal": "on_demand",
+        "runId": "manual-on_demand",
+        "decision": "explain",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/2cccea43-ab44-4228-9f04-5f4b331aed3a/r",
         "traceId": null,
         "createdAt": null
       }
@@ -1265,10 +1420,18 @@
   },
   "commandResults": [
     {
+      "name": "product surface eval",
+      "command": "pnpm fleetgraph:eval:surface",
+      "status": "pass",
+      "durationMs": 42748,
+      "stdoutTail": "> ship@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/api fleetgraph:eval:surface\n\n\n> @ship/api@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/scripts/fleetgraph-product-surface-eval.ts\n\n◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]\n◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }\nFleetGraph product-surface eval current: 8 pass, 0 fail\nFleetGraph product-surface eval historical: 0 pass, 20 fail (trend only)\nMarkdown: my-docs/evals/fleetgraph-product-surface/latest.md\nJSON: my-docs/evals/fleetgraph-product-surface/latest.json\nReview board: my-docs/evals/fleetgraph-product-surface/latest.html\nRun: my-docs/evals/fleetgraph-product-surface/runs/2026-05-31T01-25-15-484Z",
+      "stderrTail": "atus [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7ba2-c8a6-74bb-b1e5-0aa3d08df0d1,id=019e7ba2-c8a6-74bb-b1e5-0aa3d08df0d1; trace=019e7ba2-c8a6-74bb-b1e5-0aa3d08df0d1,id=019e7ba2-c8a7-7341-b851-36b918abd42d; trace=019e7ba2-c8a6-74bb-b1e5-0aa3d08df0d1,id=019e7ba2-c8a9-777f-9edc-ad7b2e7611ce; trace=019e7ba2-c8a6-74bb-b1e5-0aa3d08df0d1,id=019e7ba2-c8ab-710c-a91e-350a11da2078; trace=019e7ba2-c8a6-74bb-b1e5-0aa3d08df0d1,id=019e7ba2-c8ac-7607-9c99-265e43548122\nFailed to Failed to send multipart request. Received status [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7ba2-dc38-778e-81ad-cd84bd342766,id=019e7ba2-dc38-778e-81ad-cd84bd342766; trace=019e7ba2-dc38-778e-81ad-cd84bd342766,id=019e7ba2-dc39-7069-83b4-923831cc676e; trace=019e7ba2-dc38-778e-81ad-cd84bd342766,id=019e7ba2-dc3a-74fc-b0a3-70e20d5623bc; trace=019e7ba2-dc38-778e-81ad-cd84bd342766,id=019e7ba2-dc3c-719c-92e3-ac453b36a115; trace=019e7ba2-dc38-778e-81ad-cd84bd342766,id=019e7ba2-dc3c-719c-92e3-b0bf82822878"
+    },
+    {
       "name": "shared package build",
       "command": "pnpm build:shared",
       "status": "pass",
-      "durationMs": 757,
+      "durationMs": 693,
       "stdoutTail": "> ship@0.0.0 build:shared /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/shared build\n\n\n> @ship/shared@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/shared\n> tsc",
       "stderrTail": ""
     },
@@ -1276,15 +1439,15 @@
       "name": "FleetGraph proof tests",
       "command": "pnpm --filter @ship/api test src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts",
       "status": "pass",
-      "durationMs": 1750,
-      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  32 passed (32)\n   Start at  20:15:07\n   Duration  1.36s (transform 161ms, setup 82ms, import 596ms, tests 331ms, environment 0ms)",
+      "durationMs": 1891,
+      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  32 passed (32)\n   Start at  20:25:58\n   Duration  1.46s (transform 184ms, setup 89ms, import 649ms, tests 350ms, environment 0ms)",
       "stderrTail": ""
     },
     {
       "name": "API package build for E2E",
       "command": "pnpm --filter @ship/api build",
       "status": "pass",
-      "durationMs": 4688,
+      "durationMs": 4821,
       "stdoutTail": "> @ship/api@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/api\n> rm -rf dist && tsc && cp src/db/schema.sql dist/db/schema.sql && cp -r src/db/migrations dist/db/migrations && cp -r src/static dist/static",
       "stderrTail": ""
     },
@@ -1292,8 +1455,8 @@
       "name": "FleetGraph attention loop E2E",
       "command": "pnpm test:e2e:run e2e/fleetgraph-attention-loop.spec.ts",
       "status": "pass",
-      "durationMs": 26001,
-      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 3s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 2s ago\n\nPlaywright exited with status 0.",
+      "durationMs": 20859,
+      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/fleetgraph-proof/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/fleetgraph-proof/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 1s ago\n\nPlaywright exited with status 0.",
       "stderrTail": ""
     }
   ],
@@ -1330,7 +1493,7 @@
     },
     {
       "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T01-15-06-522Z/proof.html",
+      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T01-25-14-492Z/proof.html",
       "kind": "html"
     },
     {

@@ -418,37 +418,10 @@ test('deployed proof accepts required public trace links for all claimed signals
     executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
     productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
     environments: [{ id: 'deployed', required: true, status: 'configured' }],
-    deployedEvidence: {
-      signalTypes: ['at_risk', 'blocked', 'stale'],
-      completedWorkerTickCount: 1,
-      hasRecentCompletedWorkerOutput: true,
-      stuckRunningTickCount: 0,
-      usageSummary: {
-        graphInvocationCount: 4,
-        modelCallCount: 1,
-        deterministicRunCount: 3,
-        realModelRunCount: 1,
-        estimatedCostUsd: 0.00012,
-        projections: {},
-      },
-      traceEvidence: {
-        requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
-        bySignal: {
-          blocked: { signal: 'blocked', traceUrl: 'https://smith.langchain.com/public/blocked/r' },
-          stale: { signal: 'stale', traceUrl: 'https://smith.langchain.com/public/stale/r' },
-          at_risk: { signal: 'at_risk', traceUrl: 'https://smith.langchain.com/public/risk/r' },
-          on_demand: { signal: 'on_demand', traceUrl: 'https://smith.langchain.com/public/chat/r' },
-        },
-        missingRequired: [],
-      },
-    },
+    deployedEvidence: deployedEvidenceFixture(),
     reviewerChain: validReviewerChain(),
     commandResults: [],
-    artifacts: [
-      { label: 'HTML', path: 'my-docs/evidence/fleetgraph-proof/latest.html' },
-      { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
-      { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
-    ],
+    artifacts: artifactPlan('test-run', 'deployed'),
   });
 
   assert.equal(packet.verdict, 'pass');
@@ -659,6 +632,7 @@ function deployedEvidenceFixture() {
         'at_risk:create_finding': { signal: 'at_risk', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/risk/r' },
         'on_demand:explain': { signal: 'on_demand', decision: 'explain', traceUrl: 'https://smith.langchain.com/public/chat/r' },
         'on_demand:needs_confirmation': { signal: 'on_demand', decision: 'needs_confirmation', traceUrl: 'https://smith.langchain.com/public/chat-gate/r' },
+        'blocked:quiet_exit': { signal: 'blocked', decision: 'quiet_exit', traceUrl: 'https://smith.langchain.com/public/quiet/r' },
         'blocked:resolve': { signal: 'blocked', decision: 'resolve', traceUrl: 'https://smith.langchain.com/public/resolve/r' },
       },
       missingRequired: [],

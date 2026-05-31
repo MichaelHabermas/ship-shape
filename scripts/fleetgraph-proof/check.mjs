@@ -13,6 +13,7 @@ const publicRoot = path.join(repoRoot, 'web/public/fleetgraph-observability/proo
 const packet = JSON.parse(await readFile(path.join(outputRoot, 'latest.json'), 'utf8'));
 const html = await readFile(path.join(outputRoot, 'latest.html'), 'utf8');
 const markdown = await readFile(path.join(outputRoot, 'latest.md'), 'utf8');
+const fleetGraphMarkdown = await readFile(path.join(repoRoot, 'FLEETGRAPH.md'), 'utf8');
 const issues = validateProofPacket(packet);
 const options = new Set(process.argv.slice(2));
 const allowedVerdicts = new Set(['pass']);
@@ -54,6 +55,7 @@ if (staleThresholdDays !== null) {
 }
 if (packet.target !== 'local') {
   await checkPublicArtifacts(packet, issues);
+  checkRootFleetGraphTraceTable(packet, fleetGraphMarkdown, issues);
 }
 
 if (issues.length) {
@@ -93,5 +95,20 @@ async function checkPublicArtifacts(localPacket, issues) {
   }
   if (!publicMarkdown.includes('## Reviewer Test Cases')) {
     issues.push('public latest.md is missing Reviewer Test Cases');
+  }
+}
+
+function checkRootFleetGraphTraceTable(packet, text, issues) {
+  if (!text.includes('| # | Ship state | Expected output | Public trace evidence |')) {
+    issues.push('FLEETGRAPH.md Test Cases table must expose public trace evidence directly');
+  }
+  for (const item of packet.reviewerTestCases ?? []) {
+    if (item.traceUrl && !text.includes(item.traceUrl)) {
+      issues.push(`FLEETGRAPH.md is missing reviewer test case ${item.id} trace URL`);
+    }
+    const decisionLabel = `Required decision \`${item.requiredDecision}\`; observed \`${item.decision}\``;
+    if (!text.includes(decisionLabel)) {
+      issues.push(`FLEETGRAPH.md is missing reviewer test case ${item.id} decision label`);
+    }
   }
 }
