@@ -159,6 +159,7 @@ type FleetGraphRunTestBody = {
   finding?: unknown;
   visibleOutput?: {
     noSafeOutput?: boolean;
+    summary?: string;
   };
   usageMetadata?: {
     modelCalls: number;
@@ -174,6 +175,12 @@ type FleetGraphManualRunTestBody = {
     findingId?: string;
     visibleOutput?: { noSafeOutput?: boolean };
     usageMetadata?: unknown;
+  }>;
+};
+
+type FleetGraphManualRunUsageTestBody = {
+  results: Array<{
+    usageMetadata?: FleetGraphRunTestBody['usageMetadata'];
   }>;
 };
 
@@ -708,6 +715,64 @@ describe('FleetGraph routes', () => {
     expect(body.decision).toBe('explain');
   });
 
+  it('forwards nested page, attached context, and history to the shared graph', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
+      decision: 'explain',
+      traceMetadata: { mode: 'on_demand', decision: 'explain', nodePath: ['contextChat'] },
+    }));
+    const pageContext = {
+      route: '/issues?state=blocked',
+      surface: 'issues_list' as const,
+      title: 'Blocked issues',
+      filters: { state: 'blocked' },
+      visibleItems: [{ kind: 'issue' as const, id: issueId, title: 'Blocked issue' }],
+      selectedItemIds: [issueId],
+    };
+    const attachedContexts = [{
+      kind: 'document' as const,
+      documentId: sprintId,
+      sourcePath: `/documents/${sprintId}`,
+      pageContext,
+    }];
+    const history = [
+      { role: 'user' as const, content: 'Summarize this' },
+      { role: 'assistant' as const, content: 'This is a longer summary.' },
+    ];
+
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Make that simpler',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+          pageContext,
+          attachedContexts,
+        },
+        history,
+      })
+      .expect(200);
+
+    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Make that simpler',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+          pageContext,
+          attachedContexts,
+        },
+        history,
+      },
+      triggerReason: 'context-chat',
+    }));
+  });
+
   it('rejects context chat history beyond the bounded request limit', async () => {
     await request(app())
       .post('/api/fleetgraph/chat')
@@ -929,7 +994,7 @@ describe('FleetGraph routes', () => {
       .send({ today: '2026-05-26', limit: 1 })
       .expect(200);
 
-    const body = JSON.parse(res.text) as FleetGraphManualRunTestBody;
+    const body = JSON.parse(res.text) as FleetGraphManualRunUsageTestBody;
     expect(body.results[0]?.usageMetadata).toEqual({
       modelCalls: 2,
       inputTokens: 200,

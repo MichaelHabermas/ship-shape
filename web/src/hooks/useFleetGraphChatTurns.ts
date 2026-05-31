@@ -40,10 +40,9 @@ function turnReducer(state: FleetGraphChatTurn[], action: TurnAction): FleetGrap
 
 function historyFromTurns(turns: FleetGraphChatTurn[]): FleetGraphChatHistoryEntry[] {
   return turns.flatMap<FleetGraphChatHistoryEntry>((turn) => {
+    if (turn.status !== 'ready' || !turn.response?.answer.body) return [];
     const entries: FleetGraphChatHistoryEntry[] = [{ role: 'user', content: turn.prompt }];
-    if (turn.status === 'ready' && turn.response?.answer.body) {
-      entries.push({ role: 'assistant', content: turn.response.answer.body });
-    }
+    entries.push({ role: 'assistant', content: turn.response.answer.body });
     return entries;
   }).slice(-FLEETGRAPH_CHAT_HISTORY_LIMIT);
 }
