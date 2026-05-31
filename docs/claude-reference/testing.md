@@ -18,10 +18,20 @@ Setup files:
 ### Unit Tests
 
 ```bash
-pnpm test              # Run API unit tests (vitest)
+pnpm test:api          # Run API unit tests against ship_test_audit
+pnpm test              # Alias for pnpm test:api
+pnpm --filter @ship/web test
 ```
 
-Requires PostgreSQL running locally. Tests share a single database connection via `api/src/db/client.ts` but clean up via `beforeAll` in setup.
+API tests require PostgreSQL running locally. `pnpm test:api` sets `DATABASE_URL=postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit` by default and preflights the connection before Vitest can truncate tables. Tests share a single database connection via `api/src/db/client.ts` but clean up via `beforeAll` in setup.
+
+### Full Suite
+
+```bash
+pnpm test:all
+```
+
+This runs type-check, lint, build, API tests, web tests, security package tests, submission tests, FleetGraph proof tests, and full sharded E2E. Logs are written under `test-results/test-all`.
 
 ### E2E Tests - USE THE SKILL
 
@@ -49,7 +59,11 @@ pnpm test:e2e:run -- --last-failed
 pnpm test:e2e:run e2e/issues.spec.ts
 ```
 
-For the Week 4 audit deliverable, record that this repo's root `pnpm test` script runs API unit tests only. Measure E2E with `/e2e-test-runner` or `pnpm test:e2e:run`, and measure web tests or coverage separately when the category requires it.
+For full E2E, prefer the shard orchestrator:
+
+```bash
+pnpm test:e2e:shards --shards 4 --workers 2
+```
 
 Do not run the full suite when a smaller signal will answer the question.
 
@@ -84,6 +98,18 @@ Set `E2E_RESULTS_DIR` when running multiple lanes or shards at the same time so 
 E2E_RESULTS_DIR=test-results/smoke pnpm test:e2e:smoke
 E2E_RESULTS_DIR=test-results/shard-1 pnpm test:e2e:run -- --shard=1/4
 ```
+
+For a full-suite parallel run, use the shard orchestrator. Keep `--workers` low because each shard worker starts its own PostgreSQL container, API server, preview server, and browser.
+
+```bash
+pnpm test:e2e:shards
+pnpm test:e2e:shards --shards 4 --workers 2
+pnpm test:e2e:balance -- --shards 4
+pnpm test:e2e:shards --balanced --shards 4 --workers 2
+pnpm test:e2e:shards --worktree-root ../ship-shape-e2e-shards
+```
+
+Default sharding uses Playwright's test-level `--shard`. `--balanced` instead buckets whole spec files using static test counts and fixed-wait budgets; it is useful when default shards have an uneven long tail. Run `pnpm test:e2e:balance -- --shards 4` to inspect the bucket plan without executing tests.
 
 Use `pnpm test:e2e:inventory` to inspect suite shape without executing tests. It reports approximate test declarations, fixed waits, login/setup signals, API request signals, large files, and duplicate umbrella coverage candidates.
 

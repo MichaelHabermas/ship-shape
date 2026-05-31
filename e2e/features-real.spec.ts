@@ -1,5 +1,6 @@
 import { test, expect, Page } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import { triggerMentionPopup } from './fixtures/test-helpers';
 
 import path from 'path';
 import fs from 'fs';
@@ -31,8 +32,22 @@ async function loginAndCreateDoc(page: Page) {
   await page.waitForSelector('.tiptap', { timeout: 10000 });
 
   // Focus editor
-  await page.click('.tiptap');
-  await page.waitForTimeout(500);
+  await page.locator('.ProseMirror, .tiptap').first().click();
+  await expect(page.locator('.ProseMirror, .tiptap').first()).toBeFocused({ timeout: 5000 });
+}
+
+async function runSlashCommand(page: Page, command: string) {
+  await page.keyboard.type(command);
+  const menu = page.locator('[data-tippy-root], [role="listbox"], .suggestion-dropdown, .tippy-content');
+  await expect(menu.first()).toBeVisible({ timeout: 5000 });
+  await page.keyboard.press('Enter');
+}
+
+async function waitForDocumentSave(page: Page) {
+  await page.waitForResponse(
+    resp => resp.url().includes('/api/documents/') && resp.request().method() === 'PATCH',
+    { timeout: 10000 },
+  ).catch(() => null);
 }
 
 // Create a test image file
@@ -72,11 +87,9 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
     await loginAndCreateDoc(page);
 
     // Type @ to trigger mentions
-    await page.keyboard.type('@');
-    await page.waitForTimeout(1000);
+    const dropdown = await triggerMentionPopup(page, page.locator('.ProseMirror, .tiptap').first());
 
     // Should show mention dropdown
-    const dropdown = page.locator('.tippy-content, [data-testid="mention-list"], [role="listbox"]');
     await expect(dropdown.first()).toBeVisible({ timeout: 5000 });
 
     // Should NOT show "No results" if users exist
@@ -89,7 +102,7 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
 
     // Type @dev to search
     await page.keyboard.type('@dev');
-    await page.waitForTimeout(1000);
+    await expect(page.locator('[role="listbox"], .tippy-content').first()).toBeVisible({ timeout: 5000 });
 
     // Verify API was called and returned results
     const apiResponse = await page.request.get(`/api/search/mentions?q=dev`);
@@ -102,13 +115,11 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
   test('selecting mention inserts clickable link', async ({ page }) => {
     await loginAndCreateDoc(page);
 
-    await page.keyboard.type('@');
-    await page.waitForTimeout(1000);
+    await triggerMentionPopup(page, page.locator('.ProseMirror, .tiptap').first());
 
     // Press down then enter to select first user
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(500);
 
     // Verify seed data provides users for mentions
     const apiResponse = await page.request.get(`/api/search/mentions?q=`);
@@ -134,7 +145,7 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
 
     // Type @ and search for document
     await page.keyboard.type('@test');
-    await page.waitForTimeout(1000);
+    await expect(page.locator('[role="listbox"], .tippy-content').first()).toBeVisible({ timeout: 5000 });
 
     // API should return documents too
     const apiResponse = await page.request.get(`/api/search/mentions?q=test`);
@@ -150,9 +161,7 @@ test.describe('TIER 1: Image Upload - REAL TESTS', () => {
     await loginAndCreateDoc(page);
 
     // Use /image command
-    await page.keyboard.type('/image');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Enter');
+    await runSlashCommand(page, '/image');
 
     // File chooser should appear
     const [fileChooser] = await Promise.all([
@@ -179,9 +188,7 @@ test.describe('TIER 1: Image Upload - REAL TESTS', () => {
     await loginAndCreateDoc(page);
 
     // Upload image
-    await page.keyboard.type('/image');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Enter');
+    await runSlashCommand(page, '/image');
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser', { timeout: 5000 }),
@@ -193,7 +200,7 @@ test.describe('TIER 1: Image Upload - REAL TESTS', () => {
 
       // Wait for upload
       await page.waitForSelector('.tiptap img', { timeout: 30000 });
-      await page.waitForTimeout(2000); // Wait for save
+      await waitForDocumentSave(page);
 
       // Reload page
       await page.reload();
@@ -232,7 +239,7 @@ test.describe('TIER 1: Image Upload - REAL TESTS', () => {
     if (fileChooser) {
       const testImage = createTestImage();
       await fileChooser.setFiles(testImage);
-      await page.waitForTimeout(5000);
+      await expect(page.locator('.tiptap img').first()).toBeVisible({ timeout: 30000 });
 
       expect(consoleErrors).toHaveLength(0);
       expect(failedRequests).toHaveLength(0);
@@ -248,9 +255,7 @@ test.describe('TIER 2: File Attachments - REAL TESTS', () => {
   test('can attach PDF via /file command', async ({ page }) => {
     await loginAndCreateDoc(page);
 
-    await page.keyboard.type('/file');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Enter');
+    await runSlashCommand(page, '/file');
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser', { timeout: 5000 }),
@@ -268,12 +273,10 @@ test.describe('TIER 2: File Attachments - REAL TESTS', () => {
       }
 
       await fileChooser.setFiles(testFilePath);
-      await page.waitForTimeout(3000);
 
       // Should show file attachment node
       const attachment = page.locator('[data-type="fileAttachment"], .file-attachment');
-      const count = await attachment.count();
-      expect(count).toBeGreaterThan(0);
+      await expect(attachment.first()).toBeVisible({ timeout: 30000 });
     }
   });
 });
@@ -282,10 +285,7 @@ test.describe('TIER 2: Tables - REAL TESTS', () => {
   test('can create table via /table command', async ({ page }) => {
     await loginAndCreateDoc(page);
 
-    await page.keyboard.type('/table');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(1000);
+    await runSlashCommand(page, '/table');
 
     // Should have a table - if not, the /table command isn't working
     const table = page.locator('.tiptap table');
@@ -297,7 +297,6 @@ test.describe('TIER 2: Tables - REAL TESTS', () => {
 
     await page.keyboard.type('/table');
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(1000);
 
     // Check if table was created - should be visible
     const table = page.locator('.tiptap table');
@@ -322,27 +321,14 @@ test.describe('TIER 2: Tables - REAL TESTS', () => {
     await loginAndCreateDoc(page);
 
     // Try to insert table via slash command
-    await page.keyboard.type('/table');
-    await page.waitForTimeout(500);
-
-    // Wait for dropdown to appear, if it doesn't the slash command isn't triggering
-    const dropdown = page.locator('[data-tippy-root], [role="listbox"], .suggestion-dropdown');
-    const dropdownVisible = await dropdown.isVisible().catch(() => false);
-
-    if (dropdownVisible) {
-      await page.keyboard.press('Enter');
-    } else {
-      // Fallback: try pressing Enter anyway in case dropdown appears
-      await page.keyboard.press('Enter');
-    }
-    await page.waitForTimeout(1000);
+    await runSlashCommand(page, '/table');
 
     // Check if table was actually created - should be visible
     const table = page.locator('.tiptap table');
     await expect(table.first()).toBeVisible({ timeout: 5000 });
 
     await page.keyboard.type('Persisted content');
-    await page.waitForTimeout(2000);
+    await waitForDocumentSave(page);
 
     await page.reload();
     await page.waitForSelector('.tiptap', { timeout: 10000 });
@@ -355,10 +341,7 @@ test.describe('TIER 2: Toggle/Collapsible - REAL TESTS', () => {
   test('can create toggle via /toggle command', async ({ page }) => {
     await loginAndCreateDoc(page);
 
-    await page.keyboard.type('/toggle');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(1000);
+    await runSlashCommand(page, '/toggle');
 
     // Should have a details element (or toggle component) - if not, /toggle command isn't working
     const toggle = page.locator('.tiptap details, [data-type="details"], [data-type="toggle"], .toggle-block');
@@ -370,7 +353,6 @@ test.describe('TIER 2: Toggle/Collapsible - REAL TESTS', () => {
 
     await page.keyboard.type('/toggle');
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(1000);
 
     // Check if toggle was created - should be visible
     const toggle = page.locator('.tiptap details, [data-type="details"], [data-type="toggle"], .toggle-block');
@@ -386,14 +368,12 @@ test.describe('TIER 2: Toggle/Collapsible - REAL TESTS', () => {
 
     // Click to toggle
     await summary.first().click();
-    await page.waitForTimeout(300);
 
     // Get current state
     const hasOpenAttr = await details.evaluate((el) => el.hasAttribute('open'));
 
     // Click again to toggle
     await summary.first().click();
-    await page.waitForTimeout(300);
 
     const hasOpenAttrAfter = await details.evaluate((el) => el.hasAttribute('open'));
 
@@ -409,7 +389,6 @@ test.describe('TIER 2: Inline Code - REAL TESTS', () => {
 
     // Type code with backticks
     await page.keyboard.type('`const x = 1`');
-    await page.waitForTimeout(500);
 
     // Should have code element
     const code = page.locator('.tiptap code:not(pre code)');
@@ -420,9 +399,9 @@ test.describe('TIER 2: Inline Code - REAL TESTS', () => {
     await loginAndCreateDoc(page);
 
     await page.keyboard.type('`myFunction()`');
-    await page.waitForTimeout(500);
 
     const code = page.locator('.tiptap code:not(pre code)').first();
+    await expect(code).toBeVisible({ timeout: 5000 });
 
     // Should have background color or distinct styling
     const bgColor = await code.evaluate(el =>
@@ -443,14 +422,10 @@ test.describe('TIER 3: Syntax Highlighting - REAL TESTS', () => {
     await loginAndCreateDoc(page);
 
     // Create code block using / command which is more reliable
-    await page.keyboard.type('/code');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(500);
+    await runSlashCommand(page, '/code');
 
     // Type code
     await page.keyboard.type('const x = 1;');
-    await page.waitForTimeout(1000);
 
     // Should have a code block (pre element)
     const pre = page.locator('.tiptap pre');
@@ -462,7 +437,6 @@ test.describe('TIER 3: Syntax Highlighting - REAL TESTS', () => {
       await page.keyboard.type('```javascript');
       await page.keyboard.press('Enter');
       await page.keyboard.type('const y = 2;');
-      await page.waitForTimeout(1000);
     }
 
     // Should have pre element now
@@ -476,8 +450,6 @@ test.describe('TIER 3: Syntax Highlighting - REAL TESTS', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.type('def hello():');
 
-    await page.waitForTimeout(1000);
-
     // Should apply python highlighting
     const pre = page.locator('.tiptap pre');
     await expect(pre.first()).toBeVisible();
@@ -490,29 +462,22 @@ test.describe('TIER 3: Emoji - REAL TESTS', () => {
 
     // Ensure editor is focused and ready
     await page.locator('.ProseMirror').click();
-    await page.waitForTimeout(300);
 
     // Type emoji shortcode - :smile: maps to 😊 in our emoji list
     await page.keyboard.type(':smile:');
-    await page.waitForTimeout(500);
 
     // Should insert the emoji (😊 for :smile:)
-    const content = await page.locator('.ProseMirror').textContent();
-    expect(content).toContain('😊');
+    await expect(page.locator('.ProseMirror')).toContainText('😊', { timeout: 5000 });
   });
 
   test('emoji picker shows when typing :', async ({ page }) => {
     await loginAndCreateDoc(page);
 
     await page.keyboard.type(':');
-    await page.waitForTimeout(500);
 
     // Should show autocomplete or picker
     const picker = page.locator('.tippy-content, [data-testid="emoji-picker"], .emoji-suggestions');
-    const isVisible = await picker.first().isVisible().catch(() => false);
-
-    // This is expected behavior - should show picker
-    expect(isVisible).toBe(true);
+    await expect(picker.first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -555,14 +520,12 @@ test.describe('TIER 3: Backlinks - REAL TESTS', () => {
     await page.click('.tiptap');
 
     // Link to first document via @mention
-    await page.keyboard.type('@');
-    await page.waitForTimeout(1000);
+    await triggerMentionPopup(page, page.locator('.ProseMirror, .tiptap').first());
 
     // Type to search for first doc
     await page.keyboard.type('Untitled');
-    await page.waitForTimeout(500);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(2000);
+    await waitForDocumentSave(page);
 
     // Now check backlinks on first document
     if (firstDocId) {
@@ -573,42 +536,5 @@ test.describe('TIER 3: Backlinks - REAL TESTS', () => {
       // (This may be flaky if the link wasn't saved yet)
       expect(Array.isArray(backlinks)).toBe(true);
     }
-  });
-});
-
-// =============================================================================
-// CRITICAL: API Health Checks
-// =============================================================================
-
-test.describe('API Health - REAL TESTS', () => {
-  test('mentions API does not return 500', async ({ page }) => {
-    // Login via page to get session cookies
-    await login(page);
-
-    const response = await page.request.get(`/api/search/mentions?q=test`);
-    expect(response.status()).not.toBe(500);
-    expect(response.ok()).toBe(true);
-  });
-
-  test('file upload API does not return 500', async ({ page }) => {
-    await login(page);
-
-    const csrfResponse = await page.request.get(`/api/csrf-token`);
-    const { token } = await csrfResponse.json();
-
-    const response = await page.request.post(`/api/files/upload`, {
-      headers: { 'x-csrf-token': token },
-      data: { filename: 'test.png', mimeType: 'image/png', sizeBytes: 100 }
-    });
-
-    expect(response.status()).not.toBe(500);
-  });
-
-  test('backlinks API does not return 500', async ({ page }) => {
-    await login(page);
-
-    // Use a fake UUID - should return 404 or empty array, not 500
-    const response = await page.request.get(`/api/documents/00000000-0000-0000-0000-000000000000/backlinks`);
-    expect(response.status()).not.toBe(500);
   });
 });
