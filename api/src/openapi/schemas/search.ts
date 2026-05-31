@@ -3,7 +3,8 @@
  */
 
 import { z, registry } from '../registry.js';
-import { UuidSchema, DocumentVisibilitySchema } from './common.js';
+import { UuidSchema, DocumentVisibilitySchema, ErrorResponseSchema, ApiErrorResponseSchema } from './common.js';
+import { jsonResponse } from './route-helpers.js';
 import { DocumentTypeSchema } from './documents.js';
 import {
   OptionalQueryStringSchema,
@@ -106,14 +107,8 @@ registry.registerPath({
     }),
   },
   responses: {
-    200: {
-      description: 'Search results',
-      content: {
-        'application/json': {
-          schema: MentionSearchResultSchema,
-        },
-      },
-    },
+    200: jsonResponse(MentionSearchResultSchema, 'Search results'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 
@@ -135,14 +130,9 @@ registry.registerPath({
     }),
   },
   responses: {
-    200: {
-      description: 'Document search results',
-      content: {
-        'application/json': {
-          schema: DocumentSearchResponseSchema,
-        },
-      },
-    },
+    200: jsonResponse(DocumentSearchResponseSchema, 'Document search results'),
+    400: jsonResponse(ErrorResponseSchema, 'Invalid query'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 
@@ -165,17 +155,9 @@ registry.registerPath({
     }),
   },
   responses: {
-    200: {
-      description: 'Content search results',
-      content: {
-        'application/json': {
-          schema: ContentSearchResponseSchema,
-        },
-      },
-    },
-    400: {
-      description: 'Invalid query',
-    },
+    200: jsonResponse(ContentSearchResponseSchema, 'Content search results'),
+    400: jsonResponse(ErrorResponseSchema, 'Invalid query'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 
@@ -195,13 +177,7 @@ registry.registerPath({
     }),
   },
   responses: {
-    200: {
-      description: 'Learning search results',
-      content: {
-        'application/json': {
-          schema: LearningSearchResponseSchema,
-        },
-      },
-    },
+    200: jsonResponse(LearningSearchResponseSchema, 'Learning search results'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });

@@ -3,6 +3,10 @@ import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
+import { SprintReviewResponseSchema } from '../openapi/schemas/weeks.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+import { IdRow, requireFirstRow } from '../test/pg-result.js'
 
 describe('Sprint Reviews API', () => {
   const app = createApp()
@@ -22,32 +26,28 @@ describe('Sprint Reviews API', () => {
   let testProgramId: string
 
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
-    // Create other user
-    const otherUserResult = await pool.query(
+    const otherUserResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Other User')
        RETURNING id`,
       [otherEmail]
     )
-    otherUserId = otherUserResult.rows[0].id
+    otherUserId = requireFirstRow(otherUserResult.rows).id
 
-    // Create workspace memberships
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
@@ -59,7 +59,6 @@ describe('Sprint Reviews API', () => {
       [testWorkspaceId, otherUserId]
     )
 
-    // Create sessions
     const sessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -76,33 +75,21 @@ describe('Sprint Reviews API', () => {
     )
     otherSessionCookie = `session_id=${otherSessionId}`
 
-    // Get CSRF tokens
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
 
-    const otherCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', otherSessionCookie)
-    otherCsrfToken = otherCsrfRes.body.token
-    const otherConnectSidCookie = otherCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (otherConnectSidCookie) {
-      otherSessionCookie = `${otherSessionCookie}; ${otherConnectSidCookie}`
-    }
+    const otherCsrf = await getCsrfTokenFromApp(app, otherSessionCookie)
+    otherCsrfToken = otherCsrf.token
+    otherSessionCookie = otherCsrf.sessionCookie
 
-    // Create a program
-    const programResult = await pool.query(
+    const programResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
        VALUES ($1, 'program', 'Test Program', $2, 'workspace')
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProgramId = programResult.rows[0].id
+    testProgramId = requireFirstRow(programResult.rows).id
   })
 
   afterAll(async () => {
@@ -114,7 +101,6 @@ describe('Sprint Reviews API', () => {
   })
 
   beforeEach(async () => {
-    // Clean up associations first, then documents
     await pool.query(
       `DELETE FROM document_associations WHERE document_id IN (SELECT id FROM documents WHERE workspace_id = $1 AND document_type IN ('sprint', 'weekly_review', 'issue'))`,
       [testWorkspaceId]
@@ -123,15 +109,13 @@ describe('Sprint Reviews API', () => {
       `DELETE FROM documents WHERE workspace_id = $1 AND document_type IN ('sprint', 'weekly_review', 'issue')`,
       [testWorkspaceId]
     )
-    // Create fresh sprint
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
        VALUES ($1, 'sprint', 'Test Sprint', $2, 'workspace', $3)
        RETURNING id`,
       [testWorkspaceId, testUserId, JSON.stringify({ plan: 'Test plan for sprint' })]
     )
-    testSprintId = sprintResult.rows[0].id
-    // Create program association for sprint
+    testSprintId = requireFirstRow(sprintResult.rows).id
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
@@ -145,14 +129,20 @@ describe('Sprint Reviews API', () => {
         .get(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.is_draft).toBe(true)
-      expect(response.body.content).toBeDefined()
-      expect(response.body.content.type).toBe('doc')
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks/{id}/review',
+        status: 200,
+        response,
+        openApiSchemaName: 'SprintReviewResponse',
+        schema: SprintReviewResponseSchema,
+      })
+      expect(body.is_draft).toBe(true)
+      expect(body.content).toBeDefined()
+      expect(body.content?.type).toBe('doc')
     })
 
     it('returns existing review with is_draft: false after POST', async () => {
-      // First create a review
       await request(app)
         .post(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
@@ -162,47 +152,57 @@ describe('Sprint Reviews API', () => {
           plan_validated: true
         })
 
-      // Then GET should return existing review
       const response = await request(app)
         .get(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.is_draft).toBe(false)
-      expect(response.body.plan_validated).toBe(true)
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks/{id}/review',
+        status: 200,
+        response,
+        openApiSchemaName: 'SprintReviewResponse',
+        schema: SprintReviewResponseSchema,
+      })
+      expect(body.is_draft).toBe(false)
+      expect(body.plan_validated).toBe(true)
     })
 
     it('pre-fill content includes issues information', async () => {
-      // Create some issues for the sprint
-      const doneIssueResult = await pool.query(
+      const doneIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'Done Issue', $2, 'workspace', $3)
          RETURNING id`,
         [testWorkspaceId, testUserId, JSON.stringify({ state: 'done' })]
       )
-      const inProgressIssueResult = await pool.query(
+      const inProgressIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'In Progress Issue', $2, 'workspace', $3)
          RETURNING id`,
         [testWorkspaceId, testUserId, JSON.stringify({ state: 'in_progress' })]
       )
 
-      // Create document_associations for sprint relationship
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'sprint'), ($3, $2, 'sprint')`,
-        [doneIssueResult.rows[0].id, testSprintId, inProgressIssueResult.rows[0].id]
+        [requireFirstRow(doneIssueResult.rows).id, testSprintId, requireFirstRow(inProgressIssueResult.rows).id]
       )
 
       const response = await request(app)
         .get(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.is_draft).toBe(true)
-      expect(response.body.content).toBeDefined()
-      // Content should include issues in the pre-filled text
-      const contentStr = JSON.stringify(response.body.content)
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/weeks/{id}/review',
+        status: 200,
+        response,
+        openApiSchemaName: 'SprintReviewResponse',
+        schema: SprintReviewResponseSchema,
+      })
+      expect(body.is_draft).toBe(true)
+      expect(body.content).toBeDefined()
+      const contentStr = JSON.stringify(body.content)
       expect(contentStr).toContain('Done Issue')
     })
 
@@ -227,10 +227,17 @@ describe('Sprint Reviews API', () => {
           plan_validated: true
         })
 
-      expect(response.status).toBe(201)
-      expect(response.body.owner_id).toBe(testUserId)
-      expect(response.body.sprint_id).toBe(testSprintId)
-      expect(response.body.plan_validated).toBe(true)
+      const body = expectOpenApiResponse({
+        method: 'post',
+        path: '/weeks/{id}/review',
+        status: 201,
+        response,
+        openApiSchemaName: 'SprintReviewResponse',
+        schema: SprintReviewResponseSchema,
+      })
+      expect(body.owner_id).toBe(testUserId)
+      expect(body.sprint_id).toBe(testSprintId)
+      expect(body.plan_validated).toBe(true)
     })
 
     it('returns 403 without auth (CSRF check first)', async () => {
@@ -242,14 +249,12 @@ describe('Sprint Reviews API', () => {
     })
 
     it('returns 409 if review already exists', async () => {
-      // Create first review
       await request(app)
         .post(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
         .send({ content: { type: 'doc', content: [] } })
 
-      // Try to create second review
       const response = await request(app)
         .post(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
@@ -262,7 +267,6 @@ describe('Sprint Reviews API', () => {
 
   describe('PATCH /api/weeks/:id/review', () => {
     beforeEach(async () => {
-      // Create a review to update
       await request(app)
         .post(`/api/weeks/${testSprintId}/review`)
         .set('Cookie', sessionCookie)
@@ -284,9 +288,16 @@ describe('Sprint Reviews API', () => {
           plan_validated: false
         })
 
-      expect(response.status).toBe(200)
-      expect(response.body.plan_validated).toBe(false)
-      expect(response.body.content).toEqual(newContent)
+      const body = expectOpenApiResponse({
+        method: 'patch',
+        path: '/weeks/{id}/review',
+        status: 200,
+        response,
+        openApiSchemaName: 'SprintReviewResponse',
+        schema: SprintReviewResponseSchema,
+      })
+      expect(body.plan_validated).toBe(false)
+      expect(body.content).toEqual(newContent)
     })
 
     it('returns 403 for non-owner', async () => {
@@ -300,7 +311,6 @@ describe('Sprint Reviews API', () => {
     })
 
     it('returns 404 when no review exists', async () => {
-      // Delete the review first
       await pool.query(
         `DELETE FROM documents WHERE document_type = 'weekly_review' AND properties->>'sprint_id' = $1`,
         [testSprintId]

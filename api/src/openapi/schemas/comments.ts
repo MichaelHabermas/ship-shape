@@ -4,6 +4,7 @@
 
 import { z, registry } from '../registry.js';
 import { UuidSchema, DateTimeSchema, UserReferenceSchema } from './common.js';
+import { DocumentNotFoundErrorSchema } from './documents.js';
 
 // ============== Comment Response ==============
 
@@ -57,6 +58,10 @@ registry.registerPath({
     200: {
       description: 'List of comments grouped by thread',
       content: { 'application/json': { schema: z.array(CommentResponseSchema) } },
+    },
+    404: {
+      description: 'Document not found',
+      content: { 'application/json': { schema: DocumentNotFoundErrorSchema } },
     },
   },
 });

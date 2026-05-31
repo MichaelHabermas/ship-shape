@@ -3,6 +3,13 @@ import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
+import {
+  ProjectRetroGetResponseSchema,
+  ProjectRetroSaveResponseSchema,
+} from '../openapi/schemas/projects.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+import { IdRow, requireFirstRow } from '../test/pg-result.js'
 
 describe('Project Retros API', () => {
   const app = createApp()
@@ -22,50 +29,44 @@ describe('Project Retros API', () => {
   let testProgramId: string
 
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
-    // Create other user (not in workspace for auth tests)
-    const otherUserResult = await pool.query(
+    const otherUserResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Other User')
        RETURNING id`,
       [otherEmail]
     )
-    otherUserId = otherUserResult.rows[0].id
+    otherUserId = requireFirstRow(otherUserResult.rows).id
 
-    // Create workspace memberships (only test user)
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
     )
 
-    // Create other workspace for other user
-    const otherWorkspaceResult = await pool.query(
+    const otherWorkspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ('Other Workspace') RETURNING id`
     )
-    const otherWorkspaceId = otherWorkspaceResult.rows[0].id
+    const otherWorkspaceId = requireFirstRow(otherWorkspaceResult.rows).id
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [otherWorkspaceId, otherUserId]
     )
 
-    // Create sessions
     const sessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -82,33 +83,21 @@ describe('Project Retros API', () => {
     )
     otherSessionCookie = `session_id=${otherSessionId}`
 
-    // Get CSRF tokens
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
 
-    const otherCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', otherSessionCookie)
-    otherCsrfToken = otherCsrfRes.body.token
-    const otherConnectSidCookie = otherCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (otherConnectSidCookie) {
-      otherSessionCookie = `${otherSessionCookie}; ${otherConnectSidCookie}`
-    }
+    const otherCsrf = await getCsrfTokenFromApp(app, otherSessionCookie)
+    otherCsrfToken = otherCsrf.token
+    otherSessionCookie = otherCsrf.sessionCookie
 
-    // Create a program
-    const programResult = await pool.query(
+    const programResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
        VALUES ($1, 'program', 'Test Program', $2, 'workspace')
        RETURNING id`,
       [testWorkspaceId, testUserId]
     )
-    testProgramId = programResult.rows[0].id
+    testProgramId = requireFirstRow(programResult.rows).id
   })
 
   afterAll(async () => {
@@ -120,13 +109,11 @@ describe('Project Retros API', () => {
   })
 
   beforeEach(async () => {
-    // Clean up projects before each test
     await pool.query(
       `DELETE FROM documents WHERE workspace_id = $1 AND document_type IN ('project', 'sprint', 'issue')`,
       [testWorkspaceId]
     )
-    // Create fresh project with ICE scores
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by, parent_id, visibility, properties)
        VALUES ($1, 'project', 'Test Project', $2, $3, 'workspace', $4)
        RETURNING id`,
@@ -138,7 +125,7 @@ describe('Project Retros API', () => {
         monetary_impact_expected: '$50,000'
       })]
     )
-    testProjectId = projectResult.rows[0].id
+    testProjectId = requireFirstRow(projectResult.rows).id
   })
 
   describe('GET /api/projects/:id/retro', () => {
@@ -147,10 +134,17 @@ describe('Project Retros API', () => {
         .get(`/api/projects/${testProjectId}/retro`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.is_draft).toBe(true)
-      expect(response.body.content).toBeDefined()
-      expect(response.body.content.type).toBe('doc')
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/projects/{id}/retro',
+        status: 200,
+        response,
+        openApiSchemaName: 'ProjectRetroGetResponse',
+        schema: ProjectRetroGetResponseSchema,
+      })
+      expect(body.is_draft).toBe(true)
+      expect(body.content).toBeDefined()
+      expect(body.content.type).toBe('doc')
     })
 
     it('pre-fill includes monetary_impact_expected from project properties', async () => {
@@ -158,21 +152,26 @@ describe('Project Retros API', () => {
         .get(`/api/projects/${testProjectId}/retro`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.monetary_impact_expected).toBe('$50,000')
-      expect(response.body.is_draft).toBe(true)
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/projects/{id}/retro',
+        status: 200,
+        response,
+        openApiSchemaName: 'ProjectRetroGetResponse',
+        schema: ProjectRetroGetResponseSchema,
+      })
+      expect(body.monetary_impact_expected).toBe('$50,000')
+      expect(body.is_draft).toBe(true)
     })
 
     it('pre-fill includes sprints list associated with project', async () => {
-      // Create a sprint linked to the project via document_associations
-      const sprintResult = await pool.query(
+      const sprintResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility)
          VALUES ($1, 'sprint', 'Sprint 1', $2, 'workspace')
          RETURNING id`,
         [testWorkspaceId, testUserId]
       )
-      const sprintId = sprintResult.rows[0].id
-      // Create project association for the sprint
+      const sprintId = requireFirstRow(sprintResult.rows).id
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'project')`,
@@ -183,15 +182,21 @@ describe('Project Retros API', () => {
         .get(`/api/projects/${testProjectId}/retro`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.weeks).toBeDefined()
-      expect(response.body.weeks.length).toBe(1)
-      expect(response.body.weeks[0].title).toBe('Sprint 1')
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/projects/{id}/retro',
+        status: 200,
+        response,
+        openApiSchemaName: 'ProjectRetroGetResponse',
+        schema: ProjectRetroGetResponseSchema,
+      })
+      expect(body.weeks).toBeDefined()
+      expect(body.weeks.length).toBe(1)
+      expect(body.weeks[0].title).toBe('Sprint 1')
     })
 
     it('pre-fill includes issues categorized (completed/active/cancelled)', async () => {
-      // Create issues in various states and associate them with the project via junction table
-      const doneIssueResult = await pool.query(
+      const doneIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'Done Issue', $2, 'workspace', $3)
          RETURNING id`,
@@ -200,10 +205,10 @@ describe('Project Retros API', () => {
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'project')`,
-        [doneIssueResult.rows[0].id, testProjectId]
+        [requireFirstRow(doneIssueResult.rows).id, testProjectId]
       )
 
-      const activeIssueResult = await pool.query(
+      const activeIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'Active Issue', $2, 'workspace', $3)
          RETURNING id`,
@@ -212,10 +217,10 @@ describe('Project Retros API', () => {
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'project')`,
-        [activeIssueResult.rows[0].id, testProjectId]
+        [requireFirstRow(activeIssueResult.rows).id, testProjectId]
       )
 
-      const cancelledIssueResult = await pool.query(
+      const cancelledIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by, visibility, properties)
          VALUES ($1, 'issue', 'Cancelled Issue', $2, 'workspace', $3)
          RETURNING id`,
@@ -224,18 +229,25 @@ describe('Project Retros API', () => {
       await pool.query(
         `INSERT INTO document_associations (document_id, related_id, relationship_type)
          VALUES ($1, $2, 'project')`,
-        [cancelledIssueResult.rows[0].id, testProjectId]
+        [requireFirstRow(cancelledIssueResult.rows).id, testProjectId]
       )
 
       const response = await request(app)
         .get(`/api/projects/${testProjectId}/retro`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.issues_summary).toBeDefined()
-      expect(response.body.issues_summary.completed).toBe(1)
-      expect(response.body.issues_summary.active).toBe(1)
-      expect(response.body.issues_summary.cancelled).toBe(1)
+      const body = expectOpenApiResponse({
+        method: 'get',
+        path: '/projects/{id}/retro',
+        status: 200,
+        response,
+        openApiSchemaName: 'ProjectRetroGetResponse',
+        schema: ProjectRetroGetResponseSchema,
+      })
+      expect(body.issues_summary).toBeDefined()
+      expect(body.issues_summary.completed).toBe(1)
+      expect(body.issues_summary.active).toBe(1)
+      expect(body.issues_summary.cancelled).toBe(1)
     })
 
     it('returns 404 for non-existent project', async () => {
@@ -261,11 +273,18 @@ describe('Project Retros API', () => {
           next_steps: 'Scale to all users'
         })
 
-      expect(response.status).toBe(201)
-      expect(response.body.plan_validated).toBe(true)
-      expect(response.body.monetary_impact_actual).toBe('$75,000')
-      expect(response.body.success_criteria).toEqual(['Increased signups by 20%', 'Reduced churn by 15%'])
-      expect(response.body.next_steps).toBe('Scale to all users')
+      const body = expectOpenApiResponse({
+        method: 'post',
+        path: '/projects/{id}/retro',
+        status: 201,
+        response,
+        openApiSchemaName: 'ProjectRetroSaveResponse',
+        schema: ProjectRetroSaveResponseSchema,
+      })
+      expect(body.plan_validated).toBe(true)
+      expect(body.monetary_impact_actual).toBe('$75,000')
+      expect(body.success_criteria).toEqual(['Increased signups by 20%', 'Reduced churn by 15%'])
+      expect(body.next_steps).toBe('Scale to all users')
     })
 
     it('returns 403 without auth (CSRF check first)', async () => {
@@ -290,7 +309,6 @@ describe('Project Retros API', () => {
 
   describe('PATCH /api/projects/:id/retro', () => {
     beforeEach(async () => {
-      // Set initial retro data
       await request(app)
         .post(`/api/projects/${testProjectId}/retro`)
         .set('Cookie', sessionCookie)
@@ -314,10 +332,17 @@ describe('Project Retros API', () => {
           next_steps: 'Pivot to new approach'
         })
 
-      expect(response.status).toBe(200)
-      expect(response.body.plan_validated).toBe(false)
-      expect(response.body.monetary_impact_actual).toBe('$10,000')
-      expect(response.body.next_steps).toBe('Pivot to new approach')
+      const body = expectOpenApiResponse({
+        method: 'patch',
+        path: '/projects/{id}/retro',
+        status: 200,
+        response,
+        openApiSchemaName: 'ProjectRetroSaveResponse',
+        schema: ProjectRetroSaveResponseSchema,
+      })
+      expect(body.plan_validated).toBe(false)
+      expect(body.monetary_impact_actual).toBe('$10,000')
+      expect(body.next_steps).toBe('Pivot to new approach')
     })
 
     it('returns 404 for user not in workspace (non-member)', async () => {

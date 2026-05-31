@@ -2,9 +2,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
+import { ErrorResponseSchema } from '../openapi/schemas/common.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
 import { IdRow, requireFirstRow } from '../test/pg-result.js';
+import { getCsrfTokenFromApp } from '../test/session-csrf.js';
+
+const CommandOkSchema = z.record(z.unknown());
 
 describe('Documents API — governance field mass assignment', () => {
   const app = createApp();
@@ -52,10 +58,9 @@ describe('Documents API — governance field mass assignment', () => {
     );
     sessionCookie = `session_id=${sessionId}`;
 
-    const csrfRes = await request(app).get('/api/csrf-token').set('Cookie', sessionCookie);
-    csrfToken = csrfRes.body.token;
-    const connectSid = csrfRes.headers['set-cookie']?.[0]?.split(';')[0];
-    if (connectSid) sessionCookie = `${sessionCookie}; ${connectSid}`;
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie);
+    csrfToken = csrf.token;
+    sessionCookie = csrf.sessionCookie;
   });
 
   afterAll(async () => {
@@ -79,8 +84,8 @@ describe('Documents API — governance field mass assignment', () => {
         },
       });
 
-    expect(res.status).toBe(403);
-    expect(res.body.error).toMatch(/governance fields/i);
+    const error = expectJsonBody(res, 403, ErrorResponseSchema);
+    expect(error.error).toMatch(/governance fields/i);
   });
 
   it('rejects workspace admin PATCH that injects plan_approval', async () => {
@@ -104,8 +109,8 @@ describe('Documents API — governance field mass assignment', () => {
         },
       });
 
-    expect(res.status).toBe(403);
-    expect(res.body.error).toMatch(/governance fields/i);
+    const error = expectJsonBody(res, 403, ErrorResponseSchema);
+    expect(error.error).toMatch(/governance fields/i);
   });
 
   it('allows workspace admin set_governance command while blocking generic PATCH', async () => {
@@ -124,6 +129,6 @@ describe('Documents API — governance field mass assignment', () => {
         properties: { public_feedback_enabled: true },
       });
 
-    expect(res.status).toBe(200);
+    expectJsonBody(res, 200, CommandOkSchema);
   });
 });

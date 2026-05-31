@@ -3,8 +3,25 @@ import request from 'supertest';
 import crypto from 'crypto';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
-import { UploadResponseSchema } from '../openapi/schemas/files.js';
-import { expectOpenApiResponse } from '../test/openapi-response.js';
+import {
+  ConfirmUploadResponseSchema,
+  FileMetadataSchema,
+  UploadResponseSchema,
+} from '../openapi/schemas/files.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { requireFirstRow, type IdRow } from '../test/pg-result.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
+import { getCsrfTokenFromApp } from '../test/session-csrf.js';
+import { z } from 'zod';
+
+const FileUploadErrorSchema = z.object({
+  error: z.string(),
+  blockedExtensions: z.array(z.string()).optional(),
+});
+const FileDeleteResponseSchema = z.object({ success: z.literal(true) });
+const FileMetadataResponseSchema = FileMetadataSchema.extend({
+  size_bytes: z.coerce.number(),
+});
 
 describe('Files API', () => {
   const app = createApp('http://localhost:5173');
@@ -25,30 +42,37 @@ describe('Files API', () => {
       .set('Cookie', sessionCookie)
       .set('x-csrf-token', csrfToken)
       .send({ filename, mimeType, sizeBytes });
-    expect(res.status).toBe(200);
-    return { fileId: res.body.fileId as string, uploadUrl: res.body.uploadUrl as string };
+    const upload = expectOpenApiResponse({
+      method: 'post',
+      path: '/files/upload',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'UploadResponse',
+      schema: UploadResponseSchema,
+    });
+    return { fileId: upload.fileId, uploadUrl: upload.uploadUrl };
   }
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     );
-    testWorkspaceId = workspaceResult.rows[0].id;
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id;
 
     // Create test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Files Test User')
        RETURNING id`,
       [testEmail]
     );
-    testUserId = userResult.rows[0].id;
+    testUserId = requireFirstRow(userResult.rows).id;
 
     // Create workspace membership
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
@@ -56,23 +80,16 @@ describe('Files API', () => {
 
     // Create session (sessions.id is TEXT not UUID, generated from crypto.randomBytes)
     const sessionId = crypto.randomBytes(32).toString('hex');
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
        VALUES ($1, $2, $3, now() + interval '1 hour')`,
       [sessionId, testUserId, testWorkspaceId]
     );
     sessionCookie = `session_id=${sessionId}`;
 
-    // Get CSRF token
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie);
-    csrfToken = csrfRes.body.token;
-    // Add connect.sid cookie for CSRF token storage
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || '';
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`;
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie);
+    csrfToken = csrf.token;
+    sessionCookie = csrf.sessionCookie;
   });
 
   afterAll(async () => {
@@ -125,7 +142,7 @@ describe('Files API', () => {
     testFileId = upload.fileId;
 
     // Verify file record was created in database
-    const dbResult = await pool.query(
+    const dbResult = await pool.query<IdRow>(
       'SELECT * FROM files WHERE id = $1',
       [testFileId]
     );
@@ -146,9 +163,8 @@ describe('Files API', () => {
         sizeBytes: 1024,
       });
 
-    expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty('error');
-    expect(res.body.error).toContain('not allowed');
+    const error = expectJsonBody(res, 400, FileUploadErrorSchema);
+    expect(error.error).toContain('not allowed');
   });
 
   it('POST /api/files/upload rejects dangerous multi-extension filenames', async () => {
@@ -162,8 +178,8 @@ describe('Files API', () => {
         sizeBytes: 1024,
       });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain('not allowed');
+    const error = expectJsonBody(res, 400, FileUploadErrorSchema);
+    expect(error.error).toContain('not allowed');
   });
 
   it('POST /api/files/:id/local-upload rejects bytes that do not match declared size', async () => {
@@ -176,11 +192,14 @@ describe('Files API', () => {
       .set('Content-Type', 'text/html')
       .send('<h1>short</h1>');
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain('size');
+    const error = expectJsonBody(res, 400, FileUploadErrorSchema);
+    expect(error.error).toContain('size');
 
-    const dbResult = await pool.query('SELECT status FROM files WHERE id = $1', [fileId]);
-    expect(dbResult.rows[0].status).toBe('pending');
+    const dbResult = await pool.query<{ status: string }>(
+      'SELECT status FROM files WHERE id = $1',
+      [fileId]
+    );
+    expect(requireFirstRow(dbResult.rows).status).toBe('pending');
   });
 
   it('GET /api/files/:id/serve downloads uploaded HTML with nosniff', async () => {
@@ -212,8 +231,8 @@ describe('Files API', () => {
       .set('Content-Type', 'application/json')
       .send('{"broken":');
 
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Malformed JSON request body' });
+    const error = expectJsonBody(res, 400, z.object({ error: z.literal('Malformed JSON request body') }));
+    expect(error).toEqual({ error: 'Malformed JSON request body' });
     expect(res.text).not.toMatch(/stack|node_modules|\/Users\/|DATABASE_URL/i);
   });
 
@@ -229,7 +248,15 @@ describe('Files API', () => {
         sizeBytes: 2048,
       });
 
-    const fileId = uploadRes.body.fileId;
+    const upload = expectOpenApiResponse({
+      method: 'post',
+      path: '/files/upload',
+      status: 200,
+      response: uploadRes,
+      openApiSchemaName: 'UploadResponse',
+      schema: UploadResponseSchema,
+    });
+    const fileId = upload.fileId;
 
     // Confirm the upload
     const confirmRes = await request(app)
@@ -237,15 +264,19 @@ describe('Files API', () => {
       .set('Cookie', sessionCookie)
       .set('x-csrf-token', csrfToken);
 
-    expect(confirmRes.status).toBe(200);
-    expect(confirmRes.body).toHaveProperty('fileId');
-    expect(confirmRes.body).toHaveProperty('cdnUrl');
-    expect(confirmRes.body).toHaveProperty('status');
-    expect(confirmRes.body.status).toBe('uploaded');
-    expect(confirmRes.body.cdnUrl).toContain(`/api/files/${fileId}/serve`);
+    const confirmed = expectOpenApiResponse({
+      method: 'post',
+      path: '/files/{fileId}/confirm',
+      status: 200,
+      response: confirmRes,
+      openApiSchemaName: 'ConfirmUploadResponse',
+      schema: ConfirmUploadResponseSchema,
+    });
+    expect(confirmed.status).toBe('uploaded');
+    expect(confirmed.cdnUrl).toContain(`/api/files/${fileId}/serve`);
 
     // Verify database was updated
-    const dbResult = await pool.query(
+    const dbResult = await pool.query<IdRow>(
       'SELECT * FROM files WHERE id = $1',
       [fileId]
     );
@@ -275,7 +306,15 @@ describe('Files API', () => {
         sizeBytes: 3072,
       });
 
-    const fileId = uploadRes.body.fileId;
+    const upload = expectOpenApiResponse({
+      method: 'post',
+      path: '/files/upload',
+      status: 200,
+      response: uploadRes,
+      openApiSchemaName: 'UploadResponse',
+      schema: UploadResponseSchema,
+    });
+    const fileId = upload.fileId;
 
     await request(app)
       .post(`/api/files/${fileId}/confirm`)
@@ -287,14 +326,15 @@ describe('Files API', () => {
       .get(`/api/files/${fileId}`)
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('id');
-    expect(res.body).toHaveProperty('filename');
-    expect(res.body).toHaveProperty('mime_type');
-    expect(res.body).toHaveProperty('size_bytes');
-    expect(res.body).toHaveProperty('cdn_url');
-    expect(res.body).toHaveProperty('status');
-    expect(res.body.filename).toBe('metadata-test.png');
+    const metadata = expectOpenApiResponse({
+      method: 'get',
+      path: '/files/{fileId}',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'FileMetadata',
+      schema: FileMetadataResponseSchema,
+    });
+    expect(metadata.filename).toBe('metadata-test.png');
   });
 
   it('DELETE /api/files/:id deletes file record', async () => {
@@ -309,7 +349,15 @@ describe('Files API', () => {
         sizeBytes: 4096,
       });
 
-    const fileId = uploadRes.body.fileId;
+    const upload = expectOpenApiResponse({
+      method: 'post',
+      path: '/files/upload',
+      status: 200,
+      response: uploadRes,
+      openApiSchemaName: 'UploadResponse',
+      schema: UploadResponseSchema,
+    });
+    const fileId = upload.fileId;
 
     // Delete the file
     const deleteRes = await request(app)
@@ -317,11 +365,18 @@ describe('Files API', () => {
       .set('Cookie', sessionCookie)
       .set('x-csrf-token', csrfToken);
 
-    expect(deleteRes.status).toBe(200);
-    expect(deleteRes.body).toHaveProperty('success', true);
+    const deleted = expectOpenApiResponse({
+      method: 'delete',
+      path: '/files/{fileId}',
+      status: 200,
+      response: deleteRes,
+      openApiSchemaName: 'SuccessResponse',
+      schema: FileDeleteResponseSchema,
+    });
+    expect(deleted.success).toBe(true);
 
     // Verify file was deleted from database
-    const dbResult = await pool.query(
+    const dbResult = await pool.query<IdRow>(
       'SELECT * FROM files WHERE id = $1',
       [fileId]
     );

@@ -1,6 +1,11 @@
 // Verifies issue history and Claude metadata routes against current UUID and capability contracts.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { z } from 'zod';
 import { pgResult } from '../test/pg-result.js';
+import { IssueHistoryEntrySchema } from '../openapi/schemas/issues.js';
+import { SuccessResponseSchema } from '../openapi/schemas/common.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { expectJsonBody } from '../test/expect-json-body.js';
 
 // Mock pool before importing routes
 const { mockClient } = vi.hoisted(() => {
@@ -81,6 +86,21 @@ import express from 'express';
 import request from 'supertest';
 import issuesRouter from './issues.js';
 
+const IssueHistoryListSchema = z.array(
+  IssueHistoryEntrySchema.extend({
+    automated_by: z.string().nullable().optional(),
+  })
+);
+const LegacyApiErrorSchema = z.object({ error: z.string() });
+const ValidationErrorSchema = z.object({
+  error: z.literal('Invalid input'),
+  details: z.array(z.unknown()).optional(),
+});
+const IssueStatePatchSchema = z.object({
+  id: z.string().uuid().optional(),
+  state: z.string(),
+}).passthrough();
+
 describe('Issues History API', () => {
   const issueId = '33333333-3333-4333-8333-333333333333';
   let app: express.Express;
@@ -117,8 +137,8 @@ describe('Issues History API', () => {
           automated_by: 'claude',
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body).toEqual({ success: true });
+      const body = expectJsonBody(res, 201, SuccessResponseSchema);
+      expect(body).toEqual({ success: true });
     });
 
     it('creates history entry without automated_by', async () => {
@@ -132,8 +152,8 @@ describe('Issues History API', () => {
           new_value: 'in_progress',
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body).toEqual({ success: true });
+      const body = expectJsonBody(res, 201, SuccessResponseSchema);
+      expect(body).toEqual({ success: true });
     });
 
     it('returns 400 for missing field', async () => {
@@ -144,8 +164,8 @@ describe('Issues History API', () => {
           new_value: 'test2',
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('Invalid input');
+      const error = expectJsonBody(res, 400, ValidationErrorSchema);
+      expect(error.error).toBe('Invalid input');
     });
 
     it('returns 400 for empty field', async () => {
@@ -157,8 +177,8 @@ describe('Issues History API', () => {
           new_value: 'test2',
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('Invalid input');
+      const error = expectJsonBody(res, 400, ValidationErrorSchema);
+      expect(error.error).toBe('Invalid input');
     });
 
     it('returns 400 for field too long', async () => {
@@ -170,8 +190,8 @@ describe('Issues History API', () => {
           new_value: 'test2',
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('Invalid input');
+      const error = expectJsonBody(res, 400, ValidationErrorSchema);
+      expect(error.error).toBe('Invalid input');
     });
 
     it('returns 404 for non-existent issue', async () => {
@@ -188,8 +208,8 @@ describe('Issues History API', () => {
           new_value: 'error details',
         });
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Issue not found');
+      const error = expectJsonBody(res, 404, LegacyApiErrorSchema);
+      expect(error.error).toBe('Issue not found');
     });
 
     it('accepts null values', async () => {
@@ -203,8 +223,8 @@ describe('Issues History API', () => {
           new_value: 'sprint-456',
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body).toEqual({ success: true });
+      const body = expectJsonBody(res, 201, SuccessResponseSchema);
+      expect(body).toEqual({ success: true });
     });
   });
 
@@ -238,11 +258,19 @@ describe('Issues History API', () => {
       const res = await request(app)
         .get(`/api/issues/${issueId}/history`);
 
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(2);
-      expect(res.body[0].automated_by).toBeNull();
-      expect(res.body[1].automated_by).toBe('claude');
-      expect(res.body[1].field).toBe('verification_failed');
+      const history = expectOpenApiResponse({
+        method: 'get',
+        path: '/issues/{id}/history',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'IssueHistoryEntry',
+        arrayItemSchemaName: 'IssueHistoryEntry',
+        schema: IssueHistoryListSchema,
+      });
+      expect(history).toHaveLength(2);
+      expect(history[0].automated_by).toBeNull();
+      expect(history[1].automated_by).toBe('claude');
+      expect(history[1].field).toBe('verification_failed');
     });
 
     it('returns 404 for non-existent issue', async () => {
@@ -254,8 +282,8 @@ describe('Issues History API', () => {
       const res = await request(app)
         .get(`/api/issues/${issueId}/history`);
 
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Issue not found');
+      const error = expectJsonBody(res, 404, LegacyApiErrorSchema);
+      expect(error.error).toBe('Issue not found');
     });
   });
 
@@ -284,14 +312,14 @@ describe('Issues History API', () => {
           claude_metadata: metadata,
         });
 
-      expect(res.status).toBe(200);
-      expect(res.body.state).toBe('done');
-      expect(updateIssueMutation).toHaveBeenCalledWith(
-        expect.objectContaining({
-          issueId,
-          data: expect.objectContaining({ claude_metadata: metadata }),
-        })
-      );
+      const issue = expectJsonBody(res, 200, IssueStatePatchSchema);
+      expect(issue.state).toBe('done');
+      expect(updateIssueMutation).toHaveBeenCalled();
+      const mutationCall = vi.mocked(updateIssueMutation).mock.calls.at(-1)?.[0] as
+        | { issueId: string; data: { claude_metadata?: typeof metadata } }
+        | undefined;
+      expect(mutationCall?.issueId).toBe(issueId);
+      expect(mutationCall?.data.claude_metadata).toEqual(metadata);
     });
 
     it('rejects claude_metadata with invalid confidence', async () => {
@@ -304,8 +332,8 @@ describe('Issues History API', () => {
           },
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('Invalid input');
+      const error = expectJsonBody(res, 400, ValidationErrorSchema);
+      expect(error.error).toBe('Invalid input');
     });
 
     it('rejects claude_metadata with wrong updated_by', async () => {
@@ -317,8 +345,8 @@ describe('Issues History API', () => {
           },
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('Invalid input');
+      const error = expectJsonBody(res, 400, ValidationErrorSchema);
+      expect(error.error).toBe('Invalid input');
     });
   });
 });

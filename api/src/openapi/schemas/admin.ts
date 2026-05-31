@@ -14,7 +14,7 @@ import {
 const AdminWorkspaceSchema = z.object({
   id: UuidSchema,
   name: z.string(),
-  sprintStartDate: DateSchema.nullable().optional(),
+  sprintStartDate: z.union([DateSchema, DateTimeSchema]).nullable().optional(),
   archivedAt: DateTimeSchema.nullable(),
   createdAt: DateTimeSchema,
   updatedAt: DateTimeSchema,
@@ -23,13 +23,19 @@ const AdminWorkspaceSchema = z.object({
 
 registry.register('AdminWorkspace', AdminWorkspaceSchema);
 
-const AdminWorkspacesResponseSchema = successEnvelope(
+export const AdminWorkspacesResponseSchema = successEnvelope(
   z.object({ workspaces: z.array(AdminWorkspaceSchema) }),
   'AdminWorkspacesResponse'
 );
 registry.register('AdminWorkspacesResponse', AdminWorkspacesResponseSchema);
 
-const AdminJsonResponseSchema = successEnvelope(JsonObjectSchema, 'AdminJsonResponse');
+export const AdminCreateWorkspaceResponseSchema = successEnvelope(
+  z.object({ workspace: AdminWorkspaceSchema }).openapi('AdminCreateWorkspaceData'),
+  'AdminCreateWorkspaceResponse',
+);
+registry.register('AdminCreateWorkspaceResponse', AdminCreateWorkspaceResponseSchema);
+
+export const AdminJsonResponseSchema = successEnvelope(JsonObjectSchema, 'AdminJsonResponse');
 registry.register('AdminJsonResponse', AdminJsonResponseSchema);
 
 const WorkspaceIdParams = z.object({ id: UuidSchema });
@@ -57,7 +63,7 @@ function adminPath(
     request: options?.request,
     responses: options?.responses ?? {
       200: jsonResponse(AdminJsonResponseSchema, 'Success'),
-      403: { description: 'Super admin required' },
+      403: jsonResponse(ApiErrorResponseSchema, 'Super admin required'),
     },
   });
 }
@@ -68,7 +74,7 @@ adminPath('get', '/admin/workspaces', 'List all workspaces (super-admin)', {
   },
   responses: {
     200: jsonResponse(AdminWorkspacesResponseSchema, 'Workspace list'),
-    403: { description: 'Super admin required' },
+    403: jsonResponse(ApiErrorResponseSchema, 'Super admin required'),
   },
 });
 
@@ -83,14 +89,8 @@ adminPath('post', '/admin/workspaces', 'Create workspace (super-admin)', {
     },
   },
   responses: {
-    201: jsonResponse(
-      successEnvelope(
-        z.object({ workspace: AdminWorkspaceSchema }).openapi('AdminCreateWorkspaceData'),
-        'AdminCreateWorkspaceResponse'
-      ),
-      'Workspace created'
-    ),
-    403: { description: 'Super admin required' },
+    201: jsonResponse(AdminCreateWorkspaceResponseSchema, 'Workspace created'),
+    403: jsonResponse(ApiErrorResponseSchema, 'Super admin required'),
   },
 });
 

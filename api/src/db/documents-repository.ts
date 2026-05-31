@@ -267,7 +267,7 @@ export function extractIssueFromRow(
     cancelled_at: row.cancelled_at || null,
     reopened_at: row.reopened_at || null,
     converted_from_id: row.converted_from_id || null,
-    assignee_name: row.assignee_name,
+    assignee_name: row.assignee_name ?? null,
     assignee_archived: row.assignee_archived || false,
     created_by_name: row.created_by_name,
   };

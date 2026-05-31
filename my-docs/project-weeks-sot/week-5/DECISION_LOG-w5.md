@@ -741,3 +741,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Follow-through (2026-05-31):** Promoted the four mechanical rules to `error` after clearing warnings. `seed.ts` uses `seedAt()` for invariant array/map access; `max-lines` and `no-unsafe-*` stay warn until a dedicated pass.
 
 **Follow-through (2026-05-31, unsafe return/call/argument):** Cleared `no-unsafe-return`, `no-unsafe-call`, and `no-unsafe-argument` repo-wide; promoted all three to `error`. E2E JSON boundaries use `e2e/fixtures/typed-json.ts`; web fetch JSON uses `web/src/api/read-json.ts`.
+
+## D092 - Tier 1 Route Test OpenAPI Boundaries
+
+**Date:** 2026-05-31
+
+**Decision:** API route integration tests must assert HTTP JSON through registered OpenAPI Zod schemas (`expectOpenApiResponse`), not raw `res.body`. Shared helpers: `getCsrfTokenFromApp`, `expectApiErrorResponse`, `expectJsonBody` under `api/src/test/`. When tests fail schema validation, fix the API/OpenAPI registration (e.g. bulk issue responses use `mapIssueListItem`; `assignee_name` nullable on `extractIssueFromRow`) instead of weakening tests.
+
+**Consequence:** New route tests copy the helper pattern; paths in assertions omit the `/api` prefix. Legacy shapes without OpenAPI JSON use `expectJsonBody` only. Tier 2 is production route JSONB narrowing; Tier 3 is E2E `readJsonAs`.

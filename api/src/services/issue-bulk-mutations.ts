@@ -2,7 +2,8 @@
 import type { PoolClient } from 'pg';
 import type { IssueProperties } from '@ship/shared';
 import type { DocumentType } from '@ship/shared';
-import { extractIssueFromRow, type IssueDocumentRow } from '../db/documents-repository.js';
+import { type IssueDocumentRow, type IssueMetadataRow } from '../db/documents-repository.js';
+import { mapIssueListItem } from '../utils/issue-response.js';
 import type { DocumentMutationCapability } from '../security/capabilities.js';
 import type { Principal } from '../security/principal.js';
 import { documentActorFromPrincipal } from '../security/document-actor.js';
@@ -38,6 +39,25 @@ type IncompleteChildRow = {
   ticket_number: number | null;
   state: string | null;
 };
+
+function bulkRowAsMetadata(row: IssueDocumentRow): IssueMetadataRow {
+  return {
+    id: row.id,
+    title: row.title,
+    properties: row.properties,
+    ticket_number: row.ticket_number,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    created_by: row.created_by,
+    started_at: row.started_at ?? null,
+    completed_at: row.completed_at ?? null,
+    cancelled_at: row.cancelled_at ?? null,
+    reopened_at: row.reopened_at ?? null,
+    converted_from_id: row.converted_from_id ?? null,
+    assignee_name: row.assignee_name ?? null,
+    assignee_archived: row.assignee_archived ?? null,
+  };
+}
 
 export type BulkUpdateIssuesInput = {
   client: PoolClient;
@@ -422,13 +442,17 @@ export async function bulkUpdateIssuesMutation(
 
   const associationsMap = await getBelongsToAssociationsBatch(result.rows.map((row) => row.id));
   const updated = result.rows.map((row) => {
-    const issue = extractIssueFromRow(row);
+    const belongsTo = associationsMap.get(row.id) ?? [];
+    const item = mapIssueListItem(bulkRowAsMetadata(row), belongsTo);
+    const archivedAt =
+      row.archived_at instanceof Date ? row.archived_at.toISOString() : row.archived_at ?? null;
+    const deletedAt =
+      row.deleted_at instanceof Date ? row.deleted_at.toISOString() : row.deleted_at ?? null;
     return {
-      ...issue,
-      display_id: `#${issue.ticket_number}`,
-      archived_at: row.archived_at,
-      deleted_at: row.deleted_at,
-      belongs_to: associationsMap.get(row.id) ?? [],
+      ...item,
+      belongs_to: belongsTo,
+      archived_at: archivedAt,
+      deleted_at: deletedAt,
     };
   });
 

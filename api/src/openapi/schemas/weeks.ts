@@ -114,6 +114,29 @@ export const WeekReviewSchema = z.object({
 
 registry.register('WeekReview', WeekReviewSchema);
 
+export const SprintReviewResponseSchema = z.object({
+  id: UuidSchema.nullable(),
+  sprint_id: UuidSchema,
+  title: z.string(),
+  content: z.record(z.unknown()).nullable(),
+  plan_validated: z.boolean().nullable(),
+  owner_id: UuidSchema.nullable(),
+  owner_name: z.string().nullable().optional(),
+  owner_email: z.string().nullable().optional(),
+  created_at: DateTimeSchema.nullable(),
+  updated_at: DateTimeSchema.nullable(),
+  is_draft: z.boolean(),
+}).openapi('SprintReviewResponse');
+
+registry.register('SprintReviewResponse', SprintReviewResponseSchema);
+
+export const WeekPlanApprovalResponseSchema = z.object({
+  success: z.literal(true),
+  approval: ApprovalTrackingSchema,
+}).openapi('WeekPlanApprovalResponse');
+
+registry.register('WeekPlanApprovalResponse', WeekPlanApprovalResponseSchema);
+
 // ============== Active Weeks Response ==============
 
 export const ActiveWeeksResponseSchema = z.object({
@@ -306,21 +329,7 @@ registry.registerPath({
       description: 'Week review data',
       content: {
         'application/json': {
-          schema: z.object({
-            id: UuidSchema,
-            name: z.string(),
-            sprint_number: z.number().int(),
-            plan: z.string().nullable(),
-            plan_validated: z.boolean().nullable(),
-            issues: z.array(z.object({
-              id: UuidSchema,
-              title: z.string(),
-              state: z.string(),
-              ticket_number: z.number().int(),
-              was_planned: z.boolean(),
-            })),
-            content: z.record(z.unknown()).nullable(),
-          }),
+          schema: SprintReviewResponseSchema,
         },
       },
     },
@@ -353,6 +362,14 @@ registry.registerPath({
   responses: {
     200: {
       description: 'Updated week review',
+      content: {
+        'application/json': {
+          schema: SprintReviewResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: 'Not the review owner',
     },
     404: {
       description: 'Week not found',
@@ -383,6 +400,14 @@ registry.registerPath({
   responses: {
     201: {
       description: 'Created week review',
+      content: {
+        'application/json': {
+          schema: SprintReviewResponseSchema,
+        },
+      },
+    },
+    409: {
+      description: 'Review already exists',
     },
     404: {
       description: 'Week not found',
@@ -611,7 +636,7 @@ registry.registerPath({
       description: 'Plan approved',
       content: {
         'application/json': {
-          schema: WeekResponseSchema,
+          schema: WeekPlanApprovalResponseSchema,
         },
       },
     },

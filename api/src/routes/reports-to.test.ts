@@ -1,8 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
+import { z } from 'zod'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
+import { BaseDocumentSchema } from '../openapi/schemas/documents.js'
+import { ErrorResponseSchema } from '../openapi/schemas/common.js'
+import { TeamPersonListItemSchema } from '../openapi/schemas/team.js'
+import { WeekPlanApprovalResponseSchema } from '../openapi/schemas/weeks.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { expectJsonBody } from '../test/expect-json-body.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+import { IdRow, PropertiesRow, requireFirstRow } from '../test/pg-result.js'
+
+const TeamPeopleListSchema = z.array(TeamPersonListItemSchema)
 
 describe('Reports-To Features', () => {
   const app = createApp()
@@ -22,32 +33,28 @@ describe('Reports-To Features', () => {
   let testSprintId: string
 
   beforeAll(async () => {
-    // Create workspace
-    const wsResult = await pool.query(
+    const wsResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = wsResult.rows[0].id
+    testWorkspaceId = requireFirstRow(wsResult.rows).id
 
-    // Create admin user
-    const adminResult = await pool.query(
+    const adminResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Admin User')
        RETURNING id`,
       [`reports-to-admin-${testRunId}@ship.local`]
     )
-    adminUserId = adminResult.rows[0].id
+    adminUserId = requireFirstRow(adminResult.rows).id
 
-    // Create member user
-    const memberResult = await pool.query(
+    const memberResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Member User')
        RETURNING id`,
       [`reports-to-member-${testRunId}@ship.local`]
     )
-    memberUserId = memberResult.rows[0].id
+    memberUserId = requireFirstRow(memberResult.rows).id
 
-    // Create workspace memberships
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'admin')`,
       [testWorkspaceId, adminUserId]
@@ -57,22 +64,20 @@ describe('Reports-To Features', () => {
       [testWorkspaceId, memberUserId]
     )
 
-    // Create person documents
-    const adminPersonResult = await pool.query(
+    const adminPersonResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
        VALUES ($1, 'person', 'Admin User', 'workspace', $2, $3) RETURNING id`,
       [testWorkspaceId, adminUserId, JSON.stringify({ user_id: adminUserId, email: `reports-to-admin-${testRunId}@ship.local` })]
     )
-    adminPersonDocId = adminPersonResult.rows[0].id
+    adminPersonDocId = requireFirstRow(adminPersonResult.rows).id
 
-    const memberPersonResult = await pool.query(
+    const memberPersonResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
        VALUES ($1, 'person', 'Member User', 'workspace', $2, $3) RETURNING id`,
       [testWorkspaceId, memberUserId, JSON.stringify({ user_id: memberUserId, email: `reports-to-member-${testRunId}@ship.local` })]
     )
-    memberPersonDocId = memberPersonResult.rows[0].id
+    memberPersonDocId = requireFirstRow(memberPersonResult.rows).id
 
-    // Create sessions
     const adminSessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -89,27 +94,22 @@ describe('Reports-To Features', () => {
     )
     memberCookie = `session_id=${memberSessionId}`
 
-    // Get CSRF tokens
-    const adminCsrfRes = await request(app).get('/api/csrf-token').set('Cookie', adminCookie)
-    adminCsrf = adminCsrfRes.body.token
-    const adminConnectSid = adminCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (adminConnectSid) adminCookie = `${adminCookie}; ${adminConnectSid}`
+    const adminCsrfResult = await getCsrfTokenFromApp(app, adminCookie)
+    adminCsrf = adminCsrfResult.token
+    adminCookie = adminCsrfResult.sessionCookie
 
-    const memberCsrfRes = await request(app).get('/api/csrf-token').set('Cookie', memberCookie)
-    memberCsrf = memberCsrfRes.body.token
-    const memberConnectSid = memberCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (memberConnectSid) memberCookie = `${memberCookie}; ${memberConnectSid}`
+    const memberCsrfResult = await getCsrfTokenFromApp(app, memberCookie)
+    memberCsrf = memberCsrfResult.token
+    memberCookie = memberCsrfResult.sessionCookie
 
-    // Create program with admin as accountable
-    const programResult = await pool.query(
+    const programResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, properties)
        VALUES ($1, 'program', 'Test Program', 'workspace', $2) RETURNING id`,
       [testWorkspaceId, JSON.stringify({ accountable_id: adminUserId })]
     )
-    testProgramId = programResult.rows[0].id
+    testProgramId = requireFirstRow(programResult.rows).id
 
-    // Create sprint owned by member, associated with program
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
        VALUES ($1, 'sprint', 'Test Sprint', 'workspace', $2, $3) RETURNING id`,
       [testWorkspaceId, memberUserId, JSON.stringify({
@@ -118,9 +118,8 @@ describe('Reports-To Features', () => {
         assignee_ids: [memberUserId],
       })]
     )
-    testSprintId = sprintResult.rows[0].id
+    testSprintId = requireFirstRow(sprintResult.rows).id
 
-    // Associate sprint with program
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
@@ -145,11 +144,17 @@ describe('Reports-To Features', () => {
         .set('X-CSRF-Token', adminCsrf)
         .send({ properties: { reports_to: adminUserId } })
 
-      expect(res.status).toBe(200)
+      expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
 
-      // Verify it was saved
-      const doc = await pool.query('SELECT properties FROM documents WHERE id = $1', [memberPersonDocId])
-      expect(doc.rows[0].properties.reports_to).toBe(adminUserId)
+      const doc = await pool.query<PropertiesRow>('SELECT properties FROM documents WHERE id = $1', [memberPersonDocId])
+      expect(requireFirstRow(doc.rows).properties.reports_to).toBe(adminUserId)
     })
 
     it('should reject non-admin setting reports_to on a person document', async () => {
@@ -159,19 +164,25 @@ describe('Reports-To Features', () => {
         .set('X-CSRF-Token', memberCsrf)
         .send({ properties: { reports_to: memberUserId } })
 
-      expect(res.status).toBe(403)
-      expect(res.body.error).toContain('Only workspace admins')
+      const body = expectJsonBody(res, 403, ErrorResponseSchema)
+      expect(body.error).toContain('Only workspace admins')
     })
 
     it('should allow non-admin to update other person properties', async () => {
-      // Member should be able to update non-reports_to properties
       const res = await request(app)
         .patch(`/api/documents/${memberPersonDocId}`)
         .set('Cookie', memberCookie)
         .set('X-CSRF-Token', memberCsrf)
         .send({ properties: { role: 'Engineer' } })
 
-      expect(res.status).toBe(200)
+      expectOpenApiResponse({
+        method: 'patch',
+        path: '/documents/{id}',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'Document',
+        schema: BaseDocumentSchema,
+      })
     })
   })
 
@@ -181,34 +192,30 @@ describe('Reports-To Features', () => {
     let supervisorCsrf: string
 
     beforeAll(async () => {
-      // Create a supervisor user
-      const supervisorResult = await pool.query(
+      const supervisorResult = await pool.query<IdRow>(
         `INSERT INTO users (email, password_hash, name)
          VALUES ($1, 'test-hash', 'Supervisor User') RETURNING id`,
         [`reports-to-supervisor-${testRunId}@ship.local`]
       )
-      supervisorUserId = supervisorResult.rows[0].id
+      supervisorUserId = requireFirstRow(supervisorResult.rows).id
 
       await pool.query(
         `INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'member')`,
         [testWorkspaceId, supervisorUserId]
       )
 
-      // Create supervisor's person document
       await pool.query(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'person', 'Supervisor User', 'workspace', $2, $3)`,
         [testWorkspaceId, supervisorUserId, JSON.stringify({ user_id: supervisorUserId })]
       )
 
-      // Set member's reports_to to supervisor
       await pool.query(
         `UPDATE documents SET properties = properties || jsonb_build_object('reports_to', $1::text)
          WHERE id = $2`,
         [supervisorUserId, memberPersonDocId]
       )
 
-      // Create session for supervisor
       const sessionId = crypto.randomBytes(32).toString('hex')
       await pool.query(
         `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -217,12 +224,10 @@ describe('Reports-To Features', () => {
       )
       supervisorCookie = `session_id=${sessionId}`
 
-      const csrfRes = await request(app).get('/api/csrf-token').set('Cookie', supervisorCookie)
-      supervisorCsrf = csrfRes.body.token
-      const connectSid = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSid) supervisorCookie = `${supervisorCookie}; ${connectSid}`
+      const csrf = await getCsrfTokenFromApp(app, supervisorCookie)
+      supervisorCsrf = csrf.token
+      supervisorCookie = csrf.sessionCookie
 
-      // Create a weekly plan for the sprint (so there's something to approve)
       await pool.query(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, parent_id, properties)
          VALUES ($1, 'weekly_plan', 'Test Plan', 'workspace', $2, $3, $4)`,
@@ -246,19 +251,25 @@ describe('Reports-To Features', () => {
         .set('Cookie', supervisorCookie)
         .set('X-CSRF-Token', supervisorCsrf)
 
-      expect(res.status).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.approval.state).toBe('approved')
+      const body = expectOpenApiResponse({
+        method: 'post',
+        path: '/weeks/{id}/approve-plan',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'WeekPlanApprovalResponse',
+        schema: WeekPlanApprovalResponseSchema,
+      })
+      expect(body.success).toBe(true)
+      expect(body.approval.state).toBe('approved')
     })
 
     it('should reject random non-supervisor non-admin user from approving', async () => {
-      // Create a random user who is neither supervisor nor accountable nor admin
-      const randomResult = await pool.query(
+      const randomResult = await pool.query<IdRow>(
         `INSERT INTO users (email, password_hash, name)
          VALUES ($1, 'test-hash', 'Random User') RETURNING id`,
         [`reports-to-random-${testRunId}@ship.local`]
       )
-      const randomUserId = randomResult.rows[0].id
+      const randomUserId = requireFirstRow(randomResult.rows).id
 
       await pool.query(
         `INSERT INTO workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'member')`,
@@ -273,19 +284,15 @@ describe('Reports-To Features', () => {
       )
       let randomCookie = `session_id=${sessionId}`
 
-      const csrfRes = await request(app).get('/api/csrf-token').set('Cookie', randomCookie)
-      const randomCsrf = typeof csrfRes.body?.token === 'string' ? csrfRes.body.token : ''
-      const connectSid = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-      if (connectSid) randomCookie = `${randomCookie}; ${connectSid}`
+      const csrf = await getCsrfTokenFromApp(app, randomCookie)
+      randomCookie = csrf.sessionCookie
 
       const res = await request(app)
         .post(`/api/weeks/${testSprintId}/approve-plan`)
         .set('Cookie', randomCookie)
-        .set('X-CSRF-Token', String(randomCsrf))
+        .set('X-CSRF-Token', csrf.token)
 
-      expect(res.status).toBe(403)
-
-      // Cleanup
+      expectJsonBody(res, 403, ErrorResponseSchema)
       await pool.query('DELETE FROM sessions WHERE user_id = $1', [randomUserId])
       await pool.query('DELETE FROM workspace_memberships WHERE user_id = $1', [randomUserId])
       await pool.query('DELETE FROM users WHERE id = $1', [randomUserId])
@@ -298,12 +305,17 @@ describe('Reports-To Features', () => {
         .get('/api/team/people')
         .set('Cookie', adminCookie)
 
-      expect(res.status).toBe(200)
-      const people = res.body as Array<{ id: string; reportsTo?: string; role?: string }>
-      expect(people).toBeInstanceOf(Array)
+      const people = expectOpenApiResponse({
+        method: 'get',
+        path: '/team/people',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'TeamPersonListItem',
+        arrayItemSchemaName: 'TeamPersonListItem',
+        schema: TeamPeopleListSchema,
+      })
       expect(people.length).toBeGreaterThanOrEqual(2)
 
-      // Find the member person doc
       const member = people.find((p) => p.id === memberPersonDocId)
       expect(member).toBeDefined()
       expect(member).toHaveProperty('reportsTo')
@@ -311,7 +323,6 @@ describe('Reports-To Features', () => {
     })
 
     it('should return correct reportsTo value for a person', async () => {
-      // Set a known reports_to value
       await pool.query(
         `UPDATE documents SET properties = properties || jsonb_build_object('reports_to', $1::text)
          WHERE id = $2`,
@@ -322,7 +333,15 @@ describe('Reports-To Features', () => {
         .get('/api/team/people')
         .set('Cookie', adminCookie)
 
-      const people = res.body as Array<{ id: string; reportsTo?: string }>
+      const people = expectOpenApiResponse({
+        method: 'get',
+        path: '/team/people',
+        status: 200,
+        response: res,
+        openApiSchemaName: 'TeamPersonListItem',
+        arrayItemSchemaName: 'TeamPersonListItem',
+        schema: TeamPeopleListSchema,
+      })
       const member = people.find((p) => p.id === memberPersonDocId)
       expect(member?.reportsTo).toBe(adminUserId)
     })

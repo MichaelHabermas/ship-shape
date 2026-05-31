@@ -6,7 +6,8 @@ import type { z } from 'zod';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { BootstrapResponseSchema } from '../openapi/schemas/bootstrap.js';
-import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { requireFirstRow, type IdRow } from '../test/pg-result.js';
 
 type BootstrapData = z.infer<typeof BootstrapResponseSchema>['data'];
 
@@ -21,45 +22,45 @@ describe('Bootstrap API', () => {
   let testUserId: string;
 
   beforeAll(async () => {
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name, sprint_start_date)
        VALUES ($1, CURRENT_DATE)
        RETURNING id`,
       [testWorkspaceName]
     );
-    testWorkspaceId = workspaceResult.rows[0].id;
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id;
 
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Bootstrap Test User')
        RETURNING id`,
       [testEmail]
     );
-    testUserId = userResult.rows[0].id;
+    testUserId = requireFirstRow(userResult.rows).id;
 
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
     );
 
     const sessionId = crypto.randomBytes(32).toString('hex');
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
        VALUES ($1, $2, $3, now() + interval '1 hour')`,
       [sessionId, testUserId, testWorkspaceId]
     );
     sessionCookie = `session_id=${sessionId}`;
 
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, created_by)
        VALUES ($1, 'project', 'Bootstrap Active Project', $2)
        RETURNING id`,
       [testWorkspaceId, testUserId]
     );
-    const projectId = projectResult.rows[0].id;
+    const projectId = requireFirstRow(projectResult.rows).id;
 
-    const sprintResult = await pool.query(
+    const sprintResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'wiki', 'Bootstrap Wiki', '{}', $2),
               ($1, 'issue', 'Bootstrap Issue', '{"state":"backlog","priority":"medium"}', $2),
@@ -75,7 +76,7 @@ describe('Bootstrap API', () => {
       ]
     );
 
-    await pool.query(
+    await pool.query<IdRow>(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'project')`,
       [sprintResult.rows[2].id, projectId]
@@ -117,7 +118,8 @@ describe('Bootstrap API', () => {
     expect(data.documents.find((doc) => doc.title === 'Bootstrap Wiki')?.properties).toEqual(null);
     expect(data.issues.some((issue) => issue.title === 'Bootstrap Issue')).toBe(true);
     expect(data.issues.find((issue) => issue.title === 'Bootstrap Issue')).not.toHaveProperty('content');
-    expect(data.actionItems).toMatchObject({ items: expect.any(Array), total: expect.any(Number) });
+    expect(Array.isArray(data.actionItems.items)).toBe(true);
+    expect(typeof data.actionItems.total).toBe('number');
 
     // Risk: bootstrap seeds the project list cache, so it must match /api/projects status inference.
     const project = data.projects.find((item) => item.title === 'Bootstrap Active Project');

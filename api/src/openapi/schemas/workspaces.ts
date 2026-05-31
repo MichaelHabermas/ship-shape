@@ -39,6 +39,20 @@ export const WorkspaceListResponseSchema = z.object({
 
 registry.register('WorkspaceListResponse', WorkspaceListResponseSchema);
 
+export const WorkspaceCurrentResponseSchema = successEnvelope(
+  z.object({ workspace: WorkspaceSchema }),
+  'WorkspaceCurrentResponse',
+);
+registry.register('WorkspaceCurrentResponse', WorkspaceCurrentResponseSchema);
+
+export const WorkspaceSwitchResponseSchema = successEnvelope(
+  z.object({
+    workspaceId: UuidSchema,
+  }).openapi('WorkspaceSwitchData'),
+  'WorkspaceSwitchResponse',
+);
+registry.register('WorkspaceSwitchResponse', WorkspaceSwitchResponseSchema);
+
 // ============== Create/Update Workspace ==============
 
 export const CreateWorkspaceSchema = z.object({
@@ -66,14 +80,8 @@ registry.registerPath({
   summary: 'List workspaces',
   description: 'List all workspaces the current user has access to.',
   responses: {
-    200: {
-      description: 'List of workspaces',
-      content: {
-        'application/json': {
-          schema: WorkspaceListResponseSchema,
-        },
-      },
-    },
+    200: jsonResponse(WorkspaceListResponseSchema, 'List of workspaces'),
+    401: jsonResponse(ApiErrorResponseSchema, 'Not authenticated'),
   },
 });
 
@@ -84,22 +92,8 @@ registry.registerPath({
   summary: 'Get current workspace',
   description: 'Get the workspace currently selected in the session.',
   responses: {
-    200: {
-      description: 'Current workspace',
-      content: {
-        'application/json': {
-          schema: z.object({
-            success: z.literal(true),
-            data: z.object({
-              workspace: WorkspaceSchema,
-            }),
-          }),
-        },
-      },
-    },
-    400: {
-      description: 'No workspace selected',
-    },
+    200: jsonResponse(WorkspaceCurrentResponseSchema, 'Current workspace'),
+    400: jsonResponse(ApiErrorResponseSchema, 'No workspace selected'),
   },
 });
 
@@ -115,21 +109,9 @@ registry.registerPath({
     }),
   },
   responses: {
-    200: jsonResponse(
-      successEnvelope(
-        z.object({
-          workspaceId: UuidSchema,
-        }).openapi('WorkspaceSwitchData'),
-        'WorkspaceSwitchResponse'
-      ),
-      'Workspace switched'
-    ),
-    403: {
-      description: 'No access to workspace',
-    },
-    404: {
-      description: 'Workspace not found',
-    },
+    200: jsonResponse(WorkspaceSwitchResponseSchema, 'Workspace switched'),
+    403: jsonResponse(ApiErrorResponseSchema, 'No access to workspace'),
+    404: jsonResponse(ApiErrorResponseSchema, 'Workspace not found'),
   },
 });
 
@@ -146,11 +128,58 @@ const WorkspaceMemberSchema = z.object({
 
 registry.register('WorkspaceMember', WorkspaceMemberSchema);
 
-const WorkspaceMembersListResponseSchema = successEnvelope(
+export const WorkspaceMembersListResponseSchema = successEnvelope(
   z.object({ members: z.array(WorkspaceMemberSchema) }).openapi('WorkspaceMembersListData'),
   'WorkspaceMembersListResponse'
 );
 registry.register('WorkspaceMembersListResponse', WorkspaceMembersListResponseSchema);
+
+const WorkspaceInviteSchema = z.object({
+  id: UuidSchema,
+  email: z.string().email(),
+  token: z.string(),
+  role: z.enum(['admin', 'member']),
+  expiresAt: DateTimeSchema,
+  createdAt: DateTimeSchema,
+  invitedByName: z.string().optional(),
+  x509SubjectDn: z.string().nullable().optional(),
+}).openapi('WorkspaceInvite');
+
+registry.register('WorkspaceInvite', WorkspaceInviteSchema);
+
+export const WorkspaceInvitesListResponseSchema = successEnvelope(
+  z.object({ invites: z.array(WorkspaceInviteSchema) }).openapi('WorkspaceInvitesListData'),
+  'WorkspaceInvitesListResponse',
+);
+registry.register('WorkspaceInvitesListResponse', WorkspaceInvitesListResponseSchema);
+
+export const WorkspaceInviteCreateResponseSchema = successEnvelope(
+  z.object({ invite: WorkspaceInviteSchema }).openapi('WorkspaceInviteCreateData'),
+  'WorkspaceInviteCreateResponse',
+);
+registry.register('WorkspaceInviteCreateResponse', WorkspaceInviteCreateResponseSchema);
+
+const WorkspaceAuditLogSchema = z.object({
+  id: UuidSchema,
+  action: z.string(),
+  resourceType: z.string(),
+  resourceId: z.string().nullable(),
+  details: z.record(z.unknown()).nullable(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  createdAt: DateTimeSchema,
+  actorEmail: z.string(),
+  actorName: z.string(),
+  impersonatingEmail: z.string().nullable(),
+}).openapi('WorkspaceAuditLog');
+
+registry.register('WorkspaceAuditLog', WorkspaceAuditLogSchema);
+
+export const WorkspaceAuditLogsListResponseSchema = successEnvelope(
+  z.object({ logs: z.array(WorkspaceAuditLogSchema) }).openapi('WorkspaceAuditLogsListData'),
+  'WorkspaceAuditLogsListResponse',
+);
+registry.register('WorkspaceAuditLogsListResponse', WorkspaceAuditLogsListResponseSchema);
 
 registry.registerPath({
   method: 'get',
@@ -163,7 +192,7 @@ registry.registerPath({
   },
   responses: {
     200: jsonResponse(WorkspaceMembersListResponseSchema, 'Members'),
-    403: { description: 'Workspace admin required' },
+    403: jsonResponse(ApiErrorResponseSchema, 'Workspace admin required'),
   },
 });
 
@@ -231,7 +260,10 @@ registry.registerPath({
   tags: ['Workspaces'],
   summary: 'List workspace invites',
   request: { params: z.object({ id: UuidSchema }) },
-  responses: { 200: { description: 'Invites', content: { 'application/json': { schema: z.array(z.record(z.unknown())) } } } },
+  responses: {
+    200: jsonResponse(WorkspaceInvitesListResponseSchema, 'Invites'),
+    403: jsonResponse(ApiErrorResponseSchema, 'Workspace admin required'),
+  },
 });
 
 registry.registerPath({
@@ -243,7 +275,10 @@ registry.registerPath({
     params: z.object({ id: UuidSchema }),
     body: { content: { 'application/json': { schema: z.object({ email: z.string().email(), role: z.enum(['admin', 'member']).optional() }) } } },
   },
-  responses: { 201: { description: 'Invite created' } },
+  responses: {
+    201: jsonResponse(WorkspaceInviteCreateResponseSchema, 'Invite created'),
+    403: jsonResponse(ApiErrorResponseSchema, 'Workspace admin required'),
+  },
 });
 
 registry.registerPath({
@@ -252,7 +287,10 @@ registry.registerPath({
   tags: ['Workspaces'],
   summary: 'Revoke workspace invite',
   request: { params: z.object({ id: UuidSchema, inviteId: UuidSchema }) },
-  responses: { 200: jsonResponse(SuccessOnlyResponseSchema, 'Invite revoked') },
+  responses: {
+    200: jsonResponse(SuccessOnlyResponseSchema, 'Invite revoked'),
+    403: jsonResponse(ApiErrorResponseSchema, 'Workspace admin required'),
+  },
 });
 
 registry.registerPath({
@@ -264,5 +302,8 @@ registry.registerPath({
     params: z.object({ id: UuidSchema }),
     query: z.object({ page: z.coerce.number().int().optional(), limit: z.coerce.number().int().optional() }),
   },
-  responses: { 200: { description: 'Audit logs', content: { 'application/json': { schema: z.record(z.unknown()) } } } },
+  responses: {
+    200: jsonResponse(WorkspaceAuditLogsListResponseSchema, 'Audit logs'),
+    403: jsonResponse(ApiErrorResponseSchema, 'Workspace admin required'),
+  },
 });

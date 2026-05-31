@@ -194,6 +194,49 @@ export const ProjectRetroSchema = z.object({
 
 registry.register('ProjectRetro', ProjectRetroSchema);
 
+export const ProjectRetroIssuesSummarySchema = z.object({
+  total: z.number().int(),
+  completed: z.number().int(),
+  cancelled: z.number().int(),
+  active: z.number().int(),
+}).openapi('ProjectRetroIssuesSummary');
+
+registry.register('ProjectRetroIssuesSummary', ProjectRetroIssuesSummarySchema);
+
+export const ProjectRetroWeekItemSchema = z.object({
+  id: UuidSchema,
+  title: z.string(),
+  sprint_number: z.union([z.string(), z.number()]).nullable().optional(),
+}).openapi('ProjectRetroWeekItem');
+
+registry.register('ProjectRetroWeekItem', ProjectRetroWeekItemSchema);
+
+export const ProjectRetroGetResponseSchema = z.object({
+  is_draft: z.boolean(),
+  plan_validated: z.boolean().nullable().optional(),
+  monetary_impact_expected: z.string().nullable(),
+  monetary_impact_actual: z.string().nullable(),
+  success_criteria: z.array(z.string()),
+  next_steps: z.string().nullable(),
+  content: z.record(z.unknown()),
+  weeks: z.array(ProjectRetroWeekItemSchema),
+  issues_summary: ProjectRetroIssuesSummarySchema,
+}).openapi('ProjectRetroGetResponse');
+
+registry.register('ProjectRetroGetResponse', ProjectRetroGetResponseSchema);
+
+export const ProjectRetroSaveResponseSchema = z.object({
+  is_draft: z.boolean(),
+  plan_validated: z.boolean().nullable().optional(),
+  monetary_impact_expected: z.string().nullable().optional(),
+  monetary_impact_actual: z.string().nullable().optional(),
+  success_criteria: z.array(z.string()).optional(),
+  next_steps: z.string().nullable().optional(),
+  content: z.record(z.unknown()),
+}).openapi('ProjectRetroSaveResponse');
+
+registry.register('ProjectRetroSaveResponse', ProjectRetroSaveResponseSchema);
+
 // ============== Register Project Endpoints ==============
 
 registry.registerPath({
@@ -346,28 +389,7 @@ registry.registerPath({
       description: 'Project retro data',
       content: {
         'application/json': {
-          schema: z.object({
-            id: UuidSchema,
-            title: z.string(),
-            plan: z.string().nullable(),
-            plan_validated: z.boolean().nullable(),
-            monetary_impact_expected: z.string().nullable(),
-            monetary_impact_actual: z.string().nullable(),
-            success_criteria: z.array(z.string()).nullable(),
-            next_steps: z.string().nullable(),
-            content: z.record(z.unknown()).nullable(),
-            sprints: z.array(z.object({
-              id: UuidSchema,
-              title: z.string(),
-              sprint_number: z.number().int(),
-            })),
-            issues: z.array(z.object({
-              id: UuidSchema,
-              title: z.string(),
-              state: z.string(),
-              ticket_number: z.number().int(),
-            })),
-          }),
+          schema: ProjectRetroGetResponseSchema,
         },
       },
     },
@@ -399,7 +421,7 @@ registry.registerPath({
       description: 'Updated project retro',
       content: {
         'application/json': {
-          schema: ProjectResponseSchema,
+          schema: ProjectRetroSaveResponseSchema,
         },
       },
     },
@@ -470,7 +492,10 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: ProjectRetroSchema } } },
   },
   responses: {
-    200: { description: 'Retro saved', content: { 'application/json': { schema: ProjectResponseSchema } } },
+    201: {
+      description: 'Retro saved',
+      content: { 'application/json': { schema: ProjectRetroSaveResponseSchema } },
+    },
     404: { description: 'Project not found' },
   },
 });

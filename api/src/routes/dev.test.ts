@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
+import { DevDatabaseStatusResponseSchema } from '../openapi/schemas/dev.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { pgResult } from '../test/pg-result.js';
 
 const { queryMock } = vi.hoisted(() => ({
   queryMock: vi.fn(),
@@ -22,13 +25,20 @@ describe('Dev database status', () => {
   });
 
   it('reports connected when SELECT 1 succeeds', async () => {
-    queryMock.mockResolvedValueOnce({ rows: [{ '?column?': 1 }] });
+    queryMock.mockResolvedValueOnce(pgResult([{ '?column?': 1 }]));
     const app = createApp();
 
     const response = await request(app).get('/api/dev/database-status');
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ connected: true });
+    const status = expectOpenApiResponse({
+      method: 'get',
+      path: '/dev/database-status',
+      status: 200,
+      response,
+      openApiSchemaName: 'DevDatabaseStatusResponse',
+      schema: DevDatabaseStatusResponseSchema,
+    });
+    expect(status).toEqual({ connected: true });
   });
 
   it('reports unreachable with setup hint when connection is refused', async () => {
@@ -38,9 +48,16 @@ describe('Dev database status', () => {
 
     const response = await request(app).get('/api/dev/database-status');
 
-    expect(response.status).toBe(200);
-    expect(response.body.connected).toBe(false);
-    expect(response.body.unreachable).toBe(true);
-    expect(response.body.hint).toMatch(/PostgreSQL is not running/);
+    const status = expectOpenApiResponse({
+      method: 'get',
+      path: '/dev/database-status',
+      status: 200,
+      response,
+      openApiSchemaName: 'DevDatabaseStatusResponse',
+      schema: DevDatabaseStatusResponseSchema,
+    });
+    expect(status.connected).toBe(false);
+    expect(status.unreachable).toBe(true);
+    expect(status.hint).toMatch(/PostgreSQL is not running/);
   });
 });

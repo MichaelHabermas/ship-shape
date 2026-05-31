@@ -18,6 +18,20 @@ export const PersonSchema = z.object({
 
 registry.register('Person', PersonSchema);
 
+/** Person row returned by GET /team/people (document id in `id`, user id in `user_id`). */
+export const TeamPersonListItemSchema = z.object({
+  id: UuidSchema.openapi({ description: 'Person document ID' }),
+  user_id: UuidSchema.nullable(),
+  name: z.string(),
+  email: z.string().email().nullable(),
+  isArchived: z.boolean(),
+  isPending: z.boolean(),
+  reportsTo: UuidSchema.nullable().optional(),
+  role: z.string().nullable().optional(),
+}).openapi('TeamPersonListItem');
+
+registry.register('TeamPersonListItem', TeamPersonListItemSchema);
+
 // ============== Sprint Period ==============
 
 export const SprintPeriodSchema = z.object({
@@ -85,7 +99,7 @@ const ReviewCellSchema = z.object({
 
 registry.register('ReviewCell', ReviewCellSchema);
 
-const ReviewsResponseSchema = z.object({
+export const ReviewsResponseSchema = z.object({
   people: z.array(z.object({
     personId: UuidSchema,
     name: z.string(),
@@ -213,7 +227,12 @@ registry.registerPath({
   path: '/team/people',
   tags: ['Team'],
   summary: 'List team people',
-  responses: { 200: { description: 'People', content: { 'application/json': { schema: z.array(PersonSchema) } } } },
+  responses: {
+    200: {
+      description: 'People',
+      content: { 'application/json': { schema: z.array(TeamPersonListItemSchema) } },
+    },
+  },
 });
 
 registry.registerPath({

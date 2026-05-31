@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
-import type { z } from 'zod'
+import { z } from 'zod'
+import type { z as zod } from 'zod'
 import { createApp } from '../app.js'
-import { CountRow, IdRow, RelatedIdRow, RelationshipTypeRow, requireFirstRow } from '../test/pg-result.js';
+import { CountRow, IdRow, RelatedIdRow, RelationshipTypeRow, requireFirstRow } from '../test/pg-result.js'
 import { pool } from '../db/client.js'
-import { IssueResponseSchema } from '../openapi/schemas/issues.js'
+import {
+  IssueListResponseSchema,
+  IssueResponseSchema,
+  IncompleteChildrenWarningSchema,
+} from '../openapi/schemas/issues.js'
+import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { expectJsonBody } from '../test/expect-json-body.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
 
-type IssueResponse = z.infer<typeof IssueResponseSchema>
+type IssueResponse = zod.infer<typeof IssueResponseSchema>
 type IssueListItem = Pick<IssueResponse, 'id'>
 
 type ContextIssuesPayload =
@@ -128,15 +136,9 @@ describe('Associations Regression Tests', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    // Get CSRF token
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
   })
 
   // Cleanup after all tests
@@ -175,13 +177,19 @@ describe('Associations Regression Tests', () => {
           ]
         })
 
-      expect(response.status).toBe(201)
-      testIssueId = response.body.id
+      const issue = expectOpenApiResponse({
+        method: 'post',
+        path: '/issues',
+        status: 201,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
+      testIssueId = issue.id
 
-      // Verify belongs_to in response
-      expect(response.body.belongs_to).toBeDefined()
-      expect(Array.isArray(response.body.belongs_to)).toBe(true)
-      expect(response.body.belongs_to.length).toBe(3)
+      expect(issue.belongs_to).toBeDefined()
+      expect(Array.isArray(issue.belongs_to)).toBe(true)
+      expect(issue.belongs_to?.length).toBe(3)
 
       // Verify associations in database
       const assocResult = await pool.query<RelationshipTypeRow>(
@@ -214,11 +222,16 @@ describe('Associations Regression Tests', () => {
         .get(`/api/issues/${testIssueId}`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.belongs_to).toBeDefined()
-      expect(response.body.belongs_to.length).toBe(2)
-
-      const issue = response.body as IssueResponse
+      const issue = expectOpenApiResponse({
+        method: 'get',
+        path: '/issues/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
+      expect(issue.belongs_to).toBeDefined()
+      expect(issue.belongs_to?.length).toBe(2)
       const projectAssoc = issue.belongs_to.find((b) => b.type === 'project')
       const sprintAssoc = issue.belongs_to.find((b) => b.type === 'sprint')
 
@@ -275,9 +288,15 @@ describe('Associations Regression Tests', () => {
           ]
         })
 
-      expect(response.status).toBe(200)
+      expectOpenApiResponse({
+        method: 'patch',
+        path: '/issues/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
 
-      // Verify new state
       const afterResult = await pool.query<RelatedIdRow>(
         `SELECT related_id FROM document_associations WHERE document_id = $1 AND relationship_type = 'sprint'`,
         [testIssueId]
@@ -295,9 +314,15 @@ describe('Associations Regression Tests', () => {
           belongs_to: [] // Empty = remove all associations
         })
 
-      expect(response.status).toBe(200)
+      expectOpenApiResponse({
+        method: 'patch',
+        path: '/issues/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
 
-      // Verify sprint association removed
       const afterResult = await pool.query(
         `SELECT * FROM document_associations WHERE document_id = $1 AND relationship_type = 'sprint'`,
         [testIssueId]
@@ -338,10 +363,15 @@ describe('Associations Regression Tests', () => {
         .get(`/api/issues/${testIssueId}`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-
-      const issue = response.body as IssueResponse
-      const projectAssocs = issue.belongs_to.filter((b) => b.type === 'project')
+      const issue = expectOpenApiResponse({
+        method: 'get',
+        path: '/issues/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
+      const projectAssocs = (issue.belongs_to ?? []).filter((b) => b.type === 'project')
       expect(projectAssocs.length).toBe(2)
 
       const projectIds = projectAssocs.map((p) => p.id).sort()
@@ -361,10 +391,15 @@ describe('Associations Regression Tests', () => {
         .get(`/api/issues?project_id=${testProject1Id}`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(Array.isArray(response.body)).toBe(true)
-
-      const issues = response.body as IssueResponse[]
+      const issues = expectOpenApiResponse({
+        method: 'get',
+        path: '/issues',
+        status: 200,
+        response,
+        openApiSchemaName: 'IssueListItem',
+        arrayItemSchemaName: 'IssueListItem',
+        schema: z.array(IssueListResponseSchema),
+      })
       const issueIds = issues.map((i) => i.id)
       expect(issueIds).toContain(testIssueId)
     })
@@ -402,7 +437,6 @@ describe('Associations Regression Tests', () => {
 
       expect(response.status).toBe(204)
 
-      // Verify associations are cascade deleted
       const afterResult = await pool.query<CountRow>(
         `SELECT COUNT(*) FROM document_associations WHERE document_id = $1`,
         [issueId]
@@ -449,11 +483,14 @@ describe('Associations Regression Tests', () => {
         .get(`/api/claude/context?context_type=standup&sprint_id=${testSprint1Id}`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.issues).toBeDefined()
+      const body = expectJsonBody(
+        response,
+        200,
+        z.object({ issues: z.unknown() }).passthrough()
+      )
+      expect(body.issues).toBeDefined()
 
-      // Should include our test issue
-      const issueList = contextIssueList(response.body.issues as ContextIssuesPayload)
+      const issueList = contextIssueList(body.issues as ContextIssuesPayload)
       const testIssue = issueList.find((i) => i.id === testIssueId)
       expect(testIssue).toBeDefined()
     })
@@ -463,8 +500,12 @@ describe('Associations Regression Tests', () => {
         .get(`/api/claude/context?context_type=review&sprint_id=${testSprint1Id}`)
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.issues).toBeDefined()
+      const body = expectJsonBody(
+        response,
+        200,
+        z.object({ issues: z.unknown() }).passthrough()
+      )
+      expect(body.issues).toBeDefined()
     })
   })
 
@@ -511,11 +552,17 @@ describe('Associations Regression Tests', () => {
         .set('x-csrf-token', csrfToken)
         .send({ state: 'done' })
 
-      expect(response.status).toBe(409)
-      expect(response.body.error).toBe('incomplete_children')
-      expect(response.body.incomplete_children).toBeDefined()
-      expect(response.body.incomplete_children.length).toBe(1)
-      expect(response.body.incomplete_children[0].id).toBe(childIssueId)
+      const warning = expectOpenApiResponse({
+        method: 'patch',
+        path: '/issues/{id}',
+        status: 409,
+        response,
+        openApiSchemaName: 'IncompleteChildrenWarning',
+        schema: IncompleteChildrenWarningSchema,
+      })
+      expect(warning.error).toBe('incomplete_children')
+      expect(warning.incomplete_children.length).toBe(1)
+      expect(warning.incomplete_children[0].id).toBe(childIssueId)
     })
 
     it('allows closing parent with confirm_orphan_children flag', async () => {
@@ -525,10 +572,16 @@ describe('Associations Regression Tests', () => {
         .set('x-csrf-token', csrfToken)
         .send({ state: 'done', confirm_orphan_children: true })
 
-      expect(response.status).toBe(200)
-      expect(response.body.state).toBe('done')
+      const issue = expectOpenApiResponse({
+        method: 'patch',
+        path: '/issues/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
+      expect(issue.state).toBe('done')
 
-      // Verify child is orphaned (parent association removed)
       const assocResult = await pool.query(
         `SELECT * FROM document_associations WHERE document_id = $1 AND relationship_type = 'parent'`,
         [childIssueId]
@@ -549,8 +602,15 @@ describe('Associations Regression Tests', () => {
         .set('x-csrf-token', csrfToken)
         .send({ state: 'done' })
 
-      expect(response.status).toBe(200)
-      expect(response.body.state).toBe('done')
+      const issue = expectOpenApiResponse({
+        method: 'patch',
+        path: '/issues/{id}',
+        status: 200,
+        response,
+        openApiSchemaName: 'Issue',
+        schema: IssueResponseSchema,
+      })
+      expect(issue.state).toBe('done')
     })
   })
 })

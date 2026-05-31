@@ -2,20 +2,20 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
-import type { z } from 'zod';
 import { createApp } from '../app.js';
 import { IdRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js';
 import { rebuildDocumentSearchIndex } from '../utils/tiptap-search.js';
+import { BaseDocumentSchema, DocumentContentPayloadSchema } from '../openapi/schemas/documents.js';
+import { ErrorResponseSchema } from '../openapi/schemas/common.js';
 import {
   ContentSearchResponseSchema,
   DocumentSearchResponseSchema,
   LearningSearchResponseSchema,
+  MentionSearchResultSchema,
 } from '../openapi/schemas/search.js';
-
-type DocumentSearchResponse = z.infer<typeof DocumentSearchResponseSchema>;
-type ContentSearchResponse = z.infer<typeof ContentSearchResponseSchema>;
-type LearningSearchResponse = z.infer<typeof LearningSearchResponseSchema>;
+import { expectApiErrorResponse } from '../test/expect-api-error.js';
+import { expectOpenApiResponse } from '../test/openapi-response.js';
 
 describe('Search API', () => {
   const app = createApp('http://localhost:5173');
@@ -140,7 +140,12 @@ describe('Search API', () => {
     const res = await request(app)
       .get('/api/search/mentions?q=test');
 
-    expect(res.status).toBe(401);
+    expectApiErrorResponse({
+      method: 'get',
+      path: '/search/mentions',
+      status: 401,
+      response: res,
+    });
   });
 
   it('GET /api/search/mentions returns people and documents', async () => {
@@ -148,11 +153,16 @@ describe('Search API', () => {
       .get('/api/search/mentions?q=Test')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('people');
-    expect(res.body).toHaveProperty('documents');
-    expect(Array.isArray(res.body.people)).toBe(true);
-    expect(Array.isArray(res.body.documents)).toBe(true);
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/mentions',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'MentionSearchResult',
+      schema: MentionSearchResultSchema,
+    });
+    expect(body.people.length).toBeGreaterThanOrEqual(0);
+    expect(body.documents.length).toBeGreaterThanOrEqual(0);
   });
 
   it('GET /api/search/mentions filters by query string', async () => {
@@ -160,9 +170,16 @@ describe('Search API', () => {
       .get('/api/search/mentions?q=nonexistent12345')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body.people).toHaveLength(0);
-    expect(res.body.documents).toHaveLength(0);
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/mentions',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'MentionSearchResult',
+      schema: MentionSearchResultSchema,
+    });
+    expect(body.people).toHaveLength(0);
+    expect(body.documents).toHaveLength(0);
   });
 
   it('GET /api/search/mentions returns people with correct structure', async () => {
@@ -170,13 +187,17 @@ describe('Search API', () => {
       .get('/api/search/mentions?q=Test')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-
-    // Should find our test person
-    expect(res.body.people.length).toBeGreaterThan(0);
-    const person = res.body.people[0];
-    expect(person).toHaveProperty('id');
-    expect(person).toHaveProperty('name');
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/mentions',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'MentionSearchResult',
+      schema: MentionSearchResultSchema,
+    });
+    expect(body.people.length).toBeGreaterThan(0);
+    expect(body.people[0]).toHaveProperty('id');
+    expect(body.people[0]).toHaveProperty('name');
   });
 
   it('GET /api/search/mentions returns documents with correct structure', async () => {
@@ -184,21 +205,30 @@ describe('Search API', () => {
       .get('/api/search/mentions?q=Test')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-
-    // Should find our test wiki document
-    expect(res.body.documents.length).toBeGreaterThan(0);
-    const doc = res.body.documents[0];
-    expect(doc).toHaveProperty('id');
-    expect(doc).toHaveProperty('title');
-    expect(doc).toHaveProperty('document_type');
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/mentions',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'MentionSearchResult',
+      schema: MentionSearchResultSchema,
+    });
+    expect(body.documents.length).toBeGreaterThan(0);
+    expect(body.documents[0]).toHaveProperty('id');
+    expect(body.documents[0]).toHaveProperty('title');
+    expect(body.documents[0]).toHaveProperty('document_type');
   });
 
   it('GET /api/search/documents returns 401 without auth', async () => {
     const res = await request(app)
       .get('/api/search/documents?q=test');
 
-    expect(res.status).toBe(401);
+    expectApiErrorResponse({
+      method: 'get',
+      path: '/search/documents',
+      status: 401,
+      response: res,
+    });
   });
 
   it('GET /api/search/documents searches titles only and returns metadata', async () => {
@@ -219,11 +249,14 @@ describe('Search API', () => {
       .get('/api/search/documents?q=PaletteOnlyNeedle')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('documents');
-    expect(res.body).toHaveProperty('total');
-
-    const body = res.body as DocumentSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/documents',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'DocumentSearchResponse',
+      schema: DocumentSearchResponseSchema,
+    });
     const ids = body.documents.map((doc) => doc.id);
     expect(ids).toContain(requireFirstRow(titleResult.rows).id);
     expect(ids).not.toContain(requireFirstRow(contentOnlyResult.rows).id);
@@ -250,9 +283,15 @@ describe('Search API', () => {
       .get('/api/search/documents?q=Type%20Filter&type=issue')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body.documents.length).toBeGreaterThan(0);
-    const body = res.body as DocumentSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/documents',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'DocumentSearchResponse',
+      schema: DocumentSearchResponseSchema,
+    });
+    expect(body.documents.length).toBeGreaterThan(0);
     expect(body.documents.every((doc) => doc.document_type === 'issue')).toBe(true);
   });
 
@@ -261,8 +300,15 @@ describe('Search API', () => {
       .get('/api/search/documents?q=test&type=made_up')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Invalid document type');
+    const error = expectApiErrorResponse({
+      method: 'get',
+      path: '/search/documents',
+      status: 400,
+      response: res,
+      openApiSchemaName: 'ErrorResponse',
+      schema: ErrorResponseSchema,
+    });
+    expect(error.error).toBe('Invalid document type');
   });
 
   it('GET /api/search/documents respects limit parameter', async () => {
@@ -278,16 +324,28 @@ describe('Search API', () => {
       .get('/api/search/documents?q=Limited%20Palette%20Search&limit=2')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body.documents).toHaveLength(2);
-    expect(res.body.total).toBe(2);
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/documents',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'DocumentSearchResponse',
+      schema: DocumentSearchResponseSchema,
+    });
+    expect(body.documents).toHaveLength(2);
+    expect(body.total).toBe(2);
   });
 
   it('GET /api/search/content returns 401 without auth', async () => {
     const res = await request(app)
       .get('/api/search/content?q=test');
 
-    expect(res.status).toBe(401);
+    expectApiErrorResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 401,
+      response: res,
+    });
   });
 
   it('GET /api/search/content requires a query', async () => {
@@ -295,8 +353,15 @@ describe('Search API', () => {
       .get('/api/search/content')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Search query is required');
+    const error = expectApiErrorResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 400,
+      response: res,
+      openApiSchemaName: 'ErrorResponse',
+      schema: ErrorResponseSchema,
+    });
+    expect(error.error).toBe('Search query is required');
   });
 
   it('GET /api/search/content searches extracted TipTap body text', async () => {
@@ -324,19 +389,26 @@ describe('Search API', () => {
       .get('/api/search/content?q=BodyNeedleAlpha')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
+    expect(body).toMatchObject({
       total: 1,
       limit: 20,
       offset: 0,
     });
-    expect(res.body.documents[0]).toMatchObject({
+    expect(body.documents[0]).toMatchObject({
       id: requireFirstRow(bodyOnlyResult.rows).id,
       title: 'Body Match Search',
       document_type: 'wiki',
     });
-    expect(res.body.documents[0].snippet).toContain('<mark>BodyNeedleAlpha</mark>');
-    expect(res.body.documents[0].rank).toBeGreaterThan(0);
+    expect(body.documents[0].snippet).toContain('<mark>BodyNeedleAlpha</mark>');
+    expect(body.documents[0].rank).toBeGreaterThan(0);
   });
 
   it('GET /api/search/content matches selected properties text', async () => {
@@ -356,8 +428,14 @@ describe('Search API', () => {
       .get('/api/search/content?q=PropertiesOnlyNeedleTheta')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    const body = res.body as ContentSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
     expect(body.documents.map((doc) => doc.id)).toContain(requireFirstRow(propertiesOnlyResult.rows).id);
   });
 
@@ -391,8 +469,14 @@ describe('Search API', () => {
       .get('/api/search/content?q=RankNeedleBeta')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    const body = res.body as ContentSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
     const ids = body.documents.map((doc) => doc.id);
     expect(ids.indexOf(requireFirstRow(titleResult.rows).id)).toBeLessThan(ids.indexOf(requireFirstRow(bodyResult.rows).id));
   });
@@ -424,8 +508,14 @@ describe('Search API', () => {
       .get('/api/search/content?q=TypeNeedleGamma&type=issue')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    const body = res.body as ContentSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
     const ids = body.documents.map((doc) => doc.id);
     expect(ids).toContain(requireFirstRow(issueResult.rows).id);
     expect(ids).not.toContain(requireFirstRow(wikiResult.rows).id);
@@ -437,8 +527,15 @@ describe('Search API', () => {
       .get('/api/search/content?q=test&type=made_up')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Invalid document type');
+    const error = expectApiErrorResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 400,
+      response: res,
+      openApiSchemaName: 'ErrorResponse',
+      schema: ErrorResponseSchema,
+    });
+    expect(error.error).toBe('Invalid document type');
   });
 
   it('GET /api/search/content applies visibility before limit', async () => {
@@ -474,16 +571,30 @@ describe('Search API', () => {
       .get('/api/search/content?q=LimitVisibilityNeedleDelta&limit=1')
       .set('Cookie', sessionCookie);
 
-    expect(userRes.status).toBe(200);
-    expect(userRes.body.documents).toHaveLength(1);
-    expect(userRes.body.documents[0].id).toBe(requireFirstRow(visibleResult.rows).id);
+    const userBody = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: userRes,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
+    expect(userBody.documents).toHaveLength(1);
+    expect(userBody.documents[0].id).toBe(requireFirstRow(visibleResult.rows).id);
 
     const secondUserRes = await request(app)
       .get('/api/search/content?q=LimitVisibilityNeedleDelta&limit=1')
       .set('Cookie', secondUserSessionCookie);
 
-    expect(secondUserRes.status).toBe(200);
-    expect(secondUserRes.body.documents[0].id).toBe(requireFirstRow(privateResult.rows).id);
+    const secondUserBody = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: secondUserRes,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
+    expect(secondUserBody.documents[0].id).toBe(requireFirstRow(privateResult.rows).id);
   });
 
   it('GET /api/search/content respects limit and offset', async () => {
@@ -500,14 +611,21 @@ describe('Search API', () => {
       .get('/api/search/content?q=OffsetNeedleEpsilon&limit=1&offset=1')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
+    expect(body).toMatchObject({
       total: 3,
       limit: 1,
       offset: 1,
     });
-    expect(res.body.documents).toHaveLength(1);
-    expect(res.body.documents[0].title).toBe('OffsetNeedleEpsilon B');
+    expect(body.documents).toHaveLength(1);
+    expect(body.documents[0].title).toBe('OffsetNeedleEpsilon B');
   });
 
   it('REST document content updates refresh the search index', async () => {
@@ -519,8 +637,15 @@ describe('Search API', () => {
         document_type: 'wiki',
       });
 
-    expect(createRes.status).toBe(201);
-    const docId = createRes.body.id;
+    const created = expectOpenApiResponse({
+      method: 'post',
+      path: '/documents',
+      status: 201,
+      response: createRes,
+      openApiSchemaName: 'Document',
+      schema: BaseDocumentSchema,
+    });
+    const docId = created.id;
 
     const firstUpdate = await request(app)
       .patch(`/api/documents/${docId}/content`)
@@ -532,14 +657,27 @@ describe('Search API', () => {
         },
       });
 
-    expect(firstUpdate.status).toBe(200);
+    expectOpenApiResponse({
+      method: 'patch',
+      path: '/documents/{id}/content',
+      status: 200,
+      response: firstUpdate,
+      openApiSchemaName: 'DocumentContentPayload',
+      schema: DocumentContentPayloadSchema,
+    });
 
     const firstSearch = await request(app)
       .get('/api/search/content?q=RestNeedleZeta')
       .set('Cookie', sessionCookie);
 
-    expect(firstSearch.status).toBe(200);
-    const firstBody = firstSearch.body as ContentSearchResponse;
+    const firstBody = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: firstSearch,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
     expect(firstBody.documents.map((doc) => doc.id)).toContain(docId);
 
     const secondUpdate = await request(app)
@@ -552,7 +690,14 @@ describe('Search API', () => {
         },
       });
 
-    expect(secondUpdate.status).toBe(200);
+    expectOpenApiResponse({
+      method: 'patch',
+      path: '/documents/{id}/content',
+      status: 200,
+      response: secondUpdate,
+      openApiSchemaName: 'DocumentContentPayload',
+      schema: DocumentContentPayloadSchema,
+    });
 
     const oldTermSearch = await request(app)
       .get('/api/search/content?q=RestNeedleZeta')
@@ -561,10 +706,22 @@ describe('Search API', () => {
       .get('/api/search/content?q=ReplacementNeedleEta')
       .set('Cookie', sessionCookie);
 
-    expect(oldTermSearch.status).toBe(200);
-    expect(newTermSearch.status).toBe(200);
-    const oldBody = oldTermSearch.body as ContentSearchResponse;
-    const newBody = newTermSearch.body as ContentSearchResponse;
+    const oldBody = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: oldTermSearch,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
+    const newBody = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/content',
+      status: 200,
+      response: newTermSearch,
+      openApiSchemaName: 'ContentSearchResponse',
+      schema: ContentSearchResponseSchema,
+    });
     expect(oldBody.documents.map((doc) => doc.id)).not.toContain(docId);
     expect(newBody.documents.map((doc) => doc.id)).toContain(docId);
   });
@@ -644,7 +801,12 @@ describe('Search Learnings API', () => {
 
   it('GET /api/search/learnings returns 401 without auth', async () => {
     const res = await request(app).get('/api/search/learnings');
-    expect(res.status).toBe(401);
+    expectApiErrorResponse({
+      method: 'get',
+      path: '/search/learnings',
+      status: 401,
+      response: res,
+    });
   });
 
   it('GET /api/search/learnings returns learnings by title', async () => {
@@ -652,13 +814,14 @@ describe('Search Learnings API', () => {
       .get('/api/search/learnings')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('learnings');
-    expect(res.body).toHaveProperty('total');
-    expect(Array.isArray(res.body.learnings)).toBe(true);
-
-    // Should find our learning document
-    const body = res.body as LearningSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/learnings',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'LearningSearchResponse',
+      schema: LearningSearchResponseSchema,
+    });
     const learning = body.learnings.find((l) => l.id === learningDocId);
     expect(learning).toBeDefined();
     if (!learning) {
@@ -672,9 +835,16 @@ describe('Search Learnings API', () => {
       .get('/api/search/learnings?q=authentication')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body.learnings.length).toBeGreaterThan(0);
-    expect(res.body.learnings[0].category).toBe('authentication');
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/learnings',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'LearningSearchResponse',
+      schema: LearningSearchResponseSchema,
+    });
+    expect(body.learnings.length).toBeGreaterThan(0);
+    expect(body.learnings[0].category).toBe('authentication');
   });
 
   it('GET /api/search/learnings returns tags and metadata', async () => {
@@ -682,8 +852,14 @@ describe('Search Learnings API', () => {
       .get('/api/search/learnings?q=API')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    const body = res.body as LearningSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/learnings',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'LearningSearchResponse',
+      schema: LearningSearchResponseSchema,
+    });
     const learning = body.learnings.find((l) => l.id === learningDocId);
     expect(learning).toBeDefined();
     if (!learning) {
@@ -698,9 +874,14 @@ describe('Search Learnings API', () => {
       .get('/api/search/learnings?q=Regular')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    // Regular wiki doc should not appear
-    const body = res.body as LearningSearchResponse;
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/learnings',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'LearningSearchResponse',
+      schema: LearningSearchResponseSchema,
+    });
     const regularDoc = body.learnings.find((l) => l.id === regularWikiId);
     expect(regularDoc).toBeUndefined();
   });
@@ -710,7 +891,14 @@ describe('Search Learnings API', () => {
       .get('/api/search/learnings?limit=1')
       .set('Cookie', sessionCookie);
 
-    expect(res.status).toBe(200);
-    expect(res.body.learnings.length).toBeLessThanOrEqual(1);
+    const body = expectOpenApiResponse({
+      method: 'get',
+      path: '/search/learnings',
+      status: 200,
+      response: res,
+      openApiSchemaName: 'LearningSearchResponse',
+      schema: LearningSearchResponseSchema,
+    });
+    expect(body.learnings.length).toBeLessThanOrEqual(1);
   });
 });

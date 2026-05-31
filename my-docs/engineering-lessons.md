@@ -125,3 +125,9 @@ For long-running reviewer operations, progress UI must read the same refreshed c
 When a repo enables type-aware `@typescript-eslint/no-unsafe-*` rules, total warning count is dominated by those rules—not by `no-unused-vars`, `max-lines`, or `restrict-template-expressions`. Fix whole categories first: delete unused imports/destructures, turn param validators into type guards (`id is string`), and replace test `any` with `z.infer`, `unknown`, or shared mock types. Defer `seed.ts` non-null assertions and file splits until mechanical wins are exhausted.
 
 ShipShape example (2026-05-31): four unused-vars and four template-expression warnings cleared in minutes; ~45 `no-explicit-any` fixes in four API test files removed most of that category; non-null assertions in tests/e2e dropped ~41 while `api/src/db/seed.ts` stayed untouched for a later pass.
+
+## 9. Route Tests Should Prove The OpenAPI Contract, Not Just Parse JSON
+
+Integration tests that read `res.body.foo` without a schema catch lint noise at best. Tests that call `expectOpenApiResponse` with the same Zod schema registered in OpenAPI catch contract drift: missing fields, wrong nullability, and bulk/list shape mismatches before production or codegen do.
+
+ShipShape example (2026-05-31): migrating `api/src/routes/*.test.ts` surfaced that POST/PATCH issues omitted `assignee_name` while GET included it, and bulk updates returned explicit `null` for optional list fields. Fixing mappers (`extractIssueFromRow`, `mapIssueListItem` in bulk) aligned runtime JSON with the documented contract and cleared ~700 route-test `no-unsafe-*` warnings.

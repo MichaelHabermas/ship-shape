@@ -6,21 +6,12 @@ import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { SetupInitializeResponseSchema } from '../openapi/schemas/setup.js';
 import { expectOpenApiResponse } from '../test/openapi-response.js';
+import { getCsrfTokenFromApp } from '../test/session-csrf.js';
+import type { Express } from 'express';
 
-function cookieHeader(response: request.Response): string {
-  const cookies = response.headers['set-cookie'];
-  if (!cookies) return '';
-  const cookieList: string[] = Array.isArray(cookies) ? cookies : [cookies];
-  return cookieList.map((cookie) => cookie.split(';')[0]).join('; ');
-}
-
-async function csrf(agent: request.SuperAgentTest) {
-  const response = await agent.get('/api/csrf-token');
-  const token = typeof response.body?.token === 'string' ? response.body.token : '';
-  return {
-    token,
-    cookie: cookieHeader(response),
-  };
+async function csrf(_agent: request.SuperAgentTest, app: Express) {
+  const { token, sessionCookie } = await getCsrfTokenFromApp(app, '');
+  return { token, cookie: sessionCookie };
 }
 
 describe('Setup API', () => {
@@ -30,7 +21,7 @@ describe('Setup API', () => {
     const previous = process.env.SHIP_SETUP_TOKEN;
     process.env.SHIP_SETUP_TOKEN = 'expected-setup-token';
     const agent = request.agent(app);
-    const csrfToken = await csrf(agent);
+    const csrfToken = await csrf(agent, app);
 
     try {
       const response = await agent
@@ -58,8 +49,8 @@ describe('Setup API', () => {
   it('allows only one concurrent first-run initialization', async () => {
     const agentA = request.agent(app);
     const agentB = request.agent(app);
-    const csrfA = await csrf(agentA);
-    const csrfB = await csrf(agentB);
+    const csrfA = await csrf(agentA, app);
+    const csrfB = await csrf(agentB, app);
 
     const [responseA, responseB] = await Promise.all([
       agentA

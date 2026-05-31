@@ -1,14 +1,39 @@
+// Integration tests for workspace, admin, and public invite API routes.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
 import { createApp } from '../app.js'
 import { pool } from '../db/client.js'
-import { WorkspaceListResponseSchema } from '../openapi/schemas/workspaces.js'
+import {
+  AdminCreateWorkspaceResponseSchema,
+  AdminJsonResponseSchema,
+  AdminWorkspacesResponseSchema,
+} from '../openapi/schemas/admin.js'
+import { InviteAcceptResponseSchema, InviteDetailsResponseSchema } from '../openapi/schemas/invites.js'
+import { SuccessResponseSchema } from '../openapi/schemas/common.js'
+import {
+  WorkspaceAuditLogsListResponseSchema,
+  WorkspaceCurrentResponseSchema,
+  WorkspaceInviteCreateResponseSchema,
+  WorkspaceInvitesListResponseSchema,
+  WorkspaceListResponseSchema,
+  WorkspaceMembersListResponseSchema,
+  WorkspaceSwitchResponseSchema,
+} from '../openapi/schemas/workspaces.js'
+import { expectApiErrorResponse } from '../test/expect-api-error.js'
 import { expectOpenApiResponse } from '../test/openapi-response.js'
+import { IdRow, PropertiesRow, requireFirstRow } from '../test/pg-result.js'
+import { getCsrfTokenFromApp } from '../test/session-csrf.js'
+
+type TokenRow = { token: string }
+
+type PersonDocumentRow = PropertiesRow & {
+  title: string
+  archived_at: Date | null
+}
 
 describe('Workspaces API', () => {
   const app = createApp()
-  // Use unique identifiers to avoid conflicts between concurrent test runs
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   const testUserEmail = `ws-user-${testRunId}@ship.local`
   const superAdminEmail = `ws-admin-${testRunId}@ship.local`
@@ -22,33 +47,28 @@ describe('Workspaces API', () => {
   let testUserId: string
   let superAdminUserId: string
 
-  // Setup: Create test users and sessions
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1)
        RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create regular test user
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Test User')
        RETURNING id`,
       [testUserEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
-    // Create workspace membership for regular user
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'member')`,
       [testWorkspaceId, testUserId]
     )
 
-    // Create session for regular user (sessions.id is TEXT not UUID, generated from crypto.randomBytes)
     const sessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -57,23 +77,20 @@ describe('Workspaces API', () => {
     )
     sessionCookie = `session_id=${sessionId}`
 
-    // Create super admin user
-    const superAdminResult = await pool.query(
+    const superAdminResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name, is_super_admin)
        VALUES ($1, 'test-hash', 'Super Admin', true)
        RETURNING id`,
       [superAdminEmail]
     )
-    superAdminUserId = superAdminResult.rows[0].id
+    superAdminUserId = requireFirstRow(superAdminResult.rows).id
 
-    // Create workspace membership for super admin
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
        VALUES ($1, $2, 'admin')`,
       [testWorkspaceId, superAdminUserId]
     )
 
-    // Create session for super admin (sessions.id is TEXT not UUID, generated from crypto.randomBytes)
     const superSessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -82,30 +99,16 @@ describe('Workspaces API', () => {
     )
     superAdminSessionCookie = `session_id=${superSessionId}`
 
-    // Get CSRF token for regular user
-    const csrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', sessionCookie)
-    csrfToken = csrfRes.body.token
-    const connectSidCookie = csrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (connectSidCookie) {
-      sessionCookie = `${sessionCookie}; ${connectSidCookie}`
-    }
+    const csrf = await getCsrfTokenFromApp(app, sessionCookie)
+    csrfToken = csrf.token
+    sessionCookie = csrf.sessionCookie
 
-    // Get CSRF token for super admin
-    const superCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', superAdminSessionCookie)
-    superAdminCsrfToken = superCsrfRes.body.token
-    const superConnectSidCookie = superCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (superConnectSidCookie) {
-      superAdminSessionCookie = `${superAdminSessionCookie}; ${superConnectSidCookie}`
-    }
+    const superCsrf = await getCsrfTokenFromApp(app, superAdminSessionCookie)
+    superAdminCsrfToken = superCsrf.token
+    superAdminSessionCookie = superCsrf.sessionCookie
   })
 
-  // Cleanup after all tests
   afterAll(async () => {
-    // Clean up test data in correct order (foreign keys)
     await pool.query('DELETE FROM sessions WHERE user_id IN ($1, $2)', [testUserId, superAdminUserId])
     await pool.query('DELETE FROM workspace_memberships WHERE user_id IN ($1, $2)', [testUserId, superAdminUserId])
     await pool.query('DELETE FROM users WHERE id IN ($1, $2)', [testUserId, superAdminUserId])
@@ -135,9 +138,13 @@ describe('Workspaces API', () => {
     it('should return 401 when not authenticated', async () => {
       const response = await request(app).get('/api/workspaces')
 
-      expect(response.status).toBe(401)
-      expect(response.body.success).toBe(false)
-      expect(response.body.error).toHaveProperty('message')
+      const error = expectApiErrorResponse({
+        method: 'get',
+        path: '/workspaces',
+        status: 401,
+        response,
+      })
+      expect(error.error).toHaveProperty('message')
     })
   })
 
@@ -147,10 +154,16 @@ describe('Workspaces API', () => {
         .get('/api/workspaces/current')
         .set('Cookie', sessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(response.body.data.workspace).toHaveProperty('id')
-      expect(response.body.data.workspace).toHaveProperty('name')
+      const current = expectOpenApiResponse({
+        method: 'get',
+        path: '/workspaces/current',
+        status: 200,
+        response,
+        openApiSchemaName: 'WorkspaceCurrentResponse',
+        schema: WorkspaceCurrentResponseSchema,
+      })
+      expect(current.data.workspace).toHaveProperty('id')
+      expect(current.data.workspace).toHaveProperty('name')
     })
   })
 
@@ -161,26 +174,35 @@ describe('Workspaces API', () => {
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(response.body.data.workspaceId).toBe(testWorkspaceId)
+      const switched = expectOpenApiResponse({
+        method: 'post',
+        path: '/workspaces/{id}/switch',
+        status: 200,
+        response,
+        openApiSchemaName: 'WorkspaceSwitchResponse',
+        schema: WorkspaceSwitchResponseSchema,
+      })
+      expect(switched.data.workspaceId).toBe(testWorkspaceId)
     })
 
     it('should return 403 when switching to workspace user is not member of', async () => {
-      // Create another workspace
-      const otherWorkspaceResult = await pool.query(
+      const otherWorkspaceResult = await pool.query<IdRow>(
         `INSERT INTO workspaces (name) VALUES ('Other Workspace') RETURNING id`
       )
-      const otherWorkspaceId = otherWorkspaceResult.rows[0].id
+      const otherWorkspaceId = requireFirstRow(otherWorkspaceResult.rows).id
 
       const response = await request(app)
         .post(`/api/workspaces/${otherWorkspaceId}/switch`)
         .set('Cookie', sessionCookie)
         .set('x-csrf-token', csrfToken)
 
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'post',
+        path: '/workspaces/{id}/switch',
+        status: 403,
+        response,
+      })
 
-      // Cleanup
       await pool.query('DELETE FROM workspaces WHERE id = $1', [otherWorkspaceId])
     })
   })
@@ -191,19 +213,28 @@ describe('Workspaces API', () => {
         .get(`/api/workspaces/${testWorkspaceId}/members`)
         .set('Cookie', superAdminSessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.members)).toBe(true)
+      const members = expectOpenApiResponse({
+        method: 'get',
+        path: '/workspaces/{id}/members',
+        status: 200,
+        response,
+        openApiSchemaName: 'WorkspaceMembersListResponse',
+        schema: WorkspaceMembersListResponseSchema,
+      })
+      expect(members.data.members.length).toBeGreaterThan(0)
     })
 
     it('should require admin role to manage members', async () => {
-      // Regular member tries to get members
       const response = await request(app)
         .get(`/api/workspaces/${testWorkspaceId}/members`)
         .set('Cookie', sessionCookie)
 
-      // Should be 403 for non-admins
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/workspaces/{id}/members',
+        status: 403,
+        response,
+      })
     })
   })
 
@@ -217,12 +248,17 @@ describe('Workspaces API', () => {
         .set('x-csrf-token', superAdminCsrfToken)
         .send({ email: 'new-user@test.com', role: 'member' })
 
-      expect(response.status).toBe(201)
-      expect(response.body.success).toBe(true)
-      expect(response.body.data.invite).toHaveProperty('id')
-      expect(response.body.data.invite).toHaveProperty('email', 'new-user@test.com')
-      expect(response.body.data.invite).toHaveProperty('token')
-      inviteId = response.body.data.invite.id
+      const created = expectOpenApiResponse({
+        method: 'post',
+        path: '/workspaces/{id}/invites',
+        status: 201,
+        response,
+        openApiSchemaName: 'WorkspaceInviteCreateResponse',
+        schema: WorkspaceInviteCreateResponseSchema,
+      })
+      expect(created.data.invite.email).toBe('new-user@test.com')
+      expect(created.data.invite.token).toBeTruthy()
+      inviteId = created.data.invite.id
     })
 
     it('GET /api/workspaces/:id/invites should return invites', async () => {
@@ -230,20 +266,33 @@ describe('Workspaces API', () => {
         .get(`/api/workspaces/${testWorkspaceId}/invites`)
         .set('Cookie', superAdminSessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.invites)).toBe(true)
+      const invites = expectOpenApiResponse({
+        method: 'get',
+        path: '/workspaces/{id}/invites',
+        status: 200,
+        response,
+        openApiSchemaName: 'WorkspaceInvitesListResponse',
+        schema: WorkspaceInvitesListResponseSchema,
+      })
+      expect(invites.data.invites.length).toBeGreaterThan(0)
     })
 
     it('DELETE /api/workspaces/:id/invites/:inviteId should revoke invite', async () => {
       if (!inviteId) {
-        // Create invite first if not created
         const createResponse = await request(app)
           .post(`/api/workspaces/${testWorkspaceId}/invites`)
           .set('Cookie', superAdminSessionCookie)
           .set('x-csrf-token', superAdminCsrfToken)
           .send({ email: 'revoke-test@test.com', role: 'member' })
-        inviteId = createResponse.body.data.invite.id
+        const created = expectOpenApiResponse({
+          method: 'post',
+          path: '/workspaces/{id}/invites',
+          status: 201,
+          response: createResponse,
+          openApiSchemaName: 'WorkspaceInviteCreateResponse',
+          schema: WorkspaceInviteCreateResponseSchema,
+        })
+        inviteId = created.data.invite.id
       }
 
       const response = await request(app)
@@ -251,8 +300,14 @@ describe('Workspaces API', () => {
         .set('Cookie', superAdminSessionCookie)
         .set('x-csrf-token', superAdminCsrfToken)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
+      expectOpenApiResponse({
+        method: 'delete',
+        path: '/workspaces/{id}/invites/{inviteId}',
+        status: 200,
+        response,
+        openApiSchemaName: 'SuccessResponse',
+        schema: SuccessResponseSchema,
+      })
     })
 
     it('POST /api/workspaces/:id/invites should create pending person document', async () => {
@@ -264,12 +319,18 @@ describe('Workspaces API', () => {
         .set('x-csrf-token', superAdminCsrfToken)
         .send({ email: testEmail, role: 'member' })
 
-      expect(response.status).toBe(201)
-      const newInviteId = response.body.data.invite.id
+      const created = expectOpenApiResponse({
+        method: 'post',
+        path: '/workspaces/{id}/invites',
+        status: 201,
+        response,
+        openApiSchemaName: 'WorkspaceInviteCreateResponse',
+        schema: WorkspaceInviteCreateResponseSchema,
+      })
+      const newInviteId = created.data.invite.id
 
-      // Verify pending person document was created
-      const personResult = await pool.query(
-        `SELECT * FROM documents
+      const personResult = await pool.query<PersonDocumentRow>(
+        `SELECT title, properties, archived_at FROM documents
          WHERE workspace_id = $1
            AND document_type = 'person'
            AND properties->>'invite_id' = $2`,
@@ -277,57 +338,66 @@ describe('Workspaces API', () => {
       )
 
       expect(personResult.rows.length).toBe(1)
-      expect(personResult.rows[0].title).toBe('pending-person-test') // email prefix
-      expect(personResult.rows[0].properties.pending).toBe(true)
-      expect(personResult.rows[0].properties.email).toBe(testEmail)
-      expect(personResult.rows[0].properties.invite_id).toBe(newInviteId)
+      const person = requireFirstRow(personResult.rows)
+      expect(person.title).toBe('pending-person-test')
+      expect(person.properties).toMatchObject({
+        pending: true,
+        email: testEmail,
+        invite_id: newInviteId,
+      })
     })
 
     it('DELETE /api/workspaces/:id/invites/:inviteId should archive person document', async () => {
       const testEmail = 'archive-person-test@test.com'
 
-      // Create invite (which creates pending person doc)
       const createResponse = await request(app)
         .post(`/api/workspaces/${testWorkspaceId}/invites`)
         .set('Cookie', superAdminSessionCookie)
         .set('x-csrf-token', superAdminCsrfToken)
         .send({ email: testEmail, role: 'member' })
 
-      const archiveInviteId = createResponse.body.data.invite.id
+      const created = expectOpenApiResponse({
+        method: 'post',
+        path: '/workspaces/{id}/invites',
+        status: 201,
+        response: createResponse,
+        openApiSchemaName: 'WorkspaceInviteCreateResponse',
+        schema: WorkspaceInviteCreateResponseSchema,
+      })
+      const archiveInviteId = created.data.invite.id
 
-      // Verify person doc exists and is not archived
-      const beforeResult = await pool.query(
-        `SELECT * FROM documents
+      const beforeResult = await pool.query<PersonDocumentRow>(
+        `SELECT title, properties, archived_at FROM documents
          WHERE workspace_id = $1
            AND document_type = 'person'
            AND properties->>'invite_id' = $2`,
         [testWorkspaceId, archiveInviteId]
       )
       expect(beforeResult.rows.length).toBe(1)
-      expect(beforeResult.rows[0].archived_at).toBeNull()
+      expect(requireFirstRow(beforeResult.rows).archived_at).toBeNull()
 
-      // Revoke invite
       await request(app)
         .delete(`/api/workspaces/${testWorkspaceId}/invites/${archiveInviteId}`)
         .set('Cookie', superAdminSessionCookie)
         .set('x-csrf-token', superAdminCsrfToken)
 
-      // Verify person doc is now archived
-      const afterResult = await pool.query(
-        `SELECT * FROM documents
+      const afterResult = await pool.query<PersonDocumentRow>(
+        `SELECT title, properties, archived_at FROM documents
          WHERE workspace_id = $1
            AND document_type = 'person'
            AND properties->>'invite_id' = $2`,
         [testWorkspaceId, archiveInviteId]
       )
       expect(afterResult.rows.length).toBe(1)
-      expect(afterResult.rows[0].archived_at).not.toBeNull()
+      expect(requireFirstRow(afterResult.rows).archived_at).not.toBeNull()
     })
 
-    // Cleanup after invite tests
     afterAll(async () => {
       await pool.query('DELETE FROM workspace_invites WHERE workspace_id = $1', [testWorkspaceId])
-      await pool.query(`DELETE FROM documents WHERE workspace_id = $1 AND document_type = 'person' AND properties->>'invite_id' IS NOT NULL`, [testWorkspaceId])
+      await pool.query(
+        `DELETE FROM documents WHERE workspace_id = $1 AND document_type = 'person' AND properties->>'invite_id' IS NOT NULL`,
+        [testWorkspaceId]
+      )
     })
   })
 
@@ -337,9 +407,15 @@ describe('Workspaces API', () => {
         .get(`/api/workspaces/${testWorkspaceId}/audit-logs`)
         .set('Cookie', superAdminSessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.logs)).toBe(true)
+      const audit = expectOpenApiResponse({
+        method: 'get',
+        path: '/workspaces/{id}/audit-logs',
+        status: 200,
+        response,
+        openApiSchemaName: 'WorkspaceAuditLogsListResponse',
+        schema: WorkspaceAuditLogsListResponseSchema,
+      })
+      expect(Array.isArray(audit.data.logs)).toBe(true)
     })
 
     it('should require admin role to view audit logs', async () => {
@@ -347,15 +423,18 @@ describe('Workspaces API', () => {
         .get(`/api/workspaces/${testWorkspaceId}/audit-logs`)
         .set('Cookie', sessionCookie)
 
-      // Non-admin should get 403
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/workspaces/{id}/audit-logs',
+        status: 403,
+        response,
+      })
     })
   })
 })
 
 describe('Admin API', () => {
   const app = createApp()
-  // Use unique identifiers to avoid conflicts between concurrent test runs
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   const superAdminEmail = `admin-${testRunId}@ship.local`
   const regularEmail = `regular-${testRunId}@ship.local`
@@ -370,21 +449,19 @@ describe('Admin API', () => {
   let testWorkspaceId: string
 
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create super admin user
-    const superAdminResult = await pool.query(
+    const superAdminResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name, is_super_admin)
        VALUES ($1, 'test-hash', 'Admin Test', true)
        RETURNING id`,
       [superAdminEmail]
     )
-    superAdminUserId = superAdminResult.rows[0].id
+    superAdminUserId = requireFirstRow(superAdminResult.rows).id
 
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
@@ -392,7 +469,6 @@ describe('Admin API', () => {
       [testWorkspaceId, superAdminUserId]
     )
 
-    // sessions.id is TEXT not UUID, generated from crypto.randomBytes
     const superSessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -401,14 +477,13 @@ describe('Admin API', () => {
     )
     superAdminSessionCookie = `session_id=${superSessionId}`
 
-    // Create regular user
-    const regularResult = await pool.query(
+    const regularResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Regular Test')
        RETURNING id`,
       [regularEmail]
     )
-    regularUserId = regularResult.rows[0].id
+    regularUserId = requireFirstRow(regularResult.rows).id
 
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
@@ -416,7 +491,6 @@ describe('Admin API', () => {
       [testWorkspaceId, regularUserId]
     )
 
-    // sessions.id is TEXT not UUID, generated from crypto.randomBytes
     const regularSessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
@@ -425,25 +499,13 @@ describe('Admin API', () => {
     )
     regularSessionCookie = `session_id=${regularSessionId}`
 
-    // Get CSRF token for super admin
-    const superCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', superAdminSessionCookie)
-    superAdminCsrfToken = superCsrfRes.body.token
-    const superConnectSidCookie = superCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (superConnectSidCookie) {
-      superAdminSessionCookie = `${superAdminSessionCookie}; ${superConnectSidCookie}`
-    }
+    const superCsrf = await getCsrfTokenFromApp(app, superAdminSessionCookie)
+    superAdminCsrfToken = superCsrf.token
+    superAdminSessionCookie = superCsrf.sessionCookie
 
-    // Get CSRF token for regular user
-    const regularCsrfRes = await request(app)
-      .get('/api/csrf-token')
-      .set('Cookie', regularSessionCookie)
-    regularCsrfToken = regularCsrfRes.body.token
-    const regularConnectSidCookie = regularCsrfRes.headers['set-cookie']?.[0]?.split(';')[0] || ''
-    if (regularConnectSidCookie) {
-      regularSessionCookie = `${regularSessionCookie}; ${regularConnectSidCookie}`
-    }
+    const regularCsrf = await getCsrfTokenFromApp(app, regularSessionCookie)
+    regularCsrfToken = regularCsrf.token
+    regularSessionCookie = regularCsrf.sessionCookie
   })
 
   afterAll(async () => {
@@ -461,9 +523,15 @@ describe('Admin API', () => {
         .get('/api/admin/workspaces')
         .set('Cookie', superAdminSessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.workspaces)).toBe(true)
+      const listed = expectOpenApiResponse({
+        method: 'get',
+        path: '/admin/workspaces',
+        status: 200,
+        response,
+        openApiSchemaName: 'AdminWorkspacesResponse',
+        schema: AdminWorkspacesResponseSchema,
+      })
+      expect(listed.data.workspaces.length).toBeGreaterThan(0)
     })
 
     it('should return 403 for non-super-admin', async () => {
@@ -471,7 +539,12 @@ describe('Admin API', () => {
         .get('/api/admin/workspaces')
         .set('Cookie', regularSessionCookie)
 
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/admin/workspaces',
+        status: 403,
+        response,
+      })
     })
   })
 
@@ -483,10 +556,15 @@ describe('Admin API', () => {
         .set('x-csrf-token', superAdminCsrfToken)
         .send({ name: 'Admin Created Workspace' })
 
-      expect(response.status).toBe(201)
-      expect(response.body.success).toBe(true)
-      expect(response.body.data.workspace).toHaveProperty('id')
-      expect(response.body.data.workspace).toHaveProperty('name', 'Admin Created Workspace')
+      const created = expectOpenApiResponse({
+        method: 'post',
+        path: '/admin/workspaces',
+        status: 201,
+        response,
+        openApiSchemaName: 'AdminCreateWorkspaceResponse',
+        schema: AdminCreateWorkspaceResponseSchema,
+      })
+      expect(created.data.workspace.name).toBe('Admin Created Workspace')
     })
 
     it('should return 403 for non-super-admin', async () => {
@@ -496,7 +574,12 @@ describe('Admin API', () => {
         .set('x-csrf-token', regularCsrfToken)
         .send({ name: 'Should Fail' })
 
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'post',
+        path: '/admin/workspaces',
+        status: 403,
+        response,
+      })
     })
   })
 
@@ -506,9 +589,15 @@ describe('Admin API', () => {
         .get('/api/admin/users')
         .set('Cookie', superAdminSessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.users)).toBe(true)
+      const users = expectOpenApiResponse({
+        method: 'get',
+        path: '/admin/users',
+        status: 200,
+        response,
+        openApiSchemaName: 'AdminJsonResponse',
+        schema: AdminJsonResponseSchema,
+      })
+      expect(users.data).toHaveProperty('users')
     })
 
     it('should return 403 for non-super-admin', async () => {
@@ -516,7 +605,12 @@ describe('Admin API', () => {
         .get('/api/admin/users')
         .set('Cookie', regularSessionCookie)
 
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/admin/users',
+        status: 403,
+        response,
+      })
     })
   })
 
@@ -526,9 +620,15 @@ describe('Admin API', () => {
         .get('/api/admin/audit-logs')
         .set('Cookie', superAdminSessionCookie)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(Array.isArray(response.body.data.logs)).toBe(true)
+      const logs = expectOpenApiResponse({
+        method: 'get',
+        path: '/admin/audit-logs',
+        status: 200,
+        response,
+        openApiSchemaName: 'AdminJsonResponse',
+        schema: AdminJsonResponseSchema,
+      })
+      expect(logs.data).toHaveProperty('logs')
     })
 
     it('should return 403 for non-super-admin', async () => {
@@ -536,14 +636,18 @@ describe('Admin API', () => {
         .get('/api/admin/audit-logs')
         .set('Cookie', regularSessionCookie)
 
-      expect(response.status).toBe(403)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/admin/audit-logs',
+        status: 403,
+        response,
+      })
     })
   })
 })
 
 describe('Invite Validation API', () => {
   const app = createApp()
-  // Use unique identifiers to avoid conflicts between concurrent test runs
   const testRunId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   const testEmail = `invite-admin-${testRunId}@ship.local`
   const testWorkspaceName = `Invite Test ${testRunId}`
@@ -555,21 +659,19 @@ describe('Invite Validation API', () => {
   let validInviteToken: string
 
   beforeAll(async () => {
-    // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
-    testWorkspaceId = workspaceResult.rows[0].id
+    testWorkspaceId = requireFirstRow(workspaceResult.rows).id
 
-    // Create test user (admin)
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name, is_super_admin)
        VALUES ($1, 'test-hash', 'Invite Admin', true)
        RETURNING id`,
       [testEmail]
     )
-    testUserId = userResult.rows[0].id
+    testUserId = requireFirstRow(userResult.rows).id
 
     await pool.query(
       `INSERT INTO workspace_memberships (workspace_id, user_id, role)
@@ -577,21 +679,20 @@ describe('Invite Validation API', () => {
       [testWorkspaceId, testUserId]
     )
 
-    // sessions.id is TEXT not UUID, generated from crypto.randomBytes
     const sessionId = crypto.randomBytes(32).toString('hex')
     await pool.query(
       `INSERT INTO sessions (id, user_id, workspace_id, expires_at)
        VALUES ($1, $2, $3, now() + interval '1 hour')`,
       [sessionId, testUserId, testWorkspaceId]
     )
-    // Create a valid invite with unique token
-    const inviteResult = await pool.query(
+
+    const inviteResult = await pool.query<TokenRow>(
       `INSERT INTO workspace_invites (workspace_id, email, role, invited_by_user_id, token, expires_at)
        VALUES ($1, $2, 'member', $3, $4, now() + interval '7 days')
        RETURNING token`,
       [testWorkspaceId, `invited-${testRunId}@test.com`, testUserId, validTokenSuffix]
     )
-    validInviteToken = inviteResult.rows[0].token
+    validInviteToken = requireFirstRow(inviteResult.rows).token
   })
 
   afterAll(async () => {
@@ -606,22 +707,32 @@ describe('Invite Validation API', () => {
     it('should return invite info for valid token', async () => {
       const response = await request(app).get(`/api/invites/${validInviteToken}`)
 
-      expect(response.status).toBe(200)
-      expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveProperty('workspaceName')
-      expect(response.body.data).toHaveProperty('role', 'member')
-      expect(response.body.data).not.toHaveProperty('email')
-      expect(response.body.data).not.toHaveProperty('invitedBy')
+      const details = expectOpenApiResponse({
+        method: 'get',
+        path: '/invites/{token}',
+        status: 200,
+        response,
+        openApiSchemaName: 'InviteDetailsResponse',
+        schema: InviteDetailsResponseSchema,
+      })
+      expect(details.data.workspaceName).toBeTruthy()
+      expect(details.data.role).toBe('member')
+      expect(details.data).not.toHaveProperty('email')
+      expect(details.data).not.toHaveProperty('invitedBy')
     })
 
     it('should return 404 for invalid token', async () => {
       const response = await request(app).get('/api/invites/invalid-token-12345')
 
-      expect(response.status).toBe(404)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/invites/{token}',
+        status: 404,
+        response,
+      })
     })
 
     it('should return 400 for expired token', async () => {
-      // Create expired invite with unique token
       await pool.query(
         `INSERT INTO workspace_invites (workspace_id, email, role, invited_by_user_id, token, expires_at)
          VALUES ($1, $2, 'member', $3, $4, now() - interval '1 day')`,
@@ -630,7 +741,12 @@ describe('Invite Validation API', () => {
 
       const response = await request(app).get(`/api/invites/${expiredTokenSuffix}`)
 
-      expect(response.status).toBe(400)
+      expectApiErrorResponse({
+        method: 'get',
+        path: '/invites/{token}',
+        status: 400,
+        response,
+      })
     })
   })
 
@@ -644,18 +760,22 @@ describe('Invite Validation API', () => {
       )
 
       const agent = request.agent(app)
-      const csrf = await agent.get('/api/csrf-token')
+      const { token, sessionCookie } = await getCsrfTokenFromApp(app, '')
       const response = await agent
         .post(`/api/invites/${acceptToken}/accept`)
-        .set(
-          'X-CSRF-Token',
-          typeof (csrf.body as { token?: unknown }).token === 'string'
-            ? (csrf.body as { token: string }).token
-            : '',
-        )
+        .set('Cookie', sessionCookie)
+        .set('X-CSRF-Token', token)
         .send({ name: 'Invite Accept', password: 'correct-horse-battery' })
 
-      expect(response.status).toBe(201)
+      expectOpenApiResponse({
+        method: 'post',
+        path: '/invites/{token}/accept',
+        status: 201,
+        response,
+        openApiSchemaName: 'InviteAcceptResponse',
+        schema: InviteAcceptResponseSchema,
+      })
+
       const setCookie = response.headers['set-cookie']?.[0] ?? ''
       const sessionId = /session_id=([^;]+)/.exec(setCookie)?.[1]
       expect(sessionId).toMatch(/^[a-f0-9]{64}$/)

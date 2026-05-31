@@ -1,3 +1,4 @@
+// Validates supertest JSON responses against registered OpenAPI schemas via Zod.
 import { expect } from 'vitest';
 import type { z } from 'zod';
 
