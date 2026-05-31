@@ -148,7 +148,11 @@ export class ReviewerProofCommandError extends Error {
 }
 
 export function fleetGraphReviewerProofEnabled(): boolean {
-  return process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED === '1';
+  return envFlag(process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED);
+}
+
+function envFlag(value: string | undefined): boolean {
+  return value === '1' || value === 'true';
 }
 
 export async function listFleetGraphReviewerChains(input: {
