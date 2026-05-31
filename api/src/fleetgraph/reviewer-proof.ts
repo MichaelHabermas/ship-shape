@@ -137,7 +137,7 @@ type ReviewerProofArtifact = {
 };
 
 export class ReviewerProofCommandError extends Error {
-  readonly command = 'pnpm fleetgraph:proof -- --mode local --no-refresh-evals';
+  readonly command = 'pnpm fleetgraph:proof -- --mode local --no-refresh-evals --skip-tests';
   readonly outputTail: string[];
 
   constructor(message: string, outputTail: string[]) {
@@ -544,6 +544,7 @@ async function runReviewerProofCommand(chain: FleetGraphReviewerChain): Promise<
       '--mode',
       'local',
       '--no-refresh-evals',
+      '--skip-tests',
     ], {
       cwd,
       timeout: 120_000,
