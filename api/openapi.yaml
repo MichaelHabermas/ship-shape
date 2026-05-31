@@ -6713,6 +6713,51 @@ components:
         - headline
         - rows
         - traceMetadata
+    FleetGraphUsage:
+      type: object
+      properties:
+        modelCalls:
+          type: integer
+          minimum: 0
+        inputTokens:
+          type: integer
+          minimum: 0
+        cachedInputTokens:
+          type: integer
+          minimum: 0
+        billableInputTokens:
+          type: integer
+          minimum: 0
+        outputTokens:
+          type: integer
+          minimum: 0
+        totalTokens:
+          type: integer
+          minimum: 0
+        estimatedCostUsd:
+          type: number
+          minimum: 0
+        costCurrency:
+          type: string
+          enum:
+            - USD
+        usageSource:
+          type: string
+          enum:
+            - none
+            - model_response
+            - partial_model_response
+            - synthetic_calibration
+        costSource:
+          type: string
+          enum:
+            - none
+            - model_response
+            - catalog_estimate
+            - env_estimate
+            - synthetic_calibration
+      required:
+        - modelCalls
     FleetGraphRunResponse:
       type: object
       properties:
@@ -6724,6 +6769,8 @@ components:
           $ref: "#/components/schemas/FleetGraphVisibleOutput"
         traceMetadata:
           $ref: "#/components/schemas/FleetGraphTrace"
+        usageMetadata:
+          $ref: "#/components/schemas/FleetGraphUsage"
       required:
         - decision
         - traceMetadata
@@ -6757,6 +6804,103 @@ components:
         - body
         - sources
         - humanGate
+    FleetGraphPageContextItem:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+            - issue
+            - sprint
+            - project
+            - program
+            - document
+            - workspace
+            - notification
+            - finding
+        id:
+          type: string
+          format: uuid
+          description: UUID identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        state:
+          type: string
+          maxLength: 80
+        priority:
+          type: string
+          maxLength: 80
+        owner:
+          type: string
+          maxLength: 120
+        summary:
+          type: string
+          maxLength: 280
+      required:
+        - kind
+        - title
+    FleetGraphPageContext:
+      type: object
+      properties:
+        route:
+          type: string
+          minLength: 1
+          maxLength: 512
+        surface:
+          type: string
+          enum:
+            - issues_list
+            - scoped_issues_list
+            - my_week
+            - document_issue_tab
+            - dashboard
+            - workspace
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        filters:
+          type: object
+          additionalProperties:
+            anyOf:
+              - type: string
+                maxLength: 128
+              - type: number
+              - type: boolean
+              - nullable: true
+              - nullable: true
+        sort:
+          type: string
+          maxLength: 80
+        viewMode:
+          type: string
+          maxLength: 80
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        visibleItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/FleetGraphPageContextItem"
+          maxItems: 25
+        selectedItemIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: UUID identifier
+            example: 550e8400-e29b-41d4-a716-446655440000
+          maxItems: 8
+      required:
+        - route
+        - surface
+        - title
+        - visibleItems
     FleetGraphChatContext:
       type: object
       properties:
@@ -6784,6 +6928,8 @@ components:
         sourcePath:
           type: string
           maxLength: 512
+        pageContext:
+          $ref: "#/components/schemas/FleetGraphPageContext"
         attachedContexts:
           type: array
           items:
@@ -6813,6 +6959,8 @@ components:
               sourcePath:
                 type: string
                 maxLength: 512
+              pageContext:
+                $ref: "#/components/schemas/FleetGraphPageContext"
             required:
               - kind
           maxItems: 8
@@ -6843,6 +6991,8 @@ components:
             - rows
         traceMetadata:
           $ref: "#/components/schemas/FleetGraphTrace"
+        usageMetadata:
+          $ref: "#/components/schemas/FleetGraphUsage"
       required:
         - decision
         - answer
@@ -6897,6 +7047,8 @@ components:
           $ref: "#/components/schemas/FleetGraphVisibleOutput"
         traceMetadata:
           $ref: "#/components/schemas/FleetGraphTrace"
+        usageMetadata:
+          $ref: "#/components/schemas/FleetGraphUsage"
       required:
         - decision
         - traceMetadata

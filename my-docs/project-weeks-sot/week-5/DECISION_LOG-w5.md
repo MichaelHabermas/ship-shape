@@ -621,3 +621,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Stabilize FleetGraph page-context registration with fingerprint guards so selection/filter churn does not republish the app shell context. Add `scoped_issues_list` as the surface for project/program/week-scoped issue lists. Centralize page-context builders in `web/src/fleetgraph/page-context.ts`, chat turn state in `useFleetGraphChatTurns`, and assistant wiring in `FleetGraphAssistantShell` (provider + probes). API `usageMetadata` is built only through `usageMetadataFromResult` in `api/src/fleetgraph/usage-metadata.ts` and is omitted when `modelCalls === 0`. Split `scripts/fleetgraph-proof/run.mjs` into command, git, and deployed-evidence modules.
 
 **Consequence:** Feature work should not reintroduce pass-through assistant layers, duplicate usage mappers, or raw page-context objects in list pages. Regenerated proof/eval JSON belongs in chore/CI commits, not mixed with product refactors. Context-chat finding resolution may run in parallel; behavior must stay aligned with existing golden cases.
+
+## D078 - FleetGraph Contextual Chat Is The Product Surface
+
+**Date:** 2026-05-30
+
+**Decision:** Improve FleetGraph by making the existing chat understand current page context, attached document/page context, notification/finding context, and bounded recent turns. Do not add new buttons, quick actions, panels, banners, dashboards, or reviewer-only affordances for this slice.
+
+**Consequence:** Future contextual-chat work should add behavior cases and strengthen the existing context payload/runtime path. Chat context informs a free conversation; it must not become a guided workflow, mutation surface, or action menu. Mutation/contact requests remain human-gated and must never claim Ship records or people were changed/contacted. Client page labels are ID hints only; answer/model/source text must come from authorized server-loaded records.

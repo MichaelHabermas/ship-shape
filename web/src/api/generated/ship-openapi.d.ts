@@ -13277,11 +13277,27 @@ export interface components {
             rows: components["schemas"]["FleetGraphChangeSummaryRow"][];
             traceMetadata: components["schemas"]["FleetGraphTrace"];
         };
+        FleetGraphUsage: {
+            modelCalls: number;
+            inputTokens?: number;
+            cachedInputTokens?: number;
+            billableInputTokens?: number;
+            outputTokens?: number;
+            totalTokens?: number;
+            estimatedCostUsd?: number;
+            /** @enum {string} */
+            costCurrency?: "USD";
+            /** @enum {string} */
+            usageSource?: "none" | "model_response" | "partial_model_response" | "synthetic_calibration";
+            /** @enum {string} */
+            costSource?: "none" | "model_response" | "catalog_estimate" | "env_estimate" | "synthetic_calibration";
+        };
         FleetGraphRunResponse: {
             decision: string;
             finding?: components["schemas"]["FleetGraphFindingResponse"];
             visibleOutput?: components["schemas"]["FleetGraphVisibleOutput"];
             traceMetadata: components["schemas"]["FleetGraphTrace"];
+            usageMetadata?: components["schemas"]["FleetGraphUsage"];
         };
         FleetGraphChatAnswer: {
             title: string;
@@ -13294,6 +13310,37 @@ export interface components {
             humanGate: {
                 [key: string]: unknown;
             };
+        };
+        FleetGraphPageContextItem: {
+            /** @enum {string} */
+            kind: "issue" | "sprint" | "project" | "program" | "document" | "workspace" | "notification" | "finding";
+            /**
+             * Format: uuid
+             * @description UUID identifier
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            id?: string;
+            title: string;
+            state?: string;
+            priority?: string;
+            owner?: string;
+            summary?: string;
+        };
+        FleetGraphPageContext: {
+            route: string;
+            /** @enum {string} */
+            surface: "issues_list" | "scoped_issues_list" | "my_week" | "document_issue_tab" | "dashboard" | "workspace";
+            title: string;
+            filters?: {
+                [key: string]: string | number | boolean | unknown | unknown;
+            };
+            sort?: string;
+            viewMode?: string;
+            counts?: {
+                [key: string]: number;
+            };
+            visibleItems: components["schemas"]["FleetGraphPageContextItem"][];
+            selectedItemIds?: string[];
         };
         FleetGraphChatContext: {
             /** @enum {string} */
@@ -13311,6 +13358,7 @@ export interface components {
              */
             findingId?: string;
             sourcePath?: string;
+            pageContext?: components["schemas"]["FleetGraphPageContext"];
             attachedContexts?: {
                 /** @enum {string} */
                 kind: "issue" | "sprint" | "project" | "program" | "document" | "workspace" | "notification" | "finding";
@@ -13327,6 +13375,7 @@ export interface components {
                  */
                 findingId?: string;
                 sourcePath?: string;
+                pageContext?: components["schemas"]["FleetGraphPageContext"];
             }[];
         };
         FleetGraphChatResponse: {
@@ -13339,6 +13388,7 @@ export interface components {
                 rows: components["schemas"]["FleetGraphChangeSummaryRow"][];
             };
             traceMetadata: components["schemas"]["FleetGraphTrace"];
+            usageMetadata?: components["schemas"]["FleetGraphUsage"];
         };
         FleetGraphChatHistoryEntry: {
             /** @enum {string} */
@@ -13361,6 +13411,7 @@ export interface components {
             findingId?: string;
             visibleOutput?: components["schemas"]["FleetGraphVisibleOutput"];
             traceMetadata: components["schemas"]["FleetGraphTrace"];
+            usageMetadata?: components["schemas"]["FleetGraphUsage"];
         };
         FleetGraphManualRunResponse: {
             /** @enum {string} */

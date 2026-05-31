@@ -111,11 +111,16 @@ type FleetGraphRunTestBody = {
   finding?: unknown;
   visibleOutput?: {
     noSafeOutput?: boolean;
+    summary?: string;
   };
   usageMetadata?: {
     modelCalls: number;
     estimatedCostUsd?: number;
   };
+};
+
+type FleetGraphUsageTestBody = {
+  usageMetadata?: FleetGraphRunTestBody['usageMetadata'];
 };
 
 type FleetGraphManualRunTestBody = {
@@ -126,6 +131,12 @@ type FleetGraphManualRunTestBody = {
     findingId?: string;
     visibleOutput?: { noSafeOutput?: boolean };
     usageMetadata?: unknown;
+  }>;
+};
+
+type FleetGraphManualRunUsageTestBody = {
+  results: Array<{
+    usageMetadata?: FleetGraphRunTestBody['usageMetadata'];
   }>;
 };
 
@@ -488,7 +499,8 @@ describe('FleetGraph routes', () => {
       .post(`/api/fleetgraph/findings/${findingId}/explain`)
       .expect(200);
 
-    expect(JSON.parse(res.text).usageMetadata).toEqual({
+    const body = JSON.parse(res.text) as FleetGraphUsageTestBody;
+    expect(body.usageMetadata).toEqual({
       modelCalls: 1,
       inputTokens: 100,
       outputTokens: 20,
@@ -550,7 +562,8 @@ describe('FleetGraph routes', () => {
     const body = JSON.parse(res.text) as { decision: string; answer: { nextStep?: string } };
     expect(body.decision).toBe('needs_confirmation');
     expect(body.answer.nextStep).toBe('Ask Casey Engineer to confirm owner and next step for Week 2.');
-    expect(JSON.parse(res.text).usageMetadata).toBeUndefined();
+    const usageBody = JSON.parse(res.text) as FleetGraphUsageTestBody;
+    expect(usageBody.usageMetadata).toBeUndefined();
   });
 
   it('accepts bounded context chat history on successful chat requests', async () => {
@@ -571,7 +584,66 @@ describe('FleetGraph routes', () => {
       })
       .expect(200);
 
-    expect(JSON.parse(res.text).decision).toBe('explain');
+    const body = JSON.parse(res.text) as { decision: string };
+    expect(body.decision).toBe('explain');
+  });
+
+  it('forwards nested page, attached context, and history to the shared graph', async () => {
+    vi.mocked(runFleetGraph).mockResolvedValue(mockGraphResult({
+      decision: 'explain',
+      traceMetadata: { mode: 'on_demand', decision: 'explain', nodePath: ['contextChat'] },
+    }));
+    const pageContext = {
+      route: '/issues?state=blocked',
+      surface: 'issues_list' as const,
+      title: 'Blocked issues',
+      filters: { state: 'blocked' },
+      visibleItems: [{ kind: 'issue' as const, id: issueId, title: 'Blocked issue' }],
+      selectedItemIds: [issueId],
+    };
+    const attachedContexts = [{
+      kind: 'document' as const,
+      documentId: sprintId,
+      sourcePath: `/documents/${sprintId}`,
+      pageContext,
+    }];
+    const history = [
+      { role: 'user' as const, content: 'Summarize this' },
+      { role: 'assistant' as const, content: 'This is a longer summary.' },
+    ];
+
+    await request(app())
+      .post('/api/fleetgraph/chat')
+      .send({
+        prompt: 'Make that simpler',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+          pageContext,
+          attachedContexts,
+        },
+        history,
+      })
+      .expect(200);
+
+    expect(runFleetGraph).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId,
+      mode: 'on_demand',
+      trigger: {
+        type: 'context_chat',
+        prompt: 'Make that simpler',
+        context: {
+          kind: 'notification',
+          findingId,
+          sourcePath: `/documents/${issueId}`,
+          pageContext,
+          attachedContexts,
+        },
+        history,
+      },
+      triggerReason: 'context-chat',
+    }));
   });
 
   it('rejects context chat history beyond the bounded request limit', async () => {
@@ -659,7 +731,8 @@ describe('FleetGraph routes', () => {
       .send({ instruction: 'Make it shorter.' })
       .expect(200);
 
-    expect(JSON.parse(res.text).decision).toBe('refine_draft');
+    const body = JSON.parse(res.text) as { decision: string };
+    expect(body.decision).toBe('refine_draft');
   });
 
   it('returns 404 only for explicit missing findings', async () => {
@@ -794,7 +867,8 @@ describe('FleetGraph routes', () => {
       .send({ today: '2026-05-26', limit: 1 })
       .expect(200);
 
-    expect(JSON.parse(res.text).results[0]?.usageMetadata).toEqual({
+    const body = JSON.parse(res.text) as FleetGraphManualRunUsageTestBody;
+    expect(body.results[0]?.usageMetadata).toEqual({
       modelCalls: 2,
       inputTokens: 200,
       outputTokens: 40,
