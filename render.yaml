@@ -33,6 +33,8 @@ services:
         value: "120000"
       - key: FLEETGRAPH_MANUAL_RUN_API_ENABLED
         value: "true"
+      - key: FLEETGRAPH_REVIEWER_PROOF_ENABLED
+        value: "true"
       # Controlled proof path only; graph policy remains deterministic unless model-backed copy is needed.
       - key: FLEETGRAPH_REAL_MODEL_ENABLED
         value: "true"
@@ -46,6 +48,8 @@ services:
         value: "false"
       - key: FLEETGRAPH_EXTERNAL_TRACING_ENABLED
         value: "false"
+      - key: FLEETGRAPH_REVIEWER_TRACING_ENABLED
+        value: "true"
       - key: LANGSMITH_PROJECT
         value: ship-shape-fleetgraph
       - key: LANGSMITH_ENDPOINT
