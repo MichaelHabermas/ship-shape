@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-31T14:07:43.812Z",
-  "runId": "fleetgraph-proof-2026-05-31T14-07-43-812Z",
+  "generatedAt": "2026-05-31T13:38:23.248Z",
+  "runId": "fleetgraph-proof-2026-05-31T13-38-23-248Z",
   "target": "local",
   "git": {
     "branch": "master",
-    "sha": "f2d8bc4f4fe66e3bd762ac1824ad0464836649c4",
+    "sha": "da27def222d0ed757e10bb55b28a518cec017b71",
     "dirty": true
   },
-  "verdict": "pass",
+  "verdict": "fail",
   "summary": {
     "requiredScenarioCount": 9,
     "provenScenarioCount": 0,
@@ -33,81 +33,84 @@
   ],
   "deployedEvidence": null,
   "reviewerChain": {
-    "chainId": "e3942c7c-65df-4328-a727-d4389db15619",
+    "chainId": "41bfee09-4cf1-497e-833e-f0438d2c86f3",
     "scenario": "week-blocker",
-    "status": "complete",
-    "missing": [],
-    "generatedAt": "2026-05-31T14:07:43.572Z",
+    "status": "broken",
+    "missing": [
+      "trace",
+      "trace_quality"
+    ],
+    "generatedAt": "2026-05-31T13:38:22.991Z",
     "freshness": {
-      "generatedAt": "2026-05-31T14:07:43.572Z",
-      "newestRunAt": "2026-05-31T14:06:38.338Z",
-      "newestWorkerTickAt": "2026-05-31T14:06:37.626Z",
-      "proofAgeMs": 65234,
-      "workerAgeMs": 65946
+      "generatedAt": "2026-05-31T13:38:22.991Z",
+      "newestRunAt": "2026-05-31T13:38:16.499Z",
+      "newestWorkerTickAt": "2026-05-31T13:38:16.451Z",
+      "proofAgeMs": 6492,
+      "workerAgeMs": 6540
     },
     "latencyMs": {
-      "shipToAttention": 7,
+      "shipToAttention": 4,
       "attentionToWorker": 2,
-      "workerToRun": 712,
+      "workerToRun": 48,
       "runToFinding": 0,
       "findingToNotification": 0,
-      "total": 717
+      "total": 53
     },
     "steps": [
       {
         "key": "source",
         "label": "Ship source",
         "status": "pass",
-        "at": "2026-05-31T14:06:37.617Z",
+        "at": "2026-05-31T13:38:16.445Z",
         "evidence": "Reviewer-safe evidence present."
       },
       {
         "key": "attention_event",
         "label": "Attention event",
         "status": "pass",
-        "at": "2026-05-31T14:06:37.624Z",
+        "at": "2026-05-31T13:38:16.449Z",
         "evidence": "Reviewer-safe evidence present."
       },
       {
         "key": "worker_tick",
         "label": "Worker tick",
         "status": "pass",
-        "at": "2026-05-31T14:06:37.626Z",
+        "at": "2026-05-31T13:38:16.451Z",
         "evidence": "Reviewer-safe evidence present."
       },
       {
         "key": "graph_run",
         "label": "Graph run",
         "status": "pass",
-        "at": "2026-05-31T14:06:38.338Z",
+        "at": "2026-05-31T13:38:16.499Z",
         "evidence": "Reviewer-safe evidence present."
       },
       {
         "key": "trace",
         "label": "Trace",
-        "status": "pass",
-        "at": "2026-05-31T14:06:38.338Z",
-        "evidence": "Reviewer-safe evidence present."
+        "status": "broken",
+        "at": "2026-05-31T13:38:16.499Z",
+        "evidence": "Trace URL missing or unsafe"
       },
       {
         "key": "finding",
         "label": "Finding",
         "status": "pass",
-        "at": "2026-05-31T14:06:38.334Z",
+        "at": "2026-05-31T13:38:16.498Z",
         "evidence": "Reviewer-safe evidence present."
       },
       {
         "key": "notification_projection",
         "label": "Notification projection",
         "status": "pass",
-        "at": "2026-05-31T14:06:38.334Z",
+        "at": "2026-05-31T13:38:16.498Z",
         "evidence": "Reviewer-safe evidence present."
       },
       {
         "key": "chat_human_gate",
         "label": "Chat and human gate",
         "status": "pass",
-        "at": "2026-05-31T14:06:38.338Z",
+        "at": "2026-05-31T13:38:16.499Z",
         "evidence": "Reviewer-safe evidence present."
       }
     ],
@@ -122,7 +125,7 @@
       ]
     },
     "traceQuality": {
-      "passed": true,
+      "passed": false,
       "requiredDecisions": [
         "create_finding"
       ],
@@ -132,13 +135,13 @@
       "scores": [
         {
           "name": "traceId",
-          "passed": true,
+          "passed": false,
           "value": null,
           "comment": "Trace ID must be present."
         },
         {
           "name": "traceUrl",
-          "passed": true,
+          "passed": false,
           "value": null,
           "comment": "Trace URL must be reviewer-safe."
         },
@@ -774,7 +777,7 @@
     },
     {
       "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T14-07-43-812Z/proof.html",
+      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T13-38-23-248Z/proof.html",
       "kind": "html"
     },
     {
@@ -798,7 +801,9 @@
       "kind": "test"
     }
   ],
-  "risks": [],
+  "risks": [
+    "One or more required graph paths is defined by golden cases but not executed by the focused proof tests yet."
+  ],
   "nonClaims": [
     "The reviewer control room is an authenticated proof surface, not a marketing page or public reviewer bypass.",
     "This proof packet does not claim autonomous Ship mutation or external contact.",

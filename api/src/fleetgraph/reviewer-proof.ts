@@ -211,6 +211,7 @@ export async function runFleetGraphReviewerWeekBlockerScenario(input: {
     await runFleetGraphWorkerTick({
       workspaceIds: [input.workspaceId],
       instanceId: `fleetgraph-reviewer-${Date.now()}`,
+      graphOptions: { forceReviewerTrace: true },
     });
   }
 
@@ -250,6 +251,7 @@ export async function runFleetGraphReviewerWorkerTick(input: {
   await runFleetGraphWorkerTick({
     workspaceIds: [input.workspaceId],
     instanceId: `fleetgraph-reviewer-${Date.now()}`,
+    graphOptions: { forceReviewerTrace: true },
   });
   return { triggered: true };
 }
@@ -460,7 +462,7 @@ async function ensureReviewerSourceMutationProof(input: {
       },
     },
     triggerReason: 'reviewer-source-mutation-proof',
-  }, { db: input.db });
+  }, { db: input.db, forceReviewerTrace: true });
   if (result.decision === 'error' || result.visibleOutput?.noSafeOutput) return;
 
   const after = await sourceSnapshotForReviewerChat({

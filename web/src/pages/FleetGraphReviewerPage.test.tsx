@@ -186,6 +186,53 @@ describe('FleetGraphReviewerPage', () => {
     });
   });
 
+  it('renders the selected finding blast radius map', async () => {
+    vi.mocked(apiGetJson).mockImplementation(async (endpoint) => {
+      if (endpoint === '/api/fleetgraph/reviewer/chains?limit=25') {
+        return {
+          ...emptyChainsResponse,
+          summary: { ...emptyChainsResponse.summary, chainCount: 1, completeCount: 1 },
+          chains: [completeChain],
+        };
+      }
+      if (endpoint === `/api/fleetgraph/findings/${completeChain.links.findingId}/blast-radius-map`) {
+        return {
+          finding: {
+            id: completeChain.links.findingId,
+            kind: 'blocker',
+            status: 'needs_confirmation',
+            signalType: 'blocked',
+            signalLabel: 'Blocked',
+            reason: 'Visible summary',
+            sourceIssueId: completeChain.links.sourceIssueId,
+            sourceSprintId: completeChain.links.sourceSprintId,
+            visibleOutput: completeChain.visibleOutput,
+            traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: ['detectorDecision'] },
+          },
+          summary: 'Credential path touches 1 project and 1 person.',
+          nodes: [
+            { id: `finding:${completeChain.links.findingId}`, kind: 'finding', title: 'Blocked credential path' },
+            { id: `issue:${completeChain.links.sourceIssueId}`, kind: 'issue', title: 'Credential path' },
+            { id: 'project:77777777-7777-4777-8777-777777777777', kind: 'project', title: 'Audit Load' },
+            { id: 'person:88888888-8888-4888-8888-888888888888', kind: 'person', title: 'Casey Engineer', subtitle: 'Issue assignee' },
+          ],
+          edges: [
+            { from: `finding:${completeChain.links.findingId}`, to: `issue:${completeChain.links.sourceIssueId}`, kind: 'source_issue', label: 'source issue' },
+          ],
+        };
+      }
+      throw new Error(`Unexpected GET ${endpoint}`);
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Blast radius')).toBeInTheDocument();
+    expect(await screen.findByText('Credential path touches 1 project and 1 person.')).toBeInTheDocument();
+    expect(screen.getByText('Audit Load')).toBeInTheDocument();
+    expect(screen.getByText('Casey Engineer')).toBeInTheDocument();
+    expect(screen.getByText('1 visible link')).toBeInTheDocument();
+  });
+
   it('generates packets from the selected chain even when that selected chain is broken', async () => {
     vi.mocked(apiGetJson).mockResolvedValue({
       ...emptyChainsResponse,

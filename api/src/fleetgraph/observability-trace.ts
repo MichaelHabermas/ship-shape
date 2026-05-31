@@ -31,6 +31,10 @@ export type FleetGraphTraceCapture<T extends FleetGraphResult = FleetGraphResult
   providerFailures: string[];
 };
 
+export type FleetGraphTraceEnablement = {
+  reviewer?: boolean;
+};
+
 export type FleetGraphNodeRecorder = {
   traceNode<T>(
     name: string,
@@ -61,18 +65,29 @@ let langfuseSdk: NodeSDK | null = null;
 let langfuseClient: LangfuseClient | null = null;
 let gitShaCache: string | null | undefined;
 
-export function fleetGraphTracingEnabled(): boolean {
-  return fleetGraphLangSmithEnabled() || fleetGraphLangfuseEnabled();
+export function fleetGraphTracingEnabled(enablement: FleetGraphTraceEnablement = {}): boolean {
+  return fleetGraphExternalTracingEnabled(enablement) && (
+    fleetGraphLangSmithEnabled(enablement) || fleetGraphLangfuseEnabled(enablement)
+  );
 }
 
-export function fleetGraphLangSmithEnabled(): boolean {
-  return isEnabled(process.env.LANGSMITH_TRACING) || isEnabled(process.env.LANGCHAIN_TRACING_V2);
+function fleetGraphExternalTracingEnabled(enablement: FleetGraphTraceEnablement = {}): boolean {
+  return isEnabled(process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED)
+    || enablement.reviewer === true;
 }
 
-export function fleetGraphLangfuseEnabled(): boolean {
-  return isEnabled(process.env.LANGFUSE_TRACING) || Boolean(
-    process.env.LANGFUSE_PUBLIC_KEY?.trim() &&
-    process.env.LANGFUSE_SECRET_KEY?.trim()
+export function fleetGraphLangSmithEnabled(enablement: FleetGraphTraceEnablement = {}): boolean {
+  return fleetGraphExternalTracingEnabled(enablement) && (
+    isEnabled(process.env.LANGSMITH_TRACING) || isEnabled(process.env.LANGCHAIN_TRACING_V2)
+  );
+}
+
+export function fleetGraphLangfuseEnabled(enablement: FleetGraphTraceEnablement = {}): boolean {
+  return fleetGraphExternalTracingEnabled(enablement) && (
+    isEnabled(process.env.LANGFUSE_TRACING) || Boolean(
+      process.env.LANGFUSE_PUBLIC_KEY?.trim() &&
+      process.env.LANGFUSE_SECRET_KEY?.trim()
+    )
   );
 }
 
@@ -80,6 +95,7 @@ export async function withFleetGraphTrace<T extends FleetGraphResult>(
   input: {
     name: string;
     inputs: Record<string, unknown>;
+    enablement?: FleetGraphTraceEnablement;
   },
   run: (trace: FleetGraphTraceIdentity, recorder: FleetGraphNodeRecorder) => Promise<T>
 ): Promise<FleetGraphTraceCapture<T>> {
@@ -143,11 +159,12 @@ export async function postFleetGraphTraceScores(input: {
 async function createTraceProviders(input: {
   name: string;
   inputs: Record<string, unknown>;
+  enablement?: FleetGraphTraceEnablement;
 }): Promise<TraceProvider[]> {
   const providers: TraceProvider[] = [];
   const errors: string[] = [];
 
-  if (fleetGraphLangSmithEnabled()) {
+  if (fleetGraphLangSmithEnabled(input.enablement)) {
     try {
       providers.push(await createLangSmithProvider(input));
     } catch (error) {
@@ -155,7 +172,7 @@ async function createTraceProviders(input: {
     }
   }
 
-  if (fleetGraphLangfuseEnabled()) {
+  if (fleetGraphLangfuseEnabled(input.enablement)) {
     try {
       providers.push(await createLangfuseProvider(input));
     } catch (error) {
@@ -173,8 +190,9 @@ async function createTraceProviders(input: {
 async function createLangSmithProvider(input: {
   name: string;
   inputs: Record<string, unknown>;
+  enablement?: FleetGraphTraceEnablement;
 }): Promise<TraceProvider> {
-  ensureLangSmithEnv();
+  ensureLangSmithEnv(input.enablement);
 
   const client = new Client({ autoBatchTracing: false, tracingSamplingRate: 1 });
   const projectName = process.env.LANGSMITH_PROJECT?.trim() || process.env.LANGCHAIN_PROJECT?.trim() || 'default';
@@ -276,8 +294,9 @@ async function createLangSmithProvider(input: {
 async function createLangfuseProvider(input: {
   name: string;
   inputs: Record<string, unknown>;
+  enablement?: FleetGraphTraceEnablement;
 }): Promise<TraceProvider> {
-  ensureLangfuseEnv();
+  ensureLangfuseEnv(input.enablement);
   ensureLangfuseSdk();
 
   const client = langfuseClient ?? new LangfuseClient({
@@ -345,8 +364,8 @@ async function createLangfuseProvider(input: {
   };
 }
 
-function ensureLangSmithEnv(): void {
-  if (!fleetGraphLangSmithEnabled()) {
+function ensureLangSmithEnv(enablement: FleetGraphTraceEnablement = {}): void {
+  if (!fleetGraphLangSmithEnabled(enablement)) {
     throw new Error('LangSmith tracing is disabled. Set LANGSMITH_TRACING=true or LANGCHAIN_TRACING_V2=true.');
   }
   if (!process.env.LANGSMITH_API_KEY?.trim()) {
@@ -356,8 +375,8 @@ function ensureLangSmithEnv(): void {
   }
 }
 
-function ensureLangfuseEnv(): void {
-  if (!fleetGraphLangfuseEnabled()) {
+function ensureLangfuseEnv(enablement: FleetGraphTraceEnablement = {}): void {
+  if (!fleetGraphLangfuseEnabled(enablement)) {
     throw new Error('Langfuse tracing is disabled. Set LANGFUSE_TRACING=true or provide Langfuse credentials.');
   }
   if (!process.env.LANGFUSE_PUBLIC_KEY?.trim() || !process.env.LANGFUSE_SECRET_KEY?.trim()) {

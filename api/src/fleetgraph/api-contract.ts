@@ -101,6 +101,29 @@ export const FleetGraphFindingsListResponseSchema = z.object({
   findings: z.array(FleetGraphFindingResponseSchema),
 }).openapi('FleetGraphFindingsListResponse');
 
+export const FleetGraphBlastRadiusNodeSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['finding', 'issue', 'sprint', 'project', 'program', 'person']),
+  title: z.string(),
+  subtitle: z.string().optional(),
+  status: z.string().optional(),
+  severity: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+}).openapi('FleetGraphBlastRadiusNode');
+
+export const FleetGraphBlastRadiusEdgeSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  kind: z.enum(['source_issue', 'source_sprint', 'project', 'program', 'assignee', 'owner', 'related_finding']),
+  label: z.string(),
+}).openapi('FleetGraphBlastRadiusEdge');
+
+export const FleetGraphBlastRadiusResponseSchema = z.object({
+  finding: FleetGraphFindingResponseSchema,
+  summary: z.string(),
+  nodes: z.array(FleetGraphBlastRadiusNodeSchema),
+  edges: z.array(FleetGraphBlastRadiusEdgeSchema),
+}).openapi('FleetGraphBlastRadiusResponse');
+
 const FleetGraphNotificationDisplayFieldsSchema = z.object({
   title: z.string(),
   issueTitle: z.string(),

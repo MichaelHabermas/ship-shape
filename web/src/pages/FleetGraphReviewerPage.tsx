@@ -4,6 +4,7 @@ import type { FormEvent, MouseEvent, ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   FleetGraphChatResponse,
+  FleetGraphBlastRadiusResponse,
   FleetGraphReviewerChain,
   FleetGraphReviewerChainsResponse,
   FleetGraphReviewerProofResponse,
@@ -65,7 +66,10 @@ export function FleetGraphReviewerPage() {
   const [error, setError] = useState<string | null>(null);
   const [proof, setProof] = useState<FleetGraphReviewerProofResponse | null>(null);
   const [operation, setOperation] = useState<LiveOperation | null>(null);
+  const [blastRadius, setBlastRadius] = useState<FleetGraphBlastRadiusResponse | null>(null);
+  const [blastRadiusError, setBlastRadiusError] = useState<string | null>(null);
   const refreshIdRef = useRef(0);
+  const blastRadiusRequestIdRef = useRef(0);
 
   async function refresh(options: { showLoading?: boolean } = {}) {
     const requestId = refreshIdRef.current + 1;
@@ -121,6 +125,26 @@ export function FleetGraphReviewerPage() {
     }
   }, [findingId, selected?.chainId]);
 
+  useEffect(() => {
+    const selectedFindingId = selected?.links.findingId;
+    const requestId = blastRadiusRequestIdRef.current + 1;
+    blastRadiusRequestIdRef.current = requestId;
+    setBlastRadius(null);
+    setBlastRadiusError(null);
+    if (!selectedFindingId) return;
+
+    apiGetJson<FleetGraphBlastRadiusResponse>(
+      `/api/fleetgraph/findings/${selectedFindingId}/blast-radius-map`,
+      'Failed to load FleetGraph blast radius'
+    ).then((response) => {
+      if (requestId === blastRadiusRequestIdRef.current) setBlastRadius(response);
+    }).catch((err) => {
+      if (requestId === blastRadiusRequestIdRef.current) {
+        setBlastRadiusError(err instanceof Error ? err.message : 'Failed to load FleetGraph blast radius');
+      }
+    });
+  }, [selected?.links.findingId]);
+
   async function runAction<T>(
     kind: OperationKind,
     action: () => Promise<T>,
@@ -148,6 +172,13 @@ export function FleetGraphReviewerPage() {
       } : current);
     } catch (err) {
       const failure = operationFailure(err, `${operationTitle(kind)} failed`);
+      console.error('[FleetGraphReviewer] operation failed', {
+        kind,
+        message: failure.message,
+        detail: failure.detail,
+        outputTail: failure.outputTail,
+        error: err,
+      });
       setError(failure.message);
       setOperation((current) => current?.kind === kind ? {
         ...current,
@@ -194,7 +225,7 @@ export function FleetGraphReviewerPage() {
               disabled={Boolean(busyAction)}
               onClick={() => runAction('worker', () => apiPostJson<{ triggered: true }>(
                 '/api/fleetgraph/reviewer/worker-tick',
-                undefined,
+                {},
                 'Failed to trigger worker'
               ), undefined, () => 'Worker tick requested. Latest chains have been refreshed.')}
             />
@@ -303,7 +334,7 @@ export function FleetGraphReviewerPage() {
         </main>
 
         <aside className="min-h-0 overflow-y-auto border-t border-white/10 bg-[#0a0e16] p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:border-l lg:border-t-0">
-          {selected ? <DetailPane chain={selected} /> : <EmptyState loading={loading} compact />}
+          {selected ? <DetailPane chain={selected} blastRadius={blastRadius} blastRadiusError={blastRadiusError} /> : <EmptyState loading={loading} compact />}
           {selected?.links.findingId && <ReviewerChat key={selected.links.findingId} findingId={selected.links.findingId} />}
         </aside>
       </div>
@@ -588,7 +619,15 @@ function ChainWorkspace({ chain }: { chain: FleetGraphReviewerChain }) {
   );
 }
 
-function DetailPane({ chain }: { chain: FleetGraphReviewerChain }) {
+function DetailPane({
+  chain,
+  blastRadius,
+  blastRadiusError,
+}: {
+  chain: FleetGraphReviewerChain;
+  blastRadius: FleetGraphBlastRadiusResponse | null;
+  blastRadiusError: string | null;
+}) {
   return (
     <div className="space-y-4">
       <Panel title="Chain detail" help="Raw IDs and trace links for the selected proof chain. These are for reviewers/admins, not public static proof.">
@@ -597,6 +636,7 @@ function DetailPane({ chain }: { chain: FleetGraphReviewerChain }) {
         <KeyValue label="Finding" value={chain.links.findingId} copyUuid />
         <KeyValue label="Trace" value={chain.links.traceUrl} link />
       </Panel>
+      <BlastRadiusPanel blastRadius={blastRadius} error={blastRadiusError} chain={chain} />
       <Panel title="Freshness" help="How old the graph run and worker tick are. Live proof should be fresh, not a stale snapshot.">
         <KeyValue label="Run age" value={formatMs(chain.freshness.proofAgeMs)} />
         <KeyValue label="Worker age" value={formatMs(chain.freshness.workerAgeMs)} />
@@ -620,6 +660,69 @@ function DetailPane({ chain }: { chain: FleetGraphReviewerChain }) {
         </div>
       </Panel>
     </div>
+  );
+}
+
+function BlastRadiusPanel({
+  blastRadius,
+  error,
+  chain,
+}: {
+  blastRadius: FleetGraphBlastRadiusResponse | null;
+  error: string | null;
+  chain: FleetGraphReviewerChain;
+}) {
+  if (!chain.links.findingId) {
+    return (
+      <Panel title="Blast radius" help="Visible issue, week, project, program, person, and related finding impact for this FleetGraph finding.">
+        <div className="text-sm text-slate-500">No finding is attached to this chain.</div>
+      </Panel>
+    );
+  }
+
+  if (error) {
+    return (
+      <Panel title="Blast radius" help="Visible issue, week, project, program, person, and related finding impact for this FleetGraph finding.">
+        <div className="text-sm text-amber-200">Blast radius unavailable.</div>
+      </Panel>
+    );
+  }
+
+  if (!blastRadius) {
+    return (
+      <Panel title="Blast radius" help="Visible issue, week, project, program, person, and related finding impact for this FleetGraph finding.">
+        <div className="text-sm text-slate-500">Loading visible impact...</div>
+      </Panel>
+    );
+  }
+
+  const nodes = Array.isArray(blastRadius.nodes) ? blastRadius.nodes : [];
+  const edges = Array.isArray(blastRadius.edges) ? blastRadius.edges : [];
+  const summary = typeof blastRadius.summary === 'string' && blastRadius.summary.trim()
+    ? blastRadius.summary
+    : 'Blast radius has no visible summary yet.';
+  const visibleNodes = nodes.filter((node) => node.kind !== 'finding').slice(0, 6);
+  return (
+    <Panel title="Blast radius" help="Visible issue, week, project, program, person, and related finding impact for this FleetGraph finding.">
+      <div className="text-sm leading-6 text-slate-300">{summary}</div>
+      <div className="mt-3 space-y-2">
+        {visibleNodes.map((node) => (
+          <div key={node.id} className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-medium text-white">{node.title}</span>
+              <span className="shrink-0 rounded border border-white/10 px-1.5 py-0.5 text-[11px] uppercase text-slate-500">{node.kind}</span>
+            </div>
+            {node.subtitle && <div className="mt-1 truncate text-xs text-slate-500">{node.subtitle}</div>}
+          </div>
+        ))}
+        {visibleNodes.length === 0 && (
+          <div className="text-sm text-slate-500">No visible downstream nodes yet.</div>
+        )}
+      </div>
+      <div className="mt-3 text-xs text-slate-500">
+        {edges.length} visible link{edges.length === 1 ? '' : 's'}
+      </div>
+    </Panel>
   );
 }
 

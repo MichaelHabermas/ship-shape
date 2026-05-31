@@ -119,8 +119,12 @@ async function fetchWithCsrf(
     handleSessionExpired(); // never returns
   }
 
-  // If CSRF token invalid (403 with JSON), retry once
+  // If CSRF token invalid (403 with JSON), retry once. Preserve real
+  // authorization failures so callers can show the actual denial reason.
   if (res.status === 403 && isJson) {
+    const details = await errorDetails(res.clone());
+    if (!isCsrfErrorDetails(details)) return res;
+
     clearCsrfToken();
     const newToken = await ensureCsrfToken();
     return apiFetch(`${API_URL}${endpoint}`, {
@@ -134,6 +138,19 @@ async function fetchWithCsrf(
     });
   }
   return res;
+}
+
+function isCsrfErrorDetails(details: unknown): boolean {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return false;
+  const record = details as Record<string, unknown>;
+  if (record.error === 'Invalid or missing CSRF token') return true;
+  const nested = record.error;
+  return Boolean(
+    nested
+      && typeof nested === 'object'
+      && !Array.isArray(nested)
+      && (nested as Record<string, unknown>).code === 'CSRF_ERROR'
+  );
 }
 
 export async function apiGet(endpoint: string): Promise<Response> {

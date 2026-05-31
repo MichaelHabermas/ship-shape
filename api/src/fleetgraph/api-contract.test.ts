@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   FleetGraphChatContextSchema,
+  FleetGraphBlastRadiusResponseSchema,
   FleetGraphReviewerChainsResponseSchema,
   fleetGraphManualRunResultResponse,
   fleetGraphRunResponse,
@@ -108,6 +109,34 @@ describe('FleetGraph API contract', () => {
     expect(response.finding?.visibleOutput.recipientRationale).toContain('issue assignee');
     expect(JSON.stringify(response)).not.toContain('blocked-important-issue');
     expect(JSON.stringify(response)).not.toContain('hidden-user');
+  });
+
+  it('accepts the blast radius map response contract', () => {
+    const parsed = FleetGraphBlastRadiusResponseSchema.parse({
+      finding: {
+        id: findingId,
+        kind: 'blocker',
+        status: 'needs_confirmation',
+        signalType: 'blocked',
+        signalLabel: 'Blocked',
+        reason: 'Visible summary',
+        sourceIssueId: issueId,
+        sourceSprintId: sprintId,
+        visibleOutput: visibleOutput(),
+        traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: ['detectorDecision'] },
+      },
+      summary: 'Blocked work touches 1 project.',
+      nodes: [
+        { id: `finding:${findingId}`, kind: 'finding', title: 'Blocked work', status: 'needs_confirmation', severity: 'urgent' },
+        { id: `issue:${issueId}`, kind: 'issue', title: 'Blocked work' },
+      ],
+      edges: [
+        { from: `finding:${findingId}`, to: `issue:${issueId}`, kind: 'source_issue', label: 'source issue' },
+      ],
+    });
+
+    expect(parsed.nodes[0]?.kind).toBe('finding');
+    expect(parsed.edges[0]?.kind).toBe('source_issue');
   });
 
   it('omits usage metadata when no model calls were recorded', () => {

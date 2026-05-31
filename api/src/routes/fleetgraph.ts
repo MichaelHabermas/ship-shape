@@ -11,6 +11,7 @@ import { sendInternalError, sendLegacyError } from '../utils/route-http.js';
 import type { FleetGraphFindingResponse, FleetGraphNotificationResponse } from '@ship/shared';
 import {
   FleetGraphFindingsListResponseSchema,
+  FleetGraphBlastRadiusResponseSchema,
   FleetGraphNotificationsListResponseSchema,
   FleetGraphChangeSummaryResponseSchema,
   FleetGraphManualRunResponseSchema,
@@ -30,6 +31,7 @@ import {
   sendFleetGraphChangeSummaryResponse,
   sendFleetGraphRunResponse,
 } from '../fleetgraph/api-contract.js';
+import { getFleetGraphBlastRadius } from '../fleetgraph/blast-radius.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { isUtcCalendarDate, parseUtcCalendarDate } from '../fleetgraph/date.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
@@ -221,6 +223,39 @@ router.get('/notifications', authMiddleware, defineRoute({
       res.json({ notifications });
     } catch (err) {
       sendInternalError(res, err, 'List FleetGraph notifications error');
+    }
+  },
+}));
+
+router.get('/findings/:findingId/blast-radius-map', authMiddleware, defineRoute({
+  method: 'get',
+  path: '/fleetgraph/findings/{findingId}/blast-radius-map',
+  tags: ['FleetGraph'],
+  summary: 'Map the visible organizational blast radius for a FleetGraph finding',
+  security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  request: { params: findingParamsSchema },
+  responses: {
+    200: { schema: FleetGraphBlastRadiusResponseSchema },
+    400: { schema: ApiErrorResponseSchema },
+    404: { schema: ErrorResponseSchema },
+    500: { schema: ErrorResponseSchema },
+  },
+  async handler(req: Request, res: Response, parsed) {
+    try {
+      const { workspaceId } = getAuthenticatedRouteContext(req);
+      const principal = principalFromRequest(req);
+      const blastRadius = await getFleetGraphBlastRadius({
+        workspaceId,
+        principal,
+        findingId: parsed.params.findingId,
+      });
+      if (!blastRadius) {
+        sendLegacyError(res, 404, 'FleetGraph finding not found');
+        return;
+      }
+      res.json(blastRadius);
+    } catch (err) {
+      sendInternalError(res, err, 'Get FleetGraph blast radius map error');
     }
   },
 }));

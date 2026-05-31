@@ -26,6 +26,7 @@ describe('fleetGraphConfig', () => {
       FLEETGRAPH_WORKER_TICK_DEADLINE_MS: '180000',
       FLEETGRAPH_MODEL: 'gpt-4.1-mini',
       FLEETGRAPH_MANUAL_RUN_API_ENABLED: 'true',
+      FLEETGRAPH_EXTERNAL_TRACING_ENABLED: 'true',
       LANGSMITH_TRACING: 'true',
       LANGSMITH_PROJECT: 'ship-fleetgraph',
     })).toEqual({
@@ -37,6 +38,16 @@ describe('fleetGraphConfig', () => {
       manualRunApiEnabled: true,
       modelName: 'gpt-4.1-mini',
       tracingEnabled: true,
+      traceProject: 'ship-fleetgraph',
+    });
+  });
+
+  it('does not enable tracing from provider flags without the FleetGraph tracing gate', () => {
+    expect(fleetGraphConfig({
+      LANGSMITH_TRACING: 'true',
+      LANGSMITH_PROJECT: 'ship-fleetgraph',
+    })).toMatchObject({
+      tracingEnabled: false,
       traceProject: 'ship-fleetgraph',
     });
   });

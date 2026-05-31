@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fleetgraphRoutes from './fleetgraph.js';
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { authorizeRequest } from '../security/route-capability.js';
+import { getFleetGraphBlastRadius } from '../fleetgraph/blast-radius.js';
 import { runFleetGraph } from '../fleetgraph/core.js';
 import { visibleOutputForFinding } from '../fleetgraph/evidence.js';
 import { runFleetGraphManualTick } from '../fleetgraph/execution/manual-run.js';
@@ -84,6 +85,10 @@ vi.mock('../security/route-capability.js', () => ({
   authorizeRequest: vi.fn(),
 }));
 
+vi.mock('../fleetgraph/blast-radius.js', () => ({
+  getFleetGraphBlastRadius: vi.fn(),
+}));
+
 vi.mock('../fleetgraph/evidence.js', () => ({
   visibleOutputForFinding: vi.fn(),
 }));
@@ -134,6 +139,12 @@ type FleetGraphFindingsTestBody = {
     dedupeKey?: string;
     visibleOutput: { summary: string };
   }>;
+};
+
+type FleetGraphBlastRadiusTestBody = {
+  summary: string;
+  nodes: Array<{ id: string; kind: string; title: string }>;
+  edges: Array<{ from: string; to: string; kind: string; label: string }>;
 };
 
 type FleetGraphNotificationsTestBody = {
@@ -352,6 +363,7 @@ describe('FleetGraph routes', () => {
     vi.mocked(listFleetGraphNotificationFindings).mockReset();
     vi.mocked(markFleetGraphNotificationRead).mockReset();
     vi.mocked(markVisibleFleetGraphNotificationsRead).mockReset();
+    vi.mocked(getFleetGraphBlastRadius).mockReset();
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(runFleetGraph).mockReset();
     vi.mocked(runFleetGraphManualTick).mockReset();
@@ -581,6 +593,55 @@ describe('FleetGraph routes', () => {
     expect(body.findings).toEqual([]);
     expect(res.text).not.toContain(issueId);
     expect(res.text).not.toContain('blocked-important-issue');
+  });
+
+  it('returns a visible blast radius map for a finding', async () => {
+    vi.mocked(getFleetGraphBlastRadius).mockResolvedValue({
+      finding: {
+        id: findingId,
+        kind: 'blocker',
+        status: 'needs_confirmation',
+        signalType: 'blocked',
+        signalLabel: 'Blocked',
+        reason: 'Visible summary',
+        sourceIssueId: issueId,
+        sourceSprintId: sprintId,
+        visibleOutput: visibleOutput(),
+        traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: ['detectorDecision'] },
+      },
+      summary: 'API access blocker touches 1 project.',
+      nodes: [
+        { id: `finding:${findingId}`, kind: 'finding', title: 'API access blocker', status: 'needs_confirmation', severity: 'urgent' },
+        { id: `issue:${issueId}`, kind: 'issue', title: 'Backend queue work' },
+        { id: 'project:99999999-9999-4999-8999-999999999999', kind: 'project', title: 'Audit Load' },
+      ],
+      edges: [
+        { from: `finding:${findingId}`, to: `issue:${issueId}`, kind: 'source_issue', label: 'source issue' },
+      ],
+    });
+
+    const res = await request(app())
+      .get(`/api/fleetgraph/findings/${findingId}/blast-radius-map`)
+      .expect(200);
+
+    const body = JSON.parse(res.text) as FleetGraphBlastRadiusTestBody;
+    expect(body.summary).toBe('API access blocker touches 1 project.');
+    expect(body.nodes.map((node) => node.kind)).toEqual(['finding', 'issue', 'project']);
+    const [blastRadiusCall] = vi.mocked(getFleetGraphBlastRadius).mock.calls;
+    expect(blastRadiusCall?.[0].workspaceId).toBe(workspaceId);
+    expect(blastRadiusCall?.[0].findingId).toBe(findingId);
+    expect(blastRadiusCall?.[0].principal).toMatchObject({ kind: 'session', userId: USER_ID });
+    expect(res.text).not.toContain('blocked-important-issue');
+  });
+
+  it('returns 404 for absent or restricted blast radius maps', async () => {
+    vi.mocked(getFleetGraphBlastRadius).mockResolvedValue(null);
+
+    const res = await request(app())
+      .get(`/api/fleetgraph/findings/${findingId}/blast-radius-map`)
+      .expect(404);
+
+    expect(JSON.parse(res.text)).toEqual({ error: 'FleetGraph finding not found' });
   });
 
   it('returns explain output without usage metadata for deterministic runs', async () => {

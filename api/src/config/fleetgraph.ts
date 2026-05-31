@@ -41,7 +41,9 @@ export function fleetGraphConfig(env: NodeJS.ProcessEnv = process.env): Resolved
     ),
     manualRunApiEnabled: env.NODE_ENV !== 'production' || envFlag(env.FLEETGRAPH_MANUAL_RUN_API_ENABLED),
     modelName: env.FLEETGRAPH_MODEL?.trim() || null,
-    tracingEnabled: envFlag(env.LANGSMITH_TRACING) || envFlag(env.LANGCHAIN_TRACING_V2),
+    tracingEnabled: envFlag(env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED) && (
+      envFlag(env.LANGSMITH_TRACING) || envFlag(env.LANGCHAIN_TRACING_V2)
+    ),
     traceProject: env.LANGSMITH_PROJECT?.trim() || env.LANGCHAIN_PROJECT?.trim() || null,
   };
 }

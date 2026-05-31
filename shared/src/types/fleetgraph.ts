@@ -232,6 +232,46 @@ export type FleetGraphFindingsListResponse = {
   findings: FleetGraphFindingResponse[];
 };
 
+export type FleetGraphBlastRadiusNodeKind =
+  | 'finding'
+  | 'issue'
+  | 'sprint'
+  | 'project'
+  | 'program'
+  | 'person';
+
+export type FleetGraphBlastRadiusEdgeKind =
+  | 'source_issue'
+  | 'source_sprint'
+  | 'project'
+  | 'program'
+  | 'assignee'
+  | 'owner'
+  | 'related_finding';
+
+export type FleetGraphBlastRadiusNode = {
+  id: string;
+  kind: FleetGraphBlastRadiusNodeKind;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  severity?: FleetGraphSeverity;
+};
+
+export type FleetGraphBlastRadiusEdge = {
+  from: string;
+  to: string;
+  kind: FleetGraphBlastRadiusEdgeKind;
+  label: string;
+};
+
+export type FleetGraphBlastRadiusResponse = {
+  finding: FleetGraphFindingResponse;
+  summary: string;
+  nodes: FleetGraphBlastRadiusNode[];
+  edges: FleetGraphBlastRadiusEdge[];
+};
+
 export type FleetGraphNotificationDisplayFields = {
   title: string;
   issueTitle: string;

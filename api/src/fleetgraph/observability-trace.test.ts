@@ -97,6 +97,7 @@ describe('withFleetGraphTrace', () => {
     delete process.env.LANGCHAIN_TRACING_V2;
     delete process.env.LANGSMITH_API_KEY;
     delete process.env.LANGSMITH_PROJECT;
+    delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
     delete process.env.FLEETGRAPH_LANGSMITH_SHARE;
     delete process.env.LANGFUSE_TRACING;
     delete process.env.LANGFUSE_PUBLIC_KEY;
@@ -360,6 +361,22 @@ describe('withFleetGraphTrace', () => {
     );
   });
 
+  it('stays disabled when provider credentials exist but FleetGraph tracing is not explicitly enabled', async () => {
+    process.env.LANGSMITH_TRACING = 'true';
+    process.env.LANGSMITH_API_KEY = 'test-key';
+    process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
+    process.env.LANGFUSE_SECRET_KEY = 'sk-test';
+
+    await expect(withFleetGraphTrace({
+      name: 'fleetgraph.test',
+      inputs: { label: 'safe' },
+    }, async (trace) => result(trace.traceId, trace.traceUrl))).rejects.toThrow(
+      'FleetGraph tracing is disabled'
+    );
+    expect(mocks.createRun).not.toHaveBeenCalled();
+    expect(mocks.startObservation).not.toHaveBeenCalled();
+  });
+
   it('posts provider scores best-effort without failing when one provider rejects', async () => {
     enableLangSmith();
     enableLangfuse();
@@ -395,12 +412,14 @@ describe('withFleetGraphTrace', () => {
 });
 
 function enableLangSmith(): void {
+  process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'true';
   process.env.LANGSMITH_TRACING = 'true';
   process.env.LANGSMITH_API_KEY = 'test-key';
   process.env.LANGSMITH_PROJECT = 'test-project';
 }
 
 function enableLangfuse(): void {
+  process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'true';
   process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
   process.env.LANGFUSE_SECRET_KEY = 'sk-test';
   process.env.LANGFUSE_BASE_URL = 'https://us.cloud.langfuse.com';

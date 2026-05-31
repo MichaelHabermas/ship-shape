@@ -256,9 +256,11 @@ describe('FleetGraph shared core', () => {
   it('does not auto-trace scheduled worker quiet exits', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+    const previousFleetGraphTracing = process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
 
     process.env.NODE_ENV = 'production';
     process.env.LANGSMITH_TRACING = 'true';
+    process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'true';
 
     try {
       expect(shouldAutoCaptureTrace({
@@ -274,15 +276,22 @@ describe('FleetGraph shared core', () => {
       } else {
         process.env.LANGSMITH_TRACING = previousLangSmithTracing;
       }
+      if (previousFleetGraphTracing === undefined) {
+        delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = previousFleetGraphTracing;
+      }
     }
   });
 
   it('keeps auto-tracing enabled for useful production FleetGraph runs', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+    const previousFleetGraphTracing = process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
 
     process.env.NODE_ENV = 'production';
     process.env.LANGSMITH_TRACING = 'true';
+    process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'true';
 
     try {
       expect(shouldAutoCaptureTrace({
@@ -307,15 +316,22 @@ describe('FleetGraph shared core', () => {
       } else {
         process.env.LANGSMITH_TRACING = previousLangSmithTracing;
       }
+      if (previousFleetGraphTracing === undefined) {
+        delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = previousFleetGraphTracing;
+      }
     }
   });
 
   it('does not auto-trace in-memory evaluation runs', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+    const previousFleetGraphTracing = process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
 
     process.env.NODE_ENV = 'production';
     process.env.LANGSMITH_TRACING = 'true';
+    process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'true';
 
     try {
       expect(shouldAutoCaptureTrace({
@@ -332,6 +348,113 @@ describe('FleetGraph shared core', () => {
         delete process.env.LANGSMITH_TRACING;
       } else {
         process.env.LANGSMITH_TRACING = previousLangSmithTracing;
+      }
+      if (previousFleetGraphTracing === undefined) {
+        delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = previousFleetGraphTracing;
+      }
+    }
+  });
+
+  it('allows reviewer-forced tracing without enabling global FleetGraph tracing', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousFleetGraphTracing = process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+    const previousReviewerTracing = process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED;
+    const previousLangfusePublicKey = process.env.LANGFUSE_PUBLIC_KEY;
+    const previousLangfuseSecretKey = process.env.LANGFUSE_SECRET_KEY;
+
+    process.env.NODE_ENV = 'production';
+    process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'false';
+    process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED = 'true';
+    process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
+    process.env.LANGFUSE_SECRET_KEY = 'sk-test';
+
+    try {
+      const input = {
+        workspaceId,
+        mode: 'proactive' as const,
+        trigger: {
+          type: 'detector_decision' as const,
+          detectorDecision: { decision: 'create_finding' as const, candidate, existingFindingId: null },
+        },
+        triggerReason: 'reviewer-week-blocker-scenario',
+      };
+
+      expect(shouldAutoCaptureTrace(input, {})).toBe(false);
+      expect(shouldAutoCaptureTrace(input, { forceReviewerTrace: true })).toBe(true);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousFleetGraphTracing === undefined) {
+        delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = previousFleetGraphTracing;
+      }
+      if (previousReviewerTracing === undefined) {
+        delete process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED = previousReviewerTracing;
+      }
+      if (previousLangfusePublicKey === undefined) {
+        delete process.env.LANGFUSE_PUBLIC_KEY;
+      } else {
+        process.env.LANGFUSE_PUBLIC_KEY = previousLangfusePublicKey;
+      }
+      if (previousLangfuseSecretKey === undefined) {
+        delete process.env.LANGFUSE_SECRET_KEY;
+      } else {
+        process.env.LANGFUSE_SECRET_KEY = previousLangfuseSecretKey;
+      }
+    }
+  });
+
+  it('allows reviewer-forced tracing without a separate reviewer env flag', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousFleetGraphTracing = process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+    const previousReviewerTracing = process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED;
+    const previousLangfusePublicKey = process.env.LANGFUSE_PUBLIC_KEY;
+    const previousLangfuseSecretKey = process.env.LANGFUSE_SECRET_KEY;
+
+    process.env.NODE_ENV = 'production';
+    process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'false';
+    delete process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED;
+    process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
+    process.env.LANGFUSE_SECRET_KEY = 'sk-test';
+
+    try {
+      const input = {
+        workspaceId,
+        mode: 'proactive' as const,
+        trigger: {
+          type: 'detector_decision' as const,
+          detectorDecision: { decision: 'create_finding' as const, candidate, existingFindingId: null },
+        },
+        triggerReason: 'reviewer-week-blocker-scenario',
+      };
+
+      expect(shouldAutoCaptureTrace(input, {})).toBe(false);
+      expect(shouldAutoCaptureTrace(input, { forceReviewerTrace: true })).toBe(true);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousFleetGraphTracing === undefined) {
+        delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = previousFleetGraphTracing;
+      }
+      if (previousReviewerTracing === undefined) {
+        delete process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_REVIEWER_TRACING_ENABLED = previousReviewerTracing;
+      }
+      if (previousLangfusePublicKey === undefined) {
+        delete process.env.LANGFUSE_PUBLIC_KEY;
+      } else {
+        process.env.LANGFUSE_PUBLIC_KEY = previousLangfusePublicKey;
+      }
+      if (previousLangfuseSecretKey === undefined) {
+        delete process.env.LANGFUSE_SECRET_KEY;
+      } else {
+        process.env.LANGFUSE_SECRET_KEY = previousLangfuseSecretKey;
       }
     }
   });
@@ -702,8 +825,10 @@ describe('FleetGraph shared core', () => {
     const port = persistence();
     const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
     const previousLangChainTracing = process.env.LANGCHAIN_TRACING_V2;
+    const previousFleetGraphTracing = process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
     process.env.LANGSMITH_TRACING = 'true';
     process.env.LANGCHAIN_TRACING_V2 = 'true';
+    process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = 'true';
 
     try {
       await runFleetGraph({
@@ -715,6 +840,7 @@ describe('FleetGraph shared core', () => {
 
       expect(process.env.LANGSMITH_TRACING).toBe('true');
       expect(process.env.LANGCHAIN_TRACING_V2).toBe('true');
+      expect(process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED).toBe('true');
     } finally {
       if (previousLangSmithTracing === undefined) {
         delete process.env.LANGSMITH_TRACING;
@@ -725,6 +851,11 @@ describe('FleetGraph shared core', () => {
         delete process.env.LANGCHAIN_TRACING_V2;
       } else {
         process.env.LANGCHAIN_TRACING_V2 = previousLangChainTracing;
+      }
+      if (previousFleetGraphTracing === undefined) {
+        delete process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED;
+      } else {
+        process.env.FLEETGRAPH_EXTERNAL_TRACING_ENABLED = previousFleetGraphTracing;
       }
     }
   });

@@ -40,6 +40,7 @@ import {
   fleetGraphTracingEnabled,
   withFleetGraphTrace,
   type FleetGraphNodeRecorder,
+  type FleetGraphTraceEnablement,
 } from './observability-trace.js';
 import { fleetGraphTraceMetadata, traceMetadataJson } from './trace.js';
 import { fleetGraphStableHash } from './trace-hash.js';
@@ -81,6 +82,7 @@ export type FleetGraphCoreOptions = {
   externalTrace?: Pick<FleetGraphTraceMetadata, 'traceId' | 'traceUrl'>;
   traceRecorder?: FleetGraphNodeRecorder;
   observabilityError?: string;
+  forceReviewerTrace?: boolean;
 };
 
 const FleetGraphState = Annotation.Root({
@@ -132,6 +134,7 @@ export async function runFleetGraph(
       const capture = await withFleetGraphTrace({
         name: `FleetGraph ${input.mode} ${input.trigger.type}`,
         inputs: traceSafeRunInputs(input),
+        enablement: traceEnablementForOptions(options),
       }, (externalTrace, traceRecorder) => runFleetGraph(input, { ...options, externalTrace, traceRecorder }));
       return capture.result;
     } catch (error) {
@@ -177,10 +180,20 @@ function traceSafeRunInputs(input: FleetGraphInput): Record<string, unknown> {
 }
 
 export function shouldAutoCaptureTrace(input: FleetGraphInput, options: FleetGraphCoreOptions): boolean {
+  if (options.forceReviewerTrace) {
+    return !options.externalTrace
+      && process.env.NODE_ENV !== 'test'
+      && fleetGraphTracingEnabled(traceEnablementForOptions(options));
+  }
+
   return !options.externalTrace
     && process.env.NODE_ENV !== 'test'
     && !isLowSignalAutoTrace(input, options)
     && fleetGraphTracingEnabled();
+}
+
+function traceEnablementForOptions(options: FleetGraphCoreOptions): FleetGraphTraceEnablement {
+  return { reviewer: options.forceReviewerTrace === true };
 }
 
 function isLowSignalAutoTrace(input: FleetGraphInput, options: FleetGraphCoreOptions): boolean {

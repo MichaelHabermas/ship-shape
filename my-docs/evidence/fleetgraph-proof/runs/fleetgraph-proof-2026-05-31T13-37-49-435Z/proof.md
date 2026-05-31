@@ -1,10 +1,10 @@
 # FleetGraph Reviewer Proof
 
-Generated: 2026-05-31T14:07:43.812Z
-Run: fleetgraph-proof-2026-05-31T14-07-43-812Z
+Generated: 2026-05-31T13:37:49.435Z
+Run: fleetgraph-proof-2026-05-31T13-37-49-435Z
 Target: local
-Verdict: pass
-Git: master @ f2d8bc4f4fe66e3bd762ac1824ad0464836649c4
+Verdict: fail
+Git: master @ da27def222d0ed757e10bb55b28a518cec017b71
 
 ## Verdict
 
@@ -89,7 +89,7 @@ No trace evidence was configured.
 
 ## Risks
 
-- None recorded.
+- One or more required graph paths is defined by golden cases but not executed by the focused proof tests yet.
 
 ## Non-Claims
 
@@ -102,7 +102,7 @@ No trace evidence was configured.
 - Static dashboard: my-docs/evidence/fleetgraph-proof/latest.html
 - Proof JSON: my-docs/evidence/fleetgraph-proof/latest.json
 - Proof Markdown: my-docs/evidence/fleetgraph-proof/latest.md
-- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T14-07-43-812Z/proof.html
+- Timestamped run: my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T13-37-49-435Z/proof.html
 - Golden cases: api/src/fleetgraph/eval/golden-cases.ts
 - Executable golden-case tests: api/src/fleetgraph/eval/executable-golden-cases.test.ts
 - Product-surface eval: my-docs/evals/fleetgraph-product-surface/latest.html

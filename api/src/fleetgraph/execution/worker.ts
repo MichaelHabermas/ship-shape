@@ -8,6 +8,7 @@ import {
 import { pool } from '../../db/client.js';
 import type { Principal } from '../../security/principal.js';
 import { deterministicProactiveCreateText } from '../model.js';
+import type { FleetGraphCoreOptions } from '../core.js';
 import {
   claimFleetGraphAttentionEvents,
   completeFleetGraphAttentionEvent,
@@ -43,6 +44,7 @@ export type FleetGraphWorkerOptions = {
   logger?: WorkerLogger;
   instanceId?: string;
   workspaceIds?: string[];
+  graphOptions?: Omit<FleetGraphCoreOptions, 'db'>;
   setTimeoutFn?: typeof setTimeout;
   clearTimeoutFn?: typeof clearTimeout;
   runTick?: WorkerRunTick;
@@ -140,6 +142,7 @@ async function runWorkspaceTick(input: {
   workspaceId: string;
   config: ResolvedFleetGraphConfig;
   runTick: WorkerRunTick;
+  graphOptions?: FleetGraphWorkerOptions['graphOptions'];
 }): Promise<FleetGraphExecuteTickSummary> {
   return input.runTick({
     mode: 'execute',
@@ -148,6 +151,7 @@ async function runWorkspaceTick(input: {
     limit: input.config.workerCandidateLimit,
     triggerReason: 'scheduled-worker',
     graphOptions: {
+      ...input.graphOptions,
       generateProactiveText: async ({ candidate }) => deterministicProactiveCreateText(candidate),
     },
   });
@@ -226,6 +230,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
           principal: fleetGraphSystemPrincipal(event.workspace_id),
           db: client,
           graphOptions: {
+            ...options.graphOptions,
             generateProactiveText: async ({ candidate }) => deterministicProactiveCreateText(candidate),
           },
         });
@@ -270,7 +275,12 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
       stats.workspaceCount += 1;
 
       try {
-        const summary = await runWorkspaceTick({ workspaceId, config, runTick });
+        const summary = await runWorkspaceTick({
+          workspaceId,
+          config,
+          runTick,
+          graphOptions: options.graphOptions,
+        });
         stats.detectorDecisionCount += summary.detectorDecisions;
         stats.resultCount += summary.results.length;
         stats.modelCallCount += modelCallsForSummary(summary);
