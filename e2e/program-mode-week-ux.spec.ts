@@ -11,7 +11,7 @@
  * - Phase 4: Issues Tab Filtering
  */
 
-import { test, expect, Page } from './fixtures/isolated-env'
+import { test, expect, Page, type APIRequestContext } from './fixtures/isolated-env'
 import { login } from './fixtures/api-auth';
 
 
@@ -23,7 +23,7 @@ test.describe.configure({ mode: 'serial' })
 // =============================================================================
 
 // Helper function to clean up extra sprints
-async function cleanupExtraSprints(request: any) {
+async function cleanupExtraSprints(request: APIRequestContext) {
   const loginResponse = await request.post('/api/auth/login', {
     data: { email: 'dev@ship.local', password: 'admin123' }
   })

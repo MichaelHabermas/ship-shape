@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/isolated-env'
+import { test, expect, type Page } from './fixtures/isolated-env'
 
 test.describe('Inline Comments', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe('Inline Comments', () => {
   /**
    * Helper: create a document, type text, and return the document page
    */
-  async function createDocumentWithText(page: any, text: string) {
+  async function createDocumentWithText(page: Page, text: string) {
     await page.goto('/docs')
     const newButton = page.getByRole('button', { name: 'New Document', exact: true })
     await expect(newButton).toBeVisible({ timeout: 5000 })
@@ -31,7 +31,7 @@ test.describe('Inline Comments', () => {
   /**
    * Helper: select a specific substring within the editor paragraph
    */
-  async function selectText(page: any, target: string) {
+  async function selectText(page: Page, target: string) {
     await page.evaluate((t: string) => {
       const p = document.querySelector('[data-testid="tiptap-editor"] .ProseMirror p')
       if (!p) return

@@ -67,8 +67,7 @@ describe('FileAttachmentExtension', () => {
     });
 
     // Check that the command exists
-    expect((editor.commands as any).setFileAttachment).toBeDefined();
-    expect(typeof (editor.commands as any).setFileAttachment).toBe('function');
+    expect('setFileAttachment' in editor.commands && typeof editor.commands.setFileAttachment === 'function').toBe(true);
 
     editor.destroy();
   });

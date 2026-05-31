@@ -69,7 +69,7 @@ test.describe('Real Integration - @Mentions', () => {
 
     // REAL VERIFICATION: Should find the dev user
     expect(data.people.length).toBeGreaterThan(0);
-    expect(data.people.some((p: any) => p.name.toLowerCase().includes('dev'))).toBe(true);
+    expect(data.people.some((p: { name: string }) => p.name.toLowerCase().includes('dev'))).toBe(true);
   });
 
   test('typing @ in editor triggers mention suggestion', async ({ page }) => {

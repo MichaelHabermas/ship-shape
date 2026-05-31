@@ -72,8 +72,7 @@ describe('DetailsExtension', () => {
     });
 
     // Check that the command exists
-    expect((editor.commands as any).setDetails).toBeDefined();
-    expect(typeof (editor.commands as any).setDetails).toBe('function');
+    expect('setDetails' in editor.commands && typeof editor.commands.setDetails === 'function').toBe(true);
 
     editor.destroy();
   });

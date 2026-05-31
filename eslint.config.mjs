@@ -22,10 +22,10 @@ const maxLinesRule = [
 ];
 
 const typeSafetyRules = {
-  '@typescript-eslint/no-explicit-any': 'warn',
-  '@typescript-eslint/no-non-null-assertion': 'warn',
+  '@typescript-eslint/no-explicit-any': 'error',
+  '@typescript-eslint/no-non-null-assertion': 'error',
   '@typescript-eslint/no-unused-vars': [
-    'warn',
+    'error',
     {
       argsIgnorePattern: '^_',
       caughtErrorsIgnorePattern: '^_',
@@ -58,7 +58,7 @@ const typedTypeSafetyRules = {
   '@typescript-eslint/no-floating-promises': 'off',
   '@typescript-eslint/await-thenable': 'warn',
   '@typescript-eslint/no-misused-promises': 'off',
-  '@typescript-eslint/restrict-template-expressions': 'warn',
+  '@typescript-eslint/restrict-template-expressions': 'error',
   '@typescript-eslint/explicit-module-boundary-types': 'off',
   '@typescript-eslint/switch-exhaustiveness-check': 'off',
   '@typescript-eslint/strict-boolean-expressions': 'off',

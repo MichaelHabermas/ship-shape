@@ -42,8 +42,8 @@ async function migrate() {
     try {
       await pool.query(schema);
       console.log('✅ Schema applied');
-    } catch (err: any) {
-      if (err.message?.includes('already exists')) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes('already exists')) {
         console.log('ℹ️  Schema already exists, continuing...');
       } else {
         throw err;

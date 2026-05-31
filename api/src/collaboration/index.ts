@@ -308,7 +308,7 @@ async function getOrCreateDoc(docName: string, principal?: Principal): Promise<Y
   }
 
   // Set up persistence and broadcast on changes
-  doc.on('update', (update: Uint8Array, origin: any) => {
+  doc.on('update', (update: Uint8Array, origin: unknown) => {
     const originPrincipal = origin instanceof WebSocket ? conns.get(origin)?.principal : undefined;
     schedulePersist(docName, doc, originPrincipal);
 

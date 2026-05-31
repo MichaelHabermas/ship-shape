@@ -737,3 +737,5 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Reduce lint noise by clearing whole rule categories in order: unused vars and template expressions first, then concentrated `no-explicit-any` in API tests, then `no-non-null-assertion` in tests/e2e/scripts (excluding `api/src/db/seed.ts` for now). Do not start `max-lines` file splits or broad `no-unsafe-*` typing in the same pass.
 
 **Consequence:** New lint fixes should prefer mechanical category completion (delete unused bindings, type guards, `z.infer` in tests) over eslint-disable or config carve-outs. Seed non-null and `max-lines` remain a follow-up slice. FleetGraph reviewer page should not destructure unused hook fields (`setError`, `refresh`).
+
+**Follow-through (2026-05-31):** Promoted the four mechanical rules to `error` after clearing warnings. `seed.ts` uses `seedAt()` for invariant array/map access; `max-lines` and `no-unsafe-*` stay warn until a dedicated pass.
