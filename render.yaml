@@ -41,9 +41,11 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: LANGSMITH_TRACING
-        value: "true"
+        value: "false"
       - key: LANGCHAIN_TRACING_V2
-        value: "true"
+        value: "false"
+      - key: FLEETGRAPH_EXTERNAL_TRACING_ENABLED
+        value: "false"
       - key: LANGSMITH_PROJECT
         value: ship-shape-fleetgraph
       - key: LANGSMITH_ENDPOINT

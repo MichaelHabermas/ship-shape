@@ -98,6 +98,7 @@ FleetGraph uses a hybrid trigger model:
 Deployment stance:
 
 - Render starts the API-process worker with `FLEETGRAPH_WORKER_ENABLED=true`.
+- External trace export is opt-in via `FLEETGRAPH_EXTERNAL_TRACING_ENABLED=true`; Render keeps it false so deployed worker runs do not spam LangSmith/Langfuse.
 - The worker uses DB leases/advisory locks so duplicate API instances do not double-scan.
 - Final deployed proof requires recent `fleetgraph_worker_ticks`, findings/runs for `blocked`, `stale`, and `at_risk`, and no stuck expired worker ticks.
 

@@ -8847,6 +8847,109 @@
           "notifications"
         ]
       },
+      "FleetGraphBlastRadiusNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "finding",
+              "issue",
+              "sprint",
+              "project",
+              "program",
+              "person"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title"
+        ]
+      },
+      "FleetGraphBlastRadiusEdge": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "source_issue",
+              "source_sprint",
+              "project",
+              "program",
+              "assignee",
+              "owner",
+              "related_finding"
+            ]
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "kind",
+          "label"
+        ]
+      },
+      "FleetGraphBlastRadiusResponse": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "$ref": "#/components/schemas/FleetGraphFindingResponse"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetGraphBlastRadiusNode"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetGraphBlastRadiusEdge"
+            }
+          }
+        },
+        "required": [
+          "finding",
+          "summary",
+          "nodes",
+          "edges"
+        ]
+      },
       "FleetGraphMarkNotificationsReadResponse": {
         "type": "object",
         "properties": {
@@ -18833,6 +18936,77 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fleetgraph/findings/{findingId}/blast-radius-map": {
+      "get": {
+        "tags": [
+          "FleetGraph"
+        ],
+        "summary": "Map the visible organizational blast radius for a FleetGraph finding",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID identifier",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "findingId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetGraphBlastRadiusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
