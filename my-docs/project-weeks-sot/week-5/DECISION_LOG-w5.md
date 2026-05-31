@@ -685,3 +685,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** A live reviewer chain proves the graph decision for its own causal story. Global graph decision coverage (`create_finding`, `update_finding`, `quiet_exit`, `explain`, and newer scenario decisions) remains in the proof scenario matrix, not in each selected chain's trace-quality gate.
 
 **Consequence:** `Generate packet` no longer fails a complete current-week chain because unrelated global decisions were not observed inside that one chain. The static packet and dashboard now use the same boundary for chain completeness while still allowing scenario tests to prove broader FleetGraph behavior.
+
+## D086 - FleetGraph Contextual Chat Is The Product Surface
+
+**Date:** 2026-05-30
+
+**Decision:** Improve FleetGraph by making the existing chat understand current page context, attached document/page context, notification/finding context, and bounded recent turns. Do not add new buttons, quick actions, panels, banners, dashboards, or reviewer-only affordances for this slice.
+
+**Consequence:** Future contextual-chat work should add behavior cases and strengthen the existing context payload/runtime path. Chat context informs a free conversation; it must not become a guided workflow, mutation surface, or action menu. Mutation/contact requests remain human-gated and must never claim Ship records or people were changed/contacted. Client page labels are ID hints only; answer/model/source text must come from authorized server-loaded records.

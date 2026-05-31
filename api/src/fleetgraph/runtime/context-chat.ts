@@ -130,6 +130,7 @@ export async function resolveContextChatBundle(
 }
 
 export function contextTextForModel(bundle: ContextChatBundle): string {
+  const documentById = new Map(bundle.documents.map((document) => [document.id, document]));
   const documentText = bundle.documents.map((document) => [
     `Title: ${document.title}`,
     `Type: ${document.document_type}`,
@@ -144,15 +145,13 @@ export function contextTextForModel(bundle: ContextChatBundle): string {
     `Recommended action: ${recommendedActionFromOutput(signal.output) ?? ''}`,
   ].filter(Boolean).join('\n')).join('\n\n');
   const pageText = bundle.pages.map((page) => [
-    `Page: ${page.title}`,
     `Surface: ${page.surface}`,
     `Route: ${page.route}`,
-    page.sort ? `Sort: ${page.sort}` : '',
-    page.viewMode ? `View: ${page.viewMode}` : '',
-    page.filters ? `Filters: ${Object.entries(page.filters).map(([key, value]) => `${key}=${String(value)}`).join(', ')}` : '',
-    page.counts ? `Counts: ${Object.entries(page.counts).map(([key, value]) => `${key}=${value}`).join(', ')}` : '',
-    `Visible: ${page.visibleItems.slice(0, 25).map(pageItemLabel).join('; ')}`,
-    page.selectedItemIds?.length ? `Selected IDs: ${page.selectedItemIds.slice(0, 8).join(', ')}` : '',
+    `Visible item count hint: ${page.visibleItems.length}`,
+    page.selectedItemIds?.length ? `Selected item count hint: ${page.selectedItemIds.length}` : '',
+    authorizedDocumentsForPage(page, documentById).length
+      ? `Authorized items: ${authorizedDocumentsForPage(page, documentById).map(pageDocumentLabel).join('; ')}`
+      : 'Authorized items: none loaded',
   ].filter(Boolean).join('\n')).join('\n\n');
 
   return [pageText, documentText, signalText].filter(Boolean).join('\n\n---\n\n');
@@ -160,7 +159,7 @@ export function contextTextForModel(bundle: ContextChatBundle): string {
 
 export function sourcesFromContextBundle(bundle: ContextChatBundle): Array<{ label: string; kind: string }> {
   return [
-    ...bundle.pages.map((page) => ({ label: page.title, kind: page.surface })),
+    ...bundle.pages.map((page) => ({ label: pageSourceLabel(page.surface), kind: page.surface })),
     ...bundle.documents.map((document) => ({ label: document.title, kind: document.document_type })),
     ...bundle.signals.map((signal) => ({ label: signal.output.title, kind: 'finding' })),
   ].filter((source, index, items) => items.findIndex((item) => item.label === source.label) === index);
@@ -178,6 +177,7 @@ export function deterministicContextChatAnswer(
   const normalized = prompt.trim().toLowerCase();
   const conversation = conversationFromHistory(history);
   const asksForShipAction = asksForAction(normalized);
+  const asksForExternalShipAction = asksForExternalAction(normalized);
 
   if (/^(hi|hello|hey|yo|sup)[!.?\s]*$/.test(normalized)) {
     return {
@@ -212,17 +212,35 @@ export function deterministicContextChatAnswer(
       };
     }
 
+    if (asksForComparison(normalized) && bundle.documents.length > 1) {
+      return {
+        title: 'Compare context',
+        body: compareDocumentsAnswer(primaryDocument, bundle.documents.slice(1), primarySignal),
+        sources,
+        humanGate: { required: false },
+      };
+    }
+
+    if (asksForWhy(normalized) && primarySignal) {
+      return {
+        title: primarySignal.output.title,
+        body: signalReason(primarySignal.output) ?? primarySignal.output.summary,
+        sources,
+        humanGate: { required: false },
+      };
+    }
+
+    const nextStep = primarySignal ? recommendedActionFromOutput(primarySignal.output) : undefined;
     return {
       title: primaryDocument.title,
-      body: withActionBoundary(
-        fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal, conversation),
-        asksForShipAction
-      ),
-      ...(asksForShipAction && primarySignal && recommendedActionFromOutput(primarySignal.output)
-        ? { nextStep: recommendedActionFromOutput(primarySignal.output) }
+      body: fallbackAnswer(prompt, primaryDocument, bundle.documents.slice(1), primarySignal, conversation),
+      ...(asksForShipAction && nextStep
+        ? { nextStep }
         : {}),
       sources,
-      humanGate: asksForShipAction && primarySignal ? primarySignal.output.humanGate : { required: false },
+      humanGate: asksForExternalShipAction
+        ? actionHumanGate(primarySignal)
+        : asksForShipAction ? primarySignal?.output.humanGate ?? { required: false } : { required: false },
     };
   }
 
@@ -231,12 +249,12 @@ export function deterministicContextChatAnswer(
       title: primarySignal.output.title,
       body: signalReason(primarySignal.output) ?? primarySignal.output.summary,
       sources,
-      humanGate: { required: false },
+      humanGate: asksForExternalShipAction ? actionHumanGate(primarySignal) : { required: false },
     };
   }
 
   if (primaryPage) {
-    return pageAnswer(prompt, primaryPage, sources);
+    return pageAnswer(prompt, primaryPage, bundle.documents, sources);
   }
 
   return unsupportedChatAnswer('I do not have visible context for that yet.');
@@ -245,18 +263,18 @@ export function deterministicContextChatAnswer(
 function pageAnswer(
   prompt: string,
   page: FleetGraphPageContext,
+  documents: ContextChatDocument[],
   sources: Array<{ label: string; kind: string }>
 ): FleetGraphChatAnswerPayload {
   const selected = page.selectedItemIds?.length ? `${page.selectedItemIds.length} selected.` : 'Nothing selected.';
-  const visible = page.visibleItems.slice(0, 5).map(pageItemLabel).join('; ');
-  const filters = page.filters ? Object.entries(page.filters).map(([key, value]) => `${key}: ${String(value)}`).join(', ') : null;
+  const documentById = new Map(documents.map((document) => [document.id, document]));
+  const visible = authorizedDocumentsForPage(page, documentById).slice(0, 5).map(pageDocumentLabel).join('; ');
   const asksForActionPlan = asksForAction(prompt.toLowerCase());
   return {
-    title: page.title,
+    title: pageSourceLabel(page.surface),
     body: [
-      `${page.title} is showing ${page.visibleItems.length} visible item${page.visibleItems.length === 1 ? '' : 's'}. ${selected}`,
-      filters ? `Filters: ${filters}.` : null,
-      visible ? `Visible items: ${visible}.` : null,
+      `This ${page.surface.replace(/_/g, ' ')} context includes ${page.visibleItems.length} visible item hint${page.visibleItems.length === 1 ? '' : 's'}. ${selected}`,
+      visible ? `Authorized items: ${visible}.` : 'I do not have authorized source records loaded for those page items yet.',
       asksForActionPlan ? 'I can reason from this context, but changing Ship records or contacting people still needs human approval.' : null,
     ].filter(Boolean).join('\n\n'),
     sources,
@@ -275,13 +293,16 @@ function signalAnswer(
 ): FleetGraphChatAnswerPayload {
   const reason = signalReason(signal.output) ?? signal.output.summary;
   const nextStep = recommendedActionFromOutput(signal.output);
+  const externalAction = asksForExternalAction(normalizedPrompt);
   if (asksForAction(normalizedPrompt)) {
     return {
       title: 'Next move',
-      body: nextStep || reason,
+      body: externalAction
+        ? [nextStep || reason, 'This needs human approval before FleetGraph changes Ship data or contacts anyone.'].join('\n\n')
+        : nextStep || reason,
       ...(nextStep ? { nextStep } : {}),
       sources,
-      humanGate: signal.output.humanGate,
+      humanGate: externalAction ? actionHumanGate(signal) : signal.output.humanGate,
     };
   }
 
@@ -294,7 +315,12 @@ function signalAnswer(
 }
 
 function asksForAction(normalizedPrompt: string): boolean {
-  return /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item|assign|change|update|send|message|contact|notify|resolve|close|move|fix this|go fix)\b/.test(normalizedPrompt);
+  return /\b(next step|next move|what next|what should (i|we) do|unblock|owner|approver|action item)\b/.test(normalizedPrompt)
+    || asksForExternalAction(normalizedPrompt);
+}
+
+function asksForExternalAction(normalizedPrompt: string): boolean {
+  return /\b(send|sent|message|email|contact|notify|assign|change|mark|close|resolve)\b/.test(normalizedPrompt);
 }
 
 function asksForFormatChange(normalizedPrompt: string): boolean {
@@ -302,7 +328,11 @@ function asksForFormatChange(normalizedPrompt: string): boolean {
 }
 
 function asksForComparison(normalizedPrompt: string): boolean {
-  return /\b(compare|versus| vs |both|attached|other context|other doc|other document|what else is attached)\b/.test(normalizedPrompt);
+  return /\b(compare|contrast|difference|differences|versus|both|other context|other doc|other document|what else is attached)\b| vs\.? /.test(normalizedPrompt);
+}
+
+function asksForWhy(normalizedPrompt: string): boolean {
+  return /\b(why|reason|because|what caused|how come)\b/.test(normalizedPrompt);
 }
 
 export function chatModelAnswerFromContext(body: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
@@ -409,6 +439,10 @@ function fallbackAnswer(
   signal: ContextChatSignal | undefined,
   conversation: ContextChatConversation
 ): string {
+  if (asksForExternalAction(prompt.toLowerCase())) {
+    return actionRequestAnswer(document, signal);
+  }
+
   if (/\b(simpler|simple|shorter|plain|tl;dr|tldr)\b/i.test(prompt)) {
     return simpleDocumentAnswer(document, signal, conversation);
   }
@@ -438,6 +472,17 @@ function fallbackAnswer(
   }
 
   return documentAnswer(document, attachedDocuments, signal);
+}
+
+function actionRequestAnswer(
+  document: ContextChatDocument,
+  signal: ContextChatSignal | undefined
+): string {
+  const nextStep = signal ? recommendedActionFromOutput(signal.output) : null;
+  return [
+    nextStep ?? `I can explain the next step for ${document.title}.`,
+    'This needs human approval before FleetGraph changes Ship data or contacts anyone.',
+  ].join('\n\n');
 }
 
 function simpleDocumentAnswer(
@@ -496,6 +541,11 @@ function documentAnswer(
   }
 
   return lines.join('\n\n');
+}
+
+function actionHumanGate(signal: ContextChatSignal | undefined): Record<string, unknown> {
+  if (signal?.output.humanGate?.required === true) return signal.output.humanGate;
+  return { required: true, reason: 'human_must_approve_before_ship_or_external_action' };
 }
 
 function bulletAnswerFromDocument(
@@ -590,14 +640,6 @@ function whyAnswer(
 
 function lowercaseFirst(value: string): string {
   return value.replace(/^./, (letter) => letter.toLowerCase());
-}
-
-function withActionBoundary(body: string, required: boolean): string {
-  if (!required) return body;
-  return [
-    body,
-    'Human approval is required before Ship changes records or contacts anyone.',
-  ].join('\n\n');
 }
 
 function textFromTipTap(value: unknown): string {
@@ -697,11 +739,22 @@ function documentIdsFromPageContext(page: FleetGraphPageContext): string[] {
   return [...ids].slice(0, 12);
 }
 
-function pageItemLabel(item: FleetGraphPageContext['visibleItems'][number]): string {
+function authorizedDocumentsForPage(
+  page: FleetGraphPageContext,
+  documentById: Map<string, ContextChatDocument>
+): ContextChatDocument[] {
+  const ids = documentIdsFromPageContext(page);
+  return ids.map((id) => documentById.get(id)).filter((document): document is ContextChatDocument => Boolean(document));
+}
+
+function pageDocumentLabel(document: ContextChatDocument): string {
   return [
-    item.title,
-    item.state ? `state ${item.state}` : null,
-    item.priority ? `priority ${item.priority}` : null,
-    item.owner ? `owner ${item.owner}` : null,
+    document.title,
+    stringFromUnknown(document.properties.state) ? `state ${stringFromUnknown(document.properties.state)}` : null,
+    stringFromUnknown(document.properties.priority) ? `priority ${stringFromUnknown(document.properties.priority)}` : null,
   ].filter(Boolean).join(' · ');
+}
+
+function pageSourceLabel(surface: FleetGraphPageContext['surface']): string {
+  return `Current ${surface.replace(/_/g, ' ')} page`;
 }
