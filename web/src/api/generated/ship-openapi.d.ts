@@ -13568,96 +13568,71 @@ export interface components {
             success: true;
             data: components["schemas"]["AdminCreateWorkspaceData"];
         };
-        FleetGraphRecommendedAction: {
-            label?: string;
-            text?: string;
-            summary?: string;
-        };
-        FleetGraphProposedRecipient: {
-            role?: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
-            userId?: string | null;
-            displayName?: string;
-            rationale?: string;
-        };
-        FleetGraphEvidence: {
-            /** @enum {string} */
-            kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
-            sourceDocumentId?: string;
-            /** @enum {string} */
-            sourceType?: "issue" | "sprint";
-            claim: string;
-            excerpt?: string;
-            /** @enum {string} */
-            visibility: "internal" | "actor_visible" | "restricted";
-            visibleFields: string[];
-            redactionReason?: string;
-        };
-        FleetGraphVisibleOutput: {
-            title: string;
-            summary: string;
-            /** @enum {string} */
-            severity?: "low" | "medium" | "high" | "urgent";
-            confidence?: number;
-            recommendedAction?: components["schemas"]["FleetGraphRecommendedAction"];
-            proposedRecipient?: components["schemas"]["FleetGraphProposedRecipient"];
-            recipientRationale?: string;
-            uncertaintyNotes?: string[];
-            evidence: components["schemas"]["FleetGraphEvidence"][];
-            humanGate: {
-                [key: string]: unknown;
-            };
-            draftContent?: {
-                [key: string]: unknown;
-            };
-            noSafeOutput?: boolean;
-        };
-        FleetGraphTrace: {
-            /** @enum {string} */
-            mode: "proactive" | "on_demand";
-            decision: string;
-            nodePath: string[];
-            traceId?: string;
-            traceUrl?: string;
-            failureCategory?: string;
-        };
         FleetGraphFindingResponse: {
             /** @enum {string} */
             signalType: "blocked" | "stale" | "at_risk";
             signalLabel: string;
             reason: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             sourceIssueId: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             sourceSprintId: string;
-            visibleOutput: components["schemas"]["FleetGraphVisibleOutput"];
-            traceMetadata: components["schemas"]["FleetGraphTrace"];
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             id: string;
             /** @enum {string} */
             kind: "blocker";
             status: string;
+            visibleOutput: {
+                title: string;
+                summary: string;
+                /** @enum {string} */
+                severity?: "low" | "medium" | "high" | "urgent";
+                confidence?: number;
+                recommendedAction?: {
+                    label?: string;
+                    text?: string;
+                    summary?: string;
+                };
+                proposedRecipient?: {
+                    role?: string;
+                    /** Format: uuid */
+                    userId?: string | null;
+                    displayName?: string;
+                    rationale?: string;
+                };
+                recipientRationale?: string;
+                uncertaintyNotes?: string[];
+                evidence: {
+                    /** @enum {string} */
+                    kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                    /** Format: uuid */
+                    sourceDocumentId?: string;
+                    /** @enum {string} */
+                    sourceType?: "issue" | "sprint";
+                    claim: string;
+                    excerpt?: string;
+                    /** @enum {string} */
+                    visibility: "internal" | "actor_visible" | "restricted";
+                    visibleFields: string[];
+                    redactionReason?: string;
+                }[];
+                humanGate: {
+                    [key: string]: unknown;
+                };
+                draftContent?: {
+                    [key: string]: unknown;
+                };
+                noSafeOutput?: boolean;
+            };
+            traceMetadata: {
+                /** @enum {string} */
+                mode: "proactive" | "on_demand";
+                decision: string;
+                nodePath: string[];
+                traceId?: string;
+                traceUrl?: string;
+                failureCategory?: string;
+            };
         };
         FleetGraphFindingsListResponse: {
             findings: components["schemas"]["FleetGraphFindingResponse"][];
@@ -13667,20 +13642,61 @@ export interface components {
             signalType: "blocked" | "stale" | "at_risk";
             signalLabel: string;
             reason: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             sourceIssueId: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             sourceSprintId: string;
-            visibleOutput: components["schemas"]["FleetGraphVisibleOutput"];
-            traceMetadata: components["schemas"]["FleetGraphTrace"];
+            visibleOutput: {
+                title: string;
+                summary: string;
+                /** @enum {string} */
+                severity?: "low" | "medium" | "high" | "urgent";
+                confidence?: number;
+                recommendedAction?: {
+                    label?: string;
+                    text?: string;
+                    summary?: string;
+                };
+                proposedRecipient?: {
+                    role?: string;
+                    /** Format: uuid */
+                    userId?: string | null;
+                    displayName?: string;
+                    rationale?: string;
+                };
+                recipientRationale?: string;
+                uncertaintyNotes?: string[];
+                evidence: {
+                    /** @enum {string} */
+                    kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                    /** Format: uuid */
+                    sourceDocumentId?: string;
+                    /** @enum {string} */
+                    sourceType?: "issue" | "sprint";
+                    claim: string;
+                    excerpt?: string;
+                    /** @enum {string} */
+                    visibility: "internal" | "actor_visible" | "restricted";
+                    visibleFields: string[];
+                    redactionReason?: string;
+                }[];
+                humanGate: {
+                    [key: string]: unknown;
+                };
+                draftContent?: {
+                    [key: string]: unknown;
+                };
+                noSafeOutput?: boolean;
+            };
+            traceMetadata: {
+                /** @enum {string} */
+                mode: "proactive" | "on_demand";
+                decision: string;
+                nodePath: string[];
+                traceId?: string;
+                traceUrl?: string;
+                failureCategory?: string;
+            };
             title: string;
             issueTitle: string;
             context: string;
@@ -13691,17 +13707,9 @@ export interface components {
             detectedAt: string;
             isRead: boolean;
             readAt: string | null;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             id: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             findingId: string;
         };
         FleetGraphNotificationsListResponse: {
@@ -13740,10 +13748,61 @@ export interface components {
             label: "Now" | "Changed" | "Cleared" | "Next" | "Unknown" | "Not done";
             text: string;
         };
+        FleetGraphTrace: {
+            /** @enum {string} */
+            mode: "proactive" | "on_demand";
+            decision: string;
+            nodePath: string[];
+            traceId?: string;
+            traceUrl?: string;
+            failureCategory?: string;
+        };
         FleetGraphChangeSummaryResponse: {
             headline: string;
             rows: components["schemas"]["FleetGraphChangeSummaryRow"][];
             traceMetadata: components["schemas"]["FleetGraphTrace"];
+        };
+        FleetGraphVisibleOutput: {
+            title: string;
+            summary: string;
+            /** @enum {string} */
+            severity?: "low" | "medium" | "high" | "urgent";
+            confidence?: number;
+            recommendedAction?: {
+                label?: string;
+                text?: string;
+                summary?: string;
+            };
+            proposedRecipient?: {
+                role?: string;
+                /** Format: uuid */
+                userId?: string | null;
+                displayName?: string;
+                rationale?: string;
+            };
+            recipientRationale?: string;
+            uncertaintyNotes?: string[];
+            evidence: {
+                /** @enum {string} */
+                kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                /** Format: uuid */
+                sourceDocumentId?: string;
+                /** @enum {string} */
+                sourceType?: "issue" | "sprint";
+                claim: string;
+                excerpt?: string;
+                /** @enum {string} */
+                visibility: "internal" | "actor_visible" | "restricted";
+                visibleFields: string[];
+                redactionReason?: string;
+            }[];
+            humanGate: {
+                [key: string]: unknown;
+            };
+            draftContent?: {
+                [key: string]: unknown;
+            };
+            noSafeOutput?: boolean;
         };
         FleetGraphUsage: {
             modelCalls: number;
@@ -13887,116 +13946,918 @@ export interface components {
             detectorDecisions: number;
             results: components["schemas"]["FleetGraphManualRunResult"][];
         };
-        FleetGraphReviewerTraceScore: {
-            name: string;
-            passed: boolean;
-            value: (string | number | boolean) | null;
-            comment: string;
-        };
-        FleetGraphReviewerStep: {
-            key: string;
-            label: string;
-            /** @enum {string} */
-            status: "pass" | "pending" | "broken" | "failed";
-            at: string | null;
-            durationMs?: number;
-            evidence: string;
-        };
-        FleetGraphReviewerChain: {
-            chainId: string;
-            scenario: string;
-            /** @enum {string} */
-            status: "complete" | "in_progress" | "broken" | "failed";
-            missing: string[];
-            generatedAt: string;
-            freshness: {
-                generatedAt: string;
-                newestRunAt: string | null;
-                newestWorkerTickAt: string | null;
-                proofAgeMs: number | null;
-                workerAgeMs: number | null;
-            };
-            latencyMs: {
-                shipToAttention?: number;
-                attentionToWorker?: number;
-                workerToRun?: number;
-                runToFinding?: number;
-                findingToNotification?: number;
-                total?: number;
-            };
-            links: {
-                [key: string]: string;
-            };
-            steps: components["schemas"]["FleetGraphReviewerStep"][];
-            visibleOutput?: components["schemas"]["FleetGraphVisibleOutput"];
-            notificationProjection?: components["schemas"]["FleetGraphNotificationResponse"];
-            humanGate: {
-                required: boolean;
-                state: string;
-                allowedActions: string[];
-            };
-            traceQuality: {
-                passed: boolean;
-                requiredDecisions: string[];
-                observedDecisions: string[];
-                scores: components["schemas"]["FleetGraphReviewerTraceScore"][];
-            };
-            sourceMutationCheck: {
-                passed: boolean;
-                before: {
-                    [key: string]: unknown;
-                };
-                after: {
-                    [key: string]: unknown;
-                };
-                changedFields: string[];
-            };
-            usageSummary: components["schemas"]["FleetGraphUsage"];
-        };
         FleetGraphReviewerChainsResponse: {
             summary: {
                 generatedAt: string;
                 /** @enum {string} */
                 status: "complete" | "in_progress" | "broken" | "failed";
+                preferredChainId: string | null;
                 chainCount: number;
                 completeCount: number;
                 brokenCount: number;
-                requiredGates: components["schemas"]["FleetGraphReviewerTraceScore"][];
-                costSummary: components["schemas"]["FleetGraphUsage"];
+                requiredGates: {
+                    name: string;
+                    passed: boolean;
+                    value: string | number | boolean | unknown | unknown;
+                    comment: string;
+                }[];
+                costSummary: {
+                    modelCalls: number;
+                    inputTokens?: number;
+                    cachedInputTokens?: number;
+                    billableInputTokens?: number;
+                    outputTokens?: number;
+                    totalTokens?: number;
+                    estimatedCostUsd?: number;
+                    /** @enum {string} */
+                    costCurrency?: "USD";
+                    /** @enum {string} */
+                    usageSource?: "none" | "model_response" | "partial_model_response" | "synthetic_calibration";
+                    /** @enum {string} */
+                    costSource?: "none" | "model_response" | "catalog_estimate" | "env_estimate" | "synthetic_calibration";
+                };
             };
-            chains: components["schemas"]["FleetGraphReviewerChain"][];
+            chains: {
+                chainId: string;
+                /** @enum {string} */
+                scenario: "week-blocker" | "existing";
+                /** @enum {string} */
+                status: "complete" | "in_progress" | "broken" | "failed";
+                missing: string[];
+                missingLabels: string[];
+                /** @enum {string} */
+                productPath: "working" | "partial";
+                generatedAt: string;
+                freshness: {
+                    generatedAt: string;
+                    newestRunAt: string | null;
+                    newestWorkerTickAt: string | null;
+                    proofAgeMs: number | null;
+                    workerAgeMs: number | null;
+                };
+                latencyMs: {
+                    shipToAttention?: number;
+                    attentionToWorker?: number;
+                    workerToRun?: number;
+                    runToFinding?: number;
+                    findingToNotification?: number;
+                    notificationToChat?: number;
+                    total?: number;
+                };
+                links: {
+                    /** Format: uuid */
+                    sourceIssueId?: string;
+                    /** Format: uuid */
+                    sourceSprintId?: string;
+                    /** Format: uuid */
+                    attentionEventId?: string;
+                    /** Format: uuid */
+                    workerTickId?: string;
+                    /** Format: uuid */
+                    runId?: string;
+                    traceId?: string;
+                    traceUrl?: string;
+                    /** Format: uuid */
+                    findingId?: string;
+                    /** Format: uuid */
+                    notificationProjectionId?: string;
+                    /** Format: uuid */
+                    chatRunId?: string;
+                };
+                steps: {
+                    key: string;
+                    label: string;
+                    /** @enum {string} */
+                    status: "pass" | "pending" | "broken" | "failed";
+                    at: string | null;
+                    durationMs?: number;
+                    evidence: string;
+                }[];
+                visibleOutput?: {
+                    title: string;
+                    summary: string;
+                    /** @enum {string} */
+                    severity?: "low" | "medium" | "high" | "urgent";
+                    confidence?: number;
+                    recommendedAction?: {
+                        label?: string;
+                        text?: string;
+                        summary?: string;
+                    };
+                    proposedRecipient?: {
+                        role?: string;
+                        /** Format: uuid */
+                        userId?: string | null;
+                        displayName?: string;
+                        rationale?: string;
+                    };
+                    recipientRationale?: string;
+                    uncertaintyNotes?: string[];
+                    evidence: {
+                        /** @enum {string} */
+                        kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                        /** Format: uuid */
+                        sourceDocumentId?: string;
+                        /** @enum {string} */
+                        sourceType?: "issue" | "sprint";
+                        claim: string;
+                        excerpt?: string;
+                        /** @enum {string} */
+                        visibility: "internal" | "actor_visible" | "restricted";
+                        visibleFields: string[];
+                        redactionReason?: string;
+                    }[];
+                    humanGate: {
+                        [key: string]: unknown;
+                    };
+                    draftContent?: {
+                        [key: string]: unknown;
+                    };
+                    noSafeOutput?: boolean;
+                };
+                notificationProjection?: {
+                    /** @enum {string} */
+                    signalType: "blocked" | "stale" | "at_risk";
+                    signalLabel: string;
+                    reason: string;
+                    /** Format: uuid */
+                    sourceIssueId: string;
+                    /** Format: uuid */
+                    sourceSprintId: string;
+                    visibleOutput: {
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        severity?: "low" | "medium" | "high" | "urgent";
+                        confidence?: number;
+                        recommendedAction?: {
+                            label?: string;
+                            text?: string;
+                            summary?: string;
+                        };
+                        proposedRecipient?: {
+                            role?: string;
+                            /** Format: uuid */
+                            userId?: string | null;
+                            displayName?: string;
+                            rationale?: string;
+                        };
+                        recipientRationale?: string;
+                        uncertaintyNotes?: string[];
+                        evidence: {
+                            /** @enum {string} */
+                            kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                            /** Format: uuid */
+                            sourceDocumentId?: string;
+                            /** @enum {string} */
+                            sourceType?: "issue" | "sprint";
+                            claim: string;
+                            excerpt?: string;
+                            /** @enum {string} */
+                            visibility: "internal" | "actor_visible" | "restricted";
+                            visibleFields: string[];
+                            redactionReason?: string;
+                        }[];
+                        humanGate: {
+                            [key: string]: unknown;
+                        };
+                        draftContent?: {
+                            [key: string]: unknown;
+                        };
+                        noSafeOutput?: boolean;
+                    };
+                    traceMetadata: {
+                        /** @enum {string} */
+                        mode: "proactive" | "on_demand";
+                        decision: string;
+                        nodePath: string[];
+                        traceId?: string;
+                        traceUrl?: string;
+                        failureCategory?: string;
+                    };
+                    title: string;
+                    issueTitle: string;
+                    context: string;
+                    owner: string | null;
+                    notificationText: string;
+                    blockerText: string;
+                    sourcePath: string;
+                    detectedAt: string;
+                    isRead: boolean;
+                    readAt: string | null;
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    findingId: string;
+                };
+                humanGate: {
+                    required: boolean;
+                    /** @enum {string} */
+                    state: "present" | "missing" | "not_applicable";
+                    allowedActions: string[];
+                };
+                traceQuality: {
+                    passed: boolean;
+                    requiredDecisions: string[];
+                    observedDecisions: string[];
+                    scores: {
+                        name: string;
+                        passed: boolean;
+                        value: string | number | boolean | unknown | unknown;
+                        comment: string;
+                    }[];
+                };
+                sourceMutationCheck: {
+                    passed: boolean;
+                    before: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    after: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    changedFields: string[];
+                };
+                usageSummary: {
+                    modelCalls: number;
+                    inputTokens?: number;
+                    cachedInputTokens?: number;
+                    billableInputTokens?: number;
+                    outputTokens?: number;
+                    totalTokens?: number;
+                    estimatedCostUsd?: number;
+                    /** @enum {string} */
+                    costCurrency?: "USD";
+                    /** @enum {string} */
+                    usageSource?: "none" | "model_response" | "partial_model_response" | "synthetic_calibration";
+                    /** @enum {string} */
+                    costSource?: "none" | "model_response" | "catalog_estimate" | "env_estimate" | "synthetic_calibration";
+                };
+            }[];
         };
         FleetGraphReviewerChainResponse: {
-            chain: components["schemas"]["FleetGraphReviewerChain"];
+            chain: {
+                chainId: string;
+                /** @enum {string} */
+                scenario: "week-blocker" | "existing";
+                /** @enum {string} */
+                status: "complete" | "in_progress" | "broken" | "failed";
+                missing: string[];
+                missingLabels: string[];
+                /** @enum {string} */
+                productPath: "working" | "partial";
+                generatedAt: string;
+                freshness: {
+                    generatedAt: string;
+                    newestRunAt: string | null;
+                    newestWorkerTickAt: string | null;
+                    proofAgeMs: number | null;
+                    workerAgeMs: number | null;
+                };
+                latencyMs: {
+                    shipToAttention?: number;
+                    attentionToWorker?: number;
+                    workerToRun?: number;
+                    runToFinding?: number;
+                    findingToNotification?: number;
+                    notificationToChat?: number;
+                    total?: number;
+                };
+                links: {
+                    /** Format: uuid */
+                    sourceIssueId?: string;
+                    /** Format: uuid */
+                    sourceSprintId?: string;
+                    /** Format: uuid */
+                    attentionEventId?: string;
+                    /** Format: uuid */
+                    workerTickId?: string;
+                    /** Format: uuid */
+                    runId?: string;
+                    traceId?: string;
+                    traceUrl?: string;
+                    /** Format: uuid */
+                    findingId?: string;
+                    /** Format: uuid */
+                    notificationProjectionId?: string;
+                    /** Format: uuid */
+                    chatRunId?: string;
+                };
+                steps: {
+                    key: string;
+                    label: string;
+                    /** @enum {string} */
+                    status: "pass" | "pending" | "broken" | "failed";
+                    at: string | null;
+                    durationMs?: number;
+                    evidence: string;
+                }[];
+                visibleOutput?: {
+                    title: string;
+                    summary: string;
+                    /** @enum {string} */
+                    severity?: "low" | "medium" | "high" | "urgent";
+                    confidence?: number;
+                    recommendedAction?: {
+                        label?: string;
+                        text?: string;
+                        summary?: string;
+                    };
+                    proposedRecipient?: {
+                        role?: string;
+                        /** Format: uuid */
+                        userId?: string | null;
+                        displayName?: string;
+                        rationale?: string;
+                    };
+                    recipientRationale?: string;
+                    uncertaintyNotes?: string[];
+                    evidence: {
+                        /** @enum {string} */
+                        kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                        /** Format: uuid */
+                        sourceDocumentId?: string;
+                        /** @enum {string} */
+                        sourceType?: "issue" | "sprint";
+                        claim: string;
+                        excerpt?: string;
+                        /** @enum {string} */
+                        visibility: "internal" | "actor_visible" | "restricted";
+                        visibleFields: string[];
+                        redactionReason?: string;
+                    }[];
+                    humanGate: {
+                        [key: string]: unknown;
+                    };
+                    draftContent?: {
+                        [key: string]: unknown;
+                    };
+                    noSafeOutput?: boolean;
+                };
+                notificationProjection?: {
+                    /** @enum {string} */
+                    signalType: "blocked" | "stale" | "at_risk";
+                    signalLabel: string;
+                    reason: string;
+                    /** Format: uuid */
+                    sourceIssueId: string;
+                    /** Format: uuid */
+                    sourceSprintId: string;
+                    visibleOutput: {
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        severity?: "low" | "medium" | "high" | "urgent";
+                        confidence?: number;
+                        recommendedAction?: {
+                            label?: string;
+                            text?: string;
+                            summary?: string;
+                        };
+                        proposedRecipient?: {
+                            role?: string;
+                            /** Format: uuid */
+                            userId?: string | null;
+                            displayName?: string;
+                            rationale?: string;
+                        };
+                        recipientRationale?: string;
+                        uncertaintyNotes?: string[];
+                        evidence: {
+                            /** @enum {string} */
+                            kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                            /** Format: uuid */
+                            sourceDocumentId?: string;
+                            /** @enum {string} */
+                            sourceType?: "issue" | "sprint";
+                            claim: string;
+                            excerpt?: string;
+                            /** @enum {string} */
+                            visibility: "internal" | "actor_visible" | "restricted";
+                            visibleFields: string[];
+                            redactionReason?: string;
+                        }[];
+                        humanGate: {
+                            [key: string]: unknown;
+                        };
+                        draftContent?: {
+                            [key: string]: unknown;
+                        };
+                        noSafeOutput?: boolean;
+                    };
+                    traceMetadata: {
+                        /** @enum {string} */
+                        mode: "proactive" | "on_demand";
+                        decision: string;
+                        nodePath: string[];
+                        traceId?: string;
+                        traceUrl?: string;
+                        failureCategory?: string;
+                    };
+                    title: string;
+                    issueTitle: string;
+                    context: string;
+                    owner: string | null;
+                    notificationText: string;
+                    blockerText: string;
+                    sourcePath: string;
+                    detectedAt: string;
+                    isRead: boolean;
+                    readAt: string | null;
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    findingId: string;
+                };
+                humanGate: {
+                    required: boolean;
+                    /** @enum {string} */
+                    state: "present" | "missing" | "not_applicable";
+                    allowedActions: string[];
+                };
+                traceQuality: {
+                    passed: boolean;
+                    requiredDecisions: string[];
+                    observedDecisions: string[];
+                    scores: {
+                        name: string;
+                        passed: boolean;
+                        value: string | number | boolean | unknown | unknown;
+                        comment: string;
+                    }[];
+                };
+                sourceMutationCheck: {
+                    passed: boolean;
+                    before: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    after: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    changedFields: string[];
+                };
+                usageSummary: {
+                    modelCalls: number;
+                    inputTokens?: number;
+                    cachedInputTokens?: number;
+                    billableInputTokens?: number;
+                    outputTokens?: number;
+                    totalTokens?: number;
+                    estimatedCostUsd?: number;
+                    /** @enum {string} */
+                    costCurrency?: "USD";
+                    /** @enum {string} */
+                    usageSource?: "none" | "model_response" | "partial_model_response" | "synthetic_calibration";
+                    /** @enum {string} */
+                    costSource?: "none" | "model_response" | "catalog_estimate" | "env_estimate" | "synthetic_calibration";
+                };
+            };
         };
         FleetGraphReviewerScenarioResponse: {
             chainId: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             sourceIssueId: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             sourceSprintId: string;
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             attentionEventId?: string;
             workerTickTriggered: boolean;
-            chain: components["schemas"]["FleetGraphReviewerChain"];
+            chain: {
+                chainId: string;
+                /** @enum {string} */
+                scenario: "week-blocker" | "existing";
+                /** @enum {string} */
+                status: "complete" | "in_progress" | "broken" | "failed";
+                missing: string[];
+                missingLabels: string[];
+                /** @enum {string} */
+                productPath: "working" | "partial";
+                generatedAt: string;
+                freshness: {
+                    generatedAt: string;
+                    newestRunAt: string | null;
+                    newestWorkerTickAt: string | null;
+                    proofAgeMs: number | null;
+                    workerAgeMs: number | null;
+                };
+                latencyMs: {
+                    shipToAttention?: number;
+                    attentionToWorker?: number;
+                    workerToRun?: number;
+                    runToFinding?: number;
+                    findingToNotification?: number;
+                    notificationToChat?: number;
+                    total?: number;
+                };
+                links: {
+                    /** Format: uuid */
+                    sourceIssueId?: string;
+                    /** Format: uuid */
+                    sourceSprintId?: string;
+                    /** Format: uuid */
+                    attentionEventId?: string;
+                    /** Format: uuid */
+                    workerTickId?: string;
+                    /** Format: uuid */
+                    runId?: string;
+                    traceId?: string;
+                    traceUrl?: string;
+                    /** Format: uuid */
+                    findingId?: string;
+                    /** Format: uuid */
+                    notificationProjectionId?: string;
+                    /** Format: uuid */
+                    chatRunId?: string;
+                };
+                steps: {
+                    key: string;
+                    label: string;
+                    /** @enum {string} */
+                    status: "pass" | "pending" | "broken" | "failed";
+                    at: string | null;
+                    durationMs?: number;
+                    evidence: string;
+                }[];
+                visibleOutput?: {
+                    title: string;
+                    summary: string;
+                    /** @enum {string} */
+                    severity?: "low" | "medium" | "high" | "urgent";
+                    confidence?: number;
+                    recommendedAction?: {
+                        label?: string;
+                        text?: string;
+                        summary?: string;
+                    };
+                    proposedRecipient?: {
+                        role?: string;
+                        /** Format: uuid */
+                        userId?: string | null;
+                        displayName?: string;
+                        rationale?: string;
+                    };
+                    recipientRationale?: string;
+                    uncertaintyNotes?: string[];
+                    evidence: {
+                        /** @enum {string} */
+                        kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                        /** Format: uuid */
+                        sourceDocumentId?: string;
+                        /** @enum {string} */
+                        sourceType?: "issue" | "sprint";
+                        claim: string;
+                        excerpt?: string;
+                        /** @enum {string} */
+                        visibility: "internal" | "actor_visible" | "restricted";
+                        visibleFields: string[];
+                        redactionReason?: string;
+                    }[];
+                    humanGate: {
+                        [key: string]: unknown;
+                    };
+                    draftContent?: {
+                        [key: string]: unknown;
+                    };
+                    noSafeOutput?: boolean;
+                };
+                notificationProjection?: {
+                    /** @enum {string} */
+                    signalType: "blocked" | "stale" | "at_risk";
+                    signalLabel: string;
+                    reason: string;
+                    /** Format: uuid */
+                    sourceIssueId: string;
+                    /** Format: uuid */
+                    sourceSprintId: string;
+                    visibleOutput: {
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        severity?: "low" | "medium" | "high" | "urgent";
+                        confidence?: number;
+                        recommendedAction?: {
+                            label?: string;
+                            text?: string;
+                            summary?: string;
+                        };
+                        proposedRecipient?: {
+                            role?: string;
+                            /** Format: uuid */
+                            userId?: string | null;
+                            displayName?: string;
+                            rationale?: string;
+                        };
+                        recipientRationale?: string;
+                        uncertaintyNotes?: string[];
+                        evidence: {
+                            /** @enum {string} */
+                            kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                            /** Format: uuid */
+                            sourceDocumentId?: string;
+                            /** @enum {string} */
+                            sourceType?: "issue" | "sprint";
+                            claim: string;
+                            excerpt?: string;
+                            /** @enum {string} */
+                            visibility: "internal" | "actor_visible" | "restricted";
+                            visibleFields: string[];
+                            redactionReason?: string;
+                        }[];
+                        humanGate: {
+                            [key: string]: unknown;
+                        };
+                        draftContent?: {
+                            [key: string]: unknown;
+                        };
+                        noSafeOutput?: boolean;
+                    };
+                    traceMetadata: {
+                        /** @enum {string} */
+                        mode: "proactive" | "on_demand";
+                        decision: string;
+                        nodePath: string[];
+                        traceId?: string;
+                        traceUrl?: string;
+                        failureCategory?: string;
+                    };
+                    title: string;
+                    issueTitle: string;
+                    context: string;
+                    owner: string | null;
+                    notificationText: string;
+                    blockerText: string;
+                    sourcePath: string;
+                    detectedAt: string;
+                    isRead: boolean;
+                    readAt: string | null;
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    findingId: string;
+                };
+                humanGate: {
+                    required: boolean;
+                    /** @enum {string} */
+                    state: "present" | "missing" | "not_applicable";
+                    allowedActions: string[];
+                };
+                traceQuality: {
+                    passed: boolean;
+                    requiredDecisions: string[];
+                    observedDecisions: string[];
+                    scores: {
+                        name: string;
+                        passed: boolean;
+                        value: string | number | boolean | unknown | unknown;
+                        comment: string;
+                    }[];
+                };
+                sourceMutationCheck: {
+                    passed: boolean;
+                    before: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    after: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    changedFields: string[];
+                };
+                usageSummary: {
+                    modelCalls: number;
+                    inputTokens?: number;
+                    cachedInputTokens?: number;
+                    billableInputTokens?: number;
+                    outputTokens?: number;
+                    totalTokens?: number;
+                    estimatedCostUsd?: number;
+                    /** @enum {string} */
+                    costCurrency?: "USD";
+                    /** @enum {string} */
+                    usageSource?: "none" | "model_response" | "partial_model_response" | "synthetic_calibration";
+                    /** @enum {string} */
+                    costSource?: "none" | "model_response" | "catalog_estimate" | "env_estimate" | "synthetic_calibration";
+                };
+            };
         };
         FleetGraphReviewerRepairResponse: {
             chainId: string;
             repaired: string[];
             unsupported: string[];
-            chain: components["schemas"]["FleetGraphReviewerChain"];
+            chain: {
+                chainId: string;
+                /** @enum {string} */
+                scenario: "week-blocker" | "existing";
+                /** @enum {string} */
+                status: "complete" | "in_progress" | "broken" | "failed";
+                missing: string[];
+                missingLabels: string[];
+                /** @enum {string} */
+                productPath: "working" | "partial";
+                generatedAt: string;
+                freshness: {
+                    generatedAt: string;
+                    newestRunAt: string | null;
+                    newestWorkerTickAt: string | null;
+                    proofAgeMs: number | null;
+                    workerAgeMs: number | null;
+                };
+                latencyMs: {
+                    shipToAttention?: number;
+                    attentionToWorker?: number;
+                    workerToRun?: number;
+                    runToFinding?: number;
+                    findingToNotification?: number;
+                    notificationToChat?: number;
+                    total?: number;
+                };
+                links: {
+                    /** Format: uuid */
+                    sourceIssueId?: string;
+                    /** Format: uuid */
+                    sourceSprintId?: string;
+                    /** Format: uuid */
+                    attentionEventId?: string;
+                    /** Format: uuid */
+                    workerTickId?: string;
+                    /** Format: uuid */
+                    runId?: string;
+                    traceId?: string;
+                    traceUrl?: string;
+                    /** Format: uuid */
+                    findingId?: string;
+                    /** Format: uuid */
+                    notificationProjectionId?: string;
+                    /** Format: uuid */
+                    chatRunId?: string;
+                };
+                steps: {
+                    key: string;
+                    label: string;
+                    /** @enum {string} */
+                    status: "pass" | "pending" | "broken" | "failed";
+                    at: string | null;
+                    durationMs?: number;
+                    evidence: string;
+                }[];
+                visibleOutput?: {
+                    title: string;
+                    summary: string;
+                    /** @enum {string} */
+                    severity?: "low" | "medium" | "high" | "urgent";
+                    confidence?: number;
+                    recommendedAction?: {
+                        label?: string;
+                        text?: string;
+                        summary?: string;
+                    };
+                    proposedRecipient?: {
+                        role?: string;
+                        /** Format: uuid */
+                        userId?: string | null;
+                        displayName?: string;
+                        rationale?: string;
+                    };
+                    recipientRationale?: string;
+                    uncertaintyNotes?: string[];
+                    evidence: {
+                        /** @enum {string} */
+                        kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                        /** Format: uuid */
+                        sourceDocumentId?: string;
+                        /** @enum {string} */
+                        sourceType?: "issue" | "sprint";
+                        claim: string;
+                        excerpt?: string;
+                        /** @enum {string} */
+                        visibility: "internal" | "actor_visible" | "restricted";
+                        visibleFields: string[];
+                        redactionReason?: string;
+                    }[];
+                    humanGate: {
+                        [key: string]: unknown;
+                    };
+                    draftContent?: {
+                        [key: string]: unknown;
+                    };
+                    noSafeOutput?: boolean;
+                };
+                notificationProjection?: {
+                    /** @enum {string} */
+                    signalType: "blocked" | "stale" | "at_risk";
+                    signalLabel: string;
+                    reason: string;
+                    /** Format: uuid */
+                    sourceIssueId: string;
+                    /** Format: uuid */
+                    sourceSprintId: string;
+                    visibleOutput: {
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        severity?: "low" | "medium" | "high" | "urgent";
+                        confidence?: number;
+                        recommendedAction?: {
+                            label?: string;
+                            text?: string;
+                            summary?: string;
+                        };
+                        proposedRecipient?: {
+                            role?: string;
+                            /** Format: uuid */
+                            userId?: string | null;
+                            displayName?: string;
+                            rationale?: string;
+                        };
+                        recipientRationale?: string;
+                        uncertaintyNotes?: string[];
+                        evidence: {
+                            /** @enum {string} */
+                            kind: "source_issue" | "source_sprint" | "blocker" | "stale" | "at_risk" | "dedupe" | "finding" | "restricted";
+                            /** Format: uuid */
+                            sourceDocumentId?: string;
+                            /** @enum {string} */
+                            sourceType?: "issue" | "sprint";
+                            claim: string;
+                            excerpt?: string;
+                            /** @enum {string} */
+                            visibility: "internal" | "actor_visible" | "restricted";
+                            visibleFields: string[];
+                            redactionReason?: string;
+                        }[];
+                        humanGate: {
+                            [key: string]: unknown;
+                        };
+                        draftContent?: {
+                            [key: string]: unknown;
+                        };
+                        noSafeOutput?: boolean;
+                    };
+                    traceMetadata: {
+                        /** @enum {string} */
+                        mode: "proactive" | "on_demand";
+                        decision: string;
+                        nodePath: string[];
+                        traceId?: string;
+                        traceUrl?: string;
+                        failureCategory?: string;
+                    };
+                    title: string;
+                    issueTitle: string;
+                    context: string;
+                    owner: string | null;
+                    notificationText: string;
+                    blockerText: string;
+                    sourcePath: string;
+                    detectedAt: string;
+                    isRead: boolean;
+                    readAt: string | null;
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    findingId: string;
+                };
+                humanGate: {
+                    required: boolean;
+                    /** @enum {string} */
+                    state: "present" | "missing" | "not_applicable";
+                    allowedActions: string[];
+                };
+                traceQuality: {
+                    passed: boolean;
+                    requiredDecisions: string[];
+                    observedDecisions: string[];
+                    scores: {
+                        name: string;
+                        passed: boolean;
+                        value: string | number | boolean | unknown | unknown;
+                        comment: string;
+                    }[];
+                };
+                sourceMutationCheck: {
+                    passed: boolean;
+                    before: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    after: {
+                        [key: string]: string | number | boolean | unknown | unknown;
+                    };
+                    changedFields: string[];
+                };
+                usageSummary: {
+                    modelCalls: number;
+                    inputTokens?: number;
+                    cachedInputTokens?: number;
+                    billableInputTokens?: number;
+                    outputTokens?: number;
+                    totalTokens?: number;
+                    estimatedCostUsd?: number;
+                    /** @enum {string} */
+                    costCurrency?: "USD";
+                    /** @enum {string} */
+                    usageSource?: "none" | "model_response" | "partial_model_response" | "synthetic_calibration";
+                    /** @enum {string} */
+                    costSource?: "none" | "model_response" | "catalog_estimate" | "env_estimate" | "synthetic_calibration";
+                };
+            };
         };
         FleetGraphReviewerProofResponse: {
             /** @enum {string} */
@@ -14004,16 +14865,17 @@ export interface components {
             generatedAt: string;
             chainId: string;
             artifactPaths: {
-                [key: string]: string;
+                json: string;
+                markdown: string;
+                html: string;
+                publicJson?: string;
+                publicMarkdown?: string;
+                publicHtml?: string;
             };
         };
         /** @default {} */
         FleetGraphReviewerProofRequest: {
-            /**
-             * Format: uuid
-             * @description UUID identifier
-             * @example 550e8400-e29b-41d4-a716-446655440000
-             */
+            /** Format: uuid */
             chainId?: string;
         };
     };

@@ -10,7 +10,7 @@ import {
   recordFleetGraphReviewerChatMutationProof,
   REVIEWER_PROOF_BLOCKER_TEXT,
   reviewerProofRepoRoot,
-} from './reviewer-proof.js';
+} from './reviewer-proof/index.js';
 import type { FleetGraphReviewerChain } from '@ship/shared';
 
 describe('reviewerProofRepoRoot', () => {
@@ -78,6 +78,8 @@ describe('publicReviewerChainProof', () => {
       scenario: 'week-blocker',
       status: 'complete',
       missing: [],
+      missingLabels: [],
+      productPath: 'partial',
       generatedAt: '2026-05-30T00:00:00.000Z',
       freshness: {
         generatedAt: '2026-05-30T00:00:00.000Z',
@@ -248,6 +250,8 @@ function reviewerChain(overrides: Partial<FleetGraphReviewerChain> = {}): FleetG
     scenario: 'week-blocker',
     status: 'complete',
     missing: [],
+    missingLabels: [],
+    productPath: 'partial',
     generatedAt: '2026-05-30T00:00:00.000Z',
     freshness: {
       generatedAt: '2026-05-30T00:00:00.000Z',

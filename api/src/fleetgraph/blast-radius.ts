@@ -11,7 +11,7 @@ import { authorize } from '../security/capabilities.js';
 import { documentActorFromPrincipal } from '../security/document-actor.js';
 import type { Principal } from '../security/principal.js';
 import { visibleOutputForFinding } from './evidence.js';
-import { fleetGraphFindingResponse } from './api-contract.js';
+import { projectFindingForActor } from './finding-projection.js';
 import {
   getFleetGraphFindingById,
   listFleetGraphFindingsForSource,
@@ -49,13 +49,13 @@ export async function getFleetGraphBlastRadius(input: {
   }, db);
   if (!finding) return null;
 
-  const { output } = await visibleOutputForFinding({
+  const projectedFinding = await projectFindingForActor({
     principal: input.principal,
     workspaceId: input.workspaceId,
     finding,
     db,
   });
-  if (output.noSafeOutput) return null;
+  if (!projectedFinding) return null;
 
   const [documents, people, relatedFindings] = await Promise.all([
     visibleDocumentRows({
@@ -80,12 +80,14 @@ export async function getFleetGraphBlastRadius(input: {
 
   const graph = buildBlastRadiusGraph(finding, documents, people, relatedFindings);
   return {
-    finding: fleetGraphFindingResponse({ ...finding, visibleOutput: output }),
+    finding: projectedFinding,
     summary: blastRadiusSummary(graph.nodes, relatedFindings.length),
     nodes: dedupeNodes(graph.nodes),
     edges: dedupeEdges(graph.edges),
   };
 }
+
+export { getFleetGraphBlastRadius as blastRadiusMapForFinding };
 
 function buildBlastRadiusGraph(
   finding: FleetGraphFinding,

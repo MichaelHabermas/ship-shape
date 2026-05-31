@@ -1,14 +1,17 @@
-// FleetGraph reviewer live operation drawer shows progress for gated proof actions.
-import type { FleetGraphReviewerChain } from '@ship/shared';
+// FleetGraph reviewer live operation drawer tracks progress from refreshed proof-chain steps.
+import {
+  activeChainStepIndex,
+  chainStepsForOperation,
+} from '@/fleetgraph/reviewer/operation-chain-steps';
 import {
   operationStepClass,
   operationStepLabel,
   operationStepState,
-  operationSteps,
 } from '@/fleetgraph/reviewer/operation-catalog';
 import { formatMs } from '@/fleetgraph/reviewer/formatters';
 import type { LiveOperation } from '@/fleetgraph/reviewer/types';
-import { CopyableUuid, useNow } from './primitives';
+import type { FleetGraphReviewerChain } from '@ship/shared';
+import { CopyableUuid } from './primitives';
 
 export function LiveOperationDrawer({
   operation,
@@ -19,13 +22,13 @@ export function LiveOperationDrawer({
   selected: FleetGraphReviewerChain | null;
   onClose: () => void;
 }) {
-  const now = useNow(operation.status === 'running');
-  const steps = operationSteps(operation.kind);
-  const elapsedMs = (operation.completedAt ?? now) - operation.startedAt;
-  const activeIndex = operation.status === 'running'
-    ? Math.min(steps.length - 1, Math.floor(elapsedMs / 1400))
-    : steps.length - 1;
-  const showCompact = operation.status !== 'running' && !operation.outputTail?.length;
+  const liveSteps = chainStepsForOperation(operation.kind, selected);
+  const steps = operation.status === 'running'
+    ? liveSteps
+    : (operation.chainSteps?.length ? operation.chainSteps : liveSteps);
+  const elapsedMs = (operation.completedAt ?? Date.now()) - operation.startedAt;
+  const activeIndex = activeChainStepIndex(steps, operation.status);
+  const showCompact = operation.status !== 'running' && !operation.outputTail?.length && steps.length === 0;
 
   if (showCompact) {
     return (
@@ -62,7 +65,7 @@ export function LiveOperationDrawer({
           <h2 className="mt-1 text-sm font-semibold text-white">{operation.title}</h2>
           <p className="mt-1 text-xs leading-5 text-slate-400">
             {operation.status === 'running'
-              ? 'Expected path shown while the API works; final truth comes from the refreshed proof chain.'
+              ? 'Progress follows the selected proof chain after each refresh.'
               : operation.result ?? operation.error}
           </p>
         </div>
@@ -104,7 +107,7 @@ export function LiveOperationDrawer({
                 <span className="text-[11px] font-medium">{operationStepLabel(state)}</span>
               </div>
               <div className="mt-2 text-sm font-medium text-white">{step.label}</div>
-              <div className="mt-1 text-xs leading-5 text-slate-400">{step.detail}</div>
+              <div className="mt-1 text-xs leading-5 text-slate-400">{step.evidence || step.key}</div>
               {state === 'running' && (
                 <div className="absolute inset-x-3 bottom-2 h-px overflow-hidden bg-white/10">
                   <div className="h-full w-full animate-pulse bg-sky-300" />

@@ -8,9 +8,7 @@ import type {
 } from '@ship/shared';
 import { apiPostJson } from '@/lib/api';
 import { chooseReviewerChain, repairResultText } from '@/fleetgraph/reviewer/chain-helpers';
-import { useFleetGraphBlastRadius } from '@/hooks/useFleetGraphBlastRadius';
-import { useFleetGraphReviewerChains } from '@/hooks/useFleetGraphReviewerChains';
-import { useFleetGraphReviewerOperations } from '@/hooks/useFleetGraphReviewerOperations';
+import { useReviewerControlRoom } from '@/hooks/useReviewerControlRoom';
 import { ChainWorkspace } from '@/components/fleetgraph-reviewer/ChainWorkspace';
 import { DetailPane } from '@/components/fleetgraph-reviewer/DetailPane';
 import { LiveOperationDrawer } from '@/components/fleetgraph-reviewer/LiveOperationDrawer';
@@ -20,12 +18,9 @@ import { ScenarioRail } from '@/components/fleetgraph-reviewer/ScenarioRail';
 import { EmptyState, ProofButton } from '@/components/fleetgraph-reviewer/primitives';
 
 export function FleetGraphReviewerPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const findingId = searchParams.get('findingId');
+  const [, setSearchParams] = useSearchParams();
   const [proof, setProof] = useState<FleetGraphReviewerProofResponse | null>(null);
-
   const {
-    data,
     chains,
     selected,
     loading,
@@ -33,10 +28,14 @@ export function FleetGraphReviewerPage() {
     setError,
     setSelectedId,
     refresh,
-  } = useFleetGraphReviewerChains(findingId);
-
-  const { blastRadius, error: blastRadiusError } = useFleetGraphBlastRadius(selected?.links.findingId);
-  const { busyAction, operation, setOperation, runAction } = useFleetGraphReviewerOperations(refresh, setError);
+    data,
+    blastRadius,
+    blastRadiusError,
+    busyAction,
+    operation,
+    setOperation,
+    runAction,
+  } = useReviewerControlRoom();
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#080b12] text-slate-100">

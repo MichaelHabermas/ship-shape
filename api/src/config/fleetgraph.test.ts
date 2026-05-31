@@ -24,7 +24,7 @@ describe('fleetGraphConfig', () => {
       FLEETGRAPH_WORKER_WORKSPACE_LIMIT: '9',
       FLEETGRAPH_WORKER_CANDIDATE_LIMIT: '2',
       FLEETGRAPH_WORKER_TICK_DEADLINE_MS: '180000',
-      FLEETGRAPH_MODEL: 'gpt-4.1-mini',
+      FLEETGRAPH_MODEL: 'gpt-5.5',
       FLEETGRAPH_MANUAL_RUN_API_ENABLED: 'true',
       FLEETGRAPH_EXTERNAL_TRACING_ENABLED: 'true',
       LANGSMITH_TRACING: 'true',
@@ -36,7 +36,7 @@ describe('fleetGraphConfig', () => {
       workerCandidateLimit: 2,
       workerTickDeadlineMs: 180000,
       manualRunApiEnabled: true,
-      modelName: 'gpt-4.1-mini',
+      modelName: 'gpt-5.5',
       tracingEnabled: true,
       traceProject: 'ship-fleetgraph',
     });

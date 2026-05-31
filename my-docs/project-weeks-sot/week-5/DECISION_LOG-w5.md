@@ -709,3 +709,21 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Decompose `FleetGraphReviewerPage` into three layers: pure helpers under `web/src/fleetgraph/reviewer/`, data hooks under `web/src/hooks/useFleetGraphReviewer*.ts`, and UI panels under `web/src/components/fleetgraph-reviewer/`. The page file remains the layout orchestrator only.
 
 **Consequence:** New reviewer UI should land in the component folder, not grow the page monolith. Integration tests stay on the page; pure helpers and hooks get colocated unit tests.
+
+## D089 - FleetGraph Deep Module Facades
+
+**Date:** 2026-05-31
+
+**Decision:** Introduce small FleetGraph facades instead of splitting god files immediately. Shared `reviewer-verifier` owns gate step keys, `proofGapLabel`, `productPath`, `preferredReviewerProofChain`, and chain enrichment. API adds `finding-projection`, `attention-pipeline`, `fleetgraph-runtime`, `context-chat-service`, and `wire-contract`. Reviewer chains on the wire include `productPath`, `missingLabels`, and `summary.preferredChainId` so web does not re-derive verifier semantics.
+
+**Consequence:** New reviewer presentation must consume server wire fields. Do not reintroduce web-only `productPathStatus` math against a different step list. Blast radius and finding routes should project through `projectFindingForActor`. Zod-in-shared / OpenAPI codegen for the full wire layer stays a follow-up, not mixed into this facade pass.
+
+## D090 - FleetGraph Galaxy-Brain Follow-Through
+
+**Date:** 2026-05-31
+
+**Decision:** Ship the three deferred deep-module upgrades together: (1) reviewer + core FleetGraph wire Zod lives in `shared/src/fleetgraph/wire-schema-factory.ts` with API OpenAPI wrappers in `openapi-wire-schemas.ts` and regenerated `web/src/api/generated/ship-openapi.d.ts`; (2) `reviewer-proof/` folder replaces the monolithic file; (3) live operation drawer progress reads refreshed proof-chain steps via `operation-chain-steps.ts`, not cosmetic timers.
+
+**Consequence:** Extend non-reviewer FleetGraph Zod into the shared factory before adding more hand types. Reviewer imports use `reviewer-proof/index.js` explicitly (NodeNext). Operation UI must not reintroduce catalog-only progress that ignores chain steps.
+
+**Audit (2026-05-31, `/are-you-sure`):** OpenAPI wrappers must reference `wire-schema-factory` schemas (no parallel finding/notification Zod). Live drawer uses `chainStepsForOperation` on refreshed chains while `running`; `activeChainStepIndex` treats all-pass mid-run as last step. Route/test fixtures include `productPath`, `missingLabels`, `preferredChainId`. Optional follow-ups: Zod `.parse()` on reviewer route responses; retire unused `operationSteps()` in catalog.

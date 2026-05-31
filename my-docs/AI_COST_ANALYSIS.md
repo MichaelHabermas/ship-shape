@@ -14,13 +14,14 @@ This is the Week 5 FleetGraph cost report. It separates development AI usage fro
 | Codex local project tokens | 3,674,047,029 |
 | Codex measurement window | 2026-05-18 14:51:52 to 2026-05-30 19:07:28 America/Chicago |
 | Codex high-water mark | `1780186048932` |
-| Latest FleetGraph proof packet | 2026-05-31T00:07:11.336Z |
-| Latest reviewer chain latency | 5,354 ms |
-| Latest reviewer proof model calls | 0 |
-| Latest reviewer proof runtime model spend | $0.00 |
+| Canonical public FleetGraph proof packet | 2026-05-31T01:25:14.492Z |
+| Latest local-only FleetGraph proof packet | 2026-05-31T14:07:43.812Z |
+| Public reviewer chain latency | 5,060 ms |
+| Public reviewer proof model calls | 0 |
+| Public reviewer proof runtime model spend | $0.00 |
 | Local FleetGraph run ledger | 1,701 runs; 12 model calls; 2,655 model tokens; $0.031541 corrected estimated model spend |
 
-Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The latest reviewer proof packet is deterministic and shows zero model calls, but the broader local FleetGraph run ledger includes real model calls and nonzero estimated model spend.
+Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The canonical public proof packet is deterministic and shows zero model calls, but the broader local FleetGraph run ledger includes real model calls and nonzero estimated model spend.
 
 The adversarial read: the measured FleetGraph model spend is a floor. It used tiny demo payloads, only 12 real-model calls, and two `gpt-5.5` calls with token usage but no persisted cost. A production user asking real questions from rich project context will cost more.
 
@@ -129,7 +130,7 @@ The latest proof packet alone is not enough for cost analysis because it can be 
 
 | Model | Runs | Model calls | Input tokens | Output tokens | Total tokens | Estimated spend |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `gpt-4.1-mini` | 6 | 6 | 540 | 634 | 1,174 | $0.000461 |
+| retired legacy mini model | 6 | 6 | 540 | 634 | 1,174 | $0.000461 |
 | `gpt-5.5` | 6 | 6 | 534 | 947 | 1,481 | $0.031080 corrected |
 | deterministic / none | 1,689 | 0 | 0 | 0 | 0 | $0.000000 |
 
@@ -151,12 +152,14 @@ Corrections:
 
 | Metric | Value |
 | --- | ---: |
-| Generated at | 2026-05-31T00:07:11.336Z |
+| Generated at | 2026-05-31T01:25:14.492Z |
 | Required scenarios | 9 |
 | Proven scenarios | 9 |
 | Current surface pass/fail | 8 / 0 |
-| Deployed configured | false |
-| Proof summary graph invocations | 0 |
+| Deployed configured | true |
+| Deployed signals | `blocked`, `stale`, `at_risk` |
+| Deployed completed worker ticks | 5 |
+| Proof summary graph invocations | 100 |
 | Proof summary model calls | 0 |
 | Proof summary real-model runs | 0 |
 
@@ -164,12 +167,12 @@ Corrections:
 
 | Step | Latency |
 | --- | ---: |
-| Ship source to attention event | 7 ms |
+| Ship source to attention event | 6 ms |
 | Attention event to worker tick | 2 ms |
-| Worker tick to graph run | 5,347 ms |
+| Worker tick to graph run | 5,055 ms |
 | Graph run to finding | 0 ms |
 | Finding to notification projection | 0 ms |
-| Total | 5,354 ms |
+| Total | 5,060 ms |
 
 | Usage field | Value |
 | --- | --- |
@@ -193,14 +196,15 @@ FleetGraph avoids model spend by design:
 - Context chat is scoped to the current page or finding, not the full workspace.
 - Real-model blocked-create behavior is gated behind `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL`, and `OPENAI_API_KEY`.
 
-Configured estimate rates currently documented in `FLEETGRAPH.md`:
+Configured estimate rates now come from `api/src/config/fleetgraph-models.ts`; `FLEETGRAPH.md` mirrors that catalog instead of hardcoding a retired model assumption.
 
-| Token class | Rate |
-| --- | ---: |
-| Input | $0.15 / 1M tokens |
-| Output | $0.60 / 1M tokens |
+| Model | Input | Cached input | Output |
+| --- | ---: | ---: | ---: |
+| `gpt-5.5` | $5.00 / 1M tokens | $0.50 / 1M tokens | $30.00 / 1M tokens |
+| `gpt-5.4` | $2.50 / 1M tokens | $0.25 / 1M tokens | $15.00 / 1M tokens |
+| `gpt-4o-mini` | $0.15 / 1M tokens | $0.075 / 1M tokens | $0.60 / 1M tokens |
 
-Those rates match `gpt-4o-mini`, not the `gpt-5.5` rows that appear in the local run ledger. Current OpenAI model docs list `gpt-5.5` at $5.00 / 1M input tokens and $30.00 / 1M output tokens, and `gpt-4.1-mini` at $0.40 / 1M input tokens and $1.60 / 1M output tokens. The conservative projections below use the model actually seen in the expensive rows, `gpt-5.5`, rather than the cheaper documented fallback.
+The default and Render-configured FleetGraph model is `gpt-5.5`. The conservative projections below use that model rather than a cheaper retired fallback.
 
 ## Production Cost Projections
 
@@ -305,7 +309,7 @@ jq '.generatedAt,
     .reviewerChain.latencyMs,
     .reviewerChain.usageSummary,
     .reviewerChain.traceQuality' \
-  /Users/michaelhabermas/repos/GAI/ship-shape/my-docs/evidence/fleetgraph-proof/latest.json
+  /Users/michaelhabermas/repos/GAI/ship-shape/web/public/fleetgraph-observability/proof/latest.json
 ```
 
 ### FleetGraph Run Ledger Query
@@ -341,10 +345,9 @@ psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off 
 
 ### Pricing Sources
 
-Current pricing was checked against official OpenAI model documentation on 2026-05-30:
+Current pricing was checked against the FleetGraph catalog in `api/src/config/fleetgraph-models.ts`:
 
 - `gpt-5.5`: $5.00 / 1M input tokens, $30.00 / 1M output tokens: https://developers.openai.com/api/docs/models/gpt-5.5/
-- `gpt-4.1-mini`: $0.40 / 1M input tokens, $1.60 / 1M output tokens: https://developers.openai.com/api/docs/models/gpt-4.1-mini
 - General pricing page cross-check: https://platform.openai.com/docs/pricing/
 
 ### Cost Field Search

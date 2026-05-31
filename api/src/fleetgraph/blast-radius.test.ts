@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getFleetGraphBlastRadius } from './blast-radius.js';
 import { filterReadableDocumentIds } from '../services/document-graph-visibility.js';
 import { visibleOutputForFinding } from './evidence.js';
+import { projectFindingForActor } from './finding-projection.js';
 import {
   getFleetGraphFindingById,
   listFleetGraphFindingsForSource,
@@ -17,6 +18,10 @@ vi.mock('./evidence.js', () => ({
   visibleOutputForFinding: vi.fn(),
 }));
 
+vi.mock('./finding-projection.js', () => ({
+  projectFindingForActor: vi.fn(),
+}));
+
 vi.mock('./persistence.js', () => ({
   getFleetGraphFindingById: vi.fn(),
   listFleetGraphFindingsForSource: vi.fn(),
@@ -24,20 +29,6 @@ vi.mock('./persistence.js', () => ({
   signalLabelForType: vi.fn(() => 'Blocked'),
 }));
 
-vi.mock('./api-contract.js', () => ({
-  fleetGraphFindingResponse: vi.fn((finding: FleetGraphFinding & { visibleOutput?: unknown }) => ({
-    id: finding.id,
-    kind: 'blocker',
-    status: finding.status,
-    signalType: 'blocked',
-    signalLabel: 'Blocked',
-    reason: finding.summary,
-    sourceIssueId: finding.source_issue_id,
-    sourceSprintId: finding.source_sprint_id,
-    visibleOutput: finding.visibleOutput,
-    traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: [] },
-  })),
-}));
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
@@ -90,9 +81,34 @@ function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding 
 }
 
 describe('FleetGraph blast radius', () => {
+  function mockProjectedFinding(finding: FleetGraphFinding, noSafeOutput = false) {
+    if (noSafeOutput) {
+      vi.mocked(projectFindingForActor).mockResolvedValueOnce(null);
+      return;
+    }
+    vi.mocked(projectFindingForActor).mockResolvedValueOnce({
+      id: finding.id,
+      kind: 'blocker',
+      status: finding.status,
+      signalType: 'blocked',
+      signalLabel: 'Blocked',
+      reason: finding.summary,
+      sourceIssueId: finding.source_issue_id,
+      sourceSprintId: finding.source_sprint_id,
+      visibleOutput: {
+        title: finding.title,
+        summary: finding.summary,
+        evidence: [],
+        humanGate: { required: true },
+      },
+      traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: [] },
+    });
+  }
+
   beforeEach(() => {
     vi.mocked(getFleetGraphFindingById).mockReset();
     vi.mocked(listFleetGraphFindingsForSource).mockReset();
+    vi.mocked(projectFindingForActor).mockReset();
     vi.mocked(visibleOutputForFinding).mockReset();
     vi.mocked(filterReadableDocumentIds).mockReset();
     db.query.mockReset();
@@ -105,6 +121,7 @@ describe('FleetGraph blast radius', () => {
     const restrictedRelated = finding({ id: restrictedFindingId, title: 'Hidden related finding' });
     vi.mocked(getFleetGraphFindingById).mockResolvedValue(root);
     vi.mocked(listFleetGraphFindingsForSource).mockResolvedValue([root, visibleRelated, restrictedRelated]);
+    mockProjectedFinding(root);
     vi.mocked(visibleOutputForFinding).mockImplementation(async ({ finding: candidate }) => ({
       evidence: [],
       output: {
@@ -139,6 +156,7 @@ describe('FleetGraph blast radius', () => {
     ];
     vi.mocked(getFleetGraphFindingById).mockResolvedValue(root);
     vi.mocked(listFleetGraphFindingsForSource).mockResolvedValue([root, ...related]);
+    mockProjectedFinding(root);
     vi.mocked(visibleOutputForFinding).mockImplementation(async ({ finding: candidate }) => ({
       evidence: [],
       output: {
@@ -158,7 +176,8 @@ describe('FleetGraph blast radius', () => {
       db,
     });
 
-    expect(visibleOutputForFinding).toHaveBeenCalledTimes(4);
+    expect(visibleOutputForFinding).toHaveBeenCalledTimes(3);
+    expect(projectFindingForActor).toHaveBeenCalledTimes(1);
     expect(response?.nodes.filter((node) => node.subtitle === 'Related open finding')).toHaveLength(3);
   });
 
@@ -166,6 +185,7 @@ describe('FleetGraph blast radius', () => {
     const root = finding();
     vi.mocked(getFleetGraphFindingById).mockResolvedValue(root);
     vi.mocked(listFleetGraphFindingsForSource).mockResolvedValue([root]);
+    mockProjectedFinding(root);
     vi.mocked(visibleOutputForFinding).mockResolvedValue({
       evidence: [],
       output: {

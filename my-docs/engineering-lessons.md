@@ -104,3 +104,18 @@ The transferable rules:
 - Do not answer "yes, the demo exists" from authentication success alone.
 
 ShipShape example: the FleetGraph reviewer login worked, but it initially landed in a tiny FleetGraph-only workspace instead of the dense seeded workspace. The account authenticated successfully but did not expose the useful projects, issues, weeks, and controls needed for testing. The fix was to point the canonical reviewer at the loaded workspace when it exists and seed the FleetGraph controls there.
+
+## 8. Put Verifier Semantics On The Wire Once
+
+When a dashboard and an API both interpret the same proof gates, duplicate pure helpers on the client will drift. The UI can format labels, but it should not maintain a second required-step list or product-path definition.
+
+The transferable rules:
+
+- Compute presentation flags on the authoritative server response.
+- Share only pure selection/label helpers that both tiers import from one package.
+- Add explicit wire fields (`productPath`, `missingLabels`, `preferredChainId`) instead of re-deriving status in React.
+- Test the shared helper once; test the API boundary for enrichment.
+
+ShipShape example: reviewer `productPathStatus` on web checked six steps while API `REQUIRED_STEP_KEYS` tracked eight. Moving enrichment into `shared/src/fleetgraph/reviewer-verifier.ts` and emitting `productPath` on each chain removed the split-brain metric.
+
+For long-running reviewer operations, progress UI must read the same refreshed chain steps the API just wrote, not a cosmetic timer or a one-shot snapshot taken at start. While status is `running`, bind the drawer to live chain data; only freeze a snapshot after completion. Register OpenAPI from the shared wire factory—never duplicate finding/notification Zod beside the factory or codegen will drift from runtime validation.

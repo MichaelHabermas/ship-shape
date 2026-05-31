@@ -55,7 +55,7 @@ import {
   runFleetGraphReviewerWeekBlockerScenario,
   runFleetGraphReviewerWorkerTick,
   sourceSnapshotForReviewerChat,
-} from '../fleetgraph/reviewer-proof.js';
+} from '../fleetgraph/reviewer-proof/index.js';
 import { UuidSchema, ErrorResponseSchema, ApiErrorResponseSchema } from '../openapi/schemas/common.js';
 
 const router: ExpressRouter = Router();

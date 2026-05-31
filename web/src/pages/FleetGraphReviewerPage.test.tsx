@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import type { FleetGraphReviewerChain, FleetGraphReviewerChainsResponse } from '@ship/shared';
 import { FleetGraphReviewerPage } from './FleetGraphReviewerPage';
 import { apiGetJson, apiPostJson } from '@/lib/api';
 
@@ -10,10 +11,11 @@ vi.mock('@/lib/api', () => ({
   apiPostJson: vi.fn(),
 }));
 
-const emptyChainsResponse = {
+const emptyChainsResponse: FleetGraphReviewerChainsResponse = {
   summary: {
     generatedAt: '2026-05-30T00:00:00.000Z',
     status: 'broken',
+    preferredChainId: null,
     chainCount: 0,
     completeCount: 0,
     brokenCount: 0,
@@ -23,11 +25,13 @@ const emptyChainsResponse = {
   chains: [],
 };
 
-const brokenChain = {
+const brokenChain: FleetGraphReviewerChain = {
   chainId: '11111111-1111-4111-8111-111111111111',
   scenario: 'week-blocker',
   status: 'broken',
   missing: ['source_mutation_check'],
+  missingLabels: ['source unchanged after chat'],
+  productPath: 'partial' as const,
   generatedAt: '2026-05-30T00:00:00.000Z',
   freshness: {
     generatedAt: '2026-05-30T00:00:00.000Z',
@@ -53,11 +57,13 @@ const brokenChain = {
   usageSummary: { modelCalls: 0, costCurrency: 'USD' },
 };
 
-const completeChain = {
+const completeChain: FleetGraphReviewerChain = {
   ...brokenChain,
   chainId: '55555555-5555-4555-8555-555555555555',
   status: 'complete',
   missing: [],
+  missingLabels: [],
+  productPath: 'working' as const,
   links: {
     ...brokenChain.links,
     runId: '55555555-5555-4555-8555-555555555555',
@@ -80,16 +86,14 @@ const completeChain = {
     severity: 'high',
     confidence: 0.9,
     evidence: [],
-    recommendedActions: [],
-    proposedRecipients: [],
+    recommendedAction: { label: 'Unblock' },
+    proposedRecipient: { displayName: 'Owner' },
     humanGate: { approvalRequired: true },
   },
   sourceMutationCheck: { passed: true, before: {}, after: {}, changedFields: [] },
 };
 
-function mockReviewerChainsGet(
-  chainsResponse: typeof emptyChainsResponse & { chains: Array<typeof brokenChain> },
-) {
+function mockReviewerChainsGet(chainsResponse: FleetGraphReviewerChainsResponse) {
   vi.mocked(apiGetJson).mockImplementation(async (endpoint) => {
     if (endpoint === '/api/fleetgraph/reviewer/chains?limit=25') {
       return chainsResponse;
@@ -131,7 +135,11 @@ afterEach(() => {
 
 describe('FleetGraphReviewerPage', () => {
   it('opens the live operation drawer immediately when the scenario starts', async () => {
-    mockReviewerChainsGet(emptyChainsResponse);
+    mockReviewerChainsGet({
+      ...emptyChainsResponse,
+      summary: { ...emptyChainsResponse.summary, chainCount: 1, brokenCount: 1 },
+      chains: [brokenChain],
+    });
     vi.mocked(apiPostJson).mockImplementation(() => new Promise(() => {}));
 
     renderPage();
@@ -144,13 +152,9 @@ describe('FleetGraphReviewerPage', () => {
 
     expect(await screen.findByText('Live operation')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Running reviewer scenario' })).toBeInTheDocument();
-    expect(screen.getByText('Source checked')).toBeInTheDocument();
-    expect(screen.getByText('Event enqueued')).toBeInTheDocument();
-    expect(screen.getAllByText('Worker tick').length).toBeGreaterThan(1);
-    expect(screen.getByText('Trace captured')).toBeInTheDocument();
-    expect(screen.getByText('Finding projected')).toBeInTheDocument();
-    expect(screen.getByText('Source unchanged')).toBeInTheDocument();
-    expect(screen.getByText('Chain refreshed')).toBeInTheDocument();
+    expect(screen.getAllByText('Ship source').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Graph run').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Progress follows the selected proof chain/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Running...' })).toBeDisabled();
     expect(apiPostJson).toHaveBeenCalledWith(
       '/api/fleetgraph/reviewer/scenarios/week-blocker',
@@ -176,8 +180,8 @@ describe('FleetGraphReviewerPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Repair proof' }));
 
     expect(await screen.findByRole('heading', { name: 'Repairing proof' })).toBeInTheDocument();
-    expect(screen.getByText('Chat proof run')).toBeInTheDocument();
-    expect(screen.getByText('Source unchanged')).toBeInTheDocument();
+    expect(screen.getAllByText('Ship source').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Graph run').length).toBeGreaterThan(0);
     expect(apiPostJson).toHaveBeenCalledWith(
       '/api/fleetgraph/reviewer/repair',
       { chainId: brokenChain.chainId },

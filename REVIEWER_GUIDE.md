@@ -85,5 +85,6 @@ Do not use `--skip-tests`, omit `--with-e2e`, or pass `--allow-blocked` / `--all
 | FleetGraph routes | [`api/src/routes/fleetgraph.ts`](./api/src/routes/fleetgraph.ts) |
 | Worker execution | [`api/src/fleetgraph/execution/worker.ts`](./api/src/fleetgraph/execution/worker.ts) |
 | Reviewer dashboard | [`web/src/pages/FleetGraphReviewerPage.tsx`](./web/src/pages/FleetGraphReviewerPage.tsx) |
+| Reviewer panels/helpers | [`web/src/components/fleetgraph-reviewer/`](./web/src/components/fleetgraph-reviewer/) and [`web/src/fleetgraph/reviewer/`](./web/src/fleetgraph/reviewer/) |
 | Notifications entrypoint | [`web/src/components/FleetGraphNotificationsProbe.tsx`](./web/src/components/FleetGraphNotificationsProbe.tsx) |
 | Shared wire types | [`shared/src/types/fleetgraph.ts`](./shared/src/types/fleetgraph.ts) |

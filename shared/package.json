@@ -18,6 +18,9 @@
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"
   },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
   "devDependencies": {
     "@types/node": "^22.19.3",
     "typescript": "^5.7.2"

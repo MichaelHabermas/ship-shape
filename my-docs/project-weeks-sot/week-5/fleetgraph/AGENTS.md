@@ -1,5 +1,7 @@
 # FleetGraph Operating Definition
 
+Status: superseded product-direction note. Use root `FLEETGRAPH.md`, `PRESEARCH.md`, `REVIEWER_GUIDE.md`, and `my-docs/project-weeks-sot/week-5/DECISION_LOG-w5.md` for current implementation and proof boundaries. This file is retained as design archaeology for the early blocked-issue forcing case.
+
 This file explains what FleetGraph is trying to become. It is not an implementation plan, feature checklist, or product requirements document.
 
 The canonical assignment context is everything in `my-docs/project-weeks-sot/week-5/w5-specs/`. Those files are the Week 5 specs even when their filenames say PRD, PDF, advisor note, or something else. Treat them as the directional source of truth for what Gauntlet AI asked Ship to prove.

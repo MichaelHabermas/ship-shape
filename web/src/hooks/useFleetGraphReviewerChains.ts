@@ -1,8 +1,8 @@
 // Polls FleetGraph reviewer chains and keeps URL selection in sync with the scenario rail.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FleetGraphReviewerChain, FleetGraphReviewerChainsResponse } from '@ship/shared';
+import { preferredReviewerProofChain } from '@ship/shared';
 import { apiGetJson } from '@/lib/api';
-import { preferredReviewerProofChain } from '@/fleetgraph/reviewer/chain-helpers';
 
 export function useFleetGraphReviewerChains(findingId: string | null) {
   const [data, setData] = useState<FleetGraphReviewerChainsResponse | null>(null);
@@ -29,7 +29,9 @@ export function useFleetGraphReviewerChains(findingId: string | null) {
         if (current && response.chains.some((chain) => chain.chainId === current || chain.links.findingId === current)) {
           return current;
         }
-        return preferredReviewerProofChain(response.chains)?.chainId ?? null;
+        return response.summary.preferredChainId
+          ?? preferredReviewerProofChain(response.chains)?.chainId
+          ?? null;
       });
     } catch (err) {
       if (requestId !== refreshIdRef.current) return;

@@ -1,7 +1,7 @@
 // Verifies FleetGraph reviewer chain selection prefers complete week-blocker proof chains.
 import { describe, expect, it } from 'vitest';
 import type { FleetGraphReviewerChain } from '@ship/shared';
-import { preferredReviewerProofChain } from './chain-helpers';
+import { preferredReviewerProofChain } from '@ship/shared';
 
 function chain(overrides: Partial<FleetGraphReviewerChain>): FleetGraphReviewerChain {
   return {
@@ -10,15 +10,34 @@ function chain(overrides: Partial<FleetGraphReviewerChain>): FleetGraphReviewerC
     status: overrides.status ?? 'broken',
     generatedAt: overrides.generatedAt ?? '2026-05-31T12:00:00.000Z',
     missing: overrides.missing ?? [],
+    missingLabels: overrides.missingLabels ?? [],
+    productPath: overrides.productPath ?? 'partial',
     steps: overrides.steps ?? [],
     links: overrides.links ?? {},
-    visibleOutput: overrides.visibleOutput,
-    latencyMs: overrides.latencyMs ?? { total: 0 },
-    freshness: overrides.freshness ?? { proofAgeMs: 0, workerAgeMs: 0 },
-    traceQuality: overrides.traceQuality ?? { scores: [] },
-    sourceMutationCheck: overrides.sourceMutationCheck ?? { passed: false, changedFields: [] },
-    humanGate: overrides.humanGate ?? { state: 'required', allowedActions: [] },
-  } as FleetGraphReviewerChain;
+    latencyMs: overrides.latencyMs ?? {},
+    freshness: overrides.freshness ?? {
+      generatedAt: '2026-05-31T12:00:00.000Z',
+      newestRunAt: null,
+      newestWorkerTickAt: null,
+      proofAgeMs: null,
+      workerAgeMs: null,
+    },
+    humanGate: overrides.humanGate ?? { required: false, state: 'missing', allowedActions: [] },
+    traceQuality: overrides.traceQuality ?? {
+      passed: true,
+      requiredDecisions: [],
+      observedDecisions: [],
+      scores: [],
+    },
+    sourceMutationCheck: overrides.sourceMutationCheck ?? {
+      passed: true,
+      before: {},
+      after: {},
+      changedFields: [],
+    },
+    usageSummary: overrides.usageSummary ?? { modelCalls: 0 },
+    ...overrides,
+  };
 }
 
 describe('preferredReviewerProofChain', () => {

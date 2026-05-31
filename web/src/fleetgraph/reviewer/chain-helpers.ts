@@ -1,9 +1,14 @@
-// FleetGraph reviewer chain helpers pick canonical proof chains and label gaps.
+// FleetGraph reviewer chain helpers handle URL selection and display copy from server wire fields.
 import type { FleetGraphReviewerChain, FleetGraphReviewerRepairResponse } from '@ship/shared';
+import { proofGapLabel } from '@ship/shared';
 import { statusHelp } from './constants';
 
+export { preferredReviewerProofChain, proofGapLabel } from '@ship/shared';
+
 export function chainTooltip(chain: FleetGraphReviewerChain): string {
-  const missing = chain.missing.length ? ` Missing gates: ${chain.missing.map(proofGapLabel).join(', ')}.` : '';
+  const missing = chain.missing.length
+    ? ` Missing gates: ${(chain.missingLabels.length ? chain.missingLabels : chain.missing.map(proofGapLabel)).join(', ')}.`
+    : '';
   const scenario = chain.scenario === 'week-blocker'
     ? 'Canonical week-blocker proof scenario.'
     : 'Historical FleetGraph run from existing database evidence.';
@@ -23,24 +28,13 @@ export function chooseReviewerChain(
   syncSearchParams(chain.links.findingId ? { findingId: chain.links.findingId } : {});
 }
 
-export function preferredReviewerProofChain(chains: FleetGraphReviewerChain[]): FleetGraphReviewerChain | null {
-  return chains.find((chain) => chain.scenario === 'week-blocker' && chain.status === 'complete')
-    ?? chains.find((chain) => chain.status === 'complete')
-    ?? chains.find((chain) => chain.scenario === 'week-blocker')
-    ?? chains[0]
-    ?? null;
-}
-
 export function productPathStatus(chain: FleetGraphReviewerChain): string {
-  const required = ['source', 'graph_run', 'trace', 'finding', 'notification_projection', 'chat_human_gate'];
-  return required.every((key) => chain.steps.find((step) => step.key === key)?.status === 'pass')
-    ? 'working'
-    : 'partial';
+  return chain.productPath === 'working' ? 'working' : 'partial';
 }
 
 export function productPathTone(chain: FleetGraphReviewerChain | null): string | undefined {
   if (!chain) return undefined;
-  return productPathStatus(chain) === 'working' ? 'complete' : 'in_progress';
+  return chain.productPath === 'working' ? 'complete' : 'in_progress';
 }
 
 export function sourceMutationLabel(chain: FleetGraphReviewerChain): string {
@@ -50,18 +44,11 @@ export function sourceMutationLabel(chain: FleetGraphReviewerChain): string {
     : 'Source fields changed.';
 }
 
-export function proofGapLabel(key: string): string {
-  if (key === 'source_mutation_check') return 'source unchanged after chat';
-  if (key === 'latency_under_5_minutes') return 'latency under 5 minutes';
-  if (key === 'trace_quality') return 'trace quality';
-  if (key === 'notification_projection') return 'notification projection';
-  if (key === 'chat_human_gate') return 'chat/human gate';
-  return key.replaceAll('_', ' ');
-}
-
 export function repairResultText(result: FleetGraphReviewerRepairResponse): string {
   if (result.repaired.length > 0) return `Repaired: ${result.repaired.map(proofGapLabel).join(', ')}.`;
-  if (result.unsupported.length > 0) return `No safe repair was available for: ${result.unsupported.map(proofGapLabel).join(', ')}.`;
+  if (result.unsupported.length > 0) {
+    return `No safe repair was available for: ${result.unsupported.map(proofGapLabel).join(', ')}.`;
+  }
   return 'Proof inspected. No safe missing gates needed repair.';
 }
 

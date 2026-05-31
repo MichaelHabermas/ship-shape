@@ -1,14 +1,22 @@
-// Runs gated FleetGraph reviewer proof operations with live drawer progress state.
+// Runs gated FleetGraph reviewer proof operations with drawer progress from refreshed chain steps.
 import { useCallback, useState } from 'react';
+import type { FleetGraphReviewerChain } from '@ship/shared';
+import { chainStepsForOperation } from '@/fleetgraph/reviewer/operation-chain-steps';
 import { operationFailure, operationTitle } from '@/fleetgraph/reviewer/operation-catalog';
 import type { LiveOperation, OperationKind } from '@/fleetgraph/reviewer/types';
 
 export function useFleetGraphReviewerOperations(
   refresh: () => Promise<void>,
   setError: (message: string | null) => void,
+  getSelectedChain: () => FleetGraphReviewerChain | null,
 ) {
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [operation, setOperation] = useState<LiveOperation | null>(null);
+
+  const syncOperationChainSteps = useCallback((kind: OperationKind) => {
+    const chainSteps = chainStepsForOperation(kind, getSelectedChain());
+    setOperation((current) => current?.kind === kind ? { ...current, chainSteps } : current);
+  }, [getSelectedChain]);
 
   const runAction = useCallback(async <T>(
     kind: OperationKind,
@@ -29,6 +37,7 @@ export function useFleetGraphReviewerOperations(
       const result = await action();
       onDone?.(result);
       await refresh();
+      syncOperationChainSteps(kind);
       setOperation((current) => current?.kind === kind ? {
         ...current,
         status: 'passed',
@@ -45,6 +54,7 @@ export function useFleetGraphReviewerOperations(
         error: err,
       });
       setError(failure.message);
+      syncOperationChainSteps(kind);
       setOperation((current) => current?.kind === kind ? {
         ...current,
         status: 'failed',
@@ -56,7 +66,7 @@ export function useFleetGraphReviewerOperations(
     } finally {
       setBusyAction(null);
     }
-  }, [busyAction, refresh, setError]);
+  }, [busyAction, getSelectedChain, refresh, setError, syncOperationChainSteps]);
 
   return {
     busyAction,

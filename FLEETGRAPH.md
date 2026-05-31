@@ -152,8 +152,10 @@ Public API/interface additions:
 
 - `GET /api/fleetgraph/findings`
 - `GET /api/fleetgraph/notifications`
+- `GET /api/fleetgraph/findings/{findingId}/blast-radius-map`
 - `POST /api/fleetgraph/notifications/read`
 - `POST /api/fleetgraph/findings/{findingId}/read`
+- `POST /api/fleetgraph/findings/{findingId}/changes`
 - `POST /api/fleetgraph/findings/{findingId}/explain`
 - `POST /api/fleetgraph/findings/{findingId}/refine`
 - `POST /api/fleetgraph/findings/{findingId}/dismiss` when admin-authorized
@@ -163,6 +165,7 @@ Public API/interface additions:
 - `GET /api/fleetgraph/reviewer/chains/{chainId}`
 - `POST /api/fleetgraph/reviewer/scenarios/week-blocker` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/reviewer/worker-tick` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
+- `POST /api/fleetgraph/reviewer/repair` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/reviewer/proof` when admin-authorized and `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`
 - `POST /api/fleetgraph/test/worker-tick` only in test mode
 
@@ -183,10 +186,16 @@ Required proof fields:
 | Deterministic runs | Runs with zero model calls |
 | Real-model proof runs | Runs with nonzero model calls |
 
-Pricing assumption used by the current FleetGraph scripts when provider cost is estimated:
+Pricing comes from `api/src/config/fleetgraph-models.ts` for the configured model, with optional `FLEETGRAPH_MODEL_*_COST_PER_1M` env overrides for proof experiments. The default and Render-configured FleetGraph model is `gpt-5.5`.
 
-- Input: `$0.15 / 1M tokens`.
-- Output: `$0.60 / 1M tokens`.
+Current catalog assumptions used by FleetGraph when provider cost is estimated:
+
+| Model | Input | Cached input | Output |
+| --- | ---: | ---: | ---: |
+| `gpt-5.5` | `$5.00 / 1M tokens` | `$0.50 / 1M tokens` | `$30.00 / 1M tokens` |
+| `gpt-5.4` | `$2.50 / 1M tokens` | `$0.25 / 1M tokens` | `$15.00 / 1M tokens` |
+| `gpt-4o-mini` | `$0.15 / 1M tokens` | `$0.075 / 1M tokens` | `$0.60 / 1M tokens` |
+
 - Blocked proactive create can call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL` is configured, and `OPENAI_API_KEY` exists.
 - Stale, at-risk, quiet, explain, refine, dismiss, and resolve paths remain deterministic/zero-token by default unless a future proof explicitly changes that boundary.
 
