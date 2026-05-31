@@ -8,6 +8,19 @@ const typedFileGlobs = [
   'e2e/**/*.ts',
 ];
 
+const maxLinesExemptGlobs = [
+  '**/generated/**',
+  '**/*.test.ts',
+  '**/*.spec.ts',
+  'e2e/**/*.ts',
+  'api/src/db/migrations/**',
+];
+
+const maxLinesRule = [
+  'warn',
+  { max: 500, skipBlankLines: true, skipComments: true },
+];
+
 const typeSafetyRules = {
   '@typescript-eslint/no-explicit-any': 'warn',
   '@typescript-eslint/no-non-null-assertion': 'warn',
@@ -27,6 +40,7 @@ const typeSafetyRules = {
       objectLiteralTypeAssertions: 'never',
     },
   ],
+  'max-lines': maxLinesRule,
 };
 
 const typedTypeSafetyRules = {
@@ -96,6 +110,12 @@ export default [
     files: ['api/src/**/*.ts', 'shared/src/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    files: maxLinesExemptGlobs,
+    rules: {
+      'max-lines': 'off',
     },
   },
 ];
