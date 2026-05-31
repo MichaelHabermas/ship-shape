@@ -1,3 +1,4 @@
+/** Keeps document boundary enums aligned across shared types, DB schema, runtime Zod, and OpenAPI. */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,23 +54,29 @@ const dbSchema = readFileSync(resolve(repoRoot, 'api/src/db/schema.sql'), 'utf8'
 
 const sortValues = (values: readonly string[]) => [...values].sort();
 
-const parseQuotedValues = (source: string) =>
-  Array.from(source.matchAll(/'([^']+)'/g), match => match[1]!);
+const parseQuotedValues = (source: string): string[] =>
+  Array.from(source.matchAll(/'([^']+)'/g))
+    .map(match => match[1])
+    .filter((value): value is string => value !== undefined);
 
 const parseDbDocumentTypes = () => {
   const match = dbSchema.match(/CREATE TYPE document_type AS ENUM \(([^)]+)\)/);
 
   expect(match, 'database document_type enum should exist').not.toBeNull();
+  const enumBody = match?.[1];
+  expect(enumBody, 'database document_type enum body should exist').toBeDefined();
 
-  return parseQuotedValues(match![1]!);
+  return parseQuotedValues(enumBody);
 };
 
 const parseDbVisibilityValues = () => {
   const match = dbSchema.match(/visibility TEXT[\s\S]*?CHECK \(visibility IN \(([^)]+)\)\)/);
 
   expect(match, 'database visibility check should exist').not.toBeNull();
+  const visibilityList = match?.[1];
+  expect(visibilityList, 'database visibility check values should exist').toBeDefined();
 
-  return parseQuotedValues(match![1]!);
+  return parseQuotedValues(visibilityList);
 };
 
 describe('document boundary contracts', () => {
@@ -183,11 +190,13 @@ describe('document boundary contracts', () => {
     );
 
     expect(issuePropertiesMatch, 'shared IssueProperties interface should exist').not.toBeNull();
+    const issuePropertiesBody = issuePropertiesMatch?.[1];
+    expect(issuePropertiesBody, 'shared IssueProperties body should exist').toBeDefined();
 
     const sharedKeys = Array.from(
-      issuePropertiesMatch![1]!.matchAll(/^\s{2}([a-zA-Z_][a-zA-Z0-9_]*)\??:/gm),
-      match => match[1]!
-    );
+      issuePropertiesBody.matchAll(/^\s{2}([a-zA-Z_][a-zA-Z0-9_]*)\??:/gm),
+      match => match[1]
+    ).filter((key): key is string => key !== undefined);
     const runtimeKeys = Object.keys(issuePropertiesSchema.shape);
 
     expect(sortValues(runtimeKeys)).toEqual(sortValues(sharedKeys));

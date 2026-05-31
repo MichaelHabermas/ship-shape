@@ -1,10 +1,21 @@
+/** Search route integration tests — document, content, and learning queries. */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import type { z } from 'zod';
 import { createApp } from '../app.js';
 import { IdRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js';
 import { rebuildDocumentSearchIndex } from '../utils/tiptap-search.js';
+import {
+  ContentSearchResponseSchema,
+  DocumentSearchResponseSchema,
+  LearningSearchResponseSchema,
+} from '../openapi/schemas/search.js';
+
+type DocumentSearchResponse = z.infer<typeof DocumentSearchResponseSchema>;
+type ContentSearchResponse = z.infer<typeof ContentSearchResponseSchema>;
+type LearningSearchResponse = z.infer<typeof LearningSearchResponseSchema>;
 
 describe('Search API', () => {
   const app = createApp('http://localhost:5173');
@@ -212,11 +223,12 @@ describe('Search API', () => {
     expect(res.body).toHaveProperty('documents');
     expect(res.body).toHaveProperty('total');
 
-    const ids = res.body.documents.map((doc: any) => doc.id);
+    const body = res.body as DocumentSearchResponse;
+    const ids = body.documents.map((doc) => doc.id);
     expect(ids).toContain(requireFirstRow(titleResult.rows).id);
     expect(ids).not.toContain(requireFirstRow(contentOnlyResult.rows).id);
 
-    const doc = res.body.documents.find((item: any) => item.id === requireFirstRow(titleResult.rows).id);
+    const doc = body.documents.find((item) => item.id === requireFirstRow(titleResult.rows).id);
     expect(doc).toMatchObject({
       id: requireFirstRow(titleResult.rows).id,
       title: 'PaletteOnlyNeedle Title',
@@ -240,7 +252,8 @@ describe('Search API', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.documents.length).toBeGreaterThan(0);
-    expect(res.body.documents.every((doc: any) => doc.document_type === 'issue')).toBe(true);
+    const body = res.body as DocumentSearchResponse;
+    expect(body.documents.every((doc) => doc.document_type === 'issue')).toBe(true);
   });
 
   it('GET /api/search/documents validates document type', async () => {
@@ -344,7 +357,8 @@ describe('Search API', () => {
       .set('Cookie', sessionCookie);
 
     expect(res.status).toBe(200);
-    expect(res.body.documents.map((doc: any) => doc.id)).toContain(requireFirstRow(propertiesOnlyResult.rows).id);
+    const body = res.body as ContentSearchResponse;
+    expect(body.documents.map((doc) => doc.id)).toContain(requireFirstRow(propertiesOnlyResult.rows).id);
   });
 
   it('GET /api/search/content ranks title matches above body-only matches', async () => {
@@ -378,7 +392,8 @@ describe('Search API', () => {
       .set('Cookie', sessionCookie);
 
     expect(res.status).toBe(200);
-    const ids = res.body.documents.map((doc: any) => doc.id);
+    const body = res.body as ContentSearchResponse;
+    const ids = body.documents.map((doc) => doc.id);
     expect(ids.indexOf(requireFirstRow(titleResult.rows).id)).toBeLessThan(ids.indexOf(requireFirstRow(bodyResult.rows).id));
   });
 
@@ -410,10 +425,11 @@ describe('Search API', () => {
       .set('Cookie', sessionCookie);
 
     expect(res.status).toBe(200);
-    const ids = res.body.documents.map((doc: any) => doc.id);
+    const body = res.body as ContentSearchResponse;
+    const ids = body.documents.map((doc) => doc.id);
     expect(ids).toContain(requireFirstRow(issueResult.rows).id);
     expect(ids).not.toContain(requireFirstRow(wikiResult.rows).id);
-    expect(res.body.documents.every((doc: any) => doc.document_type === 'issue')).toBe(true);
+    expect(body.documents.every((doc) => doc.document_type === 'issue')).toBe(true);
   });
 
   it('GET /api/search/content validates document type', async () => {
@@ -523,7 +539,8 @@ describe('Search API', () => {
       .set('Cookie', sessionCookie);
 
     expect(firstSearch.status).toBe(200);
-    expect(firstSearch.body.documents.map((doc: any) => doc.id)).toContain(docId);
+    const firstBody = firstSearch.body as ContentSearchResponse;
+    expect(firstBody.documents.map((doc) => doc.id)).toContain(docId);
 
     const secondUpdate = await request(app)
       .patch(`/api/documents/${docId}/content`)
@@ -546,8 +563,10 @@ describe('Search API', () => {
 
     expect(oldTermSearch.status).toBe(200);
     expect(newTermSearch.status).toBe(200);
-    expect(oldTermSearch.body.documents.map((doc: any) => doc.id)).not.toContain(docId);
-    expect(newTermSearch.body.documents.map((doc: any) => doc.id)).toContain(docId);
+    const oldBody = oldTermSearch.body as ContentSearchResponse;
+    const newBody = newTermSearch.body as ContentSearchResponse;
+    expect(oldBody.documents.map((doc) => doc.id)).not.toContain(docId);
+    expect(newBody.documents.map((doc) => doc.id)).toContain(docId);
   });
 });
 
@@ -639,8 +658,12 @@ describe('Search Learnings API', () => {
     expect(Array.isArray(res.body.learnings)).toBe(true);
 
     // Should find our learning document
-    const learning = res.body.learnings.find((l: any) => l.id === learningDocId);
+    const body = res.body as LearningSearchResponse;
+    const learning = body.learnings.find((l) => l.id === learningDocId);
     expect(learning).toBeDefined();
+    if (!learning) {
+      throw new Error('Expected learning document in search results');
+    }
     expect(learning.title).toBe('Learning: API Token Authentication');
   });
 
@@ -660,8 +683,12 @@ describe('Search Learnings API', () => {
       .set('Cookie', sessionCookie);
 
     expect(res.status).toBe(200);
-    const learning = res.body.learnings.find((l: any) => l.id === learningDocId);
+    const body = res.body as LearningSearchResponse;
+    const learning = body.learnings.find((l) => l.id === learningDocId);
     expect(learning).toBeDefined();
+    if (!learning) {
+      throw new Error('Expected learning document in search results');
+    }
     expect(learning.tags).toContain('security');
     expect(learning.source_prd).toBe('test-prd');
   });
@@ -673,7 +700,8 @@ describe('Search Learnings API', () => {
 
     expect(res.status).toBe(200);
     // Regular wiki doc should not appear
-    const regularDoc = res.body.learnings.find((l: any) => l.id === regularWikiId);
+    const body = res.body as LearningSearchResponse;
+    const regularDoc = body.learnings.find((l) => l.id === regularWikiId);
     expect(regularDoc).toBeUndefined();
   });
 

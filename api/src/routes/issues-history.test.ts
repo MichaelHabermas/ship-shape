@@ -68,7 +68,9 @@ vi.mock('../services/issue-mutations-service.js', async () => {
   };
 });
 
+import type { PoolClient } from 'pg';
 import { pool } from '../db/client.js';
+import type { CapabilityDecision } from '../security/capabilities.js';
 import { requireIssueRead, requireIssueWrite } from '../security/route-capability.js';
 import { updateIssueMutation } from '../services/issue-mutations-service.js';
 import express from 'express';
@@ -81,12 +83,13 @@ describe('Issues History API', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(requireIssueRead).mockResolvedValue({ allowed: true } as any);
-    vi.mocked(requireIssueWrite).mockResolvedValue({ allowed: true } as any);
+    const allowed: CapabilityDecision = { allowed: true };
+    vi.mocked(requireIssueRead).mockResolvedValue(allowed);
+    vi.mocked(requireIssueWrite).mockResolvedValue(allowed);
     // Reset mockClient defaults after clearAllMocks
-    mockClient.query.mockResolvedValue({ rows: [] } as any);
+    mockClient.query.mockResolvedValue(pgResult([]));
     mockClient.release.mockReturnValue(undefined);
-    vi.mocked(pool).connect = vi.fn().mockResolvedValue(mockClient) as any;
+    vi.mocked(pool.connect).mockResolvedValue(mockClient as unknown as PoolClient);
     vi.mocked(updateIssueMutation).mockResolvedValue({
       ok: true,
       status: 200,

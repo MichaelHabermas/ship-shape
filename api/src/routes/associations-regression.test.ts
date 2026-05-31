@@ -1,9 +1,25 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import request from 'supertest'
 import crypto from 'crypto'
+import type { z } from 'zod'
 import { createApp } from '../app.js'
 import { CountRow, IdRow, RelatedIdRow, RelationshipTypeRow, requireFirstRow } from '../test/pg-result.js';
 import { pool } from '../db/client.js'
+import { IssueResponseSchema } from '../openapi/schemas/issues.js'
+
+type IssueResponse = z.infer<typeof IssueResponseSchema>
+type IssueListItem = Pick<IssueResponse, 'id'>
+
+type ContextIssuesPayload =
+  | { items?: IssueListItem[] }
+  | IssueListItem[]
+
+function contextIssueList(issues: ContextIssuesPayload): IssueListItem[] {
+  if (Array.isArray(issues)) {
+    return issues
+  }
+  return issues.items ?? []
+}
 
 /**
  * Regression test suite for unified document model associations.
@@ -202,12 +218,15 @@ describe('Associations Regression Tests', () => {
       expect(response.body.belongs_to).toBeDefined()
       expect(response.body.belongs_to.length).toBe(2)
 
-      const projectAssoc = response.body.belongs_to.find((b: any) => b.type === 'project')
-      const sprintAssoc = response.body.belongs_to.find((b: any) => b.type === 'sprint')
+      const issue = response.body as IssueResponse
+      const projectAssoc = issue.belongs_to.find((b) => b.type === 'project')
+      const sprintAssoc = issue.belongs_to.find((b) => b.type === 'sprint')
 
       expect(projectAssoc).toBeDefined()
+      if (!projectAssoc || !sprintAssoc) {
+        throw new Error('Expected project and sprint associations on issue')
+      }
       expect(projectAssoc.id).toBe(testProject1Id)
-      expect(sprintAssoc).toBeDefined()
       expect(sprintAssoc.id).toBe(testSprint1Id)
     })
   })
@@ -321,10 +340,11 @@ describe('Associations Regression Tests', () => {
 
       expect(response.status).toBe(200)
 
-      const projectAssocs = response.body.belongs_to.filter((b: any) => b.type === 'project')
+      const issue = response.body as IssueResponse
+      const projectAssocs = issue.belongs_to.filter((b) => b.type === 'project')
       expect(projectAssocs.length).toBe(2)
 
-      const projectIds = projectAssocs.map((p: any) => p.id).sort()
+      const projectIds = projectAssocs.map((p) => p.id).sort()
       expect(projectIds).toEqual([testProject1Id, testProject2Id].sort())
     })
 
@@ -344,7 +364,8 @@ describe('Associations Regression Tests', () => {
       expect(response.status).toBe(200)
       expect(Array.isArray(response.body)).toBe(true)
 
-      const issueIds = response.body.map((i: any) => i.id)
+      const issues = response.body as IssueResponse[]
+      const issueIds = issues.map((i) => i.id)
       expect(issueIds).toContain(testIssueId)
     })
   })
@@ -432,8 +453,8 @@ describe('Associations Regression Tests', () => {
       expect(response.body.issues).toBeDefined()
 
       // Should include our test issue
-      const issueList = response.body.issues.items || response.body.issues
-      const testIssue = issueList.find((i: any) => i.id === testIssueId)
+      const issueList = contextIssueList(response.body.issues as ContextIssuesPayload)
+      const testIssue = issueList.find((i) => i.id === testIssueId)
       expect(testIssue).toBeDefined()
     })
 

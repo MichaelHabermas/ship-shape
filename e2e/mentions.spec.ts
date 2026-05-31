@@ -1,3 +1,4 @@
+/** E2E tests for @mention autocomplete, insertion, and popup positioning in the editor. */
 import { test, expect, Page } from './fixtures/isolated-env';
 import { login } from './fixtures/app';
 
@@ -197,7 +198,10 @@ test.describe('Mentions', () => {
     // Popup should be visible and positioned (basic check)
     const popupBox = await popup.boundingBox();
     expect(popupBox).not.toBeNull();
-    expect(popupBox!.y).toBeGreaterThan(0);
+    if (!popupBox) {
+      throw new Error('expected mention popup bounding box');
+    }
+    expect(popupBox.y).toBeGreaterThan(0);
   });
 
   test('can insert mention with Enter key', async ({ page }) => {
@@ -404,7 +408,8 @@ test.describe('Mentions', () => {
         expect(mentionText, 'Inserted mention should have visible text').toBeTruthy();
 
         // Verify mention synced to the independent collaborator context.
-        await expect(page2.locator('.ProseMirror')).toContainText(mentionText!, { timeout: 15000 });
+        if (!mentionText) throw new Error('Inserted mention should have visible text');
+        await expect(page2.locator('.ProseMirror')).toContainText(mentionText, { timeout: 15000 });
         await expect(page2.locator('.ProseMirror .mention')).toBeVisible({ timeout: 30000 });
       }
     } finally {

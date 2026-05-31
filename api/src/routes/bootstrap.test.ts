@@ -1,10 +1,14 @@
+/** Bootstrap route tests — authenticated app-shell hydration payload shape. */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
+import type { z } from 'zod';
 import { createApp } from '../app.js';
 import { pool } from '../db/client.js';
 import { BootstrapResponseSchema } from '../openapi/schemas/bootstrap.js';
 import { expectOpenApiResponse } from '../test/openapi-response.js';
+
+type BootstrapData = z.infer<typeof BootstrapResponseSchema>['data'];
 
 describe('Bootstrap API', () => {
   const app = createApp('http://localhost:5173');
@@ -106,18 +110,21 @@ describe('Bootstrap API', () => {
       schema: BootstrapResponseSchema,
     });
 
-    const data = bootstrap.data;
+    const data: BootstrapData = bootstrap.data;
     expect(data.user.email).toBe(testEmail);
     expect(data.currentWorkspace.id).toBe(testWorkspaceId);
-    expect(data.documents.some((doc: any) => doc.title === 'Bootstrap Wiki')).toBe(true);
-    expect(data.documents.find((doc: any) => doc.title === 'Bootstrap Wiki')?.properties).toEqual(null);
-    expect(data.issues.some((issue: any) => issue.title === 'Bootstrap Issue')).toBe(true);
-    expect(data.issues.find((issue: any) => issue.title === 'Bootstrap Issue')).not.toHaveProperty('content');
+    expect(data.documents.some((doc) => doc.title === 'Bootstrap Wiki')).toBe(true);
+    expect(data.documents.find((doc) => doc.title === 'Bootstrap Wiki')?.properties).toEqual(null);
+    expect(data.issues.some((issue) => issue.title === 'Bootstrap Issue')).toBe(true);
+    expect(data.issues.find((issue) => issue.title === 'Bootstrap Issue')).not.toHaveProperty('content');
     expect(data.actionItems).toMatchObject({ items: expect.any(Array), total: expect.any(Number) });
 
     // Risk: bootstrap seeds the project list cache, so it must match /api/projects status inference.
-    const project = data.projects.find((item: any) => item.title === 'Bootstrap Active Project');
+    const project = data.projects.find((item) => item.title === 'Bootstrap Active Project');
     expect(project).toBeDefined();
+    if (!project) {
+      throw new Error('Expected Bootstrap Active Project in bootstrap payload');
+    }
     expect(project.inferred_status).toBe('active');
     expect(project).not.toHaveProperty('plan');
     expect(project).not.toHaveProperty('plan_approval');

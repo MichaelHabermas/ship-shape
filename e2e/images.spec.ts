@@ -1,3 +1,4 @@
+/** E2E tests for image upload, persistence, and offline upload queue behavior. */
 import { test, expect, Page } from './fixtures/isolated-env';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -281,10 +282,11 @@ test.describe('Images', () => {
       try {
         const databases = await indexedDB.databases();
         const uploadDb = databases.find((db: { name?: string }) => db.name?.includes('upload') || db.name?.includes('queue'));
-        if (!uploadDb) return 0;
+        const uploadDbName = uploadDb?.name;
+        if (!uploadDbName) return 0;
 
         return new Promise<number>((resolve) => {
-          const request = indexedDB.open(uploadDb.name!);
+          const request = indexedDB.open(uploadDbName);
           request.onsuccess = () => {
             const db = request.result;
             try {

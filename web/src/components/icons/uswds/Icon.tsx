@@ -80,9 +80,7 @@ export function Icon({
   // Validate icon name at runtime
   if (!isValidIconName(name)) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn(
-        `Icon: Invalid icon name "${name}". Check available icons in types.ts.`,
-      );
+      console.warn('Icon: Invalid icon name.', name, 'Check available icons in types.ts.');
     }
 
     return null;

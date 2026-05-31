@@ -119,3 +119,9 @@ The transferable rules:
 ShipShape example: reviewer `productPathStatus` on web checked six steps while API `REQUIRED_STEP_KEYS` tracked eight. Moving enrichment into `shared/src/fleetgraph/reviewer-verifier.ts` and emitting `productPath` on each chain removed the split-brain metric.
 
 For long-running reviewer operations, progress UI must read the same refreshed chain steps the API just wrote, not a cosmetic timer or a one-shot snapshot taken at start. While status is `running`, bind the drawer to live chain data; only freeze a snapshot after completion. Register OpenAPI from the shared wire factory—never duplicate finding/notification Zod beside the factory or codegen will drift from runtime validation.
+
+## 8. Clear ESLint Categories Before Tackling `no-unsafe-*`
+
+When a repo enables type-aware `@typescript-eslint/no-unsafe-*` rules, total warning count is dominated by those rules—not by `no-unused-vars`, `max-lines`, or `restrict-template-expressions`. Fix whole categories first: delete unused imports/destructures, turn param validators into type guards (`id is string`), and replace test `any` with `z.infer`, `unknown`, or shared mock types. Defer `seed.ts` non-null assertions and file splits until mechanical wins are exhausted.
+
+ShipShape example (2026-05-31): four unused-vars and four template-expression warnings cleared in minutes; ~45 `no-explicit-any` fixes in four API test files removed most of that category; non-null assertions in tests/e2e dropped ~41 while `api/src/db/seed.ts` stayed untouched for a later pass.

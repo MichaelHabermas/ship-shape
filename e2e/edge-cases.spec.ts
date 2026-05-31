@@ -1,3 +1,4 @@
+/** E2E edge-case coverage for editor stress, mentions, and large content handling. */
 import { test, expect, Page } from './fixtures/isolated-env'
 import { login } from './fixtures/api-auth';
 
@@ -193,7 +194,11 @@ test.describe('Edge Cases', () => {
 
     // Verify content was pasted
     const editorText = await editor.textContent()
-    expect(editorText!.length).toBeGreaterThan(10000)
+    expect(editorText).toBeTruthy()
+    if (!editorText) {
+      throw new Error('expected pasted editor text')
+    }
+    expect(editorText.length).toBeGreaterThan(10000)
     expect(editorText).toContain('Lorem ipsum')
   })
 

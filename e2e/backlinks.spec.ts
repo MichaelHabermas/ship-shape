@@ -259,7 +259,12 @@ test.describe('Backlinks', () => {
     await page.waitForTimeout(1000)
 
     // Should navigate to Source Doc (Document N)
-    expect(page.url()).toContain(docNUrl.split('/').pop()!)
+    const docSlug = docNUrl.split('/').pop();
+    expect(docSlug).toBeTruthy();
+    if (!docSlug) {
+      throw new Error('expected document slug in source URL');
+    }
+    expect(page.url()).toContain(docSlug);
 
     // Verify we're on Source Doc page
     const titleInput = page.getByPlaceholder('Untitled')

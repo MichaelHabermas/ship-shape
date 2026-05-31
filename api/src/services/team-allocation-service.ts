@@ -1,3 +1,4 @@
+/** Assigns people to sprint documents and resolves workspace person records for team allocation. */
 import { pool } from '../db/client.js';
 import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
 import type { EmptyRow, IdRow, ProjectWithProgramRow, SprintDocumentRow } from '../routes/team/types.js';
@@ -126,8 +127,8 @@ export async function assignTeamMember(
     sprintId = sprintResult.rows[0].id;
     const currentProps = sprintResult.rows[0].properties || {};
     const currentAssignees: string[] = currentProps.assignee_ids || [];
-    if (!currentAssignees.includes(personDocId!)) {
-      currentAssignees.push(personDocId!);
+    if (personDocId && !currentAssignees.includes(personDocId)) {
+      currentAssignees.push(personDocId);
     }
     const updatedProps = { ...currentProps, assignee_ids: currentAssignees };
     await pool.query<EmptyRow>(

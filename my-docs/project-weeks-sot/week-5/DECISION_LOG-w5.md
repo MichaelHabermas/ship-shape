@@ -729,3 +729,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Audit (2026-05-31, `/are-you-sure`):** OpenAPI wrappers must reference `wire-schema-factory` schemas (no parallel finding/notification Zod). Live drawer uses `chainStepsForOperation` on refreshed chains while `running`; `activeChainStepIndex` treats all-pass mid-run as last step. Route/test fixtures include `productPath`, `missingLabels`, `preferredChainId`.
 
 **Follow-through (2026-05-31):** `buildFleetGraphRouteWireSchemas` covers blast radius, chat, run/manual, and list wrappers; reviewer routes use `reviewer-wire-response.ts` `.parse()` before `res.json`; dead `operationSteps()` removed; UI gap copy uses `chainMissingLabels` (server `missingLabels` first).
+
+## D091 - ESLint Category-First Cleanup (Phases 1–4)
+
+**Date:** 2026-05-31
+
+**Decision:** Reduce lint noise by clearing whole rule categories in order: unused vars and template expressions first, then concentrated `no-explicit-any` in API tests, then `no-non-null-assertion` in tests/e2e/scripts (excluding `api/src/db/seed.ts` for now). Do not start `max-lines` file splits or broad `no-unsafe-*` typing in the same pass.
+
+**Consequence:** New lint fixes should prefer mechanical category completion (delete unused bindings, type guards, `z.infer` in tests) over eslint-disable or config carve-outs. Seed non-null and `max-lines` remain a follow-up slice. FleetGraph reviewer page should not destructure unused hook fields (`setError`, `refresh`).

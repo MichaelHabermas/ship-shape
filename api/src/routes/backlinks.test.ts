@@ -133,7 +133,7 @@ describe('Backlinks API', () => {
       expect(backlink).toHaveProperty('title');
 
       // Verify we got the correct documents
-      const ids = response.body.map((b: any) => b.id);
+      const ids = response.body.map((b: { id: string }) => b.id);
       expect(ids).toContain(testDoc2Id);
       expect(ids).toContain(testDoc3Id);
     });

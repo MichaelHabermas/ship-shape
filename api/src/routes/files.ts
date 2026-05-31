@@ -1,3 +1,4 @@
+// File upload routes: presigned S3/local uploads, confirm, serve, and delete with capability checks.
 import { Router, type Router as ExpressRouter, Request, Response } from 'express';
 import express from 'express';
 import { pool } from '../db/client.js';
@@ -43,7 +44,7 @@ function getS3Client(): S3Client {
 // UUID validation regex - prevents path traversal by ensuring ID is valid UUID
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function isValidUUID(id: string | string[] | undefined): boolean {
+function isValidUUID(id: string | string[] | undefined): id is string {
   if (!id || Array.isArray(id)) return false;
   return UUID_REGEX.test(id);
 }

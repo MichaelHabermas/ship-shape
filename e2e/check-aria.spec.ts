@@ -1,3 +1,4 @@
+/** Smoke test for aria-expanded sidebar tree state after deep-link navigation. */
 import { test, expect } from './fixtures/isolated-env';
 import { login } from './fixtures/app';
 
@@ -44,9 +45,13 @@ test('check aria-expanded elements', async ({ page }) => {
   if (await childDoc.count() > 0) {
     const childHref = await childDoc.getAttribute('href');
     console.log('Child href:', childHref);
+    expect(childHref).toBeTruthy();
+    if (!childHref) {
+      throw new Error('expected child document href');
+    }
 
     // Navigate directly to child URL (like test 2.13 does)
-    await page.goto(childHref!);
+    await page.goto(childHref);
     await page.waitForLoadState('networkidle');
 
     // Check expanded state after navigation

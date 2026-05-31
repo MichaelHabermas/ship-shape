@@ -1,6 +1,6 @@
 // Polls FleetGraph reviewer chains and keeps URL selection in sync with the scenario rail.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { FleetGraphReviewerChain, FleetGraphReviewerChainsResponse } from '@ship/shared';
+import type { FleetGraphReviewerChainsResponse } from '@ship/shared';
 import { preferredReviewerProofChain } from '@ship/shared';
 import { apiGetJson } from '@/lib/api';
 

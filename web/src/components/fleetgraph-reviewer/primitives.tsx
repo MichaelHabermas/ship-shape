@@ -2,7 +2,7 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import type { FleetGraphReviewerChain } from '@ship/shared';
 import { statusHelp, statusTone } from '@/fleetgraph/reviewer/constants';
-import { formatMs, shortTraceUrl, shortUuid, toneText } from '@/fleetgraph/reviewer/formatters';
+import { shortTraceUrl, shortUuid, toneText } from '@/fleetgraph/reviewer/formatters';
 import { keyValueHelp, metricHelp } from '@/fleetgraph/reviewer/chain-helpers';
 
 export function ProofButton({
