@@ -18,9 +18,11 @@ This is the Week 5 FleetGraph cost report. It separates development AI usage fro
 | Latest reviewer chain latency | 5,354 ms |
 | Latest reviewer proof model calls | 0 |
 | Latest reviewer proof runtime model spend | $0.00 |
-| Local FleetGraph run ledger | 1,701 runs; 12 model calls; 2,655 model tokens; $0.020901 estimated model spend |
+| Local FleetGraph run ledger | 1,701 runs; 12 model calls; 2,655 model tokens; $0.031541 corrected estimated model spend |
 
 Exact OpenAI, Claude, or Codex billable invoice data is not available from local project records. The Codex token totals below are local usage evidence, not a provider bill. The latest reviewer proof packet is deterministic and shows zero model calls, but the broader local FleetGraph run ledger includes real model calls and nonzero estimated model spend.
+
+The adversarial read: the measured FleetGraph model spend is a floor. It used tiny demo payloads, only 12 real-model calls, and two `gpt-5.5` calls with token usage but no persisted cost. A production user asking real questions from rich project context will cost more.
 
 ## Assignment Criteria
 
@@ -118,15 +120,17 @@ The latest proof packet alone is not enough for cost analysis because it can be 
 | Input tokens | 1,074 |
 | Output tokens | 1,581 |
 | Total model tokens | 2,655 |
-| Estimated model spend | $0.020901 |
-| Blended cost per FleetGraph run | $0.0000123 |
-| Average cost per real-model run | $0.002090 |
+| Persisted estimated model spend | $0.020901 |
+| Corrected estimated model spend | $0.031541 |
+| Persisted blended cost per FleetGraph run | $0.0000123 |
+| Corrected blended cost per FleetGraph run | $0.0000185 |
+| Corrected average cost per real-model run | $0.002628 |
 | Average tokens per real-model run | 221.25 |
 
 | Model | Runs | Model calls | Input tokens | Output tokens | Total tokens | Estimated spend |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `gpt-4.1-mini` | 6 | 6 | 540 | 634 | 1,174 | $0.000461 |
-| `gpt-5.5` | 6 | 6 | 534 | 947 | 1,481 | $0.020440 |
+| `gpt-5.5` | 6 | 6 | 534 | 947 | 1,481 | $0.031080 corrected |
 | deterministic / none | 1,689 | 0 | 0 | 0 | 0 | $0.000000 |
 
 | Local day | Runs | Model calls | Total tokens | Estimated spend |
@@ -134,8 +138,14 @@ The latest proof packet alone is not enough for cost analysis because it can be 
 | 2026-05-26 | 108 | 0 | 0 | $0.000000 |
 | 2026-05-27 | 56 | 0 | 0 | $0.000000 |
 | 2026-05-28 | 77 | 6 | 1,174 | $0.000461 |
-| 2026-05-29 | 776 | 6 | 1,481 | $0.020440 |
+| 2026-05-29 | 776 | 6 | 1,481 | $0.031080 corrected |
 | 2026-05-30 | 684 | 0 | 0 | $0.000000 |
+
+Corrections:
+
+- Two `gpt-5.5` runs had `model_response` token usage but `costSource: none`. At the observed `gpt-5.5` catalog rate of $5.00 / 1M input tokens and $30.00 / 1M output tokens, those two runs add about $0.010640.
+- The corrected ledger total is therefore about $0.031541, not $0.020901.
+- This is still a floor because the measured real-model calls were `demo-proactive-create` runs with only 89-90 input tokens each.
 
 ### Latest Proof Packet
 
@@ -183,12 +193,14 @@ FleetGraph avoids model spend by design:
 - Context chat is scoped to the current page or finding, not the full workspace.
 - Real-model blocked-create behavior is gated behind `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL`, and `OPENAI_API_KEY`.
 
-Configured estimate rates from `FLEETGRAPH.md`:
+Configured estimate rates currently documented in `FLEETGRAPH.md`:
 
 | Token class | Rate |
 | --- | ---: |
 | Input | $0.15 / 1M tokens |
 | Output | $0.60 / 1M tokens |
+
+Those rates match `gpt-4o-mini`, not the `gpt-5.5` rows that appear in the local run ledger. Current OpenAI model docs list `gpt-5.5` at $5.00 / 1M input tokens and $30.00 / 1M output tokens, and `gpt-4.1-mini` at $0.40 / 1M input tokens and $1.60 / 1M output tokens. The conservative projections below use the model actually seen in the expensive rows, `gpt-5.5`, rather than the cheaper documented fallback.
 
 ## Production Cost Projections
 
@@ -203,24 +215,34 @@ For projection purposes, this report interprets that as:
 | On-demand graph invocations | 0.2 per user per day |
 | Total normalized invocations | 30 per user per 30-day month |
 | Average measured tokens per real-model invocation | 89.5 input / 131.75 output |
-| Average measured model cost per real-model invocation | $0.002090 |
-| Blended measured model cost per FleetGraph run | $0.0000123 |
+| Average measured model cost per real-model invocation | $0.002628 corrected |
+| Blended measured model cost per FleetGraph run | $0.0000185 corrected |
 
-The latest reviewer proof packet has zero real-model runs, but the local development/testing ledger does not. The primary projection below uses the blended measured model cost across all 1,701 local FleetGraph runs. This is still model-spend only; it excludes hosting, database, observability, storage, staff time, and the Codex development subscription.
+The latest reviewer proof packet has zero real-model runs, but the local development/testing ledger does not. The first projection below uses the corrected blended measured model cost across all 1,701 local FleetGraph runs. Treat it as the absolute floor, not the forecast. It excludes hosting, database, observability, storage, staff time, and the Codex development subscription.
 
 | Scale | Assumed graph invocations/month | Blended measured model cost/invocation | Projected monthly model spend |
 | --- | ---: | ---: | ---: |
-| 100 users | 3,000 | $0.0000123 | $0.04 |
-| 1,000 users | 30,000 | $0.0000123 | $0.37 |
-| 10,000 users | 300,000 | $0.0000123 | $3.69 |
+| 100 users | 3,000 | $0.0000185 | $0.06 |
+| 1,000 users | 30,000 | $0.0000185 | $0.56 |
+| 10,000 users | 300,000 | $0.0000185 | $5.56 |
 
 Worst-case sensitivity if every graph invocation crossed the same model boundary as the 12 measured real-model runs:
 
 | Scale | Assumed graph invocations/month | Real-model cost/invocation | Projected monthly model spend |
 | --- | ---: | ---: | ---: |
-| 100 users | 3,000 | $0.002090 | $6.27 |
-| 1,000 users | 30,000 | $0.002090 | $62.70 |
-| 10,000 users | 300,000 | $0.002090 | $627.04 |
+| 100 users | 3,000 | $0.002628 | $7.89 |
+| 1,000 users | 30,000 | $0.002628 | $78.85 |
+| 10,000 users | 300,000 | $0.002628 | $788.54 |
+
+The measured real-model calls are too small to trust as production averages. A more skeptical production view should assume larger context windows and some model use on chat/refinement paths. Using `gpt-5.5` pricing:
+
+| Scenario | Model-call share | Avg input/output per model call | Effective cost per graph invocation | 100 users | 1,000 users | 10,000 users |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Guarded production | 10% | 2,000 / 500 tokens | $0.002500 | $7.50 | $75.00 | $750.00 |
+| Realistic reviewer-risk | 30% | 5,000 / 1,000 tokens | $0.016500 | $49.50 | $495.00 | $4,950.00 |
+| Bad product policy | 100% | 10,000 / 2,000 tokens | $0.110000 | $330.00 | $3,300.00 | $33,000.00 |
+
+The middle row is the number to budget against unless production proves otherwise. It assumes the deterministic policy holds most of the time, but context-aware chat, refinement, explanation, and proactive create paths regularly cross a model boundary with real project context.
 
 If real-model mode is enabled later, use this formula:
 
@@ -228,11 +250,12 @@ If real-model mode is enabled later, use this formula:
 monthly model cost =
   users
   * 30 graph invocations per user per month
-  * ((average input tokens / 1,000,000) * 0.15
-     + (average output tokens / 1,000,000) * 0.60)
+  * model-call share
+  * ((average input tokens / 1,000,000) * input price per 1M
+     + (average output tokens / 1,000,000) * output price per 1M)
 ```
 
-The blended projection is lower because most FleetGraph paths are deterministic. The worst-case sensitivity is the more conservative budget number if production policy changed so every invocation used a model.
+The blended projection is lower because most local FleetGraph paths were deterministic. That is useful evidence about the architecture, but optimistic as a budget. The adversarial budget should use the scenario table, not the measured blended floor.
 
 ## Evidence And Methodology
 
@@ -315,6 +338,14 @@ psql 'postgresql://ship:ship_dev_password@localhost:5433/ship_dev' -P pager=off 
       group by coalesce(token_metadata->>'model','none')
       order by model_calls desc, runs desc;"
 ```
+
+### Pricing Sources
+
+Current pricing was checked against official OpenAI model documentation on 2026-05-30:
+
+- `gpt-5.5`: $5.00 / 1M input tokens, $30.00 / 1M output tokens: https://developers.openai.com/api/docs/models/gpt-5.5/
+- `gpt-4.1-mini`: $0.40 / 1M input tokens, $1.60 / 1M output tokens: https://developers.openai.com/api/docs/models/gpt-4.1-mini
+- General pricing page cross-check: https://platform.openai.com/docs/pricing/
 
 ### Cost Field Search
 
