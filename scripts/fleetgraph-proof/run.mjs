@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Runs FleetGraph proof gates and renders the static reviewer evidence packet.
-import { mkdir, writeFile, copyFile } from 'node:fs/promises';
+import { mkdir, writeFile, copyFile, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -18,6 +18,7 @@ import {
 } from './proof-git.mjs';
 import {
   artifactPlan,
+  applyTraceUrlOverrides,
   deployedDatabaseEvidence,
   environmentChecks,
   shouldPublishPublicProof,
@@ -36,6 +37,8 @@ export {
   summarizeDeployedEvidence,
   summarizeTraceEvidence,
   traceUrlFromMetadata,
+  publicLangSmithTraceUrl,
+  applyTraceUrlOverrides,
 } from './proof-deployed-evidence.mjs';
 
 if (isMainModule()) {
@@ -48,7 +51,9 @@ async function main() {
   const runId = `fleetgraph-proof-${timestampForPath(generatedAt)}`;
   const runDir = path.join(runsRoot, runId);
 
+  console.log(`FleetGraph proof: run ${runId} starting in ${options.mode} mode.`);
   await mkdir(runDir, { recursive: true });
+  console.log(`FleetGraph proof: writing run artifacts to ${path.relative(repoRoot, runDir)}.`);
 
   const commandResults = [];
   if (!options.noRefreshEvals) {
@@ -70,6 +75,7 @@ async function main() {
     }));
   }
   if (options.withE2e) {
+    commandResults.push(runCommand('API package build for E2E', ['pnpm', '--filter', '@ship/api', 'build']));
     commandResults.push(runCommand('FleetGraph attention loop E2E', [
       'pnpm',
       'test:e2e:run',
@@ -91,9 +97,17 @@ async function main() {
   const e2ePassed = commandResults.some((result) =>
     result.name === 'FleetGraph attention loop E2E' && result.status === 'pass'
   );
+  console.log('FleetGraph proof: checking target environments...');
   const environments = await environmentChecks(options);
-  const deployedEvidence = await deployedDatabaseEvidence(options);
+  console.log('FleetGraph proof: target environment checks complete.');
+  console.log('FleetGraph proof: collecting deployed database evidence...');
+  const deployedEvidence = applyTraceUrlOverrides(
+    await deployedDatabaseEvidence(options),
+    traceUrlOverridesFromEnv()
+  );
+  console.log('FleetGraph proof: deployed evidence collection complete.');
 
+  console.log('FleetGraph proof: building reviewer proof packet...');
   const packet = redactProofValue(buildProofPacket({
     generatedAt: generatedAt.toISOString(),
     runId,
@@ -115,6 +129,7 @@ async function main() {
   const runHtml = renderHtml(packet, { artifactBase: '../../../../../' });
   const markdown = renderMarkdown(packet);
 
+  console.log('FleetGraph proof: writing latest and public artifacts...');
   await writeFile(path.join(runDir, 'proof.json'), json);
   await writeFile(path.join(runDir, 'proof.html'), runHtml);
   await writeFile(path.join(runDir, 'proof.md'), markdown);
@@ -137,6 +152,13 @@ async function main() {
   process.exitCode = packet.verdict === 'pass' ? 0 : 1;
 }
 
+function traceUrlOverridesFromEnv() {
+  if (!process.env.FLEETGRAPH_PROOF_TRACE_URLS_JSON) return null;
+  const overrides = JSON.parse(process.env.FLEETGRAPH_PROOF_TRACE_URLS_JSON);
+  console.log(`FleetGraph proof: loaded public trace URL overrides for ${Object.keys(overrides).join(', ')}.`);
+  return overrides;
+}
+
 function isMainModule() {
   return process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 }
@@ -147,8 +169,32 @@ async function readReviewerChain() {
     chain = JSON.parse(process.env.FLEETGRAPH_REVIEWER_CHAIN_JSON);
   } else if (process.env.FLEETGRAPH_REVIEWER_CHAIN_PATH) {
     chain = await readJsonIfExists(path.resolve(repoRoot, process.env.FLEETGRAPH_REVIEWER_CHAIN_PATH));
+  } else {
+    chain = await latestCompleteReviewerChainProof();
   }
-  return chain ? publicReviewerChainProof(chain) : null;
+  if (!chain) return null;
+  console.log(`FleetGraph proof: attached reviewer chain ${chain.chainId || 'unknown'}.`);
+  return chain.steps ? publicReviewerChainProof(chain) : chain;
+}
+
+async function latestCompleteReviewerChainProof() {
+  const entries = await readdir(runsRoot, { withFileTypes: true }).catch(() => []);
+  const packets = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const proofPath = path.join(runsRoot, entry.name, 'proof.json');
+    try {
+      const packet = JSON.parse(await readFile(proofPath, 'utf8'));
+      const chain = packet.reviewerChain;
+      if (chain?.status !== 'complete') continue;
+      if (Array.isArray(chain.missing) && chain.missing.length > 0) continue;
+      packets.push({ generatedAt: stringValue(packet.generatedAt), chain });
+    } catch {
+      // Ignore old or partial proof run directories.
+    }
+  }
+  packets.sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+  return packets[0]?.chain ?? null;
 }
 
 function publicReviewerChainProof(chain) {

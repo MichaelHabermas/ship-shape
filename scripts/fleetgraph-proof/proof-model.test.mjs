@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { buildProofPacket, REQUIRED_SCENARIOS, validateProofPacket } from './proof-model.mjs';
 import {
   artifactPlan,
+  applyTraceUrlOverrides,
   shouldPublishPublicProof,
   summarizeDeployedEvidence,
   summarizeTraceEvidence,
@@ -376,9 +377,9 @@ test('deployed proof summarizes usage and blocks missing trace links', () => {
       traceEvidence: {
         requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
         bySignal: {
-          blocked: { signal: 'blocked', traceUrl: 'https://example.com/blocked' },
-          stale: { signal: 'stale', traceUrl: 'https://example.com/stale' },
-          at_risk: { signal: 'at_risk', traceUrl: 'https://example.com/risk' },
+          blocked: { signal: 'blocked', traceUrl: 'https://smith.langchain.com/public/blocked/r' },
+          stale: { signal: 'stale', traceUrl: 'https://smith.langchain.com/public/stale/r' },
+          at_risk: { signal: 'at_risk', traceUrl: 'https://smith.langchain.com/public/risk/r' },
         },
         missingRequired: ['on_demand'],
       },
@@ -433,10 +434,10 @@ test('deployed proof accepts required public trace links for all claimed signals
       traceEvidence: {
         requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
         bySignal: {
-          blocked: { signal: 'blocked', traceUrl: 'https://example.com/blocked' },
-          stale: { signal: 'stale', traceUrl: 'https://example.com/stale' },
-          at_risk: { signal: 'at_risk', traceUrl: 'https://example.com/risk' },
-          on_demand: { signal: 'on_demand', traceUrl: 'https://example.com/chat' },
+          blocked: { signal: 'blocked', traceUrl: 'https://smith.langchain.com/public/blocked/r' },
+          stale: { signal: 'stale', traceUrl: 'https://smith.langchain.com/public/stale/r' },
+          at_risk: { signal: 'at_risk', traceUrl: 'https://smith.langchain.com/public/risk/r' },
+          on_demand: { signal: 'on_demand', traceUrl: 'https://smith.langchain.com/public/chat/r' },
         },
         missingRequired: [],
       },
@@ -448,6 +449,36 @@ test('deployed proof accepts required public trace links for all claimed signals
       { label: 'JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json' },
       { label: 'MD', path: 'my-docs/evidence/fleetgraph-proof/latest.md' },
     ],
+  });
+
+  assert.equal(packet.verdict, 'pass');
+});
+
+test('complete live reviewer chain prevents stale worker tick bookkeeping from blocking deployed proof', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+  const deployedEvidence = deployedEvidenceFixture();
+  deployedEvidence.stuckRunningTickCount = 4;
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'deployed',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(REQUIRED_SCENARIOS.map((scenario) => scenario.goldenCaseId)),
+    executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [{ id: 'deployed', required: true, status: 'configured' }],
+    deployedEvidence,
+    reviewerChain: validReviewerChain(),
+    commandResults: [],
+    artifacts: artifactPlan('test-run', 'deployed'),
   });
 
   assert.equal(packet.verdict, 'pass');
@@ -479,7 +510,7 @@ test('deployed proof blocks skipped focused e2e and validates public artifacts',
 
   assert.equal(packet.verdict, 'blocked');
   assert.deepEqual(validateProofPacket(packet), []);
-  assert.equal(shouldPublishPublicProof(packet), false);
+  assert.equal(shouldPublishPublicProof(packet), true);
 });
 
 test('deployed evidence summarizes usage and chooses older valid public traces', () => {
@@ -494,8 +525,8 @@ test('deployed evidence summarizes usage and chooses older valid public traces',
     runEvidenceRows: [
       runRow({ id: 'new-blocked', signal_type: 'blocked', trace_metadata: {} }),
       runRow({ id: 'old-blocked', signal_type: 'blocked', trace_metadata: { traceUrl: 'https://smith.langchain.com/public/blocked/r' } }),
-      runRow({ id: 'stale', signal_type: 'stale', trace_metadata: { observability: { traceUrl: 'https://cloud.langfuse.com/project/trace' } } }),
-      runRow({ id: 'risk', signal_type: 'at_risk', trace_metadata: { langfuseUrl: 'https://us.cloud.langfuse.com/trace/risk' } }),
+      runRow({ id: 'stale', signal_type: 'stale', trace_metadata: { observability: { traceUrl: 'https://smith.langchain.com/public/stale/r' } } }),
+      runRow({ id: 'risk', signal_type: 'at_risk', trace_metadata: { langfuseUrl: 'https://smith.langchain.com/public/risk/r' } }),
       runRow({ id: 'chat', decision: 'explain', trigger_reason: 'explain_finding', trace_metadata: { url: 'https://smith.langchain.com/public/chat/r' }, token_metadata: { modelCalls: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 }, cost_metadata: { estimatedCostUsd: 0.00001 } }),
     ],
   });
@@ -513,7 +544,75 @@ test('trace URL extraction rejects private or malformed links', () => {
   assert.equal(traceUrlFromMetadata({ traceUrl: 'http://localhost:3000/trace' }), null);
   assert.equal(traceUrlFromMetadata({ traceUrl: 'not-a-url' }), null);
   assert.equal(traceUrlFromMetadata({ traceUrl: 'file:///tmp/trace' }), null);
+  assert.equal(traceUrlFromMetadata({ traceUrl: 'https://us.cloud.langfuse.com/project/trace' }), null);
+  assert.equal(traceUrlFromMetadata({ traceUrl: 'https://smith.langchain.com/r/trace' }), null);
   assert.equal(traceUrlFromMetadata({ traceUrl: 'https://smith.langchain.com/public/trace/r' }), 'https://smith.langchain.com/public/trace/r');
+});
+
+test('trace URL overrides fill required public LangSmith links and reject private links', () => {
+  const evidence = applyTraceUrlOverrides({
+    traceEvidence: {
+      requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
+      bySignal: {
+        blocked: { signal: 'blocked', runId: 'db-blocked', traceUrl: null },
+      },
+      missingRequired: ['blocked', 'stale', 'at_risk', 'on_demand'],
+    },
+  }, {
+    blocked: 'https://smith.langchain.com/public/blocked/r',
+    stale: { url: 'https://smith.langchain.com/public/stale/r', runId: 'stale-run', decision: 'create_finding' },
+    at_risk: 'https://smith.langchain.com/public/risk/r',
+    on_demand: 'https://smith.langchain.com/public/chat/r',
+  });
+
+  assert.equal(evidence.traceEvidence.bySignal.blocked.runId, 'db-blocked');
+  assert.equal(evidence.traceEvidence.bySignal.stale.runId, 'stale-run');
+  assert.deepEqual(evidence.traceEvidence.missingRequired, []);
+  assert.throws(() => applyTraceUrlOverrides(evidence, {
+    blocked: 'https://us.cloud.langfuse.com/project/trace',
+  }), /public LangSmith URL/);
+});
+
+test('reviewer test cases require the trace decision they claim', () => {
+  const goldenCaseIndex = new Map(REQUIRED_SCENARIOS.map((scenario) => [scenario.goldenCaseId, {
+    id: scenario.goldenCaseId,
+    title: scenario.title,
+    mode: 'proactive',
+    expectedDecision: scenario.expected,
+    labels: [],
+  }]));
+
+  const packet = buildProofPacket({
+    generatedAt: '2026-05-28T00:00:00.000Z',
+    runId: 'test-run',
+    target: 'deployed',
+    git: { branch: 'test', sha: 'abc123', dirty: false },
+    goldenCaseIndex,
+    executedCaseIds: new Set(REQUIRED_SCENARIOS.map((scenario) => scenario.goldenCaseId)),
+    executedScenarioIds: new Set(['context-chat-human-gate', 'source-condition-resolved']),
+    productSurface: { summary: { average: { uiProofSeparation: 4 } }, sections: [{ id: 'current', summary: { passCount: 1, failCount: 0 }, results: [] }] },
+    environments: [{ id: 'deployed', required: true, status: 'configured' }],
+    deployedEvidence: {
+      ...deployedEvidenceFixture(),
+      traceEvidence: {
+        requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
+        bySignal: {
+          blocked: { signal: 'blocked', decision: 'quiet_exit', traceUrl: 'https://smith.langchain.com/public/blocked/r' },
+          stale: { signal: 'stale', decision: 'update_finding', traceUrl: 'https://smith.langchain.com/public/stale/r' },
+          at_risk: { signal: 'at_risk', decision: 'update_finding', traceUrl: 'https://smith.langchain.com/public/risk/r' },
+          on_demand: { signal: 'on_demand', decision: 'explain', traceUrl: 'https://smith.langchain.com/public/chat/r' },
+        },
+        bySignalDecision: {},
+        missingRequired: [],
+      },
+    },
+    reviewerChain: validReviewerChain(),
+    commandResults: [],
+    artifacts: artifactPlan('test-run', 'deployed'),
+  });
+
+  assert.match(validateProofPacket(packet).join('\n'), /expected trace decision create_finding but found missing/);
+  assert.equal(packet.verdict, 'fail');
 });
 
 test('validateProofPacket reports missing required scenario', () => {
@@ -549,10 +648,18 @@ function deployedEvidenceFixture() {
     traceEvidence: {
       requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
       bySignal: {
-        blocked: { signal: 'blocked', traceUrl: 'https://example.com/blocked' },
-        stale: { signal: 'stale', traceUrl: 'https://example.com/stale' },
-        at_risk: { signal: 'at_risk', traceUrl: 'https://example.com/risk' },
-        on_demand: { signal: 'on_demand', traceUrl: 'https://example.com/chat' },
+        blocked: { signal: 'blocked', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/blocked/r' },
+        stale: { signal: 'stale', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/stale/r' },
+        at_risk: { signal: 'at_risk', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/risk/r' },
+        on_demand: { signal: 'on_demand', decision: 'explain', traceUrl: 'https://smith.langchain.com/public/chat/r' },
+      },
+      bySignalDecision: {
+        'blocked:create_finding': { signal: 'blocked', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/blocked/r' },
+        'stale:create_finding': { signal: 'stale', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/stale/r' },
+        'at_risk:create_finding': { signal: 'at_risk', decision: 'create_finding', traceUrl: 'https://smith.langchain.com/public/risk/r' },
+        'on_demand:explain': { signal: 'on_demand', decision: 'explain', traceUrl: 'https://smith.langchain.com/public/chat/r' },
+        'on_demand:needs_confirmation': { signal: 'on_demand', decision: 'needs_confirmation', traceUrl: 'https://smith.langchain.com/public/chat-gate/r' },
+        'blocked:resolve': { signal: 'blocked', decision: 'resolve', traceUrl: 'https://smith.langchain.com/public/resolve/r' },
       },
       missingRequired: [],
     },

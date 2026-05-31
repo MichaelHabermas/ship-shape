@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-30T03:55:59.252Z",
-  "runId": "fleetgraph-proof-2026-05-30T03-55-59-252Z",
+  "generatedAt": "2026-05-31T01:15:06.522Z",
+  "runId": "fleetgraph-proof-2026-05-31T01-15-06-522Z",
   "target": "both",
   "git": {
     "branch": "master",
-    "sha": "8305e0c80a30b898f7aeb0ab5376f55df3195ff7",
+    "sha": "4e893615528991939ddf7fc3a052b1c5f7ef6247",
     "dirty": true
   },
   "verdict": "pass",
@@ -47,13 +47,13 @@
     }
   ],
   "deployedEvidence": {
-    "checkedAt": "2026-05-30T03:57:22.448Z",
+    "checkedAt": "2026-05-31T01:15:47.005Z",
     "evidenceSource": "render-postgres",
     "workerTickCount": 5,
     "completedWorkerTickCount": 5,
     "hasRecentCompletedWorkerOutput": true,
     "activeRunningTickCount": 0,
-    "stuckRunningTickCount": 0,
+    "stuckRunningTickCount": 4,
     "eventCounts": {},
     "signalTypes": [
       "at_risk",
@@ -61,9 +61,9 @@
       "stale"
     ],
     "signalCounts": {
-      "at_risk": 285,
-      "blocked": 659,
-      "stale": 156
+      "at_risk": 577,
+      "blocked": 2257,
+      "stale": 520
     },
     "scheduledWorkerSignalTypes": [
       "at_risk",
@@ -71,9 +71,9 @@
       "stale"
     ],
     "scheduledWorkerSignalCounts": {
-      "at_risk": 264,
-      "blocked": 544,
-      "stale": 138
+      "at_risk": 560,
+      "blocked": 2234,
+      "stale": 503
     },
     "graphInvocationCount": 100,
     "usageSummary": {
@@ -119,395 +119,544 @@
       "bySignal": {
         "blocked": {
           "signal": "blocked",
-          "runId": "949c6177-ef28-48ca-a272-0bfa474f0a6c",
+          "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
           "decision": "quiet_exit",
           "triggerReason": "scheduled-worker",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc",
-          "traceId": "2a02f39d8be1abcaa7ea91937d8a20bc",
-          "createdAt": "2026-05-30 03:56:21.609937+00"
+          "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+          "traceId": "39943d204413d63cfc4ec42cc38159f6",
+          "createdAt": "2026-05-31 01:14:08.29571+00"
         },
         "stale": {
           "signal": "stale",
-          "runId": "aea9ea25-ae8a-481e-a6c4-d05363654d26",
+          "runId": "aafd9841-69a5-456b-a4b8-1c834233e92a",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787",
-          "traceId": "9e0cf9adf415069052a1bdf739f53787",
-          "createdAt": "2026-05-30 03:56:16.556181+00"
+          "traceUrl": "https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r",
+          "traceId": "3cee164a11ba59bb4a5e9ecb5f8b0192",
+          "createdAt": "2026-05-31 01:14:03.227752+00"
         },
         "at_risk": {
           "signal": "at_risk",
-          "runId": "8521e5a4-c625-4632-8572-04f5fe4292b7",
+          "runId": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
           "decision": "update_finding",
           "triggerReason": "scheduled-worker",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed",
-          "traceId": "b98b8ce0bc232770312a10a3ec0482ed",
-          "createdAt": "2026-05-30 03:55:55.914922+00"
+          "traceUrl": "https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r",
+          "traceId": "e1de5b27cbbdafef9e5316696f0cf347",
+          "createdAt": "2026-05-31 01:13:42.622216+00"
         },
         "on_demand": {
           "signal": "on_demand",
-          "runId": "ee63615d-7c21-4576-a01e-4652d6437ec0",
-          "decision": "quiet_exit",
-          "triggerReason": "context-chat",
-          "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762",
-          "traceId": "87f8505441dd74c4458576d9bd57d762",
-          "createdAt": "2026-05-30 03:55:36.812699+00"
+          "runId": "manual-on_demand",
+          "decision": "manual_trace_override",
+          "triggerReason": "manual-langsmith-share",
+          "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+          "traceId": null,
+          "createdAt": null
         }
       },
       "missingRequired": []
     },
     "recentRuns": [
       {
-        "id": "949c6177-ef28-48ca-a272-0bfa474f0a6c",
+        "id": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:21.609937+00",
+        "createdAt": "2026-05-31 01:14:08.29571+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc",
-        "traceId": "2a02f39d8be1abcaa7ea91937d8a20bc"
+        "traceUrl": null,
+        "traceId": "39943d204413d63cfc4ec42cc38159f6"
       },
       {
-        "id": "aea9ea25-ae8a-481e-a6c4-d05363654d26",
+        "id": "aafd9841-69a5-456b-a4b8-1c834233e92a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-30 03:56:16.556181+00",
+        "createdAt": "2026-05-31 01:14:03.227752+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787",
-        "traceId": "9e0cf9adf415069052a1bdf739f53787"
+        "traceUrl": null,
+        "traceId": "3cee164a11ba59bb4a5e9ecb5f8b0192"
       },
       {
-        "id": "2da73313-94c5-498c-a7f7-69b93b50f844",
+        "id": "c613aa8f-fde7-4fed-b595-5e402e7dca28",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:11.542043+00",
+        "createdAt": "2026-05-31 01:13:58.210599+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/173ef261240f6df9b9e5c095e4fc449a",
-        "traceId": "173ef261240f6df9b9e5c095e4fc449a"
+        "traceUrl": null,
+        "traceId": "bf71c560e1b40146793d8dd2f8bae342"
       },
       {
-        "id": "55e12ebe-103c-432b-af21-4a2f66e50486",
+        "id": "9bd62ff3-32d3-4f25-a8b8-ec83a352abbd",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:06.511722+00",
+        "createdAt": "2026-05-31 01:13:53.194078+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/77d800853ae1a1cd2dec5ec9a19d215b",
-        "traceId": "77d800853ae1a1cd2dec5ec9a19d215b"
+        "traceUrl": null,
+        "traceId": "6dfdb3f04ec2ae01c149263f5e3ec857"
       },
       {
-        "id": "7d6b6893-ccf2-48b0-a94c-a89eda6f98ab",
+        "id": "d1e39379-8772-419c-82b5-a93a5f7da029",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:56:00.94356+00",
+        "createdAt": "2026-05-31 01:13:47.641515+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b5c4f374004c73abc020fb149235ec5a",
-        "traceId": "b5c4f374004c73abc020fb149235ec5a"
+        "traceUrl": null,
+        "traceId": "e8d09f7877de3cc97f7405de56571562"
       },
       {
-        "id": "8521e5a4-c625-4632-8572-04f5fe4292b7",
+        "id": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "at_risk",
-        "createdAt": "2026-05-30 03:55:55.914922+00",
+        "createdAt": "2026-05-31 01:13:42.622216+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed",
-        "traceId": "b98b8ce0bc232770312a10a3ec0482ed"
+        "traceUrl": null,
+        "traceId": "e1de5b27cbbdafef9e5316696f0cf347"
       },
       {
-        "id": "5a9896c8-39c9-4a1c-8178-b5a7876e7b02",
+        "id": "28667a60-5458-49bc-9108-dbc3577a390a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:55:50.797967+00",
+        "createdAt": "2026-05-31 01:13:37.595668+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/fc2a1f67aa9b79248559467220938b7b",
-        "traceId": "fc2a1f67aa9b79248559467220938b7b"
+        "traceUrl": null,
+        "traceId": "959894ba4ae5bc6fb08ed7e8cf5f48e1"
       },
       {
-        "id": "ee63615d-7c21-4576-a01e-4652d6437ec0",
-        "decision": "quiet_exit",
-        "triggerReason": "context-chat",
-        "signalType": "blocked",
-        "createdAt": "2026-05-30 03:55:36.812699+00",
-        "modelCalls": 0,
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762",
-        "traceId": "87f8505441dd74c4458576d9bd57d762"
-      },
-      {
-        "id": "69e78ca2-434a-4278-ae76-f07051a58aa2",
+        "id": "b6e8f939-594a-420f-8eda-ffd3b3653a82",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:45.602526+00",
+        "createdAt": "2026-05-31 01:11:32.298214+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/92c7624b01a3877d0576972d4fea6fa8",
-        "traceId": "92c7624b01a3877d0576972d4fea6fa8"
+        "traceUrl": null,
+        "traceId": "c51eb98ac8142ba305c5cffa4e719de1"
       },
       {
-        "id": "704b85b1-8504-48c3-a55b-fa24327cc6a5",
+        "id": "f3765846-542e-4dbf-a886-4f9a52dd005f",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-30 03:53:40.545593+00",
+        "createdAt": "2026-05-31 01:11:27.242496+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/e01f8c4202256db63e9199b67b46c67e",
-        "traceId": "e01f8c4202256db63e9199b67b46c67e"
+        "traceUrl": null,
+        "traceId": "faf7c1c740a16fc5c52c02fcbe014272"
       },
       {
-        "id": "d41b734c-c491-41fc-b6ff-81f7919c80ba",
+        "id": "2b3a2def-6cae-47cb-aa69-f1e1310f8a99",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:35.525832+00",
+        "createdAt": "2026-05-31 01:11:22.223967+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/5943f1e2ca2f84f96a08ebeeabeabe18",
-        "traceId": "5943f1e2ca2f84f96a08ebeeabeabe18"
+        "traceUrl": null,
+        "traceId": "fd7b65a53103ff00ec6d74b86e668c55"
       },
       {
-        "id": "e9f80d30-1b16-4368-807e-19e5a27f29ec",
+        "id": "29ab5d1d-d0a9-40e5-87b4-e6837e195327",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:30.491904+00",
+        "createdAt": "2026-05-31 01:11:17.205749+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b0290fa34379c41e9bf5c7d0df03e4e3",
-        "traceId": "b0290fa34379c41e9bf5c7d0df03e4e3"
+        "traceUrl": null,
+        "traceId": "a3cdef225a741669840d459bcf1548c4"
       },
       {
-        "id": "c6143dfd-81d6-462f-881f-62a991857007",
+        "id": "2e2662ef-30a2-4eb8-9baa-1b30155bd59d",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:24.961695+00",
+        "createdAt": "2026-05-31 01:11:11.735968+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/dc33140618959ed97df532798a09e786",
-        "traceId": "dc33140618959ed97df532798a09e786"
+        "traceUrl": null,
+        "traceId": "c1a60a459a4d5a4230e75ed1742aff3c"
       },
       {
-        "id": "90e2d944-0104-428e-8fc5-66f49ad78fa0",
+        "id": "7f9aa52c-eb8d-4d21-ac90-383af71b0a7d",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "at_risk",
-        "createdAt": "2026-05-30 03:53:19.944923+00",
+        "createdAt": "2026-05-31 01:11:06.717315+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4ac07d87771785b95314d9920b58dc9d",
-        "traceId": "4ac07d87771785b95314d9920b58dc9d"
+        "traceUrl": null,
+        "traceId": "87a01c35c2740672431cfdecce44325b"
       },
       {
-        "id": "1e4f9d3a-de31-4573-b9cc-68b9fa3c8d1f",
+        "id": "973f7b5b-158e-4b69-931b-bd56ea53b7aa",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:53:14.898422+00",
+        "createdAt": "2026-05-31 01:11:01.691877+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b0571d4a42793c93357ae7b7ea2e3069",
-        "traceId": "b0571d4a42793c93357ae7b7ea2e3069"
+        "traceUrl": null,
+        "traceId": "e41a52c122b7ab0e3c19e7fd43e3529d"
       },
       {
-        "id": "cdec3ec0-b708-4fd9-b0aa-f1369daa6544",
+        "id": "7ee8978d-22a2-4c87-a009-674b63cf558f",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:51:09.602952+00",
+        "createdAt": "2026-05-31 01:08:56.398414+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/926221de05200d77a86e818d00d972a4",
-        "traceId": "926221de05200d77a86e818d00d972a4"
+        "traceUrl": null,
+        "traceId": "3ee882e554b764d3c7480364749f3a1b"
       },
       {
-        "id": "9120993a-4b0e-4bea-9e23-42caa5f32c6c",
+        "id": "092f3341-c027-47a4-87f3-ec59cdbbf3aa",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-30 03:51:04.543845+00",
+        "createdAt": "2026-05-31 01:08:51.342924+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4c0e1b474d4402acc8bb936dc463024e",
-        "traceId": "4c0e1b474d4402acc8bb936dc463024e"
+        "traceUrl": null,
+        "traceId": "667b923c90a8da940ef625b6e2cf40b7"
       },
       {
-        "id": "ffd72ee0-8059-4455-a6d5-a1350ba919a4",
+        "id": "ff42f605-5985-4851-9696-d5cf720291a8",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:50:59.526597+00",
+        "createdAt": "2026-05-31 01:08:46.320465+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/a61e9d3d5f5f34534dcfe658572cc0ed",
-        "traceId": "a61e9d3d5f5f34534dcfe658572cc0ed"
+        "traceUrl": null,
+        "traceId": "6cdb9117c8dc30d01f8b277b92673976"
       },
       {
-        "id": "12ed9d2a-d14e-464a-83be-a9482ca129cc",
+        "id": "aa26e24a-6caf-4233-8bfc-ebca7ef30ee1",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:50:54.495861+00",
+        "createdAt": "2026-05-31 01:08:41.301605+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/142d1461f20c22022dc9b71f03d5fb30",
-        "traceId": "142d1461f20c22022dc9b71f03d5fb30"
+        "traceUrl": null,
+        "traceId": "aeea8b06c84d43f5e01511516905105d"
       },
       {
-        "id": "7f05193b-b9ed-4cc4-8730-28a62bf5900f",
+        "id": "1404a12d-3c0f-47fb-8e1b-23341295b66a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:50:48.752194+00",
+        "createdAt": "2026-05-31 01:08:35.634151+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/a4fb11a9388fe5daaf967e51cf46f850",
-        "traceId": "a4fb11a9388fe5daaf967e51cf46f850"
+        "traceUrl": null,
+        "traceId": "11234188464c287478290982d01e44c2"
       },
       {
-        "id": "8e418e62-ffd2-48c1-9597-8932706d6885",
+        "id": "63041ec8-0a2d-4f36-a889-844afdc3bc0c",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "at_risk",
-        "createdAt": "2026-05-30 03:50:43.736851+00",
+        "createdAt": "2026-05-31 01:08:30.618659+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/85527b640a60ee5096d095e5715b17b9",
-        "traceId": "85527b640a60ee5096d095e5715b17b9"
+        "traceUrl": null,
+        "traceId": "ae87bd1ffa8c3e758effad05e5820ca1"
       },
       {
-        "id": "0c60189c-dbaf-42a9-8310-e6765f8db67b",
+        "id": "15ca416f-74de-4e90-bb1e-5fab4226c726",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:50:38.70316+00",
+        "createdAt": "2026-05-31 01:08:25.593056+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/5440774d6d96c87176014ec6ed2ca3d6",
-        "traceId": "5440774d6d96c87176014ec6ed2ca3d6"
+        "traceUrl": null,
+        "traceId": "999cb96e420e21884605d63d51aa429c"
       },
       {
-        "id": "6e4f2c02-c3fa-4e9e-828b-6ed81bcea3b2",
+        "id": "8ab5b78a-2453-42c2-b61b-33f0fab02359",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:48:33.496324+00",
+        "createdAt": "2026-05-31 01:06:20.298717+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/4b9cdbcb53f2d18f29e8124db8ab956a",
-        "traceId": "4b9cdbcb53f2d18f29e8124db8ab956a"
+        "traceUrl": null,
+        "traceId": "8ee831feb2c668bb44064abfa5f31e26"
       },
       {
-        "id": "2e8459e4-fccb-4247-aedc-4c63a5c216ec",
+        "id": "85265793-19ce-4fc6-977e-f36a41b29169",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "stale",
-        "createdAt": "2026-05-30 03:48:28.368259+00",
+        "createdAt": "2026-05-31 01:06:15.23359+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/c2c406cbe914b14bc053173470b891d2",
-        "traceId": "c2c406cbe914b14bc053173470b891d2"
+        "traceUrl": null,
+        "traceId": "1707ed96ffe1a4fa3cd37b584e43c5da"
       },
       {
-        "id": "eeaaca37-474a-48df-9937-303c82a705d2",
+        "id": "6ad28a77-122a-474c-b65e-9b359914b692",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
         "signalType": "blocked",
-        "createdAt": "2026-05-30 03:48:23.348143+00",
+        "createdAt": "2026-05-31 01:06:10.218285+00",
         "modelCalls": 0,
         "inputTokens": 0,
         "outputTokens": 0,
         "totalTokens": 0,
         "estimatedCostUsd": 0,
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/d849be8c3a466c6888bac48eaf285d43",
-        "traceId": "d849be8c3a466c6888bac48eaf285d43"
+        "traceUrl": null,
+        "traceId": "bf6f69039e6ee2f75a7d55078858cdf1"
+      },
+      {
+        "id": "9b2af25c-1800-4c53-966a-4167d83d1248",
+        "decision": "update_finding",
+        "triggerReason": "scheduled-worker",
+        "signalType": "blocked",
+        "createdAt": "2026-05-31 01:06:05.199747+00",
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0,
+        "traceUrl": null,
+        "traceId": "d104b64839e0a800671cea0ccb881f7b"
       }
     ]
+  },
+  "reviewerChain": {
+    "chainId": "e6ba6f41-01c2-43fc-a286-f9d8da6328b8",
+    "scenario": "week-blocker",
+    "status": "complete",
+    "missing": [],
+    "generatedAt": "2026-05-31T01:11:05.279Z",
+    "freshness": {
+      "generatedAt": "2026-05-31T01:11:05.279Z",
+      "newestRunAt": "2026-05-31T01:04:04.312Z",
+      "newestWorkerTickAt": "2026-05-31T01:03:59.257Z",
+      "proofAgeMs": 420967,
+      "workerAgeMs": 426022
+    },
+    "latencyMs": {
+      "shipToAttention": 6,
+      "attentionToWorker": 2,
+      "workerToRun": 5055,
+      "runToFinding": 0,
+      "findingToNotification": 0,
+      "total": 5060
+    },
+    "steps": [
+      {
+        "key": "source",
+        "label": "Ship source",
+        "status": "pass",
+        "at": "2026-05-31T01:03:59.249Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "attention_event",
+        "label": "Attention event",
+        "status": "pass",
+        "at": "2026-05-31T01:03:59.255Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "worker_tick",
+        "label": "Worker tick",
+        "status": "pass",
+        "at": "2026-05-31T01:03:59.257Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "graph_run",
+        "label": "Graph run",
+        "status": "pass",
+        "at": "2026-05-31T01:04:04.312Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "trace",
+        "label": "Trace",
+        "status": "pass",
+        "at": "2026-05-31T01:04:04.312Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "finding",
+        "label": "Finding",
+        "status": "pass",
+        "at": "2026-05-31T01:04:04.309Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "notification_projection",
+        "label": "Notification projection",
+        "status": "pass",
+        "at": "2026-05-31T01:04:04.309Z",
+        "evidence": "Reviewer-safe evidence present."
+      },
+      {
+        "key": "chat_human_gate",
+        "label": "Chat and human gate",
+        "status": "pass",
+        "at": "2026-05-31T01:04:04.312Z",
+        "evidence": "Reviewer-safe evidence present."
+      }
+    ],
+    "humanGate": {
+      "required": true,
+      "state": "present",
+      "allowedActions": [
+        "approve after review",
+        "edit source manually",
+        "dismiss",
+        "snooze"
+      ]
+    },
+    "traceQuality": {
+      "passed": true,
+      "requiredDecisions": [
+        "create_finding"
+      ],
+      "observedDecisions": [
+        "create_finding"
+      ],
+      "scores": [
+        {
+          "name": "traceId",
+          "passed": true,
+          "value": null,
+          "comment": "Trace ID must be present."
+        },
+        {
+          "name": "traceUrl",
+          "passed": true,
+          "value": null,
+          "comment": "Trace URL must be reviewer-safe."
+        },
+        {
+          "name": "nodePath",
+          "passed": true,
+          "value": null,
+          "comment": "Graph node path must not be empty."
+        },
+        {
+          "name": "decision",
+          "passed": true,
+          "value": null,
+          "comment": "Run decision must be explicit."
+        },
+        {
+          "name": "usageMetadata",
+          "passed": true,
+          "value": true,
+          "comment": "Usage and cost metadata must be persisted."
+        },
+        {
+          "name": "createTraceNotQuiet",
+          "passed": true,
+          "value": null,
+          "comment": "Scenario create proof cannot be satisfied by quiet exit."
+        }
+      ]
+    },
+    "sourceMutationCheck": {
+      "passed": true,
+      "before": {},
+      "after": {},
+      "changedFields": []
+    },
+    "usageSummary": {
+      "modelCalls": 0,
+      "costCurrency": "USD",
+      "usageSource": "none",
+      "costSource": "none"
+    }
   },
   "loopTimeline": [
     {
@@ -896,6 +1045,85 @@
       }
     }
   ],
+  "reviewerTestCases": [
+    {
+      "id": 1,
+      "scenarioId": "proactive-blocked-create",
+      "signal": "blocked",
+      "shipState": "Visible issue has state = blocked and blocker text",
+      "expectedOutput": "Proactive create_finding, notification visible, no Ship mutation claim",
+      "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+      "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
+      "decision": "quiet_exit",
+      "triggerReason": "scheduled-worker"
+    },
+    {
+      "id": 2,
+      "scenarioId": "proactive-stale-create",
+      "signal": "stale",
+      "shipState": "Visible active issue has no meaningful update for 30+ days",
+      "expectedOutput": "Proactive create_finding, stale notification, human-gated review/close action",
+      "traceUrl": "https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r",
+      "runId": "aafd9841-69a5-456b-a4b8-1c834233e92a",
+      "decision": "update_finding",
+      "triggerReason": "scheduled-worker"
+    },
+    {
+      "id": 3,
+      "scenarioId": "proactive-at-risk-create",
+      "signal": "at_risk",
+      "shipState": "Visible high/urgent current-week issue is unowned or near sprint end",
+      "expectedOutput": "Proactive create_finding, at-risk notification, human-gated owner/scope action",
+      "traceUrl": "https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r",
+      "runId": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
+      "decision": "update_finding",
+      "triggerReason": "scheduled-worker"
+    },
+    {
+      "id": 4,
+      "scenarioId": "on-demand-explain",
+      "signal": "on_demand",
+      "shipState": "User asks from existing finding or page context",
+      "expectedOutput": "On-demand explain/chat path returns visible evidence, page context, and next action",
+      "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+      "runId": "manual-on_demand",
+      "decision": "manual_trace_override",
+      "triggerReason": "manual-langsmith-share"
+    },
+    {
+      "id": 5,
+      "scenarioId": "context-chat-human-gate",
+      "signal": "on_demand",
+      "shipState": "Chat asks for next action on a source/finding",
+      "expectedOutput": "Human gate required; source issue remains unchanged after chat",
+      "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+      "runId": "manual-on_demand",
+      "decision": "manual_trace_override",
+      "triggerReason": "manual-langsmith-share"
+    },
+    {
+      "id": 6,
+      "scenarioId": "source-condition-resolved",
+      "signal": "blocked",
+      "shipState": "Source condition disappears or evidence becomes unsafe",
+      "expectedOutput": "Finding resolves/suppresses or quiet-exits without model cost",
+      "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+      "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
+      "decision": "quiet_exit",
+      "triggerReason": "scheduled-worker"
+    },
+    {
+      "id": 7,
+      "scenarioId": "proactive-blocked-create",
+      "signal": "blocked",
+      "shipState": "Reviewer runs current-week blocker scenario in /fleetgraph/reviewer",
+      "expectedOutput": "Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes",
+      "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+      "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
+      "decision": "quiet_exit",
+      "triggerReason": "scheduled-worker"
+    }
+  ],
   "currentFindings": [
     {
       "signal": "Blocked",
@@ -924,7 +1152,7 @@
     {
       "signal": "Stale",
       "source": "Integration cleanup",
-      "visibleCopy": "Stale · Integration cleanup · No meaningful update for 180+ days · Riley Builder",
+      "visibleCopy": "Stale · Integration cleanup · No meaningful update for 30+ days · Riley Builder",
       "nextAction": "Review or close.",
       "status": "pass",
       "evidence": "fg-surface-stale-active-work"
@@ -963,14 +1191,14 @@
       "evidence": "fg-human-gated-action-prep"
     },
     {
-      "name": "Reviewer proof kept out of product UI",
+      "name": "Authenticated live proof surface",
       "status": "pass",
-      "evidence": "fleetgraph-product-surface latest.json"
+      "evidence": "/fleetgraph/reviewer plus fleetgraph-product-surface latest.json"
     }
   ],
   "costs": {
     "runCount": 4,
-    "measuredCommandMs": 76129,
+    "measuredCommandMs": 33196,
     "graphInvocationCount": 100,
     "modelCallCount": 0,
     "inputTokens": 0,
@@ -998,57 +1226,49 @@
     "bySignal": {
       "blocked": {
         "signal": "blocked",
-        "runId": "949c6177-ef28-48ca-a272-0bfa474f0a6c",
+        "runId": "d82836e8-f7e7-48cc-9188-c6e9f201d45e",
         "decision": "quiet_exit",
         "triggerReason": "scheduled-worker",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/2a02f39d8be1abcaa7ea91937d8a20bc",
-        "traceId": "2a02f39d8be1abcaa7ea91937d8a20bc",
-        "createdAt": "2026-05-30 03:56:21.609937+00"
+        "traceUrl": "https://smith.langchain.com/public/ebbd915c-6ddb-4b68-a015-a8cfbfc403e6/r",
+        "traceId": "39943d204413d63cfc4ec42cc38159f6",
+        "createdAt": "2026-05-31 01:14:08.29571+00"
       },
       "stale": {
         "signal": "stale",
-        "runId": "aea9ea25-ae8a-481e-a6c4-d05363654d26",
+        "runId": "aafd9841-69a5-456b-a4b8-1c834233e92a",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/9e0cf9adf415069052a1bdf739f53787",
-        "traceId": "9e0cf9adf415069052a1bdf739f53787",
-        "createdAt": "2026-05-30 03:56:16.556181+00"
+        "traceUrl": "https://smith.langchain.com/public/9e8c9bed-fd6f-4b66-8737-cb4ae3c5e0ff/r",
+        "traceId": "3cee164a11ba59bb4a5e9ecb5f8b0192",
+        "createdAt": "2026-05-31 01:14:03.227752+00"
       },
       "at_risk": {
         "signal": "at_risk",
-        "runId": "8521e5a4-c625-4632-8572-04f5fe4292b7",
+        "runId": "7d3fffd6-2cc1-437a-aa99-e68b3795a823",
         "decision": "update_finding",
         "triggerReason": "scheduled-worker",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/b98b8ce0bc232770312a10a3ec0482ed",
-        "traceId": "b98b8ce0bc232770312a10a3ec0482ed",
-        "createdAt": "2026-05-30 03:55:55.914922+00"
+        "traceUrl": "https://smith.langchain.com/public/9e9717bb-af5b-4a0f-9f0a-50d73f2a73f8/r",
+        "traceId": "e1de5b27cbbdafef9e5316696f0cf347",
+        "createdAt": "2026-05-31 01:13:42.622216+00"
       },
       "on_demand": {
         "signal": "on_demand",
-        "runId": "ee63615d-7c21-4576-a01e-4652d6437ec0",
-        "decision": "quiet_exit",
-        "triggerReason": "context-chat",
-        "traceUrl": "https://us.cloud.langfuse.com/project/cmpq0gd7n014vad0ejpkkkpqo/traces/87f8505441dd74c4458576d9bd57d762",
-        "traceId": "87f8505441dd74c4458576d9bd57d762",
-        "createdAt": "2026-05-30 03:55:36.812699+00"
+        "runId": "manual-on_demand",
+        "decision": "manual_trace_override",
+        "triggerReason": "manual-langsmith-share",
+        "traceUrl": "https://smith.langchain.com/public/2abe979b-4f8b-4069-aa23-1a325bdfadc3/r",
+        "traceId": null,
+        "createdAt": null
       }
     },
     "missingRequired": []
   },
   "commandResults": [
     {
-      "name": "product surface eval",
-      "command": "pnpm fleetgraph:eval:surface",
-      "status": "pass",
-      "durationMs": 41645,
-      "stdoutTail": "> ship@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/api fleetgraph:eval:surface\n\n\n> @ship/api@0.0.0 fleetgraph:eval:surface /Users/michaelhabermas/repos/GAI/ship-shape/api\n> tsx src/scripts/fleetgraph-product-surface-eval.ts\n\n◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]\n◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]\nFleetGraph product-surface eval current: 8 pass, 0 fail\nFleetGraph product-surface eval historical: 0 pass, 20 fail (trend only)\nMarkdown: my-docs/evals/fleetgraph-product-surface/latest.md\nJSON: my-docs/evals/fleetgraph-product-surface/latest.json\nReview board: my-docs/evals/fleetgraph-product-surface/latest.html\nRun: my-docs/evals/fleetgraph-product-surface/runs/2026-05-30T03-56-00-460Z",
-      "stderrTail": "atus [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ecd-705f-8231-65fc10408faa; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ecf-77e4-9de6-7d53c918960a; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ed0-75fe-b0f9-19bf3e460fbb; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ed2-735d-8734-e4e544c1d399; trace=019e7706-6ecd-705f-8231-65fc10408faa,id=019e7706-6ed3-709f-9a75-451e4c746e6d\nFailed to Failed to send multipart request. Received status [429]: Too Many Requests. Message: {\"error\":\"Too many requests: tenant exceeded usage limits: Monthly unique traces usage limit exceeded\"}\n\nContext: trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8261-75d8-9b07-74a19e0a7f9f; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8263-74c5-b226-76ac168e5dc3; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8264-720c-9bde-934ef808bd10; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8266-772c-bbfc-c8748dd6cdb0; trace=019e7706-8261-75d8-9b07-74a19e0a7f9f,id=019e7706-8267-7462-8373-4b310611a687"
-    },
-    {
       "name": "shared package build",
       "command": "pnpm build:shared",
       "status": "pass",
-      "durationMs": 808,
+      "durationMs": 757,
       "stdoutTail": "> ship@0.0.0 build:shared /Users/michaelhabermas/repos/GAI/ship-shape\n> pnpm --filter @ship/shared build\n\n\n> @ship/shared@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/shared\n> tsc",
       "stderrTail": ""
     },
@@ -1056,16 +1276,24 @@
       "name": "FleetGraph proof tests",
       "command": "pnpm --filter @ship/api test src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts",
       "status": "pass",
-      "durationMs": 2381,
-      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  31 passed (31)\n   Start at  22:56:42\n   Duration  1.87s (transform 223ms, setup 110ms, import 824ms, tests 454ms, environment 0ms)",
+      "durationMs": 1750,
+      "stdoutTail": "> @ship/api@0.0.0 test /Users/michaelhabermas/repos/GAI/ship-shape/api\n> vitest run src/fleetgraph/eval/eval.test.ts src/fleetgraph/eval/executable-golden-cases.test.ts src/fleetgraph/eval/product-surface.test.ts src/fleetgraph/api-contract.test.ts\n\n\n RUN  v4.1.7 /Users/michaelhabermas/repos/GAI/ship-shape/api\n\n\n Test Files  4 passed (4)\n      Tests  32 passed (32)\n   Start at  20:15:07\n   Duration  1.36s (transform 161ms, setup 82ms, import 596ms, tests 331ms, environment 0ms)",
+      "stderrTail": ""
+    },
+    {
+      "name": "API package build for E2E",
+      "command": "pnpm --filter @ship/api build",
+      "status": "pass",
+      "durationMs": 4688,
+      "stdoutTail": "> @ship/api@0.0.0 build /Users/michaelhabermas/repos/GAI/ship-shape/api\n> rm -rf dist && tsc && cp src/db/schema.sql dist/db/schema.sql && cp -r src/db/migrations dist/db/migrations && cp -r src/static dist/static",
       "stderrTail": ""
     },
     {
       "name": "FleetGraph attention loop E2E",
       "command": "pnpm test:e2e:run e2e/fleetgraph-attention-loop.spec.ts",
       "status": "pass",
-      "durationMs": 31295,
-      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 0s ago\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 6s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 5s ago\n\nPlaywright exited with status 0.",
+      "durationMs": 26001,
+      "stdoutTail": "> ship@0.0.0 test:e2e:run /Users/michaelhabermas/repos/GAI/ship-shape\n> ./scripts/run-e2e-profiled.sh e2e/fleetgraph-attention-loop.spec.ts\n\nStarting Playwright E2E suite in the background...\nLog: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/e2e-run.log\nProgress: /Users/michaelhabermas/repos/GAI/ship-shape/test-results/e2e-profiled/summary.json\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[1;33mWaiting for tests to start...\u001b[0m\n\u001b[0;32mPassed: 0\u001b[0m | Failed: 0 | \u001b[1;33mPending: 1\u001b[0m | \u001b[0;34mTotal: 1\u001b[0m | Last update: 3s ago\n\n\u001b[0;32mPassed: 1\u001b[0m | Failed: 0 | Pending: 0 | \u001b[0;34mTotal: 1\u001b[0m | Last update: 2s ago\n\nPlaywright exited with status 0.",
       "stderrTail": ""
     }
   ],
@@ -1102,7 +1330,7 @@
     },
     {
       "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-30T03-55-59-252Z/proof.html",
+      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-05-31T01-15-06-522Z/proof.html",
       "kind": "html"
     },
     {
@@ -1128,7 +1356,7 @@
   ],
   "risks": [],
   "nonClaims": [
-    "This dashboard is not product UI and does not add FleetGraph branding to the app.",
+    "The reviewer control room is an authenticated proof surface, not a marketing page or public reviewer bypass.",
     "This proof packet does not claim autonomous Ship mutation or external contact.",
     "A blocked deployed target means required deployed evidence was missing, not that production passed."
   ]

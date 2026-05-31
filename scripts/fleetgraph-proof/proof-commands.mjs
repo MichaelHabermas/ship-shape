@@ -44,23 +44,33 @@ Options:
 
 export function proofTestDatabaseUrl() {
   if (process.env.FLEETGRAPH_PROOF_TEST_DATABASE_URL) return process.env.FLEETGRAPH_PROOF_TEST_DATABASE_URL;
-  return 'postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit';
+  const defaultUrl = 'postgresql://ship:ship_dev_password@localhost:5432/ship_test_audit';
+  if (postgresReady('localhost', '5432')) return defaultUrl;
+  if (postgresReady('localhost', '5433')) {
+    console.log('FleetGraph proof: local Postgres is listening on 5433; using Docker test database port.');
+    return 'postgresql://ship:ship_dev_password@localhost:5433/ship_test_audit';
+  }
+  return defaultUrl;
 }
 
 export function runCommand(name, command, envExtra = {}) {
   const started = Date.now();
   const [bin, ...args] = command;
+  console.log(`FleetGraph proof: starting ${name}...`);
   const result = spawnSync(bin, args, {
     cwd: repoRoot,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, ...envExtra },
   });
+  const durationMs = Date.now() - started;
+  const status = result.status === 0 ? 'pass' : 'fail';
+  console.log(`FleetGraph proof: ${name} ${status} in ${formatDuration(durationMs)}.`);
   return {
     name,
     command: command.join(' '),
-    status: result.status === 0 ? 'pass' : 'fail',
-    durationMs: Date.now() - started,
+    status,
+    durationMs,
     stdoutTail: tail(result.stdout),
     stderrTail: tail(result.stderr),
   };
@@ -69,4 +79,17 @@ export function runCommand(name, command, envExtra = {}) {
 export function tail(value, max = 1200) {
   const text = String(value ?? '').trim();
   return text.length > max ? text.slice(-max) : text;
+}
+
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function postgresReady(host, port) {
+  const result = spawnSync('pg_isready', ['-h', host, '-p', port], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'ignore', 'ignore'],
+  });
+  return result.status === 0;
 }

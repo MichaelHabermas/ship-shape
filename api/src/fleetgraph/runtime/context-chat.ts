@@ -188,6 +188,27 @@ export function deterministicContextChatAnswer(
     };
   }
 
+  const generalAnswer = generalConversationAnswer(normalized);
+  if (generalAnswer) {
+    return {
+      title: 'Chat',
+      body: generalAnswer,
+      sources,
+      humanGate: { required: false },
+    };
+  }
+
+  const hasVisibleShipContext = bundle.documents.length > 0 || bundle.signals.length > 0 || bundle.pages.length > 0;
+  const contextIntent = promptTargetsShipContext(normalized, conversation) || (hasVisibleShipContext && asksForShipAction);
+  if (!contextIntent) {
+    return {
+      title: 'Chat',
+      body: openConversationAnswer(prompt),
+      sources,
+      humanGate: { required: false },
+    };
+  }
+
   const [firstDocument, ...otherDocuments] = bundle.documents;
   if (asksForComparison(normalized) && firstDocument && otherDocuments.length > 0) {
     return {
@@ -198,12 +219,21 @@ export function deterministicContextChatAnswer(
     };
   }
 
+  if (primaryDocument && asksAboutMissingContent(normalized)) {
+    return {
+      title: primaryDocument.title,
+      body: missingContentAnswer(primaryDocument, primarySignal),
+      sources,
+      humanGate: asksForShipAction ? actionHumanGate(primarySignal) : { required: false },
+    };
+  }
+
   if (primarySignal && signalSpecificPrompt(normalized)) {
     return signalAnswer(normalized, primarySignal, sources);
   }
 
   if (primaryDocument) {
-    if (asksForFormatChange(normalized)) {
+    if (asksForListFormat(normalized)) {
       return {
         title: primaryDocument.title,
         body: bulletAnswerFromDocument(primaryDocument, bundle.documents.slice(1), primarySignal, conversation.previousAssistantAnswer),
@@ -240,7 +270,7 @@ export function deterministicContextChatAnswer(
       sources,
       humanGate: asksForExternalShipAction
         ? actionHumanGate(primarySignal)
-        : asksForShipAction ? primarySignal?.output.humanGate ?? { required: false } : { required: false },
+        : asksForShipAction ? primarySignal?.output.humanGate ?? humanGateRequired() : { required: false },
     };
   }
 
@@ -302,7 +332,7 @@ function signalAnswer(
         : nextStep || reason,
       ...(nextStep ? { nextStep } : {}),
       sources,
-      humanGate: externalAction ? actionHumanGate(signal) : signal.output.humanGate,
+      humanGate: asksForAction(normalizedPrompt) ? actionHumanGate(signal) : signal.output.humanGate,
     };
   }
 
@@ -324,6 +354,10 @@ function asksForExternalAction(normalizedPrompt: string): boolean {
 }
 
 function asksForFormatChange(normalizedPrompt: string): boolean {
+  return asksForListFormat(normalizedPrompt) || /\b(make (that|it) simpler|simpler|shorter|plain|tl;dr|tldr)\b/.test(normalizedPrompt);
+}
+
+function asksForListFormat(normalizedPrompt: string): boolean {
   return /\b(bullet|bullets|bullet points|format as|make (that|it) (a )?list)\b/.test(normalizedPrompt);
 }
 
@@ -333,6 +367,72 @@ function asksForComparison(normalizedPrompt: string): boolean {
 
 function asksForWhy(normalizedPrompt: string): boolean {
   return /\b(why|reason|because|what caused|how come)\b/.test(normalizedPrompt);
+}
+
+function asksAboutMissingContent(normalizedPrompt: string): boolean {
+  return /\b(empty|blank|missing|no description|no information|no info|supposed to do|what.*do)\b/.test(normalizedPrompt)
+    && /\b(why|description|information|info|issue|ticket|body|content|supposed to do|do)\b/.test(normalizedPrompt);
+}
+
+function generalConversationAnswer(normalizedPrompt: string, now = new Date()): string | null {
+  if (/\b(what day is today|what date is today|today'?s date|what is today)\b/.test(normalizedPrompt)) {
+    return `Today is ${new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(now)}.`;
+  }
+
+  if (/\b(linked list)\b/.test(normalizedPrompt) && /\b(python|code|traverse|iterate|loop)\b/.test(normalizedPrompt)) {
+    return [
+      'Here is the basic Python shape:',
+      '',
+      '```python',
+      'class Node:',
+      '    def __init__(self, value, next=None):',
+      '        self.value = value',
+      '        self.next = next',
+      '',
+      'current = head',
+      'while current is not None:',
+      '    print(current.value)',
+      '    current = current.next',
+      '```',
+      '',
+      'You keep a pointer to the current node, use it, then advance to `current.next` until there is no next node.',
+    ].join('\n');
+  }
+
+  return null;
+}
+
+function promptTargetsShipContext(normalizedPrompt: string, conversation: ContextChatConversation): boolean {
+  if (asksForAction(normalizedPrompt) || asksForComparison(normalizedPrompt) || asksForWhy(normalizedPrompt) || signalSpecificPrompt(normalizedPrompt)) {
+    return true;
+  }
+
+  if (/\b(this|that|it|these|those|attached|attachment|context|current|selected|visible|page|document|doc|issue|ticket|week|sprint|project|program|notification|finding|risk|blocker|status|priority|owner|assignee|approval|dependency|summary|summarize|explain|describe|detail|details|source|ship|looking at)\b/.test(normalizedPrompt)) {
+    return true;
+  }
+
+  return Boolean(conversation.previousAssistantAnswer && asksForFormatChange(normalizedPrompt));
+}
+
+function openConversationAnswer(prompt: string): string {
+  const normalizedPrompt = prompt.trim().toLowerCase();
+  const generalAnswer = generalConversationAnswer(normalizedPrompt);
+  if (generalAnswer) return generalAnswer;
+
+  if (/\bfavou?rite colou?r\b/.test(normalizedPrompt)) {
+    return 'I do not have a real favorite color, but I usually like deep blue for interfaces because it stays calm without disappearing.';
+  }
+
+  if (/\b(who are you|what are you)\b/.test(normalizedPrompt)) {
+    return 'I am Ship chat. I can talk normally, and I can use the attached Ship context when your question points at it.';
+  }
+
+  return 'I can talk about that normally. I will only use the attached Ship context when your question points at it.';
 }
 
 export function chatModelAnswerFromContext(body: string, bundle: ContextChatBundle): FleetGraphChatAnswerPayload {
@@ -543,8 +643,30 @@ function documentAnswer(
   return lines.join('\n\n');
 }
 
+function missingContentAnswer(
+  document: ContextChatDocument,
+  signal: ContextChatSignal | undefined
+): string {
+  const contentText = textFromTipTap(document.content);
+  const reason = signal ? signalReason(signal.output) : null;
+
+  if (contentText) {
+    return [
+      `The issue is not empty; I can see this body text: ${conciseFact(contentText)}.`,
+      reason ? `The FleetGraph signal is separate: ${reason}` : null,
+    ].filter(Boolean).join('\n\n');
+  }
+
+  return [
+    'I do not see a visible issue description or body text on the authorized issue record.',
+    reason ? `The alert is coming from FleetGraph evidence instead: ${reason}` : 'I only have the issue fields, not enough body content to explain the intended work.',
+    'So the honest answer is: the issue record looks under-described, while the risk signal still has enough evidence to flag it.',
+  ].join('\n\n');
+}
+
 function actionHumanGate(signal: ContextChatSignal | undefined): Record<string, unknown> {
   if (signal?.output.humanGate?.required === true) return signal.output.humanGate;
+  if (signal?.output.humanGate?.approvalRequired === true) return { ...signal.output.humanGate, required: true };
   return { required: true, reason: 'human_must_approve_before_ship_or_external_action' };
 }
 

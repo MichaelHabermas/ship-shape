@@ -11,6 +11,7 @@ const pg = apiRequire('pg');
 export async function environmentChecks({ mode }) {
   const environments = [];
   if (mode === 'local' || mode === 'both') {
+    console.log('FleetGraph proof: local target configured.');
     environments.push({
       id: 'local',
       label: 'Local',
@@ -27,6 +28,7 @@ export async function environmentChecks({ mode }) {
     const databaseUrl = process.env.FLEETGRAPH_PROOF_DATABASE_URL;
     const renderPostgres = process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES;
     const hasDatabaseEvidenceSource = Boolean(databaseUrl || renderPostgres);
+    console.log(`FleetGraph proof: deployed target ${hasDatabaseEvidenceSource ? 'has' : 'is missing'} database evidence input.`);
     environments.push({
       id: 'deployed',
       label: 'Deployed',
@@ -43,11 +45,13 @@ export async function environmentChecks({ mode }) {
 export async function deployedDatabaseEvidence({ mode }) {
   if (mode === 'local') return null;
   if (process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES) {
+    console.log(`FleetGraph proof: reading deployed evidence from Render Postgres ${process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES}.`);
     return deployedDatabaseEvidenceFromRender(process.env.FLEETGRAPH_PROOF_RENDER_POSTGRES);
   }
   const databaseUrl = process.env.FLEETGRAPH_PROOF_DATABASE_URL;
   if (!databaseUrl) return null;
 
+  console.log('FleetGraph proof: reading deployed evidence from FLEETGRAPH_PROOF_DATABASE_URL.');
   const pool = new pg.Pool({
     connectionString: databaseUrl,
     max: 1,
@@ -128,35 +132,35 @@ export async function deployedDatabaseEvidence({ mode }) {
 
 function deployedDatabaseEvidenceFromRender(postgresIdOrName) {
   const [workerTicks, completedWorkerTicks, stuckTicks, eventCounts, signalRows, runRows, runEvidenceRows] = [
-    renderPsql(postgresIdOrName, `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
+    renderPsql(postgresIdOrName, 'recent worker ticks', `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
        FROM fleetgraph_worker_ticks
       WHERE started_at >= now() - interval '24 hours'
       ORDER BY started_at DESC
       LIMIT 5`),
-    renderPsql(postgresIdOrName, `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
+    renderPsql(postgresIdOrName, 'completed worker ticks', `SELECT id, status, started_at, completed_at, workspace_count, detector_decision_count, result_count, model_call_count
        FROM fleetgraph_worker_ticks
       WHERE started_at >= now() - interval '24 hours'
         AND status = 'completed'
       ORDER BY completed_at DESC
       LIMIT 5`),
-    renderPsql(postgresIdOrName, `SELECT COUNT(*)::int AS count
+    renderPsql(postgresIdOrName, 'stuck worker ticks', `SELECT COUNT(*)::int AS count
        FROM fleetgraph_worker_ticks
       WHERE status = 'running'
         AND deadline_at < now()`),
-    renderPsql(postgresIdOrName, `SELECT status, COUNT(*)::int AS count
+    renderPsql(postgresIdOrName, 'attention event counts', `SELECT status, COUNT(*)::int AS count
        FROM fleetgraph_attention_events
       WHERE created_at >= now() - interval '24 hours'
       GROUP BY status
       ORDER BY status`),
-    renderPsql(postgresIdOrName, `SELECT COALESCE(run_metadata->>'signalType', 'blocked') AS signal_type,
+    renderPsql(postgresIdOrName, 'finding signal counts', `SELECT COALESCE(run_metadata->>'signalType', 'blocked') AS signal_type,
             COUNT(*)::int AS count,
             MAX(updated_at) AS last_seen_at
        FROM fleetgraph_findings
       WHERE updated_at >= now() - interval '24 hours'
         AND status IN ('open', 'needs_confirmation', 'error')
-      GROUP BY COALESCE(run_metadata->>'signalType', 'blocked')
-      ORDER BY signal_type`),
-    renderPsql(postgresIdOrName, `SELECT trigger_reason,
+       GROUP BY COALESCE(run_metadata->>'signalType', 'blocked')
+       ORDER BY signal_type`),
+    renderPsql(postgresIdOrName, 'run signal counts', `SELECT trigger_reason,
             CASE
               WHEN dedupe_key LIKE 'stale-issue:%' THEN 'stale'
               WHEN dedupe_key LIKE 'at-risk-issue:%' THEN 'at_risk'
@@ -168,7 +172,7 @@ function deployedDatabaseEvidenceFromRender(postgresIdOrName) {
         AND decision IN ('create_finding', 'update_finding', 'resolve', 'suppress')
       GROUP BY trigger_reason, signal_type
       ORDER BY trigger_reason, signal_type`),
-    renderPsql(postgresIdOrName, deployedRunEvidenceSql()),
+    renderPsql(postgresIdOrName, 'recent graph run evidence', deployedRunEvidenceSql()),
   ];
   return summarizeDeployedEvidence({
     evidenceSource: 'render-postgres',
@@ -216,6 +220,38 @@ export function summarizeDeployedEvidence({
     usageSummary,
     traceEvidence,
     recentRuns: runEvidenceRows.slice(0, 25).map(safeRunEvidenceRow),
+  };
+}
+
+export function applyTraceUrlOverrides(deployedEvidence, overrides) {
+  if (!deployedEvidence || !overrides) return deployedEvidence;
+  const traceEvidence = deployedEvidence.traceEvidence ?? {
+    requiredSignals: ['blocked', 'stale', 'at_risk', 'on_demand'],
+    bySignal: {},
+    missingRequired: ['blocked', 'stale', 'at_risk', 'on_demand'],
+  };
+  const bySignal = { ...(traceEvidence.bySignal ?? {}) };
+  for (const signal of traceEvidence.requiredSignals ?? []) {
+    const override = traceOverrideValue(overrides[signal]);
+    if (!override) continue;
+    bySignal[signal] = {
+      ...(bySignal[signal] ?? {}),
+      signal,
+      runId: stringValue(override.runId) ?? stringValue(override.id) ?? bySignal[signal]?.runId ?? `manual-${signal}`,
+      decision: stringValue(override.decision) ?? bySignal[signal]?.decision ?? 'manual_trace_override',
+      triggerReason: stringValue(override.triggerReason) ?? bySignal[signal]?.triggerReason ?? 'manual-langsmith-share',
+      traceUrl: publicLangSmithTraceUrl(override.traceUrl ?? override.url),
+      traceId: stringValue(override.traceId) ?? bySignal[signal]?.traceId ?? null,
+      createdAt: stringValue(override.createdAt) ?? bySignal[signal]?.createdAt ?? null,
+    };
+  }
+  return {
+    ...deployedEvidence,
+    traceEvidence: {
+      ...traceEvidence,
+      bySignal,
+      missingRequired: (traceEvidence.requiredSignals ?? []).filter((signal) => !bySignal[signal]?.traceUrl),
+    },
   };
 }
 
@@ -273,14 +309,13 @@ function summarizeRunUsage(rows) {
 export function summarizeTraceEvidence(rows) {
   const required = ['blocked', 'stale', 'at_risk', 'on_demand'];
   const bySignal = {};
+  const bySignalDecision = {};
   for (const row of rows) {
     const signal = onDemandTraceReason(row) ? 'on_demand' : row.signal_type;
     if (!required.includes(signal)) continue;
     const trace = parseJsonRecord(row.trace_metadata);
     const link = traceUrlFromMetadata(trace);
-    if (bySignal[signal]?.traceUrl) continue;
-    if (bySignal[signal] && !link) continue;
-    bySignal[signal] = {
+    const evidence = {
       signal,
       runId: row.id,
       decision: row.decision,
@@ -289,12 +324,46 @@ export function summarizeTraceEvidence(rows) {
       traceId: stringValue(trace.traceId) || null,
       createdAt: row.created_at,
     };
+    const decisionKey = `${signal}:${row.decision}`;
+    if (!bySignalDecision[decisionKey]?.traceUrl && (link || !bySignalDecision[decisionKey])) {
+      bySignalDecision[decisionKey] = evidence;
+    }
+    if (betterSignalTrace(evidence, bySignal[signal])) {
+      bySignal[signal] = evidence;
+    }
   }
   return {
     requiredSignals: required,
     bySignal,
+    bySignalDecision,
     missingRequired: required.filter((signal) => !bySignal[signal]?.traceUrl),
   };
+}
+
+function betterSignalTrace(candidate, current) {
+  if (!current) return true;
+  if (!candidate.traceUrl && current.traceUrl) return false;
+  if (candidate.traceUrl && !current.traceUrl) return true;
+  return decisionRank(candidate.decision) > decisionRank(current.decision);
+}
+
+function decisionRank(decision) {
+  switch (decision) {
+    case 'create_finding':
+      return 5;
+    case 'explain':
+    case 'needs_confirmation':
+      return 4;
+    case 'resolve':
+    case 'suppress':
+      return 3;
+    case 'update_finding':
+      return 2;
+    case 'quiet_exit':
+      return 1;
+    default:
+      return 0;
+  }
 }
 
 function safeRunEvidenceRow(row) {
@@ -339,20 +408,32 @@ export function traceUrlFromMetadata(trace) {
     || stringValue(trace.langSmithUrl)
     || stringValue(trace.langfuseUrl)
     || null;
-  return publicTraceUrl(candidate);
+  return publicLangSmithTraceUrl(candidate);
 }
 
-function publicTraceUrl(candidate) {
+export function publicLangSmithTraceUrl(candidate) {
   if (!candidate) return null;
   try {
     const url = new URL(candidate);
     if (!['http:', 'https:'].includes(url.protocol)) return null;
-    if (['localhost', '127.0.0.1', '0.0.0.0'].includes(url.hostname)) return null;
-    if (url.hostname.endsWith('.local')) return null;
+    if (url.hostname !== 'smith.langchain.com') return null;
+    if (!url.pathname.startsWith('/public/')) return null;
     return url.toString();
   } catch {
     return null;
   }
+}
+
+function traceOverrideValue(value) {
+  if (typeof value === 'string') {
+    const traceUrl = publicLangSmithTraceUrl(value);
+    if (!traceUrl) throw new Error(`Trace override must be a public LangSmith URL: ${value}`);
+    return { traceUrl };
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const traceUrl = publicLangSmithTraceUrl(value.traceUrl ?? value.url);
+  if (!traceUrl) throw new Error(`Trace override must include a public LangSmith URL`);
+  return { ...value, traceUrl };
 }
 
 function hasWorkerOutput(row) {
@@ -418,7 +499,9 @@ function deployedSignalTypes(signalCounts) {
   return [...signals].sort();
 }
 
-function renderPsql(postgresIdOrName, sql) {
+function renderPsql(postgresIdOrName, label, sql) {
+  const started = Date.now();
+  console.log(`FleetGraph proof: querying Render Postgres for ${label}...`);
   const result = spawnSync('render', [
     'psql',
     postgresIdOrName,
@@ -441,7 +524,13 @@ function renderPsql(postgresIdOrName, sql) {
   if (result.status !== 0) {
     throw new Error(`render psql failed: ${tail(result.stderr || result.stdout, 2000)}`);
   }
+  console.log(`FleetGraph proof: ${label} query complete in ${formatDuration(Date.now() - started)}.`);
   return parseCsv(result.stdout);
+}
+
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 function parseCsv(csv) {
@@ -512,7 +601,7 @@ export function artifactPlan(runId, mode) {
 }
 
 export function shouldPublishPublicProof(packet) {
-  return packet.target !== 'local' && packet.verdict === 'pass';
+  return packet.target !== 'local';
 }
 
 function gitInfo() {

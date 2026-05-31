@@ -113,13 +113,13 @@ Final submission proof is all-signal: every claimed signal must have executable 
 
 | # | Ship state | Expected output | Evidence |
 | ---: | --- | --- | --- |
-| 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Golden case `fg-create-blocked-visible-issue`; deployed proof packet signal `blocked`; trace link must appear in public proof packet |
-| 2 | Visible active issue has no meaningful update for 30+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; deployed proof packet signal `stale`; trace link must appear in public proof packet |
-| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Golden case `fg-create-at-risk-visible-issue`; deployed proof packet signal `at_risk`; trace link must appear in public proof packet |
-| 4 | User asks from existing finding or page context | On-demand `explain`/chat path returns visible evidence, page context, and next action | Golden case `fg-explain-existing-finding`; public proof packet must include on-demand trace link |
-| 5 | Chat asks for next action on a source/finding | Human gate required; source issue remains unchanged after chat | `e2e/fleetgraph-attention-loop.spec.ts`; proof packet attention loop has no skipped steps when run with `--with-e2e` |
+| 1 | Visible issue has `state = blocked` and blocker text | Proactive `create_finding`, notification visible, no Ship mutation claim | Golden case `fg-create-blocked-visible-issue`; generated Reviewer Test Cases row must include a public `smith.langchain.com/public/...` trace |
+| 2 | Visible active issue has no meaningful update for 30+ days | Proactive `create_finding`, stale notification, human-gated review/close action | Golden case `fg-create-stale-visible-issue`; generated Reviewer Test Cases row must include a public `smith.langchain.com/public/...` trace |
+| 3 | Visible high/urgent current-week issue is unowned or near sprint end | Proactive `create_finding`, at-risk notification, human-gated owner/scope action | Golden case `fg-create-at-risk-visible-issue`; generated Reviewer Test Cases row must include a public `smith.langchain.com/public/...` trace |
+| 4 | User asks from existing finding or page context | On-demand `explain`/chat path returns visible evidence, page context, and next action | Golden case `fg-explain-existing-finding`; generated Reviewer Test Cases row must include a public `smith.langchain.com/public/...` trace |
+| 5 | Chat asks for next action on a source/finding | Human gate required; source issue remains unchanged after chat | `e2e/fleetgraph-attention-loop.spec.ts`; generated Reviewer Test Cases row must include a public `smith.langchain.com/public/...` trace |
 | 6 | Source condition disappears or evidence becomes unsafe | Finding resolves/suppresses or quiet-exits without model cost | Golden cases `fg-resolve-condition-gone`, `fg-restricted-source-hidden`, and `fg-quiet-done-cancelled` |
-| 7 | Reviewer runs current-week blocker scenario in `/fleetgraph/reviewer` | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | `GET /api/fleetgraph/reviewer/chains`; static proof packet `reviewerChain`; `/fleetgraph/reviewer` UI |
+| 7 | Reviewer runs current-week blocker scenario in `/fleetgraph/reviewer` | Live chain shows source -> attention event -> worker tick -> graph run -> trace -> finding -> notification projection -> chat/human gate under 5 minutes | `GET /api/fleetgraph/reviewer/chains`; static proof packet `reviewerChain`; generated Reviewer Test Cases row must include a public `smith.langchain.com/public/...` trace |
 
 Required proof command:
 
@@ -131,6 +131,7 @@ E2E_RESULTS_DIR=test-results/fleetgraph-proof \
 pnpm fleetgraph:proof -- --mode both --with-e2e
 
 pnpm fleetgraph:proof:check
+pnpm fleetgraph:proof:verify-traces
 ```
 
 # Architecture Decisions

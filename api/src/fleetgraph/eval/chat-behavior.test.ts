@@ -19,6 +19,7 @@ import {
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
 const sparseIssueId = '88888888-8888-4888-8888-888888888888';
+const emptyIssueId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const attachedDocId = '99999999-9999-4999-8999-999999999999';
 const sprintId = '33333333-3333-4333-8333-333333333333';
 const findingId = '44444444-4444-4444-8444-444444444444';
@@ -149,6 +150,16 @@ function db(): NonNullable<FleetGraphCoreOptions['db']> {
             yjs_state: null,
           }]);
         }
+        if (documentId === emptyIssueId) {
+          return pgResult([{
+            id: emptyIssueId,
+            title: 'Empty deploy readiness issue',
+            document_type: 'issue',
+            properties: { state: 'blocked', priority: 'urgent' },
+            content: docContent([]),
+            yjs_state: null,
+          }]);
+        }
         if (documentId === attachedDocId) {
           return pgResult([{
             id: attachedDocId,
@@ -205,7 +216,9 @@ describe('FleetGraph chat behavior golden cases', () => {
       for (let index = 0; index < testCase.turns.length; index++) {
         const turn = testCase.turns[index];
         if (!turn) throw new Error(`Missing chat behavior turn ${index}`);
-        const documentId = testCase.fixture === 'sparse-ticket' ? sparseIssueId : issueId;
+        const documentId = testCase.fixture === 'sparse-ticket'
+          ? sparseIssueId
+          : testCase.fixture === 'empty-ticket' ? emptyIssueId : issueId;
         const context = testCase.fixture === 'no-context'
           ? { kind: 'workspace' as const }
           : testCase.fixture === 'page-spoof'

@@ -82,6 +82,14 @@ export function renderHtml(packet, options = {}) {
     ${packet.loopTimeline.map((step) => `<div class="step"><strong>${escapeHtml(step.name)}</strong>${chip(step.status)}<div class="meta">${artifactLink(step.evidence, step.evidence, artifactBase)}</div></div>`).join('')}
   </section>
 
+  <h2>Reviewer Test Cases</h2>
+  <table>
+    <thead><tr><th>#</th><th>Ship state</th><th>Expected output</th><th>Required decision</th><th>Public LangSmith trace</th></tr></thead>
+    <tbody>
+      ${(packet.reviewerTestCases ?? []).map((item) => `<tr><td>${item.id}</td><td>${escapeHtml(item.shipState)}</td><td>${escapeHtml(item.expectedOutput)}</td><td>${escapeHtml(item.requiredDecision ?? '')}</td><td>${item.traceUrl ? `<a href="${escapeHtml(item.traceUrl)}">${escapeHtml(item.traceUrl)}</a>` : '<span class="muted">missing public LangSmith trace</span>'}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No reviewer test-case trace evidence was available.</td></tr>'}
+    </tbody>
+  </table>
+
   <h2>Graph Path Matrix</h2>
   <table>
     <thead><tr><th>Scenario</th><th>Proactive</th><th>On-demand</th><th>Update</th><th>Quiet</th><th>Human gate</th></tr></thead>
