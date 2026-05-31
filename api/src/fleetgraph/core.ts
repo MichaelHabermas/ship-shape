@@ -180,16 +180,11 @@ function traceSafeRunInputs(input: FleetGraphInput): Record<string, unknown> {
 }
 
 export function shouldAutoCaptureTrace(input: FleetGraphInput, options: FleetGraphCoreOptions): boolean {
-  if (options.forceReviewerTrace) {
-    return !options.externalTrace
-      && process.env.NODE_ENV !== 'test'
-      && fleetGraphTracingEnabled(traceEnablementForOptions(options));
-  }
-
-  return !options.externalTrace
-    && process.env.NODE_ENV !== 'test'
-    && !isLowSignalAutoTrace(input, options)
-    && fleetGraphTracingEnabled();
+  const enablement = traceEnablementForOptions(options);
+  if (options.externalTrace || process.env.NODE_ENV === 'test') return false;
+  if (!fleetGraphTracingEnabled(enablement)) return false;
+  if (options.forceReviewerTrace) return true;
+  return !isLowSignalAutoTrace(input, options);
 }
 
 function traceEnablementForOptions(options: FleetGraphCoreOptions): FleetGraphTraceEnablement {

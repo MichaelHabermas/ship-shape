@@ -87,6 +87,36 @@ const completeChain = {
   sourceMutationCheck: { passed: true, before: {}, after: {}, changedFields: [] },
 };
 
+function mockReviewerChainsGet(
+  chainsResponse: typeof emptyChainsResponse & { chains: Array<typeof brokenChain> },
+) {
+  vi.mocked(apiGetJson).mockImplementation(async (endpoint) => {
+    if (endpoint === '/api/fleetgraph/reviewer/chains?limit=25') {
+      return chainsResponse;
+    }
+    if (endpoint.startsWith('/api/fleetgraph/findings/') && endpoint.endsWith('/blast-radius-map')) {
+      return {
+        finding: {
+          id: completeChain.links.findingId,
+          kind: 'blocker',
+          status: 'needs_confirmation',
+          signalType: 'blocked',
+          signalLabel: 'Blocked',
+          reason: 'Visible summary',
+          sourceIssueId: completeChain.links.sourceIssueId,
+          sourceSprintId: completeChain.links.sourceSprintId,
+          visibleOutput: completeChain.visibleOutput,
+          traceMetadata: { mode: 'proactive', decision: 'create_finding', nodePath: [] },
+        },
+        summary: 'This finding has no visible downstream blast radius yet.',
+        nodes: [],
+        edges: [],
+      };
+    }
+    throw new Error(`Unexpected GET ${endpoint}`);
+  });
+}
+
 function renderPage(path = '/fleetgraph/reviewer') {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -101,7 +131,7 @@ afterEach(() => {
 
 describe('FleetGraphReviewerPage', () => {
   it('opens the live operation drawer immediately when the scenario starts', async () => {
-    vi.mocked(apiGetJson).mockResolvedValue(emptyChainsResponse);
+    mockReviewerChainsGet(emptyChainsResponse);
     vi.mocked(apiPostJson).mockImplementation(() => new Promise(() => {}));
 
     renderPage();
@@ -130,7 +160,7 @@ describe('FleetGraphReviewerPage', () => {
   });
 
   it('runs safe proof repair for the selected broken chain', async () => {
-    vi.mocked(apiGetJson).mockResolvedValue({
+    mockReviewerChainsGet({
       ...emptyChainsResponse,
       summary: { ...emptyChainsResponse.summary, chainCount: 1, brokenCount: 1 },
       chains: [brokenChain],
@@ -156,7 +186,7 @@ describe('FleetGraphReviewerPage', () => {
   });
 
   it('prefers a complete week-blocker chain over a broken historical default', async () => {
-    vi.mocked(apiGetJson).mockResolvedValue({
+    mockReviewerChainsGet({
       ...emptyChainsResponse,
       summary: { ...emptyChainsResponse.summary, chainCount: 2, completeCount: 1, brokenCount: 1 },
       chains: [
@@ -234,7 +264,7 @@ describe('FleetGraphReviewerPage', () => {
   });
 
   it('generates packets from the selected chain even when that selected chain is broken', async () => {
-    vi.mocked(apiGetJson).mockResolvedValue({
+    mockReviewerChainsGet({
       ...emptyChainsResponse,
       summary: { ...emptyChainsResponse.summary, chainCount: 2, completeCount: 1, brokenCount: 1 },
       chains: [
@@ -266,7 +296,7 @@ describe('FleetGraphReviewerPage', () => {
   });
 
   it('collapses completed live operations so the evidence workspace keeps the viewport', async () => {
-    vi.mocked(apiGetJson).mockResolvedValue({
+    mockReviewerChainsGet({
       ...emptyChainsResponse,
       summary: { ...emptyChainsResponse.summary, chainCount: 1, completeCount: 1 },
       chains: [completeChain],
@@ -294,7 +324,7 @@ describe('FleetGraphReviewerPage', () => {
       configurable: true,
       value: { writeText },
     });
-    vi.mocked(apiGetJson).mockResolvedValue({
+    mockReviewerChainsGet({
       ...emptyChainsResponse,
       summary: { ...emptyChainsResponse.summary, chainCount: 1, completeCount: 1 },
       chains: [completeChain],
@@ -315,7 +345,7 @@ describe('FleetGraphReviewerPage', () => {
   });
 
   it('keeps noisy proof identifiers actionable without rendering raw trace ids or ISO dates', async () => {
-    vi.mocked(apiGetJson).mockResolvedValue({
+    mockReviewerChainsGet({
       ...emptyChainsResponse,
       summary: { ...emptyChainsResponse.summary, chainCount: 1, completeCount: 1 },
       chains: [completeChain],

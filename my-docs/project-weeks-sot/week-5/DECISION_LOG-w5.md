@@ -693,3 +693,19 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Improve FleetGraph by making the existing chat understand current page context, attached document/page context, notification/finding context, and bounded recent turns. Do not add new buttons, quick actions, panels, banners, dashboards, or reviewer-only affordances for this slice.
 
 **Consequence:** Future contextual-chat work should add behavior cases and strengthen the existing context payload/runtime path. Chat context informs a free conversation; it must not become a guided workflow, mutation surface, or action menu. Mutation/contact requests remain human-gated and must never claim Ship records or people were changed/contacted. Client page labels are ID hints only; answer/model/source text must come from authorized server-loaded records.
+
+## D087 - FleetGraph Blast Radius Person Node Visibility
+
+**Date:** 2026-05-31
+
+**Decision:** Blast-radius person nodes follow the same source-visibility contract as FleetGraph evidence. The route already requires both source issue and source sprint to be readable before returning a map. Person documents are filtered in one batch via `filterReadableDocumentIds`. Rows resolved only through `users.name` (no person document) may appear when the root finding is visible, because assignee/owner IDs are properties on those already-authorized source documents.
+
+**Consequence:** Blast radius must not expose person documents the actor cannot read. It must not add a separate person-document read path per row when batch filtering is available. User-name fallback rows are assignee/owner labels from visible source context, not a bypass around document visibility for person records.
+
+## D088 - FleetGraph Reviewer Page Module Boundaries
+
+**Date:** 2026-05-31
+
+**Decision:** Decompose `FleetGraphReviewerPage` into three layers: pure helpers under `web/src/fleetgraph/reviewer/`, data hooks under `web/src/hooks/useFleetGraphReviewer*.ts`, and UI panels under `web/src/components/fleetgraph-reviewer/`. The page file remains the layout orchestrator only.
+
+**Consequence:** New reviewer UI should land in the component folder, not grow the page monolith. Integration tests stay on the page; pure helpers and hooks get colocated unit tests.

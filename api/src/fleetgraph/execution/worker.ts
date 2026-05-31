@@ -138,11 +138,20 @@ function modelCallsForSummary(summary: FleetGraphExecuteTickSummary): number {
   ), 0);
 }
 
+function graphRunOptions(
+  graphOptions?: FleetGraphWorkerOptions['graphOptions'],
+): NonNullable<Extract<FleetGraphTickInput, { mode: 'execute' }>['graphOptions']> {
+  return {
+    ...graphOptions,
+    generateProactiveText: async ({ candidate }) => deterministicProactiveCreateText(candidate),
+  };
+}
+
 async function runWorkspaceTick(input: {
   workspaceId: string;
   config: ResolvedFleetGraphConfig;
   runTick: WorkerRunTick;
-  graphOptions?: FleetGraphWorkerOptions['graphOptions'];
+  graphRunOptions: NonNullable<Extract<FleetGraphTickInput, { mode: 'execute' }>['graphOptions']>;
 }): Promise<FleetGraphExecuteTickSummary> {
   return input.runTick({
     mode: 'execute',
@@ -150,10 +159,7 @@ async function runWorkspaceTick(input: {
     principal: fleetGraphSystemPrincipal(input.workspaceId),
     limit: input.config.workerCandidateLimit,
     triggerReason: 'scheduled-worker',
-    graphOptions: {
-      ...input.graphOptions,
-      generateProactiveText: async ({ candidate }) => deterministicProactiveCreateText(candidate),
-    },
+    graphOptions: input.graphRunOptions,
   });
 }
 
@@ -208,6 +214,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
     stats.selectedWorkspaceCount = workspaceIds.length;
     stats.auditMetadata.workerStartedAt = tick.started_at.toISOString();
     stats.auditMetadata.workspaceIds = workspaceIds;
+    const mergedGraphRunOptions = graphRunOptions(options.graphOptions);
 
     const attentionEvents = await claimFleetGraphAttentionEvents({
       lockedBy: instanceId,
@@ -229,10 +236,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
           event,
           principal: fleetGraphSystemPrincipal(event.workspace_id),
           db: client,
-          graphOptions: {
-            ...options.graphOptions,
-            generateProactiveText: async ({ candidate }) => deterministicProactiveCreateText(candidate),
-          },
+          graphOptions: mergedGraphRunOptions,
         });
         stats.detectorDecisionCount += summary.detectorDecisions;
         stats.resultCount += summary.results.length;
@@ -279,7 +283,7 @@ export async function runFleetGraphWorkerTick(options: FleetGraphWorkerOptions =
           workspaceId,
           config,
           runTick,
-          graphOptions: options.graphOptions,
+          graphRunOptions: mergedGraphRunOptions,
         });
         stats.detectorDecisionCount += summary.detectorDecisions;
         stats.resultCount += summary.results.length;
