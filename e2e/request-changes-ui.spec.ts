@@ -1,6 +1,14 @@
+/** E2E tests for Request Changes UI flow on the Reviews page. */
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, login } from './fixtures/api-auth';
-
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  ApiDocument,
+  AuthMeResponse,
+  PersonDocument,
+  TeamReviewsResponse,
+  WeeklyPlanDocument,
+} from './fixtures/e2e-api-types';
 
 /**
  * E2E tests for Request Changes UI flow on the ReviewsPage.
@@ -20,24 +28,28 @@ async function createPendingPlan(page: import('@playwright/test').Page, apiUrl: 
 
   // Get current user info
   const meRes = await page.request.get(`${apiUrl}/api/auth/me`);
-  const me = await meRes.json();
-  const userId = me.data.user.id;
+  const me = await readJsonAs<AuthMeResponse>(meRes);
+  const userId = me.data?.user?.id;
+  expect(userId, 'Authenticated user should have an id').toBeTruthy();
+  if (!userId) {
+    throw new Error('Authenticated user should have an id');
+  }
 
   // Get person doc
   const personRes = await page.request.get(`${apiUrl}/api/weeks/lookup-person?user_id=${userId}`);
-  const person = await personRes.json();
+  const person = await readJsonAs<PersonDocument>(personRes);
 
   // Get current sprint number from the reviews endpoint
   const reviewsRes = await page.request.get(`${apiUrl}/api/team/reviews?sprint_count=1`);
-  const reviewsData = await reviewsRes.json();
-  const currentSprint = reviewsData.currentSprintNumber || 1;
+  const reviewsData = await readJsonAs<TeamReviewsResponse>(reviewsRes);
+  const currentSprint = reviewsData.currentSprintNumber ?? 1;
 
   // Create a program
   const progRes = await page.request.post(`${apiUrl}/api/programs`, {
     headers: { 'x-csrf-token': csrf },
     data: { title: 'Test Program', properties: { color: '#6366f1' } },
   });
-  const prog = await progRes.json();
+  const prog = await readJsonAs<ApiDocument>(progRes);
 
   // Create a project
   const projRes = await page.request.post(`${apiUrl}/api/projects`, {
@@ -48,7 +60,7 @@ async function createPendingPlan(page: import('@playwright/test').Page, apiUrl: 
       properties: { color: '#3b82f6' },
     },
   });
-  const proj = await projRes.json();
+  const proj = await readJsonAs<ApiDocument>(projRes);
 
   // Create a sprint for the current week with the person allocated
   await page.request.post(`${apiUrl}/api/documents`, {
@@ -71,7 +83,7 @@ async function createPendingPlan(page: import('@playwright/test').Page, apiUrl: 
     headers: { 'x-csrf-token': csrf },
     data: { person_id: person.id, project_id: proj.id, week_number: currentSprint },
   });
-  const plan = await planRes.json();
+  const plan = await readJsonAs<WeeklyPlanDocument>(planRes);
 
   // Add content to make it count as "has content"
   await page.request.patch(`${apiUrl}/api/documents/${plan.id}`, {

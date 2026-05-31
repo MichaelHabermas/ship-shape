@@ -1,6 +1,12 @@
+/** E2E tests for Manager Reviews: page, API grid, and approve-review validation. */
 import { test, expect } from './fixtures/isolated-env';
 import { login, loginViaApi } from './fixtures/api-auth';
-
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  ApproveReviewResponse,
+  TeamReviewsResponse,
+  WeeksWithIdListResponse,
+} from './fixtures/e2e-api-types';
 
 /**
  * E2E tests for Manager Reviews feature.
@@ -42,7 +48,7 @@ test.describe('Manager Reviews', () => {
     const response = await page.request.get(`${apiServer.url}/api/team/reviews?sprint_count=5`);
     expect(response.ok()).toBe(true);
 
-    const data = await response.json();
+    const data = await readJsonAs<TeamReviewsResponse>(response);
 
     // Verify structure
     expect(data.people).toBeInstanceOf(Array);
@@ -75,7 +81,7 @@ test.describe('Manager Reviews', () => {
     // Get a sprint ID to approve
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
     expect(weeksResponse.ok()).toBe(true);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length, 'Need at least one sprint to test approval').toBeGreaterThan(0);
 
     const sprintId = weeksData.weeks[0].id;
@@ -90,11 +96,11 @@ test.describe('Manager Reviews', () => {
     );
     expect(approveResponse.ok()).toBe(true);
 
-    const result = await approveResponse.json();
+    const result = await readJsonAs<ApproveReviewResponse>(approveResponse);
     expect(result.success).toBe(true);
-    expect(result.approval.state).toBe('approved');
+    expect(result.approval?.state).toBe('approved');
     expect(result.review_rating).toBeDefined();
-    expect(result.review_rating.value).toBe(3);
+    expect(result.review_rating?.value).toBe(3);
   });
 
   test('POST /api/weeks/:id/approve-review rejects invalid ratings', async ({ page, apiServer }) => {
@@ -102,7 +108,7 @@ test.describe('Manager Reviews', () => {
 
     // Get a sprint ID
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length).toBeGreaterThan(0);
     const sprintId = weeksData.weeks[0].id;
 
@@ -142,7 +148,7 @@ test.describe('Manager Reviews', () => {
 
     // Get a sprint ID
     const weeksResponse = await page.request.get(`${apiServer.url}/api/weeks`);
-    const weeksData = await weeksResponse.json();
+    const weeksData = await readJsonAs<WeeksWithIdListResponse>(weeksResponse);
     expect(weeksData.weeks.length).toBeGreaterThan(0);
     const sprintId = weeksData.weeks[0].id;
 

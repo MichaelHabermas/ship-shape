@@ -1,5 +1,7 @@
+/** E2E session timeout UX: warning modal, countdown, logout, and session info API. */
 import { test, expect } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import type { AuthSessionResponse } from './fixtures/e2e-api-types';
 
 
 /**
@@ -1072,9 +1074,9 @@ test.describe('Session Info API', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
     // Call the session info endpoint using page.evaluate (shares session cookie)
-    const response = await page.evaluate(async () => {
+    const response = await page.evaluate(async (): Promise<{ status: number; data: AuthSessionResponse }> => {
       const res = await fetch('/api/auth/session');
-      return { status: res.status, data: await res.json() };
+      return { status: res.status, data: (await res.json()) as AuthSessionResponse };
     });
 
     // Verify response structure
@@ -1101,9 +1103,9 @@ test.describe('Session Info API', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
     // Get session info
-    const response = await page.evaluate(async () => {
+    const response = await page.evaluate(async (): Promise<AuthSessionResponse> => {
       const res = await fetch('/api/auth/session');
-      return (await res.json()) as { success: boolean; data: { expiresAt: string } };
+      return (await res.json()) as AuthSessionResponse;
     });
 
     expect(response.success).toBe(true);

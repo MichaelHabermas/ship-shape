@@ -4,6 +4,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { readJsonAs } from './typed-json';
+import type { AuthMeResponse } from './e2e-api-types';
 
 export const E2E_LOGIN_EMAIL = 'dev@ship.local';
 export const E2E_LOGIN_PASSWORD = 'admin123';
@@ -75,7 +76,7 @@ export async function loginAsAdminWithUser(
   }
   const meResponse = await page.request.get(`${apiUrl}/api/auth/me`);
   expect(meResponse.ok()).toBeTruthy();
-  const meData = await meResponse.json();
+  const meData = await readJsonAs<AuthMeResponse>(meResponse);
   return { csrfToken: auth.csrfToken, userId: meData.data.user.id };
 }
 

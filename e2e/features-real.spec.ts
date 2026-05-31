@@ -1,5 +1,8 @@
+/** E2E real integration tests for mentions, uploads, and backlinks (no mocks). */
 import { test, expect, Page } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { DocumentBacklinksResponse, MentionSearchFullResponse } from './fixtures/e2e-api-types';
 import { triggerMentionPopup } from './fixtures/test-helpers';
 
 import path from 'path';
@@ -108,7 +111,7 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
     const apiResponse = await page.request.get(`/api/search/mentions?q=dev`);
     expect(apiResponse.ok()).toBe(true);
 
-    const data = await apiResponse.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(apiResponse);
     expect(data.people).toBeDefined();
   });
 
@@ -123,7 +126,7 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
 
     // Verify seed data provides users for mentions
     const apiResponse = await page.request.get(`/api/search/mentions?q=`);
-    const data = await apiResponse.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(apiResponse);
     expect(data.people?.length, 'Seed data should provide users for mentions. Run: pnpm db:seed').toBeGreaterThan(0);
 
     // Should have inserted a mention node - check multiple possible selectors
@@ -149,7 +152,7 @@ test.describe('TIER 1: @Mentions - REAL TESTS', () => {
 
     // API should return documents too
     const apiResponse = await page.request.get(`/api/search/mentions?q=test`);
-    const data = await apiResponse.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(apiResponse);
 
     expect(data.documents).toBeDefined();
     expect(Array.isArray(data.documents)).toBe(true);
@@ -496,7 +499,7 @@ test.describe('TIER 3: Backlinks - REAL TESTS', () => {
       // Should return 200 (even if empty)
       expect(response.status()).toBe(200);
 
-      const data = await response.json();
+      const data = await readJsonAs<DocumentBacklinksResponse>(response);
       expect(Array.isArray(data)).toBe(true);
     }
   });
@@ -530,7 +533,7 @@ test.describe('TIER 3: Backlinks - REAL TESTS', () => {
     // Now check backlinks on first document
     if (firstDocId) {
       const response = await page.request.get(`/api/documents/${firstDocId}/backlinks`);
-      const backlinks = await response.json();
+      const backlinks = await readJsonAs<DocumentBacklinksResponse>(response);
 
       // Should have at least one backlink now
       // (This may be flaky if the link wasn't saved yet)

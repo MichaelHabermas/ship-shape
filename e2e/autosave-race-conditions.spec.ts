@@ -1,3 +1,4 @@
+/** E2E auto-save race conditions: stale responses must not overwrite local edits. */
 import { test, expect, Page } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
 
@@ -175,7 +176,7 @@ test.describe('Auto-Save Race Conditions - Throttle Behavior', () => {
       const request = route.request();
       if (request.method() === 'PATCH') {
         try {
-          const body = request.postDataJSON();
+          const body = request.postDataJSON() as { title?: string } | null;
           if (body?.title) {
             apiCalls.push({ timestamp: Date.now(), title: body.title });
           }

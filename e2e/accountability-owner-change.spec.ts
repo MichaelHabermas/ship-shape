@@ -1,3 +1,4 @@
+/** E2E accountability owner-change inference and action-items API shape. */
 import { test, expect } from './fixtures/isolated-env';
 import { loginViaApi } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
@@ -98,7 +99,7 @@ test.describe('Accountability Owner Change', () => {
     const response = await page.request.get(`${apiServer.url}/api/accountability/action-items`);
 
     expect(response.ok()).toBe(true);
-    const data = await response.json();
+    const data = await readJsonAs<ActionItemsResponse>(response);
 
     // Verify response shape
     expect(data).toHaveProperty('items');

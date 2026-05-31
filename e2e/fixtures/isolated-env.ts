@@ -24,6 +24,7 @@ import getPort, { portNumbers } from 'get-port';
 import bcrypt from 'bcryptjs';
 import { PASSWORD_BCRYPT_ROUNDS } from '@ship/shared';
 import os from 'os';
+import { type IdRow, requireFirstRow } from './e2e-seed-rows';
 
 /**
  * Get port for a worker with collision avoidance.
@@ -347,22 +348,22 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
   const nowUtc = new Date();
   const threeMonthsAgoUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth() - 3, nowUtc.getUTCDate()));
   const sprintStartDateStr = threeMonthsAgoUtc.toISOString().split('T')[0];
-  const workspaceResult = await pool.query(
+  const workspaceResult = await pool.query<IdRow>(
     `INSERT INTO workspaces (name, sprint_start_date)
      VALUES ('Test Workspace', $1)
      RETURNING id`,
     [sprintStartDateStr]
   );
-  const workspaceId = workspaceResult.rows[0].id;
+  const workspaceId = requireFirstRow(workspaceResult.rows).id;
 
   // Create test user
-  const userResult = await pool.query(
+  const userResult = await pool.query<IdRow>(
     `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
      VALUES ('dev@ship.local', $1, 'Dev User', true, $2)
      RETURNING id`,
     [passwordHash, workspaceId]
   );
-  const userId = userResult.rows[0].id;
+  const userId = requireFirstRow(userResult.rows).id;
 
   // Create workspace membership
   await pool.query(
@@ -372,22 +373,22 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
   );
 
   // Create person document for user
-  const personResult = await pool.query(
+  const personResult = await pool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
      VALUES ($1, 'person', 'Dev User', $2, $3)
      RETURNING id`,
     [workspaceId, JSON.stringify({ user_id: userId, email: 'dev@ship.local' }), userId]
   );
-  const personId = personResult.rows[0].id;
+  const personId = requireFirstRow(personResult.rows).id;
 
   // Create a member user (non-admin) for authorization tests
-  const memberResult = await pool.query(
+  const memberResult = await pool.query<IdRow>(
     `INSERT INTO users (email, password_hash, name, is_super_admin, last_workspace_id)
      VALUES ('bob.martinez@ship.local', $1, 'Bob Martinez', false, $2)
      RETURNING id`,
     [passwordHash, workspaceId]
   );
-  const memberId = memberResult.rows[0].id;
+  const memberId = requireFirstRow(memberResult.rows).id;
 
   // Create workspace membership as regular member (not admin)
   await pool.query(
@@ -415,7 +416,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
   const programIds: Record<string, string> = {};
   for (const prog of programs) {
-    const result = await pool.query(
+    const result = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'program', $2, $3, $4)
        RETURNING id`,
@@ -431,7 +432,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         userId,
       ]
     );
-    programIds[prog.key] = result.rows[0].id;
+    programIds[prog.key] = requireFirstRow(result.rows).id;
   }
 
   // Calculate current sprint number (1-week sprints) using UTC to match API (team.ts:1639-1647)
@@ -452,7 +453,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         const sprintStartDate = new Date(threeMonthsAgoUtc.getTime() + (sprintNum - 1) * 7 * 24 * 60 * 60 * 1000);
         const startDateStr = sprintStartDate.toISOString().split('T')[0];
 
-        const result = await pool.query(
+        const result = await pool.query<IdRow>(
           `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
            VALUES ($1, 'sprint', $2, $3, $4)
            RETURNING id`,
@@ -463,7 +464,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
             userId,
           ]
         );
-        const sprintId = result.rows[0].id;
+        const sprintId = requireFirstRow(result.rows).id;
         sprintIds[prog.key][sprintNum] = sprintId;
 
         // Create association to program via junction table (required for API queries)
@@ -520,7 +521,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       ? sprintIds['SHIP'][currentSprintNumber + issue.sprintOffset] || null
       : null;
 
-    const issueResult = await pool.query(
+    const issueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
        VALUES ($1, 'issue', $2, $3, $4, $5)
        RETURNING id`,
@@ -539,7 +540,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       ]
     );
 
-    const issueId = issueResult.rows[0].id;
+    const issueId = requireFirstRow(issueResult.rows).id;
 
     // Create program association via document_associations (replaces legacy program_id column)
     await pool.query(
@@ -573,7 +574,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       const progSprintId = issueTemplate.state !== 'backlog'
         ? sprintIds[prog.key][currentSprintNumber] || null
         : null;
-      const progIssueResult = await pool.query(
+      const progIssueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
          VALUES ($1, 'issue', $2, $3, $4, $5)
          RETURNING id`,
@@ -592,7 +593,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         ]
       );
 
-      const progIssueId = progIssueResult.rows[0].id;
+      const progIssueId = requireFirstRow(progIssueResult.rows).id;
 
       // Create program association via document_associations
       await pool.query(
@@ -633,18 +634,20 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
     if (issue.rejection_reason) {
       properties.rejection_reason = issue.rejection_reason;
     }
-    const extIssueResult = await pool.query(
+    const extIssueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
        VALUES ($1, 'issue', $2, $3, $4, $5)
        RETURNING id`,
       [workspaceId, issue.title, JSON.stringify(properties), ticketNumber, userId]
     );
 
+    const extIssueId = requireFirstRow(extIssueResult.rows).id;
+
     // Create program association via document_associations
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
-      [extIssueResult.rows[0].id, programIds['SHIP']]
+      [extIssueId, programIds['SHIP']]
     );
   }
 
@@ -659,7 +662,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
   const projectIds: Record<string, string> = {};
   for (const project of projects) {
-    const projectResult = await pool.query(
+    const projectResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
        VALUES ($1, 'project', $2, $3, $4)
        RETURNING id`,
@@ -670,13 +673,14 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         userId,
       ]
     );
-    projectIds[project.programKey] = projectResult.rows[0].id;
+    const projectId = requireFirstRow(projectResult.rows).id;
+    projectIds[project.programKey] = projectId;
 
     // Create association to program via junction table
     await pool.query(
       `INSERT INTO document_associations (document_id, related_id, relationship_type)
        VALUES ($1, $2, 'program')`,
-      [projectResult.rows[0].id, programIds[project.programKey]]
+      [projectId, programIds[project.programKey]]
     );
   }
 
@@ -695,7 +699,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
     if (!sprintId || !projId) continue;
 
-    const issueResult = await pool.query(
+    const issueResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties, ticket_number, created_by)
        VALUES ($1, 'issue', $2, $3, $4, $5)
        RETURNING id`,
@@ -712,7 +716,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
         userId,
       ]
     );
-    const issueId = issueResult.rows[0].id;
+    const issueId = requireFirstRow(issueResult.rows).id;
 
     // Create associations for sprint, project, and program
     await pool.query(
@@ -731,7 +735,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 
   // Create sprint allocation documents (person assigned to project for a week)
   // The team/reviews endpoint queries sprints with assignee_ids
-  const allocationSprintResult = await pool.query(
+  const allocationSprintResult = await pool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, properties, created_by)
      VALUES ($1, 'sprint', $2, $3, $4)
      RETURNING id`,
@@ -748,7 +752,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       userId,
     ]
   );
-  const allocationSprintId = allocationSprintResult.rows[0].id;
+  const allocationSprintId = requireFirstRow(allocationSprintResult.rows).id;
 
   // Associate allocation sprint with program
   await pool.query(
@@ -766,13 +770,13 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
       { type: 'paragraph', content: [{ type: 'text', text: 'This is the welcome document with example content for testing.' }] },
     ],
   };
-  const parentDocResult = await pool.query(
+  const parentDocResult = await pool.query<IdRow>(
     `INSERT INTO documents (workspace_id, document_type, title, content, created_by)
      VALUES ($1, 'wiki', 'Welcome to Ship', $2, $3)
      RETURNING id`,
     [workspaceId, JSON.stringify(welcomeContent), userId]
   );
-  const parentDocId = parentDocResult.rows[0].id;
+  const parentDocId = requireFirstRow(parentDocResult.rows).id;
 
   // Create child documents to enable tree expand/collapse testing
   const childDocs = [

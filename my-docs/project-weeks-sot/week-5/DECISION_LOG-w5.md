@@ -757,3 +757,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** Production API route handlers under `api/src/routes/**` (excluding `*.test.ts`) must type every `pool.query` row projection and narrow persisted `documents.properties` JSONB at named boundaries — not inline dot-access on `Record<string, unknown>`. Shared helpers: `api/src/routes/route-query-rows.ts` (comment/standup/iteration row types + response mappers + `requireFirstRow` re-export), `api/src/utils/document-properties.ts` (read-only property flatteners for list/GET/bootstrap/restore). `pickBootstrapDocumentProperties` lives in `document-properties.ts` and is re-exported from `constants/bootstrap-document.ts`.
 
 **Consequence:** Production route `no-unsafe-assignment` + `no-unsafe-member-access` at zero (~389 cleared). When typing exposes an OpenAPI/runtime mismatch, fix the mapper or handler — do not eslint-disable. Tier 3 is E2E typed JSON; `max-lines` route splits remain a separate pass.
+
+## D094 - Tier 3 E2E Typed JSON + Seed SQL Rows
+
+**Date:** 2026-05-31
+
+**Decision:** E2E specs and fixtures must parse Playwright `APIResponse` JSON through `readJsonAs<T>` (`e2e/fixtures/typed-json.ts`) with assertion-minimal types in `e2e/fixtures/e2e-api-types.ts` — not raw `.json()` plus dot-access on `any`. Testcontainers seed SQL in `e2e/fixtures/isolated-env.ts` uses `e2e/fixtures/e2e-seed-rows.ts` (`IdRow`, `requireFirstRow`) for `pool.query` rows. Do not import web OpenAPI generated types into E2E; full wire validation stays in Tier 1 API route tests.
+
+**Consequence:** E2E `no-unsafe-assignment` + `no-unsafe-member-access` at zero (~487 cleared). Partial `readJsonAs` without shared types or mixed `.json()` calls does not count as migrated. Next: repo tail (`seed.ts`, services, collaboration) and optional ESLint error promotion on cleaned paths.

@@ -1,6 +1,16 @@
+/** E2E visual verification for plan/retro review request-changes and approve flows. */
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, login } from './fixtures/api-auth';
-
+import { readJsonAs } from './fixtures/typed-json';
+import type {
+  ApiDocument,
+  AuthMeResponse,
+  PersonDocument,
+  TeamReviewsResponse,
+  WeekSprintResponse,
+  WeeklyPlanDocument,
+  WeeklyRetroDocument,
+} from './fixtures/e2e-api-types';
 
 type ReviewArtifacts = {
   sprintId: string;
@@ -16,18 +26,22 @@ async function createReviewArtifacts(
 
   const meRes = await page.request.get(`${apiUrl}/api/auth/me`);
   expect(meRes.ok()).toBe(true);
-  const me = await meRes.json();
-  const userId = me.data.user.id as string;
+  const me = await readJsonAs<AuthMeResponse>(meRes);
+  const userId = me.data?.user?.id;
+  expect(userId, 'Authenticated user should have an id').toBeTruthy();
+  if (!userId) {
+    throw new Error('Authenticated user should have an id');
+  }
 
   const personRes = await page.request.get(`${apiUrl}/api/weeks/lookup-person?user_id=${userId}`);
   expect(personRes.ok()).toBe(true);
-  const person = await personRes.json();
-  const personId = person.id as string;
+  const person = await readJsonAs<PersonDocument>(personRes);
+  const personId = person.id;
 
   const reviewsRes = await page.request.get(`${apiUrl}/api/team/reviews?sprint_count=1`);
   expect(reviewsRes.ok()).toBe(true);
-  const reviewsData = await reviewsRes.json();
-  const currentWeekNumber = (reviewsData.currentSprintNumber || 1) as number;
+  const reviewsData = await readJsonAs<TeamReviewsResponse>(reviewsRes);
+  const currentWeekNumber = reviewsData.currentSprintNumber ?? 1;
 
   const programRes = await page.request.post(`${apiUrl}/api/programs`, {
     headers: { 'x-csrf-token': csrf },
@@ -37,7 +51,7 @@ async function createReviewArtifacts(
     },
   });
   expect(programRes.ok()).toBe(true);
-  const program = await programRes.json();
+  const program = await readJsonAs<ApiDocument>(programRes);
 
   const projectRes = await page.request.post(`${apiUrl}/api/projects`, {
     headers: { 'x-csrf-token': csrf },
@@ -48,7 +62,7 @@ async function createReviewArtifacts(
     },
   });
   expect(projectRes.ok()).toBe(true);
-  const project = await projectRes.json();
+  const project = await readJsonAs<ApiDocument>(projectRes);
 
   const sprintRes = await page.request.post(`${apiUrl}/api/documents`, {
     headers: { 'x-csrf-token': csrf },
@@ -65,22 +79,22 @@ async function createReviewArtifacts(
     },
   });
   expect(sprintRes.ok()).toBe(true);
-  const sprint = await sprintRes.json();
-  const sprintId = sprint.id as string;
+  const sprint = await readJsonAs<ApiDocument>(sprintRes);
+  const sprintId = sprint.id;
 
   const planRes = await page.request.post(`${apiUrl}/api/weekly-plans`, {
     headers: { 'x-csrf-token': csrf },
     data: { person_id: personId, project_id: project.id, week_number: currentWeekNumber },
   });
   expect(planRes.ok()).toBe(true);
-  const plan = await planRes.json();
+  const plan = await readJsonAs<WeeklyPlanDocument>(planRes);
 
   const retroRes = await page.request.post(`${apiUrl}/api/weekly-retros`, {
     headers: { 'x-csrf-token': csrf },
     data: { person_id: personId, project_id: project.id, week_number: currentWeekNumber },
   });
   expect(retroRes.ok()).toBe(true);
-  const retro = await retroRes.json();
+  const retro = await readJsonAs<WeeklyRetroDocument>(retroRes);
 
   const planContent = {
     type: 'doc',
@@ -136,7 +150,7 @@ async function createReviewArtifacts(
   });
   expect(patchRetroRes.ok()).toBe(true);
 
-  return { sprintId, planId: plan.id as string, retroId: retro.id as string };
+  return { sprintId, planId: plan.id, retroId: retro.id };
 }
 
 test.describe('Manager Reviews Visual Verification', () => {
@@ -230,7 +244,7 @@ test.describe('Manager Reviews Visual Verification', () => {
 
     const sprintResponse = await page.request.get(`${apiServer.url}/api/weeks/${sprintId}`);
     expect(sprintResponse.ok()).toBe(true);
-    const sprintData = await sprintResponse.json();
+    const sprintData = await readJsonAs<WeekSprintResponse>(sprintResponse);
     expect(sprintData.review_approval?.state).toBe('approved');
     expect(sprintData.review_approval?.comment).toBe(
       'Strong retrospective quality for a first full week after onboarding.'

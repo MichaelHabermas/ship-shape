@@ -131,3 +131,9 @@ ShipShape example (2026-05-31): four unused-vars and four template-expression wa
 Integration tests that read `res.body.foo` without a schema catch lint noise at best. Tests that call `expectOpenApiResponse` with the same Zod schema registered in OpenAPI catch contract drift: missing fields, wrong nullability, and bulk/list shape mismatches before production or codegen do.
 
 ShipShape example (2026-05-31): migrating `api/src/routes/*.test.ts` surfaced that POST/PATCH issues omitted `assignee_name` while GET included it, and bulk updates returned explicit `null` for optional list fields. Fixing mappers (`extractIssueFromRow`, `mapIssueListItem` in bulk) aligned runtime JSON with the documented contract and cleared ~700 route-test `no-unsafe-*` warnings.
+
+## 10. E2E Needs Typed Boundaries Too — `readJsonAs` Alone Is Not Enough
+
+Playwright specs that call `readJsonAs` but still define loose inline types, or mix in raw `.json()`, keep most `no-unsafe-*` warnings. The fix is the same three-layer pattern as API routes: one parse helper (`typed-json.ts`), shared assertion-minimal types (`e2e-api-types.ts`), and typed SQL rows for Testcontainers seed code (`e2e-seed-rows.ts` in `isolated-env.ts`).
+
+ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `weekly-accountability.spec.ts` had both `readJsonAs` and 27 raw `.json()` calls; migrating every parse site and deduplicating `PersonDocument` / weekly-plan types dropped it from 95 warnings to zero.

@@ -1,10 +1,13 @@
+/** E2E tests for Request Changes API endpoints and authorization. */
 import { test, expect } from './fixtures/isolated-env';
 import { loginViaApi, loginMemberViaApi } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
-
-interface WeeksResponse {
-  weeks: Array<{ id: string }>;
-}
+import type {
+  RequestChangesResponse,
+  SimpleErrorBody,
+  WeekSprintResponse,
+  WeeksWithIdListResponse,
+} from './fixtures/e2e-api-types';
 
 /**
  * E2E tests for Request Changes API endpoints.
@@ -20,7 +23,7 @@ interface WeeksResponse {
 async function getSprintId(page: import('@playwright/test').Page, apiUrl: string): Promise<string> {
   const response = await page.request.get(`${apiUrl}/api/weeks`);
   expect(response.ok(), 'GET /api/weeks should succeed').toBe(true);
-  const data = await readJsonAs<WeeksResponse>(response);
+  const data = await readJsonAs<WeeksWithIdListResponse>(response);
   expect(data.weeks.length, 'Need at least one sprint for request-changes tests').toBeGreaterThan(0);
   return data.weeks[0].id;
 }
@@ -40,10 +43,10 @@ test.describe('Request Plan Changes API', () => {
 
     expect(response.ok(), 'Request plan changes should succeed for admin').toBe(true);
 
-    const result = await response.json();
+    const result = await readJsonAs<RequestChangesResponse>(response);
     expect(result.success, 'Response should indicate success').toBe(true);
-    expect(result.approval.state, 'Plan approval state should be changes_requested').toBe('changes_requested');
-    expect(result.approval.feedback, 'Feedback should be stored').toBe(
+    expect(result.approval?.state, 'Plan approval state should be changes_requested').toBe('changes_requested');
+    expect(result.approval?.feedback, 'Feedback should be stored').toBe(
       'Please add more specific success criteria for the sprint goals.'
     );
   });
@@ -62,7 +65,7 @@ test.describe('Request Plan Changes API', () => {
     );
 
     expect(response.status(), 'Should return 400 when feedback is missing').toBe(400);
-    const result = await response.json();
+    const result = await readJsonAs<SimpleErrorBody>(response);
     expect(result.error, 'Error message should mention feedback').toContain('Feedback');
   });
 
@@ -95,7 +98,7 @@ test.describe('Request Plan Changes API', () => {
     );
 
     expect(response.status(), 'Should return 400 when feedback exceeds 2000 chars').toBe(400);
-    const result = await response.json();
+    const result = await readJsonAs<SimpleErrorBody>(response);
     expect(result.error, 'Error should mention character limit').toContain('2000');
   });
 
@@ -131,10 +134,10 @@ test.describe('Request Plan Changes API', () => {
     // Verify the sprint now has changes_requested state by fetching it
     const sprintResponse = await page.request.get(`${apiServer.url}/api/weeks/${sprintId}`);
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<WeekSprintResponse>(sprintResponse);
     expect(sprint.plan_approval, 'Sprint should have plan_approval after changes requested').toBeTruthy();
-    expect(sprint.plan_approval.state, 'Plan approval state should be changes_requested').toBe('changes_requested');
-    expect(sprint.plan_approval.feedback, 'Feedback should be persisted').toBe('Need more detail on deliverables');
+    expect(sprint.plan_approval?.state, 'Plan approval state should be changes_requested').toBe('changes_requested');
+    expect(sprint.plan_approval?.feedback, 'Feedback should be persisted').toBe('Need more detail on deliverables');
   });
 });
 
@@ -153,10 +156,10 @@ test.describe('Request Retro Changes API', () => {
 
     expect(response.ok(), 'Request retro changes should succeed for admin').toBe(true);
 
-    const result = await response.json();
+    const result = await readJsonAs<RequestChangesResponse>(response);
     expect(result.success, 'Response should indicate success').toBe(true);
-    expect(result.approval.state, 'Review approval state should be changes_requested').toBe('changes_requested');
-    expect(result.approval.feedback, 'Feedback should be stored').toBe(
+    expect(result.approval?.state, 'Review approval state should be changes_requested').toBe('changes_requested');
+    expect(result.approval?.feedback, 'Feedback should be stored').toBe(
       'Retro lacks evidence for completed items. Please add specific outcomes.'
     );
   });
@@ -209,10 +212,10 @@ test.describe('Request Retro Changes API', () => {
     // Verify the sprint now has changes_requested state on review_approval
     const sprintResponse = await page.request.get(`${apiServer.url}/api/weeks/${sprintId}`);
     expect(sprintResponse.ok()).toBe(true);
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<WeekSprintResponse>(sprintResponse);
     expect(sprint.review_approval, 'Sprint should have review_approval after changes requested').toBeTruthy();
-    expect(sprint.review_approval.state, 'Review approval state should be changes_requested').toBe('changes_requested');
-    expect(sprint.review_approval.feedback, 'Feedback should be persisted').toBe('Missing outcomes for 3 planned items');
+    expect(sprint.review_approval?.state, 'Review approval state should be changes_requested').toBe('changes_requested');
+    expect(sprint.review_approval?.feedback, 'Feedback should be persisted').toBe('Missing outcomes for 3 planned items');
   });
 });
 

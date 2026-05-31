@@ -1,30 +1,17 @@
+// E2E: Project Weeks tab grid, weekly plan navigation, and allocation grid API.
 import { test, expect } from './fixtures/isolated-env';
+import type { Page } from '@playwright/test';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
-
-interface PersonDocument {
-  id: string;
-  properties?: { user_id?: string };
-}
-
-interface ApiDocument {
-  id: string;
-}
-
-/**
- * E2E tests for Project Weeks tab feature.
- *
- * Tests the complete flow:
- * 1. Create allocation (person assigned to project for a week)
- * 2. Navigate to project's Weeks tab and verify allocation appears
- * 3. Click a cell to open weekly plan document
- * 4. Verify Properties sidebar shows correct context (project and person names)
- * 5. Verify navigation back to project works
- */
+import type {
+  ApiDocument,
+  PersonDocument,
+  ProjectAllocationGridResponse,
+} from './fixtures/e2e-api-types';
 
 // Helper to get person document ID for the current user
 async function getPersonIdForUser(
-  page: import('@playwright/test').Page,
+  page: Page,
   apiUrl: string,
   userId: string
 ): Promise<string> {
@@ -43,7 +30,7 @@ async function getPersonIdForUser(
 
 // Helper to create a project for testing
 async function createTestProject(
-  page: import('@playwright/test').Page,
+  page: Page,
   apiUrl: string,
   csrfToken: string,
   title: string
@@ -69,7 +56,7 @@ async function createTestProject(
 
 // Helper to create a sprint with allocation
 async function createAllocation(
-  page: import('@playwright/test').Page,
+  page: Page,
   apiUrl: string,
   csrfToken: string,
   projectId: string,
@@ -226,7 +213,7 @@ test.describe('Project Allocation Grid API', () => {
     );
     expect(response.ok()).toBe(true);
 
-    const data = await response.json();
+    const data = await readJsonAs<ProjectAllocationGridResponse>(response);
     expect(data.projectId).toBe(projectId);
     expect(data.people).toHaveLength(1);
     expect(data.people[0].id).toBe(personId);
@@ -256,7 +243,7 @@ test.describe('Project Allocation Grid API', () => {
     );
     expect(response.ok()).toBe(true);
 
-    const data = await response.json();
+    const data = await readJsonAs<ProjectAllocationGridResponse>(response);
     expect(data.people[0].weeks).toHaveProperty('20');
     expect(data.people[0].weeks).toHaveProperty('21');
     expect(data.people[0].weeks).toHaveProperty('22');

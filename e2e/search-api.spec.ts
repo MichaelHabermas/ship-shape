@@ -1,5 +1,8 @@
+/** E2E tests for mention search API authentication and result shapes. */
 import { test, expect } from './fixtures/isolated-env';
 import { loginAndGetSessionCookieHeader } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { MentionSearchFullResponse, SimpleErrorBody } from './fixtures/e2e-api-types';
 
 test.describe('Search API', () => {
   test('requires authentication', async ({ page, apiServer }) => {
@@ -7,7 +10,7 @@ test.describe('Search API', () => {
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=test`);
     expect(response.status()).toBe(401);
 
-    const data = await response.json();
+    const data = await readJsonAs<SimpleErrorBody>(response);
     expect(data.error).toBeTruthy();
   });
 
@@ -19,7 +22,7 @@ test.describe('Search API', () => {
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=admin`);
     expect(response.ok()).toBeTruthy();
 
-    const data = await response.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(response);
     expect(data).toHaveProperty('people');
     expect(data).toHaveProperty('documents');
     expect(Array.isArray(data.people)).toBe(true);
@@ -34,7 +37,7 @@ test.describe('Search API', () => {
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=`);
     expect(response.ok()).toBeTruthy();
 
-    const data = await response.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(response);
     expect(data).toHaveProperty('documents');
     expect(Array.isArray(data.documents)).toBe(true);
 
@@ -56,7 +59,7 @@ test.describe('Search API', () => {
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=`);
     expect(response.ok()).toBeTruthy();
 
-    const data = await response.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(response);
 
     // People should be limited to 5
     expect(data.people.length).toBeLessThanOrEqual(5);

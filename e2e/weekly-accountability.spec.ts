@@ -1,33 +1,22 @@
+// E2E: Weekly accountability plans, retros, allocation grid, and content history (API).
 import { test, expect } from './fixtures/isolated-env';
+import type { Page } from '@playwright/test';
 import { loginAsAdminWithUser } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
-import type { ProjectAllocationGridResponse } from './fixtures/e2e-api-types';
-
-interface PersonDocument {
-  id: string;
-  properties?: { user_id?: string };
-}
-
-interface ApiDocument {
-  id: string;
-}
-
-/**
- * E2E tests for Weekly Accountability Documents feature.
- *
- * Tests the per-person weekly plan and retro document system:
- * 1. API endpoints for creating/querying weekly plans and retros
- * 2. Idempotent document creation (same inputs return same document)
- * 3. Project allocation grid API for the Weeks tab
- * 4. Content version history for accountability auditing
- *
- * These tests use API calls directly to test the inference logic
- * without UI flakiness.
- */
+import type {
+  ApiDocument,
+  ApiId,
+  ContentHistoryResponse,
+  PersonDocument,
+  ProjectAllocationGridResponse,
+  SimpleErrorBody,
+  WeeklyPlanDocument,
+  WeeklyRetroDocument,
+} from './fixtures/e2e-api-types';
 
 // Helper to get person document ID for the current user
 async function getPersonIdForUser(
-  page: import('@playwright/test').Page,
+  page: Page,
   apiUrl: string,
   userId: string
 ): Promise<string> {
@@ -46,7 +35,7 @@ async function getPersonIdForUser(
 
 // Helper to create a project for testing
 async function createTestProject(
-  page: import('@playwright/test').Page,
+  page: Page,
   apiUrl: string,
   csrfToken: string,
   title: string
@@ -87,7 +76,7 @@ test.describe('Weekly Plan API', () => {
     });
 
     expect(response.status()).toBe(201);
-    const plan = await response.json();
+    const plan = await readJsonAs<WeeklyPlanDocument>(response);
 
     expect(plan.id).toBeTruthy();
     expect(plan.document_type).toBe('weekly_plan');
@@ -116,7 +105,7 @@ test.describe('Weekly Plan API', () => {
       data: planData,
     });
     expect(response1.status()).toBe(201);
-    const plan1 = await response1.json();
+    const plan1 = await readJsonAs<WeeklyPlanDocument>(response1);
 
     // Second creation with same inputs - should return 200 with same ID
     const response2 = await page.request.post(`${apiServer.url}/api/weekly-plans`, {
@@ -124,7 +113,7 @@ test.describe('Weekly Plan API', () => {
       data: planData,
     });
     expect(response2.status()).toBe(200);
-    const plan2 = await response2.json();
+    const plan2 = await readJsonAs<WeeklyPlanDocument>(response2);
 
     // Same document should be returned
     expect(plan2.id).toBe(plan1.id);
@@ -153,7 +142,7 @@ test.describe('Weekly Plan API', () => {
       `${apiServer.url}/api/weekly-plans?person_id=${personId}&project_id=${projectId}`
     );
     expect(response.ok()).toBe(true);
-    const plans = await response.json();
+    const plans = await readJsonAs<WeeklyPlanDocument[]>(response);
 
     expect(plans.length).toBeGreaterThanOrEqual(3);
     for (const plan of plans) {
@@ -177,12 +166,12 @@ test.describe('Weekly Plan API', () => {
         week_number: 6,
       },
     });
-    const created = await createResponse.json();
+    const created = await readJsonAs<WeeklyPlanDocument>(createResponse);
 
     // Get by ID
     const getResponse = await page.request.get(`${apiServer.url}/api/weekly-plans/${created.id}`);
     expect(getResponse.ok()).toBe(true);
-    const plan = await getResponse.json();
+    const plan = await readJsonAs<WeeklyPlanDocument>(getResponse);
 
     expect(plan.id).toBe(created.id);
     expect(plan.properties.week_number).toBe(6);
@@ -202,7 +191,7 @@ test.describe('Weekly Plan API', () => {
     });
 
     expect(response.status()).toBe(404);
-    const error = await response.json();
+    const error = await readJsonAs<SimpleErrorBody>(response);
     expect(error.error).toBe('Person not found');
   });
 
@@ -220,7 +209,7 @@ test.describe('Weekly Plan API', () => {
     });
 
     expect(response.status()).toBe(404);
-    const error = await response.json();
+    const error = await readJsonAs<SimpleErrorBody>(response);
     expect(error.error).toBe('Project not found');
   });
 });
@@ -242,7 +231,7 @@ test.describe('Weekly Retro API', () => {
     });
 
     expect(response.status()).toBe(201);
-    const retro = await response.json();
+    const retro = await readJsonAs<WeeklyRetroDocument>(response);
 
     expect(retro.id).toBeTruthy();
     expect(retro.document_type).toBe('weekly_retro');
@@ -271,7 +260,7 @@ test.describe('Weekly Retro API', () => {
       data: retroData,
     });
     expect(response1.status()).toBe(201);
-    const retro1 = await response1.json();
+    const retro1 = await readJsonAs<WeeklyRetroDocument>(response1);
 
     // Second creation with same inputs - should return 200 with same ID
     const response2 = await page.request.post(`${apiServer.url}/api/weekly-retros`, {
@@ -279,7 +268,7 @@ test.describe('Weekly Retro API', () => {
       data: retroData,
     });
     expect(response2.status()).toBe(200);
-    const retro2 = await response2.json();
+    const retro2 = await readJsonAs<WeeklyRetroDocument>(response2);
 
     // Same document should be returned
     expect(retro2.id).toBe(retro1.id);
@@ -308,7 +297,7 @@ test.describe('Weekly Retro API', () => {
       `${apiServer.url}/api/weekly-retros?person_id=${personId}&project_id=${projectId}`
     );
     expect(response.ok()).toBe(true);
-    const retros = await response.json();
+    const retros = await readJsonAs<WeeklyRetroDocument[]>(response);
 
     expect(retros.length).toBeGreaterThanOrEqual(3);
     for (const retro of retros) {
@@ -332,12 +321,12 @@ test.describe('Weekly Retro API', () => {
         week_number: 6,
       },
     });
-    const created = await createResponse.json();
+    const created = await readJsonAs<WeeklyRetroDocument>(createResponse);
 
     // Get by ID
     const getResponse = await page.request.get(`${apiServer.url}/api/weekly-retros/${created.id}`);
     expect(getResponse.ok()).toBe(true);
-    const retro = await getResponse.json();
+    const retro = await readJsonAs<WeeklyRetroDocument>(getResponse);
 
     expect(retro.id).toBe(created.id);
     expect(retro.properties.week_number).toBe(6);
@@ -358,7 +347,7 @@ test.describe('Project Allocation Grid API', () => {
     );
 
     expect(response.ok(), `Expected 200 OK but got ${response.status()}`).toBe(true);
-    const grid = await response.json();
+    const grid = await readJsonAs<ProjectAllocationGridResponse>(response);
 
     // Verify structure
     expect(grid.projectId).toBe(projectId);
@@ -393,7 +382,7 @@ test.describe('Project Allocation Grid API', () => {
         document_type: 'program',
       },
     });
-    const program = await programResponse.json();
+    const program = await readJsonAs<ApiId>(programResponse);
 
     // Create a sprint for the current week
     const sprintResponse = await page.request.post(`${apiServer.url}/api/weeks`, {
@@ -405,7 +394,7 @@ test.describe('Project Allocation Grid API', () => {
         owner_id: userId,
       },
     });
-    const sprint = await sprintResponse.json();
+    const sprint = await readJsonAs<ApiId>(sprintResponse);
 
     // Set sprint properties for project assignment and person allocation
     // The allocation grid API queries properties.project_id and properties.assignee_ids
@@ -444,7 +433,7 @@ test.describe('Project Allocation Grid API', () => {
         week_number: 1,
       },
     });
-    const plan = await planResponse.json();
+    const plan = await readJsonAs<WeeklyPlanDocument>(planResponse);
 
     // Get allocation grid
     const gridResponse = await page.request.get(
@@ -477,7 +466,7 @@ test.describe('Project Allocation Grid API', () => {
     );
 
     expect(response.status()).toBe(404);
-    const error = await response.json();
+    const error = await readJsonAs<SimpleErrorBody>(response);
     expect(error.error).toBe('Project not found');
   });
 });
@@ -500,14 +489,14 @@ test.describe('Content Version History API', () => {
         week_number: 1,
       },
     });
-    const plan = await createResponse.json();
+    const plan = await readJsonAs<WeeklyPlanDocument>(createResponse);
 
     // Get history - should be empty for new document
     const historyResponse = await page.request.get(
       `${apiServer.url}/api/weekly-plans/${plan.id}/history`
     );
     expect(historyResponse.ok()).toBe(true);
-    const history = await historyResponse.json();
+    const history = await readJsonAs<ContentHistoryResponse>(historyResponse);
 
     expect(Array.isArray(history)).toBe(true);
     expect(history.length).toBe(0);
@@ -530,14 +519,14 @@ test.describe('Content Version History API', () => {
         week_number: 1,
       },
     });
-    const retro = await createResponse.json();
+    const retro = await readJsonAs<WeeklyRetroDocument>(createResponse);
 
     // Get history - should be empty for new document
     const historyResponse = await page.request.get(
       `${apiServer.url}/api/weekly-retros/${retro.id}/history`
     );
     expect(historyResponse.ok()).toBe(true);
-    const history = await historyResponse.json();
+    const history = await readJsonAs<ContentHistoryResponse>(historyResponse);
 
     expect(Array.isArray(history)).toBe(true);
     expect(history.length).toBe(0);
@@ -554,7 +543,7 @@ test.describe('Content Version History API', () => {
     );
 
     expect(response.status()).toBe(404);
-    const error = await response.json();
+    const error = await readJsonAs<SimpleErrorBody>(response);
     expect(error.error).toBe('Weekly plan not found');
   });
 
@@ -569,7 +558,7 @@ test.describe('Content Version History API', () => {
     );
 
     expect(response.status()).toBe(404);
-    const error = await response.json();
+    const error = await readJsonAs<SimpleErrorBody>(response);
     expect(error.error).toBe('Weekly retro not found');
   });
 });
@@ -589,7 +578,7 @@ test.describe('Weekly Plan/Retro Document Navigation', () => {
         week_number: 1,
       },
     });
-    const plan = await createResponse.json();
+    const plan = await readJsonAs<WeeklyPlanDocument>(createResponse);
 
     // Navigate to the document
     await page.goto(`/documents/${plan.id}`);
@@ -615,7 +604,7 @@ test.describe('Weekly Plan/Retro Document Navigation', () => {
         week_number: 1,
       },
     });
-    const retro = await createResponse.json();
+    const retro = await readJsonAs<WeeklyRetroDocument>(createResponse);
 
     // Navigate to the document
     await page.goto(`/documents/${retro.id}`);

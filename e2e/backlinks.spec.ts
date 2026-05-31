@@ -1,3 +1,4 @@
+/** E2E backlinks panel display, creation, removal, and navigation. */
 import { test, expect } from './fixtures/isolated-env'
 import { triggerMentionPopup } from './fixtures/test-helpers'
 import { login, createWikiDoc, setDocumentTitle } from './fixtures/app'
@@ -125,8 +126,9 @@ test.describe('Backlinks', () => {
     await page.waitForResponse(
       resp => resp.url().includes('/links') && resp.request().method() === 'POST',
       { timeout: 5000 }
-    ).catch((err) => {
-      console.log('No /links POST detected after mention removal:', err.message)
+    ).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err)
+      console.log('No /links POST detected after mention removal:', message)
     })
 
     // Extra wait for sync to propagate

@@ -1,20 +1,13 @@
-/**
- * Program Mode Sprint UX - E2E Test Specifications
- *
- * These tests verify the Sprint UX improvements for Program Mode.
- * Run: pnpm test:e2e e2e/program-mode-sprint-ux.spec.ts
- *
- * Test Organization:
- * - Phase 1: Data Model & Status Computation (via API)
- * - Phase 2: Sprints Tab UI (two-part layout)
- * - Phase 3: Sprint Creation UX (click empty window)
- * - Phase 4: Issues Tab Filtering
- */
-
+// E2E: Program mode Weeks tab UX (timeline, creation, issues filtering).
 import { test, expect, Page, type APIRequestContext } from './fixtures/isolated-env'
 import { login } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
-import type { WeeksListResponse } from './fixtures/e2e-api-types';
+import type {
+  CsrfTokenResponse,
+  ProgramSprintsResponse,
+  TeamProgram,
+  WeekResponse,
+} from './fixtures/e2e-api-types';
 
 
 // Make tests run serially to prevent race conditions with sprint creation
@@ -32,21 +25,21 @@ async function cleanupExtraSprints(request: APIRequestContext) {
 
   if (loginResponse.ok()) {
     // Get CSRF token for protected routes
-    const csrfResponse = await request.get('/api/auth/csrf')
+    const csrfResponse = await request.get('/api/csrf-token')
     let csrfToken = ''
     if (csrfResponse.ok()) {
-      const csrfData = await csrfResponse.json()
-      csrfToken = csrfData.csrfToken
+      const csrfData = await readJsonAs<CsrfTokenResponse>(csrfResponse)
+      csrfToken = csrfData.token
     }
 
     const sprintsResponse = await request.get('/api/programs')
     if (sprintsResponse.ok()) {
-      const programs = await sprintsResponse.json()
+      const programs = await readJsonAs<TeamProgram[]>(sprintsResponse)
       for (const program of programs) {
         const programSprintsResponse = await request.get(`/api/programs/${program.id}/sprints`)
         if (programSprintsResponse.ok()) {
-          const data = await programSprintsResponse.json()
-          for (const sprint of data.weeks || []) {
+          const data = await readJsonAs<ProgramSprintsResponse>(programSprintsResponse)
+          for (const sprint of data.weeks) {
             if (sprint.sprint_number > 10) {
               await request.delete(`/api/weeks/${sprint.id}`, {
                 headers: { 'X-CSRF-Token': csrfToken }
@@ -107,7 +100,7 @@ test.describe('Phase 1: Data Model & Status Computation', () => {
       clickSprintsTab(page)
     ])
 
-    const data = await response.json()
+    const data = await readJsonAs<ProgramSprintsResponse>(response)
     expect(data.weeks).toBeDefined()
     expect(data.weeks.length).toBeGreaterThan(0)
     expect(data.weeks[0].sprint_number).toBeDefined()
@@ -122,10 +115,10 @@ test.describe('Phase 1: Data Model & Status Computation', () => {
       clickSprintsTab(page)
     ])
 
-    const data = await response.json()
+    const data = await readJsonAs<ProgramSprintsResponse>(response)
     expect(data.weeks[0].owner).toBeDefined()
-    expect(data.weeks[0].owner.id).toBeDefined()
-    expect(data.weeks[0].owner.name).toBeDefined()
+    expect(data.weeks[0].owner?.id).toBeDefined()
+    expect(data.weeks[0].owner?.name).toBeDefined()
   })
 
   test('API returns workspace_sprint_start_date for computing dates', async ({ page }) => {
@@ -136,7 +129,7 @@ test.describe('Phase 1: Data Model & Status Computation', () => {
       clickSprintsTab(page)
     ])
 
-    const data = await response.json()
+    const data = await readJsonAs<ProgramSprintsResponse>(response)
     expect(data.workspace_sprint_start_date).toBeDefined()
   })
 
@@ -148,7 +141,7 @@ test.describe('Phase 1: Data Model & Status Computation', () => {
       clickSprintsTab(page)
     ])
 
-    const data = await response.json()
+    const data = await readJsonAs<ProgramSprintsResponse>(response)
     // Sprint status should be computed client-side, not returned from API
     const sprint = data.weeks[0]
     expect(sprint.sprint_status).toBeUndefined()
@@ -164,7 +157,7 @@ test.describe('Phase 1: Data Model & Status Computation', () => {
       clickSprintsTab(page)
     ])
 
-    const data = await readJsonAs<WeeksListResponse>(response)
+    const data = await readJsonAs<ProgramSprintsResponse>(response)
     const sprintNumbers = data.weeks.map((s) => s.sprint_number)
 
     // Should have multiple sprints with different sprint_numbers
@@ -1186,13 +1179,13 @@ test.describe('Phase 3 Continued: Past Windows & Validation', () => {
           modal.getByRole('button', { name: /Create & Open/ }).click()
         ])
 
-        const data = await response.json()
+        const data = await readJsonAs<WeekResponse>(response)
 
         // Verify owner is set in the response (API returns owner object with id, name, email)
         expect(data.owner).toBeDefined()
-        expect(data.owner.id).toBeDefined()
-        expect(typeof data.owner.id).toBe('string')
-        expect(data.owner.id.length).toBeGreaterThan(0)
+        expect(data.owner?.id).toBeDefined()
+        expect(typeof data.owner?.id).toBe('string')
+        expect((data.owner?.id ?? '').length).toBeGreaterThan(0)
       }
     }
     // Test passes if feature not implemented

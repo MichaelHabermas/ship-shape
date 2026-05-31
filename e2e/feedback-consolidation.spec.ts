@@ -1,7 +1,9 @@
+// E2E tests for feedback consolidation into the Issues system (triage, source badges, accept/reject).
+
 import { test, expect } from './fixtures/isolated-env';
 import { getCsrfToken, login } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
-import type { IssueListItem } from './fixtures/e2e-api-types';
+import type { IssueDetail, IssueListItem } from './fixtures/e2e-api-types';
 
 
 // Force serial execution — tests in this file mutate shared state (accept/reject triage issues)
@@ -320,7 +322,7 @@ test.describe('API Changes', () => {
     const response = await page.request.get(`${apiServer.url}/api/issues?state=triage`);
     expect(response.ok()).toBeTruthy();
 
-    const issues = await response.json();
+    const issues = await readJsonAs<IssueDetail[]>(response);
     expect(Array.isArray(issues)).toBeTruthy();
     expect(issues.length).toBeGreaterThan(0);
 
@@ -336,7 +338,7 @@ test.describe('API Changes', () => {
     const response = await page.request.get(`${apiServer.url}/api/issues?source=external`);
     expect(response.ok()).toBeTruthy();
 
-    const issues = await response.json();
+    const issues = await readJsonAs<IssueDetail[]>(response);
     expect(Array.isArray(issues)).toBeTruthy();
     expect(issues.length).toBeGreaterThan(0);
 
@@ -361,7 +363,7 @@ test.describe('API Changes', () => {
     });
     expect(response.ok()).toBeTruthy();
 
-    const created = await response.json();
+    const created = await readJsonAs<IssueDetail>(response);
     expect(created.state).toBe('triage');
     expect(created.source).toBe('external');
   });
@@ -374,7 +376,7 @@ test.describe('API Changes', () => {
 
     // First find a triage issue
     const listResponse = await page.request.get(`${apiServer.url}/api/issues?state=triage`);
-    const triageIssues = await listResponse.json();
+    const triageIssues = await readJsonAs<IssueDetail[]>(listResponse);
     expect(triageIssues.length).toBeGreaterThan(0);
 
     const issueId = triageIssues[0].id;
@@ -385,7 +387,7 @@ test.describe('API Changes', () => {
     });
     expect(acceptResponse.ok()).toBeTruthy();
 
-    const updated = await acceptResponse.json();
+    const updated = await readJsonAs<IssueDetail>(acceptResponse);
     expect(updated.state).toBe('backlog');
   });
 
@@ -406,7 +408,7 @@ test.describe('API Changes', () => {
         program_id: programId,
       },
     });
-    const created = await createResponse.json();
+    const created = await readJsonAs<IssueDetail>(createResponse);
     const issueId = created.id;
 
     // Reject it with CSRF token
@@ -418,7 +420,7 @@ test.describe('API Changes', () => {
     });
     expect(rejectResponse.ok()).toBeTruthy();
 
-    const updated = await rejectResponse.json();
+    const updated = await readJsonAs<IssueDetail>(rejectResponse);
     expect(updated.state).toBe('cancelled');
     expect(updated.rejection_reason).toBe('Test rejection reason');
   });

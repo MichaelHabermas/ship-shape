@@ -1,4 +1,6 @@
+/** E2E tests that /my-week refetches plan and retro edits after navigation. */
 import { test, expect } from './fixtures/isolated-env'
+import { readJsonAs } from './fixtures/typed-json'
 import type { Page } from '@playwright/test'
 
 /**
@@ -19,7 +21,7 @@ async function waitForDocumentContentInApi(page: Page, text: string) {
   await expect.poll(async () => {
     const response = await page.request.get(`/api/documents/${docId}/content`)
     if (!response.ok()) return false
-    const body = await response.json()
+    const body = await readJsonAs<unknown>(response)
     return JSON.stringify(body).includes(text)
   }, {
     timeout: 30000,
@@ -35,7 +37,7 @@ async function navigateToDashboardAndWaitForMyWeek(page: Page, expectedText: str
   await expect.poll(async () => {
     const response = await page.request.get('/api/dashboard/my-week')
     if (!response.ok()) return false
-    const body = await response.json()
+    const body = await readJsonAs<unknown>(response)
     return JSON.stringify(body).includes(expectedText)
   }, {
     timeout: 30000,

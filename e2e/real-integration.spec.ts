@@ -1,7 +1,14 @@
+// E2E tests for real integration verification (mentions, API health, document editor).
+
 import { test, expect, Page } from './fixtures/isolated-env';
 import { login } from './fixtures/api-auth';
 import { readJsonAs } from './fixtures/typed-json';
-import type { MentionSearchResponse } from './fixtures/e2e-api-types';
+import type {
+  CsrfTokenResponse,
+  FileUploadInitResponse,
+  MentionSearchFullResponse,
+  MentionSearchResponse,
+} from './fixtures/e2e-api-types';
 
 
 /**
@@ -41,7 +48,7 @@ test.describe('Real Integration - @Mentions', () => {
     const response = await page.request.get(`${apiServer.url}/api/search/mentions?q=`);
     expect(response.ok()).toBe(true);
 
-    const data = await response.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(response);
 
     // REAL VERIFICATION: Should have proper structure
     expect(data).toHaveProperty('people');
@@ -102,7 +109,7 @@ test.describe('Real Integration - API Health', () => {
     // REAL VERIFICATION: Should return 200, not 500
     expect(response.status()).toBe(200);
 
-    const data = await response.json();
+    const data = await readJsonAs<MentionSearchFullResponse>(response);
     expect(data).toHaveProperty('people');
     expect(data).toHaveProperty('documents');
   });
@@ -114,7 +121,7 @@ test.describe('Real Integration - API Health', () => {
     // Get CSRF token
     const csrfResponse = await page.request.get(`${apiServer.url}/api/csrf-token`);
     expect(csrfResponse.ok()).toBe(true);
-    const { token } = await csrfResponse.json();
+    const { token } = await readJsonAs<CsrfTokenResponse>(csrfResponse);
 
     // Test upload endpoint (creates file record and returns upload URL)
     const response = await page.request.post(`${apiServer.url}/api/files/upload`, {
@@ -129,7 +136,7 @@ test.describe('Real Integration - API Health', () => {
     // REAL VERIFICATION: Should succeed
     expect(response.status()).toBe(200);
 
-    const data = await response.json();
+    const data = await readJsonAs<FileUploadInitResponse>(response);
     expect(data).toHaveProperty('fileId');
     expect(data).toHaveProperty('uploadUrl');
   });
