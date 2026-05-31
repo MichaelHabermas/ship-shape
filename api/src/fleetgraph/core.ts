@@ -127,7 +127,7 @@ export async function runFleetGraph(
   input: FleetGraphInput,
   options: FleetGraphCoreOptions = {}
 ): Promise<FleetGraphResult> {
-  if (shouldAutoCaptureTrace(options)) {
+  if (shouldAutoCaptureTrace(input, options)) {
     try {
       const capture = await withFleetGraphTrace({
         name: `FleetGraph ${input.mode} ${input.trigger.type}`,
@@ -176,10 +176,18 @@ function traceSafeRunInputs(input: FleetGraphInput): Record<string, unknown> {
   };
 }
 
-function shouldAutoCaptureTrace(options: FleetGraphCoreOptions): boolean {
+export function shouldAutoCaptureTrace(input: FleetGraphInput, options: FleetGraphCoreOptions): boolean {
   return !options.externalTrace
     && process.env.NODE_ENV !== 'test'
+    && !isLowSignalAutoTrace(input, options)
     && fleetGraphTracingEnabled();
+}
+
+function isLowSignalAutoTrace(input: FleetGraphInput, options: FleetGraphCoreOptions): boolean {
+  if (options.persistence && !options.db) return true;
+  return input.mode === 'proactive'
+    && input.trigger.type === 'quiet_exit'
+    && (input.triggerReason ?? input.trigger.type) === 'scheduled-worker';
 }
 
 function observabilityErrorMetadata(options: FleetGraphCoreOptions): JsonRecord {

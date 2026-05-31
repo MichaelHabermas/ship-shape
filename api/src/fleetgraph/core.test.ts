@@ -3,7 +3,7 @@ import type { FleetGraphEvidenceItem } from '@ship/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { pool } from '../db/client.js';
 import { pgResult } from '../test/pg-result.js';
-import { runFleetGraph, type FleetGraphPersistencePort } from './core.js';
+import { runFleetGraph, shouldAutoCaptureTrace, type FleetGraphPersistencePort } from './core.js';
 import { evidenceFromDetectorCandidate, filterEvidenceForActor, visibleOutputForFinding } from './evidence.js';
 import {
   blockedImportantIssueDedupeKey,
@@ -253,6 +253,89 @@ function restrictedSprintDb() {
 }
 
 describe('FleetGraph shared core', () => {
+  it('does not auto-trace scheduled worker quiet exits', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+
+    process.env.NODE_ENV = 'production';
+    process.env.LANGSMITH_TRACING = 'true';
+
+    try {
+      expect(shouldAutoCaptureTrace({
+        workspaceId,
+        mode: 'proactive',
+        trigger: { type: 'quiet_exit', quietExits: [] },
+        triggerReason: 'scheduled-worker',
+      }, {})).toBe(false);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousLangSmithTracing === undefined) {
+        delete process.env.LANGSMITH_TRACING;
+      } else {
+        process.env.LANGSMITH_TRACING = previousLangSmithTracing;
+      }
+    }
+  });
+
+  it('keeps auto-tracing enabled for useful production FleetGraph runs', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+
+    process.env.NODE_ENV = 'production';
+    process.env.LANGSMITH_TRACING = 'true';
+
+    try {
+      expect(shouldAutoCaptureTrace({
+        workspaceId,
+        mode: 'proactive',
+        trigger: {
+          type: 'detector_decision',
+          detectorDecision: { decision: 'create_finding', candidate, existingFindingId: null },
+        },
+        triggerReason: 'scheduled-worker',
+      }, {})).toBe(true);
+      expect(shouldAutoCaptureTrace({
+        workspaceId,
+        mode: 'proactive',
+        trigger: { type: 'quiet_exit', quietExits: [] },
+        triggerReason: 'trace_smoke',
+      }, {})).toBe(true);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousLangSmithTracing === undefined) {
+        delete process.env.LANGSMITH_TRACING;
+      } else {
+        process.env.LANGSMITH_TRACING = previousLangSmithTracing;
+      }
+    }
+  });
+
+  it('does not auto-trace in-memory evaluation runs', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
+
+    process.env.NODE_ENV = 'production';
+    process.env.LANGSMITH_TRACING = 'true';
+
+    try {
+      expect(shouldAutoCaptureTrace({
+        workspaceId,
+        mode: 'proactive',
+        trigger: {
+          type: 'detector_decision',
+          detectorDecision: { decision: 'create_finding', candidate, existingFindingId: null },
+        },
+      }, { persistence: persistence() })).toBe(false);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousLangSmithTracing === undefined) {
+        delete process.env.LANGSMITH_TRACING;
+      } else {
+        process.env.LANGSMITH_TRACING = previousLangSmithTracing;
+      }
+    }
+  });
+
   it('turns a proactive create detector decision into a human-gated finding and run', async () => {
     const port = persistence();
 

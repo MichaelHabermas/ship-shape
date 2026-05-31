@@ -51,6 +51,13 @@ pnpm security:console              # Reviewer Security Console (WS logs, CI mirr
 
 `pnpm dev` creates `api/.env.local` if needed, creates the local database if missing, runs migrations/seeds for fresh databases, finds open API/web ports, and starts both servers.
 
+## Observability Tools
+
+- LangSmith and Langfuse are available as MCPs/APIs when configured; use them for trace lookup, scoring, evals, and reviewer evidence instead of scraping dashboards.
+- Prefer repo scripts first: `pnpm fleetgraph:observe`, `pnpm fleetgraph:observe:sync`, `pnpm fleetgraph:observe:dashboard`; API package MCP server is `pnpm --filter @ship/api mcp`.
+- Required envs: `LANGSMITH_TRACING=true`, `LANGCHAIN_TRACING_V2=true`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT`, `LANGSMITH_API_KEY`, `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_TRACING_ENVIRONMENT`.
+- Keep trace payloads sanitized: no raw prompts, completions, tokens, cookies, DB clients, principals, hidden evidence, or circular runtime state.
+
 ## Architecture In One Screen
 
 - Monorepo: `api/` Express, `web/` React/Vite, `shared/` shared TypeScript.
