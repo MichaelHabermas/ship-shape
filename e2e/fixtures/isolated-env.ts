@@ -806,7 +806,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
     );
   }
 
-  const nestedWikiCheck = await pool.query(
+  const nestedWikiCheck = await pool.query<{ child_count: number }>(
     `SELECT COUNT(*)::int AS child_count
      FROM documents
      WHERE workspace_id = $1
@@ -814,7 +814,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
        AND parent_id = $2`,
     [workspaceId, parentDocId]
   );
-  const nestedWikiChildCount = Number(nestedWikiCheck.rows[0]?.child_count || 0);
+  const nestedWikiChildCount = requireFirstRow(nestedWikiCheck.rows).child_count;
   if (nestedWikiChildCount < childDocs.length) {
     throw new Error(`E2E seed failed to create nested wiki documents: expected ${childDocs.length}, got ${nestedWikiChildCount}`);
   }
