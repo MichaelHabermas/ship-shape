@@ -4,7 +4,7 @@ FleetGraph is Ship's project intelligence and attention engine. It watches real 
 
 ## Final Claim Boundary
 
-FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, conversational page-aware context chat (LLM when configured), authenticated live reviewer proof, public static proof snapshots, and measured FleetGraph graph-runtime token/cost metadata. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or development-wide coding-assistant spend instrumentation.
+FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, conversational page-aware context chat (LLM when configured), authenticated live reviewer proof, public static proof snapshots, measured FleetGraph graph-runtime token/cost metadata, and local Codex development-token accounting. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, exact provider-invoice reconstruction from local records, or development-wide coding-assistant spend instrumentation.
 
 Live reviewer control room: `/fleetgraph/reviewer` in the authenticated app. Mutating controls require workspace admin plus `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`.
 
@@ -173,18 +173,23 @@ Shared wire types live in `shared/src/types/fleetgraph.ts`: findings, notificati
 
 # Cost Analysis
 
-Measured FleetGraph spend is graph-runtime spend from `fleetgraph_runs.token_metadata` and `fleetgraph_runs.cost_metadata`, plus any controlled production model proof sample. Development-wide Claude/API/coding-assistant spend was not instrumented and is explicitly excluded.
+FleetGraph cost is reported in two lanes because development AI usage and runtime agent usage answer different questions.
 
-Required proof fields:
+## Development and Testing Costs
+
+Codex Desktop/local records show the development-token footprint for ShipShape. These records are usage evidence, not a provider invoice, and they do not expose a reliable input/output split for coding-agent sessions.
 
 | Item | Amount |
 | --- | ---: |
-| Graph invocations | From `fleetgraph_runs` in the proof window |
-| Model calls | Sum of `token_metadata.modelCalls` |
-| Input/output/total tokens | Sum of `token_metadata.inputTokens`, `outputTokens`, and `totalTokens` |
-| Estimated model spend | Sum of `cost_metadata.estimatedCostUsd` |
-| Deterministic runs | Runs with zero model calls |
-| Real-model proof runs | Runs with nonzero model calls |
+| Codex local project threads | 806 |
+| Codex local project tokens | 3,858,049,072 |
+| Measurement window | 2026-05-18 14:51:52 to 2026-05-31 09:31:03 America/Chicago |
+| High-water mark | `1780237863533` |
+| Cash spend basis | $200/month Codex plan |
+| Render hosting tier | $7/month |
+| OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
+| Total development/platform cash committed | $217 |
+| Claude/API input/output split | Not available from local Codex records |
 
 Pricing comes from `api/src/config/fleetgraph-models.ts` for the configured model, with optional `FLEETGRAPH_MODEL_*_COST_PER_1M` env overrides for proof experiments. The default and Render-configured FleetGraph model is `gpt-5.5`.
 
@@ -200,7 +205,78 @@ Current catalog assumptions used by FleetGraph when provider cost is estimated:
 - PM context chat calls the model when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set; otherwise the API reports chat unavailable. See `my-docs/fleetgraph-conversational-chat.md`.
 - Worker detection, explain-finding structure, refine, dismiss, and resolve paths remain deterministic/zero-token unless a future decision adds model use there.
 
-Production projections are generated into the proof packet for 100, 1,000, and 10,000 users using the measured cost-per-graph-invocation in the current proof window and an explicit assumption of 30 graph invocations per user per month. Chat model spend is measured from `fleetgraph_runs` where `token_metadata.modelCalls > 0`.
+Codex usage by model:
+
+| Model | Reasoning effort | Threads | Tokens |
+| --- | --- | ---: | ---: |
+| `gpt-5.5` | low | 505 | 3,301,594,728 |
+| `gpt-5.5` | medium | 118 | 202,899,698 |
+| `codex-auto-review` | low | 115 | 178,703,854 |
+| `gpt-5.5` | high | 64 | 153,394,436 |
+| `gpt-5.5` | xhigh | 2 | 21,456,356 |
+| unknown | unknown | 2 | 0 |
+
+## FleetGraph Runtime Costs
+
+Runtime cost is the cost of the agent running inside Ship. It is measured from `fleetgraph_runs.token_metadata` and `fleetgraph_runs.cost_metadata`, plus proof-packet summaries.
+
+| Item | Amount |
+| --- | ---: |
+| Local FleetGraph run ledger | 1,701 runs |
+| Deterministic runs | 1,689 |
+| Real-model runs | 12 |
+| Model calls | 12 |
+| Input tokens | 1,074 |
+| Output tokens | 1,581 |
+| Total model tokens | 2,655 |
+| Corrected estimated runtime model spend | $0.031541 |
+| Corrected blended cost per FleetGraph run | $0.0000185 |
+| Corrected average cost per real-model run | $0.002628 |
+
+Latest deployed proof packet:
+
+| Item | Amount |
+| --- | ---: |
+| Public proof verdict | pass |
+| Graph invocations | 100 |
+| Model calls | 0 |
+| Input/output/total tokens | 0 / 0 / 0 |
+| Estimated runtime model spend | $0.000000 |
+| Deployed signals | `blocked`, `stale`, `at_risk` |
+
+The deployed proof is intentionally deterministic-first. It proves the graph paths, worker chain, traces, notifications, and human gate without spending model tokens. The local run ledger captures the development/testing runs that did cross a model boundary.
+
+## Production Cost Projections
+
+Assumptions:
+
+| Assumption | Value |
+| --- | ---: |
+| Average projects per active user | 1 |
+| Proactive graph invocations | 0.8 per project per day |
+| On-demand graph invocations | 0.2 per user per day |
+| Total normalized graph invocations | 30 per user per month |
+| Measured real-model invocation average | 89.5 input / 131.75 output tokens |
+| Measured real-model cost average | $0.002628 per real-model run |
+| Measured blended cost average | $0.0000185 per graph run |
+
+Measured blended floor:
+
+| Scale | Graph invocations/month | Projected monthly model spend |
+| --- | ---: | ---: |
+| 100 users | 3,000 | $0.06 |
+| 1,000 users | 30,000 | $0.56 |
+| 10,000 users | 300,000 | $5.56 |
+
+Real-model sensitivity if every graph invocation crossed the same measured model boundary:
+
+| Scale | Graph invocations/month | Projected monthly model spend |
+| --- | ---: | ---: |
+| 100 users | 3,000 | $7.89 |
+| 1,000 users | 30,000 | $78.85 |
+| 10,000 users | 300,000 | $788.54 |
+
+Budget against the sensitivity table, not the blended floor. The measured real-model calls were tiny reviewer/demo payloads; real production chat and refinement paths will carry richer context. Chat model spend is measured from `fleetgraph_runs` where `token_metadata.modelCalls > 0`.
 
 Cost cliffs and controls:
 

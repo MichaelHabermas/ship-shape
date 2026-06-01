@@ -10,12 +10,12 @@ This is the Week 5 FleetGraph cost report. It separates development AI usage fro
 
 | Metric | Value |
 | --- | ---: |
-| Codex local project threads | 787 |
-| Codex local project tokens | 3,674,047,029 |
-| Codex measurement window | 2026-05-18 14:51:52 to 2026-05-30 19:07:28 America/Chicago |
-| Codex high-water mark | `1780186048932` |
+| Codex local project threads | 806 |
+| Codex local project tokens | 3,858,049,072 |
+| Codex measurement window | 2026-05-18 14:51:52 to 2026-05-31 09:31:03 America/Chicago |
+| Codex high-water mark | `1780237863533` |
 | Canonical public FleetGraph proof packet | 2026-05-31T01:25:14.492Z |
-| Latest local-only FleetGraph proof packet | 2026-05-31T14:07:43.812Z |
+| Latest local-only FleetGraph proof packet | 2026-06-01T16:03:40.433Z |
 | Public reviewer chain latency | 5,060 ms |
 | Public reviewer proof model calls | 0 |
 | Public reviewer proof runtime model spend | $0.00 |
@@ -43,8 +43,10 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 
 | Cost basis | Value |
 | --- | --- |
-| Cash spend basis | $100/month Codex subscription |
-| Subscription allocation | Up to $100 if the full monthly subscription is allocated to ShipShape; otherwise prorate outside this report |
+| Cash spend basis | $200/month Codex plan |
+| Render hosting tier | $7/month |
+| OpenAI API credits purchased | $10 prepaid; not necessarily consumed |
+| Total development/platform cash committed | $217 |
 | Exact token-metered bill | Not available from local Codex records |
 | Claude/API billable split | Not available from local records |
 | Local Codex evidence source | `/Users/michaelhabermas/.codex/state_5.sqlite`, `threads` table |
@@ -54,21 +56,21 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 
 | Metric | Value |
 | --- | ---: |
-| Threads | 787 |
-| Tokens | 3,674,047,029 |
+| Threads | 806 |
+| Tokens | 3,858,049,072 |
 | First recorded thread | 2026-05-18 14:51:52 America/Chicago |
-| Last recorded update | 2026-05-30 19:07:28 America/Chicago |
-| Next high-water mark | `1780186048932` |
+| Last recorded update | 2026-05-31 09:31:03 America/Chicago |
+| Next high-water mark | `1780237863533` |
 
 ### Codex Usage By Model
 
 | Model | Reasoning effort | Threads | Tokens |
 | --- | --- | ---: | ---: |
-| `gpt-5.5` | low | 487 | 3,134,549,503 |
+| `gpt-5.5` | low | 505 | 3,301,594,728 |
 | `gpt-5.5` | medium | 118 | 202,899,698 |
 | `codex-auto-review` | low | 115 | 178,703,854 |
 | `gpt-5.5` | high | 64 | 153,394,436 |
-| `gpt-5.5` | xhigh | 1 | 4,499,538 |
+| `gpt-5.5` | xhigh | 2 | 21,456,356 |
 | unknown | unknown | 2 | 0 |
 
 ### Codex Usage By Day
@@ -87,13 +89,14 @@ Development was performed mostly through Codex Desktop/local coding-agent sessio
 | 2026-05-27 | 19 | 159,891,043 | 8,415,318 | 29,469,982 |
 | 2026-05-28 | 67 | 405,583,625 | 6,053,487 | 109,914,248 |
 | 2026-05-29 | 45 | 389,868,900 | 8,663,753 | 151,671,960 |
-| 2026-05-30 | 29 | 54,672,215 | 1,885,249 | 22,800,339 |
+| 2026-05-30 | 37 | 188,930,049 | 5,106,218 | 47,194,196 |
+| 2026-05-31 | 11 | 50,033,565 | 4,548,506 | 17,532,230 |
 
 ### What Drove Development Usage
 
 The high token count came from evidence-heavy work: reading the Week 5 source of truth, mapping existing ShipShape architecture, building reviewer proof surfaces, running code reviews, tracing FleetGraph execution, and repeatedly scanning changed files. Subagent and auto-review threads increased coverage but also multiplied context.
 
-The cash-cost conclusion is narrower than the token total: local Codex records show scale of AI use, not marginal invoice cost. The defensible project spend statement is that the work was covered by a $100/month Codex subscription unless the user allocates only a prorated share to ShipShape.
+The cash-cost conclusion is narrower than the token total: local Codex records show scale of AI use, not marginal invoice cost. The defensible project spend statement is $217 committed: $200 Codex plan, $7 Render tier, and $10 OpenAI API credits purchased. The OpenAI credits are prepaid capacity, not proof that $10 of FleetGraph runtime tokens were consumed.
 
 ## FleetGraph Runtime Costs
 
@@ -106,6 +109,8 @@ Current runtime evidence comes from:
 - `my-docs/evidence/fleetgraph-proof/latest.json`.
 - FleetGraph proof-run JSON files under `my-docs/evidence/fleetgraph-proof/runs/`.
 - Local Postgres `fleetgraph_runs` rows in `ship_dev`.
+
+Live refresh note: on 2026-05-31 09:31 America/Chicago, local Postgres on `localhost:5433` was not running, so the `fleetgraph_runs` ledger below remains the last measured ledger captured in this report rather than a fresh DB query.
 
 ### Local Run Ledger
 

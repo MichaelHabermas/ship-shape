@@ -7,6 +7,7 @@ import {
   proofCommandEnv,
   publicReviewerChainProof,
   recordFleetGraphReviewerChatMutationProof,
+  fleetGraphReviewerProofEnabled,
   REVIEWER_PROOF_BLOCKER_TEXT,
   reviewerProofRepoRoot,
 } from './reviewer-proof/index.js';
@@ -68,6 +69,32 @@ describe('proofCommandEnv', () => {
     expect(env.FLEETGRAPH_PROOF_TRACE_URLS_JSON).toBe('{"blocked":"https://smith.langchain.com/public/example/r"}');
     expect(env.FLEETGRAPH_PROOF_TEST_DATABASE_URL).toBe('postgres://ship:ship@localhost:5432/ship_test_audit');
     expect(env.SESSION_SECRET).toBeUndefined();
+  });
+});
+
+describe('fleetGraphReviewerProofEnabled', () => {
+  const originalFlag = process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED;
+
+  afterEach(() => {
+    if (originalFlag === undefined) {
+      delete process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED;
+    } else {
+      process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED = originalFlag;
+    }
+  });
+
+  it('accepts Render-style true and local 1 values', () => {
+    process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED = 'true';
+    expect(fleetGraphReviewerProofEnabled()).toBe(true);
+
+    process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED = '1';
+    expect(fleetGraphReviewerProofEnabled()).toBe(true);
+  });
+
+  it('keeps the reviewer proof controls disabled by default', () => {
+    delete process.env.FLEETGRAPH_REVIEWER_PROOF_ENABLED;
+
+    expect(fleetGraphReviewerProofEnabled()).toBe(false);
   });
 });
 
