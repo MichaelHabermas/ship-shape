@@ -144,5 +144,15 @@ web/dev-dist/
 .superpowers/
 my-docs/gai-ify-resources
 
-# FleetGraph observability eval scratch runs (datasets stay tracked)
+# FleetGraph observability eval scratch output
 my-docs/evals/fleetgraph-observability/run-*/
+my-docs/evals/fleetgraph-observability/run-*.json
+my-docs/evals/fleetgraph-observability/run-*.md
+my-docs/evals/fleetgraph-observability/dashboard.html
+my-docs/evals/fleetgraph-observability/datasets/
+my-docs/evals/fleetgraph-observability/provider-history.json
+my-docs/evals/fleetgraph-product-surface/runs/
+my-docs/evidence/fleetgraph-proof/runs/
+my-docs/evidence/security-audit/suggested-ledger-update.json
+web/public/fleetgraph-observability/index.html
+web/public/fleetgraph-observability/provider-history.json

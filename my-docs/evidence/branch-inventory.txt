@@ -108,8 +108,6 @@ Post-sync state — 2026-05-24 (pnpm branches:sync / scripts/sync-feature-branch
 All 8 origin branches mirrored to gitlab. Ten previously deleted GitHub branches
 restored from local reflog tips and pushed to both origin and gitlab.
 
-See my-docs/evidence/branch-sync-run.txt for push log.
-
 ### Policy
 docs/feature-branches.md — do not delete durable feature branches; prune only
 remote-tracking refs after intentional remote deletion.

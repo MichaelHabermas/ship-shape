@@ -608,12 +608,11 @@ async function fetchUrl(url) {
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
 }
 
-export function artifactPlan(runId, mode) {
+export function artifactPlan(_runId, mode) {
   const artifacts = [
     { label: 'Static dashboard', path: 'my-docs/evidence/fleetgraph-proof/latest.html', kind: 'html' },
     { label: 'Proof JSON', path: 'my-docs/evidence/fleetgraph-proof/latest.json', kind: 'json' },
     { label: 'Proof Markdown', path: 'my-docs/evidence/fleetgraph-proof/latest.md', kind: 'markdown' },
-    { label: 'Timestamped run', path: `my-docs/evidence/fleetgraph-proof/runs/${runId}/proof.html`, kind: 'html' },
     { label: 'Golden cases', path: 'api/src/fleetgraph/eval/golden-cases.ts', kind: 'source' },
     { label: 'Executable golden-case tests', path: 'api/src/fleetgraph/eval/executable-golden-cases.test.ts', kind: 'test' },
     { label: 'Product-surface eval', path: 'my-docs/evals/fleetgraph-product-surface/latest.html', kind: 'html' },

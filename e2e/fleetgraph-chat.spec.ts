@@ -1,6 +1,8 @@
 // Verifies FleetGraph chat's basic user-visible conversation loop through the browser.
 import { test, expect } from './fixtures/isolated-env';
 import { loginAsAdmin } from './fixtures/api-auth';
+import { readJsonAs } from './fixtures/typed-json';
+import type { ApiId } from './fixtures/e2e-api-types';
 
 function docContent(lines: string[]) {
   return {
@@ -43,7 +45,7 @@ test.describe('FleetGraph chat smoke', () => {
       },
     });
     expect(createResponse.ok()).toBe(true);
-    const issue = (await createResponse.json()) as { id: string };
+    const issue = await readJsonAs<ApiId>(createResponse);
 
     await page.goto(`/issues/${issue.id}`);
     await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 15000 });

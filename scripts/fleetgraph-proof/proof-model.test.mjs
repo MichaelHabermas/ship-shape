@@ -66,6 +66,9 @@ test('buildProofPacket maps required scenarios to a reviewer matrix', () => {
 
   assert.equal(packet.scenarios.length, REQUIRED_SCENARIOS.length);
   assert.equal(packet.summary.provenScenarioCount, REQUIRED_SCENARIOS.length);
+  assert.equal(packet.summary.goldenCaseCatalogCount, REQUIRED_SCENARIOS.length);
+  assert.equal(packet.summary.executableGoldenCaseCount, REQUIRED_SCENARIOS.length);
+  assert.equal(packet.summary.definedOnlyGoldenCaseCount, 0);
   assert.equal(packet.safety.find((check) => check.name === 'Human gate before next action')?.status, 'pass');
   assert.deepEqual(validateProofPacket(packet), []);
 });
@@ -97,6 +100,13 @@ test('buildProofPacket does not count defined-only golden cases as executed proo
   });
 
   assert.equal(packet.summary.provenScenarioCount, 1);
+  assert.equal(packet.summary.goldenCaseCatalogCount, REQUIRED_SCENARIOS.length);
+  assert.equal(packet.summary.executableGoldenCaseCount, 1);
+  assert.equal(packet.summary.definedOnlyGoldenCaseCount, REQUIRED_SCENARIOS.length - 1);
+  assert.deepEqual(packet.summary.definedOnlyGoldenCaseIds, REQUIRED_SCENARIOS
+    .map((scenario) => scenario.goldenCaseId)
+    .filter((caseId) => caseId !== 'fg-create-blocked-visible-issue')
+    .sort());
   assert.equal(packet.scenarios.find((scenario) => scenario.id === 'proactive-quiet-exit')?.status, 'defined');
   assert.equal(packet.verdict, 'risk');
 });

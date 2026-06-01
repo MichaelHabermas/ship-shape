@@ -158,6 +158,31 @@ export type FleetGraphAttentionResponse = {
   blocked?: boolean;
 };
 
+export type FleetGraphWorkerTickResponse = {
+  attentionEventIds: string[];
+};
+
+export type FleetGraphIssueResponse = ApiId & {
+  title?: string;
+  state?: string;
+};
+
+export type FleetGraphNotification = {
+  findingId: string;
+  title: string;
+  sourcePath: string;
+};
+
+export type FleetGraphNotificationsResponse = {
+  notifications: FleetGraphNotification[];
+};
+
+export type FleetGraphChatResponse = {
+  answer: {
+    humanGate?: Record<string, unknown>;
+  };
+};
+
 export type DocumentCreateResponse = ApiId & {
   title?: string;
   document_type?: string;

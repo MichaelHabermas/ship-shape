@@ -704,7 +704,6 @@
           "kind": "bundle_size_summary",
           "label": "Baseline production bundle",
           "recorded_at": "2026-05-19",
-          "artifact": "my-docs/audit-evidence/category-2-bundle/bundle-stats.json",
           "values": {
             "total_js_css_kb": 2262.65,
             "full_dist_kb": 3351.53,
@@ -713,7 +712,7 @@
             "chunk_count": 262
           },
           "origin": "report_extracted",
-          "confidence": "artifact_backed",
+          "confidence": "report_backed",
           "source": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md"
         },
         {
@@ -721,7 +720,6 @@
           "kind": "bundle_size_summary",
           "label": "Latest production bundle",
           "recorded_at": "2026-05-23",
-          "artifact": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
           "values": {
             "total_js_css_kb": 2369.69,
             "latest_js_bytes_from_artifact": 2303049,
@@ -735,8 +733,8 @@
             "prior_closeout_largest_chunk_kb": 837.24
           },
           "origin": "report_extracted",
-          "confidence": "artifact_backed",
-          "source": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json"
+          "confidence": "report_backed",
+          "source": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md"
         }
       ],
       "derived_metrics": [
@@ -751,7 +749,7 @@
           "change_percent": -73.9,
           "threshold_percent": -20,
           "origin": "computed",
-          "confidence": "artifact_backed"
+          "confidence": "report_backed"
         },
         {
           "id": "cat2-largest-chunk-reduction",
@@ -763,7 +761,7 @@
           "change_absolute": -1382.62,
           "change_percent": -68.3,
           "origin": "computed",
-          "confidence": "artifact_backed"
+          "confidence": "report_backed"
         },
         {
           "id": "cat2-total-js-css-change",
@@ -775,7 +773,7 @@
           "change_absolute": 107.04,
           "change_percent": 4.7,
           "origin": "computed",
-          "confidence": "artifact_backed"
+          "confidence": "report_backed"
         }
       ],
       "targets": [
@@ -793,7 +791,7 @@
           "description": "Provide before/after bundle analysis output.",
           "operator": "manual_gate",
           "result": "pass",
-          "reason": "Baseline treemap/stats and latest dependency-free bundle-analysis artifact exist.",
+          "reason": "Baseline and latest bundle-analysis values are preserved in the audit and improvement reports; timestamped collector outputs were pruned as generated evidence.",
           "references": [
             "cat2-baseline-bundle-stats",
             "cat2-baseline-bundle-treemap",
@@ -835,7 +833,7 @@
           "type": "target_result",
           "target_id": "cat2-target-before-after-output",
           "result": "pass",
-          "notes": "Latest bundle-analysis HTML artifact exists under my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/."
+          "notes": "Latest bundle-analysis values are preserved in my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md; timestamped collector output was pruned."
         },
         {
           "id": "cat2-no-functionality-removal-documented",
@@ -871,27 +869,27 @@
         },
         {
           "id": "cat2-baseline-bundle-stats",
-          "type": "artifact",
-          "path": "my-docs/audit-evidence/category-2-bundle/bundle-stats.json",
-          "description": "Baseline production bundle stats artifact."
+          "type": "source_doc",
+          "path": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+          "description": "Baseline production bundle stats recorded in the audit report."
         },
         {
           "id": "cat2-baseline-bundle-treemap",
-          "type": "artifact",
-          "path": "my-docs/audit-evidence/category-2-bundle/bundle-treemap.html",
-          "description": "Baseline bundle treemap artifact."
+          "type": "source_doc",
+          "path": "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
+          "description": "Baseline bundle treemap findings summarized in the audit report."
         },
         {
           "id": "cat2-latest-bundle-stats",
-          "type": "artifact",
-          "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
-          "description": "Latest easy-wins bundle stats artifact from dependency-free collector."
+          "type": "source_doc",
+          "path": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+          "description": "Latest easy-wins bundle stats recorded in the improvement report."
         },
         {
           "id": "cat2-latest-bundle-analysis",
-          "type": "artifact",
-          "path": "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html",
-          "description": "Latest closeout bundle-analysis HTML artifact generated from web/dist."
+          "type": "source_doc",
+          "path": "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
+          "description": "Latest closeout bundle-analysis values recorded in the improvement report."
         }
       ],
       "caveats": [
@@ -904,8 +902,7 @@
       "sources": [
         "my-docs/project-weeks-sot/week-4/AUDIT_REPORT.md",
         "my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md",
-        "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json",
-        "my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-analysis.html"
+        "my-docs/project-weeks-sot/week-4/DECISION_LOG.md"
       ]
     },
     {
@@ -3560,7 +3557,7 @@
             "vulnerability_class": "Local file upload validation and browser-executable inline serving",
             "reproduction_steps": "Before: run pnpm security:probe -- --probe input-file-upload-size-mismatch --run-id before-file-size and pnpm security:probe -- --probe input-file-serve-headers --run-id before-file-headers. The first accepted mismatched bytes; the second served uploaded HTML with inline Content-Disposition.",
             "fix_applied": "api/src/routes/files.ts now rejects local-upload bodies whose byte length differs from files.size_bytes and serves user uploads as attachments with sanitized filenames while retaining X-Content-Type-Options: nosniff.",
-            "proof": "Before reports: my-docs/evidence/security-audit/runs/before-file-size/report.json and my-docs/evidence/security-audit/runs/before-file-headers/report.json. After reports: my-docs/evidence/security-audit/runs/after-file-size/report.json and my-docs/evidence/security-audit/runs/after-file-headers-2/report.json. Final full report: my-docs/evidence/security-audit/latest.json."
+            "proof": "Before/after file-upload findings are summarized in my-docs/evidence/security-audit/latest.json and my-docs/evidence/security-audit/security-findings.json; timestamped run directories were pruned."
           },
           {
             "slot": 2,
@@ -3568,7 +3565,7 @@
             "vulnerability_class": "WebSocket malformed/oversized frame resilience",
             "reproduction_steps": "Before: run pnpm security:probe -- --probe websocket-malformed-frame --run-id before-ws-malformed. The probe reported unsafe malformed-frame handling; the first full probe attempt also exposed an unhandled ws oversized-frame error in the dev server log.",
             "fix_applied": "api/src/collaboration/index.ts now catches collaboration message decode failures, closes unsupported/invalid collaboration and events messages with 1003, and handles oversized ws frames with 1009 without crashing the API process.",
-            "proof": "Before report: my-docs/evidence/security-audit/runs/before-ws-malformed/report.json. After reports: my-docs/evidence/security-audit/runs/after-ws-malformed/report.json, my-docs/evidence/security-audit/runs/after-ws-oversized/report.json, and final deterministic close-code evidence in my-docs/evidence/security-audit/latest.json."
+            "proof": "Before/after WebSocket findings are summarized in my-docs/evidence/security-audit/latest.json and my-docs/evidence/security-audit/security-findings.json; timestamped run directories were pruned."
           }
         ],
         "aligned_table": "my-docs/evidence/security-audit/cat8-audit-deliverable.json"
@@ -3739,7 +3736,7 @@
           },
           "origin": "artifact_parsed",
           "confidence": "report_backed",
-          "source": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json"
+          "source": "my-docs/evidence/security-audit/latest.json"
         }
       ],
       "derived_metrics": [
@@ -3862,10 +3859,10 @@
           "description": "Category 8 source brief defining required probe/manual review/fix proof."
         },
         {
-          "id": "cat8-reviewer-evidence-bundle",
-          "type": "artifact",
-          "path": "my-docs/project-weeks-sot/week-4/reviewer-evidence-bundle/index.html",
-          "description": "Self-contained static reviewer evidence bundle for separate Render Static Site deployment; includes generated dashboard, manifest, source briefs, and curated security evidence."
+          "id": "cat8-reviewer-dashboard",
+          "type": "source_doc",
+          "path": "my-docs/project-weeks-sot/week-4/reviewer-dashboard.html",
+          "description": "Generated reviewer dashboard from the submission ledger."
         },
         {
           "id": "cat8-security-probe-final-report",
@@ -3881,8 +3878,7 @@
         },
         {
           "id": "cat8-probe-v2-baseline-unfixed",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/probe-v2-baseline-unfixed/report.json",
+          "type": "manual_observation",
           "description": "Probe v2 baseline on current code: 5/5 surfaces (4 Cat 8 required + authorization extension), 10 known-open findings with registry triage. Does not replace the separate 4-surface perimeter closeout."
         },
         {
@@ -3905,20 +3901,17 @@
         },
         {
           "id": "cat8-security-probe-ci-gate",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260523-190801/report.json",
+          "type": "manual_observation",
       "description": "CI-shaped probe run with --fail-on=new: 5/5 surfaces, 40 probes passed, 0 new/regression. GitHub workflow .github/workflows/security-probe.yml."
     },
     {
       "id": "cat8-security-probe-ci-20260524-141159",
-      "type": "artifact",
-      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-141159/report.json",
+      "type": "manual_observation",
       "description": "Current CI-shaped local probe run on alternate ports after security architecture closure work: 5/5 surfaces, 40 probes passed, 0 findings; findings ledger was regenerated after recorded verifications."
     },
     {
       "id": "cat8-security-probe-ci-20260524-143310",
-      "type": "artifact",
-      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-143310/report.json",
+      "type": "manual_observation",
       "description": "Current CI-shaped local probe run on alternate ports after identity/token/file closeout wave: 5/5 surfaces measured, 40 probes passed, 0 findings; CI wrapper reported stale generated findings after recording verifications, then findings render/check passed."
     },
     {
@@ -3939,62 +3932,52 @@
     },
     {
       "id": "cat8-security-probe-ci-20260524-145758",
-      "type": "artifact",
-      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-145758/report.json",
+      "type": "manual_observation",
       "description": "Current CI-shaped local probe run after graph visibility and realtime parity closure wave: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
     },
     {
       "id": "cat8-security-probe-ci-20260524-153908",
-      "type": "artifact",
-      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-153908/report.json",
+      "type": "manual_observation",
       "description": "Current CI-shaped local probe run after external config, AI validation, session anomaly, and policy-proof tail: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
     },
     {
       "id": "cat8-security-probe-ci-20260524-154623",
-      "type": "artifact",
-      "path": "my-docs/evidence/security-audit/runs/security-probe-ci-20260524-154623/report.json",
+      "type": "manual_observation",
       "description": "Current CI-shaped local probe run after final correctness verification fixes for CAIA SSRF fetch and session binding lifecycle: 5/5 surfaces measured, 40 probes passed, 0 findings, known-open=0/new=0/regression=0."
     },
     {
       "id": "cat8-before-file-size",
-      "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/before-file-size/report.json",
+      "type": "manual_observation",
           "description": "Before proof for local upload declared-size mismatch acceptance."
         },
         {
           "id": "cat8-after-file-size",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/after-file-size/report.json",
+          "type": "manual_observation",
           "description": "After proof for local upload declared-size mismatch rejection."
         },
         {
           "id": "cat8-before-file-headers",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/before-file-headers/report.json",
+          "type": "manual_observation",
           "description": "Before proof for unsafe inline uploaded HTML serving headers."
         },
         {
           "id": "cat8-after-file-headers",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/after-file-headers-2/report.json",
+          "type": "manual_observation",
           "description": "After proof for attachment/nosniff uploaded file serving headers."
         },
         {
           "id": "cat8-before-ws-malformed",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/before-ws-malformed/report.json",
+          "type": "manual_observation",
           "description": "Before proof for unsafe malformed WebSocket frame handling."
         },
         {
           "id": "cat8-after-ws-malformed",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/after-ws-malformed/report.json",
+          "type": "manual_observation",
           "description": "After proof for malformed WebSocket frame handling."
         },
         {
           "id": "cat8-after-ws-oversized",
-          "type": "artifact",
-          "path": "my-docs/evidence/security-audit/runs/after-ws-oversized/report.json",
+          "type": "manual_observation",
           "description": "After proof for oversized WebSocket frame handling without process crash."
         },
         {

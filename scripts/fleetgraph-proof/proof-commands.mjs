@@ -78,7 +78,20 @@ export function runCommand(name, command, envExtra = {}) {
 
 export function tail(value, max = 1200) {
   const text = String(value ?? '').trim();
-  return text.length > max ? text.slice(-max) : text;
+  const trimmed = text.length > max ? text.slice(-max) : text;
+  return scrubVolatileArtifactPaths(trimmed);
+}
+
+function scrubVolatileArtifactPaths(text) {
+  return text
+    .replaceAll(
+      /my-docs\/evals\/fleetgraph-product-surface\/runs\/[^\s"')]+/g,
+      'my-docs/evals/fleetgraph-product-surface/latest.*'
+    )
+    .replaceAll(
+      /my-docs\/evidence\/fleetgraph-proof\/runs\/[^\s"')]+/g,
+      'my-docs/evidence/fleetgraph-proof/latest.*'
+    );
 }
 
 function formatDuration(ms) {

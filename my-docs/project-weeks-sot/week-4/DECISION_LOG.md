@@ -46,7 +46,7 @@ Alternatives considered: patch every route independently; full generated policy 
 
 Consequences: New sensitive behavior should add or reuse a capability, not copy workspace/user checks. Existing API tokens receive `legacy:full` compatibility; new tokens are admin-created, scoped, audited, and expire by default. Setup initialization is gated by a server-side token when configured/production. Document-bound files authorize through the linked document; legacy unbound files fall back to uploader/admin. Collaboration joins and revalidation use the same capability layer as REST.
 
-Evidence: Focused API/security tests passed; file route tests passed after applying migration `041_security_capabilities.sql` to `ship_test_audit`; `pnpm type-check`, `pnpm openapi:check:strict`, and `pnpm security:probe:test` passed. `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201 pnpm security:probe:ci` produced `runs/security-probe-ci-20260524-141159/` with 5/5 surfaces, 40/40 probes passed, and 0 findings; the wrapper then reported generated-findings output stale after recording verifications, which was resolved with `pnpm security:findings:render` and `pnpm security:findings:check`.
+Evidence: Focused API/security tests passed; file route tests passed after applying migration `041_security_capabilities.sql` to `ship_test_audit`; `pnpm type-check`, `pnpm openapi:check:strict`, and `pnpm security:probe:test` passed. `SECURITY_PROBE_API_PORT=3101 SECURITY_PROBE_WEB_PORT=5201 pnpm security:probe:ci` produced a 5/5 surface, 40/40 probe, 0-finding result recorded in the security findings ledger; the wrapper then reported generated-findings output stale after recording verifications, which was resolved with `pnpm security:findings:render` and `pnpm security:findings:check`.
 
 **Decision Gist**: Authorize capabilities, not routes; REST, files, tokens, setup, and realtime share one reason-coded security model.
 
@@ -1232,7 +1232,7 @@ Alternatives considered: fail on any finding including known-open (rejected — 
 
 Consequences: Multi-agent verification found probe/route drift (week status tested documents only) and API bypasses; follow-up hardening same day. `authorization-file-document-scope` remains a partial check (uploader vs document visibility).
 
-Evidence: `pnpm security:probe:ci` — 5/5 surfaces, 0 findings, 0 new, 0 regression (`runs/security-probe-ci-20260523-190801/`). `pnpm security:probe:test` 9/9; `pnpm type-check` pass.
+Evidence: `pnpm security:probe:ci` — 5/5 surfaces, 0 findings, 0 new, 0 regression, recorded in `my-docs/evidence/security-audit/latest.json`. `pnpm security:probe:test` 9/9; `pnpm type-check` pass.
 
 **Decision Gist**: CI guards new security regressions, not the whole SS-FIND backlog — registry fingerprints are the contract.
 
@@ -1306,7 +1306,7 @@ Alternatives considered: per-language dynamic `highlight.js/lib/languages/*` imp
 
 Consequences: Largest built chunk dropped 837.24 KB → 642.48 KB; total JS/CSS 2396.29 KB → 2369.69 KB vs prior closeout. Entry chunk unchanged within measurement noise. Claim boundary unchanged: still not total −15% vs baseline 2262.65 KB.
 
-Evidence: `pnpm build:web`; `pnpm evidence:run -- --phase cat2-easy-wins --run-id cat2-easy-wins-20260523`; artifact `my-docs/evidence-runs/cat2-easy-wins-20260523/collectors/bundle-stats.json`.
+Evidence: `pnpm build:web`; Cat 2 easy-wins values recorded in `my-docs/project-weeks-sot/week-4/IMPROVEMENT_REPORT.md` and `my-docs/evidence/submission-ledger.json`.
 
 **Decision Gist**: Lazy-load heavy editor deps on first use; measure chunk-level wins without widening Cat 2 claims.
 
@@ -1368,7 +1368,7 @@ Why: The reviewer dashboard needs live-linkable evidence without coupling proof 
 
 Consequences: `pnpm submission:render` now generates the dashboard, markdown ledger block, and reviewer bundle. `pnpm submission:check` verifies generated dashboard/markdown freshness plus bundle presence/redaction. The Security tab renders latest probe results separately from the known findings backlog so “latest active probe confirmed 0 findings” cannot be read as “all security findings are closed.”
 
-Evidence: `my-docs/project-weeks-sot/week-4/reviewer-evidence-bundle/index.html`, `manifest.json`, generated `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` Security tab, and `my-docs/evidence/submission-ledger.json` Cat 8 evidence entry.
+Evidence: generated `my-docs/project-weeks-sot/week-4/reviewer-dashboard.html` Security tab and `my-docs/evidence/submission-ledger.json` Cat 8 evidence entry. The static reviewer bundle is generated output, not durable source evidence.
 
 **Decision Gist**: Keep reviewer evidence static, isolated, generated, and bounded by explicit non-claims.
 
@@ -1532,7 +1532,7 @@ Decision: Public graph responses must select related IDs from the filtered relat
 
 Why: Filtering names but returning raw related UUIDs still leaks private graph structure. This showed up in bootstrap projects and team assignment/project APIs during the parallel verification pass.
 
-Evidence: `api/src/routes/bootstrap.ts`, `api/src/routes/team.ts`, `api/src/routes/security-graph.test.ts`; full API suite 51 files / 600 tests passing; security probe CI run `security-probe-ci-20260524-150803`.
+Evidence: `api/src/routes/bootstrap.ts`, `api/src/routes/team.ts`, `api/src/routes/security-graph.test.ts`; full API suite 51 files / 600 tests passing; security probe CI result recorded in the security findings ledger.
 
 **Decision Gist**: Raw association IDs are private until the joined document is readable.
 
@@ -1544,7 +1544,7 @@ Decision: Production OpenAPI routes require normal authentication unless `OPENAP
 
 Why: These are deployment-facing boundaries. The simple rule is better than route-local exceptions: production introspection is private by default, external issuer discovery cannot reach private infrastructure, and browser-carried cookies need browser-origin proof in addition to CSRF tokens.
 
-Evidence: `api/src/app.ts`, `api/src/services/caia.ts`, `api/src/security/redirects.ts`, `api/src/security/__tests__/security-tail.test.ts`, `api/src/routes/ai-security.test.ts`, `api/src/routes/openapi-security.test.ts`; verification pass added malformed issuer fail-closed behavior and SSRF-safe CAIA custom fetch for discovery/token/userinfo calls. Gates: `pnpm type-check`, `pnpm openapi:check:strict`, API suite, `security-probe-ci-20260524-153908`.
+Evidence: `api/src/app.ts`, `api/src/services/caia.ts`, `api/src/security/redirects.ts`, `api/src/security/__tests__/security-tail.test.ts`, `api/src/routes/ai-security.test.ts`, `api/src/routes/openapi-security.test.ts`; verification pass added malformed issuer fail-closed behavior and SSRF-safe CAIA custom fetch for discovery/token/userinfo calls. Gates: `pnpm type-check`, `pnpm openapi:check:strict`, API suite, and security probe CI result recorded in the security findings ledger.
 
 **Decision Gist**: Production external/security edges default private and SSRF-safe.
 

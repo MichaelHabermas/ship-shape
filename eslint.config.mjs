@@ -76,7 +76,6 @@ export default [
       '**/coverage/**',
       '**/playwright-report/**',
       '**/test-results/**',
-      '**/my-docs/audit-evidence/**',
       '**/*.d.ts',
     ],
   },

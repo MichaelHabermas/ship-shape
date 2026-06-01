@@ -773,11 +773,6 @@
       "kind": "markdown"
     },
     {
-      "label": "Timestamped run",
-      "path": "my-docs/evidence/fleetgraph-proof/runs/fleetgraph-proof-2026-06-01T16-03-40-433Z/proof.html",
-      "kind": "html"
-    },
-    {
       "label": "Golden cases",
       "path": "api/src/fleetgraph/eval/golden-cases.ts",
       "kind": "source"

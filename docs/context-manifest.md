@@ -211,12 +211,10 @@ Use for FleetGraph runtime, detection, reviewer control room, proof scripts, obs
 
 Load:
 
-- `my-docs/fleetgraph-conversational-chat.md` (PM chat contract)
 - `FLEETGRAPH.md`
 - `REVIEWER_GUIDE.md` (reviewer/proof only)
 - The specific FleetGraph API/web/proof files being changed.
-
-Do not load `my-docs/project-weeks-sot/week-5/archive/submission-deterministic-chat/` for PM chat work.
+- For PM chat: `api/src/fleetgraph/runtime/context-chat.ts`, `api/src/fleetgraph/model.ts`, and `api/src/fleetgraph/eval/chat-behavior.ts`.
 
 Rules:
 

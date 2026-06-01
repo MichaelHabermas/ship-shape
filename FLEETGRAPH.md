@@ -202,7 +202,7 @@ Current catalog assumptions used by FleetGraph when provider cost is estimated:
 | `gpt-4o-mini` | `$0.15 / 1M tokens` | `$0.075 / 1M tokens` | `$0.60 / 1M tokens` |
 
 - Blocked proactive create can call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL` is configured, and `OPENAI_API_KEY` exists.
-- PM context chat calls the model when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set; otherwise the API reports chat unavailable. See `my-docs/fleetgraph-conversational-chat.md`.
+- PM context chat calls the model when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set; otherwise the API reports chat unavailable. Runtime lives in `api/src/fleetgraph/runtime/context-chat.ts`, model generation in `api/src/fleetgraph/model.ts`, and behavior cases in `api/src/fleetgraph/eval/chat-behavior.ts`.
 - Worker detection, explain-finding structure, refine, dismiss, and resolve paths remain deterministic/zero-token unless a future decision adds model use there.
 
 Codex usage by model:

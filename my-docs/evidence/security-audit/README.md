@@ -24,8 +24,8 @@ Short write-up: **`baseline-measurements.md`**
 | | File |
 | --- | --- |
 | **BASELINE** live probe (22 probes merged, 8 findings) | `runs/baseline-before-probe/report.json` |
-| **Current** full probe (v1 closeout: 25 probes, 0 perimeter findings) | **`runs/cat8-final/report.json`** (immutable) |
-| **Probe v2** baseline (40 probes, authorization + triage) | **`runs/probe-v2-baseline-unfixed/report.json`** |
+| **Current** full probe | **`latest.json`** / `latest.md` |
+| **Probe v2** baseline and triage | **`security-findings.json`** / `security-findings-ledger.md` |
 | Latest run pointer | **`latest.json`** / `latest.md` |
 | Security findings SoT (status, probes, verifications) | **`security-findings.json`** |
 | Generated human ledger (do not edit) | **`security-findings-ledger.md`** |
@@ -35,8 +35,8 @@ Short write-up: **`baseline-measurements.md`**
 
 | Fix | Before | After |
 | --- | --- | --- |
-| File upload size + headers | `runs/before-file-size/`, `runs/before-file-headers/` | `runs/after-file-size/`, `runs/after-file-headers-2/` |
-| WebSocket malformed frames | `runs/before-ws-malformed/` | `runs/after-ws-malformed/`, `runs/after-ws-oversized/` |
+| File upload size + headers | Finding history in `security-findings.json` | Latest status in `latest.json` |
+| WebSocket malformed frames | Finding history in `security-findings.json` | Latest status in `latest.json` |
 
 ## Deep review backlog (not dependency CVEs)
 

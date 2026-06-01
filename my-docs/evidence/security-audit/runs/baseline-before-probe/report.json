@@ -739,14 +739,6 @@
     "note": "Review before copying into submission-ledger.json; the probe does not auto-update claims."
   },
   "mergedFrom": [
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-auth/runs/baseline-auth/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-input/runs/baseline-input/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-dependency/runs/baseline-dependency/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-manual/runs/baseline-manual/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-safe/runs/baseline-ws-safe/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-safe2/runs/baseline-ws-safe2/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-events/runs/baseline-ws-events/report.json",
-    "my-docs/evidence/security-audit/runs/baseline-before-probe/partials/baseline-ws-events2/runs/baseline-ws-events2/report.json",
-    "my-docs/evidence/security-audit/runs/before-ws-malformed/report.json"
+    "Partial run reports were pruned; this file is the retained baseline summary."
   ]
 }

@@ -1,5 +1,4 @@
 // Executes representative FleetGraph golden cases against the shared core with mocked model/persistence.
-import '../test/setup-chat-openai-mock.js';
 import { resetChatOpenAIMock } from '../test/setup-chat-openai-mock.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../../test/pg-result.js';
@@ -14,6 +13,19 @@ import type { FleetGraphAttentionCandidate } from '../detection/detector.js';
 import type { FleetGraphInput } from '../types.js';
 import type { Principal } from '../../security/principal.js';
 import { fleetGraphGoldenCases } from './golden-cases.js';
+
+export const EXECUTABLE_GOLDEN_CASE_IDS = [
+  'fg-create-blocked-visible-issue',
+  'fg-update-duplicate-open-finding',
+  'fg-create-stale-visible-issue',
+  'fg-create-at-risk-visible-issue',
+  'fg-restricted-source-hidden',
+  'fg-explain-existing-finding',
+  'fg-quiet-done-cancelled',
+  'fg-resolve-condition-gone',
+  'fg-human-gated-action-prep',
+  'fg-dismiss-finding',
+] as const;
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
@@ -190,6 +202,28 @@ function requireMockInput<TArgs extends unknown[]>(
 }
 
 describe('FleetGraph executable golden cases', () => {
+  it('reports executable coverage separately from the golden-case catalog', () => {
+    const executableIds = new Set<string>(EXECUTABLE_GOLDEN_CASE_IDS);
+    expect(executableIds.size).toBe(EXECUTABLE_GOLDEN_CASE_IDS.length);
+    expect(fleetGraphGoldenCases).toHaveLength(19);
+    expect(executableIds.size).toBe(10);
+
+    const unexecutedIds = fleetGraphGoldenCases
+      .filter((testCase) => !executableIds.has(testCase.id))
+      .map((testCase) => testCase.id);
+    expect(unexecutedIds).toEqual([
+      'fg-refine-draft',
+      'fg-change-summary-now-blocked',
+      'fg-change-summary-blocker-changed',
+      'fg-change-summary-no-meaningful-change',
+      'fg-change-summary-restricted-hidden',
+      'fg-change-summary-priority-raised',
+      'fg-restricted-neighbor-evidence',
+      'fg-restricted-recipient-hidden',
+      'fg-error-context-fetch-failure',
+    ]);
+  });
+
   it('executes proactive create with mocked model and human gate', async () => {
     const testCase = requireGoldenCase('fg-create-blocked-visible-issue');
     const port = persistence();
