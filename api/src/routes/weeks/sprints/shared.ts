@@ -1,5 +1,4 @@
 // Week routes expose sprint document workflows and visibility-filtered rollups.
-import type { PlanHistoryEntry } from '@ship/shared';
 import { pool } from '../../../db/client.js';
 import { z } from 'zod';
 import { VISIBILITY_FILTER_SQL } from '../../../middleware/visibility.js';

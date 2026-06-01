@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
-import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
+import { getVisibilityContext } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { sendInternalError } from '../../utils/route-http.js';

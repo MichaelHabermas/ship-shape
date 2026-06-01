@@ -9,8 +9,6 @@ import { sendInternalError } from '../../utils/route-http.js';
 import { buildWorkspaceSprintCalendar } from '../../services/team/sprint-calendar.js';
 import { parseMetricEstimate } from './parse-metric.js';
 import type {
-  AccountabilityIssueRow,
-  AccountabilityPersonRow,
   PersonSprintMetricsIssueRow,
   TeamPersonRow,
   WorkspaceSprintStartRow,

@@ -3,39 +3,20 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../../../db/client.js';
 import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../../middleware/visibility.js';
 import { authMiddleware } from '../../../middleware/auth.js';
-import { requireWeekLifecycleAuthority } from '../../../services/governance-auth.js';
 import { getAuthenticatedRouteContext } from '../../../utils/auth-context.js';
 import { sendInternalError, sendValidationError } from '../../../utils/route-http.js';
-import { formatWireDate } from '../../../utils/format-wire-date.js';
 import { logDocumentChange } from '../../../utils/document-crud.js';
 import { asApprovalRecord } from '../../../utils/approval-workflow.js';
 import { broadcastToUser } from '../../../collaboration/index.js';
-import { principalFromRequest } from '../../../security/principal.js';
-import { requireWeekRead, requireWeekWrite } from '../week-access.js';
+import { requireWeekWrite } from '../week-access.js';
 import type {
   SprintRow,
-  SprintInsertRow,
-  WorkspaceSprintStartRow,
-  ProgramExistsRow,
-  IdRow,
-  UserIdRow,
-  WorkspaceMemberUserRow,
   SprintExistsRow,
-  SprintPrefixRow,
-  SprintIssueListRow,
-  SprintTitleRow,
-  SprintScopeInfoRow,
-  SprintIssueEstimateRow,
-  SprintHistoryRow,
 } from '../types.js';
 import {
   visibleSprintIssueCountSql,
-  createSprintSchema,
-  updateSprintSchema,
   updatePlanSchema,
   extractSprintFromRow,
-  isSprintActive,
-  takeSprintSnapshot,
 } from './shared.js';
 
 const router = Router();

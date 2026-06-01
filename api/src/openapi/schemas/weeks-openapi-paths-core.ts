@@ -1,15 +1,12 @@
 import { z, registry } from '../registry.js';
-import { UuidSchema, DateSchema } from './common.js';
+import { UuidSchema } from './common.js';
 import {
   ActiveWeeksResponseSchema,
-  ActiveWeekItemSchema,
   CreateWeekSchema,
   SprintReviewResponseSchema,
   UpdateWeekPlanSchema,
   UpdateWeekSchema,
-  WeekPlanApprovalResponseSchema,
   WeekResponseSchema,
-  WeekReviewSchema,
 } from './weeks-schemas.js';
 
 registry.registerPath({

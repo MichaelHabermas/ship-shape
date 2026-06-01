@@ -1,22 +1,4 @@
-import { Router, type Router as ExpressRouter, Request, Response } from 'express';
-import { pool } from '../../db/client.js';
 import { z } from 'zod';
-import { authMiddleware } from '../../middleware/auth.js';
-import { v4 as uuidv4 } from 'uuid';
-import { TEMPLATE_HEADINGS } from '../../utils/document-content.js';
-import { extractPlanItemsFromContent } from '@ship/shared';
-import {
-  getActor,
-  getDocumentAccessContext,
-  getReadableDocument,
-  requireSelfOrAdminPerson,
-  visibilityPredicate,
-  type AccessibleDocument,
-} from '../../services/document-access.js';
-import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
-import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
-
-const router = Router();
 export type WeeklyDocumentProperties = Record<string, unknown> & {
   person_id?: string;
   week_number?: number;

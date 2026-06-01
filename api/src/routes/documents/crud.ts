@@ -1,10 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
-import { belongsToSchema, documentVisibilitySchema } from '../../schemas/document-boundary.js';
-import { z } from 'zod';
 import { authMiddleware } from '../../middleware/auth.js';
-import { getActor, getDocumentAccessContext } from '../../services/document-access.js';
-import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
+import { getActor, getDocumentAccessContext, visibilityPredicate } from '../../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
 import {
   createDocumentMutation,
@@ -12,7 +9,6 @@ import {
   updateDocumentMutation,
 } from '../../services/document-mutations.js';
 import { principalFromRequest } from '../../security/principal.js';
-import { guardDocumentIdParam } from '../../security/route-capability.js';
 import {
   readAssigneeIdsFromProperties,
   readDocumentDetailFields,
@@ -23,16 +19,12 @@ import {
   createDocumentSchema,
   updateDocumentSchema,
   loadDocumentForRead,
-  canReadDocumentWithAccountability,
   extractBelongsToAssocFromRow,
-  type DocumentAccessRow,
   type DocumentTypeRow,
   type PersonOwnerRow,
   type PersonTitleRow,
   type BelongsToAssocRow,
-  type DocumentProperties,
 } from './shared.js';
-import { visibilityPredicate } from '../../services/document-access.js';
 
 const router = Router();
 

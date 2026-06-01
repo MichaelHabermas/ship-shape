@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
-import { getVisibilityContext, VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
+import { getVisibilityContext } from '../../middleware/visibility.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { hasContent } from '../../utils/document-content.js';
@@ -10,7 +10,6 @@ import {
   sprintNumberFromDate,
   SPRINT_DURATION_DAYS,
 } from '../../services/team/sprint-calendar.js';
-import { parseMetricEstimate } from './parse-metric.js';
 import type {
   AccountabilityGridAssignmentRow,
   AccountabilityGridPersonRow,

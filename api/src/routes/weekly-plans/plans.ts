@@ -1,10 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
-import { z } from 'zod';
 import { authMiddleware } from '../../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
-import { TEMPLATE_HEADINGS } from '../../utils/document-content.js';
-import { extractPlanItemsFromContent } from '@ship/shared';
 import {
   getActor,
   getDocumentAccessContext,
@@ -25,9 +22,6 @@ import {
   type WeeklyPlanDocumentRow,
   type WeeklyPlanListRow,
   type ContentHistoryRow,
-  type WorkspaceSprintStartRow,
-  type AllocatedPersonRow,
-  type WeeklyDocStatusRow,
 } from './shared.js';
 
 const router = Router();

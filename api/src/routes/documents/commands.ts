@@ -16,7 +16,6 @@ import { guardDocumentIdParam } from '../../security/route-capability.js';
 import { readRestoredDocumentFields } from '../../utils/document-properties.js';
 import { requireFirstRow } from '../../utils/query-rows.js';
 import {
-  loadDocumentForRead,
   documentCommandSchema,
   convertDocumentSchema,
   type DocumentAccessRow,

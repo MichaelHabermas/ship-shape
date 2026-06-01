@@ -2,38 +2,14 @@
 import { Request } from 'express';
 import { pool } from '../../db/client.js';
 import { z } from 'zod';
-import { authMiddleware } from '../../middleware/auth.js';
-import { isWorkspaceAdmin } from '../../middleware/visibility.js';
-import { loadContentFromYjsState } from '../../utils/yjsConverter.js';
 import { belongsToSchema, documentTypeSchema, documentVisibilitySchema, issueSourceSchema } from '../../schemas/document-boundary.js';
 import {
   canReadAccountabilityDocument,
   getActor,
-  getDocumentAccessContext,
-  visibilityPredicate,
   type AccessibleDocument,
 } from '../../services/document-access.js';
-import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
-import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
-import {
-  createDocumentMutation,
-  convertDocumentMutation,
-  deleteDocumentMutation,
-  updateDocumentContentMutation,
-  updateDocumentMutation,
-} from '../../services/document-mutations.js';
-import { authorize, capabilityDenialStatus, documentCommandCapability } from '../../security/capabilities.js';
+import { authorize } from '../../security/capabilities.js';
 import { principalFromRequest } from '../../security/principal.js';
-import { guardDocumentIdParam } from '../../security/route-capability.js';
-import {
-  readAssigneeIdsFromProperties,
-  readDocumentDetailFields,
-  readIssueListFields,
-  readOwnerIdFromProperties,
-  readPersonIdFromProperties,
-  readRestoredDocumentFields,
-} from '../../utils/document-properties.js';
-import { requireFirstRow } from '../../utils/query-rows.js';
 
 export type DocumentProperties = Record<string, unknown> & {
   is_complete?: boolean;

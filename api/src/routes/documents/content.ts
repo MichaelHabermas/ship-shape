@@ -6,10 +6,8 @@ import { getActor } from '../../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
 import { updateDocumentContentMutation } from '../../services/document-mutations.js';
 import { principalFromRequest } from '../../security/principal.js';
-import { guardDocumentIdParam } from '../../security/route-capability.js';
 import {
   updateContentSchema,
-  loadDocumentForRead,
   canReadDocumentWithAccountability,
   type DocumentContentAccessRow,
   type DocumentProperties,
