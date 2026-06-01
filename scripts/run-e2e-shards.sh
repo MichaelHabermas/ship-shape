@@ -144,6 +144,8 @@ run_shard() {
     cd "${cwd}"
     E2E_RESULTS_DIR="${results_dir}" \
       E2E_BUILD_ID="${BUILD_ID}" \
+      E2E_SHARD_INDEX="${shard}" \
+      E2E_SHARD_TOTAL="${SHARDS}" \
       PLAYWRIGHT_WORKERS="${WORKERS}" \
       "${command[@]}"
   ) &

@@ -36,17 +36,25 @@ import { type IdRow, requireFirstRow } from './e2e-seed-rows';
  * - Worker 1: 50100-50199
  * - etc.
  */
-async function getWorkerPort(workerIndex: number): Promise<number> {
+async function getWorkerPort(workerIndex: number, serviceOffset: number): Promise<number> {
   const BASE_PORT = 10000;
   const MAX_PORT = 65535;
-  const PORTS_PER_WORKER = 100;
+  const PORTS_PER_SERVICE = 50;
+  const SERVICES_PER_WORKER = 2;
+  const PORTS_PER_WORKER = PORTS_PER_SERVICE * SERVICES_PER_WORKER;
   const AVAILABLE_RANGE = MAX_PORT - BASE_PORT; // 55535 ports available
   const MAX_WORKERS = Math.floor(AVAILABLE_RANGE / PORTS_PER_WORKER); // 555 workers max
+  const shardIndex = Number.parseInt(process.env.E2E_SHARD_INDEX || '1', 10);
+  const shardTotal = Number.parseInt(process.env.E2E_SHARD_TOTAL || '1', 10);
+  const shardOffset = Number.isFinite(shardIndex) && Number.isFinite(shardTotal)
+    ? Math.max(0, shardIndex - 1) * Math.max(1, shardTotal)
+    : 0;
 
-  // Wrap worker index to stay within valid port range
-  const wrappedIndex = workerIndex % MAX_WORKERS;
-  const startPort = BASE_PORT + wrappedIndex * PORTS_PER_WORKER;
-  const endPort = Math.min(startPort + PORTS_PER_WORKER - 1, MAX_PORT);
+  // Wrap worker index to stay within valid port range. Include shard identity because
+  // Playwright worker indexes reset inside each parallel shard process.
+  const wrappedIndex = (workerIndex + shardOffset) % MAX_WORKERS;
+  const startPort = BASE_PORT + wrappedIndex * PORTS_PER_WORKER + serviceOffset * PORTS_PER_SERVICE;
+  const endPort = Math.min(startPort + PORTS_PER_SERVICE - 1, MAX_PORT);
 
   return getPort({ port: portNumbers(startPort, endPort) });
 }
@@ -149,7 +157,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       // Use worker-specific port range to avoid collisions between parallel workers
-      const port = await getWorkerPort(workerInfo.workerIndex);
+      const port = await getWorkerPort(workerInfo.workerIndex, 0);
       const dbUrl = dbContainer.getConnectionUri();
 
       if (debug) console.log(`${workerTag} Starting API server on port ${port}...`);
@@ -212,7 +220,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const workerTag = `[Worker ${workerInfo.workerIndex}]`;
       const debug = process.env.DEBUG === '1';
       // Use worker-specific port range (separate from API port)
-      const port = await getWorkerPort(workerInfo.workerIndex);
+      const port = await getWorkerPort(workerInfo.workerIndex, 1);
 
       // Extract API port from URL
       const apiPort = new URL(apiServer.url).port;
@@ -796,6 +804,19 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
        VALUES ($1, 'wiki', $2, $3, $4)`,
       [workspaceId, child.title, parentDocId, userId]
     );
+  }
+
+  const nestedWikiCheck = await pool.query(
+    `SELECT COUNT(*)::int AS child_count
+     FROM documents
+     WHERE workspace_id = $1
+       AND document_type = 'wiki'
+       AND parent_id = $2`,
+    [workspaceId, parentDocId]
+  );
+  const nestedWikiChildCount = Number(nestedWikiCheck.rows[0]?.child_count || 0);
+  if (nestedWikiChildCount < childDocs.length) {
+    throw new Error(`E2E seed failed to create nested wiki documents: expected ${childDocs.length}, got ${nestedWikiChildCount}`);
   }
 
   // Create additional top-level wiki documents for tests that require multiple documents

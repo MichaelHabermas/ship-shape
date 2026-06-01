@@ -49,6 +49,10 @@ function createTestImageFile(): string {
   return tmpPath
 }
 
+async function waitForEditorSaved(page: Page) {
+  await expect(page.getByTestId('sync-status').getByText(/Saved|Cached/)).toBeVisible({ timeout: 15000 })
+}
+
 test.describe('Data Integrity - Document Persistence', () => {
   test.beforeEach(async ({ page }) => {
     await login(page)
@@ -280,7 +284,8 @@ test.describe('Data Integrity - Images', () => {
     fileChooser = await fileChooserPromise
     await fileChooser.setFiles(tmpPath2)
 
-    await page.waitForTimeout(3000)
+    await expect(editor.locator('img')).toHaveCount(2, { timeout: 15000 })
+    await waitForEditorSaved(page)
 
     // Get image sources
     const imgs = await editor.locator('img').all()
@@ -294,6 +299,7 @@ test.describe('Data Integrity - Images', () => {
     await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 5000 })
 
     // Verify order preserved
+    await expect(page.locator('.ProseMirror img')).toHaveCount(2, { timeout: 15000 })
     const reloadedImgs = await page.locator('.ProseMirror img').all()
     expect(reloadedImgs.length).toBe(2)
 
@@ -359,7 +365,7 @@ test.describe('Data Integrity - Mentions', () => {
     let options = await page.locator('[role="option"]').all()
     if (options.length > 0) {
       await options[0].click()
-      await page.waitForTimeout(500)
+      await expect(editor.locator('.mention')).toHaveCount(1, { timeout: 5000 })
     }
 
     // Insert second mention
@@ -370,22 +376,22 @@ test.describe('Data Integrity - Mentions', () => {
     options = await page.locator('[role="option"]').all()
     if (options.length > 1) {
       await options[1].click()
-      await page.waitForTimeout(500)
+      await expect(editor.locator('.mention')).toHaveCount(2, { timeout: 5000 })
     } else if (options.length > 0) {
       await options[0].click()
-      await page.waitForTimeout(500)
+      await expect(editor.locator('.mention')).toHaveCount(2, { timeout: 5000 })
     }
 
-    // Wait for save
-    await page.waitForTimeout(2000)
-
+    await waitForEditorSaved(page)
     const mentionCount = await editor.locator('.mention').count()
+    expect(mentionCount).toBe(2)
 
     // Reload
     await page.reload()
     await expect(page.locator('.ProseMirror')).toBeVisible({ timeout: 5000 })
 
     // Same number of mentions should exist
+    await expect(page.locator('.ProseMirror .mention')).toHaveCount(2, { timeout: 15000 })
     const reloadedMentionCount = await page.locator('.ProseMirror .mention').count()
     expect(reloadedMentionCount).toBe(mentionCount)
   })
