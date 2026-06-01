@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import myWeekRouter from './my-week.js';
-import sprintsRouter from './sprints.js';
+import sprintsRouter from './sprints/index.js';
 import nestedStandupsRouter from './nested-standups.js';
 import reviewsRouter from './reviews.js';
 import approvalsRouter from './approvals.js';

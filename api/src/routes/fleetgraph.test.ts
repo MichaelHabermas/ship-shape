@@ -2,7 +2,7 @@
 import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import fleetgraphRoutes from './fleetgraph.js';
+import fleetgraphRoutes from './fleetgraph/index.js';
 import { fleetGraphConfig } from '../config/fleetgraph.js';
 import { authorizeRequest } from '../security/route-capability.js';
 import { getFleetGraphBlastRadius } from '../fleetgraph/blast-radius.js';
