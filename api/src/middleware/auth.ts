@@ -37,6 +37,10 @@ const SESSION_EXPIRED_MESSAGES: Record<SessionExpiredReason, string> = {
   inactivity_timeout: 'Session expired due to inactivity',
 };
 
+type WorkspaceMembershipRoleRow = {
+  role: string;
+};
+
 function isSessionExpiredReason(reason: SessionValidationFailure): reason is SessionExpiredReason {
   return reason in SESSION_EXPIRED_MESSAGES;
 }
@@ -245,7 +249,7 @@ export async function workspaceAdminMiddleware(
   }
 
   try {
-    const result = await pool.query(
+    const result = await pool.query<WorkspaceMembershipRoleRow>(
       'SELECT role FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2',
       [workspaceId, req.userId]
     );
@@ -278,4 +282,3 @@ export async function workspaceAdminMiddleware(
     });
   }
 }
-

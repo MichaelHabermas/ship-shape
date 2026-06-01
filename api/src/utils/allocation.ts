@@ -22,6 +22,11 @@ export interface Allocation {
   projectName: string;
 }
 
+type AllocationRow = {
+  project_id: string;
+  project_name: string | null;
+};
+
 /**
  * Get all project allocations for a person in a specific sprint.
  *
@@ -39,7 +44,7 @@ export async function getAllocations(
   isAdmin = false
 ): Promise<Allocation[]> {
   // Find all projects via explicit assignee_ids OR issue assignments (deduplicated)
-  const result = await pool.query(
+  const result = await pool.query<AllocationRow>(
     `SELECT DISTINCT ON (project_id) project_id, project_name FROM (
        -- Explicit sprint assignee_ids
        SELECT (s.properties->>'project_id')::uuid as project_id, proj.title as project_name

@@ -15,8 +15,8 @@ export function requestSetupToken(
   req: { headers: Record<string, unknown> },
   body?: { setup_token?: string }
 ): string | null {
-  const header = req.headers[SETUP_TOKEN_HEADER];
-  const headerValue = Array.isArray(header) ? header[0] : header;
+  const header: unknown = req.headers[SETUP_TOKEN_HEADER];
+  const headerValue = Array.isArray(header) ? (header as readonly unknown[])[0] : header;
   if (typeof headerValue === 'string' && headerValue.trim()) return headerValue.trim();
   return body?.setup_token?.trim() || null;
 }

@@ -101,7 +101,7 @@ describe('API Content Preservation', () => {
         // This is what getOrCreateDoc does
         let jsonContent = requireFirstRow(result.rows).content
         if (typeof jsonContent === 'string') {
-          jsonContent = JSON.parse(jsonContent)
+          jsonContent = JSON.parse(jsonContent) as Record<string, unknown>
         }
 
         if (jsonContent && jsonContent.type === 'doc' && Array.isArray(jsonContent.content)) {
@@ -578,7 +578,7 @@ describe('API Content Preservation', () => {
       // Parse if string (what collaboration server does)
       let jsonContent = requireFirstRow(result.rows).content
       if (typeof jsonContent === 'string') {
-        jsonContent = JSON.parse(jsonContent)
+        jsonContent = JSON.parse(jsonContent) as Record<string, unknown>
       }
 
       const doc = new Y.Doc()

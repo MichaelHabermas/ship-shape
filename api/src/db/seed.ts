@@ -12,6 +12,12 @@ import { WELCOME_DOCUMENT_TITLE, WELCOME_DOCUMENT_CONTENT } from './welcomeDocum
 import { IdRow, MaxTicketRow, SprintStartDateRow } from '../test/pg-result.js';
 import { requireFirstRow } from '../utils/query-rows.js';
 
+type SeedUserRow = {
+  id: string;
+  name: string;
+  person_doc_id: string | null;
+};
+
 function seedAt<T>(value: T | undefined, label: string): T {
   if (value === undefined) {
     throw new Error(`Seed invariant violated: ${label}`);
@@ -241,7 +247,7 @@ async function seed() {
 
     // Get all user IDs for assignment (join through workspace_memberships)
     // Also get person document IDs for team allocation
-    const allUsersResult = await pool.query(
+    const allUsersResult = await pool.query<SeedUserRow>(
       `SELECT u.id, u.name, d.id as person_doc_id FROM users u
        JOIN workspace_memberships wm ON wm.user_id = u.id
        LEFT JOIN documents d ON d.workspace_id = wm.workspace_id

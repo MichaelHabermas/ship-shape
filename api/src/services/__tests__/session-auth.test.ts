@@ -3,19 +3,23 @@ import crypto from 'crypto';
 import { pool } from '../../db/client.js';
 import { validateAuthenticatedSession } from '../session-auth.js';
 
+type IdRow = {
+  id: string;
+};
+
 describe('validateAuthenticatedSession', () => {
   let userId: string;
   let workspaceId: string;
   let sessionId: string;
 
   beforeEach(async () => {
-    const ws = await pool.query(
+    const ws = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [`session-auth-${Date.now()}`]
     );
     workspaceId = ws.rows[0].id;
 
-    const user = await pool.query(
+    const user = await pool.query<IdRow>(
       `INSERT INTO users (email, name) VALUES ($1, 'Session Auth User') RETURNING id`,
       [`session-auth-${Date.now()}@example.test`]
     );

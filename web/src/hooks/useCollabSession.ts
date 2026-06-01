@@ -67,12 +67,13 @@ export interface UseCollabSessionResult {
 }
 
 function getCollaborationWsUrl(): string {
-  const wsUrl = import.meta.env.VITE_WS_URL;
+  const wsUrl: unknown = import.meta.env.VITE_WS_URL;
   if (typeof wsUrl === 'string' && wsUrl.length > 0) {
     return wsUrl.replace(/^http/, 'ws') + '/collaboration';
   }
 
-  const apiUrl = import.meta.env.VITE_API_URL ?? '';
+  const configuredApiUrl: unknown = import.meta.env.VITE_API_URL;
+  const apiUrl = typeof configuredApiUrl === 'string' ? configuredApiUrl : '';
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return apiUrl
     ? apiUrl.replace(/^http/, 'ws') + '/collaboration'

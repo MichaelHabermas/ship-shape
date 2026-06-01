@@ -255,9 +255,10 @@ describe('Activity API', () => {
         const response = await request(app)
           .get(`/activity/program/${programId}`)
           .expect(200);
+        const body = response.body as { days: unknown[] };
 
         // Should return exactly 30 days
-        expect(response.body.days).toHaveLength(30);
+        expect(body.days).toHaveLength(30);
 
         // Verify query uses 29 days interval (today + 29 previous days = 30 total)
         expect(pool.query).toHaveBeenCalledWith(

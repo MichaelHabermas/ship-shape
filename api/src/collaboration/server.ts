@@ -59,6 +59,10 @@ import {
 
 const MAX_WS_MESSAGE_SIZE = 10 * 1024 * 1024;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 async function validateWebSocketSession(request: IncomingMessage): Promise<Extract<Principal, { kind: 'session' }> | null> {
   const cookieHeader = request.headers.cookie;
   if (!cookieHeader) return null;
@@ -68,9 +72,11 @@ async function validateWebSocketSession(request: IncomingMessage): Promise<Extra
   if (!sessionId) return null;
 
   try {
+    const rawUserAgent: unknown = request.headers['user-agent'];
+    const userAgent = Array.isArray(rawUserAgent) ? (rawUserAgent as readonly unknown[])[0] : rawUserAgent;
     const validation = await validateAuthenticatedSession(sessionId, {
       updateActivity: true,
-      userAgent: Array.isArray(request.headers['user-agent']) ? request.headers['user-agent'][0] : request.headers['user-agent'] || null,
+      userAgent: typeof userAgent === 'string' ? userAgent : null,
       ipAddress: request.socket.remoteAddress || null,
     });
     if (!validation.ok || !validation.session.workspaceId) {
@@ -483,8 +489,8 @@ export function setupCollaboration(
       recordMessage(ws);
 
       try {
-        const message = JSON.parse(data.toString());
-        if (message.type === 'ping') {
+        const message: unknown = JSON.parse(data.toString());
+        if (isRecord(message) && message.type === 'ping') {
           ws.send(JSON.stringify({ type: 'pong' }));
           return;
         }

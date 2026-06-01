@@ -156,7 +156,7 @@ export function StatusOverviewHeatmap({ showArchived = false }: StatusOverviewHe
           return;
         }
 
-        const json: AccountabilityGridV3Data = await res.json();
+        const json = await res.json() as AccountabilityGridV3Data;
         setData(json);
 
         // Auto-expand all programs by default

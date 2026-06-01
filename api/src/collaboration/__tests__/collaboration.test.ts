@@ -5,6 +5,15 @@ import { pool } from '../../db/client.js'
 import crypto from 'crypto'
 import { __collaborationSecurityTestHooks, isAllowedWebSocketOrigin } from '../index.js'
 
+type IdRow = { id: string }
+type ChangedByRow = { changed_by: string }
+type SessionLookupRow = { user_id: string; workspace_id: string }
+type AccessRow = { can_access: boolean }
+type YjsStateRow = { yjs_state: Buffer }
+type VisibilityRow = { visibility: string }
+type DocumentTypeRow = { document_type: string }
+type JsonDocContent = { type: string; content: Array<{ type: string }> }
+
 /**
  * Collaboration server tests
  *
@@ -31,21 +40,21 @@ describe('Collaboration Server', () => {
 
   beforeAll(async () => {
     // Create test workspace
-    const workspaceResult = await pool.query(
+    const workspaceResult = await pool.query<IdRow>(
       `INSERT INTO workspaces (name) VALUES ($1) RETURNING id`,
       [testWorkspaceName]
     )
     testWorkspaceId = workspaceResult.rows[0].id
 
     // Create test users
-    const userResult = await pool.query(
+    const userResult = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Collab User 1') RETURNING id`,
       [`collab-user1-${testRunId}@test.local`]
     )
     testUserId = userResult.rows[0].id
 
-    const user2Result = await pool.query(
+    const user2Result = await pool.query<IdRow>(
       `INSERT INTO users (email, password_hash, name)
        VALUES ($1, 'test-hash', 'Collab User 2') RETURNING id`,
       [`collab-user2-${testRunId}@test.local`]
@@ -63,7 +72,7 @@ describe('Collaboration Server', () => {
     )
 
     // Create test document
-    const docResult = await pool.query(
+    const docResult = await pool.query<IdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
        VALUES ($1, 'wiki', 'Test Collab Doc', 'workspace', $2)
        RETURNING id`,
@@ -86,7 +95,7 @@ describe('Collaboration Server', () => {
     it('should extract UUID from doc:uuid format', async () => {
       // The collaboration server uses parseDocId to extract UUID from room names like "wiki:uuid"
       // We test this by verifying documents can be looked up using just the UUID part
-      const result = await pool.query(
+      const result = await pool.query<IdRow>(
         'SELECT id FROM documents WHERE id = $1',
         [testDocId]
       )
@@ -97,7 +106,7 @@ describe('Collaboration Server', () => {
       // parseDocId handles both "type:uuid" and just "uuid"
       // We verify the document can be accessed by UUID directly
       const uuid = testDocId
-      const result = await pool.query(
+      const result = await pool.query<IdRow>(
         'SELECT id FROM documents WHERE id = $1',
         [uuid]
       )
@@ -181,14 +190,14 @@ describe('Collaboration Server', () => {
     let weeklyPlanId: string
 
     beforeAll(async () => {
-      const creator = await pool.query(
+      const creator = await pool.query<IdRow>(
         `INSERT INTO users (email, password_hash, name)
          VALUES ($1, 'test-hash', 'Collab Creator') RETURNING id`,
         [`collab-creator-${testRunId}@test.local`]
       )
       creatorId = creator.rows[0].id
 
-      const editor = await pool.query(
+      const editor = await pool.query<IdRow>(
         `INSERT INTO users (email, password_hash, name)
          VALUES ($1, 'test-hash', 'Collab Editor') RETURNING id`,
         [`collab-editor-${testRunId}@test.local`]
@@ -201,7 +210,7 @@ describe('Collaboration Server', () => {
         [testWorkspaceId, creatorId, editorId]
       )
 
-      const person = await pool.query(
+      const person = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties)
          VALUES ($1, 'person', 'Collab Editor Person', 'workspace', $2, $3)
          RETURNING id`,
@@ -209,7 +218,7 @@ describe('Collaboration Server', () => {
       )
       personId = person.rows[0].id
 
-      const weeklyPlan = await pool.query(
+      const weeklyPlan = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by, properties, content)
          VALUES ($1, 'weekly_plan', 'Creator Plan', 'workspace', $2, $3, $4)
          RETURNING id`,
@@ -242,7 +251,7 @@ describe('Collaboration Server', () => {
         isSuperAdmin: false,
       })
 
-      const history = await pool.query(
+      const history = await pool.query<ChangedByRow>(
         `SELECT changed_by FROM document_history
          WHERE document_id = $1 AND field = 'content'
          ORDER BY created_at DESC
@@ -472,7 +481,7 @@ describe('Collaboration Server', () => {
       )
 
       // Query session to verify it exists and is valid
-      const result = await pool.query(
+      const result = await pool.query<SessionLookupRow>(
         `SELECT user_id, workspace_id, last_activity, created_at
          FROM sessions WHERE id = $1`,
         [sessionId]
@@ -542,7 +551,7 @@ describe('Collaboration Server', () => {
   describe('Document Access Control', () => {
     it('should allow workspace member to access workspace document', async () => {
       // Workspace doc created in beforeAll is accessible
-      const result = await pool.query(
+      const result = await pool.query<AccessRow>(
         `SELECT d.id,
                 (d.visibility = 'workspace' OR d.created_by = $2 OR
                  (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
@@ -556,7 +565,7 @@ describe('Collaboration Server', () => {
 
     it('should allow creator to access private document', async () => {
       // Create private doc
-      const privateDocResult = await pool.query(
+      const privateDocResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private Test Doc', 'private', $2)
          RETURNING id`,
@@ -565,7 +574,7 @@ describe('Collaboration Server', () => {
       const privateDocId = privateDocResult.rows[0].id
 
       // Check creator can access
-      const result = await pool.query(
+      const result = await pool.query<AccessRow>(
         `SELECT d.id,
                 (d.visibility = 'workspace' OR d.created_by = $2 OR
                  (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
@@ -582,7 +591,7 @@ describe('Collaboration Server', () => {
 
     it('should block non-creator from accessing private document', async () => {
       // Create private doc as user1
-      const privateDocResult = await pool.query(
+      const privateDocResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'User1 Private Doc', 'private', $2)
          RETURNING id`,
@@ -591,7 +600,7 @@ describe('Collaboration Server', () => {
       const privateDocId = privateDocResult.rows[0].id
 
       // Check user2 cannot access
-      const result = await pool.query(
+      const result = await pool.query<AccessRow>(
         `SELECT d.id,
                 (d.visibility = 'workspace' OR d.created_by = $2 OR
                  (SELECT role FROM workspace_memberships WHERE workspace_id = $3 AND user_id = $2) = 'admin') as can_access
@@ -668,7 +677,7 @@ describe('Collaboration Server', () => {
       )
 
       // Verify persisted
-      const result = await pool.query(
+      const result = await pool.query<YjsStateRow>(
         `SELECT yjs_state, updated_at FROM documents WHERE id = $1`,
         [testDocId]
       )
@@ -725,7 +734,7 @@ describe('Collaboration Server', () => {
         ]
       }
 
-      const jsonDocResult = await pool.query(
+      const jsonDocResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, content, yjs_state, created_by)
          VALUES ($1, 'wiki', 'JSON Content Doc', $2, NULL, $3)
          RETURNING id`,
@@ -734,7 +743,7 @@ describe('Collaboration Server', () => {
       const jsonDocId = jsonDocResult.rows[0].id
 
       // Verify content is stored
-      const result = await pool.query<{ content: string | Record<string, unknown>; yjs_state: Buffer | null }>(
+      const result = await pool.query<{ content: string | JsonDocContent; yjs_state: Buffer | null }>(
         `SELECT content, yjs_state FROM documents WHERE id = $1`,
         [jsonDocId]
       )
@@ -745,7 +754,7 @@ describe('Collaboration Server', () => {
       // Parse content
       const rawContent = result.rows[0].content;
       const content = typeof rawContent === 'string'
-        ? JSON.parse(rawContent) as { type: string; content: Array<{ type: string }> }
+        ? JSON.parse(rawContent) as JsonDocContent
         : rawContent
 
       expect(content.type).toBe('doc')
@@ -758,7 +767,7 @@ describe('Collaboration Server', () => {
 
   describe('Visibility Change Handling', () => {
     it('should allow visibility to be changed from workspace to private', async () => {
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Visibility Test Doc', 'workspace', $2)
          RETURNING id`,
@@ -773,7 +782,7 @@ describe('Collaboration Server', () => {
       )
 
       // Verify change
-      const result = await pool.query(
+      const result = await pool.query<VisibilityRow>(
         `SELECT visibility FROM documents WHERE id = $1`,
         [docId]
       )
@@ -785,7 +794,7 @@ describe('Collaboration Server', () => {
     })
 
     it('should allow visibility to be changed from private to workspace', async () => {
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, visibility, created_by)
          VALUES ($1, 'wiki', 'Private to Workspace', 'private', $2)
          RETURNING id`,
@@ -800,7 +809,7 @@ describe('Collaboration Server', () => {
       )
 
       // Verify change
-      const result = await pool.query(
+      const result = await pool.query<VisibilityRow>(
         `SELECT visibility FROM documents WHERE id = $1`,
         [docId]
       )
@@ -815,7 +824,7 @@ describe('Collaboration Server', () => {
   describe('Document Conversion Handling', () => {
     it('should support issue to project conversion', async () => {
       // Create issue
-      const issueResult = await pool.query(
+      const issueResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by)
          VALUES ($1, 'issue', 'Issue to Convert', $2)
          RETURNING id`,
@@ -830,7 +839,7 @@ describe('Collaboration Server', () => {
       )
 
       // Verify conversion
-      const result = await pool.query(
+      const result = await pool.query<DocumentTypeRow>(
         `SELECT document_type FROM documents WHERE id = $1`,
         [issueId]
       )
@@ -843,7 +852,7 @@ describe('Collaboration Server', () => {
 
     it('should support project to issue conversion', async () => {
       // Create project
-      const projectResult = await pool.query(
+      const projectResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, created_by)
          VALUES ($1, 'project', 'Project to Convert', $2)
          RETURNING id`,
@@ -858,7 +867,7 @@ describe('Collaboration Server', () => {
       )
 
       // Verify conversion
-      const result = await pool.query(
+      const result = await pool.query<DocumentTypeRow>(
         `SELECT document_type FROM documents WHERE id = $1`,
         [projectId]
       )
@@ -874,7 +883,7 @@ describe('Collaboration Server', () => {
     it('should handle invalid document ID gracefully', async () => {
       const invalidId = '00000000-0000-0000-0000-000000000000'
 
-      const result = await pool.query(
+      const result = await pool.query<IdRow>(
         `SELECT id FROM documents WHERE id = $1`,
         [invalidId]
       )
@@ -900,7 +909,7 @@ describe('Collaboration Server', () => {
 
     it('should handle null yjs_state during document load', async () => {
       // Create document with null yjs_state
-      const docResult = await pool.query(
+      const docResult = await pool.query<IdRow>(
         `INSERT INTO documents (workspace_id, document_type, title, yjs_state, created_by)
          VALUES ($1, 'wiki', 'Null State Doc', NULL, $2)
          RETURNING id`,

@@ -8,7 +8,7 @@ describe('FleetGraph detector CLI args', () => {
   it('requires a workspace id', () => {
     expect(parseFleetGraphDetectorCliArgs([])).toEqual({
       ok: false,
-      error: expect.stringContaining('--workspace-id <uuid>'),
+      error: expect.stringContaining('--workspace-id <uuid>') as unknown,
     });
   });
 
@@ -61,7 +61,7 @@ describe('FleetGraph detector CLI args', () => {
       '2026-05-26',
     ])).toEqual({
       ok: false,
-      error: expect.stringContaining('--workspace-id <uuid>'),
+      error: expect.stringContaining('--workspace-id <uuid>') as unknown,
     });
 
     expect(parseFleetGraphDetectorCliArgs([

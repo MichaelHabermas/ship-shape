@@ -84,7 +84,8 @@ const conditionalCsrf = (req: Request, res: Response, next: NextFunction) => {
     return next();
   }
 
-  const expectedToken = req.signedCookies?.[CSRF_COOKIE_NAME];
+  const signedCookies = req.signedCookies as Record<string, unknown> | undefined;
+  const expectedToken = signedCookies?.[CSRF_COOKIE_NAME];
   const presentedToken = getHeaderValue(req.headers['x-csrf-token']);
   if (
     typeof expectedToken !== 'string'

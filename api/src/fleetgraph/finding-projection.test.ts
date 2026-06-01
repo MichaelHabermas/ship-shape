@@ -9,7 +9,7 @@ vi.mock('./evidence.js', () => ({
 }));
 
 vi.mock('./api-contract.js', () => ({
-  fleetGraphFindingResponse: vi.fn((finding) => ({ id: finding.id, projected: true })),
+  fleetGraphFindingResponse: vi.fn((finding: { id: string }) => ({ id: finding.id, projected: true })),
 }));
 
 describe('projectFindingForActor', () => {

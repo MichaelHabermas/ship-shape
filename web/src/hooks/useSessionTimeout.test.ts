@@ -61,7 +61,7 @@ function mockSuccessfulSessionFetch(overrides?: Partial<{ createdAt: string; exp
         credentials: 'include',
         headers: expect.objectContaining({
           'X-CSRF-Token': 'test-csrf-token',
-        }),
+        }) as unknown,
       });
       return jsonResponse({ success: true });
     }

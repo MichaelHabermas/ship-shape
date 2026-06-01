@@ -13,6 +13,8 @@ import { pool } from '../db/client.js';
 import { Request, Response, NextFunction } from 'express';
 import { SESSION_TIMEOUT_MS, ABSOLUTE_SESSION_TIMEOUT_MS } from '@ship/shared';
 
+const objectContaining = (sample: Record<string, unknown>): unknown => expect.objectContaining(sample);
+
 // Helper to create mock request/response
 function createMockReqRes(cookies: Record<string, string> = {}) {
   const req = { cookies } as unknown as Request;
@@ -36,9 +38,9 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
+        objectContaining({
           success: false,
-          error: expect.objectContaining({ message: 'No session found' }),
+          error: objectContaining({ message: 'No session found' }),
         })
       );
       expect(next).not.toHaveBeenCalled();
@@ -50,8 +52,8 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.objectContaining({ message: 'Invalid session' }),
+        objectContaining({
+          error: objectContaining({ message: 'Invalid session' }),
         })
       );
       expect(next).not.toHaveBeenCalled();
@@ -97,8 +99,8 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.objectContaining({
+        objectContaining({
+          error: objectContaining({
             message: expect.stringContaining('inactivity'),
           }),
         })
@@ -121,8 +123,8 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.objectContaining({
+        objectContaining({
+          error: objectContaining({
             message: expect.stringContaining('expired'),
           }),
         })
@@ -170,8 +172,8 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.objectContaining({
+        objectContaining({
+          error: objectContaining({
             message: expect.stringContaining('revoked'),
           }),
         })
@@ -205,8 +207,8 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.objectContaining({ message: 'Authentication failed' }),
+        objectContaining({
+          error: objectContaining({ message: 'Authentication failed' }),
         })
       );
     });
@@ -318,8 +320,8 @@ describe('authMiddleware', () => {
       await authMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.objectContaining({ message: 'Invalid or expired API token' }),
+        objectContaining({
+          error: objectContaining({ message: 'Invalid or expired API token' }),
         })
       );
       expect(next).not.toHaveBeenCalled();

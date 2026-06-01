@@ -18,6 +18,11 @@ import { pool } from '../db/client.js';
 // OAuth state expiry (10 minutes - OAuth flows should complete quickly)
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
+type OAuthStateRow = {
+  nonce: string;
+  code_verifier: string;
+};
+
 /**
  * Validate that a state string is safe and reasonable
  *
@@ -86,17 +91,18 @@ export async function consumeOAuthState(
     return null;
   }
 
-  const result = await pool.query(
+  const result = await pool.query<OAuthStateRow>(
     'DELETE FROM oauth_state WHERE state_id = $1 AND expires_at > NOW() RETURNING nonce, code_verifier',
     [state]
   );
 
-  if (result.rows.length === 0) {
+  const row = result.rows[0];
+  if (!row) {
     return null;
   }
 
   return {
-    nonce: result.rows[0].nonce,
-    codeVerifier: result.rows[0].code_verifier,
+    nonce: row.nonce,
+    codeVerifier: row.code_verifier,
   };
 }

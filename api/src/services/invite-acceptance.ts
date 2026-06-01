@@ -12,6 +12,10 @@ interface Invite {
   role: string;
 }
 
+type DocumentIdRow = {
+  id: string;
+};
+
 /**
  * Links a user to a workspace via an invite, handling person document creation/update.
  *
@@ -53,7 +57,7 @@ export async function linkUserToWorkspaceViaInvite(
   }
 
   // Find existing person doc by EMAIL (handles orphaned docs from deleted users)
-  const existingPersonDoc = await pool.query(
+  const existingPersonDoc = await pool.query<DocumentIdRow>(
     `SELECT id FROM documents
      WHERE workspace_id = $1
        AND document_type = 'person'
@@ -86,13 +90,17 @@ export async function linkUserToWorkspaceViaInvite(
     );
   } else {
     // Create new person doc
-    const newDoc = await pool.query(
+    const newDoc = await pool.query<DocumentIdRow>(
       `INSERT INTO documents (workspace_id, document_type, title, properties)
        VALUES ($1, 'person', $2, $3)
        RETURNING id`,
       [invite.workspace_id, user.name, JSON.stringify({ user_id: user.id, email })]
     );
-    personDocId = newDoc.rows[0].id;
+    const insertedDoc = newDoc.rows[0];
+    if (!insertedDoc) {
+      throw new Error('Failed to create person document for invite acceptance');
+    }
+    personDocId = insertedDoc.id;
   }
 
   // Mark invite as used

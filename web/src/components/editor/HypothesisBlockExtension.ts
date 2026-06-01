@@ -52,7 +52,8 @@ export const HypothesisBlockExtension = Node.create<HypothesisBlockOptions>({
         default: 'What will get done this sprint?',
         parseHTML: (element) => element.getAttribute('data-placeholder') || 'What will get done this sprint?',
         renderHTML: (attributes) => {
-          return { 'data-placeholder': attributes.placeholder };
+          const attrs = attributes as { placeholder?: unknown };
+          return { 'data-placeholder': typeof attrs.placeholder === 'string' ? attrs.placeholder : 'What will get done this sprint?' };
         },
       },
     };

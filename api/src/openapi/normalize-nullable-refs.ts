@@ -13,7 +13,7 @@ function isNullableRefAllOf(value: unknown): value is {
     return false;
   }
 
-  const [first, second] = value.allOf;
+  const [first, second] = value.allOf as readonly unknown[];
   return (
     isRecord(first)
     && typeof first.$ref === 'string'
