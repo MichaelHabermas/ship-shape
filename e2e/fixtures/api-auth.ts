@@ -21,8 +21,32 @@ export async function login(
   await page.locator('#email').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
+  const loginResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/auth/login'),
+    { timeout: 15000 }
+  ).catch(() => null);
+
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL('/login', { timeout: 15000 });
+  const loginResponse = await loginResponsePromise;
+  const navigated = await page.waitForURL(
+    (url) => url.pathname !== '/login',
+    { timeout: 15000 }
+  ).then(() => true).catch(() => false);
+
+  if (!navigated) {
+    const loginStatus = loginResponse ? String(loginResponse.status()) : 'no /api/auth/login response';
+    const loginBody = loginResponse ? await loginResponse.text().catch(() => '<unreadable response>') : '';
+    const alertText = await page.locator('[role="alert"]').allTextContents().catch(() => []);
+    throw new Error(
+      [
+        `Login did not leave /login for ${email}.`,
+        `URL: ${page.url()}`,
+        `Login response: ${loginStatus}`,
+        `Login body: ${loginBody.slice(0, 500)}`,
+        `Alerts: ${alertText.join(' | ') || '<none>'}`,
+      ].join('\n')
+    );
+  }
 }
 
 export async function loginAsSuperAdmin(page: Page): Promise<void> {

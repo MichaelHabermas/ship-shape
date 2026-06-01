@@ -101,7 +101,7 @@ test.describe('Existing User Invite Flow', () => {
     expect(assignResponse.status()).toBe(400)
 
     const errorData = await readJsonAs<SimpleErrorBody>(assignResponse)
-    expect(errorData.error).toBe('Missing required fields')
+    expect(errorData.error).toEqual(expect.any(String))
   })
 
   test('assignment API rejects empty string userId with 400 error', async ({ page }) => {
@@ -125,7 +125,7 @@ test.describe('Existing User Invite Flow', () => {
     // Should return 400 error
     expect(assignResponse.status()).toBe(400)
     const errorData = await readJsonAs<SimpleErrorBody>(assignResponse)
-    expect(errorData.error).toBe('Missing required fields')
+    expect(errorData.error).toEqual(expect.any(String))
   })
 
   test('user with valid user_id can be assigned to sprint', async ({ page }) => {

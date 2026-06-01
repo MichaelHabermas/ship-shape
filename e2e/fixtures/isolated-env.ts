@@ -240,21 +240,27 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       });
 
       try {
+        const previewOutput: string[] = [];
         // Log output for debugging
         proc.stdout?.on('data', (data: Buffer | string) => {
-          if (process.env.DEBUG) {
-            console.log(`${workerTag} Preview: ${data.toString().trim()}`);
-          }
+          const text = data.toString().trim();
+          previewOutput.push(text);
+          if (previewOutput.length > 20) previewOutput.shift();
+          if (process.env.DEBUG) console.log(`${workerTag} Preview: ${text}`);
         });
         proc.stderr?.on('data', (data: Buffer | string) => {
           // Vite uses stderr for some normal output
-          if (process.env.DEBUG) {
-            console.log(`${workerTag} Preview: ${data.toString().trim()}`);
-          }
+          const text = data.toString().trim();
+          previewOutput.push(text);
+          if (previewOutput.length > 20) previewOutput.shift();
+          if (process.env.DEBUG) console.log(`${workerTag} Preview: ${text}`);
         });
 
         const webUrl = `http://localhost:${port}`;
-        await waitForServer(webUrl, 30000); // Preview starts much faster than dev
+        await waitForServer(webUrl, Number(process.env.E2E_WEB_STARTUP_TIMEOUT_MS || 60000), () => {
+          const exitCode = proc.exitCode === null ? 'still running' : `exited ${proc.exitCode}`;
+          return `${workerTag} Vite preview ${exitCode}. Recent output:\n${previewOutput.join('\n') || '<none>'}`;
+        });
         if (debug) console.log(`${workerTag} Vite preview server ready at ${webUrl}`);
 
         await use({ url: webUrl, process: proc });
@@ -816,7 +822,7 @@ async function seedMinimalTestData(pool: Pool): Promise<void> {
 /**
  * Wait for a server to respond successfully
  */
-async function waitForServer(url: string, timeout: number): Promise<void> {
+async function waitForServer(url: string, timeout: number, details?: () => string): Promise<void> {
   const start = Date.now();
   let lastError: Error | null = null;
 
@@ -833,7 +839,8 @@ async function waitForServer(url: string, timeout: number): Promise<void> {
     await new Promise((r) => setTimeout(r, 200));
   }
 
-  throw new Error(`Server at ${url} did not start within ${timeout}ms. Last error: ${lastError?.message}`);
+  const suffix = details ? `\n${details()}` : '';
+  throw new Error(`Server at ${url} did not start within ${timeout}ms. Last error: ${lastError?.message}${suffix}`);
 }
 
 // Re-export expect for convenience

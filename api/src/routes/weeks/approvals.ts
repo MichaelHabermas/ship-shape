@@ -50,6 +50,23 @@ const requestChangesBodySchema = z.object({
   feedback: z.string().min(1).max(2000),
 });
 
+function requestChangesValidationError(body: unknown): string | null {
+  const parsedChanges = requestChangesBodySchema.safeParse(body ?? {});
+  if (parsedChanges.success) {
+    return null;
+  }
+
+  const feedback = body && typeof body === 'object' && 'feedback' in body
+    ? (body as { feedback?: unknown }).feedback
+    : undefined;
+
+  if (typeof feedback === 'string' && feedback.length > 2000) {
+    return 'Feedback must be 2000 characters or less';
+  }
+
+  return 'Feedback is required when requesting changes';
+}
+
 const approveReviewBodySchema = z.object({
   rating: z.unknown(),
   comment: z.string().optional(),
@@ -328,12 +345,12 @@ router.post('/:id/request-plan-changes', authMiddleware, async (req: Request, re
     if (!id) {
       return;
     }
-    const parsedChanges = requestChangesBodySchema.safeParse(req.body ?? {});
-    if (!parsedChanges.success) {
-      res.status(400).json({ error: 'Feedback is required when requesting changes' });
+    const validationError = requestChangesValidationError(req.body);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
       return;
     }
-    const { feedback } = parsedChanges.data;
+    const { feedback } = requestChangesBodySchema.parse(req.body);
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
@@ -414,12 +431,12 @@ router.post('/:id/request-retro-changes', authMiddleware, async (req: Request, r
     if (!id) {
       return;
     }
-    const parsedChanges = requestChangesBodySchema.safeParse(req.body ?? {});
-    if (!parsedChanges.success) {
-      res.status(400).json({ error: 'Feedback is required when requesting changes' });
+    const validationError = requestChangesValidationError(req.body);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
       return;
     }
-    const { feedback } = parsedChanges.data;
+    const { feedback } = requestChangesBodySchema.parse(req.body);
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
     // Validate feedback is provided and not too long
