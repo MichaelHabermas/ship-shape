@@ -9,7 +9,7 @@ import {
   deleteDocumentMutation,
   updateDocumentContentMutation,
   updateDocumentMutation,
-} from '../../services/document-mutations.js';
+} from '../../services/document-mutations/index.js';
 import { authorize, capabilityDenialStatus, documentCommandCapability } from '../../security/capabilities.js';
 import { principalFromRequest } from '../../security/principal.js';
 import { guardDocumentIdParam } from '../../security/route-capability.js';

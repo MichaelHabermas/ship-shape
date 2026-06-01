@@ -26,7 +26,7 @@ import { filesRouter } from './routes/files.js';
 import caiaAuthRoutes from './routes/caia-auth.js';
 import apiTokensRoutes from './routes/api-tokens.js';
 import adminCredentialsRoutes from './routes/admin-credentials.js';
-import claudeRoutes from './routes/claude/index.js';
+import claudeRoutes from './routes/claude/context-route.js';
 import activityRoutes from './routes/activity.js';
 import dashboardRoutes from './routes/dashboard/index.js';
 import bootstrapRoutes from './routes/bootstrap.js';

@@ -162,7 +162,10 @@ function runtimeRoutes() {
     if (importPath.endsWith('/index')) {
       filesToScan = listRouteModuleFiles(join(routesDir, importPath.replace(/\/index$/, '')));
     } else if (importPath.includes('/')) {
-      filesToScan = listRouteModuleFiles(join(routesDir, importPath));
+      const nestedFile = join(routesDir, `${importPath}.ts`);
+      filesToScan = existsSync(nestedFile)
+        ? [nestedFile]
+        : listRouteModuleFiles(join(routesDir, importPath));
     } else {
       filesToScan = [join(routesDir, `${importPath}.ts`)];
     }

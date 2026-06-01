@@ -4,7 +4,7 @@ import { authMiddleware } from '../../middleware/auth.js';
 import { loadContentFromYjsState } from '../../utils/yjsConverter.js';
 import { getActor } from '../../services/document-access.js';
 import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
-import { updateDocumentContentMutation } from '../../services/document-mutations.js';
+import { updateDocumentContentMutation } from '../../services/document-mutations/index.js';
 import { principalFromRequest } from '../../security/principal.js';
 import {
   updateContentSchema,

@@ -7,7 +7,7 @@ import {
   createDocumentMutation,
   deleteDocumentMutation,
   updateDocumentMutation,
-} from '../../services/document-mutations.js';
+} from '../../services/document-mutations/index.js';
 import { principalFromRequest } from '../../security/principal.js';
 import {
   readAssigneeIdsFromProperties,
