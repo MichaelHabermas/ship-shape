@@ -8,7 +8,12 @@ const strict = process.argv.includes('--strict');
 const dir = dirname(fileURLToPath(import.meta.url));
 const args = strict ? ['--strict'] : [];
 
-const checks = ['check-doc-paths.mjs', 'check-facts.mjs', 'check-activation-refs.mjs'];
+const checks = [
+  'check-doc-paths.mjs',
+  'check-facts.mjs',
+  'check-activation-refs.mjs',
+  '../check-fleetgraph-chat-contract.mjs',
+];
 
 for (const script of checks) {
   const result = spawnSync(process.execPath, [join(dir, script), ...args], { stdio: 'inherit' });

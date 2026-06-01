@@ -15,9 +15,9 @@ import { unsupportedChatAnswer } from './runtime/chat.js';
 import {
   chatModelAnswerFromContext,
   contextTextForModel,
-  deterministicContextChatAnswer,
   resolveContextChatBundle,
 } from './runtime/context-chat.js';
+import { chatModelUnavailableAnswer, contextChatActionRequiresApproval } from './runtime/chat-fallback.js';
 import { deterministicRefinedDraft } from './runtime/drafts.js';
 import { isJsonRecord } from './runtime/json.js';
 import { changeSummaryFromOutputs, visibleOutputFromPacket, visibleOutputFromRun } from './runtime/outputs.js';
@@ -681,9 +681,18 @@ async function runContextChat(
     context: contextTextForModel(bundle),
     history: input.trigger.history ?? [],
   });
-  const answer = modelResult
+  let answer = modelResult
     ? chatModelAnswerFromContext(modelResult.answer, bundle)
-    : deterministicContextChatAnswer(input.trigger.prompt, bundle, input.trigger.history ?? []);
+    : chatModelUnavailableAnswer(input.trigger.prompt, bundle);
+  if (modelResult && contextChatActionRequiresApproval(input.trigger.prompt)) {
+    const gate = primarySignal?.output.humanGate;
+    answer = {
+      ...answer,
+      humanGate: gate?.required === true || gate?.approvalRequired === true
+        ? { ...gate, required: true }
+        : { required: true, reason: 'human_must_approve_before_ship_or_external_action' },
+    };
+  }
   const decision = answer.humanGate.required === true ? 'needs_confirmation' : 'explain';
   const traceMetadata = fleetGraphTraceMetadata({
     mode: input.mode,

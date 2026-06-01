@@ -211,14 +211,16 @@ Use for FleetGraph runtime, detection, reviewer control room, proof scripts, obs
 
 Load:
 
+- `my-docs/fleetgraph-conversational-chat.md` (PM chat contract)
 - `FLEETGRAPH.md`
-- `PRESEARCH.md`
-- `REVIEWER_GUIDE.md`
-- `my-docs/project-weeks-sot/week-5/DECISION_LOG-w5.md`
+- `REVIEWER_GUIDE.md` (reviewer/proof only)
 - The specific FleetGraph API/web/proof files being changed.
+
+Do not load `my-docs/project-weeks-sot/week-5/archive/submission-deterministic-chat/` for PM chat work.
 
 Rules:
 
+- PM chat is LLM conversation with chip/page context as topic; do not add regex template routers for chat.
 - Keep proactive and on-demand behavior inside one graph/runtime boundary.
 - Treat `web/public/fleetgraph-observability/proof/latest.*` as the canonical public proof snapshot; local-only packets under `my-docs/evidence/fleetgraph-proof/latest.*` are not deployed proof.
 - Use `pnpm fleetgraph:proof:check` and `pnpm fleetgraph:proof:verify-traces` after proof or reviewer-doc changes.
@@ -226,6 +228,7 @@ Rules:
 Useful commands:
 
 ```bash
+pnpm docs:check:fleetgraph-chat
 pnpm fleetgraph:proof:check
 pnpm fleetgraph:proof:verify-traces
 pnpm fleetgraph:proof:test

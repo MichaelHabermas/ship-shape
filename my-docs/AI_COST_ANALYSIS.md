@@ -370,4 +370,4 @@ AI was most useful as a codebase-comprehension and reviewer-evidence accelerator
 
 The main development cost driver was broad repeated context. Large source-of-truth documents, generated OpenAPI files, proof packets, diffs, test output, and subagent fan-out all increase local token usage. That was useful for coverage, but expensive. Future work should start from the high-water mark above and narrow each AI session to one deliverable or one proof gap.
 
-The main runtime cost control is simpler: do not ask a model to discover what SQL and deterministic policy can already detect. FleetGraph's current cost posture is deterministic-first, then optionally model-backed only at explicit boundaries. That is the right shape for this assignment because the reviewer needs proof that the graph works, not a large model bill.
+The main runtime cost control is simpler: do not ask a model to discover what SQL and deterministic policy can already detect. Worker/detection stays SQL-first. PM context chat is model-primary when configured; measure chat spend from `fleetgraph_runs` with nonzero `token_metadata.modelCalls`.

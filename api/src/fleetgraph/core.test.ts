@@ -1,6 +1,8 @@
 // Verifies the shared FleetGraph core boundary without real model calls or Ship mutations.
+import './test/setup-chat-openai-mock.js';
+import { resetChatOpenAIMock } from './test/setup-chat-openai-mock.js';
 import type { FleetGraphEvidenceItem } from '@ship/shared';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pool } from '../db/client.js';
 import { pgResult } from '../test/pg-result.js';
 import { runFleetGraph, shouldAutoCaptureTrace, type FleetGraphPersistencePort } from './core.js';
@@ -253,6 +255,12 @@ function restrictedSprintDb() {
 }
 
 describe('FleetGraph shared core', () => {
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    process.env.FLEETGRAPH_MODEL = 'gpt-4o-mini';
+    resetChatOpenAIMock();
+  });
+
   it('does not auto-trace scheduled worker quiet exits', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     const previousLangSmithTracing = process.env.LANGSMITH_TRACING;
@@ -616,7 +624,7 @@ describe('FleetGraph shared core', () => {
     });
   });
 
-  it('answers typed notification chat through the shared graph without model calls', async () => {
+  it('answers typed notification chat through the model path with human gate', async () => {
     const port = persistence();
 
     const result = await runFleetGraph({
@@ -643,7 +651,7 @@ describe('FleetGraph shared core', () => {
       triggerReason: 'context_chat',
       inputSnapshot: { triggerType: 'context_chat' },
     }));
-    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 0 });
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 1 });
   });
 
   it('answers natural current-context prompts from an attached finding', async () => {
@@ -689,12 +697,10 @@ describe('FleetGraph shared core', () => {
 
     expect(result.decision).toBe('explain');
     const runInput = requireMockInput(vi.mocked(port.recordRun));
-    expect(runInput.outputSnapshot).toMatchObject({
-      answer: {
-        title: 'Chat',
-        body: 'Hi. What would you like to look at?',
-      },
-    });
+    const answerBody = (runInput.outputSnapshot as { answer?: { body?: string } }).answer?.body ?? '';
+    expect(answerBody).toMatch(/what would you like to talk about/i);
+    expect(answerBody).not.toMatch(/cleanup debt|sample integration approval/i);
+    expect(requireMockInput(vi.mocked(port.recordRun)).tokenMetadata).toMatchObject({ modelCalls: 1 });
   });
 
   it('answers broad-but-context-bound chat from the document instead of the signal template', async () => {
@@ -749,8 +755,9 @@ describe('FleetGraph shared core', () => {
         title: 'Blocked issue',
       },
     });
-    expect(JSON.stringify(runInput.outputSnapshot)).toContain('Status: in_progress.');
-    expect(JSON.stringify(runInput.outputSnapshot)).not.toContain('It is connected to');
+    const answerBody = JSON.stringify(runInput.outputSnapshot);
+    expect(answerBody).toMatch(/sample integration approval|Blocked issue/i);
+    expect(answerBody).not.toContain('It is connected to');
   });
 
   it('answers from a readable document when no finding is attached', async () => {

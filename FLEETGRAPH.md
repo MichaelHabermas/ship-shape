@@ -4,7 +4,7 @@ FleetGraph is Ship's project intelligence and attention engine. It watches real 
 
 ## Final Claim Boundary
 
-FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, bounded page-aware context chat, authenticated live reviewer proof, public static proof snapshots, and measured FleetGraph graph-runtime token/cost metadata. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or development-wide coding-assistant spend instrumentation.
+FleetGraph claims shared graph orchestration, deterministic candidate policy, deployed worker execution, FleetGraph-owned finding/run persistence, human-gated next actions, conversational page-aware context chat (LLM when configured), authenticated live reviewer proof, public static proof snapshots, and measured FleetGraph graph-runtime token/cost metadata. It does not claim autonomous Ship mutation/contact, broad Director recovery planning, or development-wide coding-assistant spend instrumentation.
 
 Live reviewer control room: `/fleetgraph/reviewer` in the authenticated app. Mutating controls require workspace admin plus `FLEETGRAPH_REVIEWER_PROOF_ENABLED=1`.
 
@@ -197,9 +197,10 @@ Current catalog assumptions used by FleetGraph when provider cost is estimated:
 | `gpt-4o-mini` | `$0.15 / 1M tokens` | `$0.075 / 1M tokens` | `$0.60 / 1M tokens` |
 
 - Blocked proactive create can call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL` is configured, and `OPENAI_API_KEY` exists.
-- Stale, at-risk, quiet, explain, refine, dismiss, and resolve paths remain deterministic/zero-token by default unless a future proof explicitly changes that boundary.
+- PM context chat calls the model when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set; otherwise the API reports chat unavailable. See `my-docs/fleetgraph-conversational-chat.md`.
+- Worker detection, explain-finding structure, refine, dismiss, and resolve paths remain deterministic/zero-token unless a future decision adds model use there.
 
-Production projections are generated into the proof packet for 100, 1,000, and 10,000 users using the measured cost-per-graph-invocation in the current proof window and an explicit assumption of 30 graph invocations per user per month. If the proof window has no real-model runs, projected model spend correctly remains `$0` and the proof must say deterministic-first rather than imply measured model use.
+Production projections are generated into the proof packet for 100, 1,000, and 10,000 users using the measured cost-per-graph-invocation in the current proof window and an explicit assumption of 30 graph invocations per user per month. Chat model spend is measured from `fleetgraph_runs` where `token_metadata.modelCalls > 0`.
 
 Cost cliffs and controls:
 

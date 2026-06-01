@@ -40,6 +40,7 @@
     "docs:check:strict": "node ./scripts/doc-sync/check.mjs --strict",
     "docs:check:paths": "node ./scripts/doc-sync/check-doc-paths.mjs",
     "docs:check:activation": "node ./scripts/doc-sync/check-activation-refs.mjs",
+    "docs:check:fleetgraph-chat": "node ./scripts/check-fleetgraph-chat-contract.mjs",
     "docs:facts:render": "node ./scripts/doc-sync/render-fact-blocks.mjs",
     "docs:facts:check": "node ./scripts/doc-sync/render-fact-blocks.mjs --check",
     "clean": "pnpm --recursive run clean && rm -rf node_modules",

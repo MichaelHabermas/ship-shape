@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateProactiveCreateText } from './model.js';
+import { generateContextChatText, generateProactiveCreateText } from './model.js';
 import type { FleetGraphAttentionCandidate } from './detection/detector.js';
 
 const invoke = vi.fn();
@@ -14,6 +14,36 @@ vi.mock('@langchain/openai', () => ({
     invoke = invoke;
   }),
 }));
+
+describe('generateContextChatText', () => {
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    process.env.FLEETGRAPH_MODEL = 'gpt-4o-mini';
+    delete process.env.FLEETGRAPH_REAL_MODEL_ENABLED;
+    invoke.mockResolvedValue({
+      content: 'Here is a grounded summary of the attached issue.',
+      usage_metadata: { input_tokens: 80, output_tokens: 20, total_tokens: 100 },
+    });
+  });
+
+  it('returns model answer and usage metadata when chat model is enabled', async () => {
+    const result = await generateContextChatText({
+      prompt: 'summarize this',
+      context: 'Title: Blocked issue\nType: issue',
+    });
+    expect(result?.answer).toContain('grounded summary');
+    expect(result?.tokenMetadata.modelCalls).toBe(1);
+  });
+
+  it('returns null when API key or model name is missing', async () => {
+    delete process.env.OPENAI_API_KEY;
+    const result = await generateContextChatText({
+      prompt: 'hi',
+      context: 'Title: Blocked issue',
+    });
+    expect(result).toBeNull();
+  });
+});
 
 describe('generateProactiveCreateText', () => {
   const previousEnv = { ...process.env };

@@ -137,3 +137,9 @@ ShipShape example (2026-05-31): migrating `api/src/routes/*.test.ts` surfaced th
 Playwright specs that call `readJsonAs` but still define loose inline types, or mix in raw `.json()`, keep most `no-unsafe-*` warnings. The fix is the same three-layer pattern as API routes: one parse helper (`typed-json.ts`), shared assertion-minimal types (`e2e-api-types.ts`), and typed SQL rows for Testcontainers seed code (`e2e-seed-rows.ts` in `isolated-env.ts`).
 
 ShipShape example (2026-05-31): Tier 3 cleared ~487 E2E warnings. Top file `weekly-accountability.spec.ts` had both `readJsonAs` and 27 raw `.json()` calls; migrating every parse site and deduplicating `PersonDocument` / weekly-plan types dropped it from 95 warnings to zero.
+
+## 11. Do Not Encode Product Chat As A Regex Template Router
+
+If users expect conversation, a deterministic intent classifier will feel robotic no matter how many branches you add. Tests that lock exact greeting strings, force `modelCalls: 0` on chat, or add a flag that disables the chat model will green-light a broken product. Separate concerns: keep detection, workers, and auth deterministic; use the model for PM chat when key and model name are configured; when unconfigured, fail honestly; assert outcomes (grounding, gates, no hallucination) instead of canned copy.
+
+ShipShape example (2026-06): FleetGraph `POST /api/fleetgraph/chat` fell back to an 800+ line template router whenever `OPENAI_API_KEY` was unset, while docs and evals treated zero-token chat as success. We removed the product router and the chat-deterministic env flag, return unavailable text without a key, and mock `@langchain/openai` in tests on the real `generateContextChatText` path.

@@ -156,13 +156,13 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** FleetGraph must not rely on workspace-only SQL for user-visible claims. Stored finding evidence, summaries, drafts, recipient rationale, and trace metadata must not contain hidden document titles, hidden IDs, private excerpts, contact details, raw prompts, raw completions, session tokens, or API tokens.
 
-## D020 - FleetGraph Model Calls Are Hybrid And Explicitly Opt-In
+## D020 - FleetGraph Proactive Create Model Is Opt-In
 
 **Date:** 2026-05-26
 
-**Decision:** Epic 4 permits real model calls only for proactive create, and only when explicitly enabled with `FLEETGRAPH_REAL_MODEL_ENABLED=true` plus model/API-key configuration. Update, quiet, explain, refine, dismiss/resolve, and error paths remain deterministic and record zero model calls.
+**Decision:** Proactive blocked-create copy may call the model only when `FLEETGRAPH_REAL_MODEL_ENABLED=true`, `FLEETGRAPH_MODEL`, and `OPENAI_API_KEY` are configured. Detector policy, worker ticks, explain/refine/dismiss/resolve graph paths, and structured finding output stay deterministic and record zero model calls unless a separate decision adds model use there.
 
-**Consequence:** Local tests and default worker/API wiring cannot accidentally spend tokens. If future slices enable real model traces, they must preserve the trace redaction contract and record token/cost metadata when available.
+**Consequence:** Local tests and default worker wiring do not spend tokens on detection. Proactive model traces must preserve the trace redaction contract and record token/cost metadata when available. PM context chat is governed by D095, not this decision.
 
 ## D021 - FleetGraph Golden Cases Execute Against The Shared Core
 
@@ -430,14 +430,6 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Consequence:** Future FleetGraph behavior should add graph nodes/decision handlers in `core.ts` only when orchestration changes. Product copy transforms, audience choice, output mapping, and persistence serialization should stay in `runtime/` unless moving them back clearly reduces complexity.
 
-## D054 - Context Chat Is A Bounded Graph Capsule
-
-**Date:** 2026-05-28
-
-**Decision:** The approved 10x on-demand path is a Context Capsule, not generic chat. Typed prompts enter the same FleetGraph runtime as `context_chat`, resolve the active notification/finding/page context, and support only bounded intents: `why_flagged`, `next_step`, and `summarize_changes`.
-
-**Consequence:** `/api/fleetgraph/chat` records `fleetgraph_runs` with distinct graph paths and zero model calls for the current deterministic slice. It must not create findings, mutate Ship state, send messages, or answer broad workspace questions without an attached source context. Unsupported prompts quietly explain the supported commands.
-
 ## D055 - FleetGraph Folders Follow Reasons To Change
 
 **Date:** 2026-05-28
@@ -578,9 +570,9 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 
 **Date:** 2026-05-29
 
-**Decision:** Treat FleetGraph chat quality as a behavior contract, not a function-output snapshot. Add `api/src/fleetgraph/eval/chat-behavior.ts` as the replayable corpus for real chat problems: greetings must stay conversational, summaries must be grounded in visible context, simplification must be materially shorter, sparse context must not invent facts, and follow-ups may use bounded recent history. `/api/fleetgraph/chat` accepts optional capped `history` entries so deterministic and future model-backed paths can distinguish a new request from a rewrite request.
+**Decision:** Treat FleetGraph chat quality as a behavior contract, not a function-output snapshot. Add `api/src/fleetgraph/eval/chat-behavior.ts` as the replayable corpus for real chat problems: greetings must stay conversational, summaries must be grounded in visible context, simplification must be materially shorter, sparse context must not invent facts, and follow-ups may use bounded recent history. `/api/fleetgraph/chat` accepts optional capped `history` entries so new requests can be distinguished from rewrite requests.
 
-**Consequence:** Every future chat regression should become a named golden case before or with the fix. CI-safe checks remain deterministic and no-model by default; Playwright smoke proves browser wiring only. Chat history is bounded request context, not a new persistence surface or a broad workspace assistant.
+**Consequence:** Every future chat regression should become a named golden case before or with the fix. CI uses rubric evals with mocked `@langchain/openai` on the real `generateContextChatText` path. Chat history is bounded request context, not a new persistence surface or a broad workspace assistant.
 
 ## D073 - FleetGraph Final Proof Requires Deployed All-Signal Evidence
 
@@ -765,3 +757,11 @@ Durable choices made during the week 5 work. This file exists so we can defend w
 **Decision:** E2E specs and fixtures must parse Playwright `APIResponse` JSON through `readJsonAs<T>` (`e2e/fixtures/typed-json.ts`) with assertion-minimal types in `e2e/fixtures/e2e-api-types.ts` — not raw `.json()` plus dot-access on `any`. Testcontainers seed SQL in `e2e/fixtures/isolated-env.ts` uses `e2e/fixtures/e2e-seed-rows.ts` (`IdRow`, `requireFirstRow`) for `pool.query` rows. Do not import web OpenAPI generated types into E2E; full wire validation stays in Tier 1 API route tests.
 
 **Consequence:** E2E `no-unsafe-assignment` + `no-unsafe-member-access` at zero (~487 cleared). Partial `readJsonAs` without shared types or mixed `.json()` calls does not count as migrated. Next: repo tail (`seed.ts`, services, collaboration) and optional ESLint error promotion on cleaned paths.
+
+## D095 - FleetGraph PM Chat Is Model-Primary Conversation
+
+**Date:** 2026-06-01
+
+**Decision:** PM-facing `POST /api/fleetgraph/chat` is a conversational LLM path. Context chips and page/finding attachments name the topic; they are not regex intents or command menus. `shouldUseChatModel()` is true when `OPENAI_API_KEY` and `FLEETGRAPH_MODEL` are set. Without them, `chatModelUnavailableAnswer` returns an honest configuration message only. The old template router (`deterministicContextChatAnswer`) and the chat-deterministic env flag are removed.
+
+**Consequence:** Do not reintroduce large deterministic chat templates, intent classifiers, or flags that disable the chat model in dev/prod. Detection/worker SQL policy, human gates, and permission filtering stay as-is. Active contract: `my-docs/fleetgraph-conversational-chat.md`. Excised submission text: `my-docs/project-weeks-sot/week-5/archive/submission-deterministic-chat/`.

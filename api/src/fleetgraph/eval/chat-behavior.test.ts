@@ -1,6 +1,8 @@
-// Executes FleetGraph chat behavior golden cases through the shared graph with mocked persistence.
+// Executes FleetGraph chat behavior golden cases through generateContextChatText + mocked ChatOpenAI.
+import '../test/setup-chat-openai-mock.js';
+import { resetChatOpenAIMock } from '../test/setup-chat-openai-mock.js';
 import { FLEETGRAPH_CHAT_HISTORY_LIMIT, type FleetGraphChatHistoryEntry } from '@ship/shared';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { pgResult } from '../../test/pg-result.js';
 import { runFleetGraph, type FleetGraphCoreOptions, type FleetGraphPersistencePort } from '../core.js';
 import {
@@ -15,7 +17,6 @@ import {
   evaluateFleetGraphChatBehaviorTurn,
   fleetGraphChatBehaviorCases,
 } from './chat-behavior.js';
-
 const workspaceId = '11111111-1111-4111-8111-111111111111';
 const issueId = '22222222-2222-4222-8222-222222222222';
 const sparseIssueId = '88888888-8888-4888-8888-888888888888';
@@ -33,6 +34,12 @@ const principal: Principal = {
   workspaceId,
   isSuperAdmin: false,
 };
+
+beforeEach(() => {
+  process.env.OPENAI_API_KEY = 'test-key';
+  process.env.FLEETGRAPH_MODEL = 'gpt-4o-mini';
+  resetChatOpenAIMock();
+});
 
 function finding(overrides: Partial<FleetGraphFinding> = {}): FleetGraphFinding {
   return {
