@@ -229,7 +229,7 @@ Useful commands:
 pnpm docs:check:fleetgraph-chat
 pnpm fleetgraph:proof:check
 pnpm fleetgraph:proof:verify-traces
-pnpm fleetgraph:proof:test
+node --test ./scripts/fleetgraph-proof/*.test.mjs
 ```
 
 ### `security`

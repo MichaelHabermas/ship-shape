@@ -276,5 +276,5 @@ pnpm test:api                 # if response shapes changed
 pnpm type-check
 pnpm check:affected-ts
 pnpm openapi:check:strict
-pnpm type-safety:report --brief
+node ./scripts/type-safety-report.mjs --brief
 ```

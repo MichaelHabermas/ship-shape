@@ -7,7 +7,7 @@ Use this when you need a stable workspace for local, dev, shadow, or deployed ve
 Run:
 
 ```bash
-pnpm demo:seed
+pnpm fleetgraph:demo
 ```
 
 This attaches the stable reviewer to the loaded app workspace (`Ship Workspace`) when it exists, then adds or refreshes FleetGraph blocker/control records in that same workspace. If no loaded app workspace exists, it falls back to creating `FleetGraph Demo Workspace`.
@@ -28,7 +28,7 @@ Render deploys run migrations only. Seed or repair deployed demo data explicitly
 DATABASE_URL="postgresql://..." \
 FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB=1 \
 FLEETGRAPH_DEMO_PASSWORD="..." \
-pnpm demo:seed
+pnpm fleetgraph:demo
 ```
 
 Use this after deploys or database resets for intentional demo environments. Do not add the generic database seed back to the Render build.
@@ -40,7 +40,7 @@ The command refuses non-local databases unless you opt in:
 ```bash
 DATABASE_URL="postgresql://..." \
 FLEETGRAPH_DEMO_ALLOW_NONLOCAL_DB=1 \
-pnpm demo:seed
+pnpm fleetgraph:demo
 ```
 
 Use the opt-in only for an intentional demo/dev/shadow/deployed database. Do not run it against customer data.

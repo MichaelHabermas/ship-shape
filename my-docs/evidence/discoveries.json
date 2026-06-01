@@ -8,7 +8,7 @@
       "title": "Probe could overclaim skipped surfaces",
       "note": "Skipped-only surfaces counted as measured.",
       "status": "Fixed",
-      "evidence": "scripts/security-probe/lib/report.mjs",
+      "evidence": "packages/shipshape-security/src/core/report.mjs",
       "impact": 4
     },
     {
@@ -17,7 +17,7 @@
       "title": "Audit parse failure could pass",
       "note": "Dependency evidence needed error status on unreadable audit output.",
       "status": "Fixed",
-      "evidence": "scripts/security-probe/probes/dependency-cves.mjs",
+      "evidence": "packages/shipshape-security/src/probes/dependency-cves.mjs",
       "impact": 4
     },
     {
@@ -26,7 +26,7 @@
       "title": "Probe writes are local-only by default",
       "note": "Remote write and stress probes require explicit opt-in.",
       "status": "Fixed",
-      "evidence": "scripts/security-probe/lib/probe-selection.mjs",
+      "evidence": "packages/shipshape-security/src/core/probe-selection.mjs",
       "impact": 3
     },
     {
@@ -44,7 +44,7 @@
       "title": "Raw WS parser could false-pass",
       "note": "Close frames needed real frame parsing and close-code validation.",
       "status": "Fixed",
-      "evidence": "scripts/security-probe/lib/ws-raw.mjs",
+      "evidence": "packages/shipshape-security/src/core/ws-raw.mjs",
       "impact": 4
     },
     {
@@ -53,7 +53,7 @@
       "title": "Input probes were too narrow",
       "note": "Issue and comment payloads were added before final claim.",
       "status": "Fixed",
-      "evidence": "scripts/security-probe/probes/input-sanitization.mjs",
+      "evidence": "packages/shipshape-security/src/probes/input-sanitization.mjs",
       "impact": 4
     },
     {
