@@ -66,9 +66,9 @@ vi.mock('../security/principal.js', () => ({
   })),
 }));
 
-vi.mock('../services/issue-mutations-service.js', async () => {
-  const actual = await vi.importActual<typeof import('../services/issue-mutations-service.js')>(
-    '../services/issue-mutations-service.js'
+vi.mock('../services/issue-mutations/index.js', async () => {
+  const actual = await vi.importActual<typeof import('../services/issue-mutations/index.js')>(
+    '../services/issue-mutations/index.js'
   );
 
   return {
@@ -81,10 +81,10 @@ import type { PoolClient } from 'pg';
 import { pool } from '../db/client.js';
 import type { CapabilityDecision } from '../security/capabilities.js';
 import { requireIssueRead, requireIssueWrite } from '../security/route-capability.js';
-import { updateIssueMutation } from '../services/issue-mutations-service.js';
+import { updateIssueMutation } from '../services/issue-mutations/index.js';
 import express from 'express';
 import request from 'supertest';
-import issuesRouter from './issues.js';
+import issuesRouter from './issues/index.js';
 
 const IssueHistoryListSchema = z.array(
   IssueHistoryEntrySchema.extend({

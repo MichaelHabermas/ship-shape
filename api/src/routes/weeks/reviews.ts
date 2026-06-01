@@ -11,10 +11,12 @@ import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import { requireWeekLifecycleAuthority } from '../../services/governance-auth.js';
 import { principalFromRequest } from '../../security/principal.js';
 import { requireWeekRead, requireWeekWrite } from './week-access.js';
+import {
+  extractReviewResponseFromRow,
+  generatePrefilledReviewContent,
+  sprintReviewSchema,
+} from './reviews-review-content.js';
 import type {
-  SprintReviewSprintData,
-  SprintReviewIssueRow,
-  TipTapJsonDoc,
   SprintReviewSprintRow,
   SprintReviewDocumentRow,
   WeeklyPlanContentRow,
@@ -23,170 +25,10 @@ import type {
   SprintPropertiesOnlyRow,
   SprintCarryoverSprintRow,
   IdRow,
+  SprintReviewIssueRow,
 } from './types.js';
 
 const router = Router();
-
-function extractReviewResponseFromRow(
-  review: SprintReviewDocumentRow,
-  sprintId: string,
-) {
-  const reviewProps = review.properties || {};
-  return {
-    id: review.id,
-    sprint_id: sprintId,
-    title: review.title,
-    content: review.content,
-    plan_validated: reviewProps.plan_validated ?? null,
-    owner_id: reviewProps.owner_id || null,
-    owner_name: review.owner_name || null,
-    owner_email: review.owner_email || null,
-    created_at: review.created_at,
-    updated_at: review.updated_at,
-    is_draft: false,
-  };
-}
-
-const sprintReviewSchema = z.object({
-  content: z.record(z.unknown()).optional(),
-  title: z.string().max(200).optional(),
-  plan_validated: z.boolean().nullable().optional(),
-});
-
-// Helper to generate pre-filled sprint review content
-async function generatePrefilledReviewContent(sprintData: SprintReviewSprintData, issues: SprintReviewIssueRow[]) {
-  // Categorize issues
-  const issuesPlanned = issues.filter(i => {
-    const props = i.properties || {};
-    // An issue is "planned" if it was in the sprint from the start (no carryover_from_sprint_id)
-    return !props.carryover_from_sprint_id;
-  });
-
-  const issuesCompleted = issues.filter(i => {
-    const props = i.properties || {};
-    return props.state === 'done';
-  });
-
-  const issuesIntroduced = issues.filter(i => {
-    const props = i.properties || {};
-    // Issues introduced mid-sprint would have carryover_from_sprint_id
-    return !!props.carryover_from_sprint_id;
-  });
-
-  const issuesCancelled = issues.filter(i => {
-    const props = i.properties || {};
-    return props.state === 'cancelled';
-  });
-
-  // Build TipTap content with suggested sections
-  const content: TipTapJsonDoc = {
-    type: 'doc',
-    content: [
-      {
-        type: 'heading',
-        attrs: { level: 2 },
-        content: [{ type: 'text', text: 'Weekly Summary' }]
-      },
-      {
-        type: 'paragraph',
-        content: [{ type: 'text', text: `Week ${sprintData.sprint_number} review for ${sprintData.program_name || 'Program'}.` }]
-      },
-    ]
-  };
-
-  // Add plan section if sprint has one
-  if (sprintData.plan) {
-    content.content.push(
-      {
-        type: 'heading',
-        attrs: { level: 3 },
-        content: [{ type: 'text', text: 'Plan' }]
-      },
-      {
-        type: 'paragraph',
-        content: [{ type: 'text', text: sprintData.plan }]
-      }
-    );
-  }
-
-  // Add issues summary section
-  content.content.push(
-    {
-      type: 'heading',
-      attrs: { level: 3 },
-      content: [{ type: 'text', text: 'Issues Summary' }]
-    },
-    {
-      type: 'bulletList',
-      content: [
-        {
-          type: 'listItem',
-          content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: `Planned: ${issuesPlanned.length} issues` }]
-          }]
-        },
-        {
-          type: 'listItem',
-          content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: `Completed: ${issuesCompleted.length} issues` }]
-          }]
-        },
-        {
-          type: 'listItem',
-          content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: `Introduced mid-sprint: ${issuesIntroduced.length} issues` }]
-          }]
-        },
-        {
-          type: 'listItem',
-          content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: `Cancelled: ${issuesCancelled.length} issues` }]
-          }]
-        },
-      ]
-    }
-  );
-
-  // Add completed issues list
-  if (issuesCompleted.length > 0) {
-    content.content.push(
-      {
-        type: 'heading',
-        attrs: { level: 3 },
-        content: [{ type: 'text', text: 'Deliverables' }]
-      },
-      {
-        type: 'bulletList',
-        content: issuesCompleted.map(i => ({
-          type: 'listItem',
-          content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: `#${i.ticket_number}: ${i.title}` }]
-          }]
-        }))
-      }
-    );
-  }
-
-  // Add next steps placeholder
-  content.content.push(
-    {
-      type: 'heading',
-      attrs: { level: 3 },
-      content: [{ type: 'text', text: 'Next Steps' }]
-    },
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Add follow-up actions and learnings here.' }]
-    }
-  );
-
-  return content;
-}
 
 // GET /api/weeks/:id/review - Get or generate pre-filled sprint review
 router.get('/:id/review', authMiddleware, async (req: Request, res: Response) => {

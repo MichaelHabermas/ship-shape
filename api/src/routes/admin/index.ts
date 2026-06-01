@@ -4,7 +4,7 @@ import workspacesRouter from './workspaces.js';
 import usersRouter from './users.js';
 import auditLogsRouter from './audit-logs.js';
 import impersonateRouter from './impersonate.js';
-import workspaceMembersRouter from './workspace-members.js';
+import workspaceMembersRouter from './workspace-members/index.js';
 import debugRouter from './debug.js';
 
 const router = Router();

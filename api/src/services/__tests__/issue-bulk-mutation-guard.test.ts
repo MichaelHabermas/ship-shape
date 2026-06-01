@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import crypto from 'crypto';
 import { pool } from '../../db/client.js';
-import { bulkUpdateIssuesMutation } from '../issue-mutations-service.js';
+import { bulkUpdateIssuesMutation } from '../issue-mutations/index.js';
 import type { Principal } from '../../security/principal.js';
 import { IdRow, requireFirstRow } from '../../test/pg-result.js';
 

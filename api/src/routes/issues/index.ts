@@ -1,123 +1,57 @@
 // Issue routes expose document-backed issue CRUD, history, bulk actions, and iteration evidence.
 import { Router, Request, Response } from 'express';
-import { pool } from '../db/client.js';
+import { pool } from '../../db/client.js';
 import {
   extractIssueFromRow,
   getIssueDetailById,
   getIssueDetailByTicketNumber,
   listIssueChildren,
   listIssuesMetadata,
-  type IssueDetailRow,
-} from '../db/documents-repository.js';
-import { z } from 'zod';
+} from '../../db/documents-repository.js';
 import type { IssueProperties } from '@ship/shared';
-import { getVisibilityContext } from '../middleware/visibility.js';
-import { authMiddleware } from '../middleware/auth.js';
-import { getAuthenticatedRouteContext } from '../utils/auth-context.js';
+import { getVisibilityContext } from '../../middleware/visibility.js';
+import { authMiddleware } from '../../middleware/auth.js';
+import { getAuthenticatedRouteContext } from '../../utils/auth-context.js';
 import {
-  createIssueRequestSchema,
-  issuePrioritySchema,
-  issueSourceSchema,
-  issueStateSchema,
-  updateIssueRequestSchema,
-} from '../schemas/document-boundary.js';
-import {
-  logDocumentChange,
-  getBelongsToAssociations,
   getBelongsToAssociationsBatch,
-} from '../utils/document-crud.js';
+} from '../../utils/document-crud.js';
 import {
   getActor,
   getDocumentAccessContext,
-  getReadableDocument,
-  type DocumentActor,
-} from '../services/document-access.js';
-import { principalFromRequest } from '../security/principal.js';
+} from '../../services/document-access.js';
+import { principalFromRequest } from '../../security/principal.js';
 import {
   guardDocumentIdParam,
   requireIssueRead,
   requireIssueWrite,
-} from '../security/route-capability.js';
-import { sendInternalError, sendValidationError } from '../utils/route-http.js';
+} from '../../security/route-capability.js';
+import { sendInternalError, sendValidationError } from '../../utils/route-http.js';
 import {
-  acceptIssueMutation,
   bulkUpdateIssuesMutation,
-  createIssueIterationMutation,
   createIssueMutation,
-  listIssueIterations,
-  rejectIssueMutation,
   updateIssueMutation,
-  type IssueMutationResult,
-} from '../services/issue-mutations-service.js';
+} from '../../services/issue-mutations/index.js';
 import {
   mapIssueActionItemRow,
-  mapIssueHistoryRow,
   mapIssueListItem,
   type IssueActionItemRow,
-  type IssueHistoryRow,
-} from '../utils/issue-response.js';
-import { requireFirstRow } from '../utils/query-rows.js';
+} from '../../utils/issue-response.js';
+import { requireFirstRow } from '../../utils/query-rows.js';
+import {
+  bulkUpdateSchema,
+  createIssueSchema,
+  IssuePropertiesRow,
+  listIssuesQuerySchema,
+  PersonIdRow,
+  respondIssueMutation,
+  sendIssueDetailResponse,
+  updateIssueSchema,
+} from './shared.js';
+import { registerIssueWorkflowRoutes } from './workflow-routes.js';
 
 const router = Router();
 
-type PersonIdRow = { id: string };
-type IssuePropertiesRow = {
-  id: string;
-  properties: IssueProperties | Record<string, unknown> | null;
-};
-
-// Validation schemas
-const createIssueSchema = createIssueRequestSchema;
-
-const updateIssueSchema = updateIssueRequestSchema;
-
-const rejectIssueSchema = z.object({
-  reason: z.string().min(1).max(1000),
-});
-
-const listIssuesQuerySchema = z.object({
-  state: z.string().optional(),
-  priority: issuePrioritySchema.optional(),
-  assignee_id: z.string().optional(),
-  program_id: z.string().uuid().optional(),
-  project_id: z.string().uuid().optional(),
-  sprint_id: z.string().uuid().optional(),
-  source: issueSourceSchema.optional(),
-  parent_filter: z.enum(['top_level', 'has_children', 'is_sub_issue']).optional(),
-});
-
-function respondIssueMutation<T>(res: Response, result: IssueMutationResult<T>): void {
-  if (!result.ok) {
-    res.status(result.status).json(result.body);
-    return;
-  }
-  res.status(result.status).json(result.body);
-}
-
-async function sendIssueDetailResponse(
-  res: Response,
-  row: IssueDetailRow,
-  actor: DocumentActor
-): Promise<void> {
-  if (row.converted_to_id) {
-    const newDoc = await getReadableDocument(pool, actor, row.converted_to_id);
-
-    if (newDoc) {
-      res.set('X-Converted-Type', newDoc.document_type);
-      res.set('X-Converted-To', newDoc.id);
-      res.redirect(301, `/api/${newDoc.document_type}s/${newDoc.id}`);
-      return;
-    }
-  }
-
-  const issue = extractIssueFromRow(row);
-  const belongs_to = await getBelongsToAssociations(row.id);
-  res.json({
-    ...issue,
-    display_id: `#${issue.ticket_number}`,
-    belongs_to,
-  });
-}
+registerIssueWorkflowRoutes(router);
 
 // List issues with filters
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
@@ -143,7 +77,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       parent_filter,
     });
 
-    // Extract issues and batch-fetch associations to avoid N+1 queries
     const issueIds = rows.map(row => row.id);
     const associationsMap = await getBelongsToAssociationsBatch(issueIds);
 
@@ -155,10 +88,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// Get action items for current user (issues with source='action_items' that are not done)
 router.get('/action-items', authMiddleware, async (req: Request, res: Response) => {
   try {
-    // In test mode, return empty to avoid blocking E2E test interactions with modal
     if (process.env.NODE_ENV === 'test') {
       res.json({ items: [], total: 0 });
       return;
@@ -166,7 +97,6 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
 
     const { userId, workspaceId } = getAuthenticatedRouteContext(req);
 
-    // Get person document ID for the user
     const personResult = await pool.query<PersonIdRow>(
       `SELECT id FROM documents
        WHERE workspace_id = $1 AND document_type = 'person'
@@ -175,7 +105,6 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
     );
     const personDocId = personResult.rows[0]?.id;
 
-    // Get action items: issues with source='action_items' assigned to current user, not done
     const result = await pool.query<IssueActionItemRow>(
       `SELECT
          d.id,
@@ -207,7 +136,6 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
       [workspaceId, userId, personDocId]
     );
 
-    // Calculate days overdue for each item
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -222,7 +150,6 @@ router.get('/action-items', authMiddleware, async (req: Request, res: Response) 
   }
 });
 
-// Get issue by ticket number
 router.get('/by-ticket/:number', authMiddleware, async (req: Request, res: Response) => {
   try {
     const numberParam = req.params.number;
@@ -261,7 +188,6 @@ router.get('/by-ticket/:number', authMiddleware, async (req: Request, res: Respo
   }
 });
 
-// Get sub-issues (children) of an issue
 router.get('/:id/children', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
@@ -274,7 +200,6 @@ router.get('/:id/children', authMiddleware, async (req: Request, res: Response) 
 
     const rows = await listIssueChildren(id, actor.workspaceId, actor.userId, isAdmin);
 
-    // Batch-fetch associations to avoid N+1 queries
     const childIds = rows.map(row => row.id);
     const associationsMap = await getBelongsToAssociationsBatch(childIds);
 
@@ -293,7 +218,6 @@ router.get('/:id/children', authMiddleware, async (req: Request, res: Response) 
   }
 });
 
-// Get single issue
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
@@ -317,8 +241,6 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// Create issue
-// Uses advisory lock to prevent race condition in ticket number generation
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   const parsed = createIssueSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -346,7 +268,6 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// Update issue
 router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   const parsed = updateIssueSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -377,80 +298,6 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// Get issue history
-router.get('/:id/history', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!id || !(await requireIssueRead(req, res, id))) {
-      return;
-    }
-
-    const result = await pool.query<IssueHistoryRow>(
-      `SELECT h.id, h.field, h.old_value, h.new_value, h.created_at, h.automated_by,
-              u.id as changed_by_id, u.name as changed_by_name
-       FROM document_history h
-       LEFT JOIN users u ON h.changed_by = u.id
-       WHERE h.document_id = $1
-       ORDER BY h.created_at DESC`,
-      [id]
-    );
-
-    res.json(result.rows.map(mapIssueHistoryRow));
-  } catch (err) {
-    sendInternalError(res, err, 'Get issue history error:');
-  }
-});
-
-// Log custom history entry (for verification failures, etc.)
-const logHistorySchema = z.object({
-  field: z.string().min(1).max(100),
-  old_value: z.string().nullable(),
-  new_value: z.string().nullable(),
-  automated_by: z.string().optional(),
-});
-
-router.post('/:id/history', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!id || !(await requireIssueWrite(req, res, id))) {
-      return;
-    }
-
-    const { userId } = getAuthenticatedRouteContext(req);
-
-    const parsed = logHistorySchema.safeParse(req.body);
-    if (!parsed.success) {
-      sendValidationError(res, parsed.error);
-      return;
-    }
-
-    const { field, old_value, new_value, automated_by } = parsed.data;
-
-    // Pass automated_by only if defined (function parameter is optional)
-    if (automated_by !== undefined) {
-      await logDocumentChange(id, field, old_value, new_value, userId, automated_by);
-    } else {
-      await logDocumentChange(id, field, old_value, new_value, userId);
-    }
-
-    res.status(201).json({ success: true });
-  } catch (err) {
-    sendInternalError(res, err, 'Log history entry error:');
-  }
-});
-
-// Bulk update issues
-const bulkUpdateSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(100),
-  action: z.enum(['archive', 'delete', 'restore', 'update']),
-  updates: z.object({
-    state: issueStateSchema.optional(),
-    sprint_id: z.string().uuid().nullable().optional(),
-    assignee_id: z.string().uuid().nullable().optional(),
-    project_id: z.string().uuid().nullable().optional(),
-  }).optional(),
-});
-
 router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
   const parsed = bulkUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -479,8 +326,6 @@ router.post('/bulk', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// Delete issue
-// System-generated accountability issues cannot be deleted
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
@@ -509,7 +354,6 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const props = (requireFirstRow(accessCheck.rows).properties ?? {}) as Partial<IssueProperties>;
 
-    // Block deletion of system-generated accountability issues
     if (props.is_system_generated) {
       res.status(403).json({
         error: 'Cannot delete system-generated accountability issues',
@@ -533,111 +377,6 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (err) {
     sendInternalError(res, err, 'Delete issue error:');
-  }
-});
-
-// Accept issue (move from triage to backlog)
-router.post('/:id/accept', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!id) return;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const result = await acceptIssueMutation({
-      issueId: id,
-      principal: principalFromRequest(req),
-      userId,
-      workspaceId,
-    });
-    respondIssueMutation(res, result);
-  } catch (err) {
-    sendInternalError(res, err, 'Accept issue error:');
-  }
-});
-
-// ============== ITERATION ENDPOINTS ==============
-// Iterations track Claude's work progress on individual issues
-
-// Validation schemas for iterations
-const createIterationSchema = z.object({
-  status: z.enum(['pass', 'fail', 'in_progress']),
-  what_attempted: z.string().max(5000).optional(),
-  blockers_encountered: z.string().max(5000).optional(),
-});
-
-const listIterationsSchema = z.object({
-  status: z.enum(['pass', 'fail', 'in_progress']).optional(),
-});
-
-// Create iteration entry - POST /api/issues/:id/iterations
-router.post('/:id/iterations', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const issueId = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!issueId) return;
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const parsed = createIterationSchema.safeParse(req.body);
-    if (!parsed.success) {
-      sendValidationError(res, parsed.error);
-      return;
-    }
-    const result = await createIssueIterationMutation({
-      issueId,
-      principal: principalFromRequest(req),
-      userId,
-      workspaceId,
-      status: parsed.data.status,
-      what_attempted: parsed.data.what_attempted,
-      blockers_encountered: parsed.data.blockers_encountered,
-    });
-    respondIssueMutation(res, result);
-  } catch (err) {
-    sendInternalError(res, err, 'Create iteration error:');
-  }
-});
-
-// Get issue iterations - GET /api/issues/:id/iterations
-router.get('/:id/iterations', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const issueId = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!issueId) return;
-    const { workspaceId } = getAuthenticatedRouteContext(req);
-    const queryParsed = listIterationsSchema.safeParse(req.query);
-    if (!queryParsed.success) {
-      sendValidationError(res, queryParsed.error);
-      return;
-    }
-    const result = await listIssueIterations(pool, {
-      issueId,
-      principal: principalFromRequest(req),
-      workspaceId,
-      status: queryParsed.data.status,
-    });
-    respondIssueMutation(res, result);
-  } catch (err) {
-    sendInternalError(res, err, 'Get iterations error:');
-  }
-});
-
-// Reject issue (move from triage to cancelled with reason)
-router.post('/:id/reject', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const id = guardDocumentIdParam(res, req.params.id, 'Issue not found');
-    if (!id) return;
-    const parsed = rejectIssueSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Rejection reason is required' });
-      return;
-    }
-    const { userId, workspaceId } = getAuthenticatedRouteContext(req);
-    const result = await rejectIssueMutation({
-      issueId: id,
-      principal: principalFromRequest(req),
-      userId,
-      workspaceId,
-      reason: parsed.data.reason,
-    });
-    respondIssueMutation(res, result);
-  } catch (err) {
-    sendInternalError(res, err, 'Reject issue error:');
   }
 });
 

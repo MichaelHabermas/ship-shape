@@ -1,26 +1,26 @@
 // Bulk issue archive/delete/restore/update with capability guards and domain validation.
 import type { PoolClient } from 'pg';
 import type { IssueProperties, DocumentType  } from '@ship/shared';
-import { type IssueDocumentRow, type IssueMetadataRow } from '../db/documents-repository.js';
-import { mapIssueListItem } from '../utils/issue-response.js';
-import type { DocumentMutationCapability } from '../security/capabilities.js';
-import type { Principal } from '../security/principal.js';
-import { documentActorFromPrincipal } from '../security/document-actor.js';
-import { guardDocumentMutationsBatch } from './mutation-capability-guard.js';
+import { type IssueDocumentRow, type IssueMetadataRow } from '../../db/documents-repository.js';
+import { mapIssueListItem } from '../../utils/issue-response.js';
+import type { DocumentMutationCapability } from '../../security/capabilities.js';
+import type { Principal } from '../../security/principal.js';
+import { documentActorFromPrincipal } from '../../security/document-actor.js';
+import { guardDocumentMutationsBatch } from '../mutation-capability-guard.js';
 import {
   getTimestampUpdates,
   getBelongsToAssociationsBatch,
   syncAssociationOfTypeForDocuments,
-} from '../utils/document-crud.js';
+} from '../../utils/document-crud.js';
 import {
   getDocumentAccessContext,
   requireReferenceableDocument,
   type DocumentActor,
-} from './document-access.js';
-import { VISIBILITY_FILTER_SQL } from '../middleware/visibility.js';
-import { requireFirstRow } from '../utils/query-rows.js';
-import { enqueueFleetGraphIssueAttentionEvents } from '../fleetgraph/events.js';
-import { issueStateSchema } from '../schemas/document-boundary.js';
+} from '../document-access.js';
+import { VISIBILITY_FILTER_SQL } from '../../middleware/visibility.js';
+import { requireFirstRow } from '../../utils/query-rows.js';
+import { enqueueFleetGraphIssueAttentionEvents } from '../../fleetgraph/events.js';
+import { issueStateSchema } from '../../schemas/document-boundary.js';
 import type { z } from 'zod';
 
 type IssueMutationResult<T> =
